@@ -3,6 +3,7 @@
 import * as Sentry from "@sentry/nextjs";
 import Head from "next/head";
 import { useEffect, useState } from "react";
+import posthog from "posthog-js";
 
 class SentryExampleFrontendError extends Error {
   constructor(message: string | undefined) {
@@ -72,6 +73,7 @@ export default function Page() {
           type="button"
           onClick={async () => {
             Sentry.logger.info("User clicked the button, throwing a sample error");
+            posthog.capture("sentry_error_triggered", { page: "sentry-example-page" });
             await Sentry.startSpan(
               {
                 name: "Example Frontend/Backend Span",
