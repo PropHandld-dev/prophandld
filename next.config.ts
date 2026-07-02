@@ -26,5 +26,4 @@ export default withSentryConfig(nextConfig, {
   project: "javascript-nextjs",
   silent: !process.env.CI,
   widenClientFileUpload: true,
-  disableEdgeRuntimeInstrumentation: true,
 });
