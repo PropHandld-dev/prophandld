@@ -74,6 +74,7 @@ export default function LandlordDashboard() {
           <p className="text-white/50 mt-1">Here's what's happening across your properties.</p>
         </div>
 
+        {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           {[
             { label: 'Properties', value: '0', icon: '🏠' },
@@ -88,12 +89,13 @@ export default function LandlordDashboard() {
           ))}
         </div>
 
+        {/* Quick actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 transition cursor-pointer">
+          <Link href="/landlord/properties" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 transition block">
             <div className="text-xl mb-2">🏠</div>
-            <h3 className="text-white font-semibold mb-1">Add a property</h3>
-            <p className="text-white/40 text-sm">Add your first property and units</p>
-          </div>
+            <h3 className="text-white font-semibold mb-1">Properties</h3>
+            <p className="text-white/40 text-sm">Manage your properties and units</p>
+          </Link>
           <div className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 transition cursor-pointer">
             <div className="text-xl mb-2">👤</div>
             <h3 className="text-white font-semibold mb-1">Add a tenant</h3>
