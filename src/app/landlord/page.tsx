@@ -9,6 +9,11 @@ export default function LandlordDashboard() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [stats, setStats] = useState({
+    properties: 0,
+    openJobs: 0,
+    pendingBids: 0,
+  })
 
   useEffect(() => {
     const getUser = async () => {
@@ -18,6 +23,19 @@ export default function LandlordDashboard() {
         return
       }
       setUser(user)
+
+      // Fetch real counts
+      const { count: propertiesCount } = await supabase
+        .from('properties')
+        .select('*', { count: 'exact', head: true })
+        .eq('owner_user_id', user.id)
+
+      setStats({
+        properties: propertiesCount || 0,
+        openJobs: 0,
+        pendingBids: 0,
+      })
+
       setLoading(false)
     }
     getUser()
@@ -77,9 +95,9 @@ export default function LandlordDashboard() {
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           {[
-            { label: 'Properties', value: '0', icon: '🏠' },
-            { label: 'Open Jobs', value: '0', icon: '🔧' },
-            { label: 'Pending Bids', value: '0', icon: '📋' },
+            { label: 'Properties', value: stats.properties, icon: '🏠' },
+            { label: 'Open Jobs', value: stats.openJobs, icon: '🔧' },
+            { label: 'Pending Bids', value: stats.pendingBids, icon: '📋' },
           ].map((stat) => (
             <div key={stat.label} className="bg-white/3 border border-white/8 rounded-2xl p-6">
               <div className="text-2xl mb-2">{stat.icon}</div>
