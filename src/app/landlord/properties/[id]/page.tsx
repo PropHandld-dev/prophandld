@@ -21,34 +21,28 @@ export default function PropertyDetailPage() {
         return
       }
 
-      const { data: propertyData } = await supabase
+      const { data: propertyData, error: propertyError } = await supabase
         .from('properties')
         .select('*')
         .eq('id', propertyId)
         .eq('owner_user_id', user.id)
         .single()
 
-      if (!propertyData) {
+      if (propertyError || !propertyData) {
         router.push('/landlord/properties')
         return
       }
 
       setProperty(propertyData)
 
-      const { data: unitsData } = await supabase
+      const { data: unitsData, error: unitsError } = await supabase
         .from('units')
-        .select(`
-          *,
-          tenancies (
-            id,
-            rent_amount,
-            lease_start,
-            lease_end,
-            users (full_name, email, phone)
-          )
-        `)
+        .select('*')
         .eq('property_id', propertyId)
         .order('unit_number')
+
+      console.log('Units data:', unitsData)
+      console.log('Units error:', unitsError)
 
       if (unitsData) setUnits(unitsData)
       setLoading(false)
@@ -80,11 +74,14 @@ export default function PropertyDetailPage() {
       </nav>
 
       <main className="max-w-4xl mx-auto px-6 py-10">
+
         {/* Property header */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-white">{property.address}</h1>
           <p className="text-white/50 mt-1">{property.city}, {property.state} {property.zip}</p>
-          <span className="text-xs bg-white/8 text-white/60 rounded-full px-3 py-1 capitalize inline-block mt-2">{property.property_type}</span>
+          <span className="text-xs bg-white/8 text-white/60 rounded-full px-3 py-1 capitalize inline-block mt-2">
+            {property.property_type}
+          </span>
         </div>
 
         {/* Stats */}
@@ -115,37 +112,25 @@ export default function PropertyDetailPage() {
           </div>
         ) : (
           <div className="grid gap-3">
-            {units.map((unit) => {
-              const tenancy = unit.tenancies?.[0]
-              const tenant = tenancy?.users
-              return (
-                <Link
-                  key={unit.id}
-                  href={`/landlord/properties/${propertyId}/units/${unit.id}`}
-                  className="bg-white/3 border border-white/8 rounded-2xl p-5 hover:border-[#12A5A9]/30 transition block"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-white font-semibold">{unit.unit_number}</h3>
-                      {tenant ? (
-                        <p className="text-white/50 text-sm mt-1">🧑 {tenant.full_name}</p>
-                      ) : (
-                        <p className="text-white/30 text-sm mt-1">Vacant</p>
-                      )}
-                      {unit.sqft && <p className="text-white/30 text-xs mt-1">{unit.sqft} sqft</p>}
-                    </div>
-                    <div className="flex items-center gap-3">
-                      {tenancy ? (
-                        <span className="text-xs bg-[#0A7B7E]/20 text-[#12A5A9] border border-[#12A5A9]/30 rounded-full px-2 py-0.5">Occupied</span>
-                      ) : (
-                        <span className="text-xs bg-white/5 text-white/30 border border-white/10 rounded-full px-2 py-0.5">Vacant</span>
-                      )}
-                      <span className="text-white/30">→</span>
-                    </div>
+            {units.map((unit) => (
+              <Link
+                key={unit.id}
+                href={`/landlord/properties/${propertyId}/units/${unit.id}`}
+                className="bg-white/3 border border-white/8 rounded-2xl p-5 hover:border-[#12A5A9]/30 transition block"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-white font-semibold">{unit.unit_number}</h3>
+                    <p className="text-white/30 text-sm mt-1">Vacant</p>
+                    {unit.sqft && <p className="text-white/30 text-xs mt-1">{unit.sqft} sqft</p>}
                   </div>
-                </Link>
-              )
-            })}
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs bg-white/5 text-white/30 border border-white/10 rounded-full px-2 py-0.5">Vacant</span>
+                    <span className="text-white/30">→</span>
+                  </div>
+                </div>
+              </Link>
+            ))}
           </div>
         )}
 
@@ -164,6 +149,7 @@ export default function PropertyDetailPage() {
             <p className="text-white/30 text-sm">No emergency contacts added yet.</p>
           </div>
         </div>
+
       </main>
     </div>
   )
