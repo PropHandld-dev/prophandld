@@ -19,13 +19,12 @@ export default function PropertiesPage() {
       }
 
       const { data, error } = await supabase
-        .from('properties')
-        .select(`
-          *,
-          units (count)
-        `)
-        .eq('owner_user_id', user.id)
-        .order('created_at', { ascending: false })
+  .from('properties')
+  .select('*')
+  .eq('owner_user_id', user.id)
+  .order('created_at', { ascending: false })
+
+if (error) console.error('Properties fetch error:', error)
 
       if (!error && data) setProperties(data)
       setLoading(false)
