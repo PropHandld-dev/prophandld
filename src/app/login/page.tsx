@@ -50,7 +50,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
 
         <div className="text-center mb-8">
-          <img src="/logo.png" alt="Prophandld" className="w-36 mx-auto mb-2" />
+          <img src="/logo-icon.png" alt="Prophandld" className="w-24 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-white">Welcome back</h1>
           <p className="text-white/50 text-sm mt-1">Sign in to your account</p>
         </div>
