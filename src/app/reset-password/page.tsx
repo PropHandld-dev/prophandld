@@ -7,13 +7,13 @@ import { useRouter } from 'next/navigation'
 export default function ResetPasswordPage() {
   const router = useRouter()
   const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState(false)
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    // Handle the hash fragment from Supabase
     supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
         setReady(true)
@@ -23,12 +23,21 @@ export default function ResetPasswordPage() {
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
     setError(null)
 
-    const { error: updateError } = await supabase.auth.updateUser({
-      password,
-    })
+    if (password !== confirm) {
+      setError('Passwords do not match.')
+      return
+    }
+
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters.')
+      return
+    }
+
+    setLoading(true)
+
+    const { error: updateError } = await supabase.auth.updateUser({ password })
 
     if (updateError) {
       setError(updateError.message)
@@ -68,6 +77,18 @@ export default function ResetPasswordPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Min. 8 characters"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+              />
+            </div>
+
+            <div>
+              <label className="text-white/70 text-sm block mb-1">Confirm password</label>
+              <input
+                type="password"
+                required
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                placeholder="Re-enter your password"
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
               />
             </div>
