@@ -18,13 +18,16 @@ export default function PropertiesPage() {
         return
       }
 
-      const { data, error } = await supabase
-  .from('properties')
-  .select('*')
-  .eq('owner_user_id', user.id)
-  .order('created_at', { ascending: false })
+      console.log('User ID:', user.id)
 
-if (error) console.error('Properties fetch error:', error)
+      const { data, error } = await supabase
+        .from('properties')
+        .select('*')
+        .eq('owner_user_id', user.id)
+        .order('created_at', { ascending: false })
+
+      console.log('Properties data:', data)
+      console.log('Properties error:', error)
 
       if (!error && data) setProperties(data)
       setLoading(false)
@@ -82,7 +85,6 @@ if (error) console.error('Properties fetch error:', error)
                     <p className="text-white/50 text-sm mt-1">{property.city}, {property.state} {property.zip}</p>
                     <div className="flex items-center gap-3 mt-3">
                       <span className="text-xs bg-white/8 text-white/60 rounded-full px-3 py-1 capitalize">{property.property_type}</span>
-                      <span className="text-xs text-white/40">{property.units?.[0]?.count || 0} units</span>
                     </div>
                   </div>
                   <div className="text-white/30 text-xl">→</div>
