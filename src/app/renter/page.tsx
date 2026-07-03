@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export default function RenterDashboard() {
   const router = useRouter()
@@ -42,6 +43,7 @@ export default function RenterDashboard() {
         </div>
         <div className="flex items-center gap-4">
           <span className="text-white/50 text-sm">{user?.user_metadata?.full_name}</span>
+          <Link href="/profile" className="text-white/40 hover:text-white text-sm transition">Profile</Link>
           <button onClick={handleSignOut} className="text-white/40 hover:text-white text-sm transition">Sign out</button>
         </div>
       </nav>
@@ -54,7 +56,6 @@ export default function RenterDashboard() {
           <p className="text-white/50 mt-1">Track your maintenance requests here.</p>
         </div>
 
-        {/* Report issue CTA */}
         <div className="bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/10 border border-[#12A5A9]/30 rounded-2xl p-6 mb-6">
           <h3 className="text-white font-semibold mb-1">Report an issue</h3>
           <p className="text-white/50 text-sm mb-4">Something broken? Let your landlord know.</p>
@@ -63,7 +64,6 @@ export default function RenterDashboard() {
           </button>
         </div>
 
-        {/* Open issues */}
         <div className="bg-white/3 border border-white/8 rounded-2xl p-6">
           <h3 className="text-white font-semibold mb-4">Your issues</h3>
           <p className="text-white/30 text-sm">No open issues — you're all good! ✅</p>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export default function ContractorDashboard() {
   const router = useRouter()
@@ -42,6 +43,7 @@ export default function ContractorDashboard() {
         </div>
         <div className="flex items-center gap-4">
           <span className="text-white/50 text-sm">{user?.user_metadata?.full_name}</span>
+          <Link href="/profile" className="text-white/40 hover:text-white text-sm transition">Profile</Link>
           <button onClick={handleSignOut} className="text-white/40 hover:text-white text-sm transition">Sign out</button>
         </div>
       </nav>
@@ -54,7 +56,6 @@ export default function ContractorDashboard() {
           <p className="text-white/50 mt-1">Find jobs and manage your bids.</p>
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mb-6">
           {[
             { label: 'New Jobs', value: '0', icon: '🔔' },
@@ -69,7 +70,6 @@ export default function ContractorDashboard() {
           ))}
         </div>
 
-        {/* Available jobs */}
         <div className="bg-white/3 border border-white/8 rounded-2xl p-6">
           <h3 className="text-white font-semibold mb-4">Available jobs near you</h3>
           <p className="text-white/30 text-sm">No jobs available right now — check back soon.</p>

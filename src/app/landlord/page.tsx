@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export default function LandlordDashboard() {
   const router = useRouter()
@@ -35,7 +36,6 @@ export default function LandlordDashboard() {
 
   return (
     <div className="min-h-screen bg-[#0C1A2E]">
-      {/* Nav */}
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <svg width="32" height="32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -61,16 +61,11 @@ export default function LandlordDashboard() {
         </div>
         <div className="flex items-center gap-4">
           <span className="text-white/50 text-sm">{user?.user_metadata?.full_name}</span>
-          <button
-            onClick={handleSignOut}
-            className="text-white/40 hover:text-white text-sm transition"
-          >
-            Sign out
-          </button>
+          <Link href="/profile" className="text-white/40 hover:text-white text-sm transition">Profile</Link>
+          <button onClick={handleSignOut} className="text-white/40 hover:text-white text-sm transition">Sign out</button>
         </div>
       </nav>
 
-      {/* Dashboard */}
       <main className="max-w-6xl mx-auto px-6 py-10">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-white">
@@ -79,7 +74,6 @@ export default function LandlordDashboard() {
           <p className="text-white/50 mt-1">Here's what's happening across your properties.</p>
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           {[
             { label: 'Properties', value: '0', icon: '🏠' },
@@ -94,7 +88,6 @@ export default function LandlordDashboard() {
           ))}
         </div>
 
-        {/* Quick actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 transition cursor-pointer">
             <div className="text-xl mb-2">🏠</div>
