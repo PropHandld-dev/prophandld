@@ -27,13 +27,21 @@ export default function NewPropertyPage() {
     setLoading(true)
     setError(null)
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      router.push('/login')
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+    if (userError || !user) {
+      setError('Not authenticated: ' + (userError?.message || 'no user'))
+      setLoading(false)
       return
     }
 
-    // Insert property
+    const { data: session } = await supabase.auth.getSession()
+    if (!session.session) {
+      setError('No active session found')
+      setLoading(false)
+      return
+    }
+
     const { data: property, error: propertyError } = await supabase
       .from('properties')
       .insert({
@@ -44,16 +52,15 @@ export default function NewPropertyPage() {
         zip: form.zip,
         property_type: form.property_type,
       })
-      .select()
+      .select('id')
       .single()
 
     if (propertyError) {
-      setError('Error creating property: ' + propertyError.message)
+      setError('Error creating property: ' + propertyError.message + ' | User: ' + user.id)
       setLoading(false)
       return
     }
 
-    // Store role in property_roles
     const { error: roleError } = await supabase
       .from('property_roles')
       .insert({
@@ -69,7 +76,6 @@ export default function NewPropertyPage() {
       return
     }
 
-    // Create units based on num_units
     const numUnits = parseInt(form.num_units)
     if (numUnits > 0) {
       const units = Array.from({ length: numUnits }, (_, i) => ({
