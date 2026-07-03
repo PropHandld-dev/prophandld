@@ -33,7 +33,6 @@ export default function SignupPage() {
       return
     }
 
-    // Step 1: Sign up with Supabase Auth
     const { data, error: signupError } = await supabase.auth.signUp({
       email: form.email,
       password: form.password,
@@ -59,23 +58,8 @@ export default function SignupPage() {
       return
     }
 
-    // Step 2: Insert into public.users
-    const { error: insertError } = await supabase.from('users').insert({
-      id: data.user.id,
-      full_name: form.full_name,
-      email: form.email,
-      phone: form.phone,
-      preferred_language: form.preferred_language,
-      terms_accepted_at: new Date().toISOString(),
-    })
-
-    if (insertError) {
-      setError('Insert error: ' + insertError.message)
-      setLoading(false)
-      return
-    }
-
-    // Step 3: Redirect
+    // Trigger handles the public.users insert automatically
+    // Just redirect based on role
     if (form.role === 'landlord') router.push('/landlord')
     else if (form.role === 'renter') router.push('/renter')
     else if (form.role === 'contractor') router.push('/contractor')
