@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 
@@ -10,6 +10,16 @@ export default function ResetPasswordPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState(false)
+  const [ready, setReady] = useState(false)
+
+  useEffect(() => {
+    // Handle the hash fragment from Supabase
+    supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setReady(true)
+      }
+    })
+  }, [])
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -34,7 +44,6 @@ export default function ResetPasswordPage() {
   return (
     <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center px-4">
       <div className="w-full max-w-md">
-
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-white">Set new password</h1>
           <p className="text-white/50 text-sm mt-1">Choose a strong password</p>
@@ -44,6 +53,10 @@ export default function ResetPasswordPage() {
           <div className="bg-[#0A7B7E]/15 border border-[#12A5A9]/30 rounded-xl px-6 py-5 text-center">
             <p className="text-[#12A5A9] font-medium">Password updated!</p>
             <p className="text-white/50 text-sm mt-1">Redirecting to login...</p>
+          </div>
+        ) : !ready ? (
+          <div className="bg-[#0A7B7E]/15 border border-[#12A5A9]/30 rounded-xl px-6 py-5 text-center">
+            <p className="text-white/50 text-sm">Verifying reset link...</p>
           </div>
         ) : (
           <form onSubmit={handleReset} className="space-y-4">
