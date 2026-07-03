@@ -58,8 +58,6 @@ export default function SignupPage() {
       return
     }
 
-    // Trigger handles the public.users insert automatically
-    // Just redirect based on role
     if (form.role === 'landlord') router.push('/landlord')
     else if (form.role === 'renter') router.push('/renter')
     else if (form.role === 'contractor') router.push('/contractor')
@@ -72,6 +70,7 @@ export default function SignupPage() {
       <div className="w-full max-w-md">
 
         <div className="text-center mb-8">
+          <img src="/logo.png" alt="Prophandld" className="w-36 mx-auto mb-2" />
           <h1 className="text-2xl font-bold text-white">Create your account</h1>
           <p className="text-white/50 text-sm mt-1">Your property, handled.</p>
         </div>
