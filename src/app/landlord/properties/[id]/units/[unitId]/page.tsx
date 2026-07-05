@@ -137,9 +137,17 @@ export default function UnitDetailPage() {
                   {tenancy.lease_end ? ` → ${new Date(tenancy.lease_end).toLocaleDateString()}` : ' → ongoing'}
                 </p>
               )}
-              <button className="text-red-400/70 text-xs hover:text-red-400 transition mt-2">
-                End tenancy
-              </button>
+              <div className="flex items-center gap-4 mt-2">
+  <Link
+    href={`/landlord/properties/${propertyId}/units/${unitId}/inspection`}
+    className="text-[#12A5A9] text-xs hover:underline"
+  >
+    Move-in inspection
+  </Link>
+  <button className="text-red-400/70 text-xs hover:text-red-400 transition">
+    End tenancy
+  </button>
+</div>
             </div>
           ) : (
             <p className="text-white/30 text-sm">No tenant linked — unit is vacant.</p>

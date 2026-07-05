@@ -58,7 +58,7 @@ export default function NewTenancyPage() {
       return
     }
 
-    router.push(`/landlord/properties/${propertyId}/units/${unitId}`)
+    router.push(`/landlord/properties/${propertyId}/units/${unitId}/inspection`)
   }
 
   return (
