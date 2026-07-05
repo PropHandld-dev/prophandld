@@ -9,6 +9,7 @@ export default function RenterDashboard() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [tenancy, setTenancy] = useState<any>(null)
   const [unit, setUnit] = useState<any>(null)
   const [property, setProperty] = useState<any>(null)
   const [contacts, setContacts] = useState<any[]>([])
@@ -22,7 +23,6 @@ export default function RenterDashboard() {
         return
       }
       setUser(user)
-      console.log('Currently logged in as:', user.email, user.id)
       setLoading(false)
 
       // Find this renter's active tenancy
@@ -34,28 +34,22 @@ export default function RenterDashboard() {
         .limit(1)
         .maybeSingle()
 
-      console.log('Tenancy data:', tenancyData)
-      console.log('Tenancy error:', tenancyError)
-
       if (tenancyError || !tenancyData) {
         setContactsLoading(false)
         return
       }
+      setTenancy(tenancyData)
 
-      const { data: unitData, error: unitError } = await supabase
-  .from('units')
-  .select('*')
-  .eq('id', tenancyData.unit_id)
-  .maybeSingle()
+      const { data: unitData } = await supabase
+        .from('units')
+        .select('*')
+        .eq('id', tenancyData.unit_id)
+        .maybeSingle()
 
-console.log('Unit data:', unitData)
-console.log('Unit error:', unitError)
-console.log('Looking for unit_id:', tenancyData.unit_id)
-
-if (!unitData) {
-  setContactsLoading(false)
-  return
-}
+      if (!unitData) {
+        setContactsLoading(false)
+        return
+      }
       setUnit(unitData)
 
       const { data: propertyData } = await supabase
@@ -117,6 +111,30 @@ if (!unitData) {
           </h1>
           <p className="text-white/50 mt-1">Track your maintenance requests here.</p>
         </div>
+
+        {/* Home / lease info */}
+        {unit && property && (
+          <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
+            <h3 className="text-white font-semibold mb-1">Your home</h3>
+            <p className="text-white/70 text-sm mt-2">{property.address}</p>
+            <p className="text-white/50 text-sm">
+              {property.city}, {property.state} {property.zip} · Unit {unit.unit_number}
+            </p>
+
+            {tenancy && (
+              <div className="flex flex-wrap gap-x-6 gap-y-1 mt-4 pt-4 border-t border-white/5">
+                {tenancy.rent_amount && (
+                  <p className="text-white/40 text-sm">💰 ${tenancy.rent_amount}/month</p>
+                )}
+                {tenancy.lease_end && (
+                  <p className="text-white/40 text-sm">
+                    📅 Lease ends {new Date(tenancy.lease_end).toLocaleDateString()}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/10 border border-[#12A5A9]/30 rounded-2xl p-6 mb-6">
           <h3 className="text-white font-semibold mb-1">Report an issue</h3>
