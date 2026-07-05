@@ -9,7 +9,6 @@ export default function PropertiesPage() {
   const router = useRouter()
   const [properties, setProperties] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [debugInfo, setDebugInfo] = useState('')
 
   useEffect(() => {
     const fetchProperties = async () => {
@@ -19,15 +18,11 @@ export default function PropertiesPage() {
         return
       }
 
-      setDebugInfo('User: ' + user.id)
-
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('properties')
         .select('*')
         .eq('owner_user_id', user.id)
         .order('created_at', { ascending: false })
-
-      setDebugInfo(prev => prev + ' | Data: ' + JSON.stringify(data) + ' | Error: ' + JSON.stringify(error))
 
       if (data) setProperties(data)
       setLoading(false)
@@ -57,10 +52,7 @@ export default function PropertiesPage() {
       </nav>
 
       <main className="max-w-4xl mx-auto px-6 py-10">
-        <h1 className="text-2xl font-bold text-white mb-4">Your properties</h1>
-
-        {/* Temporary debug */}
-        <p className="text-white/30 text-xs mb-6 break-all">{debugInfo}</p>
+        <h1 className="text-2xl font-bold text-white mb-8">Your properties</h1>
 
         {properties.length === 0 ? (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-12 text-center">
