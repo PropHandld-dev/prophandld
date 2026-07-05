@@ -246,6 +246,14 @@ export default function InspectionPage() {
         ) : (
           <>
             <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
+              {inspection.status === 'completed' && (
+                <div className="bg-[#0A7B7E]/15 border border-[#12A5A9]/30 rounded-xl px-4 py-3 mb-4">
+                  <p className="text-[#12A5A9] text-sm font-medium">
+                    ✓ Inspection completed and saved
+                    {inspection.completed_at && ` on ${new Date(inspection.completed_at).toLocaleString()}`}
+                  </p>
+                </div>
+              )}
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-white font-semibold">
                   Status: <span className={inspection.status === 'completed' ? 'text-[#12A5A9]' : 'text-yellow-400'}>
@@ -313,6 +321,15 @@ export default function InspectionPage() {
               )}
             </div>
           </>
+        )}
+
+        {inspection?.status === 'completed' && (
+          <Link
+            href={`/landlord/properties/${propertyId}/units/${unitId}`}
+            className="block text-center bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl mt-6 hover:opacity-90 transition"
+          >
+            Done — back to unit
+          </Link>
         )}
       </main>
     </div>

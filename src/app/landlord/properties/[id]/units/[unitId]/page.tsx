@@ -18,6 +18,7 @@ export default function UnitDetailPage() {
   const [moveOutDate, setMoveOutDate] = useState('')
   const [savingMoveOut, setSavingMoveOut] = useState(false)
   const [moveOutError, setMoveOutError] = useState<string | null>(null)
+  const [moveOutSuccess, setMoveOutSuccess] = useState(false)
 
   const fetchUnit = async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -39,7 +40,6 @@ export default function UnitDetailPage() {
 
     setUnit(unitData)
 
-    // Only show active (not-yet-ended) tenancies
     const { data: tenancyData } = await supabase
       .from('tenancies')
       .select('*')
@@ -97,14 +97,12 @@ export default function UnitDetailPage() {
       return
     }
 
-    // Auto-create the move-out inspection, same pattern as move-in
     const { error: insertError } = await supabase
       .from('move_in_inspections')
       .insert({ tenancy_id: tenancy.id, unit_id: unitId, status: 'in_progress', type: 'move_out' })
 
     if (insertError) {
       console.error('Error creating move-out inspection:', insertError)
-      // Not fatal — inspection can still be started manually from the inspection page
     }
 
     router.push(`/landlord/properties/${propertyId}/units/${unitId}/inspection?type=move_out`)
@@ -127,6 +125,7 @@ export default function UnitDetailPage() {
       return
     }
 
+    setMoveOutSuccess(true)
     await fetchUnit()
   }
 
@@ -159,6 +158,14 @@ export default function UnitDetailPage() {
           {unit.floor && <p className="text-white/50 text-sm mt-1">Floor {unit.floor}</p>}
           {unit.sqft && <p className="text-white/50 text-sm">{unit.sqft} sqft</p>}
         </div>
+
+        {moveOutSuccess && (
+          <div className="bg-[#0A7B7E]/15 border border-[#12A5A9]/30 rounded-xl px-4 py-3 mb-4">
+            <p className="text-[#12A5A9] text-sm font-medium">
+              ✓ Tenancy ended. This unit is now marked vacant.
+            </p>
+          </div>
+        )}
 
         {/* Tenant section */}
         <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
