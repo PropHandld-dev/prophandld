@@ -11,6 +11,7 @@ export default function PropertyDetailPage() {
   const propertyId = params.id as string
   const [property, setProperty] = useState<any>(null)
   const [units, setUnits] = useState<any[]>([])
+  const [occupiedUnitIds, setOccupiedUnitIds] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -42,7 +43,25 @@ export default function PropertyDetailPage() {
           .eq('property_id', propertyId)
           .order('unit_number')
 
-        if (unitsData) setUnits(unitsData)
+        if (unitsData) {
+          setUnits(unitsData)
+
+          const unitIds = unitsData.map((u) => u.id)
+          if (unitIds.length > 0) {
+            const { data: tenanciesData, error: tenanciesError } = await supabase
+              .from('tenancies')
+              .select('unit_id')
+              .in('unit_id', unitIds)
+
+            if (tenanciesError) {
+              console.error('Error fetching tenancies:', tenanciesError)
+            }
+
+            if (tenanciesData) {
+              setOccupiedUnitIds(new Set(tenanciesData.map((t) => t.unit_id)))
+            }
+          }
+        }
       } catch (err) {
         console.error('Error:', err)
       } finally {
@@ -59,6 +78,9 @@ export default function PropertyDetailPage() {
   )
 
   if (!property) return null
+
+  const occupiedCount = occupiedUnitIds.size
+  const vacantCount = units.length - occupiedCount
 
   return (
     <div className="min-h-screen bg-[#0C1A2E]">
@@ -93,11 +115,11 @@ export default function PropertyDetailPage() {
             <div className="text-white/40 text-xs mt-1">Total units</div>
           </div>
           <div className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center">
-            <div className="text-2xl font-bold text-white">0</div>
+            <div className="text-2xl font-bold text-white">{occupiedCount}</div>
             <div className="text-white/40 text-xs mt-1">Occupied</div>
           </div>
           <div className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center">
-            <div className="text-2xl font-bold text-white">{units.length}</div>
+            <div className="text-2xl font-bold text-white">{vacantCount}</div>
             <div className="text-white/40 text-xs mt-1">Vacant</div>
           </div>
         </div>
@@ -116,25 +138,36 @@ export default function PropertyDetailPage() {
           </div>
         ) : (
           <div className="grid gap-3">
-            {units.map((unit) => (
-              <Link
-                key={unit.id}
-                href={`/landlord/properties/${propertyId}/units/${unit.id}`}
-                className="bg-white/3 border border-white/8 rounded-2xl p-5 hover:border-[#12A5A9]/30 transition block"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-white font-semibold">{unit.unit_number}</h3>
-                    <p className="text-white/30 text-sm mt-1">Vacant</p>
-                    {unit.sqft && <p className="text-white/30 text-xs mt-1">{unit.sqft} sqft</p>}
+            {units.map((unit) => {
+              const isOccupied = occupiedUnitIds.has(unit.id)
+              return (
+                <Link
+                  key={unit.id}
+                  href={`/landlord/properties/${propertyId}/units/${unit.id}`}
+                  className="bg-white/3 border border-white/8 rounded-2xl p-5 hover:border-[#12A5A9]/30 transition block"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-white font-semibold">{unit.unit_number}</h3>
+                      <p className="text-white/30 text-sm mt-1">{isOccupied ? 'Occupied' : 'Vacant'}</p>
+                      {unit.sqft && <p className="text-white/30 text-xs mt-1">{unit.sqft} sqft</p>}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span
+                        className={
+                          isOccupied
+                            ? 'text-xs bg-[#0A7B7E]/20 text-[#12A5A9] border border-[#12A5A9]/30 rounded-full px-2 py-0.5'
+                            : 'text-xs bg-white/5 text-white/30 border border-white/10 rounded-full px-2 py-0.5'
+                        }
+                      >
+                        {isOccupied ? 'Occupied' : 'Vacant'}
+                      </span>
+                      <span className="text-white/30">→</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs bg-white/5 text-white/30 border border-white/10 rounded-full px-2 py-0.5">Vacant</span>
-                    <span className="text-white/30">→</span>
-                  </div>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              )
+            })}
           </div>
         )}
 
