@@ -14,24 +14,14 @@ export default function ResetPasswordPage() {
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    // Handle hash fragment from Supabase reset link
-    const hashParams = new URLSearchParams(window.location.hash.substring(1))
-    const accessToken = hashParams.get('access_token')
-    const type = hashParams.get('type')
+    // Check if already have a session (set by auth callback)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) setReady(true)
+    })
 
-    if (accessToken && type === 'recovery') {
-      supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: hashParams.get('refresh_token') || '',
-      }).then(() => {
-        setReady(true)
-      })
-      return
-    }
-
-    // Fallback: listen for auth state change
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') {
+    // Also listen for auth state change
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session)) {
         setReady(true)
       }
     })

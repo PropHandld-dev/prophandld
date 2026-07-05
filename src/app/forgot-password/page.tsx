@@ -16,7 +16,7 @@ export default function ForgotPasswordPage() {
     setError(null)
 
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `https://www.prophandld.com/reset-password`,
+      redirectTo: `https://www.prophandld.com/auth/callback?type=recovery`,
     })
 
     if (resetError) {
