@@ -42,16 +42,20 @@ export default function RenterDashboard() {
         return
       }
 
-      const { data: unitData } = await supabase
-        .from('units')
-        .select('*')
-        .eq('id', tenancyData.unit_id)
-        .maybeSingle()
+      const { data: unitData, error: unitError } = await supabase
+  .from('units')
+  .select('*')
+  .eq('id', tenancyData.unit_id)
+  .maybeSingle()
 
-      if (!unitData) {
-        setContactsLoading(false)
-        return
-      }
+console.log('Unit data:', unitData)
+console.log('Unit error:', unitError)
+console.log('Looking for unit_id:', tenancyData.unit_id)
+
+if (!unitData) {
+  setContactsLoading(false)
+  return
+}
       setUnit(unitData)
 
       const { data: propertyData } = await supabase
