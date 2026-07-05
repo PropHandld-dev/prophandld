@@ -69,11 +69,21 @@ export default function ProfilePage() {
     // Also update public.users table
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
-      await supabase.from('users').update({
-        full_name: form.full_name,
-        phone: form.phone,
-        preferred_language: form.preferred_language,
-      }).eq('id', user.id)
+      const { error: publicUpdateError } = await supabase
+        .from('users')
+        .update({
+          full_name: form.full_name,
+          phone: form.phone,
+          preferred_language: form.preferred_language,
+        })
+        .eq('id', user.id)
+
+      if (publicUpdateError) {
+        console.error('Error updating public.users:', publicUpdateError)
+        setError('Your login info was updated, but your public profile (visible to others) failed to sync: ' + publicUpdateError.message)
+        setSaving(false)
+        return
+      }
     }
 
     setSuccess('Profile updated successfully.')

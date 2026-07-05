@@ -100,12 +100,20 @@ export default function PropertyDetailPage() {
       <main className="max-w-4xl mx-auto px-6 py-10">
 
         {/* Property header */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-white">{property.address}</h1>
-          <p className="text-white/50 mt-1">{property.city}, {property.state} {property.zip}</p>
-          <span className="text-xs bg-white/8 text-white/60 rounded-full px-3 py-1 capitalize inline-block mt-2">
-            {property.property_type}
-          </span>
+        <div className="mb-8 flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-white">{property.address}</h1>
+            <p className="text-white/50 mt-1">{property.city}, {property.state} {property.zip}</p>
+            <span className="text-xs bg-white/8 text-white/60 rounded-full px-3 py-1 capitalize inline-block mt-2">
+              {property.property_type}
+            </span>
+          </div>
+          <Link
+            href={`/landlord/properties/${propertyId}/edit`}
+            className="text-[#12A5A9] text-sm hover:underline"
+          >
+            Edit
+          </Link>
         </div>
 
         {/* Stats */}
