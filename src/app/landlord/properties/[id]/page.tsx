@@ -203,7 +203,13 @@ export default function PropertyDetailPage() {
         </div>
 
         {/* Units */}
-        <h2 className="text-white font-semibold mb-4">Units</h2>
+        {/* Units */}
+<div className="mb-4">
+  <h2 className="text-white font-semibold">Units</h2>
+  <p className="text-white/40 text-sm mt-1">
+    Click a unit to add a tenant, start an inspection, or view details. Use "Rename" just to change the unit's label.
+  </p>
+</div>
 
         {unitError && (
           <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm mb-4">
@@ -279,11 +285,11 @@ export default function PropertyDetailPage() {
                           {isOccupied ? 'Occupied' : 'Vacant'}
                         </span>
                         <button
-                          onClick={() => startEditing(unit)}
-                          className="text-white/40 hover:text-white text-xs transition"
-                        >
-                          Edit
-                        </button>
+  onClick={() => startEditing(unit)}
+  className="text-white/40 hover:text-white text-xs transition"
+>
+  Rename
+</button>
                         <button
                           onClick={() => removeUnit(unit.id, isOccupied)}
                           className="text-red-400/70 hover:text-red-400 text-xs transition"
