@@ -14,57 +14,121 @@ export default function UnitDetailPage() {
   const [tenancy, setTenancy] = useState<any>(null)
   const [tenantLookupFailed, setTenantLookupFailed] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [showMoveOutForm, setShowMoveOutForm] = useState(false)
+  const [moveOutDate, setMoveOutDate] = useState('')
+  const [savingMoveOut, setSavingMoveOut] = useState(false)
+  const [moveOutError, setMoveOutError] = useState<string | null>(null)
 
-  useEffect(() => {
-    const fetchUnit = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/login')
-        return
-      }
+  const fetchUnit = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      router.push('/login')
+      return
+    }
 
-      // Fetch unit
-      const { data: unitData } = await supabase
-        .from('units')
-        .select('*')
-        .eq('id', unitId)
-        .single()
+    const { data: unitData } = await supabase
+      .from('units')
+      .select('*')
+      .eq('id', unitId)
+      .single()
 
-      if (!unitData) {
-        router.push(`/landlord/properties/${propertyId}`)
-        return
-      }
+    if (!unitData) {
+      router.push(`/landlord/properties/${propertyId}`)
+      return
+    }
 
-      setUnit(unitData)
+    setUnit(unitData)
 
-      // Fetch active tenancy (no embedded users join — RLS blocks that silently)
-      const { data: tenancyData } = await supabase
-        .from('tenancies')
-        .select('*')
-        .eq('unit_id', unitId)
-        .order('created_at', { ascending: false })
-        .limit(1)
+    // Only show active (not-yet-ended) tenancies
+    const { data: tenancyData } = await supabase
+      .from('tenancies')
+      .select('*')
+      .eq('unit_id', unitId)
+      .eq('ended', false)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (tenancyData) {
+      const { data: renterData, error: renterError } = await supabase
+        .rpc('get_user_by_id', { user_id_input: tenancyData.renter_user_id })
         .maybeSingle()
 
-      if (tenancyData) {
-        // Fetch renter details via RPC (security definer bypasses RLS safely,
-        // since a real tenancy already links this renter to this unit)
-        const { data: renterData, error: renterError } = await supabase
-          .rpc('get_user_by_id', { user_id_input: tenancyData.renter_user_id })
-          .maybeSingle()
-
-        if (renterError) {
-          console.error('Error fetching renter:', renterError)
-          setTenantLookupFailed(true)
-        }
-
-        setTenancy({ ...tenancyData, users: renterData })
+      if (renterError) {
+        console.error('Error fetching renter:', renterError)
+        setTenantLookupFailed(true)
       }
 
-      setLoading(false)
+      setTenancy({ ...tenancyData, users: renterData })
+    } else {
+      setTenancy(null)
     }
+
+    setLoading(false)
+  }
+
+  useEffect(() => {
     fetchUnit()
   }, [unitId, propertyId, router])
+
+  const handleStartEndTenancy = () => {
+    setShowMoveOutForm(true)
+    setMoveOutError(null)
+  }
+
+  const handleConfirmMoveOutDate = async () => {
+    if (!moveOutDate) {
+      setMoveOutError('Please select a move-out date.')
+      return
+    }
+
+    setSavingMoveOut(true)
+    setMoveOutError(null)
+
+    const { error: updateError } = await supabase
+      .from('tenancies')
+      .update({ move_out_date: moveOutDate })
+      .eq('id', tenancy.id)
+
+    if (updateError) {
+      console.error('Error setting move-out date:', updateError)
+      setMoveOutError('Could not set move-out date.')
+      setSavingMoveOut(false)
+      return
+    }
+
+    // Auto-create the move-out inspection, same pattern as move-in
+    const { error: insertError } = await supabase
+      .from('move_in_inspections')
+      .insert({ tenancy_id: tenancy.id, unit_id: unitId, status: 'in_progress', type: 'move_out' })
+
+    if (insertError) {
+      console.error('Error creating move-out inspection:', insertError)
+      // Not fatal — inspection can still be started manually from the inspection page
+    }
+
+    router.push(`/landlord/properties/${propertyId}/units/${unitId}/inspection?type=move_out`)
+  }
+
+  const handleConfirmMoveOutComplete = async () => {
+    const confirmed = window.confirm(
+      'Confirm this tenant has fully moved out? This will mark the unit as vacant.'
+    )
+    if (!confirmed) return
+
+    const { error: updateError } = await supabase
+      .from('tenancies')
+      .update({ ended: true })
+      .eq('id', tenancy.id)
+
+    if (updateError) {
+      console.error('Error ending tenancy:', updateError)
+      setMoveOutError('Could not end tenancy: ' + updateError.message)
+      return
+    }
+
+    await fetchUnit()
+  }
 
   if (loading) return (
     <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center">
@@ -137,17 +201,79 @@ export default function UnitDetailPage() {
                   {tenancy.lease_end ? ` → ${new Date(tenancy.lease_end).toLocaleDateString()}` : ' → ongoing'}
                 </p>
               )}
-              <div className="flex items-center gap-4 mt-2">
-  <Link
-    href={`/landlord/properties/${propertyId}/units/${unitId}/inspection`}
-    className="text-[#12A5A9] text-xs hover:underline"
-  >
-    Move-in inspection
-  </Link>
-  <button className="text-red-400/70 text-xs hover:text-red-400 transition">
-    End tenancy
-  </button>
-</div>
+
+              {tenancy.move_out_date && (
+                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl px-4 py-3 mt-2">
+                  <p className="text-yellow-400/80 text-sm">
+                    🚪 Move-out scheduled for {new Date(tenancy.move_out_date).toLocaleDateString()}
+                  </p>
+                </div>
+              )}
+
+              {moveOutError && (
+                <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">
+                  {moveOutError}
+                </div>
+              )}
+
+              {showMoveOutForm ? (
+                <div className="bg-white/5 border border-white/10 rounded-xl p-4 mt-2 space-y-3">
+                  <label className="text-white/70 text-sm block">Move-out date</label>
+                  <input
+                    type="date"
+                    value={moveOutDate}
+                    onChange={(e) => setMoveOutDate(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#12A5A9] transition"
+                  />
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={handleConfirmMoveOutDate}
+                      disabled={savingMoveOut}
+                      className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
+                    >
+                      {savingMoveOut ? 'Saving...' : 'Confirm & start move-out inspection'}
+                    </button>
+                    <button
+                      onClick={() => setShowMoveOutForm(false)}
+                      className="text-white/40 text-xs hover:text-white transition"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-4 mt-2">
+                  <Link
+                    href={`/landlord/properties/${propertyId}/units/${unitId}/inspection`}
+                    className="text-[#12A5A9] text-xs hover:underline"
+                  >
+                    Move-in inspection
+                  </Link>
+                  {tenancy.move_out_date && (
+                    <Link
+                      href={`/landlord/properties/${propertyId}/units/${unitId}/inspection?type=move_out`}
+                      className="text-[#12A5A9] text-xs hover:underline"
+                    >
+                      Move-out inspection
+                    </Link>
+                  )}
+                  {!tenancy.move_out_date ? (
+                    <button
+                      onClick={handleStartEndTenancy}
+                      className="text-red-400/70 text-xs hover:text-red-400 transition"
+                    >
+                      End tenancy
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleConfirmMoveOutComplete}
+                      className="text-red-400/70 text-xs hover:text-red-400 transition"
+                    >
+                      Confirm move-out complete
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           ) : (
             <p className="text-white/30 text-sm">No tenant linked — unit is vacant.</p>

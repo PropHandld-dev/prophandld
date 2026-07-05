@@ -55,6 +55,7 @@ export default function PropertyDetailPage() {
             .from('tenancies')
             .select('unit_id')
             .in('unit_id', unitIds)
+            .eq('ended', false)
 
           if (tenanciesError) {
             console.error('Error fetching tenancies:', tenanciesError)

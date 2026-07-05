@@ -2,14 +2,16 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
-export default function MoveInInspectionPage() {
+export default function InspectionPage() {
   const router = useRouter()
   const params = useParams()
+  const searchParams = useSearchParams()
   const propertyId = params.id as string
   const unitId = params.unitId as string
+  const inspectionType = searchParams.get('type') === 'move_out' ? 'move_out' : 'move_in'
 
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
@@ -65,6 +67,7 @@ export default function MoveInInspectionPage() {
         .from('move_in_inspections')
         .select('*')
         .eq('tenancy_id', tenancyData.id)
+        .eq('type', inspectionType)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()
@@ -77,7 +80,7 @@ export default function MoveInInspectionPage() {
       setLoading(false)
     }
     init()
-  }, [unitId, propertyId, router])
+  }, [unitId, propertyId, inspectionType, router])
 
   const loadPhotos = async (inspectionId: string) => {
     const { data: photosData, error: photosError } = await supabase
@@ -104,7 +107,7 @@ export default function MoveInInspectionPage() {
 
         const { data: signedUrlData, error: signedUrlError } = await supabase.storage
           .from('inspection-photos')
-          .createSignedUrl(photo.photo_url, 3600) // valid for 1 hour
+          .createSignedUrl(photo.photo_url, 3600)
 
         if (signedUrlError) {
           console.error('Error creating signed URL:', signedUrlError)
@@ -123,7 +126,7 @@ export default function MoveInInspectionPage() {
 
     const { data, error: insertError } = await supabase
       .from('move_in_inspections')
-      .insert({ tenancy_id: tenancy.id, unit_id: unitId, status: 'in_progress' })
+      .insert({ tenancy_id: tenancy.id, unit_id: unitId, status: 'in_progress', type: inspectionType })
       .select()
       .single()
 
@@ -200,6 +203,11 @@ export default function MoveInInspectionPage() {
     </div>
   )
 
+  const title = inspectionType === 'move_out' ? 'Move-out inspection' : 'Move-in inspection'
+  const subtitle = inspectionType === 'move_out'
+    ? "Document the unit's condition with timestamped photos after move-out."
+    : "Document the unit's condition with timestamped photos before move-in."
+
   return (
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
@@ -215,10 +223,8 @@ export default function MoveInInspectionPage() {
 
       <main className="max-w-2xl mx-auto px-6 py-10">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-white">Move-in inspection</h1>
-          <p className="text-white/50 text-sm mt-1">
-            Document the unit's condition with timestamped photos before move-in.
-          </p>
+          <h1 className="text-2xl font-bold text-white">{title}</h1>
+          <p className="text-white/50 text-sm mt-1">{subtitle}</p>
         </div>
 
         {error && (
