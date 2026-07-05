@@ -18,6 +18,8 @@ export default function UnitDetailPage() {
   useEffect(() => {
     const fetchUnit = async () => {
       const { data: { user } } = await supabase.auth.getUser()
+      console.log('Logged in as:', user?.email, user?.id)
+
       if (!user) {
         router.push('/login')
         return
@@ -38,13 +40,16 @@ export default function UnitDetailPage() {
       setUnit(unitData)
 
       // Fetch active tenancy (no embedded users join — RLS blocks that silently)
-      const { data: tenancyData } = await supabase
+      const { data: tenancyData, error: tenancyError } = await supabase
         .from('tenancies')
         .select('*')
         .eq('unit_id', unitId)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()
+
+      console.log('tenancyData:', tenancyData)
+      console.log('tenancyError:', tenancyError)
 
       if (tenancyData) {
         // Fetch renter details via RPC (security definer bypasses RLS safely,
