@@ -12,6 +12,7 @@ export default function UnitDetailPage() {
   const unitId = params.unitId as string
   const [unit, setUnit] = useState<any>(null)
   const [tenancy, setTenancy] = useState<any>(null)
+  const [tenantLookupFailed, setTenantLookupFailed] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -36,16 +37,30 @@ export default function UnitDetailPage() {
 
       setUnit(unitData)
 
-      // Fetch active tenancy
+      // Fetch active tenancy (no embedded users join — RLS blocks that silently)
       const { data: tenancyData } = await supabase
         .from('tenancies')
-        .select('*, users(full_name, email, phone)')
+        .select('*')
         .eq('unit_id', unitId)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()
 
-      if (tenancyData) setTenancy(tenancyData)
+      if (tenancyData) {
+        // Fetch renter details via RPC (security definer bypasses RLS safely,
+        // since a real tenancy already links this renter to this unit)
+        const { data: renterData, error: renterError } = await supabase
+          .rpc('get_user_by_id', { user_id_input: tenancyData.renter_user_id })
+          .maybeSingle()
+
+        if (renterError) {
+          console.error('Error fetching renter:', renterError)
+          setTenantLookupFailed(true)
+        }
+
+        setTenancy({ ...tenancyData, users: renterData })
+      }
+
       setLoading(false)
     }
     fetchUnit()
@@ -78,7 +93,7 @@ export default function UnitDetailPage() {
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-white">{unit.unit_number}</h1>
           {unit.floor && <p className="text-white/50 text-sm mt-1">Floor {unit.floor}</p>}
-          {unit.sqft && <p className="text-white/50 text-sm">  {unit.sqft} sqft</p>}
+          {unit.sqft && <p className="text-white/50 text-sm">{unit.sqft} sqft</p>}
         </div>
 
         {/* Tenant section */}
@@ -95,7 +110,11 @@ export default function UnitDetailPage() {
             )}
           </div>
 
-          {tenancy ? (
+          {tenancy && tenantLookupFailed ? (
+            <p className="text-yellow-400/70 text-sm">
+              Tenant linked, but details are unavailable right now.
+            </p>
+          ) : tenancy ? (
             <div className="space-y-3">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-[#0A7B7E]/20 rounded-full flex items-center justify-center text-[#12A5A9] font-semibold">
