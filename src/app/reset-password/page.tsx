@@ -14,14 +14,27 @@ export default function ResetPasswordPage() {
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    // Check if already have a session (set by auth callback)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setReady(true)
-    })
+    let attempts = 0
 
-    // Also listen for auth state change
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        setReady(true)
+        return
+      }
+
+      attempts++
+      if (attempts < 10) {
+        setTimeout(checkSession, 500)
+      } else {
+        setError('Reset link expired or invalid. Please request a new one.')
+      }
+    }
+
+    checkSession()
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session)) {
+      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
         setReady(true)
       }
     })
@@ -70,6 +83,13 @@ export default function ResetPasswordPage() {
           <div className="bg-[#0A7B7E]/15 border border-[#12A5A9]/30 rounded-xl px-6 py-5 text-center">
             <p className="text-[#12A5A9] font-medium">Password updated!</p>
             <p className="text-white/50 text-sm mt-1">Redirecting to login...</p>
+          </div>
+        ) : error && !ready ? (
+          <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm text-center">
+            {error}
+            <a href="/forgot-password" className="block mt-3 text-[#12A5A9] hover:underline">
+              Request a new reset link
+            </a>
           </div>
         ) : !ready ? (
           <div className="bg-[#0A7B7E]/15 border border-[#12A5A9]/30 rounded-xl px-6 py-5 text-center">
