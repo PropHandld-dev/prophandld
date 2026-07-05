@@ -22,6 +22,7 @@ export default function RenterDashboard() {
         return
       }
       setUser(user)
+      console.log('Currently logged in as:', user.email, user.id)
       setLoading(false)
 
       // Find this renter's active tenancy
@@ -32,6 +33,9 @@ export default function RenterDashboard() {
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()
+
+      console.log('Tenancy data:', tenancyData)
+      console.log('Tenancy error:', tenancyError)
 
       if (tenancyError || !tenancyData) {
         setContactsLoading(false)
