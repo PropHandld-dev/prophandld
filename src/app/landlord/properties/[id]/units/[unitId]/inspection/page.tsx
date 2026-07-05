@@ -101,7 +101,16 @@ export default function MoveInInspectionPage() {
         const { data: uploaderData } = await supabase
           .rpc('get_user_by_id', { user_id_input: photo.uploaded_by })
           .maybeSingle()
-        return { ...photo, uploader: uploaderData }
+
+        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+          .from('inspection-photos')
+          .createSignedUrl(photo.photo_url, 3600) // valid for 1 hour
+
+        if (signedUrlError) {
+          console.error('Error creating signed URL:', signedUrlError)
+        }
+
+        return { ...photo, uploader: uploaderData, displayUrl: signedUrlData?.signedUrl }
       })
     )
 
@@ -148,17 +157,13 @@ export default function MoveInInspectionPage() {
         continue
       }
 
-      const { data: urlData } = supabase.storage
-        .from('inspection-photos')
-        .getPublicUrl(filePath)
-
       const { error: insertError } = await supabase
         .from('inspection_photos')
         .insert({
           inspection_id: inspection.id,
           uploaded_by: currentUserId,
           uploaded_by_role: userRole,
-          photo_url: urlData.publicUrl,
+          photo_url: filePath,
         })
 
       if (insertError) {
@@ -284,7 +289,7 @@ export default function MoveInInspectionPage() {
                   {photos.map((photo) => (
                     <div key={photo.id} className="bg-white/3 border border-white/8 rounded-xl overflow-hidden">
                       <img
-                        src={photo.photo_url}
+                        src={photo.displayUrl}
                         alt="Inspection photo"
                         className="w-full h-40 object-cover"
                       />
