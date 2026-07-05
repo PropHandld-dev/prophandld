@@ -30,14 +30,11 @@ export default function NewTenancyPage() {
     setLoading(true)
     setError(null)
 
-    // Find renter by email
-    const { data: renterData, error: renterError } = await supabase
-      .from('users')
-      .select('id')
-      .eq('email', form.renter_email)
-      .single()
+    // Find renter by email using secure function
+    const { data: renterId, error: renterError } = await supabase
+      .rpc('get_user_id_by_email', { email_input: form.renter_email })
 
-    if (renterError || !renterData) {
+    if (renterError || !renterId) {
       setError('No renter found with that email. They must sign up as a Renter first.')
       setLoading(false)
       return
@@ -48,7 +45,7 @@ export default function NewTenancyPage() {
       .from('tenancies')
       .insert({
         unit_id: unitId,
-        renter_user_id: renterData.id,
+        renter_user_id: renterId,
         rent_amount: form.rent_amount ? parseFloat(form.rent_amount) : null,
         lease_start: form.lease_start || null,
         lease_end: form.lease_end || null,
