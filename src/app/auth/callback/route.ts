@@ -28,8 +28,14 @@ export async function GET(request: NextRequest) {
     )
 
     await supabase.auth.exchangeCodeForSession(code)
+
+    // If recovery type, always redirect to reset-password
+    if (type === 'recovery') {
+      return NextResponse.redirect(new URL('/reset-password', requestUrl.origin))
+    }
   }
 
+  // If type is recovery but no code, still redirect to reset-password
   if (type === 'recovery') {
     return NextResponse.redirect(new URL('/reset-password', requestUrl.origin))
   }
