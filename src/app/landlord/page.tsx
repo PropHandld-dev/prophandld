@@ -94,17 +94,21 @@ export default function LandlordDashboard() {
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          {[
-            { label: 'Properties', value: stats.properties, icon: '🏠' },
-            { label: 'Open Jobs', value: stats.openJobs, icon: '🔧' },
-            { label: 'Pending Bids', value: stats.pendingBids, icon: '📋' },
-          ].map((stat) => (
-            <div key={stat.label} className="bg-white/3 border border-white/8 rounded-2xl p-6">
-              <div className="text-2xl mb-2">{stat.icon}</div>
-              <div className="text-3xl font-bold text-white">{stat.value}</div>
-              <div className="text-white/50 text-sm mt-1">{stat.label}</div>
-            </div>
-          ))}
+          <Link href="/landlord/properties" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 transition block">
+  <div className="text-2xl mb-2">🏠</div>
+  <div className="text-3xl font-bold text-white">{stats.properties}</div>
+  <div className="text-white/50 text-sm mt-1">Properties</div>
+</Link>
+<div className="bg-white/3 border border-white/8 rounded-2xl p-6">
+  <div className="text-2xl mb-2">🔧</div>
+  <div className="text-3xl font-bold text-white">{stats.openJobs}</div>
+  <div className="text-white/50 text-sm mt-1">Open Jobs</div>
+</div>
+<div className="bg-white/3 border border-white/8 rounded-2xl p-6">
+  <div className="text-2xl mb-2">📋</div>
+  <div className="text-3xl font-bold text-white">{stats.pendingBids}</div>
+  <div className="text-white/50 text-sm mt-1">Pending Bids</div>
+</div>
         </div>
 
         {/* Quick actions */}
