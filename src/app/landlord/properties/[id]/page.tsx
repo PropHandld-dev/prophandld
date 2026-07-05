@@ -5,50 +5,64 @@ import { supabase } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 
-export default function PropertyDetailPage() {
+export default function UnitDetailPage() {
   const router = useRouter()
   const params = useParams()
   const propertyId = params.id as string
-  const [property, setProperty] = useState<any>(null)
-  const [units, setUnits] = useState<any[]>([])
+  const unitId = params.unitId as string
+  const [unit, setUnit] = useState<any>(null)
+  const [tenancy, setTenancy] = useState<any>(null)
+  const [renter, setRenter] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const fetchProperty = async () => {
+    const fetchUnit = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
         router.push('/login')
         return
       }
 
-      const { data: propertyData, error: propertyError } = await supabase
-        .from('properties')
+      // Fetch unit
+      const { data: unitData } = await supabase
+        .from('units')
         .select('*')
-        .eq('id', propertyId)
-        .eq('owner_user_id', user.id)
+        .eq('id', unitId)
         .single()
 
-      if (propertyError || !propertyData) {
-        router.push('/landlord/properties')
+      if (!unitData) {
+        router.push(`/landlord/properties/${propertyId}`)
         return
       }
 
-      setProperty(propertyData)
+      setUnit(unitData)
 
-      const { data: unitsData, error: unitsError } = await supabase
-        .from('units')
+      // Fetch tenancy separately
+      const { data: tenancyData } = await supabase
+        .from('tenancies')
         .select('*')
-        .eq('property_id', propertyId)
-        .order('unit_number')
+        .eq('unit_id', unitId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
 
-      console.log('Units data:', unitsData)
-      console.log('Units error:', unitsError)
+      if (tenancyData) {
+        setTenancy(tenancyData)
 
-      if (unitsData) setUnits(unitsData)
+        // Fetch renter info separately using RPC
+        const { data: renterData } = await supabase
+          .from('users')
+          .select('full_name, email, phone')
+          .eq('id', tenancyData.renter_user_id)
+          .maybeSingle()
+
+        if (renterData) setRenter(renterData)
+      }
+
       setLoading(false)
     }
-    fetchProperty()
-  }, [propertyId, router])
+    fetchUnit()
+  }, [unitId, propertyId, router])
 
   if (loading) return (
     <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center">
@@ -56,98 +70,97 @@ export default function PropertyDetailPage() {
     </div>
   )
 
-  if (!property) return null
+  if (!unit) return null
 
   return (
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
-        <Link href="/landlord/properties" className="text-white/50 hover:text-white text-sm transition">
-          ← Properties
+        <Link
+          href={`/landlord/properties/${propertyId}`}
+          className="text-white/50 hover:text-white text-sm transition"
+        >
+          ← Property
         </Link>
         <span className="text-white font-semibold text-sm">Prophandld</span>
-        <Link
-          href={`/landlord/properties/${propertyId}/units/new`}
-          className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-4 py-2 rounded-xl hover:opacity-90 transition"
-        >
-          + Add unit
-        </Link>
+        <div className="w-20" />
       </nav>
 
-      <main className="max-w-4xl mx-auto px-6 py-10">
+      <main className="max-w-2xl mx-auto px-6 py-10">
 
-        {/* Property header */}
+        {/* Unit header */}
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-white">{property.address}</h1>
-          <p className="text-white/50 mt-1">{property.city}, {property.state} {property.zip}</p>
-          <span className="text-xs bg-white/8 text-white/60 rounded-full px-3 py-1 capitalize inline-block mt-2">
-            {property.property_type}
-          </span>
+          <h1 className="text-2xl font-bold text-white">{unit.unit_number}</h1>
+          {unit.floor && <p className="text-white/50 text-sm mt-1">Floor {unit.floor}</p>}
+          {unit.sqft && <p className="text-white/50 text-sm">{unit.sqft} sqft</p>}
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-8">
-          {[
-            { label: 'Total units', value: units.length },
-            { label: 'Occupied', value: units.filter(u => u.tenancies?.length > 0).length },
-            { label: 'Vacant', value: units.filter(u => !u.tenancies?.length).length },
-          ].map((stat) => (
-            <div key={stat.label} className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center">
-              <div className="text-2xl font-bold text-white">{stat.value}</div>
-              <div className="text-white/40 text-xs mt-1">{stat.label}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Units */}
-        <h2 className="text-white font-semibold mb-4">Units</h2>
-        {units.length === 0 ? (
-          <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
-            <p className="text-white/40 text-sm">No units yet.</p>
-            <Link
-              href={`/landlord/properties/${propertyId}/units/new`}
-              className="text-[#12A5A9] text-sm hover:underline block mt-2"
-            >
-              Add a unit
-            </Link>
-          </div>
-        ) : (
-          <div className="grid gap-3">
-            {units.map((unit) => (
-              <Link
-                key={unit.id}
-                href={`/landlord/properties/${propertyId}/units/${unit.id}`}
-                className="bg-white/3 border border-white/8 rounded-2xl p-5 hover:border-[#12A5A9]/30 transition block"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-white font-semibold">{unit.unit_number}</h3>
-                    <p className="text-white/30 text-sm mt-1">Vacant</p>
-                    {unit.sqft && <p className="text-white/30 text-xs mt-1">{unit.sqft} sqft</p>}
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs bg-white/5 text-white/30 border border-white/10 rounded-full px-2 py-0.5">Vacant</span>
-                    <span className="text-white/30">→</span>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
-
-        {/* Emergency contacts */}
-        <div className="mt-8">
+        {/* Tenant section */}
+        <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-white font-semibold">Emergency contacts</h2>
-            <Link
-              href={`/landlord/properties/${propertyId}/contacts`}
-              className="text-[#12A5A9] text-sm hover:underline"
-            >
-              Manage
-            </Link>
+            <h2 className="text-white font-semibold">Tenant</h2>
+            {!tenancy && (
+              <Link
+                href={`/landlord/properties/${propertyId}/units/${unitId}/tenancy/new`}
+                className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-3 py-1.5 rounded-lg hover:opacity-90 transition"
+              >
+                + Link renter
+              </Link>
+            )}
           </div>
-          <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
-            <p className="text-white/30 text-sm">No emergency contacts added yet.</p>
-          </div>
+
+          {tenancy && renter ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-[#0A7B7E]/20 rounded-full flex items-center justify-center text-[#12A5A9] font-semibold text-lg">
+                  {renter.full_name?.[0] || '?'}
+                </div>
+                <div>
+                  <p className="text-white font-medium">{renter.full_name}</p>
+                  <p className="text-white/50 text-sm">{renter.email}</p>
+                </div>
+              </div>
+              {renter.phone && (
+                <p className="text-white/40 text-sm">📞 {renter.phone}</p>
+              )}
+              {tenancy.rent_amount && (
+                <p className="text-white/40 text-sm">💰 ${tenancy.rent_amount}/month</p>
+              )}
+              {tenancy.security_deposit && (
+                <p className="text-white/40 text-sm">🔒 ${tenancy.security_deposit} deposit</p>
+              )}
+              {tenancy.lease_start && (
+                <p className="text-white/40 text-sm">
+                  📅 {new Date(tenancy.lease_start).toLocaleDateString()}
+                  {tenancy.lease_end ? ` → ${new Date(tenancy.lease_end).toLocaleDateString()}` : ' → ongoing'}
+                </p>
+              )}
+              <button className="text-red-400/70 text-xs hover:text-red-400 transition mt-2">
+                End tenancy
+              </button>
+            </div>
+          ) : tenancy && !renter ? (
+            <p className="text-white/30 text-sm">Tenant linked — loading details...</p>
+          ) : (
+            <p className="text-white/30 text-sm">No tenant linked — unit is vacant.</p>
+          )}
+        </div>
+
+        {/* Open jobs */}
+        <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
+          <h2 className="text-white font-semibold mb-4">Open jobs</h2>
+          <p className="text-white/30 text-sm">No open jobs for this unit.</p>
+        </div>
+
+        {/* Job history */}
+        <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
+          <h2 className="text-white font-semibold mb-4">Job history</h2>
+          <p className="text-white/30 text-sm">No completed jobs yet.</p>
+        </div>
+
+        {/* Maintenance */}
+        <div className="bg-white/3 border border-white/8 rounded-2xl p-6">
+          <h2 className="text-white font-semibold mb-4">Maintenance items</h2>
+          <p className="text-white/30 text-sm">Maintenance tracking coming in V2.</p>
         </div>
 
       </main>
