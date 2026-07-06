@@ -13,6 +13,7 @@ export default function JobDetailPage() {
   const [loading, setLoading] = useState(true)
   const [job, setJob] = useState<any>(null)
   const [photos, setPhotos] = useState<any[]>([])
+  const [bids, setBids] = useState<any[]>([])
   const [error, setError] = useState<string | null>(null)
   const [actioning, setActioning] = useState(false)
 
@@ -67,6 +68,28 @@ export default function JobDetailPage() {
       setPhotos(enriched)
     }
 
+    if (['bidding', 'bid_selected', 'scheduled', 'in_progress', 'completed'].includes(jobData.status)) {
+      const { data: bidsData, error: bidsError } = await supabase
+        .from('bids')
+        .select('*')
+        .eq('job_id', jobId)
+        .order('amount', { ascending: true })
+
+      if (bidsError) {
+        console.error('Error loading bids:', bidsError)
+      } else if (bidsData) {
+        const enrichedBids = await Promise.all(
+          bidsData.map(async (bid) => {
+            const { data: contractorData } = await supabase
+              .rpc('get_user_by_id', { user_id_input: bid.contractor_user_id })
+              .maybeSingle()
+            return { ...bid, contractor: contractorData }
+          })
+        )
+        setBids(enrichedBids)
+      }
+    }
+
     setLoading(false)
   }
 
@@ -108,6 +131,65 @@ export default function JobDetailPage() {
     setActioning(false)
   }
 
+  const handleStartBidding = async () => {
+    setActioning(true)
+    const { error: updateError } = await supabase
+      .from('jobs')
+      .update({ status: 'bidding' })
+      .eq('id', jobId)
+
+    if (updateError) {
+      console.error('Error starting bidding:', updateError)
+      setError('Could not start bidding.')
+    }
+
+    await fetchJob()
+    setActioning(false)
+  }
+
+  const handleSelectBid = async (bidId: string) => {
+    const confirmed = window.confirm('Select this contractor for the job? Other bids will be marked as not selected.')
+    if (!confirmed) return
+
+    setActioning(true)
+    setError(null)
+
+    const { error: selectError } = await supabase
+      .from('bids')
+      .update({ status: 'selected' })
+      .eq('id', bidId)
+
+    if (selectError) {
+      console.error('Error selecting bid:', selectError)
+      setError('Could not select this bid.')
+      setActioning(false)
+      return
+    }
+
+    const { error: declineOthersError } = await supabase
+      .from('bids')
+      .update({ status: 'declined' })
+      .eq('job_id', jobId)
+      .neq('id', bidId)
+
+    if (declineOthersError) {
+      console.error('Error declining other bids:', declineOthersError)
+    }
+
+    const { error: jobUpdateError } = await supabase
+      .from('jobs')
+      .update({ status: 'bid_selected' })
+      .eq('id', jobId)
+
+    if (jobUpdateError) {
+      console.error('Error updating job status:', jobUpdateError)
+      setError('Bid selected, but job status failed to update.')
+    }
+
+    await fetchJob()
+    setActioning(false)
+  }
+
   const statusLabel = (status: string) => {
     const labels: Record<string, string> = {
       pending_approval: 'Needs approval',
@@ -129,11 +211,13 @@ export default function JobDetailPage() {
     </div>
   )
 
-  if (error || !job) return (
+  if (error && !job) return (
     <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center">
-      <div className="text-white/50">{error || 'Job not found.'}</div>
+      <div className="text-white/50">{error}</div>
     </div>
   )
+
+  if (!job) return null
 
   return (
     <div className="min-h-screen bg-[#0C1A2E]">
@@ -184,6 +268,15 @@ export default function JobDetailPage() {
                 </button>
               </div>
             )}
+            {job.status === 'approved' && (
+              <button
+                onClick={handleStartBidding}
+                disabled={actioning}
+                className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
+              >
+                Start bidding
+              </button>
+            )}
           </div>
 
           <p className="text-white/70 text-sm leading-relaxed">{job.description}</p>
@@ -211,11 +304,48 @@ export default function JobDetailPage() {
           )}
         </div>
 
-        {job.status === 'approved' && (
-          <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4 text-center">
-            <p className="text-white/40 text-sm">
-              Bidding isn't live yet — contractor matching and sealed bids are coming soon.
-            </p>
+        {job.status === 'bidding' && (
+          <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
+            <h3 className="text-white font-semibold mb-4">
+              Sealed bids {bids.length > 0 && `(${bids.length})`}
+            </h3>
+            {bids.length === 0 ? (
+              <p className="text-white/30 text-sm">No bids yet — contractors in range have been notified.</p>
+            ) : (
+              <div className="space-y-3">
+                {bids.map((bid) => (
+                  <div key={bid.id} className="bg-white/5 border border-white/10 rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-white font-semibold">{bid.contractor?.full_name || 'Unknown contractor'}</p>
+                      <p className="text-[#12A5A9] font-bold">${bid.amount}</p>
+                    </div>
+                    {bid.availability && <p className="text-white/50 text-xs">Availability: {bid.availability}</p>}
+                    {bid.estimated_hours && <p className="text-white/50 text-xs">Est. hours: {bid.estimated_hours}</p>}
+                    {bid.notes && <p className="text-white/40 text-xs mt-1 italic">{bid.notes}</p>}
+                    <button
+                      onClick={() => handleSelectBid(bid.id)}
+                      disabled={actioning}
+                      className="mt-3 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
+                    >
+                      Select this contractor
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {['bid_selected', 'scheduled', 'in_progress', 'completed'].includes(job.status) && (
+          <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
+            <h3 className="text-white font-semibold mb-3">Selected contractor</h3>
+            {bids.filter((b) => b.status === 'selected').map((bid) => (
+              <div key={bid.id}>
+                <p className="text-white font-semibold">{bid.contractor?.full_name}</p>
+                <p className="text-[#12A5A9] font-bold text-sm mt-1">${bid.amount}</p>
+                {bid.availability && <p className="text-white/50 text-xs mt-1">Availability: {bid.availability}</p>}
+              </div>
+            ))}
           </div>
         )}
 
