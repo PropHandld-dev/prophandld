@@ -29,7 +29,6 @@ export default function LandlordDashboard() {
       }
       setUser(user)
 
-      // Fetch active (non-archived) properties
       const { data: propertiesData } = await supabase
         .from('properties')
         .select('*')
@@ -56,7 +55,6 @@ export default function LandlordDashboard() {
 
       const propertyIds = propertyList.map((p) => p.id)
 
-      // Fetch all units across these properties
       const { data: unitsData } = await supabase
         .from('units')
         .select('*')
@@ -65,7 +63,6 @@ export default function LandlordDashboard() {
       const unitList = unitsData || []
       const unitIds = unitList.map((u) => u.id)
 
-      // Fetch active tenancies (not ended) for occupancy + rent roll
       let tenancyList: any[] = []
       if (unitIds.length > 0) {
         const { data: tenanciesData } = await supabase
@@ -80,7 +77,17 @@ export default function LandlordDashboard() {
       const occupiedUnitIds = new Set(tenancyList.map((t) => t.unit_id))
       const monthlyRentRoll = tenancyList.reduce((sum, t) => sum + (t.rent_amount || 0), 0)
 
-      // Build per-property breakdown
+      let openJobsCount = 0
+      if (unitIds.length > 0) {
+        const { count } = await supabase
+          .from('jobs')
+          .select('*', { count: 'exact', head: true })
+          .in('unit_id', unitIds)
+          .in('status', ['pending_approval', 'approved', 'bidding', 'bid_selected', 'scheduled', 'in_progress'])
+
+        openJobsCount = count || 0
+      }
+
       const propertyBreakdown = propertyList.map((property) => {
         const propertyUnits = unitList.filter((u) => u.property_id === property.id)
         const propertyOccupied = propertyUnits.filter((u) => occupiedUnitIds.has(u.id)).length
@@ -97,7 +104,7 @@ export default function LandlordDashboard() {
         occupiedUnits: occupiedUnitIds.size,
         vacantUnits: unitList.length - occupiedUnitIds.size,
         monthlyRentRoll,
-        openJobs: 0,
+        openJobs: openJobsCount,
         pendingBids: 0,
       })
       setProperties(propertyBreakdown)
@@ -160,7 +167,6 @@ export default function LandlordDashboard() {
 
       <main className="max-w-6xl mx-auto px-6 py-10">
 
-        {/* Hero */}
         <div className="mb-10">
           <h1 className="text-3xl font-bold text-white tracking-tight">
             Welcome back, {user?.user_metadata?.full_name?.split(' ')[0]} 👋
@@ -168,7 +174,6 @@ export default function LandlordDashboard() {
           <p className="text-white/50 mt-2">Here's the state of your portfolio right now.</p>
         </div>
 
-        {/* Portfolio overview */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <Link
             href="/landlord/properties"
@@ -208,15 +213,14 @@ export default function LandlordDashboard() {
           </div>
         </div>
 
-        {/* Secondary stats: jobs + bids */}
         <div className="grid grid-cols-2 gap-4 mb-10">
-          <div className="bg-white/3 border border-white/8 rounded-2xl p-5 flex items-center gap-4">
+          <Link href="/landlord/jobs" className="bg-white/3 border border-white/8 rounded-2xl p-5 flex items-center gap-4 hover:border-[#12A5A9]/30 hover:bg-white/5 transition">
             <span className="text-2xl">🔧</span>
             <div>
               <div className="text-xl font-bold text-white">{stats.openJobs}</div>
               <div className="text-white/40 text-xs">Open jobs</div>
             </div>
-          </div>
+          </Link>
           <div className="bg-white/3 border border-white/8 rounded-2xl p-5 flex items-center gap-4">
             <span className="text-2xl">📋</span>
             <div>
@@ -226,7 +230,6 @@ export default function LandlordDashboard() {
           </div>
         </div>
 
-        {/* Properties breakdown */}
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-white font-semibold text-lg">Your properties</h2>
           <Link href="/landlord/properties" className="text-[#12A5A9] text-sm hover:underline">
@@ -284,7 +287,6 @@ export default function LandlordDashboard() {
           </div>
         )}
 
-        {/* Quick actions */}
         <h2 className="text-white font-semibold text-lg mb-4">Quick actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Link href="/landlord/properties" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 transition block">
@@ -297,11 +299,11 @@ export default function LandlordDashboard() {
             <h3 className="text-white font-semibold mb-1">Add a property</h3>
             <p className="text-white/40 text-sm">Start tracking a new address</p>
           </Link>
-          <div className="bg-white/3 border border-white/8 rounded-2xl p-6 opacity-50 cursor-not-allowed">
+          <Link href="/landlord/jobs" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 transition block">
             <div className="text-xl mb-2">🔧</div>
             <h3 className="text-white font-semibold mb-1">View jobs</h3>
-            <p className="text-white/40 text-sm">Coming soon</p>
-          </div>
+            <p className="text-white/40 text-sm">See all maintenance requests</p>
+          </Link>
           <div className="bg-white/3 border border-white/8 rounded-2xl p-6 opacity-50 cursor-not-allowed">
             <div className="text-xl mb-2">💳</div>
             <h3 className="text-white font-semibold mb-1">Payments</h3>
