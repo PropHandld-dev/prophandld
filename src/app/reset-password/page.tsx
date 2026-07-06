@@ -36,9 +36,6 @@ function ResetPasswordForm() {
 
     setLoading(true)
 
-    // Only NOW do we actually consume the one-time code — at the point of
-    // real user action, not on page load. This avoids link-scanner prefetching
-    // burning the code before the user gets here.
     const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
 
     if (exchangeError) {

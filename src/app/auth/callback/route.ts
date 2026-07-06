@@ -7,10 +7,10 @@ export async function GET(request: NextRequest) {
   const type = requestUrl.searchParams.get('type')
 
   // For password recovery, do NOT consume the code here.
-  // Email link-scanners (Gmail, Outlook, etc.) pre-fetch links automatically,
-  // which would silently burn a one-time code before the user ever clicks it.
-  // Instead, pass the code through untouched and only exchange it when the
-  // user actually submits their new password.
+  // Email link-scanners pre-fetch links automatically, which would silently
+  // burn a one-time code before the user ever clicks it. Instead, pass the
+  // code through untouched and only exchange it when the user actually
+  // submits their new password.
   if (type === 'recovery' && code) {
     return NextResponse.redirect(
       new URL(`/reset-password?code=${encodeURIComponent(code)}`, requestUrl.origin)
@@ -21,8 +21,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL('/reset-password', requestUrl.origin))
   }
 
-  // Non-recovery flows (e.g. email confirmation) can still exchange immediately,
-  // since those aren't single-use-sensitive in the same way.
   if (code) {
     const { createServerClient } = await import('@supabase/ssr')
     const { cookies } = await import('next/headers')
