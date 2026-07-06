@@ -5,6 +5,8 @@ import { supabase } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 
+const IN_PROGRESS_STATUSES = ['pending_approval', 'approved', 'bidding', 'bid_selected', 'scheduled', 'in_progress']
+
 export default function UnitDetailPage() {
   const router = useRouter()
   const params = useParams()
@@ -19,6 +21,8 @@ export default function UnitDetailPage() {
   const [savingMoveOut, setSavingMoveOut] = useState(false)
   const [moveOutError, setMoveOutError] = useState<string | null>(null)
   const [moveOutSuccess, setMoveOutSuccess] = useState(false)
+  const [openJobs, setOpenJobs] = useState<any[]>([])
+  const [jobHistory, setJobHistory] = useState<any[]>([])
 
   const fetchUnit = async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -62,6 +66,19 @@ export default function UnitDetailPage() {
       setTenancy({ ...tenancyData, users: renterData })
     } else {
       setTenancy(null)
+    }
+
+    const { data: jobsData, error: jobsError } = await supabase
+      .from('jobs')
+      .select('*')
+      .eq('unit_id', unitId)
+      .order('created_at', { ascending: false })
+
+    if (jobsError) {
+      console.error('Error loading jobs:', jobsError)
+    } else if (jobsData) {
+      setOpenJobs(jobsData.filter((j) => IN_PROGRESS_STATUSES.includes(j.status)))
+      setJobHistory(jobsData.filter((j) => ['completed', 'archived', 'declined'].includes(j.status)))
     }
 
     setLoading(false)
@@ -127,6 +144,21 @@ export default function UnitDetailPage() {
 
     setMoveOutSuccess(true)
     await fetchUnit()
+  }
+
+  const statusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      pending_approval: 'Needs approval',
+      approved: 'Approved',
+      bidding: 'Getting bids',
+      bid_selected: 'Contractor selected',
+      scheduled: 'Scheduled',
+      in_progress: 'In progress',
+      completed: 'Completed',
+      archived: 'Archived',
+      declined: 'Declined',
+    }
+    return labels[status] || status
   }
 
   if (loading) return (
@@ -289,14 +321,53 @@ export default function UnitDetailPage() {
 
         {/* Open jobs */}
         <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
-          <h2 className="text-white font-semibold mb-4">Open jobs</h2>
-          <p className="text-white/30 text-sm">No open jobs for this unit.</p>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-white font-semibold">Open jobs</h2>
+            <Link
+              href={`/landlord/properties/${propertyId}/units/${unitId}/jobs/new`}
+              className="text-[#12A5A9] text-xs hover:underline"
+            >
+              + Create job
+            </Link>
+          </div>
+          {openJobs.length === 0 ? (
+            <p className="text-white/30 text-sm">No open jobs for this unit.</p>
+          ) : (
+            <div className="space-y-3">
+              {openJobs.map((job) => (
+                <div key={job.id} className="border-b border-white/5 last:border-0 pb-3 last:pb-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <p className="text-white font-medium text-sm">{job.category}</p>
+                    {job.is_emergency && (
+                      <span className="text-xs bg-red-500/20 text-red-400 border border-red-500/30 rounded-full px-2 py-0.5 font-semibold">
+                        Emergency
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-white/50 text-xs">{job.description}</p>
+                  <p className="text-[#12A5A9] text-xs mt-1">{statusLabel(job.status)}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Job history */}
         <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
           <h2 className="text-white font-semibold mb-4">Job history</h2>
-          <p className="text-white/30 text-sm">No completed jobs yet.</p>
+          {jobHistory.length === 0 ? (
+            <p className="text-white/30 text-sm">No completed jobs yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {jobHistory.map((job) => (
+                <div key={job.id} className="border-b border-white/5 last:border-0 pb-3 last:pb-0">
+                  <p className="text-white font-medium text-sm">{job.category}</p>
+                  <p className="text-white/50 text-xs">{job.description}</p>
+                  <p className="text-white/30 text-xs mt-1">{statusLabel(job.status)}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Maintenance tab */}
