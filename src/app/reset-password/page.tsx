@@ -1,50 +1,28 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, Suspense } from 'react'
 import { supabase } from '@/lib/supabase'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
-export default function ResetPasswordPage() {
+function ResetPasswordForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const code = searchParams.get('code')
+
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState(false)
-  const [ready, setReady] = useState(false)
-
-  useEffect(() => {
-    let attempts = 0
-
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session) {
-        setReady(true)
-        return
-      }
-
-      attempts++
-      if (attempts < 10) {
-        setTimeout(checkSession, 500)
-      } else {
-        setError('Reset link expired or invalid. Please request a new one.')
-      }
-    }
-
-    checkSession()
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
-        setReady(true)
-      }
-    })
-
-    return () => subscription.unsubscribe()
-  }, [])
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+
+    if (!code) {
+      setError('This reset link is missing required information. Please request a new one.')
+      return
+    }
 
     if (password !== confirm) {
       setError('Passwords do not match.')
@@ -57,6 +35,17 @@ export default function ResetPasswordPage() {
     }
 
     setLoading(true)
+
+    // Only NOW do we actually consume the one-time code — at the point of
+    // real user action, not on page load. This avoids link-scanner prefetching
+    // burning the code before the user gets here.
+    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+
+    if (exchangeError) {
+      setError('This reset link has expired or already been used. Please request a new one.')
+      setLoading(false)
+      return
+    }
 
     const { error: updateError } = await supabase.auth.updateUser({ password })
 
@@ -84,16 +73,12 @@ export default function ResetPasswordPage() {
             <p className="text-[#12A5A9] font-medium">Password updated!</p>
             <p className="text-white/50 text-sm mt-1">Redirecting to login...</p>
           </div>
-        ) : error && !ready ? (
+        ) : !code ? (
           <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm text-center">
-            {error}
+            This reset link is invalid or incomplete.
             <a href="/forgot-password" className="block mt-3 text-[#12A5A9] hover:underline">
               Request a new reset link
             </a>
-          </div>
-        ) : !ready ? (
-          <div className="bg-[#0A7B7E]/15 border border-[#12A5A9]/30 rounded-xl px-6 py-5 text-center">
-            <p className="text-white/50 text-sm">Verifying reset link...</p>
           </div>
         ) : (
           <form onSubmit={handleReset} className="space-y-4">
@@ -124,6 +109,9 @@ export default function ResetPasswordPage() {
             {error && (
               <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">
                 {error}
+                <a href="/forgot-password" className="block mt-2 text-[#12A5A9] hover:underline">
+                  Request a new reset link
+                </a>
               </div>
             )}
 
@@ -138,5 +126,17 @@ export default function ResetPasswordPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center">
+        <div className="text-white/50">Loading...</div>
+      </div>
+    }>
+      <ResetPasswordForm />
+    </Suspense>
   )
 }

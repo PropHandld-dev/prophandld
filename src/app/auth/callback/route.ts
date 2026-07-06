@@ -1,5 +1,3 @@
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
@@ -8,7 +6,26 @@ export async function GET(request: NextRequest) {
   const code = requestUrl.searchParams.get('code')
   const type = requestUrl.searchParams.get('type')
 
+  // For password recovery, do NOT consume the code here.
+  // Email link-scanners (Gmail, Outlook, etc.) pre-fetch links automatically,
+  // which would silently burn a one-time code before the user ever clicks it.
+  // Instead, pass the code through untouched and only exchange it when the
+  // user actually submits their new password.
+  if (type === 'recovery' && code) {
+    return NextResponse.redirect(
+      new URL(`/reset-password?code=${encodeURIComponent(code)}`, requestUrl.origin)
+    )
+  }
+
+  if (type === 'recovery') {
+    return NextResponse.redirect(new URL('/reset-password', requestUrl.origin))
+  }
+
+  // Non-recovery flows (e.g. email confirmation) can still exchange immediately,
+  // since those aren't single-use-sensitive in the same way.
   if (code) {
+    const { createServerClient } = await import('@supabase/ssr')
+    const { cookies } = await import('next/headers')
     const cookieStore = await cookies()
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -26,18 +43,7 @@ export async function GET(request: NextRequest) {
         },
       }
     )
-
     await supabase.auth.exchangeCodeForSession(code)
-
-    // If recovery type, always redirect to reset-password
-    if (type === 'recovery') {
-      return NextResponse.redirect(new URL('/reset-password', requestUrl.origin))
-    }
-  }
-
-  // If type is recovery but no code, still redirect to reset-password
-  if (type === 'recovery') {
-    return NextResponse.redirect(new URL('/reset-password', requestUrl.origin))
   }
 
   return NextResponse.redirect(new URL('/login', requestUrl.origin))
