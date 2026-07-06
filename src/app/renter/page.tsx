@@ -9,11 +9,12 @@ export default function RenterDashboard() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [tenancy, setTenancy] = useState<any>(null)
   const [unit, setUnit] = useState<any>(null)
   const [property, setProperty] = useState<any>(null)
   const [contacts, setContacts] = useState<any[]>([])
   const [contactsLoading, setContactsLoading] = useState(true)
+  const [jobs, setJobs] = useState<any[]>([])
+  const [jobsLoading, setJobsLoading] = useState(true)
 
   useEffect(() => {
     const getUser = async () => {
@@ -25,20 +26,20 @@ export default function RenterDashboard() {
       setUser(user)
       setLoading(false)
 
-      // Find this renter's active tenancy
       const { data: tenancyData, error: tenancyError } = await supabase
         .from('tenancies')
         .select('*')
         .eq('renter_user_id', user.id)
+        .eq('ended', false)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()
 
       if (tenancyError || !tenancyData) {
         setContactsLoading(false)
+        setJobsLoading(false)
         return
       }
-      setTenancy(tenancyData)
 
       const { data: unitData } = await supabase
         .from('units')
@@ -48,6 +49,7 @@ export default function RenterDashboard() {
 
       if (!unitData) {
         setContactsLoading(false)
+        setJobsLoading(false)
         return
       }
       setUnit(unitData)
@@ -60,7 +62,6 @@ export default function RenterDashboard() {
 
       if (propertyData) setProperty(propertyData)
 
-      // Fetch property-level defaults + this unit's overrides
       const { data: contactsData, error: contactsError } = await supabase
         .from('contacts')
         .select('*')
@@ -73,8 +74,21 @@ export default function RenterDashboard() {
       } else {
         setContacts(contactsData || [])
       }
-
       setContactsLoading(false)
+
+      const { data: jobsData, error: jobsError } = await supabase
+        .from('jobs')
+        .select('*')
+        .eq('unit_id', unitData.id)
+        .not('status', 'in', '(completed,archived,declined)')
+        .order('created_at', { ascending: false })
+
+      if (jobsError) {
+        console.error('Error loading jobs:', jobsError)
+      } else {
+        setJobs(jobsData || [])
+      }
+      setJobsLoading(false)
     }
     getUser()
   }, [router])
@@ -82,6 +96,18 @@ export default function RenterDashboard() {
   const handleSignOut = async () => {
     await supabase.auth.signOut()
     router.push('/login')
+  }
+
+  const statusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      pending_approval: 'Waiting on landlord',
+      approved: 'Approved',
+      bidding: 'Getting quotes',
+      bid_selected: 'Contractor selected',
+      scheduled: 'Scheduled',
+      in_progress: 'In progress',
+    }
+    return labels[status] || status
   }
 
   if (loading) return (
@@ -112,7 +138,6 @@ export default function RenterDashboard() {
           <p className="text-white/50 mt-1">Track your maintenance requests here.</p>
         </div>
 
-        {/* Home / lease info */}
         {unit && property && (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
             <h3 className="text-white font-semibold mb-1">Your home</h3>
@@ -120,19 +145,6 @@ export default function RenterDashboard() {
             <p className="text-white/50 text-sm">
               {property.city}, {property.state} {property.zip} · Unit {unit.unit_number}
             </p>
-
-            {tenancy && (
-              <div className="flex flex-wrap gap-x-6 gap-y-1 mt-4 pt-4 border-t border-white/5">
-                {tenancy.rent_amount && (
-                  <p className="text-white/40 text-sm">💰 ${tenancy.rent_amount}/month</p>
-                )}
-                {tenancy.lease_end && (
-                  <p className="text-white/40 text-sm">
-                    📅 Lease ends {new Date(tenancy.lease_end).toLocaleDateString()}
-                  </p>
-                )}
-              </div>
-            )}
           </div>
         )}
 
@@ -140,19 +152,40 @@ export default function RenterDashboard() {
           <h3 className="text-white font-semibold mb-1">Report an issue</h3>
           <p className="text-white/50 text-sm mb-4">Something broken? Let your landlord know.</p>
           <Link
-  href="/renter/report"
-  className="inline-block bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-6 py-2.5 rounded-xl text-sm hover:opacity-90 transition"
->
-  Report now
-</Link>
+            href="/renter/report"
+            className="inline-block bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-6 py-2.5 rounded-xl text-sm hover:opacity-90 transition"
+          >
+            Report now
+          </Link>
         </div>
 
         <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
           <h3 className="text-white font-semibold mb-4">Your issues</h3>
-          <p className="text-white/30 text-sm">No open issues — you're all good! ✅</p>
+
+          {jobsLoading ? (
+            <p className="text-white/30 text-sm">Loading...</p>
+          ) : jobs.length === 0 ? (
+            <p className="text-white/30 text-sm">No open issues — you're all good! ✅</p>
+          ) : (
+            <div className="space-y-3">
+              {jobs.map((job) => (
+                <div key={job.id} className="border-b border-white/5 last:border-0 pb-3 last:pb-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <p className="text-white font-medium">{job.category}</p>
+                    {job.is_emergency && (
+                      <span className="text-xs bg-red-500/20 text-red-400 border border-red-500/30 rounded-full px-2 py-0.5 font-semibold">
+                        Emergency
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-white/50 text-sm">{job.description}</p>
+                  <p className="text-[#12A5A9] text-xs mt-1">{statusLabel(job.status)}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Emergency contacts */}
         <div className="bg-white/3 border border-white/8 rounded-2xl p-6">
           <h3 className="text-white font-semibold mb-4">Emergency contacts</h3>
 
