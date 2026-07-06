@@ -117,7 +117,7 @@ export default function ReportIssuePage() {
         urgency: form.is_emergency ? 'emergency' : form.urgency,
         description: form.description.trim(),
         is_emergency: form.is_emergency,
-        status: 'reported',
+        status: 'pending_approval',
       })
       .select()
       .single()
