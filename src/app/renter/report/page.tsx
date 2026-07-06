@@ -31,7 +31,7 @@ export default function ReportIssuePage() {
 
   const [form, setForm] = useState({
     category: '',
-    urgency: 'medium',
+    urgency: 'normal',
     description: '',
     is_emergency: false,
   })
@@ -222,7 +222,7 @@ export default function ReportIssuePage() {
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
                 >
                   <option value="low" className="bg-[#0C1A2E]">Low</option>
-                  <option value="medium" className="bg-[#0C1A2E]">Medium</option>
+                  <option value="normal" className="bg-[#0C1A2E]">Normal</option>
                   <option value="high" className="bg-[#0C1A2E]">High</option>
                 </select>
               </div>
