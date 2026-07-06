@@ -101,7 +101,7 @@ export default function RenterDashboard() {
   const statusLabel = (status: string) => {
     const labels: Record<string, string> = {
       pending_approval: 'Waiting on landlord',
-      approved: 'Approved',
+      approved: 'Acknowledged',
       bidding: 'Getting quotes',
       bid_selected: 'Contractor selected',
       scheduled: 'Scheduled',

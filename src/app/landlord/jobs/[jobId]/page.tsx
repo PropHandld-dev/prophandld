@@ -82,8 +82,8 @@ export default function JobDetailPage() {
       .eq('id', jobId)
 
     if (updateError) {
-      console.error('Error approving job:', updateError)
-      setError('Could not approve job.')
+      console.error('Error acknowledging job:', updateError)
+      setError('Could not acknowledge job.')
     }
 
     await fetchJob()
@@ -111,7 +111,7 @@ export default function JobDetailPage() {
   const statusLabel = (status: string) => {
     const labels: Record<string, string> = {
       pending_approval: 'Needs approval',
-      approved: 'Approved',
+      approved: 'Acknowledged',
       bidding: 'Getting bids',
       bid_selected: 'Contractor selected',
       scheduled: 'Scheduled',
@@ -173,7 +173,7 @@ export default function JobDetailPage() {
                   disabled={actioning}
                   className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
                 >
-                  Approve
+                  Acknowledge
                 </button>
                 <button
                   onClick={handleDecline}

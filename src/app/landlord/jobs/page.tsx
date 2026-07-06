@@ -69,8 +69,8 @@ export default function LandlordJobsPage() {
       .eq('id', jobId)
 
     if (updateError) {
-      console.error('Error approving job:', updateError)
-      setError('Could not approve job.')
+      console.error('Error acknowledging job:', updateError)
+      setError('Could not acknowledge job.')
     }
 
     await fetchJobs()
@@ -123,7 +123,7 @@ export default function LandlordJobsPage() {
   const statusLabel = (status: string) => {
     const labels: Record<string, string> = {
       pending_approval: 'Needs approval',
-      approved: 'Approved',
+      approved: 'Acknowledged',
       bidding: 'Bidding',
       bid_selected: 'Bid selected',
       scheduled: 'Scheduled',
@@ -210,7 +210,7 @@ export default function LandlordJobsPage() {
                         disabled={actioningId === job.id}
                         className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
                       >
-                        Approve
+                        Acknowledge
                       </button>
                       <button
                         onClick={() => handleDecline(job.id)}

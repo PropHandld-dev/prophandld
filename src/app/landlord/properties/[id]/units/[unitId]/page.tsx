@@ -149,7 +149,7 @@ export default function UnitDetailPage() {
   const statusLabel = (status: string) => {
     const labels: Record<string, string> = {
       pending_approval: 'Needs approval',
-      approved: 'Approved',
+      approved: 'Acknowledged',
       bidding: 'Getting bids',
       bid_selected: 'Contractor selected',
       scheduled: 'Scheduled',
