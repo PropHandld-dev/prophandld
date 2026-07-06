@@ -335,7 +335,7 @@ export default function UnitDetailPage() {
           ) : (
             <div className="space-y-3">
               {openJobs.map((job) => (
-                <div key={job.id} className="border-b border-white/5 last:border-0 pb-3 last:pb-0">
+                <Link key={job.id} href={`/landlord/jobs/${job.id}`} className="block border-b border-white/5 last:border-0 pb-3 last:pb-0 hover:opacity-80 transition">
                   <div className="flex items-center gap-2 flex-wrap mb-1">
                     <p className="text-white font-medium text-sm">{job.category}</p>
                     {job.is_emergency && (
@@ -346,7 +346,7 @@ export default function UnitDetailPage() {
                   </div>
                   <p className="text-white/50 text-xs">{job.description}</p>
                   <p className="text-[#12A5A9] text-xs mt-1">{statusLabel(job.status)}</p>
-                </div>
+                </Link>
               ))}
             </div>
           )}
@@ -360,11 +360,11 @@ export default function UnitDetailPage() {
           ) : (
             <div className="space-y-3">
               {jobHistory.map((job) => (
-                <div key={job.id} className="border-b border-white/5 last:border-0 pb-3 last:pb-0">
+                <Link key={job.id} href={`/landlord/jobs/${job.id}`} className="block border-b border-white/5 last:border-0 pb-3 last:pb-0 hover:opacity-80 transition">
                   <p className="text-white font-medium text-sm">{job.category}</p>
                   <p className="text-white/50 text-xs">{job.description}</p>
                   <p className="text-white/30 text-xs mt-1">{statusLabel(job.status)}</p>
-                </div>
+                </Link>
               ))}
             </div>
           )}
