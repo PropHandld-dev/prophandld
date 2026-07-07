@@ -19,6 +19,7 @@ export default function LandlordDashboard() {
     pendingBids: 0,
   })
   const [properties, setProperties] = useState<any[]>([])
+  const [needsReview, setNeedsReview] = useState<any[]>([])
 
   useEffect(() => {
     const getUser = async () => {
@@ -49,6 +50,7 @@ export default function LandlordDashboard() {
           pendingBids: 0,
         })
         setProperties([])
+        setNeedsReview([])
         setLoading(false)
         return
       }
@@ -78,6 +80,8 @@ export default function LandlordDashboard() {
       const monthlyRentRoll = tenancyList.reduce((sum, t) => sum + (t.rent_amount || 0), 0)
 
       let openJobsCount = 0
+      let biddingJobsWithBids: any[] = []
+
       if (unitIds.length > 0) {
         const { count } = await supabase
           .from('jobs')
@@ -86,6 +90,30 @@ export default function LandlordDashboard() {
           .in('status', ['pending_approval', 'approved', 'bidding', 'bid_selected', 'scheduled', 'in_progress'])
 
         openJobsCount = count || 0
+
+        // Find jobs currently in bidding status
+        const { data: biddingJobs } = await supabase
+          .from('jobs')
+          .select('*, units(unit_number, properties(address, city))')
+          .in('unit_id', unitIds)
+          .eq('status', 'bidding')
+
+        if (biddingJobs && biddingJobs.length > 0) {
+          const jobIds = biddingJobs.map((j) => j.id)
+          const { data: bidsData } = await supabase
+            .from('bids')
+            .select('job_id')
+            .in('job_id', jobIds)
+
+          const bidCounts = new Map<string, number>()
+          ;(bidsData || []).forEach((b) => {
+            bidCounts.set(b.job_id, (bidCounts.get(b.job_id) || 0) + 1)
+          })
+
+          biddingJobsWithBids = biddingJobs
+            .map((job) => ({ ...job, bidCount: bidCounts.get(job.id) || 0 }))
+            .filter((job) => job.bidCount > 0)
+        }
       }
 
       const propertyBreakdown = propertyList.map((property) => {
@@ -105,9 +133,10 @@ export default function LandlordDashboard() {
         vacantUnits: unitList.length - occupiedUnitIds.size,
         monthlyRentRoll,
         openJobs: openJobsCount,
-        pendingBids: 0,
+        pendingBids: biddingJobsWithBids.length,
       })
       setProperties(propertyBreakdown)
+      setNeedsReview(biddingJobsWithBids)
       setLoading(false)
     }
     getUser()
@@ -174,6 +203,33 @@ export default function LandlordDashboard() {
           <p className="text-white/50 mt-2">Here's the state of your portfolio right now.</p>
         </div>
 
+        {needsReview.length > 0 && (
+          <div className="bg-gradient-to-r from-yellow-500/10 to-yellow-500/5 border border-yellow-500/30 rounded-2xl p-5 mb-6">
+            <h3 className="text-yellow-400 font-semibold text-sm mb-3">
+              🔔 {needsReview.length} job{needsReview.length > 1 ? 's' : ''} need{needsReview.length === 1 ? 's' : ''} your review
+            </h3>
+            <div className="space-y-2">
+              {needsReview.map((job) => (
+                <Link
+                  key={job.id}
+                  href={`/landlord/jobs/${job.id}`}
+                  className="flex items-center justify-between bg-white/5 hover:bg-white/8 rounded-xl px-4 py-3 transition"
+                >
+                  <div>
+                    <p className="text-white text-sm font-medium">{job.category}</p>
+                    <p className="text-white/40 text-xs">
+                      {job.units?.properties?.address}, {job.units?.properties?.city} · Unit {job.units?.unit_number}
+                    </p>
+                  </div>
+                  <span className="text-xs bg-yellow-500/20 text-yellow-400 rounded-full px-3 py-1 font-semibold shrink-0">
+                    {job.bidCount} bid{job.bidCount > 1 ? 's' : ''} →
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <Link
             href="/landlord/properties"
@@ -221,13 +277,16 @@ export default function LandlordDashboard() {
               <div className="text-white/40 text-xs">Open jobs</div>
             </div>
           </Link>
-          <div className="bg-white/3 border border-white/8 rounded-2xl p-5 flex items-center gap-4">
+          <Link
+            href={needsReview.length > 0 ? `/landlord/jobs/${needsReview[0].id}` : '/landlord/jobs'}
+            className="bg-white/3 border border-white/8 rounded-2xl p-5 flex items-center gap-4 hover:border-[#12A5A9]/30 hover:bg-white/5 transition"
+          >
             <span className="text-2xl">📋</span>
             <div>
               <div className="text-xl font-bold text-white">{stats.pendingBids}</div>
-              <div className="text-white/40 text-xs">Pending bids</div>
+              <div className="text-white/40 text-xs">Jobs with bids to review</div>
             </div>
-          </div>
+          </Link>
         </div>
 
         <div className="flex items-center justify-between mb-4">
