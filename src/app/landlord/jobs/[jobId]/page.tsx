@@ -17,6 +17,13 @@ export default function JobDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [actioning, setActioning] = useState(false)
 
+  // Modal states
+  const [showBiddingModal, setShowBiddingModal] = useState(false)
+  const [showDeclineModal, setShowDeclineModal] = useState(false)
+  const [declineNote, setDeclineNote] = useState('')
+  const [showSelectModal, setShowSelectModal] = useState(false)
+  const [selectedBidId, setSelectedBidId] = useState<string | null>(null)
+
   const fetchJob = async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
@@ -97,7 +104,8 @@ export default function JobDetailPage() {
     fetchJob()
   }, [jobId, router])
 
-  const handleApprove = async () => {
+  // Step 1: Acknowledge, then show the "start bidding?" modal
+  const handleApproveClick = async () => {
     setActioning(true)
     const { error: updateError } = await supabase
       .from('jobs')
@@ -111,31 +119,43 @@ export default function JobDetailPage() {
       return
     }
 
-    const startBidding = window.confirm('Let contractors start bidding on this job?')
+    setActioning(false)
+    setShowBiddingModal(true)
+  }
 
-    if (startBidding) {
-      const { error: biddingError } = await supabase
-        .from('jobs')
-        .update({ status: 'bidding' })
-        .eq('id', jobId)
+  const confirmStartBidding = async () => {
+    setActioning(true)
+    const { error: biddingError } = await supabase
+      .from('jobs')
+      .update({ status: 'bidding' })
+      .eq('id', jobId)
 
-      if (biddingError) {
-        console.error('Error starting bidding:', biddingError)
-        setError('Acknowledged, but could not start bidding.')
-      }
+    if (biddingError) {
+      console.error('Error starting bidding:', biddingError)
+      setError('Acknowledged, but could not start bidding.')
     }
 
+    setShowBiddingModal(false)
     await fetchJob()
     setActioning(false)
   }
 
-  const handleDecline = async () => {
-    const note = window.prompt('Optional note to the renter about why this was declined:')
+  const skipBidding = async () => {
+    setShowBiddingModal(false)
+    await fetchJob()
+  }
+
+  const handleDeclineClick = () => {
+    setDeclineNote('')
+    setShowDeclineModal(true)
+  }
+
+  const confirmDecline = async () => {
     setActioning(true)
 
     const { error: updateError } = await supabase
       .from('jobs')
-      .update({ status: 'declined', landlord_notes: note || null })
+      .update({ status: 'declined', landlord_notes: declineNote || null })
       .eq('id', jobId)
 
     if (updateError) {
@@ -143,6 +163,7 @@ export default function JobDetailPage() {
       setError('Could not decline job.')
     }
 
+    setShowDeclineModal(false)
     await fetchJob()
     setActioning(false)
   }
@@ -163,9 +184,13 @@ export default function JobDetailPage() {
     setActioning(false)
   }
 
-  const handleSelectBid = async (bidId: string) => {
-    const confirmed = window.confirm('Select this contractor for the job? Other bids will be marked as not selected.')
-    if (!confirmed) return
+  const handleSelectBidClick = (bidId: string) => {
+    setSelectedBidId(bidId)
+    setShowSelectModal(true)
+  }
+
+  const confirmSelectBid = async () => {
+    if (!selectedBidId) return
 
     setActioning(true)
     setError(null)
@@ -173,12 +198,13 @@ export default function JobDetailPage() {
     const { error: selectError } = await supabase
       .from('bids')
       .update({ status: 'accepted' })
-      .eq('id', bidId)
+      .eq('id', selectedBidId)
 
     if (selectError) {
       console.error('Error selecting bid:', selectError)
       setError('Could not select this bid.')
       setActioning(false)
+      setShowSelectModal(false)
       return
     }
 
@@ -186,7 +212,7 @@ export default function JobDetailPage() {
       .from('bids')
       .update({ status: 'declined' })
       .eq('job_id', jobId)
-      .neq('id', bidId)
+      .neq('id', selectedBidId)
 
     if (declineOthersError) {
       console.error('Error declining other bids:', declineOthersError)
@@ -202,6 +228,8 @@ export default function JobDetailPage() {
       setError('Bid selected, but job status failed to update.')
     }
 
+    setShowSelectModal(false)
+    setSelectedBidId(null)
     await fetchJob()
     setActioning(false)
   }
@@ -234,6 +262,8 @@ export default function JobDetailPage() {
   )
 
   if (!job) return null
+
+  const selectedBid = bids.find((b) => b.id === selectedBidId)
 
   return (
     <div className="min-h-screen bg-[#0C1A2E]">
@@ -269,14 +299,14 @@ export default function JobDetailPage() {
             {job.status === 'pending_approval' && (
               <div className="flex items-center gap-3">
                 <button
-                  onClick={handleApprove}
+                  onClick={handleApproveClick}
                   disabled={actioning}
                   className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
                 >
                   Acknowledge
                 </button>
                 <button
-                  onClick={handleDecline}
+                  onClick={handleDeclineClick}
                   disabled={actioning}
                   className="text-red-400/70 hover:text-red-400 text-xs transition"
                 >
@@ -339,7 +369,7 @@ export default function JobDetailPage() {
                     {bid.estimated_hours && <p className="text-white/50 text-xs">Est. hours: {bid.estimated_hours}</p>}
                     {bid.notes && <p className="text-white/40 text-xs mt-1 italic">{bid.notes}</p>}
                     <button
-                      onClick={() => handleSelectBid(bid.id)}
+                      onClick={() => handleSelectBidClick(bid.id)}
                       disabled={actioning}
                       className="mt-3 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
                     >
@@ -396,6 +426,98 @@ export default function JobDetailPage() {
           )}
         </div>
       </main>
+
+      {/* Start bidding modal */}
+      {showBiddingModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
+          <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
+            <h3 className="text-white font-semibold mb-2">Job acknowledged ✓</h3>
+            <p className="text-white/50 text-sm mb-6">
+              Let contractors within range start submitting sealed bids on this job?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={skipBidding}
+                disabled={actioning}
+                className="flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-white/12 transition disabled:opacity-50"
+              >
+                Not yet
+              </button>
+              <button
+                onClick={confirmStartBidding}
+                disabled={actioning}
+                className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
+              >
+                {actioning ? 'Starting...' : 'Start bidding'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Decline modal */}
+      {showDeclineModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
+          <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
+            <h3 className="text-white font-semibold mb-2">Decline this job?</h3>
+            <p className="text-white/50 text-sm mb-3">
+              Optionally let the renter know why.
+            </p>
+            <textarea
+              value={declineNote}
+              onChange={(e) => setDeclineNote(e.target.value)}
+              rows={3}
+              placeholder="e.g. Already scheduled with our regular contractor"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition resize-none mb-5"
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeclineModal(false)}
+                disabled={actioning}
+                className="flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-white/12 transition disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDecline}
+                disabled={actioning}
+                className="flex-1 bg-red-500/20 text-red-400 text-sm font-semibold py-2.5 rounded-xl hover:bg-red-500/30 transition disabled:opacity-50"
+              >
+                {actioning ? 'Declining...' : 'Decline'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Select contractor modal */}
+      {showSelectModal && selectedBid && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
+          <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
+            <h3 className="text-white font-semibold mb-2">Select this contractor?</h3>
+            <p className="text-white/50 text-sm mb-4">
+              <span className="text-white font-medium">{selectedBid.contractor?.full_name}</span> for{' '}
+              <span className="text-[#12A5A9] font-semibold">${selectedBid.amount}</span>. All other bids will be marked as not selected.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowSelectModal(false)}
+                disabled={actioning}
+                className="flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-white/12 transition disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmSelectBid}
+                disabled={actioning}
+                className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
+              >
+                {actioning ? 'Selecting...' : 'Confirm'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
