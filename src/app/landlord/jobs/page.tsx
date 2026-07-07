@@ -71,6 +71,22 @@ export default function LandlordJobsPage() {
     if (updateError) {
       console.error('Error acknowledging job:', updateError)
       setError('Could not acknowledge job.')
+      setActioningId(null)
+      return
+    }
+
+    const startBidding = window.confirm('Let contractors start bidding on this job?')
+
+    if (startBidding) {
+      const { error: biddingError } = await supabase
+        .from('jobs')
+        .update({ status: 'bidding' })
+        .eq('id', jobId)
+
+      if (biddingError) {
+        console.error('Error starting bidding:', biddingError)
+        setError('Acknowledged, but could not start bidding.')
+      }
     }
 
     await fetchJobs()

@@ -107,6 +107,22 @@ export default function JobDetailPage() {
     if (updateError) {
       console.error('Error acknowledging job:', updateError)
       setError('Could not acknowledge job.')
+      setActioning(false)
+      return
+    }
+
+    const startBidding = window.confirm('Let contractors start bidding on this job?')
+
+    if (startBidding) {
+      const { error: biddingError } = await supabase
+        .from('jobs')
+        .update({ status: 'bidding' })
+        .eq('id', jobId)
+
+      if (biddingError) {
+        console.error('Error starting bidding:', biddingError)
+        setError('Acknowledged, but could not start bidding.')
+      }
     }
 
     await fetchJob()
@@ -148,16 +164,16 @@ export default function JobDetailPage() {
   }
 
   const handleSelectBid = async (bidId: string) => {
-  const confirmed = window.confirm('Select this contractor for the job? Other bids will be marked as not selected.')
-  if (!confirmed) return
+    const confirmed = window.confirm('Select this contractor for the job? Other bids will be marked as not selected.')
+    if (!confirmed) return
 
-  setActioning(true)
-  setError(null)
+    setActioning(true)
+    setError(null)
 
-  const { error: selectError } = await supabase
-    .from('bids')
-    .update({ status: 'accepted' })
-    .eq('id', bidId)
+    const { error: selectError } = await supabase
+      .from('bids')
+      .update({ status: 'accepted' })
+      .eq('id', bidId)
 
     if (selectError) {
       console.error('Error selecting bid:', selectError)
