@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { geocodeZip } from '@/lib/geocode'
 
 export default function NewPropertyPage() {
   const router = useRouter()
@@ -42,6 +43,9 @@ export default function NewPropertyPage() {
       return
     }
 
+    // Geocode the ZIP so this property can be matched to contractors by radius
+    const geo = form.zip ? await geocodeZip(form.zip) : null
+
     const { data: property, error: propertyError } = await supabase
       .from('properties')
       .insert({
@@ -51,6 +55,8 @@ export default function NewPropertyPage() {
         state: form.state,
         zip: form.zip,
         property_type: form.property_type,
+        lat: geo?.lat ?? null,
+        lng: geo?.lng ?? null,
       })
       .select('id')
       .single()

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
+import { geocodeZip } from '@/lib/geocode'
 
 export default function EditPropertyPage() {
   const router = useRouter()
@@ -85,6 +86,9 @@ export default function EditPropertyPage() {
       return
     }
 
+    // Re-geocode in case the ZIP changed
+    const geo = form.zip ? await geocodeZip(form.zip) : null
+
     const { error: updateError } = await supabase
       .from('properties')
       .update({
@@ -93,6 +97,8 @@ export default function EditPropertyPage() {
         state: form.state,
         zip: form.zip,
         property_type: form.property_type,
+        lat: geo?.lat ?? null,
+        lng: geo?.lng ?? null,
       })
       .eq('id', propertyId)
 
