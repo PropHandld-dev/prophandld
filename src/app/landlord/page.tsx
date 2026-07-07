@@ -15,7 +15,8 @@ export default function LandlordDashboard() {
     occupiedUnits: 0,
     vacantUnits: 0,
     monthlyRentRoll: 0,
-    openJobs: 0,
+    needsApproval: 0,
+    inProgress: 0,
     pendingBids: 0,
   })
   const [properties, setProperties] = useState<any[]>([])
@@ -46,7 +47,8 @@ export default function LandlordDashboard() {
           occupiedUnits: 0,
           vacantUnits: 0,
           monthlyRentRoll: 0,
-          openJobs: 0,
+          needsApproval: 0,
+          inProgress: 0,
           pendingBids: 0,
         })
         setProperties([])
@@ -79,17 +81,26 @@ export default function LandlordDashboard() {
       const occupiedUnitIds = new Set(tenancyList.map((t) => t.unit_id))
       const monthlyRentRoll = tenancyList.reduce((sum, t) => sum + (t.rent_amount || 0), 0)
 
-      let openJobsCount = 0
+      let needsApprovalCount = 0
+      let inProgressCount = 0
       let biddingJobsWithBids: any[] = []
 
       if (unitIds.length > 0) {
-        const { count } = await supabase
+        const { count: approvalCount } = await supabase
           .from('jobs')
           .select('*', { count: 'exact', head: true })
           .in('unit_id', unitIds)
-          .in('status', ['pending_approval', 'approved', 'bidding', 'bid_selected', 'scheduled', 'in_progress'])
+          .eq('status', 'pending_approval')
 
-        openJobsCount = count || 0
+        needsApprovalCount = approvalCount || 0
+
+        const { count: progressCount } = await supabase
+          .from('jobs')
+          .select('*', { count: 'exact', head: true })
+          .in('unit_id', unitIds)
+          .in('status', ['approved', 'bidding', 'bid_selected', 'scheduled', 'in_progress'])
+
+        inProgressCount = progressCount || 0
 
         // Find jobs currently in bidding status
         const { data: biddingJobs } = await supabase
@@ -132,7 +143,8 @@ export default function LandlordDashboard() {
         occupiedUnits: occupiedUnitIds.size,
         vacantUnits: unitList.length - occupiedUnitIds.size,
         monthlyRentRoll,
-        openJobs: openJobsCount,
+        needsApproval: needsApprovalCount,
+        inProgress: inProgressCount,
         pendingBids: biddingJobsWithBids.length,
       })
       setProperties(propertyBreakdown)
@@ -269,12 +281,19 @@ export default function LandlordDashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 mb-10">
+        <div className="grid grid-cols-3 gap-4 mb-10">
+          <Link href="/landlord/jobs" className="bg-white/3 border border-white/8 rounded-2xl p-5 flex items-center gap-4 hover:border-[#12A5A9]/30 hover:bg-white/5 transition">
+            <span className="text-2xl">⏳</span>
+            <div>
+              <div className="text-xl font-bold text-white">{stats.needsApproval}</div>
+              <div className="text-white/40 text-xs">Needs approval</div>
+            </div>
+          </Link>
           <Link href="/landlord/jobs" className="bg-white/3 border border-white/8 rounded-2xl p-5 flex items-center gap-4 hover:border-[#12A5A9]/30 hover:bg-white/5 transition">
             <span className="text-2xl">🔧</span>
             <div>
-              <div className="text-xl font-bold text-white">{stats.openJobs}</div>
-              <div className="text-white/40 text-xs">Open jobs</div>
+              <div className="text-xl font-bold text-white">{stats.inProgress}</div>
+              <div className="text-white/40 text-xs">In progress</div>
             </div>
           </Link>
           <Link
@@ -284,7 +303,7 @@ export default function LandlordDashboard() {
             <span className="text-2xl">📋</span>
             <div>
               <div className="text-xl font-bold text-white">{stats.pendingBids}</div>
-              <div className="text-white/40 text-xs">Jobs with bids to review</div>
+              <div className="text-white/40 text-xs">Bids to review</div>
             </div>
           </Link>
         </div>
