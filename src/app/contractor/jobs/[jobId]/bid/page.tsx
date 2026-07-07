@@ -88,7 +88,7 @@ export default function SubmitBidPage() {
         availability: form.availability || null,
         estimated_hours: form.estimated_hours ? parseFloat(form.estimated_hours) : null,
         notes: form.notes || null,
-        status: 'submitted',
+        status: 'pending',
       })
 
     if (insertError) {

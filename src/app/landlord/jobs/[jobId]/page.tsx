@@ -148,16 +148,16 @@ export default function JobDetailPage() {
   }
 
   const handleSelectBid = async (bidId: string) => {
-    const confirmed = window.confirm('Select this contractor for the job? Other bids will be marked as not selected.')
-    if (!confirmed) return
+  const confirmed = window.confirm('Select this contractor for the job? Other bids will be marked as not selected.')
+  if (!confirmed) return
 
-    setActioning(true)
-    setError(null)
+  setActioning(true)
+  setError(null)
 
-    const { error: selectError } = await supabase
-      .from('bids')
-      .update({ status: 'selected' })
-      .eq('id', bidId)
+  const { error: selectError } = await supabase
+    .from('bids')
+    .update({ status: 'accepted' })
+    .eq('id', bidId)
 
     if (selectError) {
       console.error('Error selecting bid:', selectError)
@@ -339,7 +339,7 @@ export default function JobDetailPage() {
         {['bid_selected', 'scheduled', 'in_progress', 'completed'].includes(job.status) && (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
             <h3 className="text-white font-semibold mb-3">Selected contractor</h3>
-            {bids.filter((b) => b.status === 'selected').map((bid) => (
+            {bids.filter((b) => b.status === 'accepted').map((bid) => (
               <div key={bid.id}>
                 <p className="text-white font-semibold">{bid.contractor?.full_name}</p>
                 <p className="text-[#12A5A9] font-bold text-sm mt-1">${bid.amount}</p>
