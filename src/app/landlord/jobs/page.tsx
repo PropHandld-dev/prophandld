@@ -23,6 +23,12 @@ export default function LandlordJobsPage() {
   const [actioningId, setActioningId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
+  const [showBiddingModal, setShowBiddingModal] = useState(false)
+  const [biddingJobId, setBiddingJobId] = useState<string | null>(null)
+  const [showDeclineModal, setShowDeclineModal] = useState(false)
+  const [declineJobId, setDeclineJobId] = useState<string | null>(null)
+  const [declineNote, setDeclineNote] = useState('')
+
   const fetchJobs = async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
@@ -61,7 +67,7 @@ export default function LandlordJobsPage() {
     fetchJobs()
   }, [router])
 
-  const handleApprove = async (jobId: string) => {
+  const handleApproveClick = async (jobId: string) => {
     setActioningId(jobId)
     const { error: updateError } = await supabase
       .from('jobs')
@@ -75,38 +81,59 @@ export default function LandlordJobsPage() {
       return
     }
 
-    const startBidding = window.confirm('Let contractors start bidding on this job?')
+    setActioningId(null)
+    setBiddingJobId(jobId)
+    setShowBiddingModal(true)
+  }
 
-    if (startBidding) {
-      const { error: biddingError } = await supabase
-        .from('jobs')
-        .update({ status: 'bidding' })
-        .eq('id', jobId)
+  const confirmStartBidding = async () => {
+    if (!biddingJobId) return
+    setActioningId(biddingJobId)
 
-      if (biddingError) {
-        console.error('Error starting bidding:', biddingError)
-        setError('Acknowledged, but could not start bidding.')
-      }
+    const { error: biddingError } = await supabase
+      .from('jobs')
+      .update({ status: 'bidding' })
+      .eq('id', biddingJobId)
+
+    if (biddingError) {
+      console.error('Error starting bidding:', biddingError)
+      setError('Acknowledged, but could not start bidding.')
     }
 
+    setShowBiddingModal(false)
+    setBiddingJobId(null)
     await fetchJobs()
     setActioningId(null)
   }
 
-  const handleDecline = async (jobId: string) => {
-    const note = window.prompt('Optional note to the renter about why this was declined:')
-    setActioningId(jobId)
+  const skipBidding = async () => {
+    setShowBiddingModal(false)
+    setBiddingJobId(null)
+    await fetchJobs()
+  }
+
+  const handleDeclineClick = (jobId: string) => {
+    setDeclineJobId(jobId)
+    setDeclineNote('')
+    setShowDeclineModal(true)
+  }
+
+  const confirmDecline = async () => {
+    if (!declineJobId) return
+    setActioningId(declineJobId)
 
     const { error: updateError } = await supabase
       .from('jobs')
-      .update({ status: 'declined', landlord_notes: note || null })
-      .eq('id', jobId)
+      .update({ status: 'declined', landlord_notes: declineNote || null })
+      .eq('id', declineJobId)
 
     if (updateError) {
       console.error('Error declining job:', updateError)
       setError('Could not decline job.')
     }
 
+    setShowDeclineModal(false)
+    setDeclineJobId(null)
     await fetchJobs()
     setActioningId(null)
   }
@@ -222,14 +249,14 @@ export default function LandlordJobsPage() {
                   {job.status === 'pending_approval' && (
                     <div className="flex flex-col gap-2 shrink-0">
                       <button
-                        onClick={() => handleApprove(job.id)}
+                        onClick={() => handleApproveClick(job.id)}
                         disabled={actioningId === job.id}
                         className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
                       >
                         Acknowledge
                       </button>
                       <button
-                        onClick={() => handleDecline(job.id)}
+                        onClick={() => handleDeclineClick(job.id)}
                         disabled={actioningId === job.id}
                         className="text-red-400/70 hover:text-red-400 text-xs transition"
                       >
@@ -243,6 +270,69 @@ export default function LandlordJobsPage() {
           </div>
         )}
       </main>
+
+      {/* Start bidding modal */}
+      {showBiddingModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
+          <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
+            <h3 className="text-white font-semibold mb-2">Job acknowledged ✓</h3>
+            <p className="text-white/50 text-sm mb-6">
+              Let contractors within range start submitting sealed bids on this job?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={skipBidding}
+                disabled={actioningId !== null}
+                className="flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-white/12 transition disabled:opacity-50"
+              >
+                Not yet
+              </button>
+              <button
+                onClick={confirmStartBidding}
+                disabled={actioningId !== null}
+                className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
+              >
+                {actioningId ? 'Starting...' : 'Start bidding'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Decline modal */}
+      {showDeclineModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
+          <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
+            <h3 className="text-white font-semibold mb-2">Decline this job?</h3>
+            <p className="text-white/50 text-sm mb-3">
+              Optionally let the renter know why.
+            </p>
+            <textarea
+              value={declineNote}
+              onChange={(e) => setDeclineNote(e.target.value)}
+              rows={3}
+              placeholder="e.g. Already scheduled with our regular contractor"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition resize-none mb-5"
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeclineModal(false)}
+                disabled={actioningId !== null}
+                className="flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-white/12 transition disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDecline}
+                disabled={actioningId !== null}
+                className="flex-1 bg-red-500/20 text-red-400 text-sm font-semibold py-2.5 rounded-xl hover:bg-red-500/30 transition disabled:opacity-50"
+              >
+                {actioningId ? 'Declining...' : 'Decline'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
