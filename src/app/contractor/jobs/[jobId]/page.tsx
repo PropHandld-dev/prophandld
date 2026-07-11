@@ -181,17 +181,18 @@ export default function ContractorJobDetailPage() {
       }
 
       const { error: insertError } = await supabase
-        .from('job_photos')
-        .insert({
-          job_id: jobId,
-          uploaded_by: userId,
-          photo_url: filePath,
-          stage,
-        })
+  .from('job_photos')
+  .insert({
+    job_id: jobId,
+    uploaded_by: userId,
+    photo_url: filePath,
+    stage,
+  })
 
-      if (insertError) {
-        console.error('Error saving photo record:', insertError)
-      }
+if (insertError) {
+  console.error('Error saving photo record:', insertError)
+  setError('Photo uploaded but could not be saved: ' + insertError.message)
+}
     }
 
     await fetchJob()
