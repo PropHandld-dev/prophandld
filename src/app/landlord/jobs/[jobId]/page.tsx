@@ -5,24 +5,35 @@ import { supabase } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 
+const TIME_WINDOWS = [
+  { value: 'morning', label: 'Morning (8am–12pm)' },
+  { value: 'afternoon', label: 'Afternoon (12pm–5pm)' },
+  { value: 'evening', label: 'Evening (5pm–8pm)' },
+]
+
 export default function JobDetailPage() {
   const router = useRouter()
   const params = useParams()
   const jobId = params.jobId as string
 
   const [loading, setLoading] = useState(true)
+  const [userId, setUserId] = useState<string | null>(null)
   const [job, setJob] = useState<any>(null)
   const [photos, setPhotos] = useState<any[]>([])
   const [bids, setBids] = useState<any[]>([])
   const [error, setError] = useState<string | null>(null)
   const [actioning, setActioning] = useState(false)
 
-  // Modal states
   const [showBiddingModal, setShowBiddingModal] = useState(false)
   const [showDeclineModal, setShowDeclineModal] = useState(false)
   const [declineNote, setDeclineNote] = useState('')
   const [showSelectModal, setShowSelectModal] = useState(false)
   const [selectedBidId, setSelectedBidId] = useState<string | null>(null)
+
+  const [showScheduleModal, setShowScheduleModal] = useState(false)
+  const [scheduleDate, setScheduleDate] = useState('')
+  const [scheduleWindow, setScheduleWindow] = useState('morning')
+  const [scheduleTime, setScheduleTime] = useState('')
 
   const fetchJob = async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -30,6 +41,7 @@ export default function JobDetailPage() {
       router.push('/login')
       return
     }
+    setUserId(user.id)
 
     const { data: jobData, error: jobError } = await supabase
       .from('jobs')
@@ -104,7 +116,6 @@ export default function JobDetailPage() {
     fetchJob()
   }, [jobId, router])
 
-  // Step 1: Acknowledge, then show the "start bidding?" modal
   const handleApproveClick = async () => {
     setActioning(true)
     const { error: updateError } = await supabase
@@ -234,6 +245,61 @@ export default function JobDetailPage() {
     setActioning(false)
   }
 
+  const openScheduleModal = () => {
+    setScheduleDate(job.proposed_date || '')
+    setScheduleWindow(job.proposed_window || 'morning')
+    setScheduleTime(job.proposed_time || '')
+    setShowScheduleModal(true)
+  }
+
+  const submitProposal = async () => {
+    if (!scheduleDate) {
+      setError('Please pick a date.')
+      return
+    }
+
+    setActioning(true)
+    setError(null)
+
+    const { error: updateError } = await supabase
+      .from('jobs')
+      .update({
+        proposed_date: scheduleDate,
+        proposed_window: scheduleWindow,
+        proposed_time: scheduleTime || null,
+        proposed_by: 'landlord',
+        schedule_confirmed: false,
+      })
+      .eq('id', jobId)
+
+    if (updateError) {
+      console.error('Error proposing schedule:', updateError)
+      setError('Could not propose a schedule.')
+      setActioning(false)
+      return
+    }
+
+    setShowScheduleModal(false)
+    await fetchJob()
+    setActioning(false)
+  }
+
+  const confirmSchedule = async () => {
+    setActioning(true)
+    const { error: updateError } = await supabase
+      .from('jobs')
+      .update({ schedule_confirmed: true, status: 'scheduled' })
+      .eq('id', jobId)
+
+    if (updateError) {
+      console.error('Error confirming schedule:', updateError)
+      setError('Could not confirm the schedule.')
+    }
+
+    await fetchJob()
+    setActioning(false)
+  }
+
   const statusLabel = (status: string) => {
     const labels: Record<string, string> = {
       pending_approval: 'Needs approval',
@@ -248,6 +314,8 @@ export default function JobDetailPage() {
     }
     return labels[status] || status
   }
+
+  const windowLabel = (w: string) => TIME_WINDOWS.find((t) => t.value === w)?.label || w
 
   if (loading) return (
     <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center">
@@ -264,6 +332,8 @@ export default function JobDetailPage() {
   if (!job) return null
 
   const selectedBid = bids.find((b) => b.id === selectedBidId)
+  const showSchedulingSection = ['bid_selected', 'scheduled'].includes(job.status)
+  const isMyTurnToRespond = job.proposed_by && job.proposed_by !== 'landlord' && !job.schedule_confirmed
 
   return (
     <div className="min-h-screen bg-[#0C1A2E]">
@@ -395,6 +465,62 @@ export default function JobDetailPage() {
           </div>
         )}
 
+        {showSchedulingSection && (
+          <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
+            <h3 className="text-white font-semibold mb-4">Schedule</h3>
+
+            {!job.proposed_date ? (
+              <div className="text-center py-4">
+                <p className="text-white/30 text-sm mb-4">No appointment proposed yet.</p>
+                <button
+                  onClick={openScheduleModal}
+                  className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition"
+                >
+                  Propose a time
+                </button>
+              </div>
+            ) : job.schedule_confirmed ? (
+              <div className="bg-[#0A7B7E]/15 border border-[#12A5A9]/30 rounded-xl px-4 py-3">
+                <p className="text-[#12A5A9] text-sm font-medium">✓ Confirmed</p>
+                <p className="text-white text-sm mt-1">
+                  {new Date(job.proposed_date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })} · {windowLabel(job.proposed_window)}
+                  {job.proposed_time && ` · ${job.proposed_time}`}
+                </p>
+              </div>
+            ) : (
+              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
+                <p className="text-yellow-400/80 text-xs mb-1">
+                  Proposed by {job.proposed_by === 'landlord' ? 'you' : job.proposed_by}
+                </p>
+                <p className="text-white text-sm">
+                  {new Date(job.proposed_date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })} · {windowLabel(job.proposed_window)}
+                  {job.proposed_time && ` · ${job.proposed_time}`}
+                </p>
+                {isMyTurnToRespond ? (
+                  <div className="flex items-center gap-3 mt-3">
+                    <button
+                      onClick={confirmSchedule}
+                      disabled={actioning}
+                      className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
+                    >
+                      Confirm this time
+                    </button>
+                    <button
+                      onClick={openScheduleModal}
+                      disabled={actioning}
+                      className="text-white/50 text-xs hover:text-white transition"
+                    >
+                      Propose different time
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-white/40 text-xs mt-3">Waiting on the other party to confirm.</p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         <div>
           <h3 className="text-white font-semibold mb-3">
             Photos {photos.length > 0 && `(${photos.length})`}
@@ -427,7 +553,6 @@ export default function JobDetailPage() {
         </div>
       </main>
 
-      {/* Start bidding modal */}
       {showBiddingModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
           <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
@@ -455,7 +580,6 @@ export default function JobDetailPage() {
         </div>
       )}
 
-      {/* Decline modal */}
       {showDeclineModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
           <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
@@ -490,7 +614,6 @@ export default function JobDetailPage() {
         </div>
       )}
 
-      {/* Select contractor modal */}
       {showSelectModal && selectedBid && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
           <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
@@ -513,6 +636,64 @@ export default function JobDetailPage() {
                 className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
               >
                 {actioning ? 'Selecting...' : 'Confirm'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showScheduleModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
+          <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
+            <h3 className="text-white font-semibold mb-4">Propose a time</h3>
+
+            <label className="text-white/70 text-sm block mb-1">Date</label>
+            <input
+              type="date"
+              value={scheduleDate}
+              onChange={(e) => setScheduleDate(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition mb-4"
+            />
+
+            <label className="text-white/70 text-sm block mb-1">Time window</label>
+            <select
+              value={scheduleWindow}
+              onChange={(e) => setScheduleWindow(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition mb-4"
+            >
+              {TIME_WINDOWS.map((w) => (
+                <option key={w.value} value={w.value} className="bg-[#0C1A2E]">{w.label}</option>
+              ))}
+            </select>
+
+            <label className="text-white/70 text-sm block mb-1">Specific time (optional)</label>
+            <input
+              type="time"
+              value={scheduleTime}
+              onChange={(e) => setScheduleTime(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition mb-5"
+            />
+
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm mb-4">
+                {error}
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowScheduleModal(false)}
+                disabled={actioning}
+                className="flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-white/12 transition disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitProposal}
+                disabled={actioning}
+                className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
+              >
+                {actioning ? 'Proposing...' : 'Propose'}
               </button>
             </div>
           </div>
