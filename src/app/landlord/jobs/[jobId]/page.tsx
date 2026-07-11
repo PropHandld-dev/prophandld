@@ -17,7 +17,6 @@ export default function JobDetailPage() {
   const jobId = params.jobId as string
 
   const [loading, setLoading] = useState(true)
-  const [userId, setUserId] = useState<string | null>(null)
   const [job, setJob] = useState<any>(null)
   const [photos, setPhotos] = useState<any[]>([])
   const [bids, setBids] = useState<any[]>([])
@@ -29,6 +28,7 @@ export default function JobDetailPage() {
   const [declineNote, setDeclineNote] = useState('')
   const [showSelectModal, setShowSelectModal] = useState(false)
   const [selectedBidId, setSelectedBidId] = useState<string | null>(null)
+  const [showArchiveModal, setShowArchiveModal] = useState(false)
 
   const [showScheduleModal, setShowScheduleModal] = useState(false)
   const [scheduleDate, setScheduleDate] = useState('')
@@ -41,7 +41,6 @@ export default function JobDetailPage() {
       router.push('/login')
       return
     }
-    setUserId(user.id)
 
     const { data: jobData, error: jobError } = await supabase
       .from('jobs')
@@ -85,9 +84,11 @@ export default function JobDetailPage() {
         })
       )
       setPhotos(enriched)
+    } else {
+      setPhotos([])
     }
 
-    if (['bidding', 'bid_selected', 'scheduled', 'in_progress', 'completed'].includes(jobData.status)) {
+    if (['bidding', 'bid_selected', 'scheduled', 'in_progress', 'completed', 'archived'].includes(jobData.status)) {
       const { data: bidsData, error: bidsError } = await supabase
         .from('bids')
         .select('*')
@@ -300,6 +301,23 @@ export default function JobDetailPage() {
     setActioning(false)
   }
 
+  const handleArchive = async () => {
+    setActioning(true)
+    const { error: updateError } = await supabase
+      .from('jobs')
+      .update({ status: 'archived' })
+      .eq('id', jobId)
+
+    if (updateError) {
+      console.error('Error archiving job:', updateError)
+      setError('Could not archive job.')
+    }
+
+    setShowArchiveModal(false)
+    await fetchJob()
+    setActioning(false)
+  }
+
   const statusLabel = (status: string) => {
     const labels: Record<string, string> = {
       pending_approval: 'Needs approval',
@@ -334,6 +352,9 @@ export default function JobDetailPage() {
   const selectedBid = bids.find((b) => b.id === selectedBidId)
   const showSchedulingSection = ['bid_selected', 'scheduled'].includes(job.status)
   const isMyTurnToRespond = job.proposed_by && job.proposed_by !== 'landlord' && !job.schedule_confirmed
+  const beforePhotos = photos.filter((p) => p.stage === 'before')
+  const afterPhotos = photos.filter((p) => p.stage === 'after')
+  const generalPhotos = photos.filter((p) => p.stage === 'general' || !p.stage)
 
   return (
     <div className="min-h-screen bg-[#0C1A2E]">
@@ -348,17 +369,29 @@ export default function JobDetailPage() {
       <main className="max-w-2xl mx-auto px-6 py-10">
 
         <div className="mb-6">
-          <div className="flex items-center gap-2 flex-wrap mb-2">
-            <h1 className="text-2xl font-bold text-white">{job.category}</h1>
-            {job.is_emergency && (
-              <span className="text-xs bg-red-500/20 text-red-400 border border-red-500/30 rounded-full px-2.5 py-1 font-semibold">
-                Emergency
-              </span>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2 flex-wrap mb-2">
+                <h1 className="text-2xl font-bold text-white">{job.category}</h1>
+                {job.is_emergency && (
+                  <span className="text-xs bg-red-500/20 text-red-400 border border-red-500/30 rounded-full px-2.5 py-1 font-semibold">
+                    Emergency
+                  </span>
+                )}
+              </div>
+              <p className="text-white/40 text-sm">
+                {job.units?.properties?.address}, {job.units?.properties?.city} · Unit {job.units?.unit_number}
+              </p>
+            </div>
+            {job.status === 'completed' && (
+              <button
+                onClick={() => setShowArchiveModal(true)}
+                className="text-white/40 hover:text-white text-xs transition shrink-0"
+              >
+                Archive
+              </button>
             )}
           </div>
-          <p className="text-white/40 text-sm">
-            {job.units?.properties?.address}, {job.units?.properties?.city} · Unit {job.units?.unit_number}
-          </p>
         </div>
 
         <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
@@ -452,7 +485,7 @@ export default function JobDetailPage() {
           </div>
         )}
 
-        {['bid_selected', 'scheduled', 'in_progress', 'completed'].includes(job.status) && (
+        {['bid_selected', 'scheduled', 'in_progress', 'completed', 'archived'].includes(job.status) && (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
             <h3 className="text-white font-semibold mb-3">Selected contractor</h3>
             {bids.filter((b) => b.status === 'accepted').map((bid) => (
@@ -521,17 +554,47 @@ export default function JobDetailPage() {
           </div>
         )}
 
+        {['in_progress', 'completed', 'archived'].includes(job.status) && (
+          <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
+            <h3 className="text-white font-semibold mb-4">Proof of work</h3>
+            <div className="mb-5">
+              <p className="text-white/70 text-sm font-medium mb-2">Before ({beforePhotos.length})</p>
+              {beforePhotos.length === 0 ? (
+                <p className="text-white/30 text-xs">No before photos yet.</p>
+              ) : (
+                <div className="grid grid-cols-3 gap-2">
+                  {beforePhotos.map((p) => (
+                    <img key={p.id} src={p.displayUrl} alt="Before" className="w-full h-24 object-cover rounded-lg" />
+                  ))}
+                </div>
+              )}
+            </div>
+            <div>
+              <p className="text-white/70 text-sm font-medium mb-2">After ({afterPhotos.length})</p>
+              {afterPhotos.length === 0 ? (
+                <p className="text-white/30 text-xs">No after photos yet.</p>
+              ) : (
+                <div className="grid grid-cols-3 gap-2">
+                  {afterPhotos.map((p) => (
+                    <img key={p.id} src={p.displayUrl} alt="After" className="w-full h-24 object-cover rounded-lg" />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         <div>
           <h3 className="text-white font-semibold mb-3">
-            Photos {photos.length > 0 && `(${photos.length})`}
+            Reported photos {generalPhotos.length > 0 && `(${generalPhotos.length})`}
           </h3>
-          {photos.length === 0 ? (
+          {generalPhotos.length === 0 ? (
             <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
               <p className="text-white/30 text-sm">No photos attached.</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3">
-              {photos.map((photo) => (
+              {generalPhotos.map((photo) => (
                 <div key={photo.id} className="bg-white/3 border border-white/8 rounded-xl overflow-hidden">
                   <img
                     src={photo.displayUrl}
@@ -694,6 +757,33 @@ export default function JobDetailPage() {
                 className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
               >
                 {actioning ? 'Proposing...' : 'Propose'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showArchiveModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
+          <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
+            <h3 className="text-white font-semibold mb-2">Archive this job?</h3>
+            <p className="text-white/50 text-sm mb-6">
+              This moves it out of active jobs into your completed history. You can still view it anytime.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowArchiveModal(false)}
+                disabled={actioning}
+                className="flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-white/12 transition disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleArchive}
+                disabled={actioning}
+                className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
+              >
+                {actioning ? 'Archiving...' : 'Archive'}
               </button>
             </div>
           </div>

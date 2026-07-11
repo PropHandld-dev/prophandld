@@ -30,6 +30,8 @@ export default function ContractorJobDetailPage() {
   const [scheduleWindow, setScheduleWindow] = useState('morning')
   const [scheduleTime, setScheduleTime] = useState('')
 
+  const [showCompleteModal, setShowCompleteModal] = useState(false)
+
   const fetchJob = async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
@@ -181,18 +183,18 @@ export default function ContractorJobDetailPage() {
       }
 
       const { error: insertError } = await supabase
-  .from('job_photos')
-  .insert({
-    job_id: jobId,
-    uploaded_by: userId,
-    photo_url: filePath,
-    stage,
-  })
+        .from('job_photos')
+        .insert({
+          job_id: jobId,
+          uploaded_by: userId,
+          photo_url: filePath,
+          stage,
+        })
 
-if (insertError) {
-  console.error('Error saving photo record:', insertError)
-  setError('Photo uploaded but could not be saved: ' + insertError.message)
-}
+      if (insertError) {
+        console.error('Error saving photo record:', insertError)
+        setError('Photo uploaded but could not be saved: ' + insertError.message)
+      }
     }
 
     await fetchJob()
@@ -200,7 +202,7 @@ if (insertError) {
     e.target.value = ''
   }
 
-  const handleMarkComplete = async () => {
+  const openCompleteModal = () => {
     const beforeCount = photos.filter((p) => p.stage === 'before').length
     const afterCount = photos.filter((p) => p.stage === 'after').length
 
@@ -209,9 +211,11 @@ if (insertError) {
       return
     }
 
-    const confirmed = window.confirm('Mark this job as complete? This starts the review process.')
-    if (!confirmed) return
+    setError(null)
+    setShowCompleteModal(true)
+  }
 
+  const confirmMarkComplete = async () => {
     setActioning(true)
     const { error: updateError } = await supabase
       .from('jobs')
@@ -221,10 +225,12 @@ if (insertError) {
     if (updateError) {
       console.error('Error marking job complete:', updateError)
       setError('Could not mark job as complete.')
+      setActioning(false)
+      setShowCompleteModal(false)
+      return
     }
 
-    await fetchJob()
-    setActioning(false)
+    router.push('/contractor')
   }
 
   const statusLabel = (status: string) => {
@@ -419,11 +425,11 @@ if (insertError) {
 
             {job.status === 'in_progress' && (
               <button
-                onClick={handleMarkComplete}
+                onClick={openCompleteModal}
                 disabled={actioning || uploading}
                 className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
               >
-                {actioning ? 'Marking complete...' : uploading ? 'Uploading...' : 'Mark job complete'}
+                {uploading ? 'Uploading...' : 'Mark job complete'}
               </button>
             )}
           </div>
@@ -482,6 +488,33 @@ if (insertError) {
                 className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
               >
                 {actioning ? 'Proposing...' : 'Propose'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCompleteModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
+          <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
+            <h3 className="text-white font-semibold mb-2">Mark this job complete?</h3>
+            <p className="text-white/50 text-sm mb-6">
+              This starts the review process. Make sure your before and after photos clearly show the work done.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowCompleteModal(false)}
+                disabled={actioning}
+                className="flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-white/12 transition disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmMarkComplete}
+                disabled={actioning}
+                className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
+              >
+                {actioning ? 'Completing...' : 'Mark complete'}
               </button>
             </div>
           </div>

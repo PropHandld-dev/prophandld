@@ -14,6 +14,7 @@ export default function RenterDashboard() {
   const [contacts, setContacts] = useState<any[]>([])
   const [contactsLoading, setContactsLoading] = useState(true)
   const [jobs, setJobs] = useState<any[]>([])
+  const [completedJobs, setCompletedJobs] = useState<any[]>([])
   const [jobsLoading, setJobsLoading] = useState(true)
 
   useEffect(() => {
@@ -88,6 +89,21 @@ export default function RenterDashboard() {
       } else {
         setJobs(jobsData || [])
       }
+
+      const { data: completedData, error: completedError } = await supabase
+        .from('jobs')
+        .select('*')
+        .eq('unit_id', unitData.id)
+        .in('status', ['completed', 'archived'])
+        .order('created_at', { ascending: false })
+        .limit(5)
+
+      if (completedError) {
+        console.error('Error loading completed jobs:', completedError)
+      } else {
+        setCompletedJobs(completedData || [])
+      }
+
       setJobsLoading(false)
     }
     getUser()
@@ -196,6 +212,25 @@ export default function RenterDashboard() {
             </div>
           )}
         </div>
+
+        {completedJobs.length > 0 && (
+          <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
+            <h3 className="text-white font-semibold mb-4">Recently completed</h3>
+            <div className="space-y-3">
+              {completedJobs.map((job) => (
+                <Link
+                  key={job.id}
+                  href={`/renter/jobs/${job.id}`}
+                  className="block border-b border-white/5 last:border-0 pb-3 last:pb-0 hover:opacity-80 transition"
+                >
+                  <p className="text-white font-medium text-sm">{job.category}</p>
+                  <p className="text-white/50 text-xs">{job.description}</p>
+                  <p className="text-[#12A5A9] text-xs mt-1">✓ Completed</p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="bg-white/3 border border-white/8 rounded-2xl p-6">
           <h3 className="text-white font-semibold mb-4">Emergency contacts</h3>
