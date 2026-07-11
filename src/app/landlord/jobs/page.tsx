@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -15,7 +15,7 @@ const FILTERS = [
 
 const IN_PROGRESS_STATUSES = ['approved', 'bidding', 'bid_selected', 'scheduled', 'in_progress']
 
-export default function LandlordJobsPage() {
+function LandlordJobsList() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(true)
@@ -340,5 +340,17 @@ export default function LandlordJobsPage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function LandlordJobsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center">
+        <div className="text-white/50">Loading...</div>
+      </div>
+    }>
+      <LandlordJobsList />
+    </Suspense>
   )
 }
