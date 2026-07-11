@@ -282,20 +282,20 @@ export default function LandlordDashboard() {
         </div>
 
         <div className="grid grid-cols-3 gap-4 mb-10">
-          <Link href="/landlord/jobs" className="bg-white/3 border border-white/8 rounded-2xl p-5 flex items-center gap-4 hover:border-[#12A5A9]/30 hover:bg-white/5 transition">
-            <span className="text-2xl">⏳</span>
-            <div>
-              <div className="text-xl font-bold text-white">{stats.needsApproval}</div>
-              <div className="text-white/40 text-xs">Needs approval</div>
-            </div>
-          </Link>
-          <Link href="/landlord/jobs" className="bg-white/3 border border-white/8 rounded-2xl p-5 flex items-center gap-4 hover:border-[#12A5A9]/30 hover:bg-white/5 transition">
-            <span className="text-2xl">🔧</span>
-            <div>
-              <div className="text-xl font-bold text-white">{stats.inProgress}</div>
-              <div className="text-white/40 text-xs">In progress</div>
-            </div>
-          </Link>
+          <Link href="/landlord/jobs?filter=needs_approval" className="bg-white/3 border border-white/8 rounded-2xl p-5 flex items-center gap-4 hover:border-[#12A5A9]/30 hover:bg-white/5 transition">
+  <span className="text-2xl">⏳</span>
+  <div>
+    <div className="text-xl font-bold text-white">{stats.needsApproval}</div>
+    <div className="text-white/40 text-xs">Needs approval</div>
+  </div>
+</Link>
+<Link href="/landlord/jobs?filter=in_progress" className="bg-white/3 border border-white/8 rounded-2xl p-5 flex items-center gap-4 hover:border-[#12A5A9]/30 hover:bg-white/5 transition">
+  <span className="text-2xl">🔧</span>
+  <div>
+    <div className="text-xl font-bold text-white">{stats.inProgress}</div>
+    <div className="text-white/40 text-xs">In progress</div>
+  </div>
+</Link>
           <Link
             href={needsReview.length > 0 ? `/landlord/jobs/${needsReview[0].id}` : '/landlord/jobs'}
             className="bg-white/3 border border-white/8 rounded-2xl p-5 flex items-center gap-4 hover:border-[#12A5A9]/30 hover:bg-white/5 transition"

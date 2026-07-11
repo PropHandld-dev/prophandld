@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
 const FILTERS = [
@@ -17,9 +17,10 @@ const IN_PROGRESS_STATUSES = ['approved', 'bidding', 'bid_selected', 'scheduled'
 
 export default function LandlordJobsPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [loading, setLoading] = useState(true)
   const [jobs, setJobs] = useState<any[]>([])
-  const [activeFilter, setActiveFilter] = useState('needs_approval')
+  const [activeFilter, setActiveFilter] = useState(searchParams.get('filter') || 'needs_approval')
   const [actioningId, setActioningId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -163,7 +164,7 @@ export default function LandlordJobsPage() {
     )
   }
 
-  const statusLabel = (status: string) => {
+  const statusLabel = (job: any) => {
     const labels: Record<string, string> = {
       pending_approval: 'Needs approval',
       approved: 'Acknowledged',
@@ -175,7 +176,14 @@ export default function LandlordJobsPage() {
       archived: 'Archived',
       declined: 'Declined',
     }
-    return labels[status] || status
+    const base = labels[job.status] || job.status
+
+    if (job.proposed_date && !job.schedule_confirmed) {
+      const proposer = job.proposed_by === 'landlord' ? 'you' : job.proposed_by
+      return `${base} · New time proposed by ${proposer}`
+    }
+
+    return base
   }
 
   if (loading) return (
@@ -232,7 +240,7 @@ export default function LandlordJobsPage() {
                     <div className="flex items-center gap-2 flex-wrap mb-1.5">
                       <h3 className="text-white font-semibold">{job.category}</h3>
                       {urgencyBadge(job)}
-                      <span className="text-xs text-white/30">{statusLabel(job.status)}</span>
+                      <span className="text-xs text-white/30">{statusLabel(job)}</span>
                     </div>
                     <p className="text-white/60 text-sm">{job.description}</p>
                     <p className="text-white/30 text-xs mt-2">
@@ -271,7 +279,6 @@ export default function LandlordJobsPage() {
         )}
       </main>
 
-      {/* Start bidding modal */}
       {showBiddingModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
           <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
@@ -299,7 +306,6 @@ export default function LandlordJobsPage() {
         </div>
       )}
 
-      {/* Decline modal */}
       {showDeclineModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
           <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">

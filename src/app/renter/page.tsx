@@ -98,7 +98,7 @@ export default function RenterDashboard() {
     router.push('/login')
   }
 
-  const statusLabel = (status: string) => {
+  const statusLabel = (job: any) => {
     const labels: Record<string, string> = {
       pending_approval: 'Waiting on landlord',
       approved: 'Acknowledged',
@@ -107,7 +107,14 @@ export default function RenterDashboard() {
       scheduled: 'Scheduled',
       in_progress: 'In progress',
     }
-    return labels[status] || status
+    const base = labels[job.status] || job.status
+
+    if (job.proposed_date && !job.schedule_confirmed) {
+      const proposer = job.proposed_by === 'renter' ? 'you' : job.proposed_by
+      return `${base} · New time proposed by ${proposer}`
+    }
+
+    return base
   }
 
   if (loading) return (
@@ -183,7 +190,7 @@ export default function RenterDashboard() {
                     )}
                   </div>
                   <p className="text-white/50 text-sm">{job.description}</p>
-                  <p className="text-[#12A5A9] text-xs mt-1">{statusLabel(job.status)}</p>
+                  <p className="text-[#12A5A9] text-xs mt-1">{statusLabel(job)}</p>
                 </Link>
               ))}
             </div>

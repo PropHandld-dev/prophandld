@@ -45,7 +45,7 @@ export default function ContractorDashboard() {
 
       const { data: bidsData, error: bidsError } = await supabase
         .from('bids')
-        .select('*, jobs(category, description, status, unit_id, units(unit_number, properties(address, city)))')
+        .select('*, jobs(category, description, status, unit_id, proposed_date, proposed_by, schedule_confirmed, units(unit_number, properties(address, city)))')
         .eq('contractor_user_id', user.id)
         .order('created_at', { ascending: false })
 
@@ -166,30 +166,38 @@ export default function ContractorDashboard() {
                 <p className="text-white/30 text-sm">You haven't submitted any bids yet.</p>
               ) : (
                 <div className="space-y-3">
-                  {myBids.map((bid) => (
-                    <Link
-                      key={bid.id}
-                      href={`/contractor/jobs/${bid.job_id}`}
-                      className="block border-b border-white/5 last:border-0 pb-3 last:pb-0 hover:opacity-80 transition"
-                    >
-                      <div className="flex items-center justify-between">
-                        <p className="text-white font-medium text-sm">{bid.jobs?.category}</p>
-                        <span className={
-                          bid.status === 'accepted'
-                            ? 'text-xs bg-[#0A7B7E]/20 text-[#12A5A9] border border-[#12A5A9]/30 rounded-full px-2 py-0.5'
-                            : bid.status === 'declined'
-                            ? 'text-xs bg-white/5 text-white/30 border border-white/10 rounded-full px-2 py-0.5'
-                            : 'text-xs bg-yellow-500/15 text-yellow-400 border border-yellow-500/25 rounded-full px-2 py-0.5'
-                        }>
-                          {bid.status === 'accepted' ? 'Selected' : bid.status === 'declined' ? 'Not selected' : 'Pending'}
-                        </span>
-                      </div>
-                      <p className="text-white/30 text-xs mt-1">
-                        {bid.jobs?.units?.properties?.address}, {bid.jobs?.units?.properties?.city} · Unit {bid.jobs?.units?.unit_number}
-                      </p>
-                      <p className="text-white/50 text-xs mt-1">Your bid: ${bid.amount}</p>
-                    </Link>
-                  ))}
+                  {myBids.map((bid) => {
+                    const hasPendingSchedule = bid.jobs?.proposed_date && !bid.jobs?.schedule_confirmed
+                    return (
+                      <Link
+                        key={bid.id}
+                        href={`/contractor/jobs/${bid.job_id}`}
+                        className="block border-b border-white/5 last:border-0 pb-3 last:pb-0 hover:opacity-80 transition"
+                      >
+                        <div className="flex items-center justify-between">
+                          <p className="text-white font-medium text-sm">{bid.jobs?.category}</p>
+                          <span className={
+                            bid.status === 'accepted'
+                              ? 'text-xs bg-[#0A7B7E]/20 text-[#12A5A9] border border-[#12A5A9]/30 rounded-full px-2 py-0.5'
+                              : bid.status === 'declined'
+                              ? 'text-xs bg-white/5 text-white/30 border border-white/10 rounded-full px-2 py-0.5'
+                              : 'text-xs bg-yellow-500/15 text-yellow-400 border border-yellow-500/25 rounded-full px-2 py-0.5'
+                          }>
+                            {bid.status === 'accepted' ? 'Selected' : bid.status === 'declined' ? 'Not selected' : 'Pending'}
+                          </span>
+                        </div>
+                        <p className="text-white/30 text-xs mt-1">
+                          {bid.jobs?.units?.properties?.address}, {bid.jobs?.units?.properties?.city} · Unit {bid.jobs?.units?.unit_number}
+                        </p>
+                        <p className="text-white/50 text-xs mt-1">Your bid: ${bid.amount}</p>
+                        {hasPendingSchedule && (
+                          <p className="text-yellow-400 text-xs mt-1 font-medium">
+                            🕐 New time proposed{bid.jobs?.proposed_by !== 'contractor' ? ' — awaiting your response' : ''}
+                          </p>
+                        )}
+                      </Link>
+                    )
+                  })}
                 </div>
               )}
             </div>

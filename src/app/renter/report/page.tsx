@@ -85,8 +85,13 @@ export default function ReportIssuePage() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setFiles(Array.from(e.target.files))
+      setFiles([...files, ...Array.from(e.target.files)])
     }
+    e.target.value = ''
+  }
+
+  const removeFile = (index: number) => {
+    setFiles(files.filter((_, i) => i !== index))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -148,6 +153,7 @@ export default function ReportIssuePage() {
           job_id: jobData.id,
           uploaded_by: userId,
           photo_url: filePath,
+          stage: 'general',
         })
 
       if (photoInsertError) {
@@ -230,7 +236,7 @@ export default function ReportIssuePage() {
 
             <div>
               <label className="text-white/70 text-sm block mb-1">Photos (optional)</label>
-              <label className="block">
+              <label className="block mb-3">
                 <input
                   type="file"
                   accept="image/*"
@@ -240,9 +246,29 @@ export default function ReportIssuePage() {
                   className="hidden"
                 />
                 <span className="inline-block bg-white/8 text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-white/12 transition cursor-pointer">
-                  {files.length > 0 ? `${files.length} photo(s) selected` : '+ Add photos'}
+                  {files.length > 0 ? `+ Add more photos` : '+ Add photos'}
                 </span>
               </label>
+              {files.length > 0 && (
+                <div className="grid grid-cols-4 gap-2">
+                  {files.map((file, i) => (
+                    <div key={i} className="relative aspect-square rounded-lg overflow-hidden bg-white/5">
+                      <img
+                        src={URL.createObjectURL(file)}
+                        alt={`Selected ${i + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeFile(i)}
+                        className="absolute top-1 right-1 bg-black/60 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center hover:bg-black/80 transition"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div
