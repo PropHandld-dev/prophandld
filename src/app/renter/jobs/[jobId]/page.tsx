@@ -27,6 +27,7 @@ export default function RenterJobDetailPage() {
   const [scheduleDate, setScheduleDate] = useState('')
   const [scheduleWindow, setScheduleWindow] = useState('morning')
   const [scheduleTime, setScheduleTime] = useState('')
+  const [showProposedModal, setShowProposedModal] = useState(false)
 
   const fetchJob = async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -115,6 +116,7 @@ export default function RenterJobDetailPage() {
     setShowScheduleModal(false)
     await fetchJob()
     setActioning(false)
+    setShowProposedModal(true)
   }
 
   const confirmSchedule = async () => {
@@ -134,6 +136,10 @@ export default function RenterJobDetailPage() {
   }
 
   const statusLabel = (status: string) => {
+    if (job.proposed_date && !job.schedule_confirmed) {
+      const proposer = job.proposed_by === 'renter' ? 'you' : 'the other side'
+      return `New time proposed by ${proposer}`
+    }
     const labels: Record<string, string> = {
       pending_approval: 'Landlord is finding a contractor',
       approved: 'Landlord is finding a contractor',
@@ -346,6 +352,21 @@ export default function RenterJobDetailPage() {
                 {actioning ? 'Proposing...' : 'Propose'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showProposedModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
+          <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full text-center">
+            <h3 className="text-white font-semibold mb-2">Time proposed ✓</h3>
+            <p className="text-white/50 text-sm mb-5">We'll let you know once it's confirmed.</p>
+            <button
+              onClick={() => setShowProposedModal(false)}
+              className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-6 py-2.5 rounded-xl hover:opacity-90 transition"
+            >
+              Got it
+            </button>
           </div>
         </div>
       )}

@@ -174,18 +174,23 @@ export default function ContractorDashboard() {
                   🕐 {scheduleAlerts.length} new time proposed
                 </h3>
                 <div className="space-y-2">
-                  {scheduleAlerts.map((bid) => (
-                    <Link
-                      key={bid.id}
-                      href={`/contractor/jobs/${bid.job_id}`}
-                      className="flex items-center justify-between bg-white/5 hover:bg-white/8 rounded-xl px-4 py-3 transition"
-                    >
-                      <p className="text-white text-sm font-medium">{bid.jobs?.category}</p>
-                      <span className="text-xs bg-blue-400/20 text-blue-300 rounded-full px-3 py-1 font-semibold shrink-0">
-                        Review →
-                      </span>
-                    </Link>
-                  ))}
+                 {scheduleAlerts.map((bid) => (
+  <Link
+    key={bid.id}
+    href={`/contractor/jobs/${bid.job_id}`}
+    className="flex items-center justify-between bg-white/5 hover:bg-white/8 rounded-xl px-4 py-3 transition"
+  >
+    <div>
+      <p className="text-white text-sm font-medium">{bid.jobs?.category}</p>
+      <p className="text-white/40 text-xs">
+        {bid.jobs?.units?.properties?.address}, {bid.jobs?.units?.properties?.city}
+      </p>
+    </div>
+    <span className="text-xs bg-blue-400/20 text-blue-300 rounded-full px-3 py-1 font-semibold shrink-0">
+      Review →
+    </span>
+  </Link>
+))}
                 </div>
               </div>
             )}

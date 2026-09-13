@@ -672,13 +672,19 @@ export default function JobDetailPage() {
               <div>
                 <p className="text-white font-semibold">{acceptedBid.contractor?.full_name}</p>
                 {acceptedBid.price_change_status === 'pending' ? (
-                  <div className="mt-2 bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
-                    <p className="text-yellow-400 text-xs font-semibold mb-1">Price change requested</p>
-                    <p className="text-white/40 text-sm line-through">${acceptedBid.amount}</p>
-                    <p className="text-white font-bold text-lg">${acceptedBid.proposed_amount}</p>
-                    {acceptedBid.price_change_reason && (
-                      <p className="text-white/60 text-sm mt-2">{acceptedBid.price_change_reason}</p>
-                    )}
+  <div className="mt-2 bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
+    <p className="text-yellow-400 text-xs font-semibold mb-1">Price change requested</p>
+    <p className="text-white/40 text-sm line-through">${acceptedBid.amount}</p>
+    <p className="text-white font-bold text-lg">${acceptedBid.proposed_amount}</p>
+    {(acceptedBid.price_change_labor || acceptedBid.price_change_parts) && (
+      <div className="text-white/50 text-xs mt-2 space-y-0.5">
+        {acceptedBid.price_change_labor && <p>Labor: ${acceptedBid.price_change_labor}</p>}
+        {acceptedBid.price_change_parts && <p>Parts: ${acceptedBid.price_change_parts}</p>}
+      </div>
+    )}
+    {acceptedBid.price_change_reason && (
+      <p className="text-white/60 text-sm mt-2">{acceptedBid.price_change_reason}</p>
+    )}
                     <div className="flex items-center gap-3 mt-3">
                       <button
                         onClick={() => openPriceModal('approve')}

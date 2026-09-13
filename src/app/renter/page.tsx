@@ -105,25 +105,27 @@ export default function RenterDashboard() {
     router.push('/login')
   }
 
-  const statusLabel = (job: any) => {
-    if (['pending_approval', 'approved', 'bidding', 'bid_selected'].includes(job.status)) {
-      return 'Landlord is finding a contractor'
-    }
-    if (job.status === 'scheduled') {
-      if (job.proposed_date && !job.schedule_confirmed) {
-        const proposer = job.proposed_by === 'renter' ? 'you' : 'the other side'
-        return `Scheduling · new time proposed by ${proposer}`
-      }
-      return 'Scheduled'
-    }
-    if (job.status === 'in_progress') {
-      return 'Work in progress'
-    }
-    if (job.status === 'pending_review') {
-      return 'Work complete — waiting on landlord'
-    }
-    return job.status
+ const statusLabel = (job: any) => {
+  // A pending proposal takes priority over the underlying status,
+  // regardless of whether we're still at bid_selected or already scheduled.
+  if (job.proposed_date && !job.schedule_confirmed) {
+    const proposer = job.proposed_by === 'renter' ? 'you' : 'the other side'
+    return `New time proposed by ${proposer}`
   }
+  if (['pending_approval', 'approved', 'bidding', 'bid_selected'].includes(job.status)) {
+    return 'Landlord is finding a contractor'
+  }
+  if (job.status === 'scheduled') {
+    return 'Scheduled'
+  }
+  if (job.status === 'in_progress') {
+    return 'Work in progress'
+  }
+  if (job.status === 'pending_review') {
+    return 'Work complete — waiting on landlord'
+  }
+  return job.status
+}
 
   if (loading) return (
     <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center">

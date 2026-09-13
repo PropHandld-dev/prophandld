@@ -36,7 +36,8 @@ export default function ContractorJobDetailPage() {
   const [showResponseSentModal, setShowResponseSentModal] = useState(false)
 
   const [showPriceChangeModal, setShowPriceChangeModal] = useState(false)
-  const [newAmount, setNewAmount] = useState('')
+  const [laborAmount, setLaborAmount] = useState('')
+  const [partsAmount, setPartsAmount] = useState('')
   const [priceChangeReason, setPriceChangeReason] = useState('')
 
   const fetchJob = async () => {
@@ -136,6 +137,7 @@ export default function ContractorJobDetailPage() {
         proposed_time: scheduleTime || null,
         proposed_by: 'contractor',
         schedule_confirmed: false,
+        schedule_ask_tenant: false,
       })
       .eq('id', jobId)
 
@@ -275,14 +277,19 @@ export default function ContractorJobDetailPage() {
   }
 
   const openPriceChangeModal = () => {
-    setNewAmount(myBid?.amount?.toString() || '')
+    setLaborAmount('')
+    setPartsAmount('')
     setPriceChangeReason('')
     setShowPriceChangeModal(true)
   }
 
   const submitPriceChange = async () => {
-    if (!newAmount || parseFloat(newAmount) <= 0) {
-      setError('Enter a valid amount.')
+    const labor = parseFloat(laborAmount) || 0
+    const parts = parseFloat(partsAmount) || 0
+    const newTotal = labor + parts
+
+    if (newTotal <= 0) {
+      setError('Enter a labor cost (and parts, if any).')
       return
     }
     if (!priceChangeReason.trim()) {
@@ -296,7 +303,9 @@ export default function ContractorJobDetailPage() {
     const { error: updateError } = await supabase
       .from('bids')
       .update({
-        proposed_amount: parseFloat(newAmount),
+        proposed_amount: newTotal,
+        price_change_labor: labor,
+        price_change_parts: parts || null,
         price_change_reason: priceChangeReason,
         price_change_status: 'pending',
       })
@@ -304,7 +313,7 @@ export default function ContractorJobDetailPage() {
 
     if (updateError) {
       console.error('Error requesting price change:', updateError)
-      setError('Could not submit price change request.')
+      setError('Could not submit price change request: ' + updateError.message)
       setActioning(false)
       return
     }
@@ -404,14 +413,6 @@ export default function ContractorJobDetailPage() {
               )}
               {myBid.selected_at && (
                 <p className="text-white/30 text-xs mt-1">Selected {new Date(myBid.selected_at).toLocaleString()}</p>
-              )}
-              {canRequestPriceChange && myBid.price_change_status !== 'pending' && (
-                <button
-                  onClick={openPriceChangeModal}
-                  className="text-[#12A5A9] text-xs hover:underline mt-2"
-                >
-                  Request price change
-                </button>
               )}
               {myBid.price_change_status === 'rejected' && (
                 <p className="text-red-400/70 text-xs mt-2">Your last price change request was declined.</p>
@@ -550,13 +551,23 @@ export default function ContractorJobDetailPage() {
             </div>
 
             {job.status === 'in_progress' && (
-              <button
-                onClick={openCompleteModal}
-                disabled={actioning || uploading}
-                className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
-              >
-                {uploading ? 'Uploading...' : 'Mark job complete'}
-              </button>
+              <>
+                {canRequestPriceChange && myBid?.price_change_status !== 'pending' && (
+                  <button
+                    onClick={openPriceChangeModal}
+                    className="w-full bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-white/12 transition mb-3"
+                  >
+                    Request price change
+                  </button>
+                )}
+                <button
+                  onClick={openCompleteModal}
+                  disabled={actioning || uploading}
+                  className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
+                >
+                  {uploading ? 'Uploading...' : 'Mark job complete'}
+                </button>
+              </>
             )}
 
             {job.status === 'pending_review' && (
@@ -673,22 +684,38 @@ export default function ContractorJobDetailPage() {
           <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
             <h3 className="text-white font-semibold mb-4">Request a price change</h3>
 
-            <label className="text-white/70 text-sm block mb-1">New total ($)</label>
+            <label className="text-white/70 text-sm block mb-1">Labor ($)</label>
             <input
               type="number"
-              value={newAmount}
-              onChange={(e) => setNewAmount(e.target.value)}
-              min="1"
+              value={laborAmount}
+              onChange={(e) => setLaborAmount(e.target.value)}
+              min="0"
               step="0.01"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition mb-4"
+              placeholder="150"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition mb-4"
             />
 
-            <label className="text-white/70 text-sm block mb-1">Reason / breakdown</label>
+            <label className="text-white/70 text-sm block mb-1">Parts (optional, $)</label>
+            <input
+              type="number"
+              value={partsAmount}
+              onChange={(e) => setPartsAmount(e.target.value)}
+              min="0"
+              step="0.01"
+              placeholder="80"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition mb-4"
+            />
+
+            <p className="text-white/50 text-sm mb-4">
+              New total: <span className="text-white font-semibold">${((parseFloat(laborAmount) || 0) + (parseFloat(partsAmount) || 0)).toFixed(2)}</span>
+            </p>
+
+            <label className="text-white/70 text-sm block mb-1">Reason</label>
             <textarea
               value={priceChangeReason}
               onChange={(e) => setPriceChangeReason(e.target.value)}
-              rows={4}
-              placeholder="e.g. Found additional pipe damage behind the wall — parts $80, extra 1.5 hrs labor"
+              rows={3}
+              placeholder="e.g. Found additional pipe damage behind the wall"
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition resize-none mb-5"
             />
 
