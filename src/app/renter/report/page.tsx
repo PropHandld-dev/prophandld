@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { notify } from '@/lib/notify'
 
 const CATEGORIES = [
   'Plumbing', 'Electrical', 'HVAC', 'Appliance',
@@ -133,6 +134,8 @@ export default function ReportIssuePage() {
       setSubmitting(false)
       return
     }
+
+    notify('job_reported', jobData.id)
 
     for (const file of files) {
       const fileExt = file.name.split('.').pop()

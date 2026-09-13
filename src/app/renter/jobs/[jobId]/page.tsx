@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { PhotoGrid } from '@/components/PhotoGrid'
+import { notify } from '@/lib/notify'
 
 const TIME_WINDOWS = [
   { value: 'morning', label: 'Morning (8am–12pm)' },
@@ -129,6 +130,8 @@ export default function RenterJobDetailPage() {
     if (updateError) {
       console.error('Error confirming schedule:', updateError)
       setError('Could not confirm the schedule.')
+    } else {
+      notify('schedule_confirmed', jobId)
     }
 
     await fetchJob()

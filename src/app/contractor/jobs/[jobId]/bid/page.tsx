@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
+import { notify } from '@/lib/notify'
 
 export default function SubmitBidPage() {
   const router = useRouter()
@@ -119,6 +120,8 @@ export default function SubmitBidPage() {
       setSubmitting(false)
       return
     }
+
+    notify('bid_received', jobId)
 
     router.push('/contractor')
   }

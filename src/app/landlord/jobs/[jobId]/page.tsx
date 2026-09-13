@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { PhotoGrid } from '@/components/PhotoGrid'
+import { notify } from '@/lib/notify'
 
 const TIME_WINDOWS = [
   { value: 'morning', label: 'Morning (8am–12pm)' },
@@ -59,6 +60,7 @@ export default function JobDetailPage() {
       const threeDaysMs = 3 * 24 * 60 * 60 * 1000
       if (Date.now() - completedAt > threeDaysMs) {
         await supabase.from('jobs').update({ status: 'completed' }).eq('id', jobId)
+        notify('job_completed', jobId)
       }
     }
 
@@ -258,6 +260,8 @@ export default function JobDetailPage() {
     if (jobUpdateError) {
       console.error('Error updating job status:', jobUpdateError)
       setError('Bid selected, but job status failed to update.')
+    } else {
+      notify('contractor_selected', jobId)
     }
 
     setShowSelectModal(false)
@@ -332,6 +336,8 @@ export default function JobDetailPage() {
     if (updateError) {
       console.error('Error confirming schedule:', updateError)
       setError('Could not confirm the schedule.')
+    } else {
+      notify('schedule_confirmed', jobId)
     }
 
     await fetchJob()
@@ -365,6 +371,8 @@ export default function JobDetailPage() {
     if (updateError) {
       console.error('Error approving completion:', updateError)
       setError('Could not approve completion.')
+    } else {
+      notify('job_completed', jobId)
     }
 
     setShowApproveModal(false)
