@@ -16,6 +16,7 @@ export default function SubmitBidPage() {
   const [photos, setPhotos] = useState<any[]>([])
   const [error, setError] = useState<string | null>(null)
   const [alreadyBid, setAlreadyBid] = useState(false)
+  const [zoomedPhoto, setZoomedPhoto] = useState<string | null>(null)
 
   const [form, setForm] = useState({
     amount: '',
@@ -170,7 +171,18 @@ export default function SubmitBidPage() {
                 <h3 className="text-white font-semibold text-sm mb-3">Photos from tenant's report</h3>
                 <div className="grid grid-cols-3 gap-2">
                   {photos.map((p) => (
-                    <img key={p.id} src={p.displayUrl} alt="Reported issue" className="w-full h-24 object-cover rounded-lg" />
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setZoomedPhoto(p.displayUrl)}
+                      className="block"
+                    >
+                      <img
+                        src={p.displayUrl}
+                        alt="Reported issue"
+                        className="w-full h-24 object-cover rounded-lg hover:opacity-80 transition cursor-zoom-in"
+                      />
+                    </button>
                   ))}
                 </div>
               </div>
@@ -251,6 +263,19 @@ export default function SubmitBidPage() {
           </>
         ) : null}
       </main>
+
+      {zoomedPhoto && (
+        <div
+          className="fixed inset-0 bg-black/90 flex items-center justify-center p-6 z-30 cursor-zoom-out"
+          onClick={() => setZoomedPhoto(null)}
+        >
+          <img
+            src={zoomedPhoto}
+            alt="Zoomed photo"
+            className="max-w-full max-h-full object-contain rounded-lg"
+          />
+        </div>
+      )}
     </div>
   )
 }
