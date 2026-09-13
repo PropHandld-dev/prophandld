@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
-import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { buildNotificationEmail, sendEmail, type NotifyType, type NotifyJobInfo } from '@/lib/email'
 
 type Role = 'landlord' | 'renter' | 'contractor'
@@ -25,6 +25,8 @@ export async function POST(request: NextRequest) {
   if (!type || !jobId || !RECIPIENTS[type]) {
     return NextResponse.json({ error: 'Invalid notification request' }, { status: 400 })
   }
+
+  const supabaseAdmin = getSupabaseAdmin()
 
   const { data: job } = await supabaseAdmin
     .from('jobs')
