@@ -20,7 +20,10 @@ export default function LandlordDashboard() {
     pendingBids: 0,
   })
   const [properties, setProperties] = useState<any[]>([])
+  const [newIssues, setNewIssues] = useState<any[]>([])
   const [needsReview, setNeedsReview] = useState<any[]>([])
+  const [scheduleProposals, setScheduleProposals] = useState<any[]>([])
+  const [pendingReviewJobs, setPendingReviewJobs] = useState<any[]>([])
 
   useEffect(() => {
     const getUser = async () => {
@@ -41,18 +44,6 @@ export default function LandlordDashboard() {
       const propertyList = propertiesData || []
 
       if (propertyList.length === 0) {
-        setStats({
-          properties: 0,
-          totalUnits: 0,
-          occupiedUnits: 0,
-          vacantUnits: 0,
-          monthlyRentRoll: 0,
-          needsApproval: 0,
-          inProgress: 0,
-          pendingBids: 0,
-        })
-        setProperties([])
-        setNeedsReview([])
         setLoading(false)
         return
       }
@@ -84,6 +75,9 @@ export default function LandlordDashboard() {
       let needsApprovalCount = 0
       let inProgressCount = 0
       let biddingJobsWithBids: any[] = []
+      let newIssuesList: any[] = []
+      let scheduleProposalsList: any[] = []
+      let pendingReviewList: any[] = []
 
       if (unitIds.length > 0) {
         const { count: approvalCount } = await supabase
@@ -98,11 +92,41 @@ export default function LandlordDashboard() {
           .from('jobs')
           .select('*', { count: 'exact', head: true })
           .in('unit_id', unitIds)
-          .in('status', ['approved', 'bidding', 'bid_selected', 'scheduled', 'in_progress'])
+          .in('status', ['approved', 'bidding', 'bid_selected', 'scheduled', 'in_progress', 'pending_review'])
 
         inProgressCount = progressCount || 0
 
-        // Find jobs currently in bidding status
+        // Jobs newly reported, awaiting acknowledgment
+        const { data: newJobs } = await supabase
+          .from('jobs')
+          .select('*, units(unit_number, properties(address, city))')
+          .in('unit_id', unitIds)
+          .eq('status', 'pending_approval')
+          .order('created_at', { ascending: false })
+
+        newIssuesList = newJobs || []
+
+        // Jobs with an unconfirmed schedule proposal not made by the landlord
+        const { data: schedJobs } = await supabase
+          .from('jobs')
+          .select('*, units(unit_number, properties(address, city))')
+          .in('unit_id', unitIds)
+          .not('proposed_date', 'is', null)
+          .eq('schedule_confirmed', false)
+          .neq('proposed_by', 'landlord')
+
+        scheduleProposalsList = schedJobs || []
+
+        // Jobs contractor marked complete, awaiting landlord review
+        const { data: reviewJobs } = await supabase
+          .from('jobs')
+          .select('*, units(unit_number, properties(address, city))')
+          .in('unit_id', unitIds)
+          .eq('status', 'pending_review')
+
+        pendingReviewList = reviewJobs || []
+
+        // Find jobs currently in bidding status with bids
         const { data: biddingJobs } = await supabase
           .from('jobs')
           .select('*, units(unit_number, properties(address, city))')
@@ -127,6 +151,28 @@ export default function LandlordDashboard() {
         }
       }
 
+      // Enrich pending-review jobs with the contractor's name for the banner
+      const enrichedReviewJobs = await Promise.all(
+        pendingReviewList.map(async (job) => {
+          const { data: bidData } = await supabase
+            .from('bids')
+            .select('contractor_user_id')
+            .eq('job_id', job.id)
+            .eq('status', 'accepted')
+            .maybeSingle()
+
+          let contractorName = 'Contractor'
+          if (bidData?.contractor_user_id) {
+            const { data: contractorData } = await supabase
+              .rpc('get_user_by_id', { user_id_input: bidData.contractor_user_id })
+              .maybeSingle()
+            contractorName = contractorData?.full_name || 'Contractor'
+          }
+
+          return { ...job, contractorName }
+        })
+      )
+
       const propertyBreakdown = propertyList.map((property) => {
         const propertyUnits = unitList.filter((u) => u.property_id === property.id)
         const propertyOccupied = propertyUnits.filter((u) => occupiedUnitIds.has(u.id)).length
@@ -148,7 +194,10 @@ export default function LandlordDashboard() {
         pendingBids: biddingJobsWithBids.length,
       })
       setProperties(propertyBreakdown)
+      setNewIssues(newIssuesList)
       setNeedsReview(biddingJobsWithBids)
+      setScheduleProposals(scheduleProposalsList)
+      setPendingReviewJobs(enrichedReviewJobs)
       setLoading(false)
     }
     getUser()
@@ -208,12 +257,96 @@ export default function LandlordDashboard() {
 
       <main className="max-w-6xl mx-auto px-6 py-10">
 
-        <div className="mb-10">
+        <div className="mb-8">
           <h1 className="text-3xl font-bold text-white tracking-tight">
             Welcome back, {user?.user_metadata?.full_name?.split(' ')[0]} 👋
           </h1>
           <p className="text-white/50 mt-2">Here's the state of your portfolio right now.</p>
         </div>
+
+        {/* New issue reported */}
+        {newIssues.length > 0 && (
+          <div className="bg-gradient-to-r from-red-500/10 to-red-500/5 border border-red-500/30 rounded-2xl p-5 mb-4">
+            <h3 className="text-red-400 font-semibold text-sm mb-3">
+              🆕 {newIssues.length} new issue{newIssues.length > 1 ? 's' : ''} reported
+            </h3>
+            <div className="space-y-2">
+              {newIssues.map((job) => (
+                <Link
+                  key={job.id}
+                  href={`/landlord/jobs/${job.id}`}
+                  className="flex items-center justify-between bg-white/5 hover:bg-white/8 rounded-xl px-4 py-3 transition"
+                >
+                  <div>
+                    <p className="text-white text-sm font-medium">{job.category}</p>
+                    <p className="text-white/40 text-xs">
+                      {job.units?.properties?.address}, {job.units?.properties?.city} · Unit {job.units?.unit_number}
+                    </p>
+                  </div>
+                  <span className="text-xs bg-red-500/20 text-red-400 rounded-full px-3 py-1 font-semibold shrink-0">
+                    Acknowledge →
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Schedule proposals awaiting landlord response */}
+        {scheduleProposals.length > 0 && (
+          <div className="bg-gradient-to-r from-blue-500/10 to-blue-500/5 border border-blue-400/30 rounded-2xl p-5 mb-4">
+            <h3 className="text-blue-300 font-semibold text-sm mb-3">
+              🕐 {scheduleProposals.length} new time proposed
+            </h3>
+            <div className="space-y-2">
+              {scheduleProposals.map((job) => (
+                <Link
+                  key={job.id}
+                  href={`/landlord/jobs/${job.id}`}
+                  className="flex items-center justify-between bg-white/5 hover:bg-white/8 rounded-xl px-4 py-3 transition"
+                >
+                  <div>
+                    <p className="text-white text-sm font-medium">{job.category}</p>
+                    <p className="text-white/40 text-xs">
+                      {job.units?.properties?.address} · New time from {job.proposed_by}
+                    </p>
+                  </div>
+                  <span className="text-xs bg-blue-400/20 text-blue-300 rounded-full px-3 py-1 font-semibold shrink-0">
+                    Review →
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Contractor marked job complete */}
+        {pendingReviewJobs.length > 0 && (
+          <div className="bg-gradient-to-r from-[#0A7B7E]/15 to-[#12A5A9]/5 border border-[#12A5A9]/30 rounded-2xl p-5 mb-4">
+            <h3 className="text-[#12A5A9] font-semibold text-sm mb-3">
+              ✅ {pendingReviewJobs.length} job{pendingReviewJobs.length > 1 ? 's' : ''} marked complete
+            </h3>
+            <div className="space-y-2">
+              {pendingReviewJobs.map((job) => (
+                <Link
+                  key={job.id}
+                  href={`/landlord/jobs/${job.id}`}
+                  className="flex items-center justify-between bg-white/5 hover:bg-white/8 rounded-xl px-4 py-3 transition"
+                >
+                  <div>
+                    <p className="text-white text-sm font-medium">
+                      {job.units?.properties?.address} — {job.contractorName} notified work complete
+                    </p>
+                    <p className="text-white/40 text-xs">{job.category} · Unit {job.units?.unit_number}</p>
+                  </div>
+                  <span className="text-xs bg-[#12A5A9]/20 text-[#12A5A9] rounded-full px-3 py-1 font-semibold shrink-0">
+                    Review now →
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         {needsReview.length > 0 && (
           <div className="bg-gradient-to-r from-yellow-500/10 to-yellow-500/5 border border-yellow-500/30 rounded-2xl p-5 mb-6">
@@ -283,19 +416,19 @@ export default function LandlordDashboard() {
 
         <div className="grid grid-cols-3 gap-4 mb-10">
           <Link href="/landlord/jobs?filter=needs_approval" className="bg-white/3 border border-white/8 rounded-2xl p-5 flex items-center gap-4 hover:border-[#12A5A9]/30 hover:bg-white/5 transition">
-  <span className="text-2xl">⏳</span>
-  <div>
-    <div className="text-xl font-bold text-white">{stats.needsApproval}</div>
-    <div className="text-white/40 text-xs">Needs approval</div>
-  </div>
-</Link>
-<Link href="/landlord/jobs?filter=in_progress" className="bg-white/3 border border-white/8 rounded-2xl p-5 flex items-center gap-4 hover:border-[#12A5A9]/30 hover:bg-white/5 transition">
-  <span className="text-2xl">🔧</span>
-  <div>
-    <div className="text-xl font-bold text-white">{stats.inProgress}</div>
-    <div className="text-white/40 text-xs">In progress</div>
-  </div>
-</Link>
+            <span className="text-2xl">⏳</span>
+            <div>
+              <div className="text-xl font-bold text-white">{stats.needsApproval}</div>
+              <div className="text-white/40 text-xs">Needs approval</div>
+            </div>
+          </Link>
+          <Link href="/landlord/jobs?filter=in_progress" className="bg-white/3 border border-white/8 rounded-2xl p-5 flex items-center gap-4 hover:border-[#12A5A9]/30 hover:bg-white/5 transition">
+            <span className="text-2xl">🔧</span>
+            <div>
+              <div className="text-xl font-bold text-white">{stats.inProgress}</div>
+              <div className="text-white/40 text-xs">In progress</div>
+            </div>
+          </Link>
           <Link
             href={needsReview.length > 0 ? `/landlord/jobs/${needsReview[0].id}` : '/landlord/jobs'}
             className="bg-white/3 border border-white/8 rounded-2xl p-5 flex items-center gap-4 hover:border-[#12A5A9]/30 hover:bg-white/5 transition"
