@@ -29,6 +29,9 @@ export default function JobDetailPage() {
   const [showSelectModal, setShowSelectModal] = useState(false)
   const [selectedBidId, setSelectedBidId] = useState<string | null>(null)
   const [showArchiveModal, setShowArchiveModal] = useState(false)
+  const [showApproveModal, setShowApproveModal] = useState(false)
+  const [showClarifyModal, setShowClarifyModal] = useState(false)
+  const [clarifyNote, setClarifyNote] = useState('')
 
   const [showScheduleModal, setShowScheduleModal] = useState(false)
   const [scheduleDate, setScheduleDate] = useState('')
@@ -40,6 +43,22 @@ export default function JobDetailPage() {
     if (!user) {
       router.push('/login')
       return
+    }
+
+    // Auto-approve: if the landlord hasn't acted within 3 days of the
+    // contractor marking the job complete, move it to "completed" automatically.
+    const { data: rawJob } = await supabase
+      .from('jobs')
+      .select('id, status, contractor_completed_at')
+      .eq('id', jobId)
+      .maybeSingle()
+
+    if (rawJob?.status === 'pending_review' && rawJob.contractor_completed_at) {
+      const completedAt = new Date(rawJob.contractor_completed_at).getTime()
+      const threeDaysMs = 3 * 24 * 60 * 60 * 1000
+      if (Date.now() - completedAt > threeDaysMs) {
+        await supabase.from('jobs').update({ status: 'completed' }).eq('id', jobId)
+      }
     }
 
     const { data: jobData, error: jobError } = await supabase
@@ -88,7 +107,7 @@ export default function JobDetailPage() {
       setPhotos([])
     }
 
-    if (['bidding', 'bid_selected', 'scheduled', 'in_progress', 'completed', 'archived'].includes(jobData.status)) {
+    if (['bidding', 'bid_selected', 'scheduled', 'in_progress', 'pending_review', 'completed', 'archived'].includes(jobData.status)) {
       const { data: bidsData, error: bidsError } = await supabase
         .from('bids')
         .select('*')
@@ -318,6 +337,54 @@ export default function JobDetailPage() {
     setActioning(false)
   }
 
+  const confirmApproveCompletion = async () => {
+    setActioning(true)
+    const { error: updateError } = await supabase
+      .from('jobs')
+      .update({ status: 'completed' })
+      .eq('id', jobId)
+
+    if (updateError) {
+      console.error('Error approving completion:', updateError)
+      setError('Could not approve completion.')
+    }
+
+    setShowApproveModal(false)
+    await fetchJob()
+    setActioning(false)
+  }
+
+  const openClarifyModal = () => {
+    setClarifyNote(job.clarification_note || '')
+    setShowClarifyModal(true)
+  }
+
+  const submitClarifyRequest = async () => {
+    if (!clarifyNote.trim()) {
+      setError('Please enter what you need clarified.')
+      return
+    }
+
+    setActioning(true)
+    setError(null)
+
+    const { error: updateError } = await supabase
+      .from('jobs')
+      .update({ clarification_note: clarifyNote, clarification_response: null })
+      .eq('id', jobId)
+
+    if (updateError) {
+      console.error('Error sending clarification request:', updateError)
+      setError('Could not send request.')
+      setActioning(false)
+      return
+    }
+
+    setShowClarifyModal(false)
+    await fetchJob()
+    setActioning(false)
+  }
+
   const statusLabel = (status: string) => {
     const labels: Record<string, string> = {
       pending_approval: 'Needs approval',
@@ -326,6 +393,7 @@ export default function JobDetailPage() {
       bid_selected: 'Contractor selected',
       scheduled: 'Scheduled',
       in_progress: 'In progress',
+      pending_review: 'Pending your review',
       completed: 'Completed',
       archived: 'Archived',
       declined: 'Declined',
@@ -426,6 +494,24 @@ export default function JobDetailPage() {
                 Start bidding
               </button>
             )}
+            {job.status === 'pending_review' && (
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowApproveModal(true)}
+                  disabled={actioning}
+                  className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
+                >
+                  Approve
+                </button>
+                <button
+                  onClick={openClarifyModal}
+                  disabled={actioning}
+                  className="text-white/50 hover:text-white text-xs transition"
+                >
+                  Ask for verification
+                </button>
+              </div>
+            )}
           </div>
 
           <p className="text-white/70 text-sm leading-relaxed">{job.description}</p>
@@ -452,6 +538,34 @@ export default function JobDetailPage() {
             </div>
           )}
         </div>
+
+        {job.status === 'pending_review' && (job.clarification_note || job.clarification_response) && (
+          <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl p-6 mb-4">
+            <h3 className="text-yellow-400 font-semibold mb-2">Verification requested</h3>
+            {job.clarification_note && (
+              <div className="mb-3">
+                <p className="text-white/40 text-xs mb-1">You asked:</p>
+                <p className="text-white/70 text-sm">{job.clarification_note}</p>
+              </div>
+            )}
+            {job.clarification_response ? (
+              <div>
+                <p className="text-white/40 text-xs mb-1">Contractor responded:</p>
+                <p className="text-white/70 text-sm">{job.clarification_response}</p>
+              </div>
+            ) : (
+              <p className="text-white/40 text-xs italic">Waiting on contractor's response.</p>
+            )}
+          </div>
+        )}
+
+        {job.status === 'pending_review' && (
+          <div className="bg-white/3 border border-white/8 rounded-2xl p-4 mb-4">
+            <p className="text-white/40 text-xs">
+              ⏳ This will auto-approve within 3 days of the contractor marking it complete if you don't take action.
+            </p>
+          </div>
+        )}
 
         {job.status === 'bidding' && (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
@@ -485,7 +599,7 @@ export default function JobDetailPage() {
           </div>
         )}
 
-        {['bid_selected', 'scheduled', 'in_progress', 'completed', 'archived'].includes(job.status) && (
+        {['bid_selected', 'scheduled', 'in_progress', 'pending_review', 'completed', 'archived'].includes(job.status) && (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
             <h3 className="text-white font-semibold mb-3">Selected contractor</h3>
             {bids.filter((b) => b.status === 'accepted').map((bid) => (
@@ -554,7 +668,7 @@ export default function JobDetailPage() {
           </div>
         )}
 
-        {['in_progress', 'completed', 'archived'].includes(job.status) && (
+        {['in_progress', 'pending_review', 'completed', 'archived'].includes(job.status) && (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
             <h3 className="text-white font-semibold mb-4">Proof of work</h3>
             <div className="mb-5">
@@ -784,6 +898,72 @@ export default function JobDetailPage() {
                 className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
               >
                 {actioning ? 'Archiving...' : 'Archive'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showApproveModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
+          <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
+            <h3 className="text-white font-semibold mb-2">Approve this completed job?</h3>
+            <p className="text-white/50 text-sm mb-6">
+              This confirms the work is done to your satisfaction and marks the job as completed.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowApproveModal(false)}
+                disabled={actioning}
+                className="flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-white/12 transition disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmApproveCompletion}
+                disabled={actioning}
+                className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
+              >
+                {actioning ? 'Approving...' : 'Approve'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showClarifyModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
+          <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
+            <h3 className="text-white font-semibold mb-2">Ask contractor for verification</h3>
+            <p className="text-white/50 text-sm mb-3">
+              What would you like clarified about the completed work?
+            </p>
+            <textarea
+              value={clarifyNote}
+              onChange={(e) => setClarifyNote(e.target.value)}
+              rows={3}
+              placeholder="e.g. Can you confirm the leak under the sink was fully sealed?"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition resize-none mb-5"
+            />
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm mb-4">
+                {error}
+              </div>
+            )}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowClarifyModal(false)}
+                disabled={actioning}
+                className="flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-white/12 transition disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitClarifyRequest}
+                disabled={actioning}
+                className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
+              >
+                {actioning ? 'Sending...' : 'Send request'}
               </button>
             </div>
           </div>

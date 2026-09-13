@@ -166,16 +166,17 @@ function LandlordJobsList() {
 
   const statusLabel = (job: any) => {
     const labels: Record<string, string> = {
-      pending_approval: 'Needs approval',
-      approved: 'Acknowledged',
-      bidding: 'Bidding',
-      bid_selected: 'Bid selected',
-      scheduled: 'Scheduled',
-      in_progress: 'In progress',
-      completed: 'Completed',
-      archived: 'Archived',
-      declined: 'Declined',
-    }
+  pending_approval: 'Needs approval',
+  approved: 'Acknowledged',
+  bidding: 'Bidding',
+  bid_selected: 'Bid selected',
+  scheduled: 'Scheduled',
+  in_progress: 'In progress',
+  pending_review: 'Pending your review',
+  completed: 'Completed',
+  archived: 'Archived',
+  declined: 'Declined',
+}
     const base = labels[job.status] || job.status
 
     if (job.proposed_date && !job.schedule_confirmed) {
