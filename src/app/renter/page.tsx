@@ -14,6 +14,7 @@ export default function RenterDashboard() {
   const [contacts, setContacts] = useState<any[]>([])
   const [contactsLoading, setContactsLoading] = useState(true)
   const [jobs, setJobs] = useState<any[]>([])
+  const [scheduleAlerts, setScheduleAlerts] = useState<any[]>([])
   const [jobsLoading, setJobsLoading] = useState(true)
 
   useEffect(() => {
@@ -76,19 +77,23 @@ export default function RenterDashboard() {
       }
       setContactsLoading(false)
 
-      // Renter only ever sees their own currently-active issue(s) — never
-      // historical/completed work orders on the property.
       const { data: jobsData, error: jobsError } = await supabase
         .from('jobs')
         .select('*')
         .eq('unit_id', unitData.id)
-        .not('status', 'in', '(completed,archived,declined,pending_review)')
+        .not('status', 'in', '(completed,archived,declined)')
         .order('created_at', { ascending: false })
 
       if (jobsError) {
         console.error('Error loading jobs:', jobsError)
       } else {
-        setJobs(jobsData || [])
+        const jobsList = jobsData || []
+        setJobs(jobsList)
+        setScheduleAlerts(
+          jobsList.filter((j) =>
+            j.proposed_date && !j.schedule_confirmed && j.proposed_by !== 'renter'
+          )
+        )
       }
       setJobsLoading(false)
     }
@@ -100,15 +105,9 @@ export default function RenterDashboard() {
     router.push('/login')
   }
 
-  // Renter-facing status labels are intentionally simplified — bidding
-  // mechanics ("getting quotes", "contractor selected") are internal to
-  // the landlord/contractor side and not shown to the tenant.
   const statusLabel = (job: any) => {
-    if (['pending_approval', 'approved'].includes(job.status)) {
-      return 'Landlord notified'
-    }
-    if (['bidding', 'bid_selected'].includes(job.status)) {
-      return "Landlord is finding a contractor"
+    if (['pending_approval', 'approved', 'bidding', 'bid_selected'].includes(job.status)) {
+      return 'Landlord is finding a contractor'
     }
     if (job.status === 'scheduled') {
       if (job.proposed_date && !job.schedule_confirmed) {
@@ -119,6 +118,9 @@ export default function RenterDashboard() {
     }
     if (job.status === 'in_progress') {
       return 'Work in progress'
+    }
+    if (job.status === 'pending_review') {
+      return 'Work complete — waiting on landlord'
     }
     return job.status
   }
@@ -150,6 +152,28 @@ export default function RenterDashboard() {
           </h1>
           <p className="text-white/50 mt-1">Track your maintenance requests here.</p>
         </div>
+
+        {scheduleAlerts.length > 0 && (
+          <div className="bg-gradient-to-r from-blue-500/10 to-blue-500/5 border border-blue-400/30 rounded-2xl p-5 mb-6">
+            <h3 className="text-blue-300 font-semibold text-sm mb-3">
+              🕐 {scheduleAlerts.length} new time proposed
+            </h3>
+            <div className="space-y-2">
+              {scheduleAlerts.map((job) => (
+                <Link
+                  key={job.id}
+                  href={`/renter/jobs/${job.id}`}
+                  className="flex items-center justify-between bg-white/5 hover:bg-white/8 rounded-xl px-4 py-3 transition"
+                >
+                  <p className="text-white text-sm font-medium">{job.category}</p>
+                  <span className="text-xs bg-blue-400/20 text-blue-300 rounded-full px-3 py-1 font-semibold shrink-0">
+                    Review →
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         {unit && property && (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">

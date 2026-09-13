@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
+import { PhotoGrid } from '@/components/PhotoGrid'
 
 const TIME_WINDOWS = [
   { value: 'morning', label: 'Morning (8am–12pm)' },
@@ -32,6 +33,11 @@ export default function ContractorJobDetailPage() {
 
   const [showCompleteModal, setShowCompleteModal] = useState(false)
   const [responseText, setResponseText] = useState('')
+  const [showResponseSentModal, setShowResponseSentModal] = useState(false)
+
+  const [showPriceChangeModal, setShowPriceChangeModal] = useState(false)
+  const [newAmount, setNewAmount] = useState('')
+  const [priceChangeReason, setPriceChangeReason] = useState('')
 
   const fetchJob = async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -41,8 +47,6 @@ export default function ContractorJobDetailPage() {
     }
     setUserId(user.id)
 
-    // Auto-approve: if landlord hasn't acted within 3 days of contractor
-    // marking the job complete, it moves to "completed" automatically.
     const { data: rawJob } = await supabase
       .from('jobs')
       .select('id, status, contractor_completed_at')
@@ -261,8 +265,51 @@ export default function ContractorJobDetailPage() {
     if (updateError) {
       console.error('Error sending response:', updateError)
       setError('Could not send your response.')
+      setActioning(false)
+      return
     }
 
+    await fetchJob()
+    setActioning(false)
+    setShowResponseSentModal(true)
+  }
+
+  const openPriceChangeModal = () => {
+    setNewAmount(myBid?.amount?.toString() || '')
+    setPriceChangeReason('')
+    setShowPriceChangeModal(true)
+  }
+
+  const submitPriceChange = async () => {
+    if (!newAmount || parseFloat(newAmount) <= 0) {
+      setError('Enter a valid amount.')
+      return
+    }
+    if (!priceChangeReason.trim()) {
+      setError('Please explain the reason for the price change.')
+      return
+    }
+
+    setActioning(true)
+    setError(null)
+
+    const { error: updateError } = await supabase
+      .from('bids')
+      .update({
+        proposed_amount: parseFloat(newAmount),
+        price_change_reason: priceChangeReason,
+        price_change_status: 'pending',
+      })
+      .eq('id', myBid.id)
+
+    if (updateError) {
+      console.error('Error requesting price change:', updateError)
+      setError('Could not submit price change request.')
+      setActioning(false)
+      return
+    }
+
+    setShowPriceChangeModal(false)
     await fetchJob()
     setActioning(false)
   }
@@ -300,6 +347,7 @@ export default function ContractorJobDetailPage() {
   const beforePhotos = photos.filter((p) => p.stage === 'before')
   const afterPhotos = photos.filter((p) => p.stage === 'after')
   const reportedPhotos = photos.filter((p) => p.stage === 'general' || !p.stage)
+  const canRequestPriceChange = myBid?.status === 'accepted' && ['bid_selected', 'scheduled', 'in_progress'].includes(job.status)
 
   return (
     <div className="min-h-screen bg-[#0C1A2E]">
@@ -346,7 +394,28 @@ export default function ContractorJobDetailPage() {
           {myBid && (
             <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 mt-4">
               <p className="text-white/50 text-xs">Your accepted bid</p>
-              <p className="text-[#12A5A9] font-bold">${myBid.amount}</p>
+              {myBid.price_change_status === 'pending' ? (
+                <div>
+                  <p className="text-white/40 text-sm line-through">${myBid.amount}</p>
+                  <p className="text-yellow-400 font-bold">${myBid.proposed_amount} <span className="text-xs font-normal">(pending landlord approval)</span></p>
+                </div>
+              ) : (
+                <p className="text-[#12A5A9] font-bold">${myBid.amount}</p>
+              )}
+              {myBid.selected_at && (
+                <p className="text-white/30 text-xs mt-1">Selected {new Date(myBid.selected_at).toLocaleString()}</p>
+              )}
+              {canRequestPriceChange && myBid.price_change_status !== 'pending' && (
+                <button
+                  onClick={openPriceChangeModal}
+                  className="text-[#12A5A9] text-xs hover:underline mt-2"
+                >
+                  Request price change
+                </button>
+              )}
+              {myBid.price_change_status === 'rejected' && (
+                <p className="text-red-400/70 text-xs mt-2">Your last price change request was declined.</p>
+              )}
             </div>
           )}
 
@@ -382,11 +451,7 @@ export default function ContractorJobDetailPage() {
         {reportedPhotos.length > 0 && (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
             <h3 className="text-white font-semibold mb-4">Photos from tenant's report</h3>
-            <div className="grid grid-cols-3 gap-2">
-              {reportedPhotos.map((p) => (
-                <img key={p.id} src={p.displayUrl} alt="Reported issue" className="w-full h-24 object-cover rounded-lg" />
-              ))}
-            </div>
+            <PhotoGrid photos={reportedPhotos} columns={3} />
           </div>
         )}
 
@@ -463,11 +528,7 @@ export default function ContractorJobDetailPage() {
               {beforePhotos.length === 0 ? (
                 <p className="text-white/30 text-xs">No before photos yet.</p>
               ) : (
-                <div className="grid grid-cols-3 gap-2">
-                  {beforePhotos.map((p) => (
-                    <img key={p.id} src={p.displayUrl} alt="Before" className="w-full h-24 object-cover rounded-lg" />
-                  ))}
-                </div>
+                <PhotoGrid photos={beforePhotos} columns={3} />
               )}
             </div>
 
@@ -484,11 +545,7 @@ export default function ContractorJobDetailPage() {
               {afterPhotos.length === 0 ? (
                 <p className="text-white/30 text-xs">No after photos yet.</p>
               ) : (
-                <div className="grid grid-cols-3 gap-2">
-                  {afterPhotos.map((p) => (
-                    <img key={p.id} src={p.displayUrl} alt="After" className="w-full h-24 object-cover rounded-lg" />
-                  ))}
-                </div>
+                <PhotoGrid photos={afterPhotos} columns={3} />
               )}
             </div>
 
@@ -590,6 +647,71 @@ export default function ContractorJobDetailPage() {
                 className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
               >
                 {actioning ? 'Submitting...' : 'Mark complete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showResponseSentModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
+          <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full text-center">
+            <h3 className="text-white font-semibold mb-2">Message sent ✓</h3>
+            <p className="text-white/50 text-sm mb-5">The landlord can now see your response.</p>
+            <button
+              onClick={() => setShowResponseSentModal(false)}
+              className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-6 py-2.5 rounded-xl hover:opacity-90 transition"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showPriceChangeModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
+          <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
+            <h3 className="text-white font-semibold mb-4">Request a price change</h3>
+
+            <label className="text-white/70 text-sm block mb-1">New total ($)</label>
+            <input
+              type="number"
+              value={newAmount}
+              onChange={(e) => setNewAmount(e.target.value)}
+              min="1"
+              step="0.01"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition mb-4"
+            />
+
+            <label className="text-white/70 text-sm block mb-1">Reason / breakdown</label>
+            <textarea
+              value={priceChangeReason}
+              onChange={(e) => setPriceChangeReason(e.target.value)}
+              rows={4}
+              placeholder="e.g. Found additional pipe damage behind the wall — parts $80, extra 1.5 hrs labor"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition resize-none mb-5"
+            />
+
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm mb-4">
+                {error}
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowPriceChangeModal(false)}
+                disabled={actioning}
+                className="flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-white/12 transition disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitPriceChange}
+                disabled={actioning}
+                className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
+              >
+                {actioning ? 'Sending...' : 'Send request'}
               </button>
             </div>
           </div>

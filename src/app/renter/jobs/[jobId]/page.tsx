@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
+import { PhotoGrid } from '@/components/PhotoGrid'
 
 const TIME_WINDOWS = [
   { value: 'morning', label: 'Morning (8am–12pm)' },
@@ -18,6 +19,7 @@ export default function RenterJobDetailPage() {
 
   const [loading, setLoading] = useState(true)
   const [job, setJob] = useState<any>(null)
+  const [photos, setPhotos] = useState<any[]>([])
   const [error, setError] = useState<string | null>(null)
   const [actioning, setActioning] = useState(false)
 
@@ -47,6 +49,27 @@ export default function RenterJobDetailPage() {
     }
 
     setJob(jobData)
+
+    const { data: photosData } = await supabase
+      .from('job_photos')
+      .select('*')
+      .eq('job_id', jobId)
+      .order('created_at', { ascending: false })
+
+    if (photosData && photosData.length > 0) {
+      const enriched = await Promise.all(
+        photosData.map(async (photo) => {
+          const { data: signedUrlData } = await supabase.storage
+            .from('job-photos')
+            .createSignedUrl(photo.photo_url, 3600)
+          return { ...photo, displayUrl: signedUrlData?.signedUrl }
+        })
+      )
+      setPhotos(enriched)
+    } else {
+      setPhotos([])
+    }
+
     setLoading(false)
   }
 
@@ -78,6 +101,7 @@ export default function RenterJobDetailPage() {
         proposed_time: scheduleTime || null,
         proposed_by: 'renter',
         schedule_confirmed: false,
+        schedule_ask_tenant: false,
       })
       .eq('id', jobId)
 
@@ -110,18 +134,18 @@ export default function RenterJobDetailPage() {
   }
 
   const statusLabel = (status: string) => {
-  const labels: Record<string, string> = {
-    pending_approval: 'Landlord notified',
-    approved: 'Landlord notified',
-    bidding: 'Landlord is finding a contractor',
-    bid_selected: 'Landlord is finding a contractor',
-    scheduled: 'Scheduled',
-    in_progress: 'Work in progress',
-    pending_review: 'Work in progress',
-    completed: 'Completed',
+    const labels: Record<string, string> = {
+      pending_approval: 'Landlord is finding a contractor',
+      approved: 'Landlord is finding a contractor',
+      bidding: 'Landlord is finding a contractor',
+      bid_selected: 'Landlord is finding a contractor',
+      scheduled: 'Scheduled',
+      in_progress: 'Work in progress',
+      pending_review: 'Work complete — waiting on landlord',
+      completed: 'Completed',
+    }
+    return labels[status] || status
   }
-  return labels[status] || status
-}
 
   const windowLabel = (w: string) => TIME_WINDOWS.find((t) => t.value === w)?.label || w
 
@@ -141,6 +165,9 @@ export default function RenterJobDetailPage() {
 
   const showSchedulingSection = ['bid_selected', 'scheduled'].includes(job.status)
   const isMyTurnToRespond = job.proposed_by && job.proposed_by !== 'renter' && !job.schedule_confirmed
+  const generalPhotos = photos.filter((p) => p.stage === 'general' || !p.stage)
+  const beforePhotos = photos.filter((p) => p.stage === 'before')
+  const afterPhotos = photos.filter((p) => p.stage === 'after')
 
   return (
     <div className="min-h-screen bg-[#0C1A2E]">
@@ -177,8 +204,14 @@ export default function RenterJobDetailPage() {
           )}
         </div>
 
+        {job.schedule_ask_tenant && !job.proposed_date && (
+          <div className="bg-blue-500/10 border border-blue-400/30 rounded-2xl p-5 mb-4">
+            <p className="text-blue-300 text-sm font-medium">Your landlord would like you to pick a time that works for you.</p>
+          </div>
+        )}
+
         {showSchedulingSection && (
-          <div className="bg-white/3 border border-white/8 rounded-2xl p-6">
+          <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
             <h3 className="text-white font-semibold mb-4">Schedule</h3>
 
             {!job.proposed_date ? (
@@ -230,6 +263,31 @@ export default function RenterJobDetailPage() {
                 )}
               </div>
             )}
+          </div>
+        )}
+
+        {['in_progress', 'pending_review', 'completed'].includes(job.status) && (beforePhotos.length > 0 || afterPhotos.length > 0) && (
+          <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
+            <h3 className="text-white font-semibold mb-4">Proof of work</h3>
+            {beforePhotos.length > 0 && (
+              <div className="mb-5">
+                <p className="text-white/70 text-sm font-medium mb-2">Before</p>
+                <PhotoGrid photos={beforePhotos} columns={3} />
+              </div>
+            )}
+            {afterPhotos.length > 0 && (
+              <div>
+                <p className="text-white/70 text-sm font-medium mb-2">After</p>
+                <PhotoGrid photos={afterPhotos} columns={3} />
+              </div>
+            )}
+          </div>
+        )}
+
+        {generalPhotos.length > 0 && (
+          <div>
+            <h3 className="text-white font-semibold mb-3">Your photos</h3>
+            <PhotoGrid photos={generalPhotos} columns={2} thumbHeight="h-40" />
           </div>
         )}
       </main>

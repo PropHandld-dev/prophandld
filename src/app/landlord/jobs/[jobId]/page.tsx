@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
+import { PhotoGrid } from '@/components/PhotoGrid'
 
 const TIME_WINDOWS = [
   { value: 'morning', label: 'Morning (8am–12pm)' },
@@ -32,6 +33,8 @@ export default function JobDetailPage() {
   const [showApproveModal, setShowApproveModal] = useState(false)
   const [showClarifyModal, setShowClarifyModal] = useState(false)
   const [clarifyNote, setClarifyNote] = useState('')
+  const [showPriceModal, setShowPriceModal] = useState(false)
+  const [priceAction, setPriceAction] = useState<'approve' | 'reject' | null>(null)
 
   const [showScheduleModal, setShowScheduleModal] = useState(false)
   const [scheduleDate, setScheduleDate] = useState('')
@@ -45,8 +48,6 @@ export default function JobDetailPage() {
       return
     }
 
-    // Auto-approve: if the landlord hasn't acted within 3 days of the
-    // contractor marking the job complete, move it to "completed" automatically.
     const { data: rawJob } = await supabase
       .from('jobs')
       .select('id, status, contractor_completed_at')
@@ -228,7 +229,7 @@ export default function JobDetailPage() {
 
     const { error: selectError } = await supabase
       .from('bids')
-      .update({ status: 'accepted' })
+      .update({ status: 'accepted', selected_at: new Date().toISOString() })
       .eq('id', selectedBidId)
 
     if (selectError) {
@@ -289,6 +290,7 @@ export default function JobDetailPage() {
         proposed_time: scheduleTime || null,
         proposed_by: 'landlord',
         schedule_confirmed: false,
+        schedule_ask_tenant: false,
       })
       .eq('id', jobId)
 
@@ -300,6 +302,22 @@ export default function JobDetailPage() {
     }
 
     setShowScheduleModal(false)
+    await fetchJob()
+    setActioning(false)
+  }
+
+  const askTenantToPropose = async () => {
+    setActioning(true)
+    const { error: updateError } = await supabase
+      .from('jobs')
+      .update({ schedule_ask_tenant: true })
+      .eq('id', jobId)
+
+    if (updateError) {
+      console.error('Error asking tenant to propose:', updateError)
+      setError('Could not send request.')
+    }
+
     await fetchJob()
     setActioning(false)
   }
@@ -385,6 +403,53 @@ export default function JobDetailPage() {
     setActioning(false)
   }
 
+  const openPriceModal = (action: 'approve' | 'reject') => {
+    setPriceAction(action)
+    setShowPriceModal(true)
+  }
+
+  const confirmPriceAction = async () => {
+    const acceptedBid = bids.find((b) => b.status === 'accepted')
+    if (!acceptedBid) return
+
+    setActioning(true)
+    setError(null)
+
+    if (priceAction === 'approve') {
+      const { error: updateError } = await supabase
+        .from('bids')
+        .update({
+          amount: acceptedBid.proposed_amount,
+          price_change_status: 'approved',
+        })
+        .eq('id', acceptedBid.id)
+
+      if (updateError) {
+        console.error('Error approving price change:', updateError)
+        setError('Could not approve price change.')
+        setActioning(false)
+        return
+      }
+    } else {
+      const { error: updateError } = await supabase
+        .from('bids')
+        .update({ price_change_status: 'rejected' })
+        .eq('id', acceptedBid.id)
+
+      if (updateError) {
+        console.error('Error rejecting price change:', updateError)
+        setError('Could not reject price change.')
+        setActioning(false)
+        return
+      }
+    }
+
+    setShowPriceModal(false)
+    setPriceAction(null)
+    await fetchJob()
+    setActioning(false)
+  }
+
   const statusLabel = (status: string) => {
     const labels: Record<string, string> = {
       pending_approval: 'Needs approval',
@@ -418,6 +483,7 @@ export default function JobDetailPage() {
   if (!job) return null
 
   const selectedBid = bids.find((b) => b.id === selectedBidId)
+  const acceptedBid = bids.find((b) => b.status === 'accepted')
   const showSchedulingSection = ['bid_selected', 'scheduled'].includes(job.status)
   const isMyTurnToRespond = job.proposed_by && job.proposed_by !== 'landlord' && !job.schedule_confirmed
   const beforePhotos = photos.filter((p) => p.stage === 'before')
@@ -602,13 +668,40 @@ export default function JobDetailPage() {
         {['bid_selected', 'scheduled', 'in_progress', 'pending_review', 'completed', 'archived'].includes(job.status) && (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
             <h3 className="text-white font-semibold mb-3">Selected contractor</h3>
-            {bids.filter((b) => b.status === 'accepted').map((bid) => (
-              <div key={bid.id}>
-                <p className="text-white font-semibold">{bid.contractor?.full_name}</p>
-                <p className="text-[#12A5A9] font-bold text-sm mt-1">${bid.amount}</p>
-                {bid.availability && <p className="text-white/50 text-xs mt-1">Availability: {bid.availability}</p>}
+            {acceptedBid && (
+              <div>
+                <p className="text-white font-semibold">{acceptedBid.contractor?.full_name}</p>
+                {acceptedBid.price_change_status === 'pending' ? (
+                  <div className="mt-2 bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
+                    <p className="text-yellow-400 text-xs font-semibold mb-1">Price change requested</p>
+                    <p className="text-white/40 text-sm line-through">${acceptedBid.amount}</p>
+                    <p className="text-white font-bold text-lg">${acceptedBid.proposed_amount}</p>
+                    {acceptedBid.price_change_reason && (
+                      <p className="text-white/60 text-sm mt-2">{acceptedBid.price_change_reason}</p>
+                    )}
+                    <div className="flex items-center gap-3 mt-3">
+                      <button
+                        onClick={() => openPriceModal('approve')}
+                        disabled={actioning}
+                        className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
+                      >
+                        Approve new price
+                      </button>
+                      <button
+                        onClick={() => openPriceModal('reject')}
+                        disabled={actioning}
+                        className="text-red-400/70 hover:text-red-400 text-xs transition"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-[#12A5A9] font-bold text-sm mt-1">${acceptedBid.amount}</p>
+                )}
+                {acceptedBid.availability && <p className="text-white/50 text-xs mt-1">Availability: {acceptedBid.availability}</p>}
               </div>
-            ))}
+            )}
           </div>
         )}
 
@@ -619,12 +712,21 @@ export default function JobDetailPage() {
             {!job.proposed_date ? (
               <div className="text-center py-4">
                 <p className="text-white/30 text-sm mb-4">No appointment proposed yet.</p>
-                <button
-                  onClick={openScheduleModal}
-                  className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition"
-                >
-                  Propose a time
-                </button>
+                <div className="flex items-center justify-center gap-3">
+                  <button
+                    onClick={openScheduleModal}
+                    className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition"
+                  >
+                    Propose a time myself
+                  </button>
+                  <button
+                    onClick={askTenantToPropose}
+                    disabled={actioning || job.schedule_ask_tenant}
+                    className="text-white/50 hover:text-white text-xs transition disabled:opacity-50"
+                  >
+                    {job.schedule_ask_tenant ? 'Waiting on tenant...' : 'Let tenant pick a time'}
+                  </button>
+                </div>
               </div>
             ) : job.schedule_confirmed ? (
               <div className="bg-[#0A7B7E]/15 border border-[#12A5A9]/30 rounded-xl px-4 py-3">
@@ -676,11 +778,7 @@ export default function JobDetailPage() {
               {beforePhotos.length === 0 ? (
                 <p className="text-white/30 text-xs">No before photos yet.</p>
               ) : (
-                <div className="grid grid-cols-3 gap-2">
-                  {beforePhotos.map((p) => (
-                    <img key={p.id} src={p.displayUrl} alt="Before" className="w-full h-24 object-cover rounded-lg" />
-                  ))}
-                </div>
+                <PhotoGrid photos={beforePhotos} columns={3} />
               )}
             </div>
             <div>
@@ -688,11 +786,7 @@ export default function JobDetailPage() {
               {afterPhotos.length === 0 ? (
                 <p className="text-white/30 text-xs">No after photos yet.</p>
               ) : (
-                <div className="grid grid-cols-3 gap-2">
-                  {afterPhotos.map((p) => (
-                    <img key={p.id} src={p.displayUrl} alt="After" className="w-full h-24 object-cover rounded-lg" />
-                  ))}
-                </div>
+                <PhotoGrid photos={afterPhotos} columns={3} />
               )}
             </div>
           </div>
@@ -707,25 +801,7 @@ export default function JobDetailPage() {
               <p className="text-white/30 text-sm">No photos attached.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
-              {generalPhotos.map((photo) => (
-                <div key={photo.id} className="bg-white/3 border border-white/8 rounded-xl overflow-hidden">
-                  <img
-                    src={photo.displayUrl}
-                    alt="Job photo"
-                    className="w-full h-40 object-cover"
-                  />
-                  <div className="p-3">
-                    <p className="text-white/60 text-xs">
-                      {photo.uploader?.full_name || 'Unknown'}
-                    </p>
-                    <p className="text-white/30 text-xs mt-0.5">
-                      {new Date(photo.created_at).toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <PhotoGrid photos={generalPhotos} columns={2} thumbHeight="h-40" />
           )}
         </div>
       </main>
@@ -964,6 +1040,41 @@ export default function JobDetailPage() {
                 className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
               >
                 {actioning ? 'Sending...' : 'Send request'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showPriceModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
+          <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
+            <h3 className="text-white font-semibold mb-2">
+              {priceAction === 'approve' ? 'Approve new price?' : 'Reject price change?'}
+            </h3>
+            <p className="text-white/50 text-sm mb-6">
+              {priceAction === 'approve'
+                ? 'The job total will be updated to the new amount.'
+                : 'The contractor will be notified their request was declined. The original price stays in effect.'}
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowPriceModal(false)}
+                disabled={actioning}
+                className="flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-white/12 transition disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmPriceAction}
+                disabled={actioning}
+                className={
+                  priceAction === 'approve'
+                    ? 'flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50'
+                    : 'flex-1 bg-red-500/20 text-red-400 text-sm font-semibold py-2.5 rounded-xl hover:bg-red-500/30 transition disabled:opacity-50'
+                }
+              >
+                {actioning ? 'Saving...' : priceAction === 'approve' ? 'Approve' : 'Reject'}
               </button>
             </div>
           </div>
