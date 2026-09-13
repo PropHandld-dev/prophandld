@@ -1,10 +1,11 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-const [confirmedSchedules, setConfirmedSchedules] = useState<any[]>([])
 
 const TIME_WINDOWS: Record<string, string> = {
   morning: 'Morning (8am–12pm)',
