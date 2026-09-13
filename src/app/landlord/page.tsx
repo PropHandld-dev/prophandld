@@ -23,6 +23,7 @@ export default function LandlordDashboard() {
   const [newIssues, setNewIssues] = useState<any[]>([])
   const [needsReview, setNeedsReview] = useState<any[]>([])
   const [scheduleProposals, setScheduleProposals] = useState<any[]>([])
+  const [confirmedSchedules, setConfirmedSchedules] = useState<any[]>([])
   const [pendingReviewJobs, setPendingReviewJobs] = useState<any[]>([])
 
   useEffect(() => {
@@ -78,6 +79,7 @@ export default function LandlordDashboard() {
       let newIssuesList: any[] = []
       let scheduleProposalsList: any[] = []
       let pendingReviewList: any[] = []
+      let confirmedSchedulesList: any[] = []
 
       if (unitIds.length > 0) {
         const { count: approvalCount } = await supabase
@@ -116,6 +118,16 @@ export default function LandlordDashboard() {
           .neq('proposed_by', 'landlord')
 
         scheduleProposalsList = schedJobs || []
+
+        // Jobs where the schedule has just been confirmed
+        const { data: confirmedJobs } = await supabase
+          .from('jobs')
+          .select('*, units(unit_number, properties(address, city))')
+          .in('unit_id', unitIds)
+          .eq('status', 'scheduled')
+          .eq('schedule_confirmed', true)
+
+        confirmedSchedulesList = confirmedJobs || []
 
         // Jobs contractor marked complete, awaiting landlord review
         const { data: reviewJobs } = await supabase
@@ -162,12 +174,12 @@ export default function LandlordDashboard() {
             .maybeSingle()
 
           let contractorName = 'Contractor'
-if (bidData?.contractor_user_id) {
-  const { data: contractorData } = await supabase
-    .rpc('get_user_by_id', { user_id_input: bidData.contractor_user_id })
-    .maybeSingle()
-  contractorName = (contractorData as any)?.full_name || 'Contractor'
-}
+          if (bidData?.contractor_user_id) {
+            const { data: contractorData } = await supabase
+              .rpc('get_user_by_id', { user_id_input: bidData.contractor_user_id })
+              .maybeSingle()
+            contractorName = (contractorData as any)?.full_name || 'Contractor'
+          }
 
           return { ...job, contractorName }
         })
@@ -197,6 +209,7 @@ if (bidData?.contractor_user_id) {
       setNewIssues(newIssuesList)
       setNeedsReview(biddingJobsWithBids)
       setScheduleProposals(scheduleProposalsList)
+      setConfirmedSchedules(confirmedSchedulesList)
       setPendingReviewJobs(enrichedReviewJobs)
       setLoading(false)
     }
@@ -313,6 +326,34 @@ if (bidData?.contractor_user_id) {
                   </div>
                   <span className="text-xs bg-blue-400/20 text-blue-300 rounded-full px-3 py-1 font-semibold shrink-0">
                     Review →
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Schedule just confirmed */}
+        {confirmedSchedules.length > 0 && (
+          <div className="bg-gradient-to-r from-[#0A7B7E]/15 to-[#12A5A9]/5 border border-[#12A5A9]/30 rounded-2xl p-5 mb-4">
+            <h3 className="text-[#12A5A9] font-semibold text-sm mb-3">
+              ✅ {confirmedSchedules.length} schedule{confirmedSchedules.length > 1 ? 's' : ''} confirmed
+            </h3>
+            <div className="space-y-2">
+              {confirmedSchedules.map((job) => (
+                <Link
+                  key={job.id}
+                  href={`/landlord/jobs/${job.id}`}
+                  className="flex items-center justify-between bg-white/5 hover:bg-white/8 rounded-xl px-4 py-3 transition"
+                >
+                  <div>
+                    <p className="text-white text-sm font-medium">{job.category}</p>
+                    <p className="text-white/40 text-xs">
+                      {job.units?.properties?.address}, {job.units?.properties?.city}
+                    </p>
+                  </div>
+                  <span className="text-xs bg-[#12A5A9]/20 text-[#12A5A9] rounded-full px-3 py-1 font-semibold shrink-0">
+                    Details →
                   </span>
                 </Link>
               ))}

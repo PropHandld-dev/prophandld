@@ -4,6 +4,19 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+const [confirmedSchedules, setConfirmedSchedules] = useState<any[]>([])
+
+const TIME_WINDOWS: Record<string, string> = {
+  morning: 'Morning (8am–12pm)',
+  afternoon: 'Afternoon (12pm–5pm)',
+  evening: 'Evening (5pm–8pm)',
+}
+
+const PAST_FILTERS = [
+  { key: 'all', label: 'All' },
+  { key: 'completed', label: 'Completed' },
+  { key: 'archived', label: 'Archived' },
+]
 
 export default function ContractorDashboard() {
   const router = useRouter()
@@ -15,6 +28,9 @@ export default function ContractorDashboard() {
   const [scheduleAlerts, setScheduleAlerts] = useState<any[]>([])
   const [confirmedAlerts, setConfirmedAlerts] = useState<any[]>([])
   const [clarificationAlerts, setClarificationAlerts] = useState<any[]>([])
+  const [upcoming, setUpcoming] = useState<any[]>([])
+  const [pastJobs, setPastJobs] = useState<any[]>([])
+  const [pastFilter, setPastFilter] = useState('all')
 
   useEffect(() => {
     const init = async () => {
@@ -43,7 +59,6 @@ export default function ContractorDashboard() {
       if (jobsError) {
         console.error('Error loading available jobs:', jobsError)
       } else {
-        // Newest reported issues first
         const sorted = (jobsData || []).slice().sort(
           (a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         )
@@ -52,7 +67,7 @@ export default function ContractorDashboard() {
 
       const { data: bidsData, error: bidsError } = await supabase
         .from('bids')
-        .select('*, jobs(id, category, description, status, unit_id, proposed_date, proposed_by, schedule_confirmed, clarification_note, clarification_response, units(unit_number, properties(address, city)))')
+        .select('*, jobs(id, category, description, status, unit_id, proposed_date, proposed_window, proposed_by, schedule_confirmed, clarification_note, clarification_response, units(unit_number, properties(address, city)))')
         .eq('contractor_user_id', user.id)
         .order('created_at', { ascending: false })
 
@@ -62,7 +77,6 @@ export default function ContractorDashboard() {
         const bids = bidsData || []
         setMyBids(bids)
 
-        // Schedule proposed by someone else, awaiting this contractor's response
         setScheduleAlerts(
           bids.filter((b) =>
             b.jobs?.proposed_date &&
@@ -72,18 +86,26 @@ export default function ContractorDashboard() {
           )
         )
 
-        // Schedule just confirmed, ready to start
         setConfirmedAlerts(
           bids.filter((b) => b.jobs?.status === 'scheduled' && b.jobs?.schedule_confirmed)
         )
 
-        // Landlord asked for verification, contractor hasn't responded yet
         setClarificationAlerts(
           bids.filter((b) =>
             b.jobs?.status === 'pending_review' &&
             b.jobs?.clarification_note &&
             !b.jobs?.clarification_response
           )
+        )
+
+        setUpcoming(
+          bids
+            .filter((b) => b.jobs?.status === 'scheduled' && b.jobs?.schedule_confirmed && b.jobs?.proposed_date)
+            .sort((a, b) => new Date(a.jobs.proposed_date).getTime() - new Date(b.jobs.proposed_date).getTime())
+        )
+
+        setPastJobs(
+          bids.filter((b) => ['completed', 'archived'].includes(b.jobs?.status))
         )
       }
 
@@ -101,6 +123,18 @@ export default function ContractorDashboard() {
 
   const formatDate = (dateStr: string) =>
     new Date(dateStr).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+
+  const jobLocation = (bid: any) => {
+    const address = bid.jobs?.units?.properties?.address
+    const city = bid.jobs?.units?.properties?.city
+    if (!address && !city) return 'Address not set for this property'
+    return [address, city].filter(Boolean).join(', ')
+  }
+
+  const filteredPastJobs = pastJobs.filter((b) => {
+    if (pastFilter === 'all') return true
+    return b.jobs?.status === pastFilter
+  })
 
   if (loading) return (
     <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center">
@@ -174,23 +208,21 @@ export default function ContractorDashboard() {
                   🕐 {scheduleAlerts.length} new time proposed
                 </h3>
                 <div className="space-y-2">
-                 {scheduleAlerts.map((bid) => (
-  <Link
-    key={bid.id}
-    href={`/contractor/jobs/${bid.job_id}`}
-    className="flex items-center justify-between bg-white/5 hover:bg-white/8 rounded-xl px-4 py-3 transition"
-  >
-    <div>
-      <p className="text-white text-sm font-medium">{bid.jobs?.category}</p>
-      <p className="text-white/40 text-xs">
-        {bid.jobs?.units?.properties?.address}, {bid.jobs?.units?.properties?.city}
-      </p>
-    </div>
-    <span className="text-xs bg-blue-400/20 text-blue-300 rounded-full px-3 py-1 font-semibold shrink-0">
-      Review →
-    </span>
-  </Link>
-))}
+                  {scheduleAlerts.map((bid) => (
+                    <Link
+                      key={bid.id}
+                      href={`/contractor/jobs/${bid.job_id}`}
+                      className="flex items-center justify-between bg-white/5 hover:bg-white/8 rounded-xl px-4 py-3 transition"
+                    >
+                      <div>
+                        <p className="text-white text-sm font-medium">{bid.jobs?.category}</p>
+                        <p className="text-white/40 text-xs">{jobLocation(bid)}</p>
+                      </div>
+                      <span className="text-xs bg-blue-400/20 text-blue-300 rounded-full px-3 py-1 font-semibold shrink-0">
+                        Review →
+                      </span>
+                    </Link>
+                  ))}
                 </div>
               </div>
             )}
@@ -207,7 +239,10 @@ export default function ContractorDashboard() {
                       href={`/contractor/jobs/${bid.job_id}`}
                       className="flex items-center justify-between bg-white/5 hover:bg-white/8 rounded-xl px-4 py-3 transition"
                     >
-                      <p className="text-white text-sm font-medium">{bid.jobs?.category}</p>
+                      <div>
+                        <p className="text-white text-sm font-medium">{bid.jobs?.category}</p>
+                        <p className="text-white/40 text-xs">{jobLocation(bid)}</p>
+                      </div>
                       <span className="text-xs bg-[#12A5A9]/20 text-[#12A5A9] rounded-full px-3 py-1 font-semibold shrink-0">
                         Start job →
                       </span>
@@ -234,6 +269,27 @@ export default function ContractorDashboard() {
                 <div className="text-white/40 text-xs mt-1">Earnings</div>
               </div>
             </div>
+
+            {upcoming.length > 0 && (
+              <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
+                <h3 className="text-white font-semibold mb-4">Upcoming</h3>
+                <div className="space-y-3">
+                  {upcoming.map((bid) => (
+                    <Link
+                      key={bid.id}
+                      href={`/contractor/jobs/${bid.job_id}`}
+                      className="block border-b border-white/5 last:border-0 pb-3 last:pb-0 hover:opacity-80 transition"
+                    >
+                      <p className="text-white font-medium text-sm">{bid.jobs?.category}</p>
+                      <p className="text-[#12A5A9] text-xs mt-1">
+                        {new Date(bid.jobs.proposed_date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })} · {TIME_WINDOWS[bid.jobs.proposed_window] || bid.jobs.proposed_window}
+                      </p>
+                      <p className="text-white/30 text-xs mt-0.5">{jobLocation(bid)}</p>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div id="available-jobs" className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6 scroll-mt-6">
               <h3 className="text-white font-semibold mb-4">Available jobs near you</h3>
@@ -268,13 +324,13 @@ export default function ContractorDashboard() {
               )}
             </div>
 
-            <div id="your-bids" className="bg-white/3 border border-white/8 rounded-2xl p-6 scroll-mt-6">
+            <div id="your-bids" className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6 scroll-mt-6">
               <h3 className="text-white font-semibold mb-4">Your bids</h3>
               {myBids.length === 0 ? (
                 <p className="text-white/30 text-sm">You haven't submitted any bids yet.</p>
               ) : (
                 <div className="space-y-3">
-                  {myBids.map((bid) => {
+                  {myBids.filter((b) => !['completed', 'archived'].includes(b.jobs?.status)).map((bid) => {
                     const hasPendingSchedule = bid.jobs?.proposed_date && !bid.jobs?.schedule_confirmed
                     const scheduleConfirmed = bid.jobs?.status === 'scheduled' && bid.jobs?.schedule_confirmed
                     return (
@@ -295,9 +351,7 @@ export default function ContractorDashboard() {
                             {bid.status === 'accepted' ? 'Selected' : bid.status === 'declined' ? 'Not selected' : 'Pending'}
                           </span>
                         </div>
-                        <p className="text-white/30 text-xs mt-1">
-                          {bid.jobs?.units?.properties?.address}, {bid.jobs?.units?.properties?.city} · Unit {bid.jobs?.units?.unit_number}
-                        </p>
+                        <p className="text-white/30 text-xs mt-1">{jobLocation(bid)}</p>
                         <p className="text-white/50 text-xs mt-1">Your bid: ${bid.amount}</p>
                         {bid.status === 'accepted' && bid.selected_at && (
                           <p className="text-white/30 text-xs mt-0.5">
@@ -315,6 +369,47 @@ export default function ContractorDashboard() {
                       </Link>
                     )
                   })}
+                </div>
+              )}
+            </div>
+
+            <div className="bg-white/3 border border-white/8 rounded-2xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-white font-semibold">Past jobs</h3>
+                <div className="flex gap-1.5">
+                  {PAST_FILTERS.map((f) => (
+                    <button
+                      key={f.key}
+                      onClick={() => setPastFilter(f.key)}
+                      className={
+                        pastFilter === f.key
+                          ? 'bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-3 py-1.5 rounded-full transition'
+                          : 'bg-white/5 text-white/50 text-xs font-medium px-3 py-1.5 rounded-full hover:bg-white/8 transition'
+                      }
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {filteredPastJobs.length === 0 ? (
+                <p className="text-white/30 text-sm">No past jobs in this view.</p>
+              ) : (
+                <div className="space-y-3">
+                  {filteredPastJobs.map((bid) => (
+                    <Link
+                      key={bid.id}
+                      href={`/contractor/jobs/${bid.job_id}`}
+                      className="block border-b border-white/5 last:border-0 pb-3 last:pb-0 hover:opacity-80 transition"
+                    >
+                      <div className="flex items-center justify-between">
+                        <p className="text-white font-medium text-sm">{bid.jobs?.category}</p>
+                        <span className="text-xs text-white/30 capitalize">{bid.jobs?.status}</span>
+                      </div>
+                      <p className="text-white/30 text-xs mt-1">{jobLocation(bid)}</p>
+                      <p className="text-white/50 text-xs mt-1">${bid.amount}</p>
+                    </Link>
+                  ))}
                 </div>
               )}
             </div>
