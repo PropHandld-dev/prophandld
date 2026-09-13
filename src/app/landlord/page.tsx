@@ -162,12 +162,12 @@ export default function LandlordDashboard() {
             .maybeSingle()
 
           let contractorName = 'Contractor'
-          if (bidData?.contractor_user_id) {
-            const { data: contractorData } = await supabase
-              .rpc('get_user_by_id', { user_id_input: bidData.contractor_user_id })
-              .maybeSingle()
-            contractorName = contractorData?.full_name || 'Contractor'
-          }
+if (bidData?.contractor_user_id) {
+  const { data: contractorData } = await supabase
+    .rpc('get_user_by_id', { user_id_input: bidData.contractor_user_id })
+    .maybeSingle()
+  contractorName = (contractorData as any)?.full_name || 'Contractor'
+}
 
           return { ...job, contractorName }
         })
