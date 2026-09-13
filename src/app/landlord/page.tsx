@@ -21,6 +21,7 @@ export default function LandlordDashboard() {
   })
   const [properties, setProperties] = useState<any[]>([])
   const [newIssues, setNewIssues] = useState<any[]>([])
+  const [priceChangeRequests, setPriceChangeRequests] = useState<any[]>([])
   const [needsReview, setNeedsReview] = useState<any[]>([])
   const [scheduleProposals, setScheduleProposals] = useState<any[]>([])
   const [confirmedSchedules, setConfirmedSchedules] = useState<any[]>([])
@@ -77,6 +78,7 @@ export default function LandlordDashboard() {
       let inProgressCount = 0
       let biddingJobsWithBids: any[] = []
       let newIssuesList: any[] = []
+      let priceChangeRequestsList: any[] = []
       let scheduleProposalsList: any[] = []
       let pendingReviewList: any[] = []
       let confirmedSchedulesList: any[] = []
@@ -107,6 +109,27 @@ export default function LandlordDashboard() {
           .order('created_at', { ascending: false })
 
         newIssuesList = newJobs || []
+
+        // Jobs where the contractor requested a price change, awaiting landlord approval
+        const { data: activeJobsForPriceCheck } = await supabase
+          .from('jobs')
+          .select('*, units(unit_number, properties(address, city))')
+          .in('unit_id', unitIds)
+          .in('status', ['bid_selected', 'scheduled', 'in_progress'])
+
+        const candidateJobs = activeJobsForPriceCheck || []
+        if (candidateJobs.length > 0) {
+          const candidateJobIds = candidateJobs.map((j) => j.id)
+          const { data: pendingPriceBids } = await supabase
+            .from('bids')
+            .select('job_id, price_change_labor, price_change_parts, price_change_reason')
+            .in('job_id', candidateJobIds)
+            .eq('status', 'accepted')
+            .eq('price_change_status', 'pending')
+
+          const priceChangeJobIds = new Set((pendingPriceBids || []).map((b) => b.job_id))
+          priceChangeRequestsList = candidateJobs.filter((j) => priceChangeJobIds.has(j.id))
+        }
 
         // Jobs with an unconfirmed schedule proposal not made by the landlord
         const { data: schedJobs } = await supabase
@@ -207,6 +230,7 @@ export default function LandlordDashboard() {
       })
       setProperties(propertyBreakdown)
       setNewIssues(newIssuesList)
+      setPriceChangeRequests(priceChangeRequestsList)
       setNeedsReview(biddingJobsWithBids)
       setScheduleProposals(scheduleProposalsList)
       setConfirmedSchedules(confirmedSchedulesList)
@@ -298,6 +322,34 @@ export default function LandlordDashboard() {
                   </div>
                   <span className="text-xs bg-red-500/20 text-red-400 rounded-full px-3 py-1 font-semibold shrink-0">
                     Acknowledge →
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Contractor requested a price change */}
+        {priceChangeRequests.length > 0 && (
+          <div className="bg-gradient-to-r from-yellow-500/10 to-yellow-500/5 border border-yellow-500/30 rounded-2xl p-5 mb-4">
+            <h3 className="text-yellow-400 font-semibold text-sm mb-3">
+              💲 {priceChangeRequests.length} price change{priceChangeRequests.length > 1 ? 's' : ''} awaiting approval
+            </h3>
+            <div className="space-y-2">
+              {priceChangeRequests.map((job) => (
+                <Link
+                  key={job.id}
+                  href={`/landlord/jobs/${job.id}`}
+                  className="flex items-center justify-between bg-white/5 hover:bg-white/8 rounded-xl px-4 py-3 transition"
+                >
+                  <div>
+                    <p className="text-white text-sm font-medium">{job.category}</p>
+                    <p className="text-white/40 text-xs">
+                      {job.units?.properties?.address}, {job.units?.properties?.city} · Unit {job.units?.unit_number}
+                    </p>
+                  </div>
+                  <span className="text-xs bg-yellow-500/20 text-yellow-400 rounded-full px-3 py-1 font-semibold shrink-0">
+                    Review →
                   </span>
                 </Link>
               ))}
