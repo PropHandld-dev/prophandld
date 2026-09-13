@@ -113,16 +113,16 @@ export default function ContractorDashboard() {
         ) : (
           <>
             <div className="grid grid-cols-3 gap-4 mb-6">
-              <div className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center">
+              <a href="#available-jobs" className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center hover:border-[#12A5A9]/30 hover:bg-white/5 transition block">
                 <div className="text-xl mb-1">🔔</div>
                 <div className="text-2xl font-bold text-white">{availableJobs.length}</div>
                 <div className="text-white/40 text-xs mt-1">New Jobs</div>
-              </div>
-              <div className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center">
+              </a>
+              <a href="#your-bids" className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center hover:border-[#12A5A9]/30 hover:bg-white/5 transition block">
                 <div className="text-xl mb-1">🔧</div>
                 <div className="text-2xl font-bold text-white">{activeJobsCount}</div>
                 <div className="text-white/40 text-xs mt-1">Active</div>
-              </div>
+              </a>
               <div className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center">
                 <div className="text-xl mb-1">💰</div>
                 <div className="text-2xl font-bold text-white">$0</div>
@@ -130,7 +130,7 @@ export default function ContractorDashboard() {
               </div>
             </div>
 
-            <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
+            <div id="available-jobs" className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6 scroll-mt-6">
               <h3 className="text-white font-semibold mb-4">Available jobs near you</h3>
               {availableJobs.length === 0 ? (
                 <p className="text-white/30 text-sm">No jobs available right now — check back soon.</p>
@@ -160,7 +160,7 @@ export default function ContractorDashboard() {
               )}
             </div>
 
-            <div className="bg-white/3 border border-white/8 rounded-2xl p-6">
+            <div id="your-bids" className="bg-white/3 border border-white/8 rounded-2xl p-6 scroll-mt-6">
               <h3 className="text-white font-semibold mb-4">Your bids</h3>
               {myBids.length === 0 ? (
                 <p className="text-white/30 text-sm">You haven't submitted any bids yet.</p>

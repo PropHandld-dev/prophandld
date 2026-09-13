@@ -13,6 +13,7 @@ export default function SubmitBidPage() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [job, setJob] = useState<any>(null)
+  const [photos, setPhotos] = useState<any[]>([])
   const [error, setError] = useState<string | null>(null)
   const [alreadyBid, setAlreadyBid] = useState(false)
 
@@ -52,6 +53,26 @@ export default function SubmitBidPage() {
       }
 
       setJob(matchedJob)
+
+      const { data: photosData } = await supabase
+        .from('job_photos')
+        .select('*')
+        .eq('job_id', jobId)
+        .eq('stage', 'general')
+        .order('created_at', { ascending: false })
+
+      if (photosData && photosData.length > 0) {
+        const enriched = await Promise.all(
+          photosData.map(async (photo) => {
+            const { data: signedUrlData } = await supabase.storage
+              .from('job-photos')
+              .createSignedUrl(photo.photo_url, 3600)
+            return { ...photo, displayUrl: signedUrlData?.signedUrl }
+          })
+        )
+        setPhotos(enriched)
+      }
+
       setLoading(false)
     }
     init()
@@ -129,7 +150,7 @@ export default function SubmitBidPage() {
         ) : job ? (
           <>
             <h1 className="text-2xl font-bold text-white mb-2">Submit a bid</h1>
-            <div className="bg-white/3 border border-white/8 rounded-2xl p-5 mb-6">
+            <div className="bg-white/3 border border-white/8 rounded-2xl p-5 mb-4">
               <div className="flex items-center gap-2 flex-wrap mb-1">
                 <h3 className="text-white font-semibold">{job.category}</h3>
                 {job.is_emergency && (
@@ -143,6 +164,17 @@ export default function SubmitBidPage() {
                 {job.address}, {job.city}, {job.state} · Unit {job.unit_number}
               </p>
             </div>
+
+            {photos.length > 0 && (
+              <div className="bg-white/3 border border-white/8 rounded-2xl p-5 mb-6">
+                <h3 className="text-white font-semibold text-sm mb-3">Photos from tenant's report</h3>
+                <div className="grid grid-cols-3 gap-2">
+                  {photos.map((p) => (
+                    <img key={p.id} src={p.displayUrl} alt="Reported issue" className="w-full h-24 object-cover rounded-lg" />
+                  ))}
+                </div>
+              </div>
+            )}
 
             <p className="text-white/30 text-xs mb-4">
               🔒 Your bid is sealed — other contractors can't see your price, and you can't see theirs.
