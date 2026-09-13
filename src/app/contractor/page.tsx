@@ -26,6 +26,7 @@ export default function ContractorDashboard() {
   const [hasProfile, setHasProfile] = useState(true)
   const [availableJobs, setAvailableJobs] = useState<any[]>([])
   const [myBids, setMyBids] = useState<any[]>([])
+  const [pickTimeAlerts, setPickTimeAlerts] = useState<any[]>([])
   const [scheduleAlerts, setScheduleAlerts] = useState<any[]>([])
   const [confirmedAlerts, setConfirmedAlerts] = useState<any[]>([])
   const [clarificationAlerts, setClarificationAlerts] = useState<any[]>([])
@@ -77,6 +78,12 @@ export default function ContractorDashboard() {
       } else {
         const bids = bidsData || []
         setMyBids(bids)
+
+        setPickTimeAlerts(
+          bids.filter((b) =>
+            b.status === 'accepted' && b.jobs?.status === 'bid_selected' && !b.jobs?.proposed_date
+          )
+        )
 
         setScheduleAlerts(
           bids.filter((b) =>
@@ -196,6 +203,31 @@ export default function ContractorDashboard() {
                       <p className="text-white text-sm font-medium">{bid.jobs?.category}</p>
                       <span className="text-xs bg-yellow-500/20 text-yellow-400 rounded-full px-3 py-1 font-semibold shrink-0">
                         Respond →
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {pickTimeAlerts.length > 0 && (
+              <div className="bg-gradient-to-r from-blue-500/10 to-blue-500/5 border border-blue-400/30 rounded-2xl p-5 mb-4">
+                <h3 className="text-blue-300 font-semibold text-sm mb-3">
+                  📅 You&apos;ve been selected — propose a time
+                </h3>
+                <div className="space-y-2">
+                  {pickTimeAlerts.map((bid) => (
+                    <Link
+                      key={bid.id}
+                      href={`/contractor/jobs/${bid.job_id}`}
+                      className="flex items-center justify-between bg-white/5 hover:bg-white/8 rounded-xl px-4 py-3 transition"
+                    >
+                      <div>
+                        <p className="text-white text-sm font-medium">{bid.jobs?.category}</p>
+                        <p className="text-white/40 text-xs">{jobLocation(bid)}</p>
+                      </div>
+                      <span className="text-xs bg-blue-400/20 text-blue-300 rounded-full px-3 py-1 font-semibold shrink-0">
+                        Propose a time →
                       </span>
                     </Link>
                   ))}

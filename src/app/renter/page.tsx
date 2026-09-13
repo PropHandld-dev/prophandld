@@ -14,6 +14,7 @@ export default function RenterDashboard() {
   const [contacts, setContacts] = useState<any[]>([])
   const [contactsLoading, setContactsLoading] = useState(true)
   const [jobs, setJobs] = useState<any[]>([])
+  const [pickTimeAlerts, setPickTimeAlerts] = useState<any[]>([])
   const [scheduleAlerts, setScheduleAlerts] = useState<any[]>([])
   const [jobsLoading, setJobsLoading] = useState(true)
 
@@ -89,6 +90,9 @@ export default function RenterDashboard() {
       } else {
         const jobsList = jobsData || []
         setJobs(jobsList)
+        setPickTimeAlerts(
+          jobsList.filter((j) => j.schedule_ask_tenant && !j.proposed_date)
+        )
         setScheduleAlerts(
           jobsList.filter((j) =>
             j.proposed_date && !j.schedule_confirmed && j.proposed_by !== 'renter'
@@ -154,6 +158,28 @@ export default function RenterDashboard() {
           </h1>
           <p className="text-white/50 mt-1">Track your maintenance requests here.</p>
         </div>
+
+        {pickTimeAlerts.length > 0 && (
+          <div className="bg-gradient-to-r from-blue-500/10 to-blue-500/5 border border-blue-400/30 rounded-2xl p-5 mb-6">
+            <h3 className="text-blue-300 font-semibold text-sm mb-3">
+              📅 Your landlord wants you to pick a time
+            </h3>
+            <div className="space-y-2">
+              {pickTimeAlerts.map((job) => (
+                <Link
+                  key={job.id}
+                  href={`/renter/jobs/${job.id}`}
+                  className="flex items-center justify-between bg-white/5 hover:bg-white/8 rounded-xl px-4 py-3 transition"
+                >
+                  <p className="text-white text-sm font-medium">{job.category}</p>
+                  <span className="text-xs bg-blue-400/20 text-blue-300 rounded-full px-3 py-1 font-semibold shrink-0">
+                    Pick a time →
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         {scheduleAlerts.length > 0 && (
           <div className="bg-gradient-to-r from-blue-500/10 to-blue-500/5 border border-blue-400/30 rounded-2xl p-5 mb-6">
