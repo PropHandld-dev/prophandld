@@ -54,8 +54,8 @@ export default function LandingPage() {
         </h1>
         <p className="text-lg text-[#0C1A2E]/60 max-w-2xl mx-auto mb-10">
           Prophandld connects landlords, renters, and contractors in one place —
-          with sealed bidding so you get honest prices, and escrow so nobody pays
-          until the job's actually done.
+          with sealed bidding so you get honest prices, and nothing moves forward
+          without your OK.
         </p>
         <div className="flex items-center justify-center gap-4">
           <Link
@@ -86,18 +86,18 @@ export default function LandingPage() {
           </div>
           <div className="bg-white rounded-2xl p-7 border border-black/5">
             <div className="text-3xl mb-4">🛡️</div>
-            <h3 className="font-bold text-lg mb-2">Escrow protection</h3>
+            <h3 className="font-bold text-lg mb-2">No surprise costs</h3>
             <p className="text-[#0C1A2E]/60 text-sm leading-relaxed">
-              Payment is held safely until the job is confirmed complete.
-              No surprises, no chasing refunds.
+              If a contractor needs to adjust the price after starting, you
+              see the labor and parts breakdown and approve it first.
             </p>
           </div>
           <div className="bg-white rounded-2xl p-7 border border-black/5">
-            <div className="text-3xl mb-4">✅</div>
-            <h3 className="font-bold text-lg mb-2">Verified contractors</h3>
+            <div className="text-3xl mb-4">📸</div>
+            <h3 className="font-bold text-lg mb-2">Photo-verified work</h3>
             <p className="text-[#0C1A2E]/60 text-sm leading-relaxed">
-              Every contractor on the network is vetted, so you're not
-              gambling on who shows up.
+              Every job wraps up with before-and-after photos, so you can
+              see exactly what was done before you sign off.
             </p>
           </div>
         </div>
@@ -126,10 +126,10 @@ export default function LandingPage() {
             </div>
             <div>
               <div className="w-10 h-10 rounded-full bg-[#0A7B7E] text-white font-bold flex items-center justify-center mb-4">3</div>
-              <h3 className="font-semibold text-lg mb-2">Job done, paid safely</h3>
+              <h3 className="font-semibold text-lg mb-2">Job done, you confirm</h3>
               <p className="text-[#0C1A2E]/60 text-sm leading-relaxed">
-                Funds sit in escrow until the work is confirmed. Then the
-                contractor gets paid — automatically.
+                The contractor uploads before-and-after photos when the work's
+                done. You review and sign off — or flag it for a closer look.
               </p>
             </div>
           </div>
@@ -183,7 +183,7 @@ export default function LandingPage() {
           <div className="space-y-4">
             {[
               { q: 'How does sealed bidding actually work?', a: 'Contractors submit their price privately — they never see what anyone else bid. This keeps quotes honest instead of inflated by guesswork.' },
-              { q: 'When does the contractor get paid?', a: 'Funds are held in escrow as soon as a bid is accepted, and released automatically once the job is confirmed complete and the dispute window has passed.' },
+              { q: "What if the contractor's price changes?", a: 'If a contractor needs to adjust their price once work has started, they have to show you the new labor and parts breakdown — and you approve it before they move forward.' },
               { q: 'Is Prophandld available in my area?', a: "We're currently onboarding beta landlords in the Philadelphia area, with more markets opening soon." },
             ].map((item) => (
               <div key={item.q} className="border border-black/5 rounded-xl p-5">
