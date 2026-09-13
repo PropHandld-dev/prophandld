@@ -610,7 +610,17 @@ export default function LandlordDashboard() {
           </Link>
           <div className="bg-white/3 border border-white/8 rounded-2xl p-6 opacity-50 cursor-not-allowed">
             <div className="text-xl mb-2">💳</div>
-            <h3 className="text-white font-semibold mb-1">Payments</h3>
+            <h3 className="text-white font-semibold mb-1">Rent collection</h3>
+            <p className="text-white/40 text-sm">Coming soon</p>
+          </div>
+          <div className="bg-white/3 border border-white/8 rounded-2xl p-6 opacity-50 cursor-not-allowed">
+            <div className="text-xl mb-2">📁</div>
+            <h3 className="text-white font-semibold mb-1">Documents</h3>
+            <p className="text-white/40 text-sm">Coming soon</p>
+          </div>
+          <div className="bg-white/3 border border-white/8 rounded-2xl p-6 opacity-50 cursor-not-allowed">
+            <div className="text-xl mb-2">📋</div>
+            <h3 className="text-white font-semibold mb-1">Compliance tracking</h3>
             <p className="text-white/40 text-sm">Coming soon</p>
           </div>
         </div>

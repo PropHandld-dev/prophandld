@@ -50,16 +50,16 @@ export default function LandingPage() {
         <div aria-hidden className="absolute -top-20 -right-24 w-80 h-80 rounded-full bg-[#12A5A9]/20 blur-3xl -z-10" />
 
         <div className="inline-flex items-center gap-2 bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 text-[#12A5A9] border border-[#12A5A9]/30 text-xs font-semibold px-3 py-1.5 rounded-full mb-6">
-          Now onboarding beta landlords in Philadelphia
+          Now onboarding small landlords in Philadelphia
         </div>
         <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-tight mb-6">
-          Property maintenance,<br />
-          <span className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] bg-clip-text text-transparent">without the runaround.</span>
+          Run your rentals,<br />
+          <span className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] bg-clip-text text-transparent">without the spreadsheet.</span>
         </h1>
         <p className="text-lg text-white/50 max-w-2xl mx-auto mb-10">
-          Prophandld connects landlords, renters, and contractors in one place —
-          with sealed bidding so you get honest prices, and nothing moves forward
-          without your OK.
+          Prophandld is mini property management built for small landlords —
+          track every property and tenant, get honest contractor bids through
+          sealed bidding, and soon collect rent, all in one place.
         </p>
         <div className="flex items-center justify-center gap-4">
           <Link
@@ -79,6 +79,7 @@ export default function LandingPage() {
 
       {/* Features */}
       <section className="max-w-5xl mx-auto px-6 py-16">
+        <h2 className="text-3xl font-bold text-center mb-12 text-white">Everything you need to run your rentals</h2>
         <div className="grid sm:grid-cols-3 gap-6">
           <div className="bg-white/3 border border-white/8 rounded-2xl p-7 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all duration-200">
             <div className="w-12 h-12 rounded-full bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 border border-[#12A5A9]/30 flex items-center justify-center mb-5">
@@ -160,14 +161,18 @@ export default function LandingPage() {
 
       {/* For each role */}
       <section id="roles" className="max-w-5xl mx-auto px-6 py-20">
-        <h2 className="text-3xl font-bold text-center mb-12 text-white">Built for everyone in the loop</h2>
+        <h2 className="text-3xl font-bold text-center mb-3 text-white">Built for landlords — with everyone else looped in</h2>
+        <p className="text-white/50 text-center max-w-2xl mx-auto mb-12">
+          You run the show. Tenants report issues in seconds, contractors bid fair and get picked on merit — no spreadsheet, no group texts.
+        </p>
         <div className="grid sm:grid-cols-3 gap-6">
-          <div className="bg-white/3 border border-white/8 rounded-2xl p-7 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all duration-200">
+          <div className="bg-white/3 border border-[#12A5A9]/30 rounded-2xl p-7 hover:border-[#12A5A9]/50 hover:bg-white/5 hover:-translate-y-0.5 transition-all duration-200">
             <span className="text-xs font-semibold text-[#12A5A9] bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 border border-[#12A5A9]/30 px-2.5 py-1 rounded-full">Landlords</span>
             <h3 className="text-white font-bold text-lg mt-4 mb-2">Stop chasing quotes</h3>
             <p className="text-white/50 text-sm leading-relaxed mb-5">
-              Manage every property, unit, and tenant in one dashboard. Get
-              honest bids and never wonder if you overpaid.
+              Manage every property, unit, and tenant in one dashboard — no
+              more spreadsheets. Get honest bids, and soon collect rent right
+              here too.
             </p>
             <Link href="/signup" className="text-[#12A5A9] text-sm font-semibold hover:underline">
               Sign up as a landlord →
@@ -206,6 +211,7 @@ export default function LandingPage() {
           <h2 className="text-3xl font-bold text-center mb-12 text-white">Common questions</h2>
           <div className="space-y-4">
             {[
+              { q: 'Is this just for finding contractors?', a: "No — Prophandld is built to replace the spreadsheet. Track every property, unit, and tenant, handle maintenance end-to-end with sealed bidding, and soon collect rent, all in one dashboard." },
               { q: 'How does sealed bidding actually work?', a: 'Contractors submit their price privately — they never see what anyone else bid. This keeps quotes honest instead of inflated by guesswork.' },
               { q: "What if the contractor's price changes?", a: 'If a contractor needs to adjust their price once work has started, they have to show you the new labor and parts breakdown — and you approve it before they move forward.' },
               { q: 'Is Prophandld available in my area?', a: "We're currently onboarding beta landlords in the Philadelphia area, with more markets opening soon." },

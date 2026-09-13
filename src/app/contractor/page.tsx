@@ -303,6 +303,19 @@ export default function ContractorDashboard() {
               </div>
             </div>
 
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center opacity-50 cursor-not-allowed">
+                <div className="text-xl mb-1">🏦</div>
+                <h3 className="text-white text-sm font-semibold">Payouts</h3>
+                <p className="text-white/40 text-xs mt-0.5">Coming soon</p>
+              </div>
+              <div className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center opacity-50 cursor-not-allowed">
+                <div className="text-xl mb-1">✅</div>
+                <h3 className="text-white text-sm font-semibold">Get verified</h3>
+                <p className="text-white/40 text-xs mt-0.5">Coming soon</p>
+              </div>
+            </div>
+
             {upcoming.length > 0 && (
               <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
                 <h3 className="text-white font-semibold mb-4">Upcoming</h3>

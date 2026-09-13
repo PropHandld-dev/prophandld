@@ -213,6 +213,11 @@ export default function RenterDashboard() {
           </div>
         )}
 
+        <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6 opacity-50 cursor-not-allowed">
+          <h3 className="text-white font-semibold mb-1">💳 Pay rent</h3>
+          <p className="text-white/40 text-sm">Coming soon</p>
+        </div>
+
         <div className="bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/10 border border-[#12A5A9]/30 rounded-2xl p-6 mb-6">
           <h3 className="text-white font-semibold mb-1">Report an issue</h3>
           <p className="text-white/50 text-sm mb-4">Something broken? Let your landlord know.</p>

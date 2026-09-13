@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Prophandld | Property Maintenance Without the Runaround",
-  description: "Prophandld connects landlords, renters, and contractors with sealed bidding, transparent pricing, and photo-verified work — so maintenance requests get resolved fairly, without the back-and-forth.",
+  title: "Prophandld | Property Management Without the Spreadsheet",
+  description: "Prophandld is mini property management for small landlords — track every property and tenant, get honest contractor bids through sealed bidding, and soon collect rent, all in one place.",
 };
 
 export default function RootLayout({
