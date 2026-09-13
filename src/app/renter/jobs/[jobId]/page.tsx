@@ -110,17 +110,18 @@ export default function RenterJobDetailPage() {
   }
 
   const statusLabel = (status: string) => {
-    const labels: Record<string, string> = {
-      pending_approval: 'Waiting on landlord',
-      approved: 'Acknowledged',
-      bidding: 'Getting quotes',
-      bid_selected: 'Contractor selected',
-      scheduled: 'Scheduled',
-      in_progress: 'In progress',
-      completed: 'Completed',
-    }
-    return labels[status] || status
+  const labels: Record<string, string> = {
+    pending_approval: 'Landlord notified',
+    approved: 'Landlord notified',
+    bidding: 'Landlord is finding a contractor',
+    bid_selected: 'Landlord is finding a contractor',
+    scheduled: 'Scheduled',
+    in_progress: 'Work in progress',
+    pending_review: 'Work in progress',
+    completed: 'Completed',
   }
+  return labels[status] || status
+}
 
   const windowLabel = (w: string) => TIME_WINDOWS.find((t) => t.value === w)?.label || w
 

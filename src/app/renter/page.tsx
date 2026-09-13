@@ -14,7 +14,6 @@ export default function RenterDashboard() {
   const [contacts, setContacts] = useState<any[]>([])
   const [contactsLoading, setContactsLoading] = useState(true)
   const [jobs, setJobs] = useState<any[]>([])
-  const [completedJobs, setCompletedJobs] = useState<any[]>([])
   const [jobsLoading, setJobsLoading] = useState(true)
 
   useEffect(() => {
@@ -77,11 +76,13 @@ export default function RenterDashboard() {
       }
       setContactsLoading(false)
 
+      // Renter only ever sees their own currently-active issue(s) — never
+      // historical/completed work orders on the property.
       const { data: jobsData, error: jobsError } = await supabase
         .from('jobs')
         .select('*')
         .eq('unit_id', unitData.id)
-        .not('status', 'in', '(completed,archived,declined)')
+        .not('status', 'in', '(completed,archived,declined,pending_review)')
         .order('created_at', { ascending: false })
 
       if (jobsError) {
@@ -89,21 +90,6 @@ export default function RenterDashboard() {
       } else {
         setJobs(jobsData || [])
       }
-
-      const { data: completedData, error: completedError } = await supabase
-        .from('jobs')
-        .select('*')
-        .eq('unit_id', unitData.id)
-        .in('status', ['completed', 'archived'])
-        .order('created_at', { ascending: false })
-        .limit(5)
-
-      if (completedError) {
-        console.error('Error loading completed jobs:', completedError)
-      } else {
-        setCompletedJobs(completedData || [])
-      }
-
       setJobsLoading(false)
     }
     getUser()
@@ -114,23 +100,27 @@ export default function RenterDashboard() {
     router.push('/login')
   }
 
+  // Renter-facing status labels are intentionally simplified — bidding
+  // mechanics ("getting quotes", "contractor selected") are internal to
+  // the landlord/contractor side and not shown to the tenant.
   const statusLabel = (job: any) => {
-    const labels: Record<string, string> = {
-      pending_approval: 'Waiting on landlord',
-      approved: 'Acknowledged',
-      bidding: 'Getting quotes',
-      bid_selected: 'Contractor selected',
-      scheduled: 'Scheduled',
-      in_progress: 'In progress',
+    if (['pending_approval', 'approved'].includes(job.status)) {
+      return 'Landlord notified'
     }
-    const base = labels[job.status] || job.status
-
-    if (job.proposed_date && !job.schedule_confirmed) {
-      const proposer = job.proposed_by === 'renter' ? 'you' : job.proposed_by
-      return `${base} · New time proposed by ${proposer}`
+    if (['bidding', 'bid_selected'].includes(job.status)) {
+      return "Landlord is finding a contractor"
     }
-
-    return base
+    if (job.status === 'scheduled') {
+      if (job.proposed_date && !job.schedule_confirmed) {
+        const proposer = job.proposed_by === 'renter' ? 'you' : 'the other side'
+        return `Scheduling · new time proposed by ${proposer}`
+      }
+      return 'Scheduled'
+    }
+    if (job.status === 'in_progress') {
+      return 'Work in progress'
+    }
+    return job.status
   }
 
   if (loading) return (
@@ -212,25 +202,6 @@ export default function RenterDashboard() {
             </div>
           )}
         </div>
-
-        {completedJobs.length > 0 && (
-          <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
-            <h3 className="text-white font-semibold mb-4">Recently completed</h3>
-            <div className="space-y-3">
-              {completedJobs.map((job) => (
-                <Link
-                  key={job.id}
-                  href={`/renter/jobs/${job.id}`}
-                  className="block border-b border-white/5 last:border-0 pb-3 last:pb-0 hover:opacity-80 transition"
-                >
-                  <p className="text-white font-medium text-sm">{job.category}</p>
-                  <p className="text-white/50 text-xs">{job.description}</p>
-                  <p className="text-[#12A5A9] text-xs mt-1">✓ Completed</p>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
 
         <div className="bg-white/3 border border-white/8 rounded-2xl p-6">
           <h3 className="text-white font-semibold mb-4">Emergency contacts</h3>

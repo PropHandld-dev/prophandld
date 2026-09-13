@@ -31,6 +31,7 @@ export default function ContractorJobDetailPage() {
   const [scheduleTime, setScheduleTime] = useState('')
 
   const [showCompleteModal, setShowCompleteModal] = useState(false)
+  const [responseText, setResponseText] = useState('')
 
   const fetchJob = async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -39,6 +40,22 @@ export default function ContractorJobDetailPage() {
       return
     }
     setUserId(user.id)
+
+    // Auto-approve: if landlord hasn't acted within 3 days of contractor
+    // marking the job complete, it moves to "completed" automatically.
+    const { data: rawJob } = await supabase
+      .from('jobs')
+      .select('id, status, contractor_completed_at')
+      .eq('id', jobId)
+      .maybeSingle()
+
+    if (rawJob?.status === 'pending_review' && rawJob.contractor_completed_at) {
+      const completedAt = new Date(rawJob.contractor_completed_at).getTime()
+      const threeDaysMs = 3 * 24 * 60 * 60 * 1000
+      if (Date.now() - completedAt > threeDaysMs) {
+        await supabase.from('jobs').update({ status: 'completed' }).eq('id', jobId)
+      }
+    }
 
     const { data: jobData, error: jobError } = await supabase
       .from('jobs')
@@ -54,6 +71,7 @@ export default function ContractorJobDetailPage() {
     }
 
     setJob(jobData)
+    setResponseText(jobData.clarification_response || '')
 
     const { data: bidData } = await supabase
       .from('bids')
@@ -219,7 +237,7 @@ export default function ContractorJobDetailPage() {
     setActioning(true)
     const { error: updateError } = await supabase
       .from('jobs')
-      .update({ status: 'completed' })
+      .update({ status: 'pending_review', contractor_completed_at: new Date().toISOString() })
       .eq('id', jobId)
 
     if (updateError) {
@@ -233,11 +251,28 @@ export default function ContractorJobDetailPage() {
     router.push('/contractor')
   }
 
+  const submitResponse = async () => {
+    setActioning(true)
+    const { error: updateError } = await supabase
+      .from('jobs')
+      .update({ clarification_response: responseText })
+      .eq('id', jobId)
+
+    if (updateError) {
+      console.error('Error sending response:', updateError)
+      setError('Could not send your response.')
+    }
+
+    await fetchJob()
+    setActioning(false)
+  }
+
   const statusLabel = (status: string) => {
     const labels: Record<string, string> = {
       bid_selected: "You've been selected!",
       scheduled: 'Scheduled',
       in_progress: 'In progress',
+      pending_review: 'Awaiting landlord review',
       completed: 'Completed',
       archived: 'Archived',
     }
@@ -264,6 +299,7 @@ export default function ContractorJobDetailPage() {
   const isMyTurnToRespond = job.proposed_by && job.proposed_by !== 'contractor' && !job.schedule_confirmed
   const beforePhotos = photos.filter((p) => p.stage === 'before')
   const afterPhotos = photos.filter((p) => p.stage === 'after')
+  const reportedPhotos = photos.filter((p) => p.stage === 'general' || !p.stage)
 
   return (
     <div className="min-h-screen bg-[#0C1A2E]">
@@ -321,6 +357,39 @@ export default function ContractorJobDetailPage() {
           )}
         </div>
 
+        {job.status === 'pending_review' && job.clarification_note && (
+          <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl p-6 mb-4">
+            <h3 className="text-yellow-400 font-semibold mb-2">Landlord asked for verification</h3>
+            <p className="text-white/70 text-sm mb-4">{job.clarification_note}</p>
+            <label className="text-white/70 text-sm block mb-1">Your response</label>
+            <textarea
+              value={responseText}
+              onChange={(e) => setResponseText(e.target.value)}
+              rows={3}
+              placeholder="Add any details or context for the landlord"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition resize-none mb-3"
+            />
+            <button
+              onClick={submitResponse}
+              disabled={actioning}
+              className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
+            >
+              {actioning ? 'Sending...' : 'Send response'}
+            </button>
+          </div>
+        )}
+
+        {reportedPhotos.length > 0 && (
+          <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
+            <h3 className="text-white font-semibold mb-4">Photos from tenant's report</h3>
+            <div className="grid grid-cols-3 gap-2">
+              {reportedPhotos.map((p) => (
+                <img key={p.id} src={p.displayUrl} alt="Reported issue" className="w-full h-24 object-cover rounded-lg" />
+              ))}
+            </div>
+          </div>
+        )}
+
         {showSchedulingSection && (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
             <h3 className="text-white font-semibold mb-4">Schedule</h3>
@@ -377,7 +446,7 @@ export default function ContractorJobDetailPage() {
           </div>
         )}
 
-        {['in_progress', 'completed', 'archived'].includes(job.status) && (
+        {['in_progress', 'pending_review', 'completed', 'archived'].includes(job.status) && (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
             <h3 className="text-white font-semibold mb-4">Proof of work</h3>
 
@@ -431,6 +500,12 @@ export default function ContractorJobDetailPage() {
               >
                 {uploading ? 'Uploading...' : 'Mark job complete'}
               </button>
+            )}
+
+            {job.status === 'pending_review' && (
+              <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-center">
+                <p className="text-white/50 text-sm">Waiting on landlord review. Auto-approves within 3 days if no response.</p>
+              </div>
             )}
           </div>
         )}
@@ -499,7 +574,7 @@ export default function ContractorJobDetailPage() {
           <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
             <h3 className="text-white font-semibold mb-2">Mark this job complete?</h3>
             <p className="text-white/50 text-sm mb-6">
-              This starts the review process. Make sure your before and after photos clearly show the work done.
+              This sends it to the landlord for review. They have 3 days to review before it's automatically approved.
             </p>
             <div className="flex gap-3">
               <button
@@ -514,7 +589,7 @@ export default function ContractorJobDetailPage() {
                 disabled={actioning}
                 className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
               >
-                {actioning ? 'Completing...' : 'Mark complete'}
+                {actioning ? 'Submitting...' : 'Mark complete'}
               </button>
             </div>
           </div>
