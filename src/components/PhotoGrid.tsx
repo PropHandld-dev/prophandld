@@ -12,31 +12,52 @@ export function PhotoGrid({
   photos,
   columns = 3,
   thumbHeight = 'h-24',
+  currentUserId,
+  onDelete,
 }: {
   photos: Photo[]
   columns?: 2 | 3 | 4
   thumbHeight?: string
+  currentUserId?: string
+  onDelete?: (photo: Photo) => void
 }) {
   const [zoomedUrl, setZoomedUrl] = useState<string | null>(null)
 
   const colClass = columns === 2 ? 'grid-cols-2' : columns === 4 ? 'grid-cols-4' : 'grid-cols-3'
 
+  const handleDelete = (e: React.MouseEvent, photo: Photo) => {
+    e.stopPropagation()
+    if (window.confirm('Remove this photo?')) {
+      onDelete?.(photo)
+    }
+  }
+
   return (
     <>
       <div className={`grid ${colClass} gap-2`}>
         {photos.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            onClick={() => p.displayUrl && setZoomedUrl(p.displayUrl)}
-            className="block"
-          >
-            <img
-              src={p.displayUrl}
-              alt="Photo"
-              className={`w-full ${thumbHeight} object-cover rounded-lg hover:opacity-80 transition cursor-zoom-in`}
-            />
-          </button>
+          <div key={p.id} className="relative">
+            <button
+              type="button"
+              onClick={() => p.displayUrl && setZoomedUrl(p.displayUrl)}
+              className="block w-full"
+            >
+              <img
+                src={p.displayUrl}
+                alt="Photo"
+                className={`w-full ${thumbHeight} object-cover rounded-lg hover:opacity-80 transition cursor-zoom-in`}
+              />
+            </button>
+            {onDelete && currentUserId && p.uploaded_by === currentUserId && (
+              <button
+                type="button"
+                onClick={(e) => handleDelete(e, p)}
+                className="absolute top-1 right-1 bg-black/60 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center hover:bg-black/80 transition"
+              >
+                ×
+              </button>
+            )}
+          </div>
         ))}
       </div>
 

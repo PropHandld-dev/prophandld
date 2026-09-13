@@ -19,6 +19,7 @@ export default function JobDetailPage() {
   const jobId = params.jobId as string
 
   const [loading, setLoading] = useState(true)
+  const [userId, setUserId] = useState<string | null>(null)
   const [job, setJob] = useState<any>(null)
   const [photos, setPhotos] = useState<any[]>([])
   const [bids, setBids] = useState<any[]>([])
@@ -48,6 +49,7 @@ export default function JobDetailPage() {
       router.push('/login')
       return
     }
+    setUserId(user.id)
 
     const { data: rawJob } = await supabase
       .from('jobs')
@@ -138,6 +140,22 @@ export default function JobDetailPage() {
   useEffect(() => {
     fetchJob()
   }, [jobId, router])
+
+  const handleDeletePhoto = async (photo: any) => {
+    const { error: storageError } = await supabase.storage.from('job-photos').remove([photo.photo_url])
+    if (storageError) {
+      console.error('Error deleting photo from storage:', storageError)
+    }
+
+    const { error: deleteError } = await supabase.from('job_photos').delete().eq('id', photo.id)
+    if (deleteError) {
+      console.error('Error deleting photo record:', deleteError)
+      setError('Could not remove photo.')
+      return
+    }
+
+    setPhotos((prev) => prev.filter((p) => p.id !== photo.id))
+  }
 
   const handleApproveClick = async () => {
     setActioning(true)
@@ -815,7 +833,13 @@ export default function JobDetailPage() {
               <p className="text-white/30 text-sm">No photos attached.</p>
             </div>
           ) : (
-            <PhotoGrid photos={generalPhotos} columns={2} thumbHeight="h-40" />
+            <PhotoGrid
+              photos={generalPhotos}
+              columns={2}
+              thumbHeight="h-40"
+              currentUserId={userId ?? undefined}
+              onDelete={!['completed', 'archived'].includes(job.status) ? handleDeletePhoto : undefined}
+            />
           )}
         </div>
       </main>

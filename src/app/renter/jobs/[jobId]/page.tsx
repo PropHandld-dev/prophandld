@@ -19,6 +19,7 @@ export default function RenterJobDetailPage() {
   const jobId = params.jobId as string
 
   const [loading, setLoading] = useState(true)
+  const [userId, setUserId] = useState<string | null>(null)
   const [job, setJob] = useState<any>(null)
   const [photos, setPhotos] = useState<any[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -36,6 +37,7 @@ export default function RenterJobDetailPage() {
       router.push('/login')
       return
     }
+    setUserId(user.id)
 
     const { data: jobData, error: jobError } = await supabase
       .from('jobs')
@@ -78,6 +80,22 @@ export default function RenterJobDetailPage() {
   useEffect(() => {
     fetchJob()
   }, [jobId, router])
+
+  const handleDeletePhoto = async (photo: any) => {
+    const { error: storageError } = await supabase.storage.from('job-photos').remove([photo.photo_url])
+    if (storageError) {
+      console.error('Error deleting photo from storage:', storageError)
+    }
+
+    const { error: deleteError } = await supabase.from('job_photos').delete().eq('id', photo.id)
+    if (deleteError) {
+      console.error('Error deleting photo record:', deleteError)
+      setError('Could not remove photo.')
+      return
+    }
+
+    setPhotos((prev) => prev.filter((p) => p.id !== photo.id))
+  }
 
   const openScheduleModal = () => {
     setScheduleDate(job.proposed_date || '')
@@ -296,7 +314,13 @@ export default function RenterJobDetailPage() {
         {generalPhotos.length > 0 && (
           <div>
             <h3 className="text-white font-semibold mb-3">Your photos</h3>
-            <PhotoGrid photos={generalPhotos} columns={2} thumbHeight="h-40" />
+            <PhotoGrid
+              photos={generalPhotos}
+              columns={2}
+              thumbHeight="h-40"
+              currentUserId={userId ?? undefined}
+              onDelete={!['completed', 'archived'].includes(job.status) ? handleDeletePhoto : undefined}
+            />
           </div>
         )}
       </main>

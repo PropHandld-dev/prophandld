@@ -230,6 +230,22 @@ export default function ContractorJobDetailPage() {
     e.target.value = ''
   }
 
+  const handleDeletePhoto = async (photo: any) => {
+    const { error: storageError } = await supabase.storage.from('job-photos').remove([photo.photo_url])
+    if (storageError) {
+      console.error('Error deleting photo from storage:', storageError)
+    }
+
+    const { error: deleteError } = await supabase.from('job_photos').delete().eq('id', photo.id)
+    if (deleteError) {
+      console.error('Error deleting photo record:', deleteError)
+      setError('Could not remove photo.')
+      return
+    }
+
+    setPhotos((prev) => prev.filter((p) => p.id !== photo.id))
+  }
+
   const openCompleteModal = () => {
     const beforeCount = photos.filter((p) => p.stage === 'before').length
     const afterCount = photos.filter((p) => p.stage === 'after').length
@@ -535,7 +551,12 @@ export default function ContractorJobDetailPage() {
               {beforePhotos.length === 0 ? (
                 <p className="text-white/30 text-xs">No before photos yet.</p>
               ) : (
-                <PhotoGrid photos={beforePhotos} columns={3} />
+                <PhotoGrid
+                  photos={beforePhotos}
+                  columns={3}
+                  currentUserId={userId ?? undefined}
+                  onDelete={job.status === 'in_progress' ? handleDeletePhoto : undefined}
+                />
               )}
             </div>
 
@@ -552,7 +573,12 @@ export default function ContractorJobDetailPage() {
               {afterPhotos.length === 0 ? (
                 <p className="text-white/30 text-xs">No after photos yet.</p>
               ) : (
-                <PhotoGrid photos={afterPhotos} columns={3} />
+                <PhotoGrid
+                  photos={afterPhotos}
+                  columns={3}
+                  currentUserId={userId ?? undefined}
+                  onDelete={job.status === 'in_progress' ? handleDeletePhoto : undefined}
+                />
               )}
             </div>
 
