@@ -14,6 +14,7 @@ export default function SubmitBidPage() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [job, setJob] = useState<any>(null)
+  const [linkedSystem, setLinkedSystem] = useState<any>(null)
   const [photos, setPhotos] = useState<any[]>([])
   const [error, setError] = useState<string | null>(null)
   const [alreadyBid, setAlreadyBid] = useState(false)
@@ -55,6 +56,12 @@ export default function SubmitBidPage() {
       }
 
       setJob(matchedJob)
+
+      const { data: systemData } = await supabase
+        .rpc('get_linked_maintenance_item_for_job', { job_id_input: jobId })
+        .maybeSingle()
+
+      if (systemData) setLinkedSystem(systemData)
 
       const { data: photosData } = await supabase
         .from('job_photos')
@@ -167,6 +174,13 @@ export default function SubmitBidPage() {
               <p className="text-white/30 text-xs mt-2">
                 {job.address}, {job.city}, {job.state} · Unit {job.unit_number}
               </p>
+              {linkedSystem && (
+                <p className="text-[#12A5A9] text-xs mt-1">
+                  🔧 {linkedSystem.name}
+                  {linkedSystem.brand && ` — ${linkedSystem.brand}`}
+                  {linkedSystem.install_date && `, installed ${new Date(linkedSystem.install_date + 'T00:00:00').getFullYear()}`}
+                </p>
+              )}
             </div>
 
             {photos.length > 0 && (

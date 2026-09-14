@@ -66,7 +66,7 @@ export default function ContractorJobDetailPage() {
 
     const { data: jobData, error: jobError } = await supabase
       .from('jobs')
-      .select('*, units(unit_number, properties(address, city, state))')
+      .select('*, units(unit_number, properties(address, city, state)), maintenance_items(name, item_type, brand, model, install_date)')
       .eq('id', jobId)
       .maybeSingle()
 
@@ -403,6 +403,13 @@ export default function ContractorJobDetailPage() {
           <p className="text-white/40 text-sm">
             {job.units?.properties?.address}, {job.units?.properties?.city} · Unit {job.units?.unit_number}
           </p>
+          {job.maintenance_items && (
+            <p className="text-[#12A5A9] text-xs mt-1">
+              🔧 {job.maintenance_items.name}
+              {job.maintenance_items.brand && ` — ${job.maintenance_items.brand}`}
+              {job.maintenance_items.install_date && `, installed ${new Date(job.maintenance_items.install_date + 'T00:00:00').getFullYear()}`}
+            </p>
+          )}
         </div>
 
         <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">

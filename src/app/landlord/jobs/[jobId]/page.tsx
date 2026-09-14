@@ -68,7 +68,7 @@ export default function JobDetailPage() {
 
     const { data: jobData, error: jobError } = await supabase
       .from('jobs')
-      .select('*, units(unit_number, property_id, properties(id, address, city, state))')
+      .select('*, units(unit_number, property_id, properties(id, address, city, state)), maintenance_items(name, item_type, brand, model, install_date)')
       .eq('id', jobId)
       .maybeSingle()
 
@@ -542,6 +542,13 @@ export default function JobDetailPage() {
               <p className="text-white/40 text-sm">
                 {job.units?.properties?.address}, {job.units?.properties?.city} · Unit {job.units?.unit_number}
               </p>
+              {job.maintenance_items && (
+                <p className="text-[#12A5A9] text-xs mt-1">
+                  🔧 {job.maintenance_items.name}
+                  {job.maintenance_items.brand && ` — ${job.maintenance_items.brand}`}
+                  {job.maintenance_items.install_date && `, installed ${new Date(job.maintenance_items.install_date + 'T00:00:00').getFullYear()}`}
+                </p>
+              )}
             </div>
             {job.status === 'completed' && (
               <button

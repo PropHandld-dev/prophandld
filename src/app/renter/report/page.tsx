@@ -29,12 +29,14 @@ export default function ReportIssuePage() {
   const [error, setError] = useState<string | null>(null)
   const [showEmergencyInfo, setShowEmergencyInfo] = useState(false)
   const [files, setFiles] = useState<File[]>([])
+  const [systems, setSystems] = useState<any[]>([])
 
   const [form, setForm] = useState({
     category: '',
     urgency: 'normal',
     description: '',
     is_emergency: false,
+    maintenance_item_id: '',
   })
 
   useEffect(() => {
@@ -62,6 +64,13 @@ export default function ReportIssuePage() {
       }
 
       setUnitId(tenancyData.unit_id)
+
+      const { data: systemsData } = await supabase
+        .from('maintenance_items')
+        .select('id, name, item_type')
+        .eq('unit_id', tenancyData.unit_id)
+
+      setSystems(systemsData || [])
       setLoading(false)
     }
     init()
@@ -124,6 +133,7 @@ export default function ReportIssuePage() {
         description: form.description.trim(),
         is_emergency: form.is_emergency,
         status: 'pending_approval',
+        maintenance_item_id: form.maintenance_item_id || null,
       })
       .select()
       .single()
@@ -207,6 +217,25 @@ export default function ReportIssuePage() {
                 ))}
               </select>
             </div>
+
+            {form.category && systems.filter((s) => s.item_type === form.category).length > 0 && (
+              <div>
+                <label className="text-white/70 text-sm block mb-1">Related system (optional)</label>
+                <select
+                  name="maintenance_item_id"
+                  value={form.maintenance_item_id}
+                  onChange={handleChange}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
+                >
+                  <option value="" className="bg-[#0C1A2E]">Not sure / none</option>
+                  {systems
+                    .filter((s) => s.item_type === form.category)
+                    .map((s) => (
+                      <option key={s.id} value={s.id} className="bg-[#0C1A2E]">{s.name}</option>
+                    ))}
+                </select>
+              </div>
+            )}
 
             <div>
               <label className="text-white/70 text-sm block mb-1">Description</label>

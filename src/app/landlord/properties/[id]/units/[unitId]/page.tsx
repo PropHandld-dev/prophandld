@@ -370,10 +370,18 @@ export default function UnitDetailPage() {
           )}
         </div>
 
-        {/* Maintenance tab */}
+        {/* Systems & Appliances */}
         <div className="bg-white/3 border border-white/8 rounded-2xl p-6">
-          <h2 className="text-white font-semibold mb-4">Maintenance items</h2>
-          <p className="text-white/30 text-sm">Maintenance tracking coming in V2.</p>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-white font-semibold">Systems & Appliances</h2>
+            <Link
+              href={`/landlord/properties/${propertyId}/units/${unitId}/systems`}
+              className="text-[#12A5A9] text-sm hover:underline"
+            >
+              Manage
+            </Link>
+          </div>
+          <p className="text-white/30 text-sm">Track major systems (HVAC, water heater, roof, panel) with service history and replacement cost.</p>
         </div>
 
       </main>
