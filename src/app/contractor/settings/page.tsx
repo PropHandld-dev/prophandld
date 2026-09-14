@@ -28,6 +28,7 @@ export default function ContractorSettingsPage() {
 
   const [userId, setUserId] = useState<string | null>(null)
   const [verification, setVerification] = useState<any>(null)
+  const [ratingSummary, setRatingSummary] = useState<{ avg_rating: number; review_count: number } | null>(null)
   const [verifSaving, setVerifSaving] = useState(false)
   const [verifError, setVerifError] = useState<string | null>(null)
   const [verifSuccess, setVerifSuccess] = useState<string | null>(null)
@@ -74,6 +75,15 @@ export default function ContractorSettingsPage() {
       }
 
       await loadVerification(user.id)
+
+      const { data: summary } = await supabase
+        .rpc('get_contractor_rating_summary', { target_contractor_id: user.id })
+        .maybeSingle()
+
+      if (summary && (summary as any).review_count > 0) {
+        setRatingSummary(summary as { avg_rating: number; review_count: number })
+      }
+
       setLoading(false)
     }
     init()
@@ -322,6 +332,20 @@ export default function ContractorSettingsPage() {
           </RippleButton>
         </form>
         </ScrollReveal>
+
+        {ratingSummary && (
+          <ScrollReveal className="mt-10 pt-8 border-t border-white/8">
+            <div className="flex items-center justify-between">
+              <h2 className="text-white font-semibold">Your rating</h2>
+              <span className="text-xs bg-white/8 text-white/60 rounded-full px-2.5 py-1 font-semibold">
+                ★ {ratingSummary.avg_rating.toFixed(1)} ({ratingSummary.review_count} review{ratingSummary.review_count === 1 ? '' : 's'})
+              </span>
+            </div>
+            <p className="text-white/50 text-sm mt-2">
+              Based on ratings from landlords and renters after completed jobs.
+            </p>
+          </ScrollReveal>
+        )}
 
         <ScrollReveal className="mt-10 pt-8 border-t border-white/8">
           <div className="flex items-center justify-between mb-2">

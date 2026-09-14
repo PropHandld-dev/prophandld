@@ -12,6 +12,7 @@ import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { WrenchIcon, CheckCircleIcon } from '@/components/icons'
 import { LANDLORD_TABS } from '@/lib/navTabs'
+import { ReviewForm } from '@/components/ReviewForm'
 
 const TIME_WINDOWS = [
   { value: 'morning', label: 'Morning (8am–12pm)' },
@@ -30,6 +31,7 @@ export default function JobDetailPage() {
   const [photos, setPhotos] = useState<any[]>([])
   const [bids, setBids] = useState<any[]>([])
   const [verifiedContractorIds, setVerifiedContractorIds] = useState<Set<string>>(new Set())
+  const [ratingSummaries, setRatingSummaries] = useState<Record<string, { avg_rating: number; review_count: number }>>({})
   const [error, setError] = useState<string | null>(null)
   const [actioning, setActioning] = useState(false)
 
@@ -149,6 +151,21 @@ export default function JobDetailPage() {
             new Set(verifsData.filter((v) => v.status === 'verified').map((v) => v.contractor_user_id))
           )
         }
+
+        const uniqueContractorIds = Array.from(new Set(bidsData.map((b) => b.contractor_user_id)))
+        const summaries = await Promise.all(
+          uniqueContractorIds.map(async (contractorId) => {
+            const { data } = await supabase
+              .rpc('get_contractor_rating_summary', { target_contractor_id: contractorId })
+              .maybeSingle()
+            return [contractorId, data as { avg_rating: number; review_count: number } | null] as const
+          })
+        )
+        const summaryMap: Record<string, { avg_rating: number; review_count: number }> = {}
+        summaries.forEach(([contractorId, data]) => {
+          if (data && data.review_count > 0) summaryMap[contractorId] = data
+        })
+        setRatingSummaries(summaryMap)
       }
     }
 
@@ -720,6 +737,11 @@ export default function JobDetailPage() {
                             Verified ✓
                           </span>
                         )}
+                        {ratingSummaries[bid.contractor_user_id] && (
+                          <span className="text-xs bg-white/8 text-white/60 rounded-full px-2 py-0.5 font-semibold">
+                            ★ {ratingSummaries[bid.contractor_user_id].avg_rating.toFixed(1)} ({ratingSummaries[bid.contractor_user_id].review_count})
+                          </span>
+                        )}
                       </div>
                       <p className="text-[#12A5A9] font-bold">${bid.amount}</p>
                     </div>
@@ -750,6 +772,11 @@ export default function JobDetailPage() {
                   {verifiedContractorIds.has(acceptedBid.contractor_user_id) && (
                     <span className="text-xs bg-[#0A7B7E]/20 text-[#12A5A9] rounded-full px-2 py-0.5 font-semibold">
                       Verified ✓
+                    </span>
+                  )}
+                  {ratingSummaries[acceptedBid.contractor_user_id] && (
+                    <span className="text-xs bg-white/8 text-white/60 rounded-full px-2 py-0.5 font-semibold">
+                      ★ {ratingSummaries[acceptedBid.contractor_user_id].avg_rating.toFixed(1)} ({ratingSummaries[acceptedBid.contractor_user_id].review_count})
                     </span>
                   )}
                 </div>
@@ -790,6 +817,16 @@ export default function JobDetailPage() {
                 {acceptedBid.availability && <p className="text-white/50 text-xs mt-1">Availability: {acceptedBid.availability}</p>}
               </div>
             )}
+          </div>
+        )}
+
+        {['completed', 'archived'].includes(job.status) && acceptedBid && (
+          <div className="mb-4">
+            <ReviewForm
+              jobId={jobId}
+              contractorUserId={acceptedBid.contractor_user_id}
+              reviewerRole="landlord"
+            />
           </div>
         )}
 

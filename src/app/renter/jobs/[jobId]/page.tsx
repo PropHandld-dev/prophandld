@@ -12,6 +12,7 @@ import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { CheckCircleIcon } from '@/components/icons'
 import { RENTER_TABS } from '@/lib/navTabs'
+import { ReviewForm } from '@/components/ReviewForm'
 
 const TIME_WINDOWS = [
   { value: 'morning', label: 'Morning (8am–12pm)' },
@@ -28,6 +29,7 @@ export default function RenterJobDetailPage() {
   const [userId, setUserId] = useState<string | null>(null)
   const [job, setJob] = useState<any>(null)
   const [photos, setPhotos] = useState<any[]>([])
+  const [acceptedContractorId, setAcceptedContractorId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [actioning, setActioning] = useState(false)
 
@@ -59,6 +61,16 @@ export default function RenterJobDetailPage() {
     }
 
     setJob(jobData)
+
+    if (['completed', 'archived'].includes(jobData.status)) {
+      const { data: bid } = await supabase
+        .from('bids')
+        .select('contractor_user_id')
+        .eq('job_id', jobId)
+        .eq('status', 'accepted')
+        .maybeSingle()
+      if (bid) setAcceptedContractorId(bid.contractor_user_id)
+    }
 
     const { data: photosData } = await supabase
       .from('job_photos')
@@ -251,6 +263,16 @@ export default function RenterJobDetailPage() {
             </div>
           )}
         </ScrollReveal>
+
+        {['completed', 'archived'].includes(job.status) && acceptedContractorId && (
+          <div className="mb-4">
+            <ReviewForm
+              jobId={jobId}
+              contractorUserId={acceptedContractorId}
+              reviewerRole="renter"
+            />
+          </div>
+        )}
 
         {job.schedule_ask_tenant && !job.proposed_date && (
           <div className="bg-blue-500/10 border border-blue-400/30 rounded-2xl p-5 mb-4">

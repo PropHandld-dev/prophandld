@@ -39,6 +39,7 @@ export default function LandlordDashboard() {
   const [scheduleProposals, setScheduleProposals] = useState<any[]>([])
   const [confirmedSchedules, setConfirmedSchedules] = useState<any[]>([])
   const [pendingReviewJobs, setPendingReviewJobs] = useState<any[]>([])
+  const [needsRating, setNeedsRating] = useState<any[]>([])
   const [complianceAlerts, setComplianceAlerts] = useState<any[]>([])
   const [rentAlerts, setRentAlerts] = useState<any[]>([])
 
@@ -139,6 +140,7 @@ export default function LandlordDashboard() {
       let scheduleProposalsList: any[] = []
       let pendingReviewList: any[] = []
       let confirmedSchedulesList: any[] = []
+      let needsRatingList: any[] = []
 
       if (unitIds.length > 0) {
         // "Needs action" covers jobs awaiting acknowledgment (pending_approval)
@@ -231,6 +233,24 @@ export default function LandlordDashboard() {
 
         pendingReviewList = reviewJobs || []
 
+        // Completed/archived jobs this landlord hasn't rated the contractor for yet
+        const { data: completedJobsForRating } = await supabase
+          .from('jobs')
+          .select('*, units(unit_number, properties(address, city))')
+          .in('unit_id', unitIds)
+          .in('status', ['completed', 'archived'])
+
+        if (completedJobsForRating && completedJobsForRating.length > 0) {
+          const { data: myReviews } = await supabase
+            .from('contractor_reviews')
+            .select('job_id')
+            .eq('reviewer_user_id', user.id)
+            .in('job_id', completedJobsForRating.map((j) => j.id))
+
+          const reviewedJobIds = new Set((myReviews || []).map((r) => r.job_id))
+          needsRatingList = completedJobsForRating.filter((j) => !reviewedJobIds.has(j.id))
+        }
+
         // Find jobs currently in bidding status with bids
         const { data: biddingJobs } = await supabase
           .from('jobs')
@@ -308,6 +328,7 @@ export default function LandlordDashboard() {
       setScheduleProposals(scheduleProposalsList)
       setConfirmedSchedules(confirmedSchedulesList)
       setPendingReviewJobs(enrichedReviewJobs)
+      setNeedsRating(needsRatingList)
       setLoading(false)
     }
     getUser()
@@ -405,6 +426,15 @@ export default function LandlordDashboard() {
       subtitle: `${job.units?.properties?.address}, ${job.units?.properties?.city} · Unit ${job.units?.unit_number}`,
       href: `/landlord/jobs/${job.id}`,
       badge: `${job.bidCount} bid${job.bidCount > 1 ? 's' : ''}`,
+    })),
+    ...needsRating.map((job) => ({
+      id: `rate-${job.id}`,
+      icon: CheckCircleIcon,
+      tone: 'teal' as const,
+      title: job.category,
+      subtitle: `${job.units?.properties?.address}, ${job.units?.properties?.city} · Unit ${job.units?.unit_number}`,
+      href: `/landlord/jobs/${job.id}`,
+      badge: 'Rate contractor',
     })),
   ]
 
