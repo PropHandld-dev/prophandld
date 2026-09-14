@@ -17,6 +17,7 @@ export default function NewTenancyPage() {
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [inviteSent, setInviteSent] = useState(false)
   const [form, setForm] = useState({
     renter_email: '',
     rent_amount: '',
@@ -44,8 +45,7 @@ export default function NewTenancyPage() {
       .rpc('get_user_id_by_email', { email_input: form.renter_email })
 
     if (renterError || !renterId) {
-      setError('No renter found with that email. They must sign up as a Renter first.')
-      setLoading(false)
+      await sendInvite()
       return
     }
 
@@ -75,6 +75,57 @@ export default function NewTenancyPage() {
     router.push(`/landlord/properties/${propertyId}/units/${unitId}/inspection`)
   }
 
+  const sendInvite = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      setError('Not authenticated.')
+      setLoading(false)
+      return
+    }
+
+    // Replace any existing pending invite for this unit rather than duplicating
+    await supabase
+      .from('tenancy_invites')
+      .update({ status: 'cancelled' })
+      .eq('unit_id', unitId)
+      .eq('status', 'pending')
+
+    const { data: invite, error: inviteError } = await supabase
+      .from('tenancy_invites')
+      .insert({
+        unit_id: unitId,
+        landlord_user_id: user.id,
+        renter_email: form.renter_email.trim(),
+        rent_amount: form.rent_amount ? parseFloat(form.rent_amount) : null,
+        lease_start: form.lease_start || null,
+        lease_end: form.lease_end || null,
+        security_deposit: form.security_deposit ? parseFloat(form.security_deposit) : null,
+        escalation_percent: form.escalation_percent ? parseFloat(form.escalation_percent) : null,
+        escalation_frequency_months: form.escalation_frequency_months ? parseInt(form.escalation_frequency_months) : null,
+        occupants: form.occupants ? parseInt(form.occupants) : null,
+        pets: form.pets.trim() || null,
+        lease_notes: form.lease_notes.trim() || null,
+      })
+      .select('id')
+      .single()
+
+    if (inviteError || !invite) {
+      console.error('Error creating invite:', inviteError)
+      setError('Could not send invite. Please try again.')
+      setLoading(false)
+      return
+    }
+
+    fetch('/api/invite-renter', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ inviteId: invite.id }),
+    }).catch((err) => console.error('invite-renter fetch failed:', err))
+
+    setInviteSent(true)
+    setLoading(false)
+  }
+
   return (
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
@@ -91,9 +142,23 @@ export default function NewTenancyPage() {
       <main className="max-w-xl mx-auto px-6 py-10 pb-28">
         <h1 className="text-2xl font-bold text-white mb-2">Link a renter</h1>
         <p className="text-white/50 text-sm mb-8">
-          The renter must already have a Prophandld account. Enter their email to link them to this unit.
+          Enter their email to link them to this unit. If they don't have a Prophandld account yet, we'll invite them — they'll be linked automatically once they sign up.
         </p>
 
+        {inviteSent ? (
+          <div className="bg-[#0A7B7E]/15 border border-[#12A5A9]/30 rounded-2xl p-6 text-center">
+            <p className="text-[#12A5A9] font-medium">Invite sent to {form.renter_email}</p>
+            <p className="text-white/50 text-sm mt-2">
+              They'll be linked to this unit automatically once they sign up as a renter.
+            </p>
+            <Link
+              href={`/landlord/properties/${propertyId}/units/${unitId}`}
+              className="text-[#12A5A9] text-sm hover:underline block mt-4"
+            >
+              ← Back to unit
+            </Link>
+          </div>
+        ) : (
         <ScrollReveal>
         <form onSubmit={handleSubmit} className="space-y-4">
 
@@ -108,7 +173,6 @@ export default function NewTenancyPage() {
               placeholder="renter@email.com"
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
             />
-            <p className="text-white/30 text-xs mt-1">They must be signed up as a Renter on Prophandld</p>
           </div>
 
           <div>
@@ -231,11 +295,12 @@ export default function NewTenancyPage() {
             disabled={loading}
             className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
           >
-            {loading ? 'Linking renter...' : 'Link renter to unit'}
+            {loading ? 'Saving...' : 'Link or invite renter'}
           </RippleButton>
 
         </form>
         </ScrollReveal>
+        )}
       </main>
 
       <BottomTabBar tabs={LANDLORD_TABS} />

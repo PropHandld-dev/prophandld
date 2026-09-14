@@ -21,6 +21,8 @@ export default function UnitDetailPage() {
   const unitId = params.unitId as string
   const [unit, setUnit] = useState<any>(null)
   const [tenancy, setTenancy] = useState<any>(null)
+  const [pendingInvite, setPendingInvite] = useState<any>(null)
+  const [invitingBusy, setInvitingBusy] = useState(false)
   const [tenantLookupFailed, setTenantLookupFailed] = useState(false)
   const [loading, setLoading] = useState(true)
   const [showMoveOutForm, setShowMoveOutForm] = useState(false)
@@ -83,8 +85,20 @@ export default function UnitDetailPage() {
       }
 
       setTenancy({ ...tenancyData, users: renterData })
+      setPendingInvite(null)
     } else {
       setTenancy(null)
+
+      const { data: inviteData } = await supabase
+        .from('tenancy_invites')
+        .select('*')
+        .eq('unit_id', unitId)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      setPendingInvite(inviteData || null)
     }
 
     const { data: jobsData, error: jobsError } = await supabase
@@ -110,6 +124,37 @@ export default function UnitDetailPage() {
   const handleStartEndTenancy = () => {
     setShowMoveOutForm(true)
     setMoveOutError(null)
+  }
+
+  const handleCancelInvite = async () => {
+    if (!pendingInvite) return
+    if (!window.confirm(`Cancel the invite to ${pendingInvite.renter_email}?`)) return
+
+    setInvitingBusy(true)
+    const { error } = await supabase
+      .from('tenancy_invites')
+      .update({ status: 'cancelled' })
+      .eq('id', pendingInvite.id)
+
+    if (error) {
+      console.error('Error cancelling invite:', error)
+    }
+
+    await fetchUnit()
+    setInvitingBusy(false)
+  }
+
+  const handleResendInvite = async () => {
+    if (!pendingInvite) return
+    setInvitingBusy(true)
+
+    fetch('/api/invite-renter', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ inviteId: pendingInvite.id }),
+    }).catch((err) => console.error('invite-renter fetch failed:', err))
+
+    setInvitingBusy(false)
   }
 
   const handleConfirmMoveOutDate = async () => {
@@ -284,7 +329,7 @@ export default function UnitDetailPage() {
         <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-white font-semibold">Tenant</h2>
-            {!tenancy && (
+            {!tenancy && !pendingInvite && (
               <MagneticLink
                 href={`/landlord/properties/${propertyId}/units/${unitId}/tenancy/new`}
                 className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-3 py-1.5 rounded-lg hover:opacity-90 transition"
@@ -522,6 +567,29 @@ export default function UnitDetailPage() {
                   )}
                 </div>
               )}
+            </div>
+          ) : pendingInvite ? (
+            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
+              <p className="text-yellow-400/80 text-sm font-medium">
+                Invited: {pendingInvite.renter_email}
+              </p>
+              <p className="text-white/40 text-xs mt-1">Waiting for them to sign up.</p>
+              <div className="flex items-center gap-4 mt-3">
+                <button
+                  onClick={handleResendInvite}
+                  disabled={invitingBusy}
+                  className="text-[#12A5A9] text-xs font-semibold hover:underline disabled:opacity-50"
+                >
+                  Resend
+                </button>
+                <button
+                  onClick={handleCancelInvite}
+                  disabled={invitingBusy}
+                  className="text-red-400/70 hover:text-red-400 text-xs transition disabled:opacity-50"
+                >
+                  Cancel invite
+                </button>
+              </div>
             </div>
           ) : (
             <p className="text-white/30 text-sm">No tenant linked — unit is vacant.</p>

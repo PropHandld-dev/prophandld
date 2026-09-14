@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { supabase } from '@/lib/supabase'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { geocodeZip } from '@/lib/geocode'
 import { BottomTabBar } from '@/components/BottomTabBar'
@@ -10,8 +10,10 @@ import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 
-export default function NewPropertyPage() {
+function NewPropertyForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const isOnboarding = searchParams.get('onboarding') === '1'
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [form, setForm] = useState({
@@ -104,7 +106,11 @@ export default function NewPropertyPage() {
       }
     }
 
-    router.push(`/landlord/properties/${property.id}`)
+    if (isOnboarding) {
+      router.push('/landlord')
+    } else {
+      router.push(`/landlord/properties/${property.id}`)
+    }
   }
 
   return (
@@ -117,8 +123,14 @@ export default function NewPropertyPage() {
       </nav>
 
       <main className="max-w-xl mx-auto px-6 py-10 pb-28">
-        <h1 className="text-2xl font-bold text-white mb-2">Add a property</h1>
-        <p className="text-white/50 text-sm mb-8">Enter your property details below.</p>
+        <h1 className="text-2xl font-bold text-white mb-2">
+          {isOnboarding ? "Let's add your first property" : 'Add a property'}
+        </h1>
+        <p className="text-white/50 text-sm mb-8">
+          {isOnboarding
+            ? "Tell us about the property you manage — we'll set up the units for you."
+            : 'Enter your property details below.'}
+        </p>
 
         <ScrollReveal>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -225,5 +237,17 @@ export default function NewPropertyPage() {
 
       <BottomTabBar tabs={LANDLORD_TABS} />
     </div>
+  )
+}
+
+export default function NewPropertyPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center">
+        <div className="text-white/50">Loading...</div>
+      </div>
+    }>
+      <NewPropertyForm />
+    </Suspense>
   )
 }

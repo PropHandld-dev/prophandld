@@ -9,7 +9,7 @@ import { AlertsList, type AlertItem } from '@/components/AlertsList'
 import { Skeleton } from '@/components/Skeleton'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { MagneticLink } from '@/components/MagneticLink'
-import { CalendarIcon, DollarSignIcon, CheckCircleIcon } from '@/components/icons'
+import { CalendarIcon, DollarSignIcon, CheckCircleIcon, FileTextIcon } from '@/components/icons'
 import { RENTER_TABS } from '@/lib/navTabs'
 
 export default function RenterDashboard() {
@@ -219,6 +219,19 @@ export default function RenterDashboard() {
                   {property.city}, {property.state} {property.zip} · Unit {unit.unit_number}
                 </p>
               </div>
+            )}
+
+            {unit && (
+              <Link
+                href="/renter/documents"
+                className="block bg-white/3 border border-white/8 rounded-2xl p-6 mb-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all"
+              >
+                <div className="flex items-center gap-2">
+                  <FileTextIcon className="w-4 h-4 text-white/40" />
+                  <h3 className="text-white font-semibold">Documents</h3>
+                </div>
+                <p className="text-white/40 text-sm mt-1">Your lease and related paperwork</p>
+              </Link>
             )}
 
             <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6 opacity-50 cursor-not-allowed">

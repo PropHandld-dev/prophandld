@@ -12,7 +12,7 @@ import { MagneticLink } from '@/components/MagneticLink'
 import { CountUp } from '@/components/CountUp'
 import {
   BuildingIcon, WrenchIcon, CalendarIcon, ClipboardListIcon,
-  DollarSignIcon, FileTextIcon, AlertTriangleIcon, CheckCircleIcon,
+  DollarSignIcon, FileTextIcon, AlertTriangleIcon, CheckCircleIcon, UserIcon,
 } from '@/components/icons'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 
@@ -40,6 +40,7 @@ export default function LandlordDashboard() {
   const [confirmedSchedules, setConfirmedSchedules] = useState<any[]>([])
   const [pendingReviewJobs, setPendingReviewJobs] = useState<any[]>([])
   const [needsRating, setNeedsRating] = useState<any[]>([])
+  const [pendingInvites, setPendingInvites] = useState<any[]>([])
   const [complianceAlerts, setComplianceAlerts] = useState<any[]>([])
   const [rentAlerts, setRentAlerts] = useState<any[]>([])
 
@@ -141,6 +142,7 @@ export default function LandlordDashboard() {
       let pendingReviewList: any[] = []
       let confirmedSchedulesList: any[] = []
       let needsRatingList: any[] = []
+      let pendingInvitesList: any[] = []
 
       if (unitIds.length > 0) {
         // "Needs action" covers jobs awaiting acknowledgment (pending_approval)
@@ -232,6 +234,15 @@ export default function LandlordDashboard() {
           .eq('status', 'pending_review')
 
         pendingReviewList = reviewJobs || []
+
+        // Renter invites still waiting on the invitee to sign up
+        const { data: invitesData } = await supabase
+          .from('tenancy_invites')
+          .select('*, units(unit_number, property_id, properties(address, city))')
+          .in('unit_id', unitIds)
+          .eq('status', 'pending')
+
+        pendingInvitesList = invitesData || []
 
         // Completed/archived jobs this landlord hasn't rated the contractor for yet
         const { data: completedJobsForRating } = await supabase
@@ -329,6 +340,7 @@ export default function LandlordDashboard() {
       setConfirmedSchedules(confirmedSchedulesList)
       setPendingReviewJobs(enrichedReviewJobs)
       setNeedsRating(needsRatingList)
+      setPendingInvites(pendingInvitesList)
       setLoading(false)
     }
     getUser()
@@ -435,6 +447,15 @@ export default function LandlordDashboard() {
       subtitle: `${job.units?.properties?.address}, ${job.units?.properties?.city} · Unit ${job.units?.unit_number}`,
       href: `/landlord/jobs/${job.id}`,
       badge: 'Rate contractor',
+    })),
+    ...pendingInvites.map((invite) => ({
+      id: `invite-${invite.id}`,
+      icon: UserIcon,
+      tone: 'teal' as const,
+      title: invite.renter_email,
+      subtitle: `${invite.units?.properties?.address}, ${invite.units?.properties?.city} · Unit ${invite.units?.unit_number}`,
+      href: `/landlord/properties/${invite.units?.property_id ?? ''}/units/${invite.unit_id}`,
+      badge: 'Invite pending',
     })),
   ]
 

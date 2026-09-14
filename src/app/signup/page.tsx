@@ -61,11 +61,59 @@ export default function SignupPage() {
       return
     }
 
-    if (form.role === 'landlord') router.push('/landlord')
-    else if (form.role === 'renter') router.push('/renter')
-    else if (form.role === 'contractor') router.push('/contractor')
+    if (form.role === 'landlord') {
+      router.push('/landlord/properties/new?onboarding=1')
+    } else if (form.role === 'renter') {
+      await linkPendingInvite(data.user.id, form.email)
+      router.push('/renter')
+    } else if (form.role === 'contractor') {
+      router.push('/contractor')
+    }
 
     setLoading(false)
+  }
+
+  const linkPendingInvite = async (userId: string, email: string) => {
+    try {
+      const { data: invite } = await supabase
+        .from('tenancy_invites')
+        .select('*')
+        .eq('renter_email', email)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (!invite) return
+
+      const { error: tenancyError } = await supabase
+        .from('tenancies')
+        .insert({
+          unit_id: invite.unit_id,
+          renter_user_id: userId,
+          rent_amount: invite.rent_amount,
+          lease_start: invite.lease_start,
+          lease_end: invite.lease_end,
+          security_deposit: invite.security_deposit,
+          escalation_percent: invite.escalation_percent,
+          escalation_frequency_months: invite.escalation_frequency_months,
+          occupants: invite.occupants,
+          pets: invite.pets,
+          lease_notes: invite.lease_notes,
+        })
+
+      if (tenancyError) {
+        console.error('Error auto-linking invited tenancy:', tenancyError)
+        return
+      }
+
+      await supabase
+        .from('tenancy_invites')
+        .update({ status: 'accepted', accepted_at: new Date().toISOString() })
+        .eq('id', invite.id)
+    } catch (err) {
+      console.error('Error checking pending invite:', err)
+    }
   }
 
   return (

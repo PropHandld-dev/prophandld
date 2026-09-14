@@ -44,6 +44,24 @@ function baseTemplate(heading: string, bodyHtml: string, ctaLabel: string, ctaUr
   `
 }
 
+export async function sendRenterInviteEmail({
+  to,
+  landlordName,
+  unitLabel,
+}: {
+  to: string
+  landlordName: string
+  unitLabel: string
+}) {
+  const html = baseTemplate(
+    "You've been invited to Prophandld",
+    `${landlordName} has invited you to join Prophandld for <strong>${unitLabel}</strong>. Create your account with this same email address to see your maintenance requests, documents, and more — you'll be linked to your unit automatically.`,
+    'Create your account',
+    `${SITE_URL}/signup`
+  )
+  return sendEmail({ to, subject: `${landlordName} invited you to Prophandld`, html })
+}
+
 export type NotifyType =
   | 'job_reported'
   | 'bid_received'
