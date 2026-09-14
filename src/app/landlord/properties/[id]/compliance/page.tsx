@@ -6,7 +6,7 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { Skeleton } from '@/components/Skeleton'
-import { AlertTriangleIcon, CheckCircleIcon } from '@/components/icons'
+import { AlertTriangleIcon, CheckCircleIcon, FileTextIcon } from '@/components/icons'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 
 const ITEM_TYPES = [
@@ -26,8 +26,10 @@ export default function PropertyCompliancePage() {
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [userId, setUserId] = useState<string | null>(null)
   const [property, setProperty] = useState<any>(null)
   const [items, setItems] = useState<any[]>([])
+  const [itemDocuments, setItemDocuments] = useState<Record<string, any>>({})
   const [error, setError] = useState<string | null>(null)
 
   const [form, setForm] = useState({
@@ -36,9 +38,11 @@ export default function PropertyCompliancePage() {
     expiry_date: '',
     reminder_days: '30',
   })
+  const [file, setFile] = useState<File | null>(null)
 
   const [renewingId, setRenewingId] = useState<string | null>(null)
   const [renewDate, setRenewDate] = useState('')
+  const [attachingId, setAttachingId] = useState<string | null>(null)
 
   useEffect(() => {
     const init = async () => {
@@ -47,6 +51,7 @@ export default function PropertyCompliancePage() {
         router.push('/login')
         return
       }
+      setUserId(user.id)
 
       const { data: propertyData, error: propertyError } = await supabase
         .from('properties')
@@ -79,6 +84,91 @@ export default function PropertyCompliancePage() {
       return
     }
     setItems(itemsData || [])
+
+    if (!itemsData || itemsData.length === 0) {
+      setItemDocuments({})
+      return
+    }
+
+    const { data: docsData, error: docsError } = await supabase
+      .from('documents')
+      .select('*')
+      .in('compliance_item_id', itemsData.map((i) => i.id))
+
+    if (docsError) {
+      console.error('Error loading attached documents:', docsError)
+      return
+    }
+
+    const enriched: Record<string, any> = {}
+    await Promise.all(
+      (docsData || []).map(async (doc) => {
+        const { data: signedUrlData } = await supabase.storage
+          .from('documents')
+          .createSignedUrl(doc.file_url, 3600)
+        enriched[doc.compliance_item_id] = { ...doc, viewUrl: signedUrlData?.signedUrl }
+      })
+    )
+    setItemDocuments(enriched)
+  }
+
+  const uploadComplianceDocument = async (complianceItemId: string, documentType: string, docFile: File) => {
+    if (!userId) return
+
+    const ext = docFile.name.split('.').pop()
+    const filePath = `${propertyId}/${crypto.randomUUID()}.${ext}`
+
+    const { error: uploadError } = await supabase.storage
+      .from('documents')
+      .upload(filePath, docFile)
+
+    if (uploadError) {
+      console.error('Error uploading compliance document:', uploadError)
+      setError(`Could not upload document: ${uploadError.message}`)
+      return
+    }
+
+    const { error: docInsertError } = await supabase
+      .from('documents')
+      .insert({
+        property_id: propertyId,
+        uploaded_by: userId,
+        document_type: documentType,
+        filename: docFile.name,
+        file_url: filePath,
+        compliance_item_id: complianceItemId,
+      })
+
+    if (docInsertError) {
+      console.error('Error linking compliance document:', docInsertError)
+      setError(`Document uploaded, but could not link it: ${docInsertError.message}`)
+    }
+  }
+
+  const handleAttachToItem = async (item: any, selectedFile: File) => {
+    setAttachingId(item.id)
+    setError(null)
+    await uploadComplianceDocument(item.id, item.item_type, selectedFile)
+    await loadItems()
+    setAttachingId(null)
+  }
+
+  const handleRemoveAttachment = async (doc: any) => {
+    if (!window.confirm(`Remove "${doc.filename}"?`)) return
+
+    const { error: storageError } = await supabase.storage.from('documents').remove([doc.file_url])
+    if (storageError) {
+      console.error('Error deleting document file:', storageError)
+    }
+
+    const { error: deleteError } = await supabase.from('documents').delete().eq('id', doc.id)
+    if (deleteError) {
+      console.error('Error deleting document record:', deleteError)
+      setError(`Could not remove document: ${deleteError.message}`)
+      return
+    }
+
+    await loadItems()
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
@@ -102,7 +192,7 @@ export default function PropertyCompliancePage() {
 
     const itemType = form.item_type === 'Other' ? form.custom_item_type.trim() : form.item_type
 
-    const { error: insertError } = await supabase
+    const { data: newItem, error: insertError } = await supabase
       .from('compliance_items')
       .insert({
         property_id: propertyId,
@@ -110,6 +200,8 @@ export default function PropertyCompliancePage() {
         expiry_date: form.expiry_date || null,
         reminder_days: form.reminder_days ? parseInt(form.reminder_days) : 30,
       })
+      .select()
+      .single()
 
     if (insertError) {
       console.error('Error adding compliance item:', insertError)
@@ -118,7 +210,12 @@ export default function PropertyCompliancePage() {
       return
     }
 
+    if (file && newItem) {
+      await uploadComplianceDocument(newItem.id, itemType, file)
+    }
+
     setForm({ item_type: '', custom_item_type: '', expiry_date: '', reminder_days: '30' })
+    setFile(null)
     await loadItems()
     setSaving(false)
   }
@@ -268,6 +365,21 @@ export default function PropertyCompliancePage() {
             </div>
           </div>
 
+          <div>
+            <label className="text-white/70 text-sm block mb-1">Attach document (optional)</label>
+            <label className="block">
+              <input
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                onChange={(e) => setFile(e.target.files?.[0] || null)}
+                className="hidden"
+              />
+              <span className="inline-block bg-white/8 text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-white/12 transition cursor-pointer">
+                {file ? file.name : '+ Choose file'}
+              </span>
+            </label>
+          </div>
+
           {error && (
             <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">
               {error}
@@ -354,6 +466,46 @@ export default function PropertyCompliancePage() {
                       </button>
                     </div>
                   )}
+
+                  <div className="flex items-center gap-3 mt-3 pt-3 border-t border-white/5">
+                    {itemDocuments[item.id] ? (
+                      <>
+                        <FileTextIcon className="w-4 h-4 text-[#12A5A9] shrink-0" />
+                        {itemDocuments[item.id].viewUrl && (
+                          <a
+                            href={itemDocuments[item.id].viewUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[#12A5A9] text-xs font-semibold hover:underline"
+                          >
+                            View attached document →
+                          </a>
+                        )}
+                        <button
+                          onClick={() => handleRemoveAttachment(itemDocuments[item.id])}
+                          className="text-red-400/70 text-xs hover:text-red-400 transition ml-auto"
+                        >
+                          Remove
+                        </button>
+                      </>
+                    ) : (
+                      <label className="cursor-pointer">
+                        <input
+                          type="file"
+                          accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                          className="hidden"
+                          onChange={(e) => {
+                            const selected = e.target.files?.[0]
+                            if (selected) handleAttachToItem(item, selected)
+                            e.target.value = ''
+                          }}
+                        />
+                        <span className="text-[#12A5A9] text-xs font-semibold hover:underline">
+                          {attachingId === item.id ? 'Uploading...' : '+ Attach document'}
+                        </span>
+                      </label>
+                    )}
+                  </div>
                 </div>
               )
             })}

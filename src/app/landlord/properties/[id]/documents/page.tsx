@@ -347,6 +347,11 @@ export default function PropertyDocumentsPage() {
                         <span className="text-xs bg-white/8 text-white/50 rounded-full px-2.5 py-0.5">
                           {getUnitLabel(doc.unit_id)}
                         </span>
+                        {doc.compliance_item_id && (
+                          <span className="text-xs bg-yellow-500/15 text-yellow-400 rounded-full px-2.5 py-0.5">
+                            Compliance
+                          </span>
+                        )}
                       </div>
                       <p className="text-white/30 text-xs mt-2">
                         {new Date(doc.created_at).toLocaleDateString()}
