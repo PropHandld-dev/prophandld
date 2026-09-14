@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
+import { Skeleton } from '@/components/Skeleton'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 
 export default function UnitRentPage() {
@@ -164,14 +165,6 @@ export default function UnitRentPage() {
   const formatMonth = (month: string) =>
     new Date(month + 'T00:00:00').toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
 
-  if (loading) return (
-    <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center">
-      <div className="text-white/50">Loading...</div>
-    </div>
-  )
-
-  if (!unit) return null
-
   return (
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
@@ -186,6 +179,19 @@ export default function UnitRentPage() {
       </nav>
 
       <main className="max-w-2xl mx-auto px-6 py-10 pb-28">
+        {loading ? (
+          <div className="space-y-4">
+            <div className="mb-8">
+              <Skeleton className="h-7 w-24 mb-2" />
+              <Skeleton className="h-4 w-32" />
+            </div>
+            <Skeleton className="h-64 mb-6" />
+            <Skeleton className="h-5 w-32 mb-4" />
+            <Skeleton className="h-20" />
+            <Skeleton className="h-20" />
+          </div>
+        ) : !unit ? null : (
+        <>
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-white">Rent</h1>
           <p className="text-white/50 text-sm mt-1">Unit {unit.unit_number}</p>
@@ -315,6 +321,8 @@ export default function UnitRentPage() {
               </div>
             )}
           </>
+        )}
+        </>
         )}
       </main>
 

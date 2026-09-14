@@ -5,6 +5,8 @@ import { supabase } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
+import { Skeleton } from '@/components/Skeleton'
+import { FileTextIcon } from '@/components/icons'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 
 const DOCUMENT_TYPES = ['Lease', 'Rental Agreement', 'Deed', 'Insurance', 'Inspection Report', 'Other']
@@ -195,14 +197,6 @@ export default function PropertyDocumentsPage() {
     return unit ? unit.unit_number : 'Unknown unit'
   }
 
-  if (loading) return (
-    <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center">
-      <div className="text-white/50">Loading...</div>
-    </div>
-  )
-
-  if (!property) return null
-
   return (
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
@@ -217,6 +211,19 @@ export default function PropertyDocumentsPage() {
       </nav>
 
       <main className="max-w-2xl mx-auto px-6 py-10 pb-28">
+        {loading ? (
+          <div className="space-y-4">
+            <div className="mb-8">
+              <Skeleton className="h-7 w-36 mb-2" />
+              <Skeleton className="h-4 w-56" />
+            </div>
+            <Skeleton className="h-64 mb-6" />
+            <Skeleton className="h-5 w-32 mb-4" />
+            <Skeleton className="h-20" />
+            <Skeleton className="h-20" />
+          </div>
+        ) : !property ? null : (
+        <>
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-white">Documents</h1>
           <p className="text-white/50 text-sm mt-1">{property.address}</p>
@@ -325,23 +332,26 @@ export default function PropertyDocumentsPage() {
         ) : (
           <div className="space-y-3">
             {documents.map((doc) => (
-              <div key={doc.id} className="bg-white/3 border border-white/8 rounded-2xl p-5">
+              <div key={doc.id} className="bg-white/3 border border-white/8 rounded-2xl p-5 hover:border-[#12A5A9]/30 hover:bg-white/5 transition-all">
                 <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <h3 className="text-white font-semibold truncate">{doc.filename}</h3>
-                    <div className="flex items-center gap-2 flex-wrap mt-2">
-                      {doc.document_type && (
-                        <span className="text-xs bg-[#12A5A9]/15 text-[#12A5A9] rounded-full px-2.5 py-0.5">
-                          {doc.document_type}
+                  <div className="min-w-0 flex items-start gap-3">
+                    <FileTextIcon className="w-4 h-4 text-white/40 shrink-0 mt-1" />
+                    <div className="min-w-0">
+                      <h3 className="text-white font-semibold truncate">{doc.filename}</h3>
+                      <div className="flex items-center gap-2 flex-wrap mt-2">
+                        {doc.document_type && (
+                          <span className="text-xs bg-[#12A5A9]/15 text-[#12A5A9] rounded-full px-2.5 py-0.5">
+                            {doc.document_type}
+                          </span>
+                        )}
+                        <span className="text-xs bg-white/8 text-white/50 rounded-full px-2.5 py-0.5">
+                          {getUnitLabel(doc.unit_id)}
                         </span>
-                      )}
-                      <span className="text-xs bg-white/8 text-white/50 rounded-full px-2.5 py-0.5">
-                        {getUnitLabel(doc.unit_id)}
-                      </span>
+                      </div>
+                      <p className="text-white/30 text-xs mt-2">
+                        {new Date(doc.created_at).toLocaleDateString()}
+                      </p>
                     </div>
-                    <p className="text-white/30 text-xs mt-2">
-                      {new Date(doc.created_at).toLocaleDateString()}
-                    </p>
                   </div>
                   <div className="flex flex-col items-end gap-2 shrink-0">
                     {doc.viewUrl && (
@@ -365,6 +375,8 @@ export default function PropertyDocumentsPage() {
               </div>
             ))}
           </div>
+        )}
+        </>
         )}
       </main>
 

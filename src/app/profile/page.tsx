@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
+import { Skeleton } from '@/components/Skeleton'
 import { LogOutIcon } from '@/components/icons'
 import { TABS_BY_ROLE } from '@/lib/navTabs'
 
@@ -136,12 +137,6 @@ export default function ProfilePage() {
     router.push('/login')
   }
 
-  if (loading) return (
-    <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center">
-      <div className="text-white/50">Loading...</div>
-    </div>
-  )
-
   return (
     <div className="min-h-screen bg-[#0C1A2E]">
       {/* Nav */}
@@ -155,6 +150,15 @@ export default function ProfilePage() {
       </nav>
 
       <main className="max-w-2xl mx-auto px-6 py-10 pb-28">
+        {loading ? (
+          <div className="space-y-4">
+            <Skeleton className="h-8 w-48 mb-4" />
+            <Skeleton className="h-64" />
+            <Skeleton className="h-40" />
+            <Skeleton className="h-32" />
+          </div>
+        ) : (
+        <>
         <h1 className="text-2xl font-bold text-white mb-8">Profile settings</h1>
 
         {/* Profile form */}
@@ -274,7 +278,7 @@ export default function ProfilePage() {
               { label: 'Email notifications', sublabel: 'Job updates, status changes', key: 'email' },
               { label: 'Push notifications', sublabel: 'In-app alerts', key: 'push' },
             ].map((item) => (
-              <div key={item.key} className="flex items-center justify-between">
+              <div key={item.key} className="flex items-center justify-between py-1">
                 <div>
                   <p className="text-white text-sm font-medium">{item.label}</p>
                   <p className="text-white/40 text-xs">{item.sublabel}</p>
@@ -304,6 +308,8 @@ export default function ProfilePage() {
           <LogOutIcon className="w-4 h-4" />
           Sign out
         </button>
+        </>
+        )}
 
       </main>
 

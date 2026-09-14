@@ -5,6 +5,8 @@ import { supabase } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
+import { Skeleton } from '@/components/Skeleton'
+import { UserIcon } from '@/components/icons'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 
 export default function PropertyContactsPage() {
@@ -129,14 +131,6 @@ export default function PropertyContactsPage() {
     return unit ? unit.unit_number : 'Unknown unit'
   }
 
-  if (loading) return (
-    <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center">
-      <div className="text-white/50">Loading...</div>
-    </div>
-  )
-
-  if (!property) return null
-
   return (
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
@@ -151,6 +145,20 @@ export default function PropertyContactsPage() {
       </nav>
 
       <main className="max-w-2xl mx-auto px-6 py-10 pb-28">
+        {loading || !property ? (
+          <div className="space-y-6">
+            <div>
+              <Skeleton className="h-7 w-56 mb-2" />
+              <Skeleton className="h-4 w-40" />
+            </div>
+            <Skeleton className="h-64" />
+            <Skeleton className="h-5 w-32" />
+            <div className="space-y-3">
+              {[0, 1].map((i) => <Skeleton key={i} className="h-20" />)}
+            </div>
+          </div>
+        ) : (
+        <>
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-white">Emergency contacts</h1>
           <p className="text-white/50 text-sm mt-1">{property.address}</p>
@@ -241,7 +249,8 @@ export default function PropertyContactsPage() {
           </button>
         </form>
 
-        <h2 className="text-white font-semibold mb-4">
+        <h2 className="text-white font-semibold mb-4 flex items-center gap-2">
+          <UserIcon className="w-4 h-4 text-white/40" />
           All contacts {contacts.length > 0 && `(${contacts.length})`}
         </h2>
 
@@ -273,6 +282,8 @@ export default function PropertyContactsPage() {
               </div>
             ))}
           </div>
+        )}
+        </>
         )}
       </main>
 

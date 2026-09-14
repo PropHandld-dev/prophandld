@@ -5,6 +5,8 @@ import { supabase } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
+import { Skeleton } from '@/components/Skeleton'
+import { AlertTriangleIcon, CheckCircleIcon } from '@/components/icons'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 
 const ITEM_TYPES = [
@@ -182,14 +184,6 @@ export default function PropertyCompliancePage() {
     return { label: 'Current', color: 'bg-[#12A5A9]/15 text-[#12A5A9]' }
   }
 
-  if (loading) return (
-    <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center">
-      <div className="text-white/50">Loading...</div>
-    </div>
-  )
-
-  if (!property) return null
-
   return (
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
@@ -204,6 +198,19 @@ export default function PropertyCompliancePage() {
       </nav>
 
       <main className="max-w-2xl mx-auto px-6 py-10 pb-28">
+        {loading ? (
+          <div className="space-y-4">
+            <div className="mb-8">
+              <Skeleton className="h-7 w-40 mb-2" />
+              <Skeleton className="h-4 w-56" />
+            </div>
+            <Skeleton className="h-52 mb-6" />
+            <Skeleton className="h-5 w-24 mb-4" />
+            <Skeleton className="h-20" />
+            <Skeleton className="h-20" />
+          </div>
+        ) : !property ? null : (
+        <>
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-white">Compliance</h1>
           <p className="text-white/50 text-sm mt-1">{property.address}</p>
@@ -295,7 +302,9 @@ export default function PropertyCompliancePage() {
                     <div className="min-w-0">
                       <h3 className="text-white font-semibold truncate">{item.item_type}</h3>
                       <div className="flex items-center gap-2 flex-wrap mt-2">
-                        <span className={`text-xs rounded-full px-2.5 py-0.5 ${status.color}`}>
+                        <span className={`inline-flex items-center gap-1 text-xs rounded-full px-2.5 py-0.5 ${status.color}`}>
+                          {status.label === 'Expired' && <AlertTriangleIcon className="w-3 h-3" />}
+                          {status.label === 'Current' && <CheckCircleIcon className="w-3 h-3" />}
                           {status.label}
                         </span>
                         {item.expiry_date && (
@@ -349,6 +358,8 @@ export default function PropertyCompliancePage() {
               )
             })}
           </div>
+        )}
+        </>
         )}
       </main>
 

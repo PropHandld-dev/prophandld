@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
+import { AlertTriangleIcon } from '@/components/icons'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 
 const CATEGORIES = [
@@ -200,7 +201,7 @@ export default function NewLandlordJobPage() {
                     <button
                       type="button"
                       onClick={() => removeFile(i)}
-                      className="absolute top-1 right-1 bg-black/60 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center hover:bg-black/80 transition"
+                      className="absolute top-1 right-1 bg-black/60 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center hover:bg-black/80 transition-all"
                     >
                       ×
                     </button>
@@ -210,13 +211,14 @@ export default function NewLandlordJobPage() {
             )}
           </div>
 
-          <label className="flex items-center gap-3 bg-white/3 border border-white/8 rounded-xl p-4 cursor-pointer">
+          <label className="flex items-center gap-3 bg-white/3 border border-white/8 rounded-xl p-4 cursor-pointer hover:bg-white/5 transition-all">
             <input
               type="checkbox"
               checked={form.is_emergency}
               onChange={(e) => setForm({ ...form, is_emergency: e.target.checked })}
               className="w-4 h-4"
             />
+            <AlertTriangleIcon className="w-4 h-4 text-yellow-400 shrink-0" />
             <span className="text-white text-sm">Mark as emergency</span>
           </label>
 

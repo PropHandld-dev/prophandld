@@ -6,6 +6,8 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { notify } from '@/lib/notify'
 import { BottomTabBar } from '@/components/BottomTabBar'
+import { Skeleton } from '@/components/Skeleton'
+import { WrenchIcon } from '@/components/icons'
 import { CONTRACTOR_TABS } from '@/lib/navTabs'
 
 export default function SubmitBidPage() {
@@ -136,8 +138,26 @@ export default function SubmitBidPage() {
   }
 
   if (loading) return (
-    <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center">
-      <div className="text-white/50">Loading...</div>
+    <div className="min-h-screen bg-[#0C1A2E]">
+      <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
+        <Link href="/contractor" className="text-white/50 hover:text-white text-sm transition">
+          ← Dashboard
+        </Link>
+        <span className="text-white font-semibold text-sm">Prophandld</span>
+        <div className="w-20" />
+      </nav>
+      <main className="max-w-xl mx-auto px-6 py-10 pb-28">
+        <Skeleton className="h-8 w-48 mb-2" />
+        <Skeleton className="h-28 mb-4" />
+        <Skeleton className="h-4 w-56 mb-4" />
+        <div className="space-y-4">
+          <Skeleton className="h-14" />
+          <Skeleton className="h-14" />
+          <Skeleton className="h-14" />
+          <Skeleton className="h-24" />
+        </div>
+      </main>
+      <BottomTabBar tabs={CONTRACTOR_TABS} />
     </div>
   )
 
@@ -177,8 +197,9 @@ export default function SubmitBidPage() {
                 {job.address}, {job.city}, {job.state} · Unit {job.unit_number}
               </p>
               {linkedSystem && (
-                <p className="text-[#12A5A9] text-xs mt-1">
-                  🔧 {linkedSystem.name}
+                <p className="text-[#12A5A9] text-xs mt-1 flex items-center gap-1">
+                  <WrenchIcon className="w-3 h-3" />
+                  {linkedSystem.name}
                   {linkedSystem.brand && ` — ${linkedSystem.brand}`}
                   {linkedSystem.install_date && `, installed ${new Date(linkedSystem.install_date + 'T00:00:00').getFullYear()}`}
                 </p>

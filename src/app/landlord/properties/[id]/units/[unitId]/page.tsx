@@ -5,6 +5,8 @@ import { supabase } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
+import { Skeleton } from '@/components/Skeleton'
+import { DollarSignIcon, CalendarIcon, UserIcon, CheckCircleIcon } from '@/components/icons'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 
 const IN_PROGRESS_STATUSES = ['pending_approval', 'approved', 'bidding', 'bid_selected', 'scheduled', 'in_progress']
@@ -25,6 +27,18 @@ export default function UnitDetailPage() {
   const [moveOutSuccess, setMoveOutSuccess] = useState(false)
   const [openJobs, setOpenJobs] = useState<any[]>([])
   const [jobHistory, setJobHistory] = useState<any[]>([])
+
+  const [editingTenancy, setEditingTenancy] = useState(false)
+  const [savingTenancy, setSavingTenancy] = useState(false)
+  const [tenancyEditError, setTenancyEditError] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState({
+    rent_amount: '',
+    escalation_percent: '',
+    escalation_frequency_months: '',
+    occupants: '',
+    pets: '',
+    lease_notes: '',
+  })
 
   const fetchUnit = async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -148,6 +162,62 @@ export default function UnitDetailPage() {
     await fetchUnit()
   }
 
+  const openTenancyEdit = () => {
+    setEditForm({
+      rent_amount: tenancy.rent_amount?.toString() || '',
+      escalation_percent: tenancy.escalation_percent?.toString() || '',
+      escalation_frequency_months: tenancy.escalation_frequency_months?.toString() || '',
+      occupants: tenancy.occupants?.toString() || '',
+      pets: tenancy.pets || '',
+      lease_notes: tenancy.lease_notes || '',
+    })
+    setTenancyEditError(null)
+    setEditingTenancy(true)
+  }
+
+  const handleEditFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setEditForm({ ...editForm, [e.target.name]: e.target.value })
+  }
+
+  const handleSaveTenancy = async () => {
+    setSavingTenancy(true)
+    setTenancyEditError(null)
+
+    const { error: updateError } = await supabase
+      .from('tenancies')
+      .update({
+        rent_amount: editForm.rent_amount ? parseFloat(editForm.rent_amount) : null,
+        escalation_percent: editForm.escalation_percent ? parseFloat(editForm.escalation_percent) : null,
+        escalation_frequency_months: editForm.escalation_frequency_months ? parseInt(editForm.escalation_frequency_months) : null,
+        occupants: editForm.occupants ? parseInt(editForm.occupants) : null,
+        pets: editForm.pets.trim() || null,
+        lease_notes: editForm.lease_notes.trim() || null,
+      })
+      .eq('id', tenancy.id)
+
+    if (updateError) {
+      console.error('Error updating tenancy:', updateError)
+      setTenancyEditError('Could not save changes.')
+      setSavingTenancy(false)
+      return
+    }
+
+    setEditingTenancy(false)
+    setSavingTenancy(false)
+    await fetchUnit()
+  }
+
+  const nextEscalationDate = (leaseStart: string | null, frequencyMonths: number | null) => {
+    if (!leaseStart || !frequencyMonths) return null
+    const start = new Date(leaseStart + 'T00:00:00')
+    const now = new Date()
+    const next = new Date(start)
+    while (next <= now) {
+      next.setMonth(next.getMonth() + frequencyMonths)
+    }
+    return next
+  }
+
   const statusLabel = (status: string) => {
     const labels: Record<string, string> = {
       pending_approval: 'Needs approval',
@@ -162,14 +232,6 @@ export default function UnitDetailPage() {
     }
     return labels[status] || status
   }
-
-  if (loading) return (
-    <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center">
-      <div className="text-white/50">Loading...</div>
-    </div>
-  )
-
-  if (!unit) return null
 
   return (
     <div className="min-h-screen bg-[#0C1A2E]">
@@ -186,6 +248,18 @@ export default function UnitDetailPage() {
 
       <main className="max-w-2xl mx-auto px-6 py-10 pb-28">
 
+        {loading || !unit ? (
+          <div className="space-y-6">
+            <div>
+              <Skeleton className="h-7 w-40 mb-2" />
+              <Skeleton className="h-4 w-24" />
+            </div>
+            <Skeleton className="h-48" />
+            <Skeleton className="h-32" />
+            <Skeleton className="h-32" />
+          </div>
+        ) : (
+        <>
         {/* Unit header */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-white">{unit.unit_number}</h1>
@@ -194,9 +268,10 @@ export default function UnitDetailPage() {
         </div>
 
         {moveOutSuccess && (
-          <div className="bg-[#0A7B7E]/15 border border-[#12A5A9]/30 rounded-xl px-4 py-3 mb-4">
+          <div className="bg-[#0A7B7E]/15 border border-[#12A5A9]/30 rounded-xl px-4 py-3 mb-4 flex items-center gap-2">
+            <CheckCircleIcon className="w-4 h-4 text-[#12A5A9] shrink-0" />
             <p className="text-[#12A5A9] text-sm font-medium">
-              ✓ Tenancy ended. This unit is now marked vacant.
+              Tenancy ended. This unit is now marked vacant.
             </p>
           </div>
         )}
@@ -212,6 +287,14 @@ export default function UnitDetailPage() {
               >
                 + Link renter
               </Link>
+            )}
+            {tenancy && !editingTenancy && (
+              <button
+                onClick={openTenancyEdit}
+                className="text-[#12A5A9] text-xs font-semibold hover:underline"
+              >
+                Edit
+              </button>
             )}
           </div>
 
@@ -234,13 +317,133 @@ export default function UnitDetailPage() {
                 <p className="text-white/40 text-sm">📞 {tenancy.users.phone}</p>
               )}
               {tenancy.rent_amount && (
-                <p className="text-white/40 text-sm">💰 ${tenancy.rent_amount}/month</p>
+                <p className="text-white/40 text-sm flex items-center gap-1.5">
+                  <DollarSignIcon className="w-3.5 h-3.5 text-white/40" />
+                  ${tenancy.rent_amount}/month
+                </p>
               )}
               {tenancy.lease_start && (
-                <p className="text-white/40 text-sm">
-                  📅 {new Date(tenancy.lease_start).toLocaleDateString()} 
+                <p className="text-white/40 text-sm flex items-center gap-1.5">
+                  <CalendarIcon className="w-3.5 h-3.5 text-white/40" />
+                  {new Date(tenancy.lease_start).toLocaleDateString()}
                   {tenancy.lease_end ? ` → ${new Date(tenancy.lease_end).toLocaleDateString()}` : ' → ongoing'}
                 </p>
+              )}
+
+              {!editingTenancy && tenancy.escalation_percent && tenancy.escalation_frequency_months && (
+                <p className="text-white/40 text-sm">
+                  📈 +{tenancy.escalation_percent}% every {tenancy.escalation_frequency_months} months
+                  {tenancy.lease_start && (() => {
+                    const next = nextEscalationDate(tenancy.lease_start, tenancy.escalation_frequency_months)
+                    return next ? ` — next due ${next.toLocaleDateString()}` : ''
+                  })()}
+                </p>
+              )}
+
+              {!editingTenancy && tenancy.occupants && (
+                <p className="text-white/40 text-sm flex items-center gap-1.5">
+                  <UserIcon className="w-3.5 h-3.5 text-white/40" />
+                  {tenancy.occupants} occupant{tenancy.occupants === 1 ? '' : 's'}
+                </p>
+              )}
+
+              {!editingTenancy && tenancy.pets && (
+                <p className="text-white/40 text-sm">🐾 {tenancy.pets}</p>
+              )}
+
+              {!editingTenancy && tenancy.lease_notes && (
+                <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 mt-2">
+                  <p className="text-white/50 text-sm">{tenancy.lease_notes}</p>
+                </div>
+              )}
+
+              {editingTenancy && (
+                <div className="bg-white/5 border border-white/10 rounded-xl p-4 mt-2 space-y-3">
+                  <div>
+                    <label className="text-white/70 text-xs block mb-1">Monthly rent ($)</label>
+                    <input
+                      type="number"
+                      name="rent_amount"
+                      value={editForm.rent_amount}
+                      onChange={handleEditFormChange}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#12A5A9] transition"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-white/70 text-xs block mb-1">Escalation (%)</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        name="escalation_percent"
+                        value={editForm.escalation_percent}
+                        onChange={handleEditFormChange}
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#12A5A9] transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-white/70 text-xs block mb-1">Every (months)</label>
+                      <input
+                        type="number"
+                        name="escalation_frequency_months"
+                        value={editForm.escalation_frequency_months}
+                        onChange={handleEditFormChange}
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#12A5A9] transition"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-white/70 text-xs block mb-1">Occupants</label>
+                    <input
+                      type="number"
+                      name="occupants"
+                      value={editForm.occupants}
+                      onChange={handleEditFormChange}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#12A5A9] transition"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-white/70 text-xs block mb-1">Pets</label>
+                    <input
+                      type="text"
+                      name="pets"
+                      value={editForm.pets}
+                      onChange={handleEditFormChange}
+                      placeholder="e.g. 1 dog (Labrador)"
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-white/70 text-xs block mb-1">Lease notes</label>
+                    <textarea
+                      name="lease_notes"
+                      value={editForm.lease_notes}
+                      onChange={handleEditFormChange}
+                      rows={3}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#12A5A9] transition resize-none"
+                    />
+                  </div>
+                  {tenancyEditError && (
+                    <div className="bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2 text-red-400 text-xs">
+                      {tenancyEditError}
+                    </div>
+                  )}
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={handleSaveTenancy}
+                      disabled={savingTenancy}
+                      className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
+                    >
+                      {savingTenancy ? 'Saving...' : 'Save'}
+                    </button>
+                    <button
+                      onClick={() => setEditingTenancy(false)}
+                      className="text-white/40 text-xs hover:text-white transition"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
               )}
 
               {tenancy.move_out_date && (
@@ -351,9 +554,9 @@ export default function UnitDetailPage() {
           {openJobs.length === 0 ? (
             <p className="text-white/30 text-sm">No open jobs for this unit.</p>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-1">
               {openJobs.map((job) => (
-                <Link key={job.id} href={`/landlord/jobs/${job.id}`} className="block border-b border-white/5 last:border-0 pb-3 last:pb-0 hover:opacity-80 transition">
+                <Link key={job.id} href={`/landlord/jobs/${job.id}`} className="block rounded-xl px-2 -mx-2 py-3 border-b border-white/5 last:border-0 hover:bg-white/5 transition-all">
                   <div className="flex items-center gap-2 flex-wrap mb-1">
                     <p className="text-white font-medium text-sm">{job.category}</p>
                     {job.is_emergency && (
@@ -376,9 +579,9 @@ export default function UnitDetailPage() {
           {jobHistory.length === 0 ? (
             <p className="text-white/30 text-sm">No completed jobs yet.</p>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-1">
               {jobHistory.map((job) => (
-                <Link key={job.id} href={`/landlord/jobs/${job.id}`} className="block border-b border-white/5 last:border-0 pb-3 last:pb-0 hover:opacity-80 transition">
+                <Link key={job.id} href={`/landlord/jobs/${job.id}`} className="block rounded-xl px-2 -mx-2 py-3 border-b border-white/5 last:border-0 hover:bg-white/5 transition-all">
                   <p className="text-white font-medium text-sm">{job.category}</p>
                   <p className="text-white/50 text-xs">{job.description}</p>
                   <p className="text-white/30 text-xs mt-1">{statusLabel(job.status)}</p>
@@ -401,6 +604,8 @@ export default function UnitDetailPage() {
           </div>
           <p className="text-white/30 text-sm">Track major systems (HVAC, water heater, roof, panel) with service history and replacement cost.</p>
         </div>
+        </>
+        )}
 
       </main>
 

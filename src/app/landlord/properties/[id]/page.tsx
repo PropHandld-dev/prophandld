@@ -5,6 +5,8 @@ import { supabase } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
+import { Skeleton } from '@/components/Skeleton'
+import { BuildingIcon, UserIcon, FileTextIcon, ClipboardListIcon } from '@/components/icons'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 
 export default function PropertyDetailPage() {
@@ -143,14 +145,6 @@ export default function PropertyDetailPage() {
     await fetchProperty()
   }
 
-  if (loading) return (
-    <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center">
-      <div className="text-white/50">Loading...</div>
-    </div>
-  )
-
-  if (!property) return null
-
   const occupiedCount = occupiedUnitIds.size
   const vacantCount = units.length - occupiedCount
 
@@ -171,14 +165,37 @@ export default function PropertyDetailPage() {
 
       <main className="max-w-4xl mx-auto px-6 py-10 pb-28">
 
+        {loading || !property ? (
+          <div className="space-y-6">
+            <div className="flex items-start justify-between">
+              <div>
+                <Skeleton className="h-7 w-56 mb-2" />
+                <Skeleton className="h-4 w-40" />
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              {[0, 1, 2].map((i) => <Skeleton key={i} className="h-16" />)}
+            </div>
+            <Skeleton className="h-5 w-24" />
+            <div className="grid gap-3">
+              {[0, 1, 2].map((i) => <Skeleton key={i} className="h-20" />)}
+            </div>
+          </div>
+        ) : (
+        <>
         {/* Property header */}
         <div className="mb-8 flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-white">{property.address}</h1>
-            <p className="text-white/50 mt-1">{property.city}, {property.state} {property.zip}</p>
-            <span className="text-xs bg-white/8 text-white/60 rounded-full px-3 py-1 capitalize inline-block mt-2">
-              {property.property_type}
-            </span>
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#0A7B7E]/20 flex items-center justify-center shrink-0 mt-0.5">
+              <BuildingIcon className="w-5 h-5 text-[#12A5A9]" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-white">{property.address}</h1>
+              <p className="text-white/50 mt-1">{property.city}, {property.state} {property.zip}</p>
+              <span className="text-xs bg-white/8 text-white/60 rounded-full px-3 py-1 capitalize inline-block mt-2">
+                {property.property_type}
+              </span>
+            </div>
           </div>
           <Link
             href={`/landlord/properties/${propertyId}/edit`}
@@ -238,7 +255,11 @@ export default function PropertyDetailPage() {
               return (
                 <div
                   key={unit.id}
-                  className="bg-white/3 border border-white/8 rounded-2xl p-5"
+                  className={
+                    isEditing
+                      ? 'bg-white/3 border border-white/8 rounded-2xl p-5'
+                      : 'bg-white/3 border border-white/8 rounded-2xl p-5 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all'
+                  }
                 >
                   <div className="flex items-center justify-between gap-4">
                     {isEditing ? (
@@ -267,7 +288,7 @@ export default function PropertyDetailPage() {
                     ) : (
                       <Link
                         href={`/landlord/properties/${propertyId}/units/${unit.id}`}
-                        className="flex-1 hover:opacity-80 transition"
+                        className="flex-1"
                       >
                         <h3 className="text-white font-semibold">{unit.unit_number}</h3>
                         <p className="text-white/30 text-sm mt-1">{isOccupied ? 'Occupied' : 'Vacant'}</p>
@@ -310,7 +331,10 @@ export default function PropertyDetailPage() {
         {/* Emergency contacts */}
         <div className="mt-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-white font-semibold">Emergency contacts</h2>
+            <h2 className="text-white font-semibold flex items-center gap-2">
+              <UserIcon className="w-4 h-4 text-white/40" />
+              Emergency contacts
+            </h2>
             <Link
               href={`/landlord/properties/${propertyId}/contacts`}
               className="text-[#12A5A9] text-sm hover:underline"
@@ -326,7 +350,10 @@ export default function PropertyDetailPage() {
         {/* Documents */}
         <div className="mt-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-white font-semibold">Documents</h2>
+            <h2 className="text-white font-semibold flex items-center gap-2">
+              <FileTextIcon className="w-4 h-4 text-white/40" />
+              Documents
+            </h2>
             <Link
               href={`/landlord/properties/${propertyId}/documents`}
               className="text-[#12A5A9] text-sm hover:underline"
@@ -342,7 +369,10 @@ export default function PropertyDetailPage() {
         {/* Compliance */}
         <div className="mt-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-white font-semibold">Compliance</h2>
+            <h2 className="text-white font-semibold flex items-center gap-2">
+              <ClipboardListIcon className="w-4 h-4 text-white/40" />
+              Compliance
+            </h2>
             <Link
               href={`/landlord/properties/${propertyId}/compliance`}
               className="text-[#12A5A9] text-sm hover:underline"
@@ -354,6 +384,8 @@ export default function PropertyDetailPage() {
             <p className="text-white/30 text-sm">Rental license, lead certification, and inspection expiry tracking.</p>
           </div>
         </div>
+        </>
+        )}
 
       </main>
 

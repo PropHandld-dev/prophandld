@@ -5,6 +5,8 @@ import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
+import { Skeleton } from '@/components/Skeleton'
+import { BuildingIcon } from '@/components/icons'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 
 export default function PropertiesPage() {
@@ -53,11 +55,8 @@ export default function PropertiesPage() {
     await fetchProperties(showArchived)
   }
 
-  if (loading) return (
-    <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center">
-      <div className="text-white/50">Loading...</div>
-    </div>
-  )
+  const activeCount = properties.filter((p) => !p.archived).length
+  const archivedCount = properties.filter((p) => p.archived).length
 
   return (
     <div className="min-h-screen bg-[#0C1A2E]">
@@ -75,70 +74,108 @@ export default function PropertiesPage() {
       </nav>
 
       <main className="max-w-4xl mx-auto px-6 py-10 pb-28">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-2xl font-bold text-white">Your properties</h1>
-          <button
-            onClick={() => setShowArchived(!showArchived)}
-            className="text-white/40 hover:text-white text-sm transition"
-          >
-            {showArchived ? 'Hide archived' : 'Show archived'}
-          </button>
-        </div>
 
-        {properties.length === 0 ? (
-          <div className="bg-white/3 border border-white/8 rounded-2xl p-12 text-center">
-            <div className="text-4xl mb-4">🏠</div>
-            <h3 className="text-white font-semibold mb-2">
-              {showArchived ? 'No archived properties' : 'No properties yet'}
-            </h3>
-            {!showArchived && (
-              <>
-                <p className="text-white/40 text-sm mb-6">Add your first property to get started.</p>
-                <Link
-                  href="/landlord/properties/new"
-                  className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-6 py-3 rounded-xl hover:opacity-90 transition inline-block"
-                >
-                  Add property
-                </Link>
-              </>
-            )}
+        {loading ? (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <Skeleton className="h-8 w-48" />
+              <Skeleton className="h-4 w-24" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <Skeleton className="h-20" />
+              <Skeleton className="h-20" />
+            </div>
+            <div className="grid gap-4">
+              {[0, 1, 2].map((i) => <Skeleton key={i} className="h-28" />)}
+            </div>
           </div>
         ) : (
-          <div className="grid gap-4">
-            {properties.map((property) => (
-              <div
-                key={property.id}
-                className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 transition"
+          <>
+            <div className="flex items-center justify-between mb-8">
+              <h1 className="text-2xl font-bold text-white">Your properties</h1>
+              <button
+                onClick={() => setShowArchived(!showArchived)}
+                className="text-white/40 hover:text-white text-sm transition"
               >
-                <div className="flex items-start justify-between">
-                  <Link href={`/landlord/properties/${property.id}`} className="flex-1">
-                    <h3 className="text-white font-semibold text-lg">{property.address}</h3>
-                    <p className="text-white/50 text-sm mt-1">{property.city}, {property.state} {property.zip}</p>
-                    <div className="flex items-center gap-3 mt-3">
-                      <span className="text-xs bg-white/8 text-white/60 rounded-full px-3 py-1 capitalize">{property.property_type}</span>
-                      {property.archived && (
-                        <span className="text-xs bg-yellow-500/10 text-yellow-400/70 border border-yellow-500/20 rounded-full px-3 py-1">
-                          Archived
-                        </span>
-                      )}
-                    </div>
-                  </Link>
-                  <div className="flex items-center gap-4">
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault()
-                        handleArchiveToggle(property.id, property.archived)
-                      }}
-                      className="text-white/40 hover:text-white text-xs transition"
-                    >
-                      {property.archived ? 'Unarchive' : 'Archive'}
-                    </button>
-                    <Link href={`/landlord/properties/${property.id}`} className="text-white/30 text-xl">→</Link>
+                {showArchived ? 'Hide archived' : 'Show archived'}
+              </button>
+            </div>
+
+            {properties.length > 0 && (
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
+                  <div className="flex items-center justify-between mb-2">
+                    <BuildingIcon className="w-5 h-5 text-[#12A5A9]" />
                   </div>
+                  <div className="text-2xl font-bold text-white">{activeCount}</div>
+                  <div className="text-white/40 text-sm mt-1">Active properties</div>
+                </div>
+                <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
+                  <div className="flex items-center justify-between mb-2">
+                    <BuildingIcon className="w-5 h-5 text-white/40" />
+                  </div>
+                  <div className="text-2xl font-bold text-white">{archivedCount}</div>
+                  <div className="text-white/40 text-sm mt-1">Archived</div>
                 </div>
               </div>
-            ))}
-          </div>
+            )}
+
+            {properties.length === 0 ? (
+              <div className="bg-white/3 border border-white/8 rounded-2xl p-12 text-center">
+                <BuildingIcon className="w-10 h-10 text-white/30 mx-auto mb-4" />
+                <h3 className="text-white font-semibold mb-2">
+                  {showArchived ? 'No archived properties' : 'No properties yet'}
+                </h3>
+                {!showArchived && (
+                  <>
+                    <p className="text-white/40 text-sm mb-6">Add your first property to get started.</p>
+                    <Link
+                      href="/landlord/properties/new"
+                      className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-6 py-3 rounded-xl hover:opacity-90 transition inline-block"
+                    >
+                      Add property
+                    </Link>
+                  </>
+                )}
+              </div>
+            ) : (
+              <div className="grid gap-4">
+                {properties.map((property) => (
+                  <div
+                    key={property.id}
+                    className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all"
+                  >
+                    <div className="flex items-start justify-between">
+                      <Link href={`/landlord/properties/${property.id}`} className="flex-1">
+                        <h3 className="text-white font-semibold text-lg">{property.address}</h3>
+                        <p className="text-white/50 text-sm mt-1">{property.city}, {property.state} {property.zip}</p>
+                        <div className="flex items-center gap-3 mt-3">
+                          <span className="text-xs bg-white/8 text-white/60 rounded-full px-3 py-1 capitalize">{property.property_type}</span>
+                          {property.archived && (
+                            <span className="text-xs bg-yellow-500/10 text-yellow-400/70 border border-yellow-500/20 rounded-full px-3 py-1">
+                              Archived
+                            </span>
+                          )}
+                        </div>
+                      </Link>
+                      <div className="flex items-center gap-4">
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault()
+                            handleArchiveToggle(property.id, property.archived)
+                          }}
+                          className="text-white/40 hover:text-white text-xs transition"
+                        >
+                          {property.archived ? 'Unarchive' : 'Archive'}
+                        </button>
+                        <Link href={`/landlord/properties/${property.id}`} className="text-white/30 text-xl">→</Link>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </main>
 

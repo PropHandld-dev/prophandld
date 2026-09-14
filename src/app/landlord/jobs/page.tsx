@@ -5,6 +5,8 @@ import { supabase } from '@/lib/supabase'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
+import { Skeleton } from '@/components/Skeleton'
+import { CheckCircleIcon, ClipboardListIcon } from '@/components/icons'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 
 const FILTERS = [
@@ -190,8 +192,24 @@ function LandlordJobsList() {
   }
 
   if (loading) return (
-    <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center">
-      <div className="text-white/50">Loading...</div>
+    <div className="min-h-screen bg-[#0C1A2E]">
+      <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
+        <Link href="/landlord" className="text-white/50 hover:text-white text-sm transition">
+          ← Dashboard
+        </Link>
+        <span className="text-white font-semibold text-sm">Prophandld</span>
+        <div className="w-24" />
+      </nav>
+      <main className="max-w-4xl mx-auto px-6 py-10 pb-28">
+        <Skeleton className="h-8 w-24 mb-6" />
+        <div className="flex flex-wrap gap-2 mb-8">
+          {[0, 1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-9 w-24 rounded-full" />)}
+        </div>
+        <div className="grid gap-3">
+          {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-24" />)}
+        </div>
+      </main>
+      <BottomTabBar tabs={LANDLORD_TABS} />
     </div>
   )
 
@@ -232,12 +250,13 @@ function LandlordJobsList() {
 
         {filteredJobs.length === 0 ? (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-12 text-center">
+            <ClipboardListIcon className="w-8 h-8 text-white/30 mx-auto mb-3" />
             <p className="text-white/40 text-sm">No jobs in this view.</p>
           </div>
         ) : (
           <div className="grid gap-3">
             {filteredJobs.map((job) => (
-              <div key={job.id} className="bg-white/3 border border-white/8 rounded-2xl p-5 hover:border-[#12A5A9]/30 hover:bg-white/5 transition">
+              <div key={job.id} className="bg-white/3 border border-white/8 rounded-2xl p-5 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all">
                 <div className="flex items-start justify-between gap-4">
                   <Link href={`/landlord/jobs/${job.id}`} className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-1.5">
@@ -285,7 +304,9 @@ function LandlordJobsList() {
       {showBiddingModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
           <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
-            <h3 className="text-white font-semibold mb-2">Job acknowledged ✓</h3>
+            <h3 className="text-white font-semibold mb-2 flex items-center gap-1.5">
+              <CheckCircleIcon className="w-4 h-4 text-[#12A5A9]" /> Job acknowledged
+            </h3>
             <p className="text-white/50 text-sm mb-6">
               Let contractors within range start submitting sealed bids on this job?
             </p>
@@ -351,8 +372,11 @@ function LandlordJobsList() {
 export default function LandlordJobsPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center">
-        <div className="text-white/50">Loading...</div>
+      <div className="min-h-screen bg-[#0C1A2E]">
+        <main className="max-w-4xl mx-auto px-6 py-10 pb-28">
+          <Skeleton className="h-8 w-24 mb-6" />
+          <Skeleton className="h-24" />
+        </main>
       </div>
     }>
       <LandlordJobsList />

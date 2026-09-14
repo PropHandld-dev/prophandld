@@ -21,9 +21,14 @@ export default function NewTenancyPage() {
     lease_start: '',
     lease_end: '',
     security_deposit: '',
+    escalation_percent: '',
+    escalation_frequency_months: '',
+    occupants: '',
+    pets: '',
+    lease_notes: '',
   })
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })
   }
 
@@ -52,6 +57,11 @@ export default function NewTenancyPage() {
         lease_start: form.lease_start || null,
         lease_end: form.lease_end || null,
         security_deposit: form.security_deposit ? parseFloat(form.security_deposit) : null,
+        escalation_percent: form.escalation_percent ? parseFloat(form.escalation_percent) : null,
+        escalation_frequency_months: form.escalation_frequency_months ? parseInt(form.escalation_frequency_months) : null,
+        occupants: form.occupants ? parseInt(form.occupants) : null,
+        pets: form.pets.trim() || null,
+        lease_notes: form.lease_notes.trim() || null,
       })
 
     if (tenancyError) {
@@ -143,6 +153,68 @@ export default function NewTenancyPage() {
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
               />
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-white/70 text-sm block mb-1">Rent escalation (%)</label>
+              <input
+                type="number"
+                step="0.1"
+                name="escalation_percent"
+                value={form.escalation_percent}
+                onChange={handleChange}
+                placeholder="4"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+              />
+            </div>
+            <div>
+              <label className="text-white/70 text-sm block mb-1">Every (months)</label>
+              <input
+                type="number"
+                name="escalation_frequency_months"
+                value={form.escalation_frequency_months}
+                onChange={handleChange}
+                placeholder="12"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-white/70 text-sm block mb-1">Occupants</label>
+            <input
+              type="number"
+              name="occupants"
+              value={form.occupants}
+              onChange={handleChange}
+              placeholder="2"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+            />
+          </div>
+
+          <div>
+            <label className="text-white/70 text-sm block mb-1">Pets</label>
+            <input
+              type="text"
+              name="pets"
+              value={form.pets}
+              onChange={handleChange}
+              placeholder="e.g. 1 dog (Labrador)"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+            />
+          </div>
+
+          <div>
+            <label className="text-white/70 text-sm block mb-1">Lease notes</label>
+            <textarea
+              name="lease_notes"
+              value={form.lease_notes}
+              onChange={handleChange}
+              rows={3}
+              placeholder="Anything else worth noting about this lease"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition resize-none"
+            />
           </div>
 
           {error && (

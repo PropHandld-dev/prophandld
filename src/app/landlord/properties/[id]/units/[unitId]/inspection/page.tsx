@@ -5,6 +5,8 @@ import { supabase } from '@/lib/supabase'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
+import { Skeleton } from '@/components/Skeleton'
+import { CheckCircleIcon } from '@/components/icons'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 
 export default function InspectionPage() {
@@ -199,12 +201,6 @@ export default function InspectionPage() {
     setInspection({ ...inspection, status: 'completed', completed_at: new Date().toISOString() })
   }
 
-  if (loading) return (
-    <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center">
-      <div className="text-white/50">Loading...</div>
-    </div>
-  )
-
   const title = inspectionType === 'move_out' ? 'Move-out inspection' : 'Move-in inspection'
   const subtitle = inspectionType === 'move_out'
     ? "Document the unit's condition with timestamped photos after move-out."
@@ -224,6 +220,20 @@ export default function InspectionPage() {
       </nav>
 
       <main className="max-w-2xl mx-auto px-6 py-10 pb-28">
+        {loading ? (
+          <div className="space-y-4">
+            <div className="mb-8">
+              <Skeleton className="h-7 w-56 mb-2" />
+              <Skeleton className="h-4 w-72" />
+            </div>
+            <Skeleton className="h-32" />
+            <div className="grid grid-cols-2 gap-3">
+              <Skeleton className="h-40" />
+              <Skeleton className="h-40" />
+            </div>
+          </div>
+        ) : (
+        <>
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-white">{title}</h1>
           <p className="text-white/50 text-sm mt-1">{subtitle}</p>
@@ -249,9 +259,10 @@ export default function InspectionPage() {
           <>
             <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
               {inspection.status === 'completed' && (
-                <div className="bg-[#0A7B7E]/15 border border-[#12A5A9]/30 rounded-xl px-4 py-3 mb-4">
+                <div className="bg-[#0A7B7E]/15 border border-[#12A5A9]/30 rounded-xl px-4 py-3 mb-4 flex items-center gap-2">
+                  <CheckCircleIcon className="w-4 h-4 text-[#12A5A9] shrink-0" />
                   <p className="text-[#12A5A9] text-sm font-medium">
-                    ✓ Inspection completed and saved
+                    Inspection completed and saved
                     {inspection.completed_at && ` on ${new Date(inspection.completed_at).toLocaleString()}`}
                   </p>
                 </div>
@@ -303,7 +314,7 @@ export default function InspectionPage() {
               ) : (
                 <div className="grid grid-cols-2 gap-3">
                   {photos.map((photo) => (
-                    <div key={photo.id} className="bg-white/3 border border-white/8 rounded-xl overflow-hidden">
+                    <div key={photo.id} className="bg-white/3 border border-white/8 rounded-xl overflow-hidden hover:border-[#12A5A9]/30 transition-all">
                       <img
                         src={photo.displayUrl}
                         alt="Inspection photo"
@@ -332,6 +343,8 @@ export default function InspectionPage() {
           >
             Done — back to unit
           </Link>
+        )}
+        </>
         )}
       </main>
 

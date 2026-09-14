@@ -7,6 +7,8 @@ import Link from 'next/link'
 import { PhotoGrid } from '@/components/PhotoGrid'
 import { notify } from '@/lib/notify'
 import { BottomTabBar } from '@/components/BottomTabBar'
+import { Skeleton } from '@/components/Skeleton'
+import { CheckCircleIcon } from '@/components/icons'
 import { RENTER_TABS } from '@/lib/navTabs'
 
 const TIME_WINDOWS = [
@@ -179,8 +181,23 @@ export default function RenterJobDetailPage() {
   const windowLabel = (w: string) => TIME_WINDOWS.find((t) => t.value === w)?.label || w
 
   if (loading) return (
-    <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center">
-      <div className="text-white/50">Loading...</div>
+    <div className="min-h-screen bg-[#0C1A2E]">
+      <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
+        <Link href="/renter" className="text-white/50 hover:text-white text-sm transition">
+          ← Dashboard
+        </Link>
+        <span className="text-white font-semibold text-sm">Prophandld</span>
+        <div className="w-20" />
+      </nav>
+      <main className="max-w-2xl mx-auto px-6 py-10 pb-28">
+        <div className="mb-6">
+          <Skeleton className="h-7 w-48 mb-2" />
+          <Skeleton className="h-4 w-64" />
+        </div>
+        <Skeleton className="h-32 mb-4" />
+        <Skeleton className="h-48" />
+      </main>
+      <BottomTabBar tabs={RENTER_TABS} />
     </div>
   )
 
@@ -255,7 +272,9 @@ export default function RenterJobDetailPage() {
               </div>
             ) : job.schedule_confirmed ? (
               <div className="bg-[#0A7B7E]/15 border border-[#12A5A9]/30 rounded-xl px-4 py-3">
-                <p className="text-[#12A5A9] text-sm font-medium">✓ Confirmed</p>
+                <p className="text-[#12A5A9] text-sm font-medium flex items-center gap-1.5">
+                  <CheckCircleIcon className="w-4 h-4" /> Confirmed
+                </p>
                 <p className="text-white text-sm mt-1">
                   {new Date(job.proposed_date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })} · {windowLabel(job.proposed_window)}
                   {job.proposed_time && ` · ${job.proposed_time}`}
@@ -388,7 +407,9 @@ export default function RenterJobDetailPage() {
       {showProposedModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
           <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full text-center">
-            <h3 className="text-white font-semibold mb-2">Time proposed ✓</h3>
+            <h3 className="text-white font-semibold mb-2 flex items-center justify-center gap-1.5">
+              <CheckCircleIcon className="w-4 h-4 text-[#12A5A9]" /> Time proposed
+            </h3>
             <p className="text-white/50 text-sm mb-5">We'll let you know once it's confirmed.</p>
             <button
               onClick={() => setShowProposedModal(false)}

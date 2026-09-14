@@ -7,6 +7,8 @@ import Link from 'next/link'
 import { PhotoGrid } from '@/components/PhotoGrid'
 import { notify } from '@/lib/notify'
 import { BottomTabBar } from '@/components/BottomTabBar'
+import { Skeleton } from '@/components/Skeleton'
+import { WrenchIcon, CheckCircleIcon } from '@/components/icons'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 
 const TIME_WINDOWS = [
@@ -25,6 +27,7 @@ export default function JobDetailPage() {
   const [job, setJob] = useState<any>(null)
   const [photos, setPhotos] = useState<any[]>([])
   const [bids, setBids] = useState<any[]>([])
+  const [verifiedContractorIds, setVerifiedContractorIds] = useState<Set<string>>(new Set())
   const [error, setError] = useState<string | null>(null)
   const [actioning, setActioning] = useState(false)
 
@@ -133,6 +136,17 @@ export default function JobDetailPage() {
           })
         )
         setBids(enrichedBids)
+
+        const { data: verifsData } = await supabase
+          .from('contractor_verifications')
+          .select('contractor_user_id, status')
+          .in('contractor_user_id', bidsData.map((b) => b.contractor_user_id))
+
+        if (verifsData) {
+          setVerifiedContractorIds(
+            new Set(verifsData.filter((v) => v.status === 'verified').map((v) => v.contractor_user_id))
+          )
+        }
       }
     }
 
@@ -497,8 +511,24 @@ export default function JobDetailPage() {
   const windowLabel = (w: string) => TIME_WINDOWS.find((t) => t.value === w)?.label || w
 
   if (loading) return (
-    <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center">
-      <div className="text-white/50">Loading...</div>
+    <div className="min-h-screen bg-[#0C1A2E]">
+      <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
+        <Link href="/landlord/jobs" className="text-white/50 hover:text-white text-sm transition">
+          ← Jobs
+        </Link>
+        <span className="text-white font-semibold text-sm">Prophandld</span>
+        <div className="w-20" />
+      </nav>
+      <main className="max-w-2xl mx-auto px-6 py-10 pb-28">
+        <div className="mb-6">
+          <Skeleton className="h-7 w-48 mb-2" />
+          <Skeleton className="h-4 w-64" />
+        </div>
+        <Skeleton className="h-36 mb-4" />
+        <Skeleton className="h-32 mb-4" />
+        <Skeleton className="h-48" />
+      </main>
+      <BottomTabBar tabs={LANDLORD_TABS} />
     </div>
   )
 
@@ -545,8 +575,9 @@ export default function JobDetailPage() {
                 {job.units?.properties?.address}, {job.units?.properties?.city} · Unit {job.units?.unit_number}
               </p>
               {job.maintenance_items && (
-                <p className="text-[#12A5A9] text-xs mt-1">
-                  🔧 {job.maintenance_items.name}
+                <p className="text-[#12A5A9] text-xs mt-1 flex items-center gap-1">
+                  <WrenchIcon className="w-3 h-3" />
+                  {job.maintenance_items.name}
                   {job.maintenance_items.brand && ` — ${job.maintenance_items.brand}`}
                   {job.maintenance_items.install_date && `, installed ${new Date(job.maintenance_items.install_date + 'T00:00:00').getFullYear()}`}
                 </p>
@@ -663,7 +694,7 @@ export default function JobDetailPage() {
         {job.status === 'pending_review' && (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-4 mb-4">
             <p className="text-white/40 text-xs">
-              ⏳ This will auto-approve within 3 days of the contractor marking it complete if you don't take action.
+              ⏳ This will auto-approve within 3 days of the contractor marking it complete if you don&apos;t take action.
             </p>
           </div>
         )}
@@ -680,7 +711,14 @@ export default function JobDetailPage() {
                 {bids.map((bid) => (
                   <div key={bid.id} className="bg-white/5 border border-white/10 rounded-xl p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-white font-semibold">{bid.contractor?.full_name || 'Unknown contractor'}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-white font-semibold">{bid.contractor?.full_name || 'Unknown contractor'}</p>
+                        {verifiedContractorIds.has(bid.contractor_user_id) && (
+                          <span className="text-xs bg-[#0A7B7E]/20 text-[#12A5A9] rounded-full px-2 py-0.5 font-semibold">
+                            Verified ✓
+                          </span>
+                        )}
+                      </div>
                       <p className="text-[#12A5A9] font-bold">${bid.amount}</p>
                     </div>
                     {bid.availability && <p className="text-white/50 text-xs">Availability: {bid.availability}</p>}
@@ -705,7 +743,14 @@ export default function JobDetailPage() {
             <h3 className="text-white font-semibold mb-3">Selected contractor</h3>
             {acceptedBid && (
               <div>
-                <p className="text-white font-semibold">{acceptedBid.contractor?.full_name}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-white font-semibold">{acceptedBid.contractor?.full_name}</p>
+                  {verifiedContractorIds.has(acceptedBid.contractor_user_id) && (
+                    <span className="text-xs bg-[#0A7B7E]/20 text-[#12A5A9] rounded-full px-2 py-0.5 font-semibold">
+                      Verified ✓
+                    </span>
+                  )}
+                </div>
                 {acceptedBid.price_change_status === 'pending' ? (
   <div className="mt-2 bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
     <p className="text-yellow-400 text-xs font-semibold mb-1">Price change requested</p>
@@ -771,7 +816,9 @@ export default function JobDetailPage() {
               </div>
             ) : job.schedule_confirmed ? (
               <div className="bg-[#0A7B7E]/15 border border-[#12A5A9]/30 rounded-xl px-4 py-3">
-                <p className="text-[#12A5A9] text-sm font-medium">✓ Confirmed</p>
+                <p className="text-[#12A5A9] text-sm font-medium flex items-center gap-1.5">
+                  <CheckCircleIcon className="w-4 h-4" /> Confirmed
+                </p>
                 <p className="text-white text-sm mt-1">
                   {new Date(job.proposed_date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })} · {windowLabel(job.proposed_window)}
                   {job.proposed_time && ` · ${job.proposed_time}`}
@@ -856,7 +903,9 @@ export default function JobDetailPage() {
       {showBiddingModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
           <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
-            <h3 className="text-white font-semibold mb-2">Job acknowledged ✓</h3>
+            <h3 className="text-white font-semibold mb-2 flex items-center gap-1.5">
+              <CheckCircleIcon className="w-4 h-4 text-[#12A5A9]" /> Job acknowledged
+            </h3>
             <p className="text-white/50 text-sm mb-6">
               Let contractors within range start submitting sealed bids on this job?
             </p>

@@ -6,6 +6,7 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { geocodeZip } from '@/lib/geocode'
 import { BottomTabBar } from '@/components/BottomTabBar'
+import { Skeleton } from '@/components/Skeleton'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 
 export default function EditPropertyPage() {
@@ -113,12 +114,6 @@ export default function EditPropertyPage() {
     router.push(`/landlord/properties/${propertyId}`)
   }
 
-  if (loading) return (
-    <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center">
-      <div className="text-white/50">Loading...</div>
-    </div>
-  )
-
   return (
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
@@ -133,6 +128,21 @@ export default function EditPropertyPage() {
       </nav>
 
       <main className="max-w-xl mx-auto px-6 py-10 pb-28">
+        {loading ? (
+          <div className="space-y-4">
+            <Skeleton className="h-8 w-48 mb-2" />
+            <Skeleton className="h-4 w-64 mb-6" />
+            <Skeleton className="h-14" />
+            <div className="grid grid-cols-2 gap-4">
+              <Skeleton className="h-14" />
+              <Skeleton className="h-14" />
+            </div>
+            <Skeleton className="h-14" />
+            <Skeleton className="h-14" />
+            <Skeleton className="h-12 w-full" />
+          </div>
+        ) : (
+        <>
         <h1 className="text-2xl font-bold text-white mb-2">Edit property</h1>
         <p className="text-white/50 text-sm mb-8">Update your property details below.</p>
 
@@ -220,6 +230,8 @@ export default function EditPropertyPage() {
           </button>
 
         </form>
+        </>
+        )}
       </main>
 
       <BottomTabBar tabs={LANDLORD_TABS} />

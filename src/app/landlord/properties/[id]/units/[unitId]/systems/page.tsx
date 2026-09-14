@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
+import { Skeleton } from '@/components/Skeleton'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 
 const ITEM_TYPES = [
@@ -267,14 +268,6 @@ export default function UnitSystemsPage() {
   const getTotalSpent = (itemId: string) =>
     logs.filter((l) => l.appliance_id === itemId).reduce((sum, l) => sum + (l.cost || 0), 0)
 
-  if (loading) return (
-    <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center">
-      <div className="text-white/50">Loading...</div>
-    </div>
-  )
-
-  if (!unit) return null
-
   return (
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
@@ -289,6 +282,19 @@ export default function UnitSystemsPage() {
       </nav>
 
       <main className="max-w-2xl mx-auto px-6 py-10 pb-28">
+        {loading ? (
+          <div className="space-y-4">
+            <div className="mb-8">
+              <Skeleton className="h-7 w-56 mb-2" />
+              <Skeleton className="h-4 w-32" />
+            </div>
+            <Skeleton className="h-72 mb-6" />
+            <Skeleton className="h-5 w-32 mb-4" />
+            <Skeleton className="h-24" />
+            <Skeleton className="h-24" />
+          </div>
+        ) : !unit ? null : (
+        <>
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-white">Systems & Appliances</h1>
           <p className="text-white/50 text-sm mt-1">Unit {unit.unit_number}</p>
@@ -552,6 +558,8 @@ export default function UnitSystemsPage() {
               )
             })}
           </div>
+        )}
+        </>
         )}
       </main>
 
