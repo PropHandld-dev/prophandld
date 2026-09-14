@@ -8,6 +8,8 @@ import { PhotoGrid } from '@/components/PhotoGrid'
 import { notify } from '@/lib/notify'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { Skeleton } from '@/components/Skeleton'
+import { ScrollReveal } from '@/components/ScrollReveal'
+import { RippleButton } from '@/components/RippleButton'
 import { CheckCircleIcon } from '@/components/icons'
 import { RENTER_TABS } from '@/lib/navTabs'
 
@@ -237,7 +239,7 @@ export default function RenterJobDetailPage() {
           </div>
         </div>
 
-        <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
+        <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
           <h2 className="text-white font-semibold mb-3">
             Status: <span className="text-[#12A5A9]">{statusLabel(job.status)}</span>
           </h2>
@@ -248,7 +250,7 @@ export default function RenterJobDetailPage() {
               {error}
             </div>
           )}
-        </div>
+        </ScrollReveal>
 
         {job.schedule_ask_tenant && !job.proposed_date && (
           <div className="bg-blue-500/10 border border-blue-400/30 rounded-2xl p-5 mb-4">
@@ -257,18 +259,18 @@ export default function RenterJobDetailPage() {
         )}
 
         {showSchedulingSection && (
-          <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
+          <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
             <h3 className="text-white font-semibold mb-4">Schedule</h3>
 
             {!job.proposed_date ? (
               <div className="text-center py-4">
                 <p className="text-white/30 text-sm mb-4">No appointment proposed yet.</p>
-                <button
+                <RippleButton
                   onClick={openScheduleModal}
                   className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition"
                 >
                   Propose a time
-                </button>
+                </RippleButton>
               </div>
             ) : job.schedule_confirmed ? (
               <div className="bg-[#0A7B7E]/15 border border-[#12A5A9]/30 rounded-xl px-4 py-3">
@@ -291,13 +293,13 @@ export default function RenterJobDetailPage() {
                 </p>
                 {isMyTurnToRespond ? (
                   <div className="flex items-center gap-3 mt-3">
-                    <button
+                    <RippleButton
                       onClick={confirmSchedule}
                       disabled={actioning}
                       className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
                     >
                       Confirm this time
-                    </button>
+                    </RippleButton>
                     <button
                       onClick={openScheduleModal}
                       disabled={actioning}
@@ -311,7 +313,7 @@ export default function RenterJobDetailPage() {
                 )}
               </div>
             )}
-          </div>
+          </ScrollReveal>
         )}
 
         {['in_progress', 'pending_review', 'completed'].includes(job.status) && (beforePhotos.length > 0 || afterPhotos.length > 0) && (

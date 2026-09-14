@@ -5,6 +5,8 @@ import { supabase } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
+import { ScrollReveal } from '@/components/ScrollReveal'
+import { RippleButton } from '@/components/RippleButton'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 
 export default function NewUnitPage() {
@@ -85,6 +87,7 @@ export default function NewUnitPage() {
         <h1 className="text-2xl font-bold text-white mb-2">Add a unit</h1>
         <p className="text-white/50 text-sm mb-8">Enter the new unit's details below.</p>
 
+        <ScrollReveal>
         <form onSubmit={handleSubmit} className="space-y-4">
 
           <div>
@@ -131,15 +134,16 @@ export default function NewUnitPage() {
             </div>
           )}
 
-          <button
+          <RippleButton
             type="submit"
             disabled={loading}
             className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
           >
             {loading ? 'Creating unit...' : 'Add unit'}
-          </button>
+          </RippleButton>
 
         </form>
+        </ScrollReveal>
       </main>
 
       <BottomTabBar tabs={LANDLORD_TABS} />

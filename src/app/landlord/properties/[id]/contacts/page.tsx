@@ -8,6 +8,8 @@ import { BottomTabBar } from '@/components/BottomTabBar'
 import { Skeleton } from '@/components/Skeleton'
 import { UserIcon } from '@/components/icons'
 import { LANDLORD_TABS } from '@/lib/navTabs'
+import { ScrollReveal } from '@/components/ScrollReveal'
+import { RippleButton } from '@/components/RippleButton'
 
 export default function PropertyContactsPage() {
   const router = useRouter()
@@ -164,6 +166,7 @@ export default function PropertyContactsPage() {
           <p className="text-white/50 text-sm mt-1">{property.address}</p>
         </div>
 
+        <ScrollReveal>
         <form onSubmit={handleSubmit} className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6 space-y-4">
           <h2 className="text-white font-semibold mb-2">Add a contact</h2>
 
@@ -240,14 +243,15 @@ export default function PropertyContactsPage() {
             </div>
           )}
 
-          <button
+          <RippleButton
             type="submit"
             disabled={saving}
             className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
           >
             {saving ? 'Adding...' : 'Add contact'}
-          </button>
+          </RippleButton>
         </form>
+        </ScrollReveal>
 
         <h2 className="text-white font-semibold mb-4 flex items-center gap-2">
           <UserIcon className="w-4 h-4 text-white/40" />
@@ -259,6 +263,7 @@ export default function PropertyContactsPage() {
             <p className="text-white/30 text-sm">No emergency contacts added yet.</p>
           </div>
         ) : (
+          <ScrollReveal>
           <div className="space-y-3">
             {contacts.map((contact) => (
               <div key={contact.id} className="bg-white/3 border border-white/8 rounded-2xl p-5">
@@ -282,6 +287,7 @@ export default function PropertyContactsPage() {
               </div>
             ))}
           </div>
+          </ScrollReveal>
         )}
         </>
         )}

@@ -8,6 +8,9 @@ import { BottomTabBar } from '@/components/BottomTabBar'
 import { Skeleton } from '@/components/Skeleton'
 import { BuildingIcon, UserIcon, FileTextIcon, ClipboardListIcon } from '@/components/icons'
 import { LANDLORD_TABS } from '@/lib/navTabs'
+import { ScrollReveal } from '@/components/ScrollReveal'
+import { MagneticLink } from '@/components/MagneticLink'
+import { CountUp } from '@/components/CountUp'
 
 export default function PropertyDetailPage() {
   const router = useRouter()
@@ -207,12 +210,12 @@ export default function PropertyDetailPage() {
           ← Properties
         </Link>
         <span className="text-white font-semibold text-sm">Prophandld</span>
-        <Link
+        <MagneticLink
           href={`/landlord/properties/${propertyId}/units/new`}
           className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-4 py-2 rounded-xl hover:opacity-90 transition"
         >
           + Add unit
-        </Link>
+        </MagneticLink>
       </nav>
 
       <main className="max-w-4xl mx-auto px-6 py-10 pb-28">
@@ -258,20 +261,22 @@ export default function PropertyDetailPage() {
         </div>
 
         {/* Stats */}
+        <ScrollReveal>
         <div className="grid grid-cols-3 gap-4 mb-8">
-          <div className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center">
-            <div className="text-2xl font-bold text-white">{units.length}</div>
+          <div className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center hover:border-[#12A5A9]/30 hover:-translate-y-0.5 transition-all">
+            <CountUp value={units.length} className="text-2xl font-bold text-white" />
             <div className="text-white/40 text-xs mt-1">Total units</div>
           </div>
-          <div className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center">
-            <div className="text-2xl font-bold text-white">{occupiedCount}</div>
+          <div className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center hover:border-[#12A5A9]/30 hover:-translate-y-0.5 transition-all">
+            <CountUp value={occupiedCount} className="text-2xl font-bold text-white" />
             <div className="text-white/40 text-xs mt-1">Occupied</div>
           </div>
-          <div className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center">
-            <div className="text-2xl font-bold text-white">{vacantCount}</div>
+          <div className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center hover:border-[#12A5A9]/30 hover:-translate-y-0.5 transition-all">
+            <CountUp value={vacantCount} className="text-2xl font-bold text-white" />
             <div className="text-white/40 text-xs mt-1">Vacant</div>
           </div>
         </div>
+        </ScrollReveal>
 
         {/* Units */}
         {/* Units */}
@@ -299,6 +304,7 @@ export default function PropertyDetailPage() {
             </Link>
           </div>
         ) : (
+          <ScrollReveal>
           <div className="grid gap-3">
             {units.map((unit) => {
               const isOccupied = occupiedUnitIds.has(unit.id)
@@ -378,10 +384,12 @@ export default function PropertyDetailPage() {
               )
             })}
           </div>
+          </ScrollReveal>
         )}
 
         {/* Emergency contacts */}
-        <div className="mt-8">
+        <ScrollReveal className="mt-8">
+        <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-white font-semibold flex items-center gap-2">
               <UserIcon className="w-4 h-4 text-white/40" />
@@ -414,9 +422,11 @@ export default function PropertyDetailPage() {
             </div>
           )}
         </div>
+        </ScrollReveal>
 
         {/* Documents */}
-        <div className="mt-8">
+        <ScrollReveal className="mt-8">
+        <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-white font-semibold flex items-center gap-2">
               <FileTextIcon className="w-4 h-4 text-white/40" />
@@ -451,9 +461,11 @@ export default function PropertyDetailPage() {
             </div>
           )}
         </div>
+        </ScrollReveal>
 
         {/* Compliance */}
-        <div className="mt-8">
+        <ScrollReveal className="mt-8">
+        <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-white font-semibold flex items-center gap-2">
               <ClipboardListIcon className="w-4 h-4 text-white/40" />
@@ -489,6 +501,7 @@ export default function PropertyDetailPage() {
             </div>
           )}
         </div>
+        </ScrollReveal>
         </>
         )}
 

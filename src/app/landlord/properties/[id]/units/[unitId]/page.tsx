@@ -8,6 +8,9 @@ import { BottomTabBar } from '@/components/BottomTabBar'
 import { Skeleton } from '@/components/Skeleton'
 import { DollarSignIcon, CalendarIcon, UserIcon, CheckCircleIcon } from '@/components/icons'
 import { LANDLORD_TABS } from '@/lib/navTabs'
+import { ScrollReveal } from '@/components/ScrollReveal'
+import { MagneticLink } from '@/components/MagneticLink'
+import { RippleButton } from '@/components/RippleButton'
 
 const IN_PROGRESS_STATUSES = ['pending_approval', 'approved', 'bidding', 'bid_selected', 'scheduled', 'in_progress']
 
@@ -277,16 +280,17 @@ export default function UnitDetailPage() {
         )}
 
         {/* Tenant section */}
+        <ScrollReveal>
         <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-white font-semibold">Tenant</h2>
             {!tenancy && (
-              <Link
+              <MagneticLink
                 href={`/landlord/properties/${propertyId}/units/${unitId}/tenancy/new`}
                 className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-3 py-1.5 rounded-lg hover:opacity-90 transition"
               >
                 + Link renter
-              </Link>
+              </MagneticLink>
             )}
             {tenancy && !editingTenancy && (
               <button
@@ -429,13 +433,13 @@ export default function UnitDetailPage() {
                     </div>
                   )}
                   <div className="flex items-center gap-3">
-                    <button
+                    <RippleButton
                       onClick={handleSaveTenancy}
                       disabled={savingTenancy}
                       className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
                     >
                       {savingTenancy ? 'Saving...' : 'Save'}
-                    </button>
+                    </RippleButton>
                     <button
                       onClick={() => setEditingTenancy(false)}
                       className="text-white/40 text-xs hover:text-white transition"
@@ -523,9 +527,11 @@ export default function UnitDetailPage() {
             <p className="text-white/30 text-sm">No tenant linked — unit is vacant.</p>
           )}
         </div>
+        </ScrollReveal>
 
         {/* Rent */}
         {tenancy && (
+          <ScrollReveal>
           <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-white font-semibold">Rent</h2>
@@ -538,9 +544,11 @@ export default function UnitDetailPage() {
             </div>
             <p className="text-white/30 text-sm">Track expected vs. actual rent payments each month.</p>
           </div>
+          </ScrollReveal>
         )}
 
         {/* Open jobs */}
+        <ScrollReveal>
         <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-white font-semibold">Open jobs</h2>
@@ -572,8 +580,10 @@ export default function UnitDetailPage() {
             </div>
           )}
         </div>
+        </ScrollReveal>
 
         {/* Job history */}
+        <ScrollReveal>
         <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
           <h2 className="text-white font-semibold mb-4">Job history</h2>
           {jobHistory.length === 0 ? (
@@ -590,8 +600,10 @@ export default function UnitDetailPage() {
             </div>
           )}
         </div>
+        </ScrollReveal>
 
         {/* Systems & Appliances */}
+        <ScrollReveal>
         <div className="bg-white/3 border border-white/8 rounded-2xl p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-white font-semibold">Systems & Appliances</h2>
@@ -604,6 +616,7 @@ export default function UnitDetailPage() {
           </div>
           <p className="text-white/30 text-sm">Track major systems (HVAC, water heater, roof, panel) with service history and replacement cost.</p>
         </div>
+        </ScrollReveal>
         </>
         )}
 

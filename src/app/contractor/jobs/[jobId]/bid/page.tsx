@@ -7,6 +7,8 @@ import Link from 'next/link'
 import { notify } from '@/lib/notify'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { Skeleton } from '@/components/Skeleton'
+import { ScrollReveal } from '@/components/ScrollReveal'
+import { RippleButton } from '@/components/RippleButton'
 import { WrenchIcon } from '@/components/icons'
 import { CONTRACTOR_TABS } from '@/lib/navTabs'
 
@@ -181,7 +183,7 @@ export default function SubmitBidPage() {
             {error}
           </div>
         ) : job ? (
-          <>
+          <ScrollReveal>
             <h1 className="text-2xl font-bold text-white mb-2">Submit a bid</h1>
             <div className="bg-white/3 border border-white/8 rounded-2xl p-5 mb-4">
               <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -292,15 +294,15 @@ export default function SubmitBidPage() {
                 </div>
               )}
 
-              <button
+              <RippleButton
                 type="submit"
                 disabled={submitting}
                 className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
               >
                 {submitting ? 'Submitting...' : 'Submit sealed bid'}
-              </button>
+              </RippleButton>
             </form>
-          </>
+          </ScrollReveal>
         ) : null}
       </main>
 

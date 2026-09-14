@@ -8,6 +8,8 @@ import { PhotoGrid } from '@/components/PhotoGrid'
 import { notify } from '@/lib/notify'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { Skeleton } from '@/components/Skeleton'
+import { ScrollReveal } from '@/components/ScrollReveal'
+import { RippleButton } from '@/components/RippleButton'
 import { WrenchIcon, CheckCircleIcon } from '@/components/icons'
 import { CONTRACTOR_TABS } from '@/lib/navTabs'
 
@@ -433,19 +435,19 @@ export default function ContractorJobDetailPage() {
           )}
         </div>
 
-        <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
+        <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-white font-semibold">
               Status: <span className="text-[#12A5A9]">{statusLabel(job.status)}</span>
             </h2>
             {job.status === 'scheduled' && (
-              <button
+              <RippleButton
                 onClick={handleStartJob}
                 disabled={actioning}
                 className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
               >
                 Start job
-              </button>
+              </RippleButton>
             )}
           </div>
           <p className="text-white/70 text-sm leading-relaxed">{job.description}</p>
@@ -475,7 +477,7 @@ export default function ContractorJobDetailPage() {
               {error}
             </div>
           )}
-        </div>
+        </ScrollReveal>
 
         {job.status === 'pending_review' && job.clarification_note && (
           <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl p-6 mb-4">
@@ -507,7 +509,7 @@ export default function ContractorJobDetailPage() {
         )}
 
         {showSchedulingSection && (
-          <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
+          <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
             <h3 className="text-white font-semibold mb-4">Schedule</h3>
 
             {!job.proposed_date ? (
@@ -541,13 +543,13 @@ export default function ContractorJobDetailPage() {
                 </p>
                 {isMyTurnToRespond ? (
                   <div className="flex items-center gap-3 mt-3">
-                    <button
+                    <RippleButton
                       onClick={confirmSchedule}
                       disabled={actioning}
                       className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
                     >
                       Confirm this time
-                    </button>
+                    </RippleButton>
                     <button
                       onClick={openScheduleModal}
                       disabled={actioning}
@@ -561,11 +563,11 @@ export default function ContractorJobDetailPage() {
                 )}
               </div>
             )}
-          </div>
+          </ScrollReveal>
         )}
 
         {['in_progress', 'pending_review', 'completed', 'archived'].includes(job.status) && (
-          <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
+          <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
             <h3 className="text-white font-semibold mb-4">Proof of work</h3>
 
             <div className="mb-5">
@@ -622,13 +624,13 @@ export default function ContractorJobDetailPage() {
                     Request price change
                   </button>
                 )}
-                <button
+                <RippleButton
                   onClick={openCompleteModal}
                   disabled={actioning || uploading}
                   className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
                 >
                   {uploading ? 'Uploading...' : 'Mark job complete'}
-                </button>
+                </RippleButton>
               </>
             )}
 
@@ -637,7 +639,7 @@ export default function ContractorJobDetailPage() {
                 <p className="text-white/50 text-sm">Waiting on landlord review. Auto-approves within 3 days if no response.</p>
               </div>
             )}
-          </div>
+          </ScrollReveal>
         )}
       </main>
 

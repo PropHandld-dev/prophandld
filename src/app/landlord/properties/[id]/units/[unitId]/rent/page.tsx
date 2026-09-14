@@ -7,6 +7,8 @@ import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { Skeleton } from '@/components/Skeleton'
 import { LANDLORD_TABS } from '@/lib/navTabs'
+import { ScrollReveal } from '@/components/ScrollReveal'
+import { RippleButton } from '@/components/RippleButton'
 
 export default function UnitRentPage() {
   const router = useRouter()
@@ -203,6 +205,7 @@ export default function UnitRentPage() {
           </div>
         ) : (
           <>
+            <ScrollReveal>
             <form onSubmit={handleSubmit} className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6 space-y-4">
               <h2 className="text-white font-semibold mb-2">Log a month</h2>
 
@@ -272,14 +275,15 @@ export default function UnitRentPage() {
                 </div>
               )}
 
-              <button
+              <RippleButton
                 type="submit"
                 disabled={saving}
                 className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
               >
                 {saving ? 'Adding...' : 'Add entry'}
-              </button>
+              </RippleButton>
             </form>
+            </ScrollReveal>
 
             <h2 className="text-white font-semibold mb-4">
               History {payments.length > 0 && `(${payments.length})`}
@@ -290,6 +294,7 @@ export default function UnitRentPage() {
                 <p className="text-white/30 text-sm">No rent entries logged yet.</p>
               </div>
             ) : (
+              <ScrollReveal>
               <div className="space-y-3">
                 {payments.map((payment) => {
                   const status = getStatus(payment)
@@ -319,6 +324,7 @@ export default function UnitRentPage() {
                   )
                 })}
               </div>
+              </ScrollReveal>
             )}
           </>
         )}

@@ -8,6 +8,9 @@ import { BottomTabBar } from '@/components/BottomTabBar'
 import { Skeleton } from '@/components/Skeleton'
 import { BuildingIcon } from '@/components/icons'
 import { LANDLORD_TABS } from '@/lib/navTabs'
+import { ScrollReveal } from '@/components/ScrollReveal'
+import { MagneticLink } from '@/components/MagneticLink'
+import { CountUp } from '@/components/CountUp'
 
 export default function PropertiesPage() {
   const router = useRouter()
@@ -65,12 +68,12 @@ export default function PropertiesPage() {
           ← Dashboard
         </Link>
         <span className="text-white font-semibold text-sm">Prophandld</span>
-        <Link
+        <MagneticLink
           href="/landlord/properties/new"
           className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-4 py-2 rounded-xl hover:opacity-90 transition"
         >
           + Add property
-        </Link>
+        </MagneticLink>
       </nav>
 
       <main className="max-w-4xl mx-auto px-6 py-10 pb-28">
@@ -102,22 +105,24 @@ export default function PropertiesPage() {
             </div>
 
             {properties.length > 0 && (
+              <ScrollReveal>
               <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
+                <div className="bg-white/3 border border-white/8 rounded-2xl p-5 hover:border-[#12A5A9]/30 hover:-translate-y-0.5 transition-all">
                   <div className="flex items-center justify-between mb-2">
                     <BuildingIcon className="w-5 h-5 text-[#12A5A9]" />
                   </div>
-                  <div className="text-2xl font-bold text-white">{activeCount}</div>
+                  <CountUp value={activeCount} className="text-2xl font-bold text-white" />
                   <div className="text-white/40 text-sm mt-1">Active properties</div>
                 </div>
-                <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
+                <div className="bg-white/3 border border-white/8 rounded-2xl p-5 hover:border-[#12A5A9]/30 hover:-translate-y-0.5 transition-all">
                   <div className="flex items-center justify-between mb-2">
                     <BuildingIcon className="w-5 h-5 text-white/40" />
                   </div>
-                  <div className="text-2xl font-bold text-white">{archivedCount}</div>
+                  <CountUp value={archivedCount} className="text-2xl font-bold text-white" />
                   <div className="text-white/40 text-sm mt-1">Archived</div>
                 </div>
               </div>
+              </ScrollReveal>
             )}
 
             {properties.length === 0 ? (
@@ -129,16 +134,17 @@ export default function PropertiesPage() {
                 {!showArchived && (
                   <>
                     <p className="text-white/40 text-sm mb-6">Add your first property to get started.</p>
-                    <Link
+                    <MagneticLink
                       href="/landlord/properties/new"
                       className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-6 py-3 rounded-xl hover:opacity-90 transition inline-block"
                     >
                       Add property
-                    </Link>
+                    </MagneticLink>
                   </>
                 )}
               </div>
             ) : (
+              <ScrollReveal>
               <div className="grid gap-4">
                 {properties.map((property) => (
                   <div
@@ -174,6 +180,7 @@ export default function PropertiesPage() {
                   </div>
                 ))}
               </div>
+              </ScrollReveal>
             )}
           </>
         )}

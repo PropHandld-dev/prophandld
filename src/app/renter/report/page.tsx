@@ -7,6 +7,8 @@ import Link from 'next/link'
 import { notify } from '@/lib/notify'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { Skeleton } from '@/components/Skeleton'
+import { ScrollReveal } from '@/components/ScrollReveal'
+import { RippleButton } from '@/components/RippleButton'
 import { AlertTriangleIcon } from '@/components/icons'
 import { RENTER_TABS } from '@/lib/navTabs'
 
@@ -221,6 +223,7 @@ export default function ReportIssuePage() {
         </p>
 
         {unitId && (
+          <ScrollReveal>
           <form onSubmit={handleSubmit} className="space-y-4">
 
             <div>
@@ -358,14 +361,15 @@ export default function ReportIssuePage() {
               </div>
             )}
 
-            <button
+            <RippleButton
               type="submit"
               disabled={submitting}
               className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
             >
               {submitting ? 'Submitting...' : 'Submit report'}
-            </button>
+            </RippleButton>
           </form>
+          </ScrollReveal>
         )}
 
         {!unitId && error && (

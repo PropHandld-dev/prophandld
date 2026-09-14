@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { Skeleton } from '@/components/Skeleton'
+import { ScrollReveal } from '@/components/ScrollReveal'
+import { RippleButton } from '@/components/RippleButton'
 import { LogOutIcon } from '@/components/icons'
 import { TABS_BY_ROLE } from '@/lib/navTabs'
 
@@ -162,7 +164,7 @@ export default function ProfilePage() {
         <h1 className="text-2xl font-bold text-white mb-8">Profile settings</h1>
 
         {/* Profile form */}
-        <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
+        <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
           <h2 className="text-white font-semibold mb-6">Personal information</h2>
           <form onSubmit={handleSaveProfile} className="space-y-4">
             <div>
@@ -213,18 +215,18 @@ export default function ProfilePage() {
               </select>
             </div>
 
-            <button
+            <RippleButton
               type="submit"
               disabled={saving}
               className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-6 py-2.5 rounded-xl transition hover:opacity-90 disabled:opacity-50 text-sm"
             >
               {saving ? 'Saving...' : 'Save changes'}
-            </button>
+            </RippleButton>
           </form>
-        </div>
+        </ScrollReveal>
 
         {/* Change password */}
-        <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
+        <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
           <h2 className="text-white font-semibold mb-6">Change password</h2>
           <form onSubmit={handleChangePassword} className="space-y-4">
             <div>
@@ -247,15 +249,15 @@ export default function ProfilePage() {
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
               />
             </div>
-            <button
+            <RippleButton
               type="submit"
               disabled={saving}
               className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-6 py-2.5 rounded-xl transition hover:opacity-90 disabled:opacity-50 text-sm"
             >
               {saving ? 'Updating...' : 'Update password'}
-            </button>
+            </RippleButton>
           </form>
-        </div>
+        </ScrollReveal>
 
         {/* Success / Error */}
         {success && (

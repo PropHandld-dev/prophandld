@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ScheduleCalendar, type CalendarEvent } from '@/components/ScheduleCalendar'
+import { ScrollReveal } from '@/components/ScrollReveal'
 
 export default function ContractorCalendarPage() {
   const router = useRouter()
@@ -65,7 +66,9 @@ export default function ContractorCalendarPage() {
           <p className="text-white/50 text-sm mt-1">Your confirmed job schedules.</p>
         </div>
 
-        <ScheduleCalendar events={events} />
+        <ScrollReveal>
+          <ScheduleCalendar events={events} />
+        </ScrollReveal>
       </main>
     </div>
   )

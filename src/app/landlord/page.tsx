@@ -7,6 +7,9 @@ import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { AlertsList, type AlertItem } from '@/components/AlertsList'
 import { Skeleton } from '@/components/Skeleton'
+import { ScrollReveal } from '@/components/ScrollReveal'
+import { MagneticLink } from '@/components/MagneticLink'
+import { CountUp } from '@/components/CountUp'
 import {
   BuildingIcon, WrenchIcon, CalendarIcon, ClipboardListIcon,
   DollarSignIcon, FileTextIcon, AlertTriangleIcon, CheckCircleIcon,
@@ -459,7 +462,7 @@ export default function LandlordDashboard() {
 
             <AlertsList items={alertItems} />
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <ScrollReveal className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               <Link
                 href="/landlord/properties"
                 className="bg-white/3 border border-white/8 rounded-2xl p-5 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all group"
@@ -468,7 +471,7 @@ export default function LandlordDashboard() {
                   <BuildingIcon className="w-5 h-5 text-[#12A5A9]" />
                   <span className="text-white/20 group-hover:text-[#12A5A9]/60 transition text-sm">→</span>
                 </div>
-                <div className="text-3xl font-bold text-white">{stats.properties}</div>
+                <CountUp value={stats.properties} className="text-3xl font-bold text-white block" />
                 <div className="text-white/40 text-sm mt-1">Properties</div>
               </Link>
 
@@ -476,7 +479,7 @@ export default function LandlordDashboard() {
                 <div className="flex items-center justify-between mb-3">
                   <BuildingIcon className="w-5 h-5 text-white/40" />
                 </div>
-                <div className="text-3xl font-bold text-white">{stats.totalUnits}</div>
+                <CountUp value={stats.totalUnits} className="text-3xl font-bold text-white block" />
                 <div className="text-white/40 text-sm mt-1">Total units</div>
               </div>
 
@@ -485,7 +488,7 @@ export default function LandlordDashboard() {
                   <CheckCircleIcon className="w-5 h-5 text-[#12A5A9]" />
                   <span className="text-[#12A5A9] text-xs font-semibold">{occupancyRate}%</span>
                 </div>
-                <div className="text-3xl font-bold text-white">{stats.occupiedUnits}</div>
+                <CountUp value={stats.occupiedUnits} className="text-3xl font-bold text-white block" />
                 <div className="text-white/40 text-sm mt-1">Occupied · {stats.vacantUnits} vacant</div>
               </div>
 
@@ -496,7 +499,7 @@ export default function LandlordDashboard() {
                 <div className="text-3xl font-bold text-white">{formatCurrency(stats.monthlyRentRoll)}</div>
                 <div className="text-white/40 text-sm mt-1">Monthly rent roll</div>
               </div>
-            </div>
+            </ScrollReveal>
 
             <div className="grid grid-cols-3 gap-4 mb-10">
               <Link href="/landlord/jobs?filter=needs_approval" className="bg-white/3 border border-white/8 rounded-2xl p-5 flex items-center gap-4 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all">
@@ -537,15 +540,15 @@ export default function LandlordDashboard() {
                 <BuildingIcon className="w-10 h-10 text-white/30 mx-auto mb-3" />
                 <h3 className="text-white font-semibold mb-1">No properties yet</h3>
                 <p className="text-white/40 text-sm mb-5">Add your first property to start building your portfolio.</p>
-                <Link
+                <MagneticLink
                   href="/landlord/properties/new"
                   className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-6 py-3 rounded-xl hover:opacity-90 transition inline-block"
                 >
                   Add property
-                </Link>
+                </MagneticLink>
               </div>
             ) : (
-              <div className="grid gap-3 mb-10">
+              <ScrollReveal className="grid gap-3 mb-10">
                 {properties.map((property) => {
                   const rate = property.totalUnits > 0
                     ? Math.round((property.occupiedUnits / property.totalUnits) * 100)
@@ -579,7 +582,7 @@ export default function LandlordDashboard() {
                     </Link>
                   )
                 })}
-              </div>
+              </ScrollReveal>
             )}
 
             <h2 className="text-white font-semibold text-lg mb-4">Quick actions</h2>

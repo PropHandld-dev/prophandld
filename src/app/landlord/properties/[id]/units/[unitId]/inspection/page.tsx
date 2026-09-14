@@ -8,6 +8,9 @@ import { BottomTabBar } from '@/components/BottomTabBar'
 import { Skeleton } from '@/components/Skeleton'
 import { CheckCircleIcon } from '@/components/icons'
 import { LANDLORD_TABS } from '@/lib/navTabs'
+import { ScrollReveal } from '@/components/ScrollReveal'
+import { MagneticLink } from '@/components/MagneticLink'
+import { RippleButton } from '@/components/RippleButton'
 
 export default function InspectionPage() {
   const router = useRouter()
@@ -248,12 +251,12 @@ export default function InspectionPage() {
         {!tenancy ? null : !inspection ? (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
             <p className="text-white/50 text-sm mb-4">No inspection started yet.</p>
-            <button
+            <RippleButton
               onClick={startInspection}
               className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:opacity-90 transition"
             >
               Start inspection
-            </button>
+            </RippleButton>
           </div>
         ) : (
           <>
@@ -312,6 +315,7 @@ export default function InspectionPage() {
                   <p className="text-white/30 text-sm">No photos added yet.</p>
                 </div>
               ) : (
+                <ScrollReveal>
                 <div className="grid grid-cols-2 gap-3">
                   {photos.map((photo) => (
                     <div key={photo.id} className="bg-white/3 border border-white/8 rounded-xl overflow-hidden hover:border-[#12A5A9]/30 transition-all">
@@ -331,18 +335,19 @@ export default function InspectionPage() {
                     </div>
                   ))}
                 </div>
+                </ScrollReveal>
               )}
             </div>
           </>
         )}
 
         {inspection?.status === 'completed' && (
-          <Link
+          <MagneticLink
             href={`/landlord/properties/${propertyId}/units/${unitId}`}
             className="block text-center bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl mt-6 hover:opacity-90 transition"
           >
             Done — back to unit
-          </Link>
+          </MagneticLink>
         )}
         </>
         )}

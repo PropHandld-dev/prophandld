@@ -8,6 +8,8 @@ import { BottomTabBar } from '@/components/BottomTabBar'
 import { Skeleton } from '@/components/Skeleton'
 import { AlertTriangleIcon, CheckCircleIcon, FileTextIcon } from '@/components/icons'
 import { LANDLORD_TABS } from '@/lib/navTabs'
+import { ScrollReveal } from '@/components/ScrollReveal'
+import { RippleButton } from '@/components/RippleButton'
 
 const ITEM_TYPES = [
   'Rental License',
@@ -313,6 +315,7 @@ export default function PropertyCompliancePage() {
           <p className="text-white/50 text-sm mt-1">{property.address}</p>
         </div>
 
+        <ScrollReveal>
         <form onSubmit={handleSubmit} className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6 space-y-4">
           <h2 className="text-white font-semibold mb-2">Track an item</h2>
 
@@ -386,14 +389,15 @@ export default function PropertyCompliancePage() {
             </div>
           )}
 
-          <button
+          <RippleButton
             type="submit"
             disabled={saving}
             className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
           >
             {saving ? 'Adding...' : 'Add item'}
-          </button>
+          </RippleButton>
         </form>
+        </ScrollReveal>
 
         <h2 className="text-white font-semibold mb-4">
           All items {items.length > 0 && `(${items.length})`}
@@ -404,6 +408,7 @@ export default function PropertyCompliancePage() {
             <p className="text-white/30 text-sm">No compliance items tracked yet.</p>
           </div>
         ) : (
+          <ScrollReveal>
           <div className="space-y-3">
             {items.map((item) => {
               const status = getExpiryStatus(item)
@@ -510,6 +515,7 @@ export default function PropertyCompliancePage() {
               )
             })}
           </div>
+          </ScrollReveal>
         )}
         </>
         )}

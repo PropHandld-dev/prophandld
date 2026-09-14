@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
+import { ScrollReveal } from '@/components/ScrollReveal'
+import { RippleButton } from '@/components/RippleButton'
 
 export default function AdminContractorsPage() {
   const router = useRouter()
@@ -163,13 +165,13 @@ export default function AdminContractorsPage() {
             className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
           />
           <div className="flex gap-3">
-            <button
+            <RippleButton
               onClick={() => handleDecision(row.id, 'verified')}
               disabled={actioningId === row.id}
               className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
             >
               Approve
-            </button>
+            </RippleButton>
             <button
               onClick={() => handleDecision(row.id, 'rejected')}
               disabled={actioningId === row.id}
@@ -200,19 +202,23 @@ export default function AdminContractorsPage() {
           </div>
         )}
 
-        <h2 className="text-white/70 font-semibold text-sm mb-3">Pending ({pending.length})</h2>
-        {pending.length === 0 ? (
-          <p className="text-white/30 text-sm mb-8">Nothing waiting on review.</p>
-        ) : (
-          <div className="mb-8">{pending.map(renderRow)}</div>
-        )}
+        <ScrollReveal>
+          <h2 className="text-white/70 font-semibold text-sm mb-3">Pending ({pending.length})</h2>
+          {pending.length === 0 ? (
+            <p className="text-white/30 text-sm mb-8">Nothing waiting on review.</p>
+          ) : (
+            <div className="mb-8">{pending.map(renderRow)}</div>
+          )}
+        </ScrollReveal>
 
-        <h2 className="text-white/70 font-semibold text-sm mb-3">Reviewed ({reviewed.length})</h2>
-        {reviewed.length === 0 ? (
-          <p className="text-white/30 text-sm">No reviewed submissions yet.</p>
-        ) : (
-          <div>{reviewed.map(renderRow)}</div>
-        )}
+        <ScrollReveal>
+          <h2 className="text-white/70 font-semibold text-sm mb-3">Reviewed ({reviewed.length})</h2>
+          {reviewed.length === 0 ? (
+            <p className="text-white/30 text-sm">No reviewed submissions yet.</p>
+          ) : (
+            <div>{reviewed.map(renderRow)}</div>
+          )}
+        </ScrollReveal>
       </main>
     </div>
   )

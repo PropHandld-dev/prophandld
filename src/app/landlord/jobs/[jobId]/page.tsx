@@ -8,6 +8,8 @@ import { PhotoGrid } from '@/components/PhotoGrid'
 import { notify } from '@/lib/notify'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { Skeleton } from '@/components/Skeleton'
+import { ScrollReveal } from '@/components/ScrollReveal'
+import { RippleButton } from '@/components/RippleButton'
 import { WrenchIcon, CheckCircleIcon } from '@/components/icons'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 
@@ -700,7 +702,7 @@ export default function JobDetailPage() {
         )}
 
         {job.status === 'bidding' && (
-          <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
+          <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
             <h3 className="text-white font-semibold mb-4">
               Sealed bids {bids.length > 0 && `(${bids.length})`}
             </h3>
@@ -724,18 +726,18 @@ export default function JobDetailPage() {
                     {bid.availability && <p className="text-white/50 text-xs">Availability: {bid.availability}</p>}
                     {bid.estimated_hours && <p className="text-white/50 text-xs">Est. hours: {bid.estimated_hours}</p>}
                     {bid.notes && <p className="text-white/40 text-xs mt-1 italic">{bid.notes}</p>}
-                    <button
+                    <RippleButton
                       onClick={() => handleSelectBidClick(bid.id)}
                       disabled={actioning}
                       className="mt-3 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
                     >
                       Select this contractor
-                    </button>
+                    </RippleButton>
                   </div>
                 ))}
               </div>
             )}
-          </div>
+          </ScrollReveal>
         )}
 
         {['bid_selected', 'scheduled', 'in_progress', 'pending_review', 'completed', 'archived'].includes(job.status) && (
@@ -979,13 +981,13 @@ export default function JobDetailPage() {
               >
                 Cancel
               </button>
-              <button
+              <RippleButton
                 onClick={confirmSelectBid}
                 disabled={actioning}
                 className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
               >
                 {actioning ? 'Selecting...' : 'Confirm'}
-              </button>
+              </RippleButton>
             </div>
           </div>
         </div>

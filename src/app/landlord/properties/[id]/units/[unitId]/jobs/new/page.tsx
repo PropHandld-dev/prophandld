@@ -7,6 +7,8 @@ import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { AlertTriangleIcon } from '@/components/icons'
 import { LANDLORD_TABS } from '@/lib/navTabs'
+import { ScrollReveal } from '@/components/ScrollReveal'
+import { RippleButton } from '@/components/RippleButton'
 
 const CATEGORIES = [
   'Plumbing', 'Electrical', 'HVAC', 'Appliance',
@@ -131,6 +133,7 @@ export default function NewLandlordJobPage() {
           Start a maintenance job directly — no approval needed since you're the landlord.
         </p>
 
+        <ScrollReveal>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="text-white/70 text-sm block mb-1">Category</label>
@@ -228,14 +231,15 @@ export default function NewLandlordJobPage() {
             </div>
           )}
 
-          <button
+          <RippleButton
             type="submit"
             disabled={submitting}
             className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
           >
             {submitting ? 'Creating...' : 'Create job'}
-          </button>
+          </RippleButton>
         </form>
+        </ScrollReveal>
       </main>
 
       <BottomTabBar tabs={LANDLORD_TABS} />

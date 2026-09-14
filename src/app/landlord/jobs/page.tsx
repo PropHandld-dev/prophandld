@@ -6,6 +6,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { Skeleton } from '@/components/Skeleton'
+import { ScrollReveal } from '@/components/ScrollReveal'
+import { RippleButton } from '@/components/RippleButton'
 import { CheckCircleIcon, ClipboardListIcon } from '@/components/icons'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 
@@ -254,7 +256,7 @@ function LandlordJobsList() {
             <p className="text-white/40 text-sm">No jobs in this view.</p>
           </div>
         ) : (
-          <div className="grid gap-3">
+          <ScrollReveal className="grid gap-3">
             {filteredJobs.map((job) => (
               <div key={job.id} className="bg-white/3 border border-white/8 rounded-2xl p-5 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all">
                 <div className="flex items-start justify-between gap-4">
@@ -278,13 +280,13 @@ function LandlordJobsList() {
 
                   {job.status === 'pending_approval' && (
                     <div className="flex flex-col gap-2 shrink-0">
-                      <button
+                      <RippleButton
                         onClick={() => handleApproveClick(job.id)}
                         disabled={actioningId === job.id}
                         className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
                       >
                         Acknowledge
-                      </button>
+                      </RippleButton>
                       <button
                         onClick={() => handleDeclineClick(job.id)}
                         disabled={actioningId === job.id}
@@ -297,7 +299,7 @@ function LandlordJobsList() {
                 </div>
               </div>
             ))}
-          </div>
+          </ScrollReveal>
         )}
       </main>
 

@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { Skeleton } from '@/components/Skeleton'
+import { ScrollReveal } from '@/components/ScrollReveal'
+import { RippleButton } from '@/components/RippleButton'
 import { CheckCircleIcon } from '@/components/icons'
 import { CONTRACTOR_TABS } from '@/lib/navTabs'
 
@@ -250,6 +252,7 @@ export default function ContractorSettingsPage() {
           Tell us what you do and where, so we can match you to the right jobs.
         </p>
 
+        <ScrollReveal>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="text-white/70 text-sm block mb-2">Categories you service</label>
@@ -310,16 +313,17 @@ export default function ContractorSettingsPage() {
             </div>
           )}
 
-          <button
+          <RippleButton
             type="submit"
             disabled={saving}
             className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
           >
             {saving ? 'Saving...' : 'Save settings'}
-          </button>
+          </RippleButton>
         </form>
+        </ScrollReveal>
 
-        <div className="mt-10 pt-8 border-t border-white/8">
+        <ScrollReveal className="mt-10 pt-8 border-t border-white/8">
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-white font-semibold">Verification</h2>
             <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${verificationStatusBadge().className}`}>
@@ -417,15 +421,15 @@ export default function ContractorSettingsPage() {
               </div>
             )}
 
-            <button
+            <RippleButton
               type="submit"
               disabled={verifSaving}
               className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
             >
               {verifSaving ? 'Submitting...' : verification ? 'Resubmit for review' : 'Submit for review'}
-            </button>
+            </RippleButton>
           </form>
-        </div>
+        </ScrollReveal>
         </>
         )}
       </main>

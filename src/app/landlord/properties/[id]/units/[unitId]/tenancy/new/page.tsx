@@ -5,6 +5,8 @@ import { supabase } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
+import { ScrollReveal } from '@/components/ScrollReveal'
+import { RippleButton } from '@/components/RippleButton'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 
 export default function NewTenancyPage() {
@@ -92,6 +94,7 @@ export default function NewTenancyPage() {
           The renter must already have a Prophandld account. Enter their email to link them to this unit.
         </p>
 
+        <ScrollReveal>
         <form onSubmit={handleSubmit} className="space-y-4">
 
           <div>
@@ -223,15 +226,16 @@ export default function NewTenancyPage() {
             </div>
           )}
 
-          <button
+          <RippleButton
             type="submit"
             disabled={loading}
             className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
           >
             {loading ? 'Linking renter...' : 'Link renter to unit'}
-          </button>
+          </RippleButton>
 
         </form>
+        </ScrollReveal>
       </main>
 
       <BottomTabBar tabs={LANDLORD_TABS} />

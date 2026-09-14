@@ -7,6 +7,8 @@ import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { AlertsList, type AlertItem } from '@/components/AlertsList'
 import { Skeleton } from '@/components/Skeleton'
+import { ScrollReveal } from '@/components/ScrollReveal'
+import { MagneticLink } from '@/components/MagneticLink'
 import { CalendarIcon, DollarSignIcon, CheckCircleIcon } from '@/components/icons'
 import { RENTER_TABS } from '@/lib/navTabs'
 
@@ -199,16 +201,16 @@ export default function RenterDashboard() {
               <p className="text-white/40 text-sm">Coming soon</p>
             </div>
 
-            <div className="bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/10 border border-[#12A5A9]/30 rounded-2xl p-6 mb-6">
+            <ScrollReveal className="bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/10 border border-[#12A5A9]/30 rounded-2xl p-6 mb-6">
               <h3 className="text-white font-semibold mb-1">Report an issue</h3>
               <p className="text-white/50 text-sm mb-4">Something broken? Let your landlord know.</p>
-              <Link
+              <MagneticLink
                 href="/renter/report"
                 className="inline-block bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-6 py-2.5 rounded-xl text-sm hover:opacity-90 transition"
               >
                 Report now
-              </Link>
-            </div>
+              </MagneticLink>
+            </ScrollReveal>
 
             <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
               <h3 className="text-white font-semibold mb-4">Your issues</h3>

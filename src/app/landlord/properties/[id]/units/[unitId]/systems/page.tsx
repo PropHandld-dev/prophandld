@@ -6,6 +6,8 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { Skeleton } from '@/components/Skeleton'
+import { ScrollReveal } from '@/components/ScrollReveal'
+import { RippleButton } from '@/components/RippleButton'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 
 const ITEM_TYPES = [
@@ -300,6 +302,7 @@ export default function UnitSystemsPage() {
           <p className="text-white/50 text-sm mt-1">Unit {unit.unit_number}</p>
         </div>
 
+        <ScrollReveal>
         <form onSubmit={handleSubmit} className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6 space-y-4">
           <h2 className="text-white font-semibold mb-2">Add a system</h2>
 
@@ -401,14 +404,15 @@ export default function UnitSystemsPage() {
             </div>
           )}
 
-          <button
+          <RippleButton
             type="submit"
             disabled={saving}
             className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
           >
             {saving ? 'Adding...' : 'Add system'}
-          </button>
+          </RippleButton>
         </form>
+        </ScrollReveal>
 
         <h2 className="text-white font-semibold mb-4">
           All systems {items.length > 0 && `(${items.length})`}
@@ -419,7 +423,7 @@ export default function UnitSystemsPage() {
             <p className="text-white/30 text-sm">No systems tracked yet.</p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <ScrollReveal className="space-y-3">
             {items.map((item) => {
               const itemLogs = logs.filter((l) => l.appliance_id === item.id)
               const isExpanded = expandedIds.has(item.id)
@@ -557,7 +561,7 @@ export default function UnitSystemsPage() {
                 </div>
               )
             })}
-          </div>
+          </ScrollReveal>
         )}
         </>
         )}

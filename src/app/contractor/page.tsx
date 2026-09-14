@@ -9,6 +9,9 @@ import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { AlertsList, type AlertItem } from '@/components/AlertsList'
 import { Skeleton } from '@/components/Skeleton'
+import { ScrollReveal } from '@/components/ScrollReveal'
+import { MagneticLink } from '@/components/MagneticLink'
+import { CountUp } from '@/components/CountUp'
 import {
   CalendarIcon, ClipboardListIcon, WrenchIcon,
   DollarSignIcon, AlertTriangleIcon, CheckCircleIcon,
@@ -221,26 +224,26 @@ export default function ContractorDashboard() {
                 <p className="text-white/50 text-sm mb-4">
                   Tell us what you do and where, so we can start matching you to jobs.
                 </p>
-                <Link
+                <MagneticLink
                   href="/contractor/settings"
                   className="inline-block bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-6 py-2.5 rounded-xl text-sm hover:opacity-90 transition"
                 >
                   Set up now
-                </Link>
+                </MagneticLink>
               </div>
             ) : (
               <>
                 <AlertsList items={alertItems} />
 
-                <div className="grid grid-cols-3 gap-4 mb-6">
+                <ScrollReveal className="grid grid-cols-3 gap-4 mb-6">
                   <a href="#available-jobs" className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
                     <ClipboardListIcon className="w-5 h-5 text-[#12A5A9] mx-auto mb-1" />
-                    <div className="text-2xl font-bold text-white">{availableJobs.length}</div>
+                    <CountUp value={availableJobs.length} className="text-2xl font-bold text-white block" />
                     <div className="text-white/40 text-xs mt-1">New Jobs</div>
                   </a>
                   <a href="#your-bids" className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
                     <WrenchIcon className="w-5 h-5 text-[#12A5A9] mx-auto mb-1" />
-                    <div className="text-2xl font-bold text-white">{activeJobsCount}</div>
+                    <CountUp value={activeJobsCount} className="text-2xl font-bold text-white block" />
                     <div className="text-white/40 text-xs mt-1">Active</div>
                   </a>
                   <div className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center">
@@ -248,7 +251,7 @@ export default function ContractorDashboard() {
                     <div className="text-2xl font-bold text-white">$0</div>
                     <div className="text-white/40 text-xs mt-1">Earnings</div>
                   </div>
-                </div>
+                </ScrollReveal>
 
                 <div className="grid grid-cols-2 gap-4 mb-6">
                   <div className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center opacity-50 cursor-not-allowed">
