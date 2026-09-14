@@ -218,7 +218,7 @@ export default function ReportIssuePage() {
               </select>
             </div>
 
-            {form.category && systems.filter((s) => s.item_type === form.category).length > 0 && (
+            {form.category && systems.filter((s) => s.item_type?.toLowerCase() === form.category.toLowerCase()).length > 0 && (
               <div>
                 <label className="text-white/70 text-sm block mb-1">Related system (optional)</label>
                 <select
@@ -229,7 +229,7 @@ export default function ReportIssuePage() {
                 >
                   <option value="" className="bg-[#0C1A2E]">Not sure / none</option>
                   {systems
-                    .filter((s) => s.item_type === form.category)
+                    .filter((s) => s.item_type?.toLowerCase() === form.category.toLowerCase())
                     .map((s) => (
                       <option key={s.id} value={s.id} className="bg-[#0C1A2E]">{s.name}</option>
                     ))}

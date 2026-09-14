@@ -6,17 +6,28 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 
 const ITEM_TYPES = [
-  'Plumbing', 'Electrical', 'HVAC', 'Appliance',
-  'Structural', 'Pest', 'Turnover', 'Other',
+  { value: 'plumbing', label: 'Plumbing' },
+  { value: 'electrical', label: 'Electrical' },
+  { value: 'hvac', label: 'HVAC' },
+  { value: 'appliance', label: 'Appliance' },
+  { value: 'structural', label: 'Structural' },
+  { value: 'other', label: 'Other' },
 ]
 
-const STATUSES = ['Good', 'Verify', 'Service Due']
+const STATUSES = [
+  { value: 'good', label: 'Good' },
+  { value: 'verify', label: 'Verify' },
+  { value: 'service_due', label: 'Service Due' },
+]
 
 const STATUS_STYLES: Record<string, string> = {
-  Good: 'bg-[#12A5A9]/15 text-[#12A5A9]',
-  Verify: 'bg-yellow-500/15 text-yellow-400',
-  'Service Due': 'bg-red-500/15 text-red-400',
+  good: 'bg-[#12A5A9]/15 text-[#12A5A9]',
+  verify: 'bg-yellow-500/15 text-yellow-400',
+  service_due: 'bg-red-500/15 text-red-400',
 }
+
+const statusLabel = (value: string) => STATUSES.find((s) => s.value === value)?.label || value
+const itemTypeLabel = (value: string) => ITEM_TYPES.find((t) => t.value === value)?.label || value
 
 export default function UnitSystemsPage() {
   const router = useRouter()
@@ -38,7 +49,7 @@ export default function UnitSystemsPage() {
     model: '',
     install_date: '',
     replacement_cost: '',
-    status: 'Good',
+    status: 'good',
   })
 
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
@@ -140,7 +151,7 @@ export default function UnitSystemsPage() {
       return
     }
 
-    setForm({ name: '', item_type: '', brand: '', model: '', install_date: '', replacement_cost: '', status: 'Good' })
+    setForm({ name: '', item_type: '', brand: '', model: '', install_date: '', replacement_cost: '', status: 'good' })
     await loadItems()
     setSaving(false)
   }
@@ -308,7 +319,7 @@ export default function UnitSystemsPage() {
               >
                 <option value="" className="bg-[#0C1A2E]">Select a category</option>
                 {ITEM_TYPES.map((type) => (
-                  <option key={type} value={type} className="bg-[#0C1A2E]">{type}</option>
+                  <option key={type.value} value={type.value} className="bg-[#0C1A2E]">{type.label}</option>
                 ))}
               </select>
             </div>
@@ -321,7 +332,7 @@ export default function UnitSystemsPage() {
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
               >
                 {STATUSES.map((s) => (
-                  <option key={s} value={s} className="bg-[#0C1A2E]">{s}</option>
+                  <option key={s.value} value={s.value} className="bg-[#0C1A2E]">{s.label}</option>
                 ))}
               </select>
             </div>
@@ -413,11 +424,11 @@ export default function UnitSystemsPage() {
                       <div className="flex items-center gap-2 flex-wrap mt-2">
                         {item.item_type && (
                           <span className="text-xs bg-white/8 text-white/50 rounded-full px-2.5 py-0.5">
-                            {item.item_type}
+                            {itemTypeLabel(item.item_type)}
                           </span>
                         )}
                         <span className={`text-xs rounded-full px-2.5 py-0.5 ${STATUS_STYLES[item.status] || 'bg-white/8 text-white/50'}`}>
-                          {item.status || 'Good'}
+                          {statusLabel(item.status || 'good')}
                         </span>
                       </div>
                       {(item.brand || item.model) && (
@@ -437,12 +448,12 @@ export default function UnitSystemsPage() {
                     </div>
                     <div className="flex flex-col items-end gap-2 shrink-0">
                       <select
-                        value={item.status || 'Good'}
+                        value={item.status || 'good'}
                         onChange={(e) => updateStatus(item.id, e.target.value)}
                         className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-[#12A5A9] transition"
                       >
                         {STATUSES.map((s) => (
-                          <option key={s} value={s} className="bg-[#0C1A2E]">{s}</option>
+                          <option key={s.value} value={s.value} className="bg-[#0C1A2E]">{s.label}</option>
                         ))}
                       </select>
                       <button
