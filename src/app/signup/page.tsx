@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { CursorGlow } from '@/components/CursorGlow'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { Logo } from '@/components/Logo'
@@ -71,7 +70,6 @@ export default function SignupPage() {
 
   return (
     <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center px-4 relative overflow-hidden">
-      <CursorGlow />
       <div aria-hidden className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-[#0A7B7E]/20 blur-3xl -z-10 motion-safe:animate-[drift_9s_ease-in-out_infinite]" />
       <div aria-hidden className="absolute -bottom-24 -right-24 w-80 h-80 rounded-full bg-[#12A5A9]/20 blur-3xl -z-10 motion-safe:animate-[drift_11s_ease-in-out_infinite_1s]" />
 

@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import { CursorGlow } from '@/components/CursorGlow'
 import { MagneticLink } from '@/components/MagneticLink'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { DollarSignIcon, AlertTriangleIcon, FileTextIcon, WrenchIcon, CalendarIcon, CheckCircleIcon } from '@/components/icons'
@@ -19,7 +18,6 @@ const OPERATIONS_FEATURES = [
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-[#0C1A2E] text-white relative">
-      <CursorGlow />
 
       {/* Nav */}
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between sticky top-0 bg-[#0C1A2E]/90 backdrop-blur-sm z-10">
