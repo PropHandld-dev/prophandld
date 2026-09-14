@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 
-const DOCUMENT_TYPES = ['Lease', 'Deed', 'Insurance', 'Inspection Report', 'Other']
+const DOCUMENT_TYPES = ['Lease', 'Rental Agreement', 'Deed', 'Insurance', 'Inspection Report', 'Other']
 
 export default function PropertyDocumentsPage() {
   const router = useRouter()
@@ -22,6 +22,7 @@ export default function PropertyDocumentsPage() {
 
   const [form, setForm] = useState({
     document_type: '',
+    custom_document_type: '',
     unit_id: '',
   })
   const [files, setFiles] = useState<File[]>([])
@@ -92,7 +93,7 @@ export default function PropertyDocumentsPage() {
     setDocuments(enriched)
   }
 
-  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })
   }
 
@@ -114,6 +115,10 @@ export default function PropertyDocumentsPage() {
       setError('Please select a document type.')
       return
     }
+    if (form.document_type === 'Other' && !form.custom_document_type.trim()) {
+      setError('Please enter a document type.')
+      return
+    }
     if (files.length === 0) {
       setError('Please choose at least one file.')
       return
@@ -122,6 +127,10 @@ export default function PropertyDocumentsPage() {
 
     setUploading(true)
     setError(null)
+
+    const documentType = form.document_type === 'Other'
+      ? form.custom_document_type.trim()
+      : form.document_type
 
     for (const file of files) {
       const fileExt = file.name.split('.').pop()
@@ -143,7 +152,7 @@ export default function PropertyDocumentsPage() {
           property_id: propertyId,
           unit_id: form.unit_id || null,
           uploaded_by: userId,
-          document_type: form.document_type,
+          document_type: documentType,
           filename: file.name,
           file_url: filePath,
         })
@@ -155,7 +164,7 @@ export default function PropertyDocumentsPage() {
     }
 
     setFiles([])
-    setForm({ document_type: '', unit_id: '' })
+    setForm({ document_type: '', custom_document_type: '', unit_id: '' })
     await loadDocuments()
     setUploading(false)
   }
@@ -227,6 +236,16 @@ export default function PropertyDocumentsPage() {
                 <option key={type} value={type} className="bg-[#0C1A2E]">{type}</option>
               ))}
             </select>
+            {form.document_type === 'Other' && (
+              <input
+                type="text"
+                name="custom_document_type"
+                value={form.custom_document_type}
+                onChange={handleChange}
+                placeholder="Enter a document type"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition mt-2"
+              />
+            )}
           </div>
 
           <div>
