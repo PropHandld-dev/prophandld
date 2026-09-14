@@ -113,7 +113,7 @@ export default function PropertyCompliancePage() {
 
     if (insertError) {
       console.error('Error adding compliance item:', insertError)
-      setError('Could not add item. Please try again.')
+      setError(`Could not add item: ${insertError.message}`)
       setSaving(false)
       return
     }
@@ -147,7 +147,7 @@ export default function PropertyCompliancePage() {
 
     if (updateError) {
       console.error('Error renewing item:', updateError)
-      setError('Could not save changes.')
+      setError(`Could not save changes: ${updateError.message}`)
       return
     }
 
@@ -162,7 +162,7 @@ export default function PropertyCompliancePage() {
     const { error: deleteError } = await supabase.from('compliance_items').delete().eq('id', item.id)
     if (deleteError) {
       console.error('Error deleting compliance item:', deleteError)
-      setError('Could not delete item.')
+      setError(`Could not delete item: ${deleteError.message}`)
       return
     }
 
