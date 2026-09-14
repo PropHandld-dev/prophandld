@@ -16,6 +16,9 @@ export default function PropertyDetailPage() {
   const [property, setProperty] = useState<any>(null)
   const [units, setUnits] = useState<any[]>([])
   const [occupiedUnitIds, setOccupiedUnitIds] = useState<Set<string>>(new Set())
+  const [contacts, setContacts] = useState<any[]>([])
+  const [documents, setDocuments] = useState<any[]>([])
+  const [complianceItems, setComplianceItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [editingUnitId, setEditingUnitId] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
@@ -71,6 +74,42 @@ export default function PropertyDetailPage() {
         } else {
           setOccupiedUnitIds(new Set())
         }
+      }
+
+      const { data: contactsData, error: contactsError } = await supabase
+        .from('contacts')
+        .select('*')
+        .eq('property_id', propertyId)
+        .order('created_at', { ascending: false })
+
+      if (contactsError) {
+        console.error('Error fetching contacts:', contactsError)
+      } else if (contactsData) {
+        setContacts(contactsData)
+      }
+
+      const { data: documentsData, error: documentsError } = await supabase
+        .from('documents')
+        .select('*')
+        .eq('property_id', propertyId)
+        .order('created_at', { ascending: false })
+
+      if (documentsError) {
+        console.error('Error fetching documents:', documentsError)
+      } else if (documentsData) {
+        setDocuments(documentsData)
+      }
+
+      const { data: complianceData, error: complianceError } = await supabase
+        .from('compliance_items')
+        .select('*')
+        .eq('property_id', propertyId)
+        .order('expiry_date', { ascending: true, nullsFirst: false })
+
+      if (complianceError) {
+        console.error('Error fetching compliance items:', complianceError)
+      } else if (complianceData) {
+        setComplianceItems(complianceData)
       }
     } catch (err) {
       console.error('Error:', err)
@@ -147,6 +186,19 @@ export default function PropertyDetailPage() {
 
   const occupiedCount = occupiedUnitIds.size
   const vacantCount = units.length - occupiedCount
+
+  const getComplianceStatus = (item: any) => {
+    if (!item.expiry_date) return { label: 'No expiry set', color: 'bg-white/8 text-white/50' }
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const expiry = new Date(item.expiry_date + 'T00:00:00')
+    const daysUntil = Math.round((expiry.getTime() - today.getTime()) / (24 * 60 * 60 * 1000))
+    const reminderDays = item.reminder_days ?? 30
+
+    if (daysUntil < 0) return { label: 'Expired', color: 'bg-red-500/15 text-red-400' }
+    if (daysUntil <= reminderDays) return { label: 'Expiring soon', color: 'bg-yellow-500/15 text-yellow-400' }
+    return { label: 'Current', color: 'bg-[#12A5A9]/15 text-[#12A5A9]' }
+  }
 
   return (
     <div className="min-h-screen bg-[#0C1A2E]">
@@ -342,9 +394,25 @@ export default function PropertyDetailPage() {
               Manage
             </Link>
           </div>
-          <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
-            <p className="text-white/30 text-sm">No emergency contacts added yet.</p>
-          </div>
+          {contacts.length === 0 ? (
+            <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
+              <p className="text-white/30 text-sm">No emergency contacts added yet.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {contacts.slice(0, 3).map((contact) => (
+                <div key={contact.id} className="bg-white/3 border border-white/8 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-white text-sm font-medium truncate">{contact.name}</p>
+                    <p className="text-white/40 text-xs mt-0.5">{contact.role}{contact.phone ? ` · ${contact.phone}` : ''}</p>
+                  </div>
+                </div>
+              ))}
+              {contacts.length > 3 && (
+                <p className="text-white/30 text-xs px-1">+{contacts.length - 3} more</p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Documents */}
@@ -361,9 +429,27 @@ export default function PropertyDetailPage() {
               Manage
             </Link>
           </div>
-          <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
-            <p className="text-white/30 text-sm">Leases, deeds, insurance, and inspection reports for this property.</p>
-          </div>
+          {documents.length === 0 ? (
+            <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
+              <p className="text-white/30 text-sm">Leases, deeds, insurance, and inspection reports for this property.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {documents.slice(0, 3).map((doc) => (
+                <div key={doc.id} className="bg-white/3 border border-white/8 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+                  <p className="text-white text-sm font-medium truncate">{doc.filename}</p>
+                  {doc.document_type && (
+                    <span className="text-xs bg-[#12A5A9]/15 text-[#12A5A9] rounded-full px-2.5 py-0.5 shrink-0">
+                      {doc.document_type}
+                    </span>
+                  )}
+                </div>
+              ))}
+              {documents.length > 3 && (
+                <p className="text-white/30 text-xs px-1">+{documents.length - 3} more</p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Compliance */}
@@ -380,9 +466,28 @@ export default function PropertyDetailPage() {
               Manage
             </Link>
           </div>
-          <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
-            <p className="text-white/30 text-sm">Rental license, lead certification, and inspection expiry tracking.</p>
-          </div>
+          {complianceItems.length === 0 ? (
+            <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
+              <p className="text-white/30 text-sm">Rental license, lead certification, and inspection expiry tracking.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {complianceItems.slice(0, 3).map((item) => {
+                const status = getComplianceStatus(item)
+                return (
+                  <div key={item.id} className="bg-white/3 border border-white/8 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+                    <p className="text-white text-sm font-medium truncate">{item.item_type}</p>
+                    <span className={`text-xs rounded-full px-2.5 py-0.5 shrink-0 ${status.color}`}>
+                      {status.label}
+                    </span>
+                  </div>
+                )
+              })}
+              {complianceItems.length > 3 && (
+                <p className="text-white/30 text-xs px-1">+{complianceItems.length - 3} more</p>
+              )}
+            </div>
+          )}
         </div>
         </>
         )}
