@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { BottomTabBar } from '@/components/BottomTabBar'
+import { LANDLORD_TABS } from '@/lib/navTabs'
 
 export default function PropertiesPage() {
   const router = useRouter()
@@ -72,7 +74,7 @@ export default function PropertiesPage() {
         </Link>
       </nav>
 
-      <main className="max-w-4xl mx-auto px-6 py-10">
+      <main className="max-w-4xl mx-auto px-6 py-10 pb-28">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-2xl font-bold text-white">Your properties</h1>
           <button
@@ -139,6 +141,8 @@ export default function PropertiesPage() {
           </div>
         )}
       </main>
+
+      <BottomTabBar tabs={LANDLORD_TABS} />
     </div>
   )
 }

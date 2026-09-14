@@ -5,6 +5,8 @@ import { supabase } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { notify } from '@/lib/notify'
+import { BottomTabBar } from '@/components/BottomTabBar'
+import { CONTRACTOR_TABS } from '@/lib/navTabs'
 
 export default function SubmitBidPage() {
   const router = useRouter()
@@ -149,7 +151,7 @@ export default function SubmitBidPage() {
         <div className="w-20" />
       </nav>
 
-      <main className="max-w-xl mx-auto px-6 py-10">
+      <main className="max-w-xl mx-auto px-6 py-10 pb-28">
         {alreadyBid ? (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
             <p className="text-white/50 text-sm">You've already submitted a bid on this job.</p>
@@ -293,6 +295,8 @@ export default function SubmitBidPage() {
           />
         </div>
       )}
+
+      <BottomTabBar tabs={CONTRACTOR_TABS} />
     </div>
   )
 }

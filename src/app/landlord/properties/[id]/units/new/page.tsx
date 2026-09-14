@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
+import { BottomTabBar } from '@/components/BottomTabBar'
+import { LANDLORD_TABS } from '@/lib/navTabs'
 
 export default function NewUnitPage() {
   const router = useRouter()
@@ -79,7 +81,7 @@ export default function NewUnitPage() {
         <div className="w-24" />
       </nav>
 
-      <main className="max-w-xl mx-auto px-6 py-10">
+      <main className="max-w-xl mx-auto px-6 py-10 pb-28">
         <h1 className="text-2xl font-bold text-white mb-2">Add a unit</h1>
         <p className="text-white/50 text-sm mb-8">Enter the new unit's details below.</p>
 
@@ -139,6 +141,8 @@ export default function NewUnitPage() {
 
         </form>
       </main>
+
+      <BottomTabBar tabs={LANDLORD_TABS} />
     </div>
   )
 }

@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
+import { BottomTabBar } from '@/components/BottomTabBar'
+import { LANDLORD_TABS } from '@/lib/navTabs'
 
 const IN_PROGRESS_STATUSES = ['pending_approval', 'approved', 'bidding', 'bid_selected', 'scheduled', 'in_progress']
 
@@ -182,7 +184,7 @@ export default function UnitDetailPage() {
         <div className="w-20" />
       </nav>
 
-      <main className="max-w-2xl mx-auto px-6 py-10">
+      <main className="max-w-2xl mx-auto px-6 py-10 pb-28">
 
         {/* Unit header */}
         <div className="mb-8">
@@ -401,6 +403,8 @@ export default function UnitDetailPage() {
         </div>
 
       </main>
+
+      <BottomTabBar tabs={LANDLORD_TABS} />
     </div>
   )
 }

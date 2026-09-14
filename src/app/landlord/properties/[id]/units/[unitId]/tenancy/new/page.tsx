@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
+import { BottomTabBar } from '@/components/BottomTabBar'
+import { LANDLORD_TABS } from '@/lib/navTabs'
 
 export default function NewTenancyPage() {
   const router = useRouter()
@@ -74,7 +76,7 @@ export default function NewTenancyPage() {
         <div className="w-20" />
       </nav>
 
-      <main className="max-w-xl mx-auto px-6 py-10">
+      <main className="max-w-xl mx-auto px-6 py-10 pb-28">
         <h1 className="text-2xl font-bold text-white mb-2">Link a renter</h1>
         <p className="text-white/50 text-sm mb-8">
           The renter must already have a Prophandld account. Enter their email to link them to this unit.
@@ -159,6 +161,8 @@ export default function NewTenancyPage() {
 
         </form>
       </main>
+
+      <BottomTabBar tabs={LANDLORD_TABS} />
     </div>
   )
 }

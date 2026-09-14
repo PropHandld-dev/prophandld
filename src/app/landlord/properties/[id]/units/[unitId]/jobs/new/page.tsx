@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
+import { BottomTabBar } from '@/components/BottomTabBar'
+import { LANDLORD_TABS } from '@/lib/navTabs'
 
 const CATEGORIES = [
   'Plumbing', 'Electrical', 'HVAC', 'Appliance',
@@ -122,7 +124,7 @@ export default function NewLandlordJobPage() {
         <div className="w-24" />
       </nav>
 
-      <main className="max-w-xl mx-auto px-6 py-10">
+      <main className="max-w-xl mx-auto px-6 py-10 pb-28">
         <h1 className="text-2xl font-bold text-white mb-2">Create a job</h1>
         <p className="text-white/50 text-sm mb-8">
           Start a maintenance job directly — no approval needed since you're the landlord.
@@ -233,6 +235,8 @@ export default function NewLandlordJobPage() {
           </button>
         </form>
       </main>
+
+      <BottomTabBar tabs={LANDLORD_TABS} />
     </div>
   )
 }

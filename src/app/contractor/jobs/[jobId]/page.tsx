@@ -6,6 +6,8 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { PhotoGrid } from '@/components/PhotoGrid'
 import { notify } from '@/lib/notify'
+import { BottomTabBar } from '@/components/BottomTabBar'
+import { CONTRACTOR_TABS } from '@/lib/navTabs'
 
 const TIME_WINDOWS = [
   { value: 'morning', label: 'Morning (8am–12pm)' },
@@ -390,7 +392,7 @@ export default function ContractorJobDetailPage() {
         <div className="w-20" />
       </nav>
 
-      <main className="max-w-2xl mx-auto px-6 py-10">
+      <main className="max-w-2xl mx-auto px-6 py-10 pb-28">
         <div className="mb-6">
           <div className="flex items-center gap-2 flex-wrap mb-2">
             <h1 className="text-2xl font-bold text-white">{job.category}</h1>
@@ -783,6 +785,8 @@ export default function ContractorJobDetailPage() {
           </div>
         </div>
       )}
+
+      <BottomTabBar tabs={CONTRACTOR_TABS} />
     </div>
   )
 }

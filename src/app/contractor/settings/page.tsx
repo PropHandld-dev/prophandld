@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { BottomTabBar } from '@/components/BottomTabBar'
+import { CONTRACTOR_TABS } from '@/lib/navTabs'
 
 const CATEGORIES = [
   'Plumbing', 'Electrical', 'HVAC', 'Appliance',
@@ -110,7 +112,7 @@ export default function ContractorSettingsPage() {
         <div className="w-24" />
       </nav>
 
-      <main className="max-w-xl mx-auto px-6 py-10">
+      <main className="max-w-xl mx-auto px-6 py-10 pb-28">
         <h1 className="text-2xl font-bold text-white mb-2">Service settings</h1>
         <p className="text-white/50 text-sm mb-8">
           Tell us what you do and where, so we can match you to the right jobs.
@@ -185,6 +187,8 @@ export default function ContractorSettingsPage() {
           </button>
         </form>
       </main>
+
+      <BottomTabBar tabs={CONTRACTOR_TABS} />
     </div>
   )
 }

@@ -4,6 +4,14 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { BottomTabBar } from '@/components/BottomTabBar'
+import { AlertsList, type AlertItem } from '@/components/AlertsList'
+import { Skeleton } from '@/components/Skeleton'
+import {
+  BuildingIcon, WrenchIcon, CalendarIcon, ClipboardListIcon,
+  DollarSignIcon, FileTextIcon, AlertTriangleIcon, CheckCircleIcon,
+} from '@/components/icons'
+import { LANDLORD_TABS } from '@/lib/navTabs'
 
 export default function LandlordDashboard() {
   const router = useRouter()
@@ -286,11 +294,6 @@ export default function LandlordDashboard() {
     getUser()
   }, [router])
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    router.push('/login')
-  }
-
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount)
 
@@ -298,17 +301,90 @@ export default function LandlordDashboard() {
     ? Math.round((stats.occupiedUnits / stats.totalUnits) * 100)
     : 0
 
-  if (loading) return (
-    <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center">
-      <div className="text-white/50">Loading...</div>
-    </div>
-  )
+  const alertItems: AlertItem[] = [
+    ...newIssues.map((job) => ({
+      id: `new-${job.id}`,
+      icon: AlertTriangleIcon,
+      tone: 'red' as const,
+      title: job.category,
+      subtitle: `${job.units?.properties?.address}, ${job.units?.properties?.city} · Unit ${job.units?.unit_number}`,
+      href: `/landlord/jobs/${job.id}`,
+      badge: 'New',
+    })),
+    ...priceChangeRequests.map((job) => ({
+      id: `price-${job.id}`,
+      icon: DollarSignIcon,
+      tone: 'yellow' as const,
+      title: job.category,
+      subtitle: `${job.units?.properties?.address}, ${job.units?.properties?.city} · Unit ${job.units?.unit_number}`,
+      href: `/landlord/jobs/${job.id}`,
+      badge: 'Price change',
+    })),
+    ...scheduleProposals.map((job) => ({
+      id: `sched-${job.id}`,
+      icon: CalendarIcon,
+      tone: 'yellow' as const,
+      title: job.category,
+      subtitle: `${job.units?.properties?.address} · New time from ${job.proposed_by}`,
+      href: `/landlord/jobs/${job.id}`,
+      badge: 'Review time',
+    })),
+    ...confirmedSchedules.map((job) => ({
+      id: `confirmed-${job.id}`,
+      icon: CheckCircleIcon,
+      tone: 'teal' as const,
+      title: job.category,
+      subtitle: `${job.units?.properties?.address}, ${job.units?.properties?.city}`,
+      href: `/landlord/jobs/${job.id}`,
+      badge: 'Confirmed',
+    })),
+    ...pendingReviewJobs.map((job) => ({
+      id: `pending-review-${job.id}`,
+      icon: CheckCircleIcon,
+      tone: 'teal' as const,
+      title: `${job.category} · Unit ${job.units?.unit_number}`,
+      subtitle: `${job.units?.properties?.address} — ${job.contractorName} notified work complete`,
+      href: `/landlord/jobs/${job.id}`,
+      badge: 'Review',
+    })),
+    ...complianceAlerts.map((item) => {
+      const expiry = new Date(item.expiry_date + 'T00:00:00')
+      const isExpired = expiry.getTime() < now
+      return {
+        id: `compliance-${item.id}`,
+        icon: AlertTriangleIcon,
+        tone: 'red' as const,
+        title: item.item_type,
+        subtitle: `${item.properties?.address}, ${item.properties?.city}`,
+        href: `/landlord/properties/${item.property_id}/compliance`,
+        badge: isExpired ? 'Expired' : 'Expiring soon',
+      }
+    }),
+    ...rentAlerts.map((rp) => ({
+      id: `rent-${rp.id}`,
+      icon: DollarSignIcon,
+      tone: 'red' as const,
+      title: `${rp.property?.address} · Unit ${rp.unit?.unit_number}`,
+      subtitle: `${new Date(rp.month + 'T00:00:00').toLocaleDateString(undefined, { month: 'long', year: 'numeric' })} · $${rp.actual_amount || 0} of $${rp.expected_amount}`,
+      href: `/landlord/properties/${rp.property?.id}/units/${rp.unit?.id}/rent`,
+      badge: 'Behind',
+    })),
+    ...needsReview.map((job) => ({
+      id: `bids-${job.id}`,
+      icon: ClipboardListIcon,
+      tone: 'yellow' as const,
+      title: job.category,
+      subtitle: `${job.units?.properties?.address}, ${job.units?.properties?.city} · Unit ${job.units?.unit_number}`,
+      href: `/landlord/jobs/${job.id}`,
+      badge: `${job.bidCount} bid${job.bidCount > 1 ? 's' : ''}`,
+    })),
+  ]
 
   return (
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between backdrop-blur-sm sticky top-0 bg-[#0C1A2E]/90 z-10">
         <div className="flex items-center gap-3">
-          <svg width="34" height="34" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg width="30" height="30" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
             <polygon points="50,5 38,16 38,28 62,28 62,16" fill="white" opacity="0.95"/>
             <rect x="44" y="18" width="12" height="10" rx="0.5" fill="#0C1A2E"/>
             <line x1="38" y1="20" x2="18" y2="42" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
@@ -331,409 +407,194 @@ export default function LandlordDashboard() {
             Landlord
           </span>
         </div>
-        <div className="flex items-center gap-4">
-          <span className="text-white/50 text-sm hidden sm:block">{user?.user_metadata?.full_name}</span>
-          <Link href="/landlord/calendar" className="text-white/40 hover:text-white text-sm transition">Calendar</Link>
-          <Link href="/profile" className="text-white/40 hover:text-white text-sm transition">Profile</Link>
-          <button onClick={handleSignOut} className="text-white/40 hover:text-white text-sm transition">Sign out</button>
-        </div>
+        <span className="text-white/50 text-sm hidden sm:block">{user?.user_metadata?.full_name}</span>
       </nav>
 
-      <main className="max-w-6xl mx-auto px-6 py-10">
+      <main className="max-w-6xl mx-auto px-6 py-10 pb-28">
 
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white tracking-tight">
-            Welcome back, {user?.user_metadata?.full_name?.split(' ')[0]} 👋
-          </h1>
-          <p className="text-white/50 mt-2">Here's the state of your portfolio right now.</p>
-        </div>
-
-        {/* New issue reported */}
-        {newIssues.length > 0 && (
-          <div className="bg-gradient-to-r from-red-500/10 to-red-500/5 border border-red-500/30 rounded-2xl p-5 mb-4">
-            <h3 className="text-red-400 font-semibold text-sm mb-3">
-              🆕 {newIssues.length} new issue{newIssues.length > 1 ? 's' : ''} reported
-            </h3>
-            <div className="space-y-2">
-              {newIssues.map((job) => (
-                <Link
-                  key={job.id}
-                  href={`/landlord/jobs/${job.id}`}
-                  className="flex items-center justify-between bg-white/5 hover:bg-white/8 rounded-xl px-4 py-3 transition"
-                >
-                  <div>
-                    <p className="text-white text-sm font-medium">{job.category}</p>
-                    <p className="text-white/40 text-xs">
-                      {job.units?.properties?.address}, {job.units?.properties?.city} · Unit {job.units?.unit_number}
-                    </p>
-                  </div>
-                  <span className="text-xs bg-red-500/20 text-red-400 rounded-full px-3 py-1 font-semibold shrink-0">
-                    Acknowledge →
-                  </span>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Contractor requested a price change */}
-        {priceChangeRequests.length > 0 && (
-          <div className="bg-gradient-to-r from-yellow-500/10 to-yellow-500/5 border border-yellow-500/30 rounded-2xl p-5 mb-4">
-            <h3 className="text-yellow-400 font-semibold text-sm mb-3">
-              💲 {priceChangeRequests.length} price change{priceChangeRequests.length > 1 ? 's' : ''} awaiting approval
-            </h3>
-            <div className="space-y-2">
-              {priceChangeRequests.map((job) => (
-                <Link
-                  key={job.id}
-                  href={`/landlord/jobs/${job.id}`}
-                  className="flex items-center justify-between bg-white/5 hover:bg-white/8 rounded-xl px-4 py-3 transition"
-                >
-                  <div>
-                    <p className="text-white text-sm font-medium">{job.category}</p>
-                    <p className="text-white/40 text-xs">
-                      {job.units?.properties?.address}, {job.units?.properties?.city} · Unit {job.units?.unit_number}
-                    </p>
-                  </div>
-                  <span className="text-xs bg-yellow-500/20 text-yellow-400 rounded-full px-3 py-1 font-semibold shrink-0">
-                    Review →
-                  </span>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Schedule proposals awaiting landlord response */}
-        {scheduleProposals.length > 0 && (
-          <div className="bg-gradient-to-r from-blue-500/10 to-blue-500/5 border border-blue-400/30 rounded-2xl p-5 mb-4">
-            <h3 className="text-blue-300 font-semibold text-sm mb-3">
-              🕐 {scheduleProposals.length} new time proposed
-            </h3>
-            <div className="space-y-2">
-              {scheduleProposals.map((job) => (
-                <Link
-                  key={job.id}
-                  href={`/landlord/jobs/${job.id}`}
-                  className="flex items-center justify-between bg-white/5 hover:bg-white/8 rounded-xl px-4 py-3 transition"
-                >
-                  <div>
-                    <p className="text-white text-sm font-medium">{job.category}</p>
-                    <p className="text-white/40 text-xs">
-                      {job.units?.properties?.address} · New time from {job.proposed_by}
-                    </p>
-                  </div>
-                  <span className="text-xs bg-blue-400/20 text-blue-300 rounded-full px-3 py-1 font-semibold shrink-0">
-                    Review →
-                  </span>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Schedule just confirmed */}
-        {confirmedSchedules.length > 0 && (
-          <div className="bg-gradient-to-r from-[#0A7B7E]/15 to-[#12A5A9]/5 border border-[#12A5A9]/30 rounded-2xl p-5 mb-4">
-            <h3 className="text-[#12A5A9] font-semibold text-sm mb-3">
-              ✅ {confirmedSchedules.length} schedule{confirmedSchedules.length > 1 ? 's' : ''} confirmed
-            </h3>
-            <div className="space-y-2">
-              {confirmedSchedules.map((job) => (
-                <Link
-                  key={job.id}
-                  href={`/landlord/jobs/${job.id}`}
-                  className="flex items-center justify-between bg-white/5 hover:bg-white/8 rounded-xl px-4 py-3 transition"
-                >
-                  <div>
-                    <p className="text-white text-sm font-medium">{job.category}</p>
-                    <p className="text-white/40 text-xs">
-                      {job.units?.properties?.address}, {job.units?.properties?.city}
-                    </p>
-                  </div>
-                  <span className="text-xs bg-[#12A5A9]/20 text-[#12A5A9] rounded-full px-3 py-1 font-semibold shrink-0">
-                    Details →
-                  </span>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Contractor marked job complete */}
-        {pendingReviewJobs.length > 0 && (
-          <div className="bg-gradient-to-r from-[#0A7B7E]/15 to-[#12A5A9]/5 border border-[#12A5A9]/30 rounded-2xl p-5 mb-4">
-            <h3 className="text-[#12A5A9] font-semibold text-sm mb-3">
-              ✅ {pendingReviewJobs.length} job{pendingReviewJobs.length > 1 ? 's' : ''} marked complete
-            </h3>
-            <div className="space-y-2">
-              {pendingReviewJobs.map((job) => (
-                <Link
-                  key={job.id}
-                  href={`/landlord/jobs/${job.id}`}
-                  className="flex items-center justify-between bg-white/5 hover:bg-white/8 rounded-xl px-4 py-3 transition"
-                >
-                  <div>
-                    <p className="text-white text-sm font-medium">
-                      {job.units?.properties?.address} — {job.contractorName} notified work complete
-                    </p>
-                    <p className="text-white/40 text-xs">{job.category} · Unit {job.units?.unit_number}</p>
-                  </div>
-                  <span className="text-xs bg-[#12A5A9]/20 text-[#12A5A9] rounded-full px-3 py-1 font-semibold shrink-0">
-                    Review now →
-                  </span>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Compliance items expiring soon or expired */}
-        {complianceAlerts.length > 0 && (
-          <div className="bg-gradient-to-r from-red-500/10 to-red-500/5 border border-red-500/30 rounded-2xl p-5 mb-4">
-            <h3 className="text-red-400 font-semibold text-sm mb-3">
-              ⚠️ {complianceAlerts.length} compliance item{complianceAlerts.length > 1 ? 's' : ''} need{complianceAlerts.length === 1 ? 's' : ''} attention
-            </h3>
-            <div className="space-y-2">
-              {complianceAlerts.map((item) => {
-                const expiry = new Date(item.expiry_date + 'T00:00:00')
-                const isExpired = expiry.getTime() < now
-                return (
-                  <Link
-                    key={item.id}
-                    href={`/landlord/properties/${item.property_id}/compliance`}
-                    className="flex items-center justify-between bg-white/5 hover:bg-white/8 rounded-xl px-4 py-3 transition"
-                  >
-                    <div>
-                      <p className="text-white text-sm font-medium">{item.item_type}</p>
-                      <p className="text-white/40 text-xs">
-                        {item.properties?.address}, {item.properties?.city}
-                      </p>
-                    </div>
-                    <span className="text-xs bg-red-500/20 text-red-400 rounded-full px-3 py-1 font-semibold shrink-0">
-                      {isExpired ? 'Expired' : 'Expiring soon'}
-                    </span>
-                  </Link>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Rent behind for the current or a past month */}
-        {rentAlerts.length > 0 && (
-          <div className="bg-gradient-to-r from-red-500/10 to-red-500/5 border border-red-500/30 rounded-2xl p-5 mb-4">
-            <h3 className="text-red-400 font-semibold text-sm mb-3">
-              ⚠️ {rentAlerts.length} unit{rentAlerts.length > 1 ? 's' : ''} behind on rent
-            </h3>
-            <div className="space-y-2">
-              {rentAlerts.map((rp) => (
-                <Link
-                  key={rp.id}
-                  href={`/landlord/properties/${rp.property?.id}/units/${rp.unit?.id}/rent`}
-                  className="flex items-center justify-between bg-white/5 hover:bg-white/8 rounded-xl px-4 py-3 transition"
-                >
-                  <div>
-                    <p className="text-white text-sm font-medium">
-                      {rp.property?.address} · Unit {rp.unit?.unit_number}
-                    </p>
-                    <p className="text-white/40 text-xs">
-                      {new Date(rp.month + 'T00:00:00').toLocaleDateString(undefined, { month: 'long', year: 'numeric' })} · ${rp.actual_amount || 0} of ${rp.expected_amount}
-                    </p>
-                  </div>
-                  <span className="text-xs bg-red-500/20 text-red-400 rounded-full px-3 py-1 font-semibold shrink-0">
-                    Behind
-                  </span>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {needsReview.length > 0 && (
-          <div className="bg-gradient-to-r from-yellow-500/10 to-yellow-500/5 border border-yellow-500/30 rounded-2xl p-5 mb-6">
-            <h3 className="text-yellow-400 font-semibold text-sm mb-3">
-              🔔 {needsReview.length} job{needsReview.length > 1 ? 's' : ''} need{needsReview.length === 1 ? 's' : ''} your review
-            </h3>
-            <div className="space-y-2">
-              {needsReview.map((job) => (
-                <Link
-                  key={job.id}
-                  href={`/landlord/jobs/${job.id}`}
-                  className="flex items-center justify-between bg-white/5 hover:bg-white/8 rounded-xl px-4 py-3 transition"
-                >
-                  <div>
-                    <p className="text-white text-sm font-medium">{job.category}</p>
-                    <p className="text-white/40 text-xs">
-                      {job.units?.properties?.address}, {job.units?.properties?.city} · Unit {job.units?.unit_number}
-                    </p>
-                  </div>
-                  <span className="text-xs bg-yellow-500/20 text-yellow-400 rounded-full px-3 py-1 font-semibold shrink-0">
-                    {job.bidCount} bid{job.bidCount > 1 ? 's' : ''} →
-                  </span>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <Link
-            href="/landlord/properties"
-            className="bg-white/3 border border-white/8 rounded-2xl p-5 hover:border-[#12A5A9]/30 hover:bg-white/5 transition group"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xl">🏠</span>
-              <span className="text-white/20 group-hover:text-[#12A5A9]/60 transition text-sm">→</span>
-            </div>
-            <div className="text-3xl font-bold text-white">{stats.properties}</div>
-            <div className="text-white/40 text-sm mt-1">Properties</div>
-          </Link>
-
-          <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xl">🔑</span>
-            </div>
-            <div className="text-3xl font-bold text-white">{stats.totalUnits}</div>
-            <div className="text-white/40 text-sm mt-1">Total units</div>
-          </div>
-
-          <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xl">✅</span>
-              <span className="text-[#12A5A9] text-xs font-semibold">{occupancyRate}%</span>
-            </div>
-            <div className="text-3xl font-bold text-white">{stats.occupiedUnits}</div>
-            <div className="text-white/40 text-sm mt-1">Occupied · {stats.vacantUnits} vacant</div>
-          </div>
-
-          <div className="bg-gradient-to-br from-[#0A7B7E]/15 to-[#12A5A9]/5 border border-[#12A5A9]/20 rounded-2xl p-5">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xl">💰</span>
-            </div>
-            <div className="text-3xl font-bold text-white">{formatCurrency(stats.monthlyRentRoll)}</div>
-            <div className="text-white/40 text-sm mt-1">Monthly rent roll</div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-3 gap-4 mb-10">
-          <Link href="/landlord/jobs?filter=needs_approval" className="bg-white/3 border border-white/8 rounded-2xl p-5 flex items-center gap-4 hover:border-[#12A5A9]/30 hover:bg-white/5 transition">
-            <span className="text-2xl">⏳</span>
+        {loading ? (
+          <div className="space-y-6">
             <div>
-              <div className="text-xl font-bold text-white">{stats.needsApproval}</div>
-              <div className="text-white/40 text-xs">Needs approval</div>
+              <Skeleton className="h-8 w-64 mb-2" />
+              <Skeleton className="h-4 w-48" />
             </div>
-          </Link>
-          <Link href="/landlord/jobs?filter=in_progress" className="bg-white/3 border border-white/8 rounded-2xl p-5 flex items-center gap-4 hover:border-[#12A5A9]/30 hover:bg-white/5 transition">
-            <span className="text-2xl">🔧</span>
-            <div>
-              <div className="text-xl font-bold text-white">{stats.inProgress}</div>
-              <div className="text-white/40 text-xs">In progress</div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-24" />)}
             </div>
-          </Link>
-          <Link
-            href={needsReview.length > 0 ? `/landlord/jobs/${needsReview[0].id}` : '/landlord/jobs'}
-            className="bg-white/3 border border-white/8 rounded-2xl p-5 flex items-center gap-4 hover:border-[#12A5A9]/30 hover:bg-white/5 transition"
-          >
-            <span className="text-2xl">📋</span>
-            <div>
-              <div className="text-xl font-bold text-white">{stats.pendingBids}</div>
-              <div className="text-white/40 text-xs">Bids to review</div>
-            </div>
-          </Link>
-        </div>
-
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-white font-semibold text-lg">Your properties</h2>
-          <Link href="/landlord/properties" className="text-[#12A5A9] text-sm hover:underline">
-            View all
-          </Link>
-        </div>
-
-        {properties.length === 0 ? (
-          <div className="bg-white/3 border border-white/8 rounded-2xl p-10 text-center mb-10">
-            <div className="text-4xl mb-3">🏠</div>
-            <h3 className="text-white font-semibold mb-1">No properties yet</h3>
-            <p className="text-white/40 text-sm mb-5">Add your first property to start building your portfolio.</p>
-            <Link
-              href="/landlord/properties/new"
-              className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-6 py-3 rounded-xl hover:opacity-90 transition inline-block"
-            >
-              Add property
-            </Link>
+            <Skeleton className="h-40" />
           </div>
         ) : (
-          <div className="grid gap-3 mb-10">
-            {properties.map((property) => {
-              const rate = property.totalUnits > 0
-                ? Math.round((property.occupiedUnits / property.totalUnits) * 100)
-                : 0
-              return (
+          <>
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold text-white tracking-tight">
+                Welcome back, {user?.user_metadata?.full_name?.split(' ')[0]}
+              </h1>
+              <p className="text-white/50 mt-2">Here&apos;s the state of your portfolio right now.</p>
+            </div>
+
+            <AlertsList items={alertItems} />
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <Link
+                href="/landlord/properties"
+                className="bg-white/3 border border-white/8 rounded-2xl p-5 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all group"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <BuildingIcon className="w-5 h-5 text-[#12A5A9]" />
+                  <span className="text-white/20 group-hover:text-[#12A5A9]/60 transition text-sm">→</span>
+                </div>
+                <div className="text-3xl font-bold text-white">{stats.properties}</div>
+                <div className="text-white/40 text-sm mt-1">Properties</div>
+              </Link>
+
+              <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <BuildingIcon className="w-5 h-5 text-white/40" />
+                </div>
+                <div className="text-3xl font-bold text-white">{stats.totalUnits}</div>
+                <div className="text-white/40 text-sm mt-1">Total units</div>
+              </div>
+
+              <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <CheckCircleIcon className="w-5 h-5 text-[#12A5A9]" />
+                  <span className="text-[#12A5A9] text-xs font-semibold">{occupancyRate}%</span>
+                </div>
+                <div className="text-3xl font-bold text-white">{stats.occupiedUnits}</div>
+                <div className="text-white/40 text-sm mt-1">Occupied · {stats.vacantUnits} vacant</div>
+              </div>
+
+              <div className="bg-gradient-to-br from-[#0A7B7E]/15 to-[#12A5A9]/5 border border-[#12A5A9]/20 rounded-2xl p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <DollarSignIcon className="w-5 h-5 text-[#12A5A9]" />
+                </div>
+                <div className="text-3xl font-bold text-white">{formatCurrency(stats.monthlyRentRoll)}</div>
+                <div className="text-white/40 text-sm mt-1">Monthly rent roll</div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4 mb-10">
+              <Link href="/landlord/jobs?filter=needs_approval" className="bg-white/3 border border-white/8 rounded-2xl p-5 flex items-center gap-4 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all">
+                <ClipboardListIcon className="w-6 h-6 text-white/50 shrink-0" />
+                <div>
+                  <div className="text-xl font-bold text-white">{stats.needsApproval}</div>
+                  <div className="text-white/40 text-xs">Needs approval</div>
+                </div>
+              </Link>
+              <Link href="/landlord/jobs?filter=in_progress" className="bg-white/3 border border-white/8 rounded-2xl p-5 flex items-center gap-4 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all">
+                <WrenchIcon className="w-6 h-6 text-white/50 shrink-0" />
+                <div>
+                  <div className="text-xl font-bold text-white">{stats.inProgress}</div>
+                  <div className="text-white/40 text-xs">In progress</div>
+                </div>
+              </Link>
+              <Link
+                href={needsReview.length > 0 ? `/landlord/jobs/${needsReview[0].id}` : '/landlord/jobs'}
+                className="bg-white/3 border border-white/8 rounded-2xl p-5 flex items-center gap-4 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all"
+              >
+                <ClipboardListIcon className="w-6 h-6 text-white/50 shrink-0" />
+                <div>
+                  <div className="text-xl font-bold text-white">{stats.pendingBids}</div>
+                  <div className="text-white/40 text-xs">Bids to review</div>
+                </div>
+              </Link>
+            </div>
+
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-white font-semibold text-lg">Your properties</h2>
+              <Link href="/landlord/properties" className="text-[#12A5A9] text-sm hover:underline">
+                View all
+              </Link>
+            </div>
+
+            {properties.length === 0 ? (
+              <div className="bg-white/3 border border-white/8 rounded-2xl p-10 text-center mb-10">
+                <BuildingIcon className="w-10 h-10 text-white/30 mx-auto mb-3" />
+                <h3 className="text-white font-semibold mb-1">No properties yet</h3>
+                <p className="text-white/40 text-sm mb-5">Add your first property to start building your portfolio.</p>
                 <Link
-                  key={property.id}
-                  href={`/landlord/properties/${property.id}`}
-                  className="bg-white/3 border border-white/8 rounded-2xl p-5 hover:border-[#12A5A9]/30 hover:bg-white/5 transition block"
+                  href="/landlord/properties/new"
+                  className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-6 py-3 rounded-xl hover:opacity-90 transition inline-block"
                 >
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-white font-semibold truncate">{property.address}</h3>
-                      <p className="text-white/40 text-sm mt-0.5">{property.city}, {property.state}</p>
-                    </div>
-                    <div className="flex items-center gap-6 shrink-0">
-                      <div className="text-right">
-                        <div className="text-white text-sm font-medium">
-                          {property.occupiedUnits}/{property.totalUnits} occupied
+                  Add property
+                </Link>
+              </div>
+            ) : (
+              <div className="grid gap-3 mb-10">
+                {properties.map((property) => {
+                  const rate = property.totalUnits > 0
+                    ? Math.round((property.occupiedUnits / property.totalUnits) * 100)
+                    : 0
+                  return (
+                    <Link
+                      key={property.id}
+                      href={`/landlord/properties/${property.id}`}
+                      className="bg-white/3 border border-white/8 rounded-2xl p-5 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block"
+                    >
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-white font-semibold truncate">{property.address}</h3>
+                          <p className="text-white/40 text-sm mt-0.5">{property.city}, {property.state}</p>
                         </div>
-                        <div className="w-24 h-1.5 bg-white/10 rounded-full mt-1.5 overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] rounded-full transition-all"
-                            style={{ width: `${rate}%` }}
-                          />
+                        <div className="flex items-center gap-6 shrink-0">
+                          <div className="text-right">
+                            <div className="text-white text-sm font-medium">
+                              {property.occupiedUnits}/{property.totalUnits} occupied
+                            </div>
+                            <div className="w-24 h-1.5 bg-white/10 rounded-full mt-1.5 overflow-hidden">
+                              <div
+                                className="h-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] rounded-full transition-all"
+                                style={{ width: `${rate}%` }}
+                              />
+                            </div>
+                          </div>
+                          <span className="text-white/20 text-lg">→</span>
                         </div>
                       </div>
-                      <span className="text-white/20 text-lg">→</span>
-                    </div>
-                  </div>
-                </Link>
-              )
-            })}
-          </div>
-        )}
+                    </Link>
+                  )
+                })}
+              </div>
+            )}
 
-        <h2 className="text-white font-semibold text-lg mb-4">Quick actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Link href="/landlord/properties" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 transition block">
-            <div className="text-xl mb-2">🏠</div>
-            <h3 className="text-white font-semibold mb-1">Properties</h3>
-            <p className="text-white/40 text-sm">Manage your properties and units</p>
-          </Link>
-          <Link href="/landlord/properties/new" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 transition block">
-            <div className="text-xl mb-2">➕</div>
-            <h3 className="text-white font-semibold mb-1">Add a property</h3>
-            <p className="text-white/40 text-sm">Start tracking a new address</p>
-          </Link>
-          <Link href="/landlord/jobs" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 transition block">
-            <div className="text-xl mb-2">🔧</div>
-            <h3 className="text-white font-semibold mb-1">View jobs</h3>
-            <p className="text-white/40 text-sm">See all maintenance requests</p>
-          </Link>
-          <div className="bg-white/3 border border-white/8 rounded-2xl p-6 opacity-50 cursor-not-allowed">
-            <div className="text-xl mb-2">💳</div>
-            <h3 className="text-white font-semibold mb-1">Rent collection</h3>
-            <p className="text-white/40 text-sm">Coming soon</p>
-          </div>
-          <Link href="/landlord/properties" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 transition block">
-            <div className="text-xl mb-2">📁</div>
-            <h3 className="text-white font-semibold mb-1">Documents</h3>
-            <p className="text-white/40 text-sm">Open a property to manage its documents</p>
-          </Link>
-          <Link href="/landlord/properties" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 transition block">
-            <div className="text-xl mb-2">📋</div>
-            <h3 className="text-white font-semibold mb-1">Compliance tracking</h3>
-            <p className="text-white/40 text-sm">Open a property to manage compliance items</p>
-          </Link>
-        </div>
+            <h2 className="text-white font-semibold text-lg mb-4">Quick actions</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Link href="/landlord/properties" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
+                <BuildingIcon className="w-5 h-5 text-[#12A5A9] mb-2" />
+                <h3 className="text-white font-semibold mb-1">Properties</h3>
+                <p className="text-white/40 text-sm">Manage your properties and units</p>
+              </Link>
+              <Link href="/landlord/properties/new" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
+                <BuildingIcon className="w-5 h-5 text-[#12A5A9] mb-2" />
+                <h3 className="text-white font-semibold mb-1">Add a property</h3>
+                <p className="text-white/40 text-sm">Start tracking a new address</p>
+              </Link>
+              <Link href="/landlord/jobs" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
+                <WrenchIcon className="w-5 h-5 text-[#12A5A9] mb-2" />
+                <h3 className="text-white font-semibold mb-1">View jobs</h3>
+                <p className="text-white/40 text-sm">See all maintenance requests</p>
+              </Link>
+              <div className="bg-white/3 border border-white/8 rounded-2xl p-6 opacity-50 cursor-not-allowed">
+                <DollarSignIcon className="w-5 h-5 text-white/40 mb-2" />
+                <h3 className="text-white font-semibold mb-1">Rent collection</h3>
+                <p className="text-white/40 text-sm">Coming soon</p>
+              </div>
+              <Link href="/landlord/properties" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
+                <FileTextIcon className="w-5 h-5 text-[#12A5A9] mb-2" />
+                <h3 className="text-white font-semibold mb-1">Documents</h3>
+                <p className="text-white/40 text-sm">Open a property to manage its documents</p>
+              </Link>
+              <Link href="/landlord/properties" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
+                <ClipboardListIcon className="w-5 h-5 text-[#12A5A9] mb-2" />
+                <h3 className="text-white font-semibold mb-1">Compliance tracking</h3>
+                <p className="text-white/40 text-sm">Open a property to manage compliance items</p>
+              </Link>
+            </div>
+          </>
+        )}
       </main>
+
+      <BottomTabBar tabs={LANDLORD_TABS} />
     </div>
   )
 }

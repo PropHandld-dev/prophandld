@@ -5,6 +5,8 @@ import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { notify } from '@/lib/notify'
+import { BottomTabBar } from '@/components/BottomTabBar'
+import { RENTER_TABS } from '@/lib/navTabs'
 
 const CATEGORIES = [
   'Plumbing', 'Electrical', 'HVAC', 'Appliance',
@@ -193,7 +195,7 @@ export default function ReportIssuePage() {
         <div className="w-20" />
       </nav>
 
-      <main className="max-w-xl mx-auto px-6 py-10">
+      <main className="max-w-xl mx-auto px-6 py-10 pb-28">
         <h1 className="text-2xl font-bold text-white mb-2">Report an issue</h1>
         <p className="text-white/50 text-sm mb-8">
           Let your landlord know what's going on. Add photos if you can — it helps get the right contractor.
@@ -386,6 +388,8 @@ export default function ReportIssuePage() {
           </div>
         </div>
       )}
+
+      <BottomTabBar tabs={RENTER_TABS} />
     </div>
   )
 }

@@ -5,6 +5,8 @@ import { supabase } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { geocodeZip } from '@/lib/geocode'
+import { BottomTabBar } from '@/components/BottomTabBar'
+import { LANDLORD_TABS } from '@/lib/navTabs'
 
 export default function EditPropertyPage() {
   const router = useRouter()
@@ -130,7 +132,7 @@ export default function EditPropertyPage() {
         <div className="w-24" />
       </nav>
 
-      <main className="max-w-xl mx-auto px-6 py-10">
+      <main className="max-w-xl mx-auto px-6 py-10 pb-28">
         <h1 className="text-2xl font-bold text-white mb-2">Edit property</h1>
         <p className="text-white/50 text-sm mb-8">Update your property details below.</p>
 
@@ -219,6 +221,8 @@ export default function EditPropertyPage() {
 
         </form>
       </main>
+
+      <BottomTabBar tabs={LANDLORD_TABS} />
     </div>
   )
 }

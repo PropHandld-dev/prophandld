@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
+import { BottomTabBar } from '@/components/BottomTabBar'
+import { LANDLORD_TABS } from '@/lib/navTabs'
 
 const ITEM_TYPES = [
   { value: 'plumbing', label: 'Plumbing' },
@@ -286,7 +288,7 @@ export default function UnitSystemsPage() {
         <div className="w-20" />
       </nav>
 
-      <main className="max-w-2xl mx-auto px-6 py-10">
+      <main className="max-w-2xl mx-auto px-6 py-10 pb-28">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-white">Systems & Appliances</h1>
           <p className="text-white/50 text-sm mt-1">Unit {unit.unit_number}</p>
@@ -552,6 +554,8 @@ export default function UnitSystemsPage() {
           </div>
         )}
       </main>
+
+      <BottomTabBar tabs={LANDLORD_TABS} />
     </div>
   )
 }

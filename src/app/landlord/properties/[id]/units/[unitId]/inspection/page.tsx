@@ -4,6 +4,8 @@ import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { BottomTabBar } from '@/components/BottomTabBar'
+import { LANDLORD_TABS } from '@/lib/navTabs'
 
 export default function InspectionPage() {
   const router = useRouter()
@@ -221,7 +223,7 @@ export default function InspectionPage() {
         <div className="w-20" />
       </nav>
 
-      <main className="max-w-2xl mx-auto px-6 py-10">
+      <main className="max-w-2xl mx-auto px-6 py-10 pb-28">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-white">{title}</h1>
           <p className="text-white/50 text-sm mt-1">{subtitle}</p>
@@ -332,6 +334,8 @@ export default function InspectionPage() {
           </Link>
         )}
       </main>
+
+      <BottomTabBar tabs={LANDLORD_TABS} />
     </div>
   )
 }

@@ -4,6 +4,11 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { BottomTabBar } from '@/components/BottomTabBar'
+import { AlertsList, type AlertItem } from '@/components/AlertsList'
+import { Skeleton } from '@/components/Skeleton'
+import { CalendarIcon, DollarSignIcon, CheckCircleIcon } from '@/components/icons'
+import { RENTER_TABS } from '@/lib/navTabs'
 
 export default function RenterDashboard() {
   const router = useRouter()
@@ -104,11 +109,6 @@ export default function RenterDashboard() {
     getUser()
   }, [router])
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    router.push('/login')
-  }
-
  const statusLabel = (job: any) => {
   // A pending proposal takes priority over the underlying status,
   // regardless of whether we're still at bid_selected or already scheduled.
@@ -131,11 +131,26 @@ export default function RenterDashboard() {
   return job.status
 }
 
-  if (loading) return (
-    <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center">
-      <div className="text-white/50">Loading...</div>
-    </div>
-  )
+  const alertItems: AlertItem[] = [
+    ...pickTimeAlerts.map((job) => ({
+      id: `pick-${job.id}`,
+      icon: CalendarIcon,
+      tone: 'yellow' as const,
+      title: job.category,
+      subtitle: 'Your landlord wants you to pick a time',
+      href: `/renter/jobs/${job.id}`,
+      badge: 'Pick a time',
+    })),
+    ...scheduleAlerts.map((job) => ({
+      id: `sched-${job.id}`,
+      icon: CalendarIcon,
+      tone: 'yellow' as const,
+      title: job.category,
+      subtitle: 'New time proposed',
+      href: `/renter/jobs/${job.id}`,
+      badge: 'Review',
+    })),
+  ]
 
   return (
     <div className="min-h-screen bg-[#0C1A2E]">
@@ -144,154 +159,132 @@ export default function RenterDashboard() {
           <span className="text-white font-semibold">Prophandld</span>
           <span className="text-xs bg-[#0A7B7E]/20 text-[#12A5A9] border border-[#12A5A9]/30 rounded-full px-2 py-0.5">Renter</span>
         </div>
-        <div className="flex items-center gap-4">
-          <span className="text-white/50 text-sm">{user?.user_metadata?.full_name}</span>
-          <Link href="/renter/calendar" className="text-white/40 hover:text-white text-sm transition">Calendar</Link>
-          <Link href="/profile" className="text-white/40 hover:text-white text-sm transition">Profile</Link>
-          <button onClick={handleSignOut} className="text-white/40 hover:text-white text-sm transition">Sign out</button>
-        </div>
+        <span className="text-white/50 text-sm">{user?.user_metadata?.full_name}</span>
       </nav>
 
-      <main className="max-w-2xl mx-auto px-6 py-10">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-white">
-            Hi, {user?.user_metadata?.full_name?.split(' ')[0]} 👋
-          </h1>
-          <p className="text-white/50 mt-1">Track your maintenance requests here.</p>
-        </div>
-
-        {pickTimeAlerts.length > 0 && (
-          <div className="bg-gradient-to-r from-blue-500/10 to-blue-500/5 border border-blue-400/30 rounded-2xl p-5 mb-6">
-            <h3 className="text-blue-300 font-semibold text-sm mb-3">
-              📅 Your landlord wants you to pick a time
-            </h3>
-            <div className="space-y-2">
-              {pickTimeAlerts.map((job) => (
-                <Link
-                  key={job.id}
-                  href={`/renter/jobs/${job.id}`}
-                  className="flex items-center justify-between bg-white/5 hover:bg-white/8 rounded-xl px-4 py-3 transition"
-                >
-                  <p className="text-white text-sm font-medium">{job.category}</p>
-                  <span className="text-xs bg-blue-400/20 text-blue-300 rounded-full px-3 py-1 font-semibold shrink-0">
-                    Pick a time →
-                  </span>
-                </Link>
-              ))}
-            </div>
+      <main className="max-w-2xl mx-auto px-6 py-10 pb-28">
+        {loading ? (
+          <div className="space-y-4">
+            <Skeleton className="h-7 w-40 mb-2" />
+            <Skeleton className="h-4 w-56" />
+            <Skeleton className="h-24 mt-4" />
+            <Skeleton className="h-32" />
           </div>
-        )}
-
-        {scheduleAlerts.length > 0 && (
-          <div className="bg-gradient-to-r from-blue-500/10 to-blue-500/5 border border-blue-400/30 rounded-2xl p-5 mb-6">
-            <h3 className="text-blue-300 font-semibold text-sm mb-3">
-              🕐 {scheduleAlerts.length} new time proposed
-            </h3>
-            <div className="space-y-2">
-              {scheduleAlerts.map((job) => (
-                <Link
-                  key={job.id}
-                  href={`/renter/jobs/${job.id}`}
-                  className="flex items-center justify-between bg-white/5 hover:bg-white/8 rounded-xl px-4 py-3 transition"
-                >
-                  <p className="text-white text-sm font-medium">{job.category}</p>
-                  <span className="text-xs bg-blue-400/20 text-blue-300 rounded-full px-3 py-1 font-semibold shrink-0">
-                    Review →
-                  </span>
-                </Link>
-              ))}
+        ) : (
+          <>
+            <div className="mb-8">
+              <h1 className="text-2xl font-bold text-white">
+                Hi, {user?.user_metadata?.full_name?.split(' ')[0]}
+              </h1>
+              <p className="text-white/50 mt-1">Track your maintenance requests here.</p>
             </div>
-          </div>
-        )}
 
-        {unit && property && (
-          <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
-            <h3 className="text-white font-semibold mb-1">Your home</h3>
-            <p className="text-white/70 text-sm mt-2">{property.address}</p>
-            <p className="text-white/50 text-sm">
-              {property.city}, {property.state} {property.zip} · Unit {unit.unit_number}
-            </p>
-          </div>
-        )}
+            <AlertsList items={alertItems} />
 
-        <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6 opacity-50 cursor-not-allowed">
-          <h3 className="text-white font-semibold mb-1">💳 Pay rent</h3>
-          <p className="text-white/40 text-sm">Coming soon</p>
-        </div>
+            {unit && property && (
+              <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
+                <h3 className="text-white font-semibold mb-1">Your home</h3>
+                <p className="text-white/70 text-sm mt-2">{property.address}</p>
+                <p className="text-white/50 text-sm">
+                  {property.city}, {property.state} {property.zip} · Unit {unit.unit_number}
+                </p>
+              </div>
+            )}
 
-        <div className="bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/10 border border-[#12A5A9]/30 rounded-2xl p-6 mb-6">
-          <h3 className="text-white font-semibold mb-1">Report an issue</h3>
-          <p className="text-white/50 text-sm mb-4">Something broken? Let your landlord know.</p>
-          <Link
-            href="/renter/report"
-            className="inline-block bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-6 py-2.5 rounded-xl text-sm hover:opacity-90 transition"
-          >
-            Report now
-          </Link>
-        </div>
-
-        <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
-          <h3 className="text-white font-semibold mb-4">Your issues</h3>
-
-          {jobsLoading ? (
-            <p className="text-white/30 text-sm">Loading...</p>
-          ) : jobs.length === 0 ? (
-            <p className="text-white/30 text-sm">No open issues — you're all good! ✅</p>
-          ) : (
-            <div className="space-y-3">
-              {jobs.map((job) => (
-                <Link
-                  key={job.id}
-                  href={`/renter/jobs/${job.id}`}
-                  className="block border-b border-white/5 last:border-0 pb-3 last:pb-0 hover:opacity-80 transition"
-                >
-                  <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <p className="text-white font-medium">{job.category}</p>
-                    {job.is_emergency && (
-                      <span className="text-xs bg-red-500/20 text-red-400 border border-red-500/30 rounded-full px-2 py-0.5 font-semibold">
-                        Emergency
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-white/50 text-sm">{job.description}</p>
-                  <p className="text-[#12A5A9] text-xs mt-1">{statusLabel(job)}</p>
-                </Link>
-              ))}
+            <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6 opacity-50 cursor-not-allowed">
+              <div className="flex items-center gap-2 mb-1">
+                <DollarSignIcon className="w-4 h-4 text-white/40" />
+                <h3 className="text-white font-semibold">Pay rent</h3>
+              </div>
+              <p className="text-white/40 text-sm">Coming soon</p>
             </div>
-          )}
-        </div>
 
-        <div className="bg-white/3 border border-white/8 rounded-2xl p-6">
-          <h3 className="text-white font-semibold mb-4">Emergency contacts</h3>
+            <div className="bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/10 border border-[#12A5A9]/30 rounded-2xl p-6 mb-6">
+              <h3 className="text-white font-semibold mb-1">Report an issue</h3>
+              <p className="text-white/50 text-sm mb-4">Something broken? Let your landlord know.</p>
+              <Link
+                href="/renter/report"
+                className="inline-block bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-6 py-2.5 rounded-xl text-sm hover:opacity-90 transition"
+              >
+                Report now
+              </Link>
+            </div>
 
-          {contactsLoading ? (
-            <p className="text-white/30 text-sm">Loading...</p>
-          ) : !unit ? (
-            <p className="text-white/30 text-sm">No unit linked to your account yet.</p>
-          ) : contacts.length === 0 ? (
-            <p className="text-white/30 text-sm">No emergency contacts added for your unit yet.</p>
-          ) : (
-            <div className="space-y-3">
-              {contacts.map((contact) => (
-                <div key={contact.id} className="border-b border-white/5 last:border-0 pb-3 last:pb-0">
-                  <p className="text-white font-medium">{contact.name}</p>
-                  {contact.role && <p className="text-white/50 text-sm">{contact.role}</p>}
-                  {contact.phone && (
-                    <a href={`tel:${contact.phone}`} className="text-[#12A5A9] text-sm hover:underline block mt-1">
-                      📞 {contact.phone}
-                    </a>
-                  )}
-                  {contact.email && (
-                    <a href={`mailto:${contact.email}`} className="text-white/40 text-sm hover:underline block">
-                      ✉️ {contact.email}
-                    </a>
-                  )}
+            <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
+              <h3 className="text-white font-semibold mb-4">Your issues</h3>
+
+              {jobsLoading ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-2/3" />
                 </div>
-              ))}
+              ) : jobs.length === 0 ? (
+                <div className="flex items-center gap-2 text-white/30 text-sm">
+                  <CheckCircleIcon className="w-4 h-4" />
+                  No open issues — you&apos;re all good!
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {jobs.map((job) => (
+                    <Link
+                      key={job.id}
+                      href={`/renter/jobs/${job.id}`}
+                      className="block border-b border-white/5 last:border-0 pb-3 last:pb-0 hover:opacity-80 transition"
+                    >
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <p className="text-white font-medium">{job.category}</p>
+                        {job.is_emergency && (
+                          <span className="text-xs bg-red-500/20 text-red-400 border border-red-500/30 rounded-full px-2 py-0.5 font-semibold">
+                            Emergency
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-white/50 text-sm">{job.description}</p>
+                      <p className="text-[#12A5A9] text-xs mt-1">{statusLabel(job)}</p>
+                    </Link>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-        </div>
+
+            <div className="bg-white/3 border border-white/8 rounded-2xl p-6">
+              <h3 className="text-white font-semibold mb-4">Emergency contacts</h3>
+
+              {contactsLoading ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-1/2" />
+                </div>
+              ) : !unit ? (
+                <p className="text-white/30 text-sm">No unit linked to your account yet.</p>
+              ) : contacts.length === 0 ? (
+                <p className="text-white/30 text-sm">No emergency contacts added for your unit yet.</p>
+              ) : (
+                <div className="space-y-3">
+                  {contacts.map((contact) => (
+                    <div key={contact.id} className="border-b border-white/5 last:border-0 pb-3 last:pb-0">
+                      <p className="text-white font-medium">{contact.name}</p>
+                      {contact.role && <p className="text-white/50 text-sm">{contact.role}</p>}
+                      {contact.phone && (
+                        <a href={`tel:${contact.phone}`} className="text-[#12A5A9] text-sm hover:underline block mt-1">
+                          {contact.phone}
+                        </a>
+                      )}
+                      {contact.email && (
+                        <a href={`mailto:${contact.email}`} className="text-white/40 text-sm hover:underline block">
+                          {contact.email}
+                        </a>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </main>
+
+      <BottomTabBar tabs={RENTER_TABS} />
     </div>
   )
 }

@@ -4,6 +4,8 @@ import { useEffect, useState, Suspense } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { BottomTabBar } from '@/components/BottomTabBar'
+import { LANDLORD_TABS } from '@/lib/navTabs'
 
 const FILTERS = [
   { key: 'needs_approval', label: 'Needs Approval' },
@@ -203,7 +205,7 @@ function LandlordJobsList() {
         <div className="w-24" />
       </nav>
 
-      <main className="max-w-4xl mx-auto px-6 py-10">
+      <main className="max-w-4xl mx-auto px-6 py-10 pb-28">
         <h1 className="text-2xl font-bold text-white mb-6">Jobs</h1>
 
         <div className="flex flex-wrap gap-2 mb-8">
@@ -340,6 +342,8 @@ function LandlordJobsList() {
           </div>
         </div>
       )}
+
+      <BottomTabBar tabs={LANDLORD_TABS} />
     </div>
   )
 }

@@ -4,6 +4,9 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { BottomTabBar } from '@/components/BottomTabBar'
+import { LogOutIcon } from '@/components/icons'
+import { TABS_BY_ROLE } from '@/lib/navTabs'
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -128,6 +131,11 @@ export default function ProfilePage() {
     return '/'
   }
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    router.push('/login')
+  }
+
   if (loading) return (
     <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center">
       <div className="text-white/50">Loading...</div>
@@ -146,7 +154,7 @@ export default function ProfilePage() {
         <span className="text-white font-semibold text-sm">Prophandld</span>
       </nav>
 
-      <main className="max-w-2xl mx-auto px-6 py-10">
+      <main className="max-w-2xl mx-auto px-6 py-10 pb-28">
         <h1 className="text-2xl font-bold text-white mb-8">Profile settings</h1>
 
         {/* Profile form */}
@@ -280,7 +288,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Delete account */}
-        <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-6">
+        <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-6 mb-6">
           <h2 className="text-white font-semibold mb-2">Delete account</h2>
           <p className="text-white/40 text-sm mb-4">Permanently delete your account and all associated data. This cannot be undone.</p>
           <button className="bg-red-500/10 border border-red-500/30 text-red-400 font-semibold px-6 py-2.5 rounded-xl text-sm hover:bg-red-500/20 transition">
@@ -288,7 +296,18 @@ export default function ProfilePage() {
           </button>
         </div>
 
+        {/* Sign out */}
+        <button
+          onClick={handleSignOut}
+          className="w-full flex items-center justify-center gap-2 bg-white/3 border border-white/8 text-white/70 hover:text-white hover:bg-white/5 font-semibold px-6 py-3 rounded-2xl text-sm transition"
+        >
+          <LogOutIcon className="w-4 h-4" />
+          Sign out
+        </button>
+
       </main>
+
+      {role && TABS_BY_ROLE[role] && <BottomTabBar tabs={TABS_BY_ROLE[role]} />}
     </div>
   )
 }
