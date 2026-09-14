@@ -7,12 +7,12 @@ import { DollarSignIcon, AlertTriangleIcon, FileTextIcon, WrenchIcon, CalendarIc
 import { Logo } from '@/components/Logo'
 
 const OPERATIONS_FEATURES = [
-  { icon: DollarSignIcon, title: 'Rent tracking', desc: 'Expected vs. actual, per unit, per month — know instantly when something is off.' },
-  { icon: AlertTriangleIcon, title: 'Compliance alerts', desc: "Licenses, certificates, and detectors — get warned before something expires, not after." },
-  { icon: FileTextIcon, title: 'Documents vault', desc: 'Leases, deeds, insurance, inspection reports — one place per property, not a shared drive.' },
-  { icon: WrenchIcon, title: 'Systems & appliances', desc: 'Track HVAC, water heaters, roofs, and panels with install dates and service history.' },
-  { icon: CalendarIcon, title: 'Schedule calendar', desc: 'Every confirmed job, across every property, in one month view.' },
-  { icon: CheckCircleIcon, title: 'Verified contractors', desc: 'Contractors submit license and insurance for review before you ever see a bid from them.' },
+  { icon: DollarSignIcon, title: 'Rent tracking', desc: 'Expected vs. actual, per unit, per month — know instantly when someone’s rent is "in the mail."' },
+  { icon: AlertTriangleIcon, title: 'Compliance alerts', desc: "Licenses, certificates, and detectors — get warned before something expires, not after the inspector already has opinions." },
+  { icon: FileTextIcon, title: 'Documents vault', desc: 'Leases, deeds, insurance, inspection reports — one place per property, not seventeen email threads.' },
+  { icon: WrenchIcon, title: 'Systems & appliances', desc: 'Track HVAC, water heaters, roofs, and panels with install dates and service history, so you know exactly how much life that water heater has left (spoiler: not much).' },
+  { icon: CalendarIcon, title: 'Schedule calendar', desc: 'Every confirmed job, across every property, in one month view. Revolutionary concept, we know.' },
+  { icon: CheckCircleIcon, title: 'Verified contractors', desc: "Contractors submit license and insurance for review before you ever see a bid from them — so \"my cousin does plumbing\" doesn't make the cut." },
 ]
 
 export default function LandingPage() {
@@ -46,16 +46,18 @@ export default function LandingPage() {
         <div aria-hidden className="absolute -top-20 -right-24 w-80 h-80 rounded-full bg-[#12A5A9]/20 blur-3xl -z-10 motion-safe:animate-[drift_11s_ease-in-out_infinite_1s]" />
 
         <div className="inline-flex items-center gap-2 bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 text-[#12A5A9] border border-[#12A5A9]/30 text-xs font-semibold px-3 py-1.5 rounded-full mb-6">
-          Now onboarding small landlords in Philadelphia
+          Now onboarding landlords in Philly — we had to start somewhere
         </div>
         <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-tight mb-6">
           Run your rentals,<br />
-          <span className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] bg-clip-text text-transparent">without the spreadsheet.</span>
+          <span className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] bg-clip-text text-transparent">not a spreadsheet.</span>
         </h1>
         <p className="text-lg text-white/50 max-w-2xl mx-auto mb-10">
-          Prophandld is mini property management built for small landlords —
-          track every property and tenant, get honest contractor bids through
-          sealed bidding, and soon collect rent, all in one place.
+          Prophandld is mini property management for landlords who own a few
+          places, not a few hundred. Track your properties and tenants, get
+          contractor bids that are actually competitive because nobody can see
+          what anyone else quoted, and soon, collect rent without a Venmo
+          request that just says "rent 🙏".
         </p>
         <div className="flex items-center justify-center gap-4">
           <MagneticLink
@@ -76,7 +78,7 @@ export default function LandingPage() {
       {/* Features */}
       <section className="max-w-5xl mx-auto px-6 py-16">
         <ScrollReveal>
-        <h2 className="text-3xl font-bold text-center mb-12 text-white">Everything you need to run your rentals</h2>
+        <h2 className="text-3xl font-bold text-center mb-12 text-white">Everything you need. None of the group texts.</h2>
         <div className="grid sm:grid-cols-3 gap-6">
           <div className="bg-white/3 border border-white/8 rounded-2xl p-7 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all duration-200">
             <div className="w-12 h-12 rounded-full bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 border border-[#12A5A9]/30 flex items-center justify-center mb-5">
@@ -87,8 +89,9 @@ export default function LandingPage() {
             </div>
             <h3 className="text-white font-bold text-lg mb-2">Sealed bidding</h3>
             <p className="text-white/50 text-sm leading-relaxed">
-              Contractors bid without seeing each other's prices. You get real
-              competition, not inflated quotes.
+              Contractors bid without seeing each other's numbers. You get
+              real competition, not a price someone made up because they
+              figured you wouldn't check.
             </p>
           </div>
           <div className="bg-white/3 border border-white/8 rounded-2xl p-7 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all duration-200">
@@ -101,7 +104,8 @@ export default function LandingPage() {
             <h3 className="text-white font-bold text-lg mb-2">No surprise costs</h3>
             <p className="text-white/50 text-sm leading-relaxed">
               If a contractor needs to adjust the price after starting, you
-              see the labor and parts breakdown and approve it first.
+              see the labor and parts breakdown and approve it first. No
+              "oh, by the way" invoices.
             </p>
           </div>
           <div className="bg-white/3 border border-white/8 rounded-2xl p-7 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all duration-200">
@@ -113,8 +117,9 @@ export default function LandingPage() {
             </div>
             <h3 className="text-white font-bold text-lg mb-2">Photo-verified work</h3>
             <p className="text-white/50 text-sm leading-relaxed">
-              Every job wraps up with before-and-after photos, so you can
-              see exactly what was done before you sign off.
+              Every job wraps up with before-and-after photos, so you can see
+              exactly what was done before you sign off. No trust falls
+              required.
             </p>
           </div>
         </div>
@@ -125,9 +130,9 @@ export default function LandingPage() {
       <section className="max-w-5xl mx-auto px-6 py-16">
         <ScrollReveal>
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-white mb-3">Beyond maintenance — run the whole property</h2>
+            <h2 className="text-3xl font-bold text-white mb-3">Beyond maintenance — the boring stuff, handled</h2>
             <p className="text-white/50 max-w-2xl mx-auto">
-              Prophandld replaces the spreadsheet, not just the group text with your contractor.
+              Prophandld replaces the whole spreadsheet, not just the group text with your contractor.
             </p>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -168,7 +173,8 @@ export default function LandingPage() {
               <h3 className="text-white font-semibold text-lg mb-2">Compare sealed bids</h3>
               <p className="text-white/50 text-sm leading-relaxed">
                 Verified contractors submit private bids. The landlord picks
-                the best one — no bias, no bidding wars.
+                the best one — no bias, no bidding wars, no group chat where
+                everyone slowly turns on each other.
               </p>
             </div>
             <div>
@@ -188,7 +194,7 @@ export default function LandingPage() {
         <ScrollReveal>
         <h2 className="text-3xl font-bold text-center mb-3 text-white">Built for landlords — with everyone else looped in</h2>
         <p className="text-white/50 text-center max-w-2xl mx-auto mb-12">
-          You run the show. Tenants report issues in seconds, contractors bid fair and get picked on merit — no spreadsheet, no group texts.
+          You run the show. Tenants report issues in seconds, contractors bid fair and get picked on merit — no spreadsheet, no group texts, no one's feelings getting hurt.
         </p>
         <div className="grid sm:grid-cols-3 gap-6">
           <div className="bg-white/3 border border-[#12A5A9]/30 rounded-2xl p-7 hover:border-[#12A5A9]/50 hover:bg-white/5 hover:-translate-y-0.5 transition-all duration-200">
@@ -196,8 +202,9 @@ export default function LandingPage() {
             <h3 className="text-white font-bold text-lg mt-4 mb-2">Stop chasing quotes</h3>
             <p className="text-white/50 text-sm leading-relaxed mb-5">
               Manage every property, unit, and tenant in one dashboard — no
-              more spreadsheets. Get honest bids, and soon collect rent right
-              here too.
+              more spreadsheets, sticky notes, or that one Notes app entry
+              you'll never find again. Get honest bids, and soon collect rent
+              right here too.
             </p>
             <Link href="/signup" className="text-[#12A5A9] text-sm font-semibold hover:underline">
               Sign up as a landlord →
@@ -208,7 +215,8 @@ export default function LandingPage() {
             <h3 className="text-white font-bold text-lg mt-4 mb-2">Get things fixed, fast</h3>
             <p className="text-white/50 text-sm leading-relaxed mb-5">
               Report an issue in seconds. See emergency contacts for your
-              unit in one tap, no digging through old texts.
+              unit in one tap — no digging through a text thread from two
+              years ago to find your landlord's number.
             </p>
             <Link href="/signup" className="text-[#12A5A9] text-sm font-semibold hover:underline">
               Sign up as a renter →
@@ -219,7 +227,8 @@ export default function LandingPage() {
             <h3 className="text-white font-bold text-lg mt-4 mb-2">Bid fair, get picked on merit</h3>
             <p className="text-white/50 text-sm leading-relaxed mb-5">
               See real jobs near you, submit a sealed bid, and get picked on
-              the merits — no guessing what everyone else quoted.
+              the merits — no guessing what everyone else quoted, no race to
+              the bottom.
             </p>
             <Link href="/signup" className="text-[#12A5A9] text-sm font-semibold hover:underline">
               Sign up as a contractor →
@@ -237,8 +246,8 @@ export default function LandingPage() {
           <h2 className="text-3xl font-bold text-center mb-12 text-white">Common questions</h2>
           <div className="space-y-4">
             {[
-              { q: 'Is this just for finding contractors?', a: "No — Prophandld is built to replace the spreadsheet. Track every property, unit, and tenant, handle maintenance end-to-end with sealed bidding, and soon collect rent, all in one dashboard." },
-              { q: 'How does sealed bidding actually work?', a: 'Contractors submit their price privately — they never see what anyone else bid. This keeps quotes honest instead of inflated by guesswork.' },
+              { q: 'Is this just for finding contractors?', a: "No — Prophandld is built to replace the spreadsheet, not just add another tab to your browser. Track every property, unit, and tenant, handle maintenance end-to-end with sealed bidding, and soon collect rent, all in one dashboard." },
+              { q: 'How does sealed bidding actually work?', a: "Contractors submit their price privately — they never see what anyone else bid. Keeps quotes honest instead of inflated because someone assumed you wouldn't shop around." },
               { q: "What if the contractor's price changes?", a: 'If a contractor needs to adjust their price once work has started, they have to show you the new labor and parts breakdown — and you approve it before they move forward.' },
               { q: 'Is Prophandld available in my area?', a: "We're currently onboarding beta landlords in the Philadelphia area, with more markets opening soon." },
             ].map((item) => (
@@ -255,7 +264,7 @@ export default function LandingPage() {
       <section className="max-w-3xl mx-auto px-6 py-20 text-center">
         <ScrollReveal>
         <h2 className="text-3xl font-bold mb-4 text-white">Ready to get started?</h2>
-        <p className="text-white/50 mb-8">It takes about two minutes to set up your first property.</p>
+        <p className="text-white/50 mb-8">Takes about two minutes — less time than deciding what to order for dinner.</p>
         <MagneticLink
           href="/signup"
           className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-8 py-4 rounded-full hover:opacity-90"
