@@ -30,6 +30,7 @@ export default function LandlordDashboard() {
   })
   const [properties, setProperties] = useState<any[]>([])
   const [newIssues, setNewIssues] = useState<any[]>([])
+  const [readyToBid, setReadyToBid] = useState<any[]>([])
   const [priceChangeRequests, setPriceChangeRequests] = useState<any[]>([])
   const [needsReview, setNeedsReview] = useState<any[]>([])
   const [scheduleProposals, setScheduleProposals] = useState<any[]>([])
@@ -130,17 +131,21 @@ export default function LandlordDashboard() {
       let inProgressCount = 0
       let biddingJobsWithBids: any[] = []
       let newIssuesList: any[] = []
+      let readyToBidList: any[] = []
       let priceChangeRequestsList: any[] = []
       let scheduleProposalsList: any[] = []
       let pendingReviewList: any[] = []
       let confirmedSchedulesList: any[] = []
 
       if (unitIds.length > 0) {
+        // "Needs action" covers jobs awaiting acknowledgment (pending_approval)
+        // AND jobs already approved but not yet opened to bidding (e.g. ones
+        // the landlord created directly, which skip pending_approval entirely).
         const { count: approvalCount } = await supabase
           .from('jobs')
           .select('*', { count: 'exact', head: true })
           .in('unit_id', unitIds)
-          .eq('status', 'pending_approval')
+          .in('status', ['pending_approval', 'approved'])
 
         needsApprovalCount = approvalCount || 0
 
@@ -161,6 +166,16 @@ export default function LandlordDashboard() {
           .order('created_at', { ascending: false })
 
         newIssuesList = newJobs || []
+
+        // Jobs already approved (e.g. landlord-created) but not yet opened to bidding
+        const { data: readyToBidJobs } = await supabase
+          .from('jobs')
+          .select('*, units(unit_number, properties(address, city))')
+          .in('unit_id', unitIds)
+          .eq('status', 'approved')
+          .order('created_at', { ascending: false })
+
+        readyToBidList = readyToBidJobs || []
 
         // Jobs where the contractor requested a price change, awaiting landlord approval
         const { data: activeJobsForPriceCheck } = await supabase
@@ -282,6 +297,7 @@ export default function LandlordDashboard() {
       })
       setProperties(propertyBreakdown)
       setNewIssues(newIssuesList)
+      setReadyToBid(readyToBidList)
       setPriceChangeRequests(priceChangeRequestsList)
       setComplianceAlerts(complianceAlertsList)
       setRentAlerts(rentAlertsList)
@@ -310,6 +326,15 @@ export default function LandlordDashboard() {
       subtitle: `${job.units?.properties?.address}, ${job.units?.properties?.city} · Unit ${job.units?.unit_number}`,
       href: `/landlord/jobs/${job.id}`,
       badge: 'New',
+    })),
+    ...readyToBid.map((job) => ({
+      id: `bid-ready-${job.id}`,
+      icon: WrenchIcon,
+      tone: 'yellow' as const,
+      title: job.category,
+      subtitle: `${job.units?.properties?.address}, ${job.units?.properties?.city} · Unit ${job.units?.unit_number}`,
+      href: `/landlord/jobs/${job.id}`,
+      badge: 'Start bidding',
     })),
     ...priceChangeRequests.map((job) => ({
       id: `price-${job.id}`,
@@ -478,7 +503,7 @@ export default function LandlordDashboard() {
                 <ClipboardListIcon className="w-6 h-6 text-white/50 shrink-0" />
                 <div>
                   <div className="text-xl font-bold text-white">{stats.needsApproval}</div>
-                  <div className="text-white/40 text-xs">Needs approval</div>
+                  <div className="text-white/40 text-xs">Needs action</div>
                 </div>
               </Link>
               <Link href="/landlord/jobs?filter=in_progress" className="bg-white/3 border border-white/8 rounded-2xl p-5 flex items-center gap-4 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all">

@@ -8,7 +8,7 @@ import { BottomTabBar } from '@/components/BottomTabBar'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 
 const FILTERS = [
-  { key: 'needs_approval', label: 'Needs Approval' },
+  { key: 'needs_approval', label: 'Needs Action' },
   { key: 'in_progress', label: 'In Progress' },
   { key: 'completed', label: 'Completed' },
   { key: 'emergency', label: 'Emergency' },
@@ -144,7 +144,7 @@ function LandlordJobsList() {
   const filteredJobs = jobs.filter((job) => {
     if (activeFilter === 'all') return true
     if (activeFilter === 'emergency') return job.is_emergency
-    if (activeFilter === 'needs_approval') return job.status === 'pending_approval'
+    if (activeFilter === 'needs_approval') return job.status === 'pending_approval' || job.status === 'approved'
     if (activeFilter === 'in_progress') return IN_PROGRESS_STATUSES.includes(job.status)
     if (activeFilter === 'completed') return job.status === 'completed' || job.status === 'archived'
     return true
