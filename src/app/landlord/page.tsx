@@ -613,11 +613,11 @@ export default function LandlordDashboard() {
             <h3 className="text-white font-semibold mb-1">Rent collection</h3>
             <p className="text-white/40 text-sm">Coming soon</p>
           </div>
-          <div className="bg-white/3 border border-white/8 rounded-2xl p-6 opacity-50 cursor-not-allowed">
+          <Link href="/landlord/properties" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 transition block">
             <div className="text-xl mb-2">📁</div>
             <h3 className="text-white font-semibold mb-1">Documents</h3>
-            <p className="text-white/40 text-sm">Coming soon</p>
-          </div>
+            <p className="text-white/40 text-sm">Open a property to manage its documents</p>
+          </Link>
           <div className="bg-white/3 border border-white/8 rounded-2xl p-6 opacity-50 cursor-not-allowed">
             <div className="text-xl mb-2">📋</div>
             <h3 className="text-white font-semibold mb-1">Compliance tracking</h3>

@@ -321,6 +321,22 @@ export default function PropertyDetailPage() {
           </div>
         </div>
 
+        {/* Documents */}
+        <div className="mt-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-white font-semibold">Documents</h2>
+            <Link
+              href={`/landlord/properties/${propertyId}/documents`}
+              className="text-[#12A5A9] text-sm hover:underline"
+            >
+              Manage
+            </Link>
+          </div>
+          <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
+            <p className="text-white/30 text-sm">Leases, deeds, insurance, and inspection reports for this property.</p>
+          </div>
+        </div>
+
       </main>
     </div>
   )
