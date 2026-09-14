@@ -26,6 +26,7 @@ export default function LandlordDashboard() {
   const [scheduleProposals, setScheduleProposals] = useState<any[]>([])
   const [confirmedSchedules, setConfirmedSchedules] = useState<any[]>([])
   const [pendingReviewJobs, setPendingReviewJobs] = useState<any[]>([])
+  const [complianceAlerts, setComplianceAlerts] = useState<any[]>([])
 
   useEffect(() => {
     const getUser = async () => {
@@ -51,6 +52,21 @@ export default function LandlordDashboard() {
       }
 
       const propertyIds = propertyList.map((p) => p.id)
+
+      const { data: complianceItemsData } = await supabase
+        .from('compliance_items')
+        .select('*, properties(address, city)')
+        .in('property_id', propertyIds)
+        .not('expiry_date', 'is', null)
+
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const complianceAlertsList = (complianceItemsData || []).filter((item) => {
+        const expiry = new Date(item.expiry_date + 'T00:00:00')
+        const daysUntil = Math.round((expiry.getTime() - today.getTime()) / (24 * 60 * 60 * 1000))
+        const reminderDays = item.reminder_days ?? 30
+        return daysUntil <= reminderDays
+      })
 
       const { data: unitsData } = await supabase
         .from('units')
@@ -231,6 +247,7 @@ export default function LandlordDashboard() {
       setProperties(propertyBreakdown)
       setNewIssues(newIssuesList)
       setPriceChangeRequests(priceChangeRequestsList)
+      setComplianceAlerts(complianceAlertsList)
       setNeedsReview(biddingJobsWithBids)
       setScheduleProposals(scheduleProposalsList)
       setConfirmedSchedules(confirmedSchedulesList)
@@ -442,6 +459,38 @@ export default function LandlordDashboard() {
           </div>
         )}
 
+        {/* Compliance items expiring soon or expired */}
+        {complianceAlerts.length > 0 && (
+          <div className="bg-gradient-to-r from-red-500/10 to-red-500/5 border border-red-500/30 rounded-2xl p-5 mb-4">
+            <h3 className="text-red-400 font-semibold text-sm mb-3">
+              ⚠️ {complianceAlerts.length} compliance item{complianceAlerts.length > 1 ? 's' : ''} need{complianceAlerts.length === 1 ? 's' : ''} attention
+            </h3>
+            <div className="space-y-2">
+              {complianceAlerts.map((item) => {
+                const expiry = new Date(item.expiry_date + 'T00:00:00')
+                const isExpired = expiry.getTime() < Date.now()
+                return (
+                  <Link
+                    key={item.id}
+                    href={`/landlord/properties/${item.property_id}/compliance`}
+                    className="flex items-center justify-between bg-white/5 hover:bg-white/8 rounded-xl px-4 py-3 transition"
+                  >
+                    <div>
+                      <p className="text-white text-sm font-medium">{item.item_type}</p>
+                      <p className="text-white/40 text-xs">
+                        {item.properties?.address}, {item.properties?.city}
+                      </p>
+                    </div>
+                    <span className="text-xs bg-red-500/20 text-red-400 rounded-full px-3 py-1 font-semibold shrink-0">
+                      {isExpired ? 'Expired' : 'Expiring soon'}
+                    </span>
+                  </Link>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
         {needsReview.length > 0 && (
           <div className="bg-gradient-to-r from-yellow-500/10 to-yellow-500/5 border border-yellow-500/30 rounded-2xl p-5 mb-6">
             <h3 className="text-yellow-400 font-semibold text-sm mb-3">
@@ -619,11 +668,11 @@ export default function LandlordDashboard() {
             <h3 className="text-white font-semibold mb-1">Documents</h3>
             <p className="text-white/40 text-sm">Open a property to manage its documents</p>
           </Link>
-          <div className="bg-white/3 border border-white/8 rounded-2xl p-6 opacity-50 cursor-not-allowed">
+          <Link href="/landlord/properties" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 transition block">
             <div className="text-xl mb-2">📋</div>
             <h3 className="text-white font-semibold mb-1">Compliance tracking</h3>
-            <p className="text-white/40 text-sm">Coming soon</p>
-          </div>
+            <p className="text-white/40 text-sm">Open a property to manage compliance items</p>
+          </Link>
         </div>
       </main>
     </div>

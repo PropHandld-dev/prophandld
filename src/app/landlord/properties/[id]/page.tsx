@@ -337,6 +337,22 @@ export default function PropertyDetailPage() {
           </div>
         </div>
 
+        {/* Compliance */}
+        <div className="mt-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-white font-semibold">Compliance</h2>
+            <Link
+              href={`/landlord/properties/${propertyId}/compliance`}
+              className="text-[#12A5A9] text-sm hover:underline"
+            >
+              Manage
+            </Link>
+          </div>
+          <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
+            <p className="text-white/30 text-sm">Rental license, lead certification, and inspection expiry tracking.</p>
+          </div>
+        </div>
+
       </main>
     </div>
   )

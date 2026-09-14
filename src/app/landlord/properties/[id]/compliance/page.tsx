@@ -1,0 +1,354 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabase'
+import { useRouter, useParams } from 'next/navigation'
+import Link from 'next/link'
+
+const ITEM_TYPES = [
+  'Rental License',
+  'Lead Certification',
+  'Smoke Detector Inspection',
+  'CO Detector Inspection',
+  'Fire Extinguisher Inspection',
+  'Insurance Renewal',
+  'Other',
+]
+
+export default function PropertyCompliancePage() {
+  const router = useRouter()
+  const params = useParams()
+  const propertyId = params.id as string
+
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [property, setProperty] = useState<any>(null)
+  const [items, setItems] = useState<any[]>([])
+  const [error, setError] = useState<string | null>(null)
+
+  const [form, setForm] = useState({
+    item_type: '',
+    custom_item_type: '',
+    expiry_date: '',
+    reminder_days: '30',
+  })
+
+  const [renewingId, setRenewingId] = useState<string | null>(null)
+  const [renewDate, setRenewDate] = useState('')
+
+  useEffect(() => {
+    const init = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/login')
+        return
+      }
+
+      const { data: propertyData, error: propertyError } = await supabase
+        .from('properties')
+        .select('*')
+        .eq('id', propertyId)
+        .eq('owner_user_id', user.id)
+        .single()
+
+      if (propertyError || !propertyData) {
+        router.push('/landlord/properties')
+        return
+      }
+      setProperty(propertyData)
+
+      await loadItems()
+      setLoading(false)
+    }
+    init()
+  }, [propertyId, router])
+
+  const loadItems = async () => {
+    const { data: itemsData, error: itemsError } = await supabase
+      .from('compliance_items')
+      .select('*')
+      .eq('property_id', propertyId)
+      .order('expiry_date', { ascending: true, nullsFirst: false })
+
+    if (itemsError) {
+      console.error('Error loading compliance items:', itemsError)
+      return
+    }
+    setItems(itemsData || [])
+  }
+
+  const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
+    setForm({ ...form, [e.target.name]: e.target.value })
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!form.item_type) {
+      setError('Please select a type.')
+      return
+    }
+    if (form.item_type === 'Other' && !form.custom_item_type.trim()) {
+      setError('Please enter a type.')
+      return
+    }
+
+    setSaving(true)
+    setError(null)
+
+    const itemType = form.item_type === 'Other' ? form.custom_item_type.trim() : form.item_type
+
+    const { error: insertError } = await supabase
+      .from('compliance_items')
+      .insert({
+        property_id: propertyId,
+        item_type: itemType,
+        expiry_date: form.expiry_date || null,
+        reminder_days: form.reminder_days ? parseInt(form.reminder_days) : 30,
+      })
+
+    if (insertError) {
+      console.error('Error adding compliance item:', insertError)
+      setError('Could not add item. Please try again.')
+      setSaving(false)
+      return
+    }
+
+    setForm({ item_type: '', custom_item_type: '', expiry_date: '', reminder_days: '30' })
+    await loadItems()
+    setSaving(false)
+  }
+
+  const startRenew = (item: any) => {
+    setRenewingId(item.id)
+    setRenewDate(item.expiry_date || '')
+    setError(null)
+  }
+
+  const cancelRenew = () => {
+    setRenewingId(null)
+    setRenewDate('')
+  }
+
+  const saveRenew = async (itemId: string) => {
+    if (!renewDate) {
+      setError('Please pick a new expiry date.')
+      return
+    }
+
+    const { error: updateError } = await supabase
+      .from('compliance_items')
+      .update({ expiry_date: renewDate })
+      .eq('id', itemId)
+
+    if (updateError) {
+      console.error('Error renewing item:', updateError)
+      setError('Could not save changes.')
+      return
+    }
+
+    setRenewingId(null)
+    setRenewDate('')
+    await loadItems()
+  }
+
+  const handleDelete = async (item: any) => {
+    if (!window.confirm(`Remove "${item.item_type}"?`)) return
+
+    const { error: deleteError } = await supabase.from('compliance_items').delete().eq('id', item.id)
+    if (deleteError) {
+      console.error('Error deleting compliance item:', deleteError)
+      setError('Could not delete item.')
+      return
+    }
+
+    setItems((prev) => prev.filter((i) => i.id !== item.id))
+  }
+
+  const getExpiryStatus = (item: any) => {
+    if (!item.expiry_date) {
+      return { label: 'No expiry set', color: 'bg-white/8 text-white/50' }
+    }
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const expiry = new Date(item.expiry_date + 'T00:00:00')
+    const daysUntil = Math.round((expiry.getTime() - today.getTime()) / (24 * 60 * 60 * 1000))
+    const reminderDays = item.reminder_days ?? 30
+
+    if (daysUntil < 0) return { label: 'Expired', color: 'bg-red-500/15 text-red-400' }
+    if (daysUntil <= reminderDays) return { label: 'Expiring soon', color: 'bg-yellow-500/15 text-yellow-400' }
+    return { label: 'Current', color: 'bg-[#12A5A9]/15 text-[#12A5A9]' }
+  }
+
+  if (loading) return (
+    <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center">
+      <div className="text-white/50">Loading...</div>
+    </div>
+  )
+
+  if (!property) return null
+
+  return (
+    <div className="min-h-screen bg-[#0C1A2E]">
+      <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
+        <Link
+          href={`/landlord/properties/${propertyId}`}
+          className="text-white/50 hover:text-white text-sm transition"
+        >
+          ← Property
+        </Link>
+        <span className="text-white font-semibold text-sm">Prophandld</span>
+        <div className="w-20" />
+      </nav>
+
+      <main className="max-w-2xl mx-auto px-6 py-10">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-white">Compliance</h1>
+          <p className="text-white/50 text-sm mt-1">{property.address}</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6 space-y-4">
+          <h2 className="text-white font-semibold mb-2">Track an item</h2>
+
+          <div>
+            <label className="text-white/70 text-sm block mb-1">Type</label>
+            <select
+              name="item_type"
+              value={form.item_type}
+              onChange={handleChange}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
+            >
+              <option value="" className="bg-[#0C1A2E]">Select a type</option>
+              {ITEM_TYPES.map((type) => (
+                <option key={type} value={type} className="bg-[#0C1A2E]">{type}</option>
+              ))}
+            </select>
+            {form.item_type === 'Other' && (
+              <input
+                type="text"
+                name="custom_item_type"
+                value={form.custom_item_type}
+                onChange={handleChange}
+                placeholder="Enter a type"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition mt-2"
+              />
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-white/70 text-sm block mb-1">Expiry date</label>
+              <input
+                type="date"
+                name="expiry_date"
+                value={form.expiry_date}
+                onChange={handleChange}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
+              />
+            </div>
+            <div>
+              <label className="text-white/70 text-sm block mb-1">Remind me (days before)</label>
+              <input
+                type="number"
+                name="reminder_days"
+                value={form.reminder_days}
+                onChange={handleChange}
+                min={0}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
+              />
+            </div>
+          </div>
+
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">
+              {error}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={saving}
+            className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
+          >
+            {saving ? 'Adding...' : 'Add item'}
+          </button>
+        </form>
+
+        <h2 className="text-white font-semibold mb-4">
+          All items {items.length > 0 && `(${items.length})`}
+        </h2>
+
+        {items.length === 0 ? (
+          <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
+            <p className="text-white/30 text-sm">No compliance items tracked yet.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {items.map((item) => {
+              const status = getExpiryStatus(item)
+              const isRenewing = renewingId === item.id
+              return (
+                <div key={item.id} className="bg-white/3 border border-white/8 rounded-2xl p-5">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <h3 className="text-white font-semibold truncate">{item.item_type}</h3>
+                      <div className="flex items-center gap-2 flex-wrap mt-2">
+                        <span className={`text-xs rounded-full px-2.5 py-0.5 ${status.color}`}>
+                          {status.label}
+                        </span>
+                        {item.expiry_date && (
+                          <span className="text-xs bg-white/8 text-white/50 rounded-full px-2.5 py-0.5">
+                            Expires {new Date(item.expiry_date + 'T00:00:00').toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-2 shrink-0">
+                      {!isRenewing && (
+                        <button
+                          onClick={() => startRenew(item)}
+                          className="text-[#12A5A9] text-xs font-semibold hover:underline"
+                        >
+                          Renew
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleDelete(item)}
+                        className="text-red-400/70 text-xs hover:text-red-400 transition"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+
+                  {isRenewing && (
+                    <div className="flex items-center gap-2 mt-4">
+                      <input
+                        type="date"
+                        value={renewDate}
+                        onChange={(e) => setRenewDate(e.target.value)}
+                        className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-[#12A5A9] transition"
+                      />
+                      <button
+                        onClick={() => saveRenew(item.id)}
+                        className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-3 py-2 rounded-lg hover:opacity-90 transition"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={cancelRenew}
+                        className="text-white/50 hover:text-white text-xs px-2 transition"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </main>
+    </div>
+  )
+}
