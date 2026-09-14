@@ -146,6 +146,7 @@ export default function RenterDashboard() {
         </div>
         <div className="flex items-center gap-4">
           <span className="text-white/50 text-sm">{user?.user_metadata?.full_name}</span>
+          <Link href="/renter/calendar" className="text-white/40 hover:text-white text-sm transition">Calendar</Link>
           <Link href="/profile" className="text-white/40 hover:text-white text-sm transition">Profile</Link>
           <button onClick={handleSignOut} className="text-white/40 hover:text-white text-sm transition">Sign out</button>
         </div>
