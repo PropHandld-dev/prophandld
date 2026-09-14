@@ -4,6 +4,17 @@ import Link from 'next/link'
 import { CursorGlow } from '@/components/CursorGlow'
 import { MagneticLink } from '@/components/MagneticLink'
 import { ScrollReveal } from '@/components/ScrollReveal'
+import { DollarSignIcon, AlertTriangleIcon, FileTextIcon, WrenchIcon, CalendarIcon, CheckCircleIcon } from '@/components/icons'
+import { Logo } from '@/components/Logo'
+
+const OPERATIONS_FEATURES = [
+  { icon: DollarSignIcon, title: 'Rent tracking', desc: 'Expected vs. actual, per unit, per month — know instantly when something is off.' },
+  { icon: AlertTriangleIcon, title: 'Compliance alerts', desc: "Licenses, certificates, and detectors — get warned before something expires, not after." },
+  { icon: FileTextIcon, title: 'Documents vault', desc: 'Leases, deeds, insurance, inspection reports — one place per property, not a shared drive.' },
+  { icon: WrenchIcon, title: 'Systems & appliances', desc: 'Track HVAC, water heaters, roofs, and panels with install dates and service history.' },
+  { icon: CalendarIcon, title: 'Schedule calendar', desc: 'Every confirmed job, across every property, in one month view.' },
+  { icon: CheckCircleIcon, title: 'Verified contractors', desc: 'Contractors submit license and insurance for review before you ever see a bid from them.' },
+]
 
 export default function LandingPage() {
   return (
@@ -13,24 +24,7 @@ export default function LandingPage() {
       {/* Nav */}
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between sticky top-0 bg-[#0C1A2E]/90 backdrop-blur-sm z-10">
         <div className="flex items-center gap-2.5">
-          <svg width="30" height="30" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <polygon points="50,5 38,16 38,28 62,28 62,16" fill="white" opacity="0.95"/>
-            <rect x="44" y="18" width="12" height="10" rx="0.5" fill="#0C1A2E"/>
-            <line x1="38" y1="20" x2="18" y2="42" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
-            <line x1="62" y1="20" x2="82" y2="42" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
-            <circle cx="13" cy="48" r="11" fill="white"/>
-            <text x="13" y="53" textAnchor="middle" fill="#0C1A2E" fontSize="11" fontFamily="Inter,sans-serif" fontWeight="800">$</text>
-            <circle cx="84" cy="46" r="9" fill="none" stroke="white" strokeWidth="3"/>
-            <circle cx="83.5" cy="45.5" r="5" fill="none" stroke="white" strokeWidth="2.5"/>
-            <line x1="87" y1="49.5" x2="92" y2="55" stroke="white" strokeWidth="3" strokeLinecap="round"/>
-            <circle cx="50" cy="44" r="8" fill="white"/>
-            <path d="M34 56 Q42 51 50 51 Q58 51 66 56 L68 78 H32 Z" fill="white"/>
-            <polygon points="50,53 48,60 50,62 52,60" fill="#0A7B7E"/>
-            <path d="M36 59 Q26 54 20 50" stroke="white" strokeWidth="4" strokeLinecap="round" fill="none"/>
-            <path d="M64 59 Q74 54 80 50" stroke="white" strokeWidth="4" strokeLinecap="round" fill="none"/>
-            <rect x="38" y="78" width="9" height="18" rx="4" fill="white"/>
-            <rect x="53" y="78" width="9" height="18" rx="4" fill="white"/>
-          </svg>
+          <Logo className="w-[30px] h-[30px]" />
           <span className="font-bold text-lg tracking-tight">Prophandld</span>
         </div>
         <div className="flex items-center gap-6">
@@ -126,6 +120,32 @@ export default function LandingPage() {
             </p>
           </div>
         </div>
+        </ScrollReveal>
+      </section>
+
+      {/* Beyond maintenance */}
+      <section className="max-w-5xl mx-auto px-6 py-16">
+        <ScrollReveal>
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-white mb-3">Beyond maintenance — run the whole property</h2>
+            <p className="text-white/50 max-w-2xl mx-auto">
+              Prophandld replaces the spreadsheet, not just the group text with your contractor.
+            </p>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {OPERATIONS_FEATURES.map(({ icon: Icon, title, desc }) => (
+              <div
+                key={title}
+                className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all duration-200"
+              >
+                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 border border-[#12A5A9]/30 flex items-center justify-center mb-4">
+                  <Icon className="w-4 h-4 text-[#12A5A9]" />
+                </div>
+                <h3 className="text-white font-semibold mb-1.5">{title}</h3>
+                <p className="text-white/50 text-sm leading-relaxed">{desc}</p>
+              </div>
+            ))}
+          </div>
         </ScrollReveal>
       </section>
 

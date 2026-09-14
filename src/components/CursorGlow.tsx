@@ -36,10 +36,10 @@ export function CursorGlow() {
     <div
       ref={ref}
       aria-hidden
-      className="pointer-events-none fixed inset-0 hidden sm:block"
+      className="pointer-events-none fixed inset-0 motion-safe:animate-[glow-pulse_6s_ease-in-out_infinite]"
       style={{
         background:
-          'radial-gradient(600px circle at var(--glow-x, 50vw) var(--glow-y, 33vh), rgba(18,165,169,0.15), transparent 70%)',
+          'radial-gradient(600px circle at var(--glow-x, 50vw) var(--glow-y, 30vh), rgba(18,165,169,0.18), transparent 70%)',
         mixBlendMode: 'screen',
       }}
     />
