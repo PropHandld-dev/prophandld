@@ -1,10 +1,14 @@
 'use client'
 
 import Link from 'next/link'
+import { CursorGlow } from '@/components/CursorGlow'
+import { MagneticLink } from '@/components/MagneticLink'
+import { ScrollReveal } from '@/components/ScrollReveal'
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-[#0C1A2E] text-white">
+    <div className="min-h-screen bg-[#0C1A2E] text-white relative">
+      <CursorGlow />
 
       {/* Nav */}
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between sticky top-0 bg-[#0C1A2E]/90 backdrop-blur-sm z-10">
@@ -35,19 +39,19 @@ export default function LandingPage() {
           <Link href="/login" className="text-sm font-medium text-white/70 hover:text-white transition">
             Sign in
           </Link>
-          <Link
+          <MagneticLink
             href="/signup"
-            className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-4 py-2 rounded-full hover:opacity-90 transition"
+            className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-4 py-2 rounded-full hover:opacity-90"
           >
             Get started
-          </Link>
+          </MagneticLink>
         </div>
       </nav>
 
       {/* Hero */}
       <section className="relative max-w-5xl mx-auto px-6 pt-20 pb-16 text-center overflow-hidden">
-        <div aria-hidden className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-[#0A7B7E]/20 blur-3xl -z-10" />
-        <div aria-hidden className="absolute -top-20 -right-24 w-80 h-80 rounded-full bg-[#12A5A9]/20 blur-3xl -z-10" />
+        <div aria-hidden className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-[#0A7B7E]/20 blur-3xl -z-10 motion-safe:animate-[drift_9s_ease-in-out_infinite]" />
+        <div aria-hidden className="absolute -top-20 -right-24 w-80 h-80 rounded-full bg-[#12A5A9]/20 blur-3xl -z-10 motion-safe:animate-[drift_11s_ease-in-out_infinite_1s]" />
 
         <div className="inline-flex items-center gap-2 bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 text-[#12A5A9] border border-[#12A5A9]/30 text-xs font-semibold px-3 py-1.5 rounded-full mb-6">
           Now onboarding small landlords in Philadelphia
@@ -62,12 +66,12 @@ export default function LandingPage() {
           sealed bidding, and soon collect rent, all in one place.
         </p>
         <div className="flex items-center justify-center gap-4">
-          <Link
+          <MagneticLink
             href="/signup"
-            className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-7 py-3.5 rounded-full hover:opacity-90 transition"
+            className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-7 py-3.5 rounded-full hover:opacity-90"
           >
             Get started free
-          </Link>
+          </MagneticLink>
           <Link
             href="/login"
             className="text-white font-semibold px-7 py-3.5 rounded-full border border-white/15 hover:border-white/30 transition"
@@ -79,6 +83,7 @@ export default function LandingPage() {
 
       {/* Features */}
       <section className="max-w-5xl mx-auto px-6 py-16">
+        <ScrollReveal>
         <h2 className="text-3xl font-bold text-center mb-12 text-white">Everything you need to run your rentals</h2>
         <div className="grid sm:grid-cols-3 gap-6">
           <div className="bg-white/3 border border-white/8 rounded-2xl p-7 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all duration-200">
@@ -121,6 +126,7 @@ export default function LandingPage() {
             </p>
           </div>
         </div>
+        </ScrollReveal>
       </section>
 
       {/* How it works */}
@@ -128,7 +134,7 @@ export default function LandingPage() {
         id="how-it-works"
         className="border-y border-white/8 py-20 bg-[linear-gradient(to_right,rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:56px_56px]"
       >
-        <div className="max-w-5xl mx-auto px-6">
+        <ScrollReveal className="max-w-5xl mx-auto px-6">
           <h2 className="text-3xl font-bold text-center mb-12 text-white">How it works</h2>
           <div className="grid sm:grid-cols-3 gap-10">
             <div>
@@ -156,11 +162,12 @@ export default function LandingPage() {
               </p>
             </div>
           </div>
-        </div>
+        </ScrollReveal>
       </section>
 
       {/* For each role */}
       <section id="roles" className="max-w-5xl mx-auto px-6 py-20">
+        <ScrollReveal>
         <h2 className="text-3xl font-bold text-center mb-3 text-white">Built for landlords — with everyone else looped in</h2>
         <p className="text-white/50 text-center max-w-2xl mx-auto mb-12">
           You run the show. Tenants report issues in seconds, contractors bid fair and get picked on merit — no spreadsheet, no group texts.
@@ -201,13 +208,14 @@ export default function LandingPage() {
             </Link>
           </div>
         </div>
+        </ScrollReveal>
       </section>
 
       {/* FAQ */}
       <section
         className="border-y border-white/8 py-20 bg-[linear-gradient(to_right,rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:56px_56px]"
       >
-        <div className="max-w-3xl mx-auto px-6">
+        <ScrollReveal className="max-w-3xl mx-auto px-6">
           <h2 className="text-3xl font-bold text-center mb-12 text-white">Common questions</h2>
           <div className="space-y-4">
             {[
@@ -222,19 +230,21 @@ export default function LandingPage() {
               </div>
             ))}
           </div>
-        </div>
+        </ScrollReveal>
       </section>
 
       {/* Final CTA */}
       <section className="max-w-3xl mx-auto px-6 py-20 text-center">
+        <ScrollReveal>
         <h2 className="text-3xl font-bold mb-4 text-white">Ready to get started?</h2>
         <p className="text-white/50 mb-8">It takes about two minutes to set up your first property.</p>
-        <Link
+        <MagneticLink
           href="/signup"
-          className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-8 py-4 rounded-full hover:opacity-90 transition inline-block"
+          className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-8 py-4 rounded-full hover:opacity-90"
         >
           Create your free account
-        </Link>
+        </MagneticLink>
+        </ScrollReveal>
       </section>
 
       {/* Footer */}

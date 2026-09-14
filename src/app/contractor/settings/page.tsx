@@ -160,7 +160,7 @@ export default function ContractorSettingsPage() {
 
       if (uploadError) {
         console.error('Error uploading license doc:', uploadError)
-        setVerifError('Could not upload license document.')
+        setVerifError(`Could not upload license document: ${uploadError.message}`)
         setVerifSaving(false)
         return
       }
@@ -176,7 +176,7 @@ export default function ContractorSettingsPage() {
 
       if (uploadError) {
         console.error('Error uploading insurance doc:', uploadError)
-        setVerifError('Could not upload insurance document.')
+        setVerifError(`Could not upload insurance document: ${uploadError.message}`)
         setVerifSaving(false)
         return
       }
@@ -202,7 +202,7 @@ export default function ContractorSettingsPage() {
 
     if (upsertError) {
       console.error('Error saving verification:', upsertError)
-      setVerifError('Could not save verification info.')
+      setVerifError(`Could not save verification info: ${upsertError.message}`)
       setVerifSaving(false)
       return
     }

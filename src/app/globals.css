@@ -24,3 +24,42 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
 }
+
+/* Fast, snappy crossfade between pages via the View Transitions API */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 180ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0.01ms !important;
+  }
+}
+
+@keyframes magnetic-ripple {
+  from {
+    transform: scale(0);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+.magnetic-ripple {
+  animation: magnetic-ripple 600ms ease-out forwards;
+}
+
+@keyframes drift {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(24px, -18px);
+  }
+}
