@@ -28,13 +28,18 @@ export async function POST(request: NextRequest) {
 
   const supabaseAdmin = getSupabaseAdmin()
 
-  const { data: job } = await supabaseAdmin
+  const { data: job, error: jobError } = await supabaseAdmin
     .from('jobs')
     .select('id, category, unit_id, units(property_id, properties(address, city, owner_user_id))')
     .eq('id', jobId)
     .maybeSingle()
 
+  if (jobError) {
+    console.error('notify: error fetching job', { jobId, type, jobError })
+  }
+
   if (!job) {
+    console.error('notify: job not found', { jobId, type })
     return NextResponse.json({ error: 'Job not found' }, { status: 404 })
   }
 
