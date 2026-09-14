@@ -63,13 +63,13 @@ export default function RenterJobDetailPage() {
     setJob(jobData)
 
     if (['completed', 'archived'].includes(jobData.status)) {
-      const { data: bid } = await supabase
-        .from('bids')
-        .select('contractor_user_id')
-        .eq('job_id', jobId)
-        .eq('status', 'accepted')
-        .maybeSingle()
-      if (bid) setAcceptedContractorId(bid.contractor_user_id)
+      const { data: contractorId, error: contractorError } = await supabase
+        .rpc('get_accepted_contractor_for_job', { target_job_id: jobId })
+      if (contractorError) {
+        console.error('Error fetching accepted contractor:', contractorError)
+      } else if (contractorId) {
+        setAcceptedContractorId(contractorId as unknown as string)
+      }
     }
 
     const { data: photosData } = await supabase
