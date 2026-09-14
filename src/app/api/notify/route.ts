@@ -51,6 +51,8 @@ export async function POST(request: NextRequest) {
     city: property?.city ?? null,
   }
 
+  console.log('notify: resolved job/property', { jobId, type, units: job.units, property })
+
   const roles = RECIPIENTS[type]
   const roleUserIds: Partial<Record<Role, string>> = {}
 
@@ -80,18 +82,28 @@ export async function POST(request: NextRequest) {
     if (bid?.contractor_user_id) roleUserIds.contractor = bid.contractor_user_id
   }
 
+  console.log('notify: recipients to notify', { jobId, type, roleUserIds })
+
   const sends = await Promise.allSettled(
     (Object.entries(roleUserIds) as [Role, string][]).map(async ([role, userId]) => {
-      const { data: recipient } = await supabaseAdmin
+      const { data: recipient, error: recipientError } = await supabaseAdmin
         .from('users')
         .select('email')
         .eq('id', userId)
         .maybeSingle()
 
-      if (!recipient?.email) return
+      if (recipientError) {
+        console.error('notify: error fetching recipient', { jobId, role, userId, recipientError })
+      }
+
+      if (!recipient?.email) {
+        console.error('notify: no email found for recipient', { jobId, role, userId })
+        return
+      }
 
       const { subject, html } = buildNotificationEmail(type, role, jobInfo)
-      await sendEmail({ to: recipient.email, subject, html })
+      const result = await sendEmail({ to: recipient.email, subject, html })
+      console.log('notify: sendEmail result', { jobId, role, to: recipient.email, result })
     })
   )
 

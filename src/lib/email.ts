@@ -12,18 +12,22 @@ function getResendClient() {
 }
 
 export async function sendEmail({ to, subject, html }: { to: string; subject: string; html: string }) {
+  const fromAddress = process.env.RESEND_FROM_EMAIL || 'Prophandld <onboarding@resend.dev>'
   try {
-    const { error } = await getResendClient().emails.send({
-      from: process.env.RESEND_FROM_EMAIL || 'Prophandld <onboarding@resend.dev>',
+    const { data, error } = await getResendClient().emails.send({
+      from: fromAddress,
       to,
       subject,
       html,
     })
     if (error) {
-      console.error('Resend error sending to', to, error)
+      console.error('Resend error sending to', to, 'from', fromAddress, error)
+      return { ok: false, error, from: fromAddress }
     }
+    return { ok: true, id: data?.id, from: fromAddress }
   } catch (err) {
-    console.error('Failed to send email to', to, err)
+    console.error('Failed to send email to', to, 'from', fromAddress, err)
+    return { ok: false, error: err, from: fromAddress }
   }
 }
 
