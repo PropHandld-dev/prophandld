@@ -8,6 +8,7 @@ import Link from 'next/link'
 export default function LandlordDashboard() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
+  const [now] = useState(() => Date.now())
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({
     properties: 0,
@@ -27,6 +28,7 @@ export default function LandlordDashboard() {
   const [confirmedSchedules, setConfirmedSchedules] = useState<any[]>([])
   const [pendingReviewJobs, setPendingReviewJobs] = useState<any[]>([])
   const [complianceAlerts, setComplianceAlerts] = useState<any[]>([])
+  const [rentAlerts, setRentAlerts] = useState<any[]>([])
 
   useEffect(() => {
     const getUser = async () => {
@@ -80,7 +82,7 @@ export default function LandlordDashboard() {
       if (unitIds.length > 0) {
         const { data: tenanciesData } = await supabase
           .from('tenancies')
-          .select('unit_id, rent_amount')
+          .select('id, unit_id, rent_amount')
           .in('unit_id', unitIds)
           .eq('ended', false)
 
@@ -89,6 +91,32 @@ export default function LandlordDashboard() {
 
       const occupiedUnitIds = new Set(tenancyList.map((t) => t.unit_id))
       const monthlyRentRoll = tenancyList.reduce((sum, t) => sum + (t.rent_amount || 0), 0)
+
+      let rentAlertsList: any[] = []
+      const tenancyIds = tenancyList.map((t) => t.id)
+      if (tenancyIds.length > 0) {
+        const { data: rentPaymentsData } = await supabase
+          .from('rent_payments')
+          .select('*')
+          .in('tenancy_id', tenancyIds)
+
+        const thisMonthStart = new Date()
+        thisMonthStart.setDate(1)
+        thisMonthStart.setHours(0, 0, 0, 0)
+
+        rentAlertsList = (rentPaymentsData || [])
+          .filter((rp) => {
+            const monthDate = new Date(rp.month + 'T00:00:00')
+            const actual = rp.actual_amount || 0
+            return monthDate <= thisMonthStart && actual < (rp.expected_amount || 0)
+          })
+          .map((rp) => {
+            const tenancyForPayment = tenancyList.find((t) => t.id === rp.tenancy_id)
+            const unitForPayment = unitList.find((u) => u.id === tenancyForPayment?.unit_id)
+            const propertyForPayment = propertyList.find((p) => p.id === unitForPayment?.property_id)
+            return { ...rp, unit: unitForPayment, property: propertyForPayment }
+          })
+      }
 
       let needsApprovalCount = 0
       let inProgressCount = 0
@@ -248,6 +276,7 @@ export default function LandlordDashboard() {
       setNewIssues(newIssuesList)
       setPriceChangeRequests(priceChangeRequestsList)
       setComplianceAlerts(complianceAlertsList)
+      setRentAlerts(rentAlertsList)
       setNeedsReview(biddingJobsWithBids)
       setScheduleProposals(scheduleProposalsList)
       setConfirmedSchedules(confirmedSchedulesList)
@@ -468,7 +497,7 @@ export default function LandlordDashboard() {
             <div className="space-y-2">
               {complianceAlerts.map((item) => {
                 const expiry = new Date(item.expiry_date + 'T00:00:00')
-                const isExpired = expiry.getTime() < Date.now()
+                const isExpired = expiry.getTime() < now
                 return (
                   <Link
                     key={item.id}
@@ -487,6 +516,36 @@ export default function LandlordDashboard() {
                   </Link>
                 )
               })}
+            </div>
+          </div>
+        )}
+
+        {/* Rent behind for the current or a past month */}
+        {rentAlerts.length > 0 && (
+          <div className="bg-gradient-to-r from-red-500/10 to-red-500/5 border border-red-500/30 rounded-2xl p-5 mb-4">
+            <h3 className="text-red-400 font-semibold text-sm mb-3">
+              ⚠️ {rentAlerts.length} unit{rentAlerts.length > 1 ? 's' : ''} behind on rent
+            </h3>
+            <div className="space-y-2">
+              {rentAlerts.map((rp) => (
+                <Link
+                  key={rp.id}
+                  href={`/landlord/properties/${rp.property?.id}/units/${rp.unit?.id}/rent`}
+                  className="flex items-center justify-between bg-white/5 hover:bg-white/8 rounded-xl px-4 py-3 transition"
+                >
+                  <div>
+                    <p className="text-white text-sm font-medium">
+                      {rp.property?.address} · Unit {rp.unit?.unit_number}
+                    </p>
+                    <p className="text-white/40 text-xs">
+                      {new Date(rp.month + 'T00:00:00').toLocaleDateString(undefined, { month: 'long', year: 'numeric' })} · ${rp.actual_amount || 0} of ${rp.expected_amount}
+                    </p>
+                  </div>
+                  <span className="text-xs bg-red-500/20 text-red-400 rounded-full px-3 py-1 font-semibold shrink-0">
+                    Behind
+                  </span>
+                </Link>
+              ))}
             </div>
           </div>
         )}

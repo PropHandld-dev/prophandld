@@ -319,6 +319,22 @@ export default function UnitDetailPage() {
           )}
         </div>
 
+        {/* Rent */}
+        {tenancy && (
+          <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-white font-semibold">Rent</h2>
+              <Link
+                href={`/landlord/properties/${propertyId}/units/${unitId}/rent`}
+                className="text-[#12A5A9] text-sm hover:underline"
+              >
+                Manage
+              </Link>
+            </div>
+            <p className="text-white/30 text-sm">Track expected vs. actual rent payments each month.</p>
+          </div>
+        )}
+
         {/* Open jobs */}
         <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
           <div className="flex items-center justify-between mb-4">
