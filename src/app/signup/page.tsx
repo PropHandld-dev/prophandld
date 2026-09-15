@@ -4,9 +4,10 @@ import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
-import { Logo } from '@/components/Logo'
+import { AuthLayout } from '@/components/AuthLayout'
+import { AuthInput } from '@/components/AuthInput'
+import { MailIcon, LockIcon } from '@/components/icons'
 
 export default function SignupPage() {
   const router = useRouter()
@@ -117,125 +118,118 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center px-4 relative overflow-hidden">
-      <div aria-hidden className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-[#0A7B7E]/20 blur-3xl -z-10 motion-safe:animate-[drift_9s_ease-in-out_infinite]" />
-      <div aria-hidden className="absolute -bottom-24 -right-24 w-80 h-80 rounded-full bg-[#12A5A9]/20 blur-3xl -z-10 motion-safe:animate-[drift_11s_ease-in-out_infinite_1s]" />
+    <AuthLayout
+      headline="Run your rentals, not a spreadsheet."
+      subtext="Takes about two minutes to get set up. Less time than deciding what to have for dinner."
+      showChecklist
+    >
+      <div className="text-center mb-8 lg:text-left">
+        <h1 className="text-2xl font-bold text-white">Create your account</h1>
+        <p className="text-white/50 text-sm mt-1">Your property, handled.</p>
+      </div>
 
-      <ScrollReveal className="w-full max-w-md">
-      <div className="bg-white/3 border border-white/10 rounded-3xl p-8 backdrop-blur-xl shadow-[0_0_80px_-20px_rgba(18,165,169,0.25)]">
+      <form onSubmit={handleSignup} className="space-y-4">
 
-        <div className="text-center mb-8">
-          <Logo className="w-16 h-16 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-white">Create your account</h1>
-          <p className="text-white/50 text-sm mt-1">Your property, handled.</p>
+        <div>
+          <label className="text-white/70 text-sm block mb-1">Full name</label>
+          <AuthInput
+            type="text"
+            name="full_name"
+            required
+            value={form.full_name}
+            onChange={handleChange}
+            placeholder="Jane Doe"
+          />
         </div>
 
-        <form onSubmit={handleSignup} className="space-y-4">
+        <div>
+          <label className="text-white/70 text-sm block mb-1">Email</label>
+          <AuthInput
+            icon={MailIcon}
+            type="email"
+            name="email"
+            required
+            value={form.email}
+            onChange={handleChange}
+            placeholder="you@email.com"
+          />
+        </div>
 
-          <div>
-            <label className="text-white/70 text-sm block mb-1">Full name</label>
-            <input
-              type="text"
-              name="full_name"
-              required
-              value={form.full_name}
-              onChange={handleChange}
-              placeholder="Nevin Jaison"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
-            />
-          </div>
+        <div>
+          <label className="text-white/70 text-sm block mb-1">Phone</label>
+          <AuthInput
+            type="tel"
+            name="phone"
+            value={form.phone}
+            onChange={handleChange}
+            placeholder="+1 (555) 000-0000"
+          />
+        </div>
 
-          <div>
-            <label className="text-white/70 text-sm block mb-1">Email</label>
-            <input
-              type="email"
-              name="email"
-              required
-              value={form.email}
-              onChange={handleChange}
-              placeholder="you@email.com"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
-            />
-          </div>
+        <div>
+          <label className="text-white/70 text-sm block mb-1">Password</label>
+          <AuthInput
+            icon={LockIcon}
+            type="password"
+            name="password"
+            required
+            value={form.password}
+            onChange={handleChange}
+            placeholder="Min. 8 characters"
+          />
+        </div>
 
-          <div>
-            <label className="text-white/70 text-sm block mb-1">Phone</label>
-            <input
-              type="tel"
-              name="phone"
-              value={form.phone}
-              onChange={handleChange}
-              placeholder="+1 (555) 000-0000"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
-            />
-          </div>
-
-          <div>
-            <label className="text-white/70 text-sm block mb-1">Password</label>
-            <input
-              type="password"
-              name="password"
-              required
-              value={form.password}
-              onChange={handleChange}
-              placeholder="Min. 8 characters"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
-            />
-          </div>
-
-          <div>
-            <label className="text-white/70 text-sm block mb-1">I am a...</label>
-            <select
-              name="role"
-              required
-              value={form.role}
-              onChange={handleChange}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
-            >
-              <option value="" disabled className="bg-[#0C1A2E]">Select your role</option>
-              <option value="landlord" className="bg-[#0C1A2E]">Landlord</option>
-              <option value="renter" className="bg-[#0C1A2E]">Renter</option>
-              <option value="contractor" className="bg-[#0C1A2E]">Contractor</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="text-white/70 text-sm block mb-1">Preferred language</label>
-            <select
-              name="preferred_language"
-              value={form.preferred_language}
-              onChange={handleChange}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
-            >
-              <option value="en" className="bg-[#0C1A2E]">English</option>
-              <option value="es" className="bg-[#0C1A2E]">Spanish</option>
-            </select>
-          </div>
-
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">
-              {error}
-            </div>
-          )}
-
-          <RippleButton
-            type="submit"
-            disabled={loading}
-            className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50 mt-2"
+        <div>
+          <label className="text-white/70 text-sm block mb-1">I am a...</label>
+          <select
+            name="role"
+            required
+            value={form.role}
+            onChange={handleChange}
+            className="w-full bg-white/[0.06] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] focus:ring-2 focus:ring-[#12A5A9]/15 transition"
           >
-            {loading ? 'Creating account...' : 'Create account'}
-          </RippleButton>
+            <option value="" disabled className="bg-[#0C1A2E]">Select your role</option>
+            <option value="landlord" className="bg-[#0C1A2E]">Landlord</option>
+            <option value="renter" className="bg-[#0C1A2E]">Renter</option>
+            <option value="contractor" className="bg-[#0C1A2E]">Contractor</option>
+          </select>
+        </div>
 
-          <p className="text-center text-white/40 text-sm">
-            Already have an account?{' '}
-            <Link href="/login" className="text-[#12A5A9] hover:underline">
-              Sign in
-            </Link>
-          </p>
+        <div>
+          <label className="text-white/70 text-sm block mb-1">Preferred language</label>
+          <select
+            name="preferred_language"
+            value={form.preferred_language}
+            onChange={handleChange}
+            className="w-full bg-white/[0.06] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] focus:ring-2 focus:ring-[#12A5A9]/15 transition"
+          >
+            <option value="en" className="bg-[#0C1A2E]">English</option>
+            <option value="es" className="bg-[#0C1A2E]">Spanish</option>
+          </select>
+        </div>
 
-        </form>
-      </div>
-      </ScrollReveal>
-    </div>
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">
+            {error}
+          </div>
+        )}
+
+        <RippleButton
+          type="submit"
+          disabled={loading}
+          className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50 mt-2"
+        >
+          {loading ? 'Creating account...' : 'Create account'}
+        </RippleButton>
+
+        <p className="text-center text-white/40 text-sm">
+          Already have an account?{' '}
+          <Link href="/login" className="text-[#12A5A9] hover:underline">
+            Sign in
+          </Link>
+        </p>
+
+      </form>
+    </AuthLayout>
   )
 }

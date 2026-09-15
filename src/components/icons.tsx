@@ -116,3 +116,21 @@ export function LogOutIcon({ className }: IconProps) {
     </svg>
   )
 }
+
+export function MailIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="m4 7 8 6 8-6" />
+    </svg>
+  )
+}
+
+export function LockIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <rect x="5" y="11" width="14" height="9" rx="2" />
+      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+    </svg>
+  )
+}
