@@ -67,6 +67,8 @@ export default function NewUnitPage() {
       return
     }
 
+    fetch('/api/stripe/subscription/sync', { method: 'POST' }).catch(() => {})
+
     router.push(`/landlord/properties/${propertyId}`)
   }
 

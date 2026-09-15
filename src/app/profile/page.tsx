@@ -10,6 +10,8 @@ import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { LogOutIcon } from '@/components/icons'
 import { TABS_BY_ROLE } from '@/lib/navTabs'
+import { StripeConnectCard } from '@/components/StripeConnectCard'
+import { BillingSection } from '@/components/BillingSection'
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -269,6 +271,16 @@ export default function ProfilePage() {
           <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm mb-6">
             {error}
           </div>
+        )}
+
+        {/* Landlord billing + payouts */}
+        {role === 'landlord' && (
+          <>
+            <BillingSection />
+            <div className="mb-6">
+              <StripeConnectCard purpose="rent" />
+            </div>
+          </>
         )}
 
         {/* Notification preferences */}

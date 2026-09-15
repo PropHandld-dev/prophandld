@@ -13,6 +13,7 @@ import { RippleButton } from '@/components/RippleButton'
 import { WrenchIcon, CheckCircleIcon } from '@/components/icons'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 import { ReviewForm } from '@/components/ReviewForm'
+import { StripePaymentModal } from '@/components/StripePaymentModal'
 
 const TIME_WINDOWS = [
   { value: 'morning', label: 'Morning (8am–12pm)' },
@@ -43,6 +44,9 @@ export default function JobDetailPage() {
   const [selectedBidId, setSelectedBidId] = useState<string | null>(null)
   const [showArchiveModal, setShowArchiveModal] = useState(false)
   const [showApproveModal, setShowApproveModal] = useState(false)
+  const [payingContractor, setPayingContractor] = useState(false)
+  const [paymentModal, setPaymentModal] = useState<{ clientSecret: string; amount: number } | null>(null)
+  const [paymentError, setPaymentError] = useState<string | null>(null)
   const [showClarifyModal, setShowClarifyModal] = useState(false)
   const [clarifyNote, setClarifyNote] = useState('')
   const [showPriceModal, setShowPriceModal] = useState(false)
@@ -515,6 +519,37 @@ export default function JobDetailPage() {
     setActioning(false)
   }
 
+  const handlePayContractor = async () => {
+    const acceptedBid = bids.find((b) => b.status === 'accepted')
+    if (!acceptedBid) return
+
+    setPayingContractor(true)
+    setPaymentError(null)
+
+    try {
+      const res = await fetch('/api/stripe/job-payment/create-payment-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bidId: acceptedBid.id }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.clientSecret) {
+        setPaymentError(data.error || 'Could not start payment.')
+        setPayingContractor(false)
+        return
+      }
+      setPaymentModal({ clientSecret: data.clientSecret, amount: data.amount })
+    } catch {
+      setPaymentError('Could not start payment.')
+    }
+    setPayingContractor(false)
+  }
+
+  const handlePaymentSuccess = async () => {
+    setPaymentModal(null)
+    await fetchJob()
+  }
+
   const statusLabel = (status: string) => {
     const labels: Record<string, string> = {
       pending_approval: 'Needs approval',
@@ -829,6 +864,37 @@ export default function JobDetailPage() {
                   <p className="text-[#12A5A9] font-bold text-sm mt-1">${acceptedBid.amount}</p>
                 )}
                 {acceptedBid.availability && <p className="text-white/50 text-xs mt-1">Availability: {acceptedBid.availability}</p>}
+              </div>
+            )}
+          </div>
+        )}
+
+        {['completed', 'archived'].includes(job.status) && acceptedBid && (
+          <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-white font-semibold">Pay contractor</h3>
+                <p className="text-white/40 text-sm mt-1">
+                  ${acceptedBid.proposed_amount ?? acceptedBid.amount} to {acceptedBid.contractor?.full_name}
+                </p>
+              </div>
+              {acceptedBid.payment_status === 'paid' ? (
+                <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-[#0A7B7E]/20 text-[#12A5A9]">
+                  <CheckCircleIcon className="w-3 h-3" /> Paid
+                </span>
+              ) : (
+                <RippleButton
+                  onClick={handlePayContractor}
+                  disabled={payingContractor}
+                  className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50 shrink-0"
+                >
+                  {payingContractor ? 'Loading...' : 'Pay now'}
+                </RippleButton>
+              )}
+            </div>
+            {paymentError && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm mt-3">
+                {paymentError}
               </div>
             )}
           </div>
@@ -1228,6 +1294,16 @@ export default function JobDetailPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {paymentModal && (
+        <StripePaymentModal
+          clientSecret={paymentModal.clientSecret}
+          amount={paymentModal.amount}
+          title="Pay contractor"
+          onClose={() => setPaymentModal(null)}
+          onSuccess={handlePaymentSuccess}
+        />
       )}
 
       <BottomTabBar tabs={LANDLORD_TABS} />

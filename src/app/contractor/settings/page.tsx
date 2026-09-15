@@ -10,6 +10,7 @@ import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { CheckCircleIcon } from '@/components/icons'
 import { CONTRACTOR_TABS } from '@/lib/navTabs'
+import { StripeConnectCard } from '@/components/StripeConnectCard'
 
 const CATEGORIES = [
   'Plumbing', 'Electrical', 'HVAC', 'Appliance',
@@ -537,6 +538,10 @@ export default function ContractorSettingsPage() {
             </RippleButton>
           </form>
         </ScrollReveal>
+
+        <div className="mt-10 pt-8 border-t border-white/8">
+          <StripeConnectCard purpose="jobs" />
+        </div>
         </>
         )}
       </main>

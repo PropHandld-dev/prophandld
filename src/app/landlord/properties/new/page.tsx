@@ -127,6 +127,8 @@ function NewPropertyForm() {
       }
     }
 
+    fetch('/api/stripe/subscription/sync', { method: 'POST' }).catch(() => {})
+
     if (isOnboarding) {
       router.push('/landlord')
     } else {

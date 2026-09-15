@@ -234,14 +234,18 @@ export default function RenterDashboard() {
               </Link>
             )}
 
-            <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6 opacity-60 cursor-not-allowed">
-              <div className="flex items-center gap-2 mb-1">
-                <DollarSignIcon className="w-4 h-4 text-white/40" />
-                <h3 className="text-white font-semibold">Pay rent</h3>
-                <span className="text-[10px] font-semibold bg-white/8 text-white/50 rounded-full px-2 py-0.5 ml-auto">Coming soon</span>
-              </div>
-              <p className="text-white/40 text-sm mt-1">Secure online rent payments, right from your dashboard — no more checks or cash.</p>
-            </div>
+            {unit && (
+              <Link
+                href="/renter/rent"
+                className="block bg-white/3 border border-white/8 rounded-2xl p-6 mb-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all"
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <DollarSignIcon className="w-4 h-4 text-white/40" />
+                  <h3 className="text-white font-semibold">Pay rent</h3>
+                </div>
+                <p className="text-white/40 text-sm mt-1">Secure online rent payments, right from your dashboard — no more checks or cash.</p>
+              </Link>
+            )}
 
             <ScrollReveal className="bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/10 border border-[#12A5A9]/30 rounded-2xl p-6 mb-6">
               <h3 className="text-white font-semibold mb-1">Report an issue</h3>
