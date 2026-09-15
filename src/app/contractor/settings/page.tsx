@@ -37,6 +37,7 @@ export default function ContractorSettingsPage() {
   const [insuranceExpiry, setInsuranceExpiry] = useState('')
   const [licenseFile, setLicenseFile] = useState<File | null>(null)
   const [insuranceFile, setInsuranceFile] = useState<File | null>(null)
+  const [hasCredentials, setHasCredentials] = useState<'yes' | 'no'>('yes')
 
   const loadVerification = async (uid: string) => {
     const { data: verifData } = await supabase
@@ -50,6 +51,7 @@ export default function ContractorSettingsPage() {
       setLicenseNumber(verifData.license_number || '')
       setLicenseExpiry(verifData.license_expiry || '')
       setInsuranceExpiry(verifData.insurance_expiry || '')
+      if (verifData.status === 'unlicensed') setHasCredentials('no')
     }
   }
 
@@ -143,6 +145,42 @@ export default function ContractorSettingsPage() {
     e.preventDefault()
     if (!userId) return
 
+    if (hasCredentials === 'no') {
+      setVerifSaving(true)
+      setVerifError(null)
+      setVerifSuccess(null)
+
+      const { error: upsertError } = await supabase
+        .from('contractor_verifications')
+        .upsert(
+          {
+            contractor_user_id: userId,
+            license_number: null,
+            license_expiry: null,
+            license_document_url: null,
+            insurance_document_url: null,
+            insurance_expiry: null,
+            status: 'unlicensed',
+            admin_notes: null,
+            reviewed_by: null,
+            reviewed_at: null,
+          },
+          { onConflict: 'contractor_user_id' }
+        )
+
+      if (upsertError) {
+        console.error('Error saving verification:', upsertError)
+        setVerifError(`Could not save: ${upsertError.message}`)
+        setVerifSaving(false)
+        return
+      }
+
+      setVerifSuccess("Saved. Landlords will see that you don't have license/insurance on file.")
+      await loadVerification(userId)
+      setVerifSaving(false)
+      return
+    }
+
     if (!licenseNumber.trim()) {
       setVerifError('Enter your license number.')
       return
@@ -228,9 +266,10 @@ export default function ContractorSettingsPage() {
 
   const verificationStatusBadge = () => {
     const status = verification?.status
-    if (!status) return { label: 'Unverified', className: 'bg-white/8 text-white/50', icon: false }
+    if (!status) return { label: 'Not submitted', className: 'bg-white/8 text-white/50', icon: false }
     if (status === 'pending') return { label: 'Pending review', className: 'bg-yellow-500/15 text-yellow-400', icon: false }
     if (status === 'verified') return { label: 'Verified', className: 'bg-[#0A7B7E]/20 text-[#12A5A9]', icon: true }
+    if (status === 'unlicensed') return { label: 'No license on file', className: 'bg-white/8 text-white/50', icon: false }
     return { label: 'Rejected — resubmit', className: 'bg-red-500/15 text-red-400', icon: false }
   }
 
@@ -356,7 +395,8 @@ export default function ContractorSettingsPage() {
             </span>
           </div>
           <p className="text-white/50 text-sm mb-6">
-            Upload your license and insurance so landlords can see you're verified before selecting your bid.
+            Landlords can see whether you're licensed and insured before selecting a bid. If you
+            don't have documentation to share yet, that's fine — just let them know.
           </p>
 
           {verification?.status === 'rejected' && verification.admin_notes && (
@@ -365,74 +405,111 @@ export default function ContractorSettingsPage() {
             </div>
           )}
 
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <button
+              type="button"
+              onClick={() => setHasCredentials('yes')}
+              className={
+                hasCredentials === 'yes'
+                  ? 'bg-[#0A7B7E]/15 border border-[#12A5A9]/40 rounded-xl px-4 py-3 text-white text-sm font-medium text-left'
+                  : 'bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white/50 text-sm font-medium text-left hover:bg-white/8 transition'
+              }
+            >
+              I have a license & insurance
+            </button>
+            <button
+              type="button"
+              onClick={() => setHasCredentials('no')}
+              className={
+                hasCredentials === 'no'
+                  ? 'bg-[#0A7B7E]/15 border border-[#12A5A9]/40 rounded-xl px-4 py-3 text-white text-sm font-medium text-left'
+                  : 'bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white/50 text-sm font-medium text-left hover:bg-white/8 transition'
+              }
+            >
+              Not yet / not applicable
+            </button>
+          </div>
+
           <form onSubmit={handleVerificationSubmit} className="space-y-4">
-            <div>
-              <label className="text-white/70 text-sm block mb-1">License number</label>
-              <input
-                type="text"
-                value={licenseNumber}
-                onChange={(e) => setLicenseNumber(e.target.value)}
-                placeholder="e.g. PA-123456"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
-              />
-            </div>
+            {hasCredentials === 'yes' ? (
+              <>
+                <div>
+                  <label className="text-white/70 text-sm block mb-1">License number</label>
+                  <input
+                    type="text"
+                    value={licenseNumber}
+                    onChange={(e) => setLicenseNumber(e.target.value)}
+                    placeholder="e.g. PA-123456"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+                  />
+                </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-white/70 text-sm block mb-1">License expiry</label>
-                <input
-                  type="date"
-                  value={licenseExpiry}
-                  onChange={(e) => setLicenseExpiry(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
-                />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-white/70 text-sm block mb-1">License expiry</label>
+                    <input
+                      type="date"
+                      value={licenseExpiry}
+                      onChange={(e) => setLicenseExpiry(e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-white/70 text-sm block mb-1">Insurance expiry</label>
+                    <input
+                      type="date"
+                      value={insuranceExpiry}
+                      onChange={(e) => setInsuranceExpiry(e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-white/70 text-sm block mb-1">License document</label>
+                  <label className="block">
+                    <input
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      onChange={(e) => setLicenseFile(e.target.files?.[0] || null)}
+                      className="hidden"
+                    />
+                    <span className="inline-block bg-white/8 text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-white/12 transition cursor-pointer">
+                      {licenseFile ? licenseFile.name : verification?.license_document_url ? 'Replace file' : '+ Choose file'}
+                    </span>
+                  </label>
+                  {!licenseFile && verification?.license_document_url && (
+                    <p className="text-white/30 text-xs mt-1">On file</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-white/70 text-sm block mb-1">Insurance document</label>
+                  <label className="block">
+                    <input
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      onChange={(e) => setInsuranceFile(e.target.files?.[0] || null)}
+                      className="hidden"
+                    />
+                    <span className="inline-block bg-white/8 text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-white/12 transition cursor-pointer">
+                      {insuranceFile ? insuranceFile.name : verification?.insurance_document_url ? 'Replace file' : '+ Choose file'}
+                    </span>
+                  </label>
+                  {!insuranceFile && verification?.insurance_document_url && (
+                    <p className="text-white/30 text-xs mt-1">On file</p>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="bg-white/3 border border-white/8 rounded-xl px-4 py-3">
+                <p className="text-white/50 text-sm">
+                  Landlords will see that you don't have a license or insurance on file. You can
+                  still bid on jobs — some landlords are fine hiring unlicensed contractors for
+                  smaller work.
+                </p>
               </div>
-              <div>
-                <label className="text-white/70 text-sm block mb-1">Insurance expiry</label>
-                <input
-                  type="date"
-                  value={insuranceExpiry}
-                  onChange={(e) => setInsuranceExpiry(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="text-white/70 text-sm block mb-1">License document</label>
-              <label className="block">
-                <input
-                  type="file"
-                  accept=".pdf,.jpg,.jpeg,.png"
-                  onChange={(e) => setLicenseFile(e.target.files?.[0] || null)}
-                  className="hidden"
-                />
-                <span className="inline-block bg-white/8 text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-white/12 transition cursor-pointer">
-                  {licenseFile ? licenseFile.name : verification?.license_document_url ? 'Replace file' : '+ Choose file'}
-                </span>
-              </label>
-              {!licenseFile && verification?.license_document_url && (
-                <p className="text-white/30 text-xs mt-1">On file</p>
-              )}
-            </div>
-
-            <div>
-              <label className="text-white/70 text-sm block mb-1">Insurance document</label>
-              <label className="block">
-                <input
-                  type="file"
-                  accept=".pdf,.jpg,.jpeg,.png"
-                  onChange={(e) => setInsuranceFile(e.target.files?.[0] || null)}
-                  className="hidden"
-                />
-                <span className="inline-block bg-white/8 text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-white/12 transition cursor-pointer">
-                  {insuranceFile ? insuranceFile.name : verification?.insurance_document_url ? 'Replace file' : '+ Choose file'}
-                </span>
-              </label>
-              {!insuranceFile && verification?.insurance_document_url && (
-                <p className="text-white/30 text-xs mt-1">On file</p>
-              )}
-            </div>
+            )}
 
             {verifError && (
               <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">
@@ -450,7 +527,13 @@ export default function ContractorSettingsPage() {
               disabled={verifSaving}
               className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
             >
-              {verifSaving ? 'Submitting...' : verification ? 'Resubmit for review' : 'Submit for review'}
+              {verifSaving
+                ? 'Saving...'
+                : hasCredentials === 'no'
+                  ? 'Save'
+                  : verification
+                    ? 'Resubmit for review'
+                    : 'Submit for review'}
             </RippleButton>
           </form>
         </ScrollReveal>

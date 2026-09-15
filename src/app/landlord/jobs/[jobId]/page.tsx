@@ -31,6 +31,7 @@ export default function JobDetailPage() {
   const [photos, setPhotos] = useState<any[]>([])
   const [bids, setBids] = useState<any[]>([])
   const [verifiedContractorIds, setVerifiedContractorIds] = useState<Set<string>>(new Set())
+  const [unlicensedContractorIds, setUnlicensedContractorIds] = useState<Set<string>>(new Set())
   const [ratingSummaries, setRatingSummaries] = useState<Record<string, { avg_rating: number; review_count: number }>>({})
   const [error, setError] = useState<string | null>(null)
   const [actioning, setActioning] = useState(false)
@@ -149,6 +150,9 @@ export default function JobDetailPage() {
         if (verifsData) {
           setVerifiedContractorIds(
             new Set(verifsData.filter((v) => v.status === 'verified').map((v) => v.contractor_user_id))
+          )
+          setUnlicensedContractorIds(
+            new Set(verifsData.filter((v) => v.status === 'unlicensed').map((v) => v.contractor_user_id))
           )
         }
 
@@ -737,6 +741,11 @@ export default function JobDetailPage() {
                             Verified ✓
                           </span>
                         )}
+                        {unlicensedContractorIds.has(bid.contractor_user_id) && (
+                          <span className="text-xs bg-white/8 text-white/50 rounded-full px-2 py-0.5 font-semibold">
+                            No license on file
+                          </span>
+                        )}
                         {ratingSummaries[bid.contractor_user_id] && (
                           <span className="text-xs bg-white/8 text-white/60 rounded-full px-2 py-0.5 font-semibold">
                             ★ {ratingSummaries[bid.contractor_user_id].avg_rating.toFixed(1)} ({ratingSummaries[bid.contractor_user_id].review_count})
@@ -772,6 +781,11 @@ export default function JobDetailPage() {
                   {verifiedContractorIds.has(acceptedBid.contractor_user_id) && (
                     <span className="text-xs bg-[#0A7B7E]/20 text-[#12A5A9] rounded-full px-2 py-0.5 font-semibold">
                       Verified ✓
+                    </span>
+                  )}
+                  {unlicensedContractorIds.has(acceptedBid.contractor_user_id) && (
+                    <span className="text-xs bg-white/8 text-white/50 rounded-full px-2 py-0.5 font-semibold">
+                      No license on file
                     </span>
                   )}
                   {ratingSummaries[acceptedBid.contractor_user_id] && (

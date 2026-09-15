@@ -102,8 +102,9 @@ export default function AdminContractorsPage() {
     </div>
   )
 
+  // 'unlicensed' rows are self-declared, not submitted for review — nothing for an admin to act on
   const pending = rows.filter((r) => r.status === 'pending')
-  const reviewed = rows.filter((r) => r.status !== 'pending')
+  const reviewed = rows.filter((r) => r.status !== 'pending' && r.status !== 'unlicensed')
 
   const renderRow = (row: any) => (
     <div key={row.id} className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
