@@ -2,17 +2,19 @@ import { Logo } from '@/components/Logo'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { CheckCircleIcon } from '@/components/icons'
 
-const CHECKLIST = ['Sealed bidding', 'No surprise costs', 'Photo-verified work']
+const DEFAULT_CHECKLIST = ['Sealed bidding', 'No surprise costs', 'Photo-verified work']
 
 export function AuthLayout({
   headline,
   subtext,
   showChecklist = false,
+  checklist = DEFAULT_CHECKLIST,
   children,
 }: {
   headline: string
   subtext: string
   showChecklist?: boolean
+  checklist?: string[]
   children: React.ReactNode
 }) {
   return (
@@ -34,7 +36,7 @@ export function AuthLayout({
 
           {showChecklist && (
             <ul className="mt-8 space-y-3">
-              {CHECKLIST.map((item) => (
+              {checklist.map((item) => (
                 <li key={item} className="flex items-center gap-2.5 text-white/70 text-sm">
                   <CheckCircleIcon className="w-4 h-4 text-[#12A5A9] shrink-0" />
                   {item}

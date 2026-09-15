@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/Skeleton'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
+import { AddressAutocomplete, type AutocompletePlace } from '@/components/AddressAutocomplete'
 
 export default function EditPropertyPage() {
   const router = useRouter()
@@ -26,6 +27,7 @@ export default function EditPropertyPage() {
     zip: '',
     property_type: 'residential',
   })
+  const [placeGeo, setPlaceGeo] = useState<{ lat: number; lng: number } | null>(null)
 
   useEffect(() => {
     const init = async () => {
@@ -63,6 +65,24 @@ export default function EditPropertyPage() {
     setForm({ ...form, [e.target.name]: e.target.value })
   }
 
+  const handleAddressChange = (value: string) => {
+    setForm({ ...form, address: value })
+    setPlaceGeo(null)
+  }
+
+  const handlePlaceSelected = (place: AutocompletePlace) => {
+    setForm({
+      ...form,
+      address: place.address || form.address,
+      city: place.city || form.city,
+      state: place.state || form.state,
+      zip: place.zip || form.zip,
+    })
+    if (place.lat != null && place.lng != null) {
+      setPlaceGeo({ lat: place.lat, lng: place.lng })
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
@@ -91,8 +111,9 @@ export default function EditPropertyPage() {
       return
     }
 
-    // Re-geocode in case the ZIP changed
-    const geo = form.zip ? await geocodeZip(form.zip) : null
+    // Prefer the precise coordinates from Places autocomplete if the address
+    // was re-picked; otherwise re-geocode in case the ZIP changed
+    const geo = placeGeo ?? (form.zip ? await geocodeZip(form.zip) : null)
 
     const { error: updateError } = await supabase
       .from('properties')
@@ -153,13 +174,12 @@ export default function EditPropertyPage() {
 
           <div>
             <label className="text-white/70 text-sm block mb-1">Street address</label>
-            <input
-              type="text"
-              name="address"
-              required
+            <AddressAutocomplete
               value={form.address}
-              onChange={handleChange}
-              placeholder="123 Main St"
+              onChange={handleAddressChange}
+              onPlaceSelected={handlePlaceSelected}
+              placeholder="Start typing your address..."
+              required
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
             />
           </div>

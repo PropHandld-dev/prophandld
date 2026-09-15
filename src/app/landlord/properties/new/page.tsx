@@ -8,6 +8,7 @@ import { geocodeZip } from '@/lib/geocode'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
+import { AddressAutocomplete, type AutocompletePlace } from '@/components/AddressAutocomplete'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 
 function NewPropertyForm() {
@@ -24,9 +25,28 @@ function NewPropertyForm() {
     property_type: 'residential',
     num_units: '1',
   })
+  const [placeGeo, setPlaceGeo] = useState<{ lat: number; lng: number } | null>(null)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })
+  }
+
+  const handleAddressChange = (value: string) => {
+    setForm({ ...form, address: value })
+    setPlaceGeo(null)
+  }
+
+  const handlePlaceSelected = (place: AutocompletePlace) => {
+    setForm({
+      ...form,
+      address: place.address || form.address,
+      city: place.city || form.city,
+      state: place.state || form.state,
+      zip: place.zip || form.zip,
+    })
+    if (place.lat != null && place.lng != null) {
+      setPlaceGeo({ lat: place.lat, lng: place.lng })
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -49,8 +69,9 @@ function NewPropertyForm() {
       return
     }
 
-    // Geocode the ZIP so this property can be matched to contractors by radius
-    const geo = form.zip ? await geocodeZip(form.zip) : null
+    // Prefer the precise coordinates from Places autocomplete; fall back to
+    // ZIP-based geocoding if the address was typed manually.
+    const geo = placeGeo ?? (form.zip ? await geocodeZip(form.zip) : null)
 
     const { data: property, error: propertyError } = await supabase
       .from('properties')
@@ -137,15 +158,15 @@ function NewPropertyForm() {
 
           <div>
             <label className="text-white/70 text-sm block mb-1">Street address</label>
-            <input
-              type="text"
-              name="address"
-              required
+            <AddressAutocomplete
               value={form.address}
-              onChange={handleChange}
-              placeholder="123 Main St"
+              onChange={handleAddressChange}
+              onPlaceSelected={handlePlaceSelected}
+              placeholder="Start typing your address..."
+              required
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
             />
+            <p className="text-white/30 text-xs mt-1">Pick a suggestion to auto-fill city, state, and ZIP</p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

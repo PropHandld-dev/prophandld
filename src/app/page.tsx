@@ -206,7 +206,7 @@ export default function LandingPage() {
               you'll never find again. Get honest bids, and soon collect rent
               right here too.
             </p>
-            <Link href="/signup" className="text-[#12A5A9] text-sm font-semibold hover:underline">
+            <Link href="/signup?role=landlord" className="text-[#12A5A9] text-sm font-semibold hover:underline">
               Sign up as a landlord →
             </Link>
           </div>
@@ -218,7 +218,7 @@ export default function LandingPage() {
               unit in one tap — no digging through a text thread from two
               years ago to find your landlord's number.
             </p>
-            <Link href="/signup" className="text-[#12A5A9] text-sm font-semibold hover:underline">
+            <Link href="/signup?role=renter" className="text-[#12A5A9] text-sm font-semibold hover:underline">
               Sign up as a renter →
             </Link>
           </div>
@@ -230,7 +230,7 @@ export default function LandingPage() {
               the merits — no guessing what everyone else quoted, no race to
               the bottom.
             </p>
-            <Link href="/signup" className="text-[#12A5A9] text-sm font-semibold hover:underline">
+            <Link href="/signup?role=contractor" className="text-[#12A5A9] text-sm font-semibold hover:underline">
               Sign up as a contractor →
             </Link>
           </div>
@@ -276,9 +276,11 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="border-t border-white/8 py-8">
-        <div className="max-w-5xl mx-auto px-6 flex items-center justify-between text-sm text-white/40">
+        <div className="max-w-5xl mx-auto px-6 flex items-center justify-between text-sm text-white/40 flex-wrap gap-3">
           <span>© 2026 Prophandld</span>
-          <div className="flex gap-6">
+          <div className="flex gap-6 flex-wrap">
+            <Link href="/terms" className="hover:text-white transition">Terms</Link>
+            <Link href="/privacy" className="hover:text-white transition">Privacy</Link>
             <Link href="/login" className="hover:text-white transition">Sign in</Link>
             <Link href="/signup" className="hover:text-white transition">Sign up</Link>
           </div>

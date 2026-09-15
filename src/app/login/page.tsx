@@ -1,16 +1,44 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { supabase } from '@/lib/supabase'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { RippleButton } from '@/components/RippleButton'
 import { AuthLayout } from '@/components/AuthLayout'
 import { AuthInput } from '@/components/AuthInput'
 import { MailIcon, LockIcon } from '@/components/icons'
+import { RolePicker, type Role } from '@/components/RolePicker'
 
-export default function LoginPage() {
+// Purely cosmetic — sets which flavor of copy shows on the brand panel.
+// The actual post-login redirect always uses the account's real stored role.
+const ROLE_CONTENT: Record<Role, { headline: string; subtext: string; checklist: string[] }> = {
+  landlord: {
+    headline: 'Welcome back.',
+    subtext: "Your properties didn't manage themselves while you were gone. Let's see what's going on.",
+    checklist: ['Sealed bidding', 'No surprise costs', 'Photo-verified work'],
+  },
+  renter: {
+    headline: 'Welcome back.',
+    subtext: 'Got something to report, or just checking on a fix in progress?',
+    checklist: ['Report issues in one tap', 'See emergency contacts for your unit', 'Track your lease documents'],
+  },
+  contractor: {
+    headline: 'Welcome back.',
+    subtext: 'New jobs might be waiting on you. Let\'s take a look.',
+    checklist: ['Sealed, fair bidding', 'Get verified, get trusted', 'Build your rating over time'],
+  },
+}
+
+const VALID_ROLES: Role[] = ['landlord', 'renter', 'contractor']
+
+function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const initialRole = searchParams.get('role') as Role | null
+  const [role, setRole] = useState<Role | null>(
+    initialRole && VALID_ROLES.includes(initialRole) ? initialRole : null
+  )
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [form, setForm] = useState({
@@ -39,25 +67,57 @@ export default function LoginPage() {
     }
 
     if (data.user) {
-      const role = data.user.user_metadata?.role
-      if (role === 'landlord') router.push('/landlord')
-      else if (role === 'renter') router.push('/renter')
-      else if (role === 'contractor') router.push('/contractor')
+      const accountRole = data.user.user_metadata?.role
+      if (accountRole === 'landlord') router.push('/landlord')
+      else if (accountRole === 'renter') router.push('/renter')
+      else if (accountRole === 'contractor') router.push('/contractor')
       else router.push('/')
     }
 
     setLoading(false)
   }
 
+  if (!role) {
+    return (
+      <AuthLayout
+        headline="Welcome back."
+        subtext="Who's signing in today?"
+      >
+        <div className="text-center mb-8 lg:text-left">
+          <h1 className="text-2xl font-bold text-white">Sign in</h1>
+          <p className="text-white/50 text-sm mt-1">Good to see you again.</p>
+        </div>
+
+        <RolePicker onSelect={setRole} />
+
+        <p className="text-center text-white/40 text-sm mt-6">
+          Don't have an account?{' '}
+          <Link href="/signup" className="text-[#12A5A9] hover:underline">
+            Create one
+          </Link>
+        </p>
+      </AuthLayout>
+    )
+  }
+
+  const { headline, subtext, checklist } = ROLE_CONTENT[role]
+
   return (
-    <AuthLayout
-      headline="Welcome back."
-      subtext="Your properties didn't manage themselves while you were gone. Let's see what's going on."
-      showChecklist
-    >
+    <AuthLayout headline={headline} subtext={subtext} checklist={checklist} showChecklist>
       <div className="text-center mb-8 lg:text-left">
         <h1 className="text-2xl font-bold text-white">Sign in</h1>
-        <p className="text-white/50 text-sm mt-1">Good to see you again.</p>
+        <div className="flex items-center justify-center lg:justify-start gap-2 mt-2">
+          <span className="text-xs bg-[#0A7B7E]/20 text-[#12A5A9] border border-[#12A5A9]/30 rounded-full px-2.5 py-1 font-semibold capitalize">
+            {role}
+          </span>
+          <button
+            type="button"
+            onClick={() => setRole(null)}
+            className="text-white/40 text-xs hover:text-white transition"
+          >
+            Not you? Change
+          </button>
+        </div>
       </div>
 
       <form onSubmit={handleLogin} className="space-y-4">
@@ -117,5 +177,17 @@ export default function LoginPage() {
 
       </form>
     </AuthLayout>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center">
+        <div className="text-white/50">Loading...</div>
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   )
 }

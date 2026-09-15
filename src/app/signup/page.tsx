@@ -1,16 +1,42 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { supabase } from '@/lib/supabase'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { RippleButton } from '@/components/RippleButton'
 import { AuthLayout } from '@/components/AuthLayout'
 import { AuthInput } from '@/components/AuthInput'
 import { MailIcon, LockIcon } from '@/components/icons'
+import { RolePicker, type Role } from '@/components/RolePicker'
 
-export default function SignupPage() {
+const ROLE_CONTENT: Record<Role, { headline: string; subtext: string; checklist: string[] }> = {
+  landlord: {
+    headline: 'Run your rentals, not a spreadsheet.',
+    subtext: "Takes about two minutes to get set up. Less time than deciding what to have for dinner.",
+    checklist: ['Sealed bidding', 'No surprise costs', 'Photo-verified work'],
+  },
+  renter: {
+    headline: 'Get things fixed, fast.',
+    subtext: "Report an issue in seconds — no digging through old texts to find your landlord's number.",
+    checklist: ['Report issues in one tap', 'See emergency contacts for your unit', 'Track your lease documents'],
+  },
+  contractor: {
+    headline: 'Bid fair, get picked on merit.',
+    subtext: 'See real jobs near you and submit a sealed bid — no guessing what everyone else quoted.',
+    checklist: ['Sealed, fair bidding', 'Get verified, get trusted', 'Build your rating over time'],
+  },
+}
+
+const VALID_ROLES: Role[] = ['landlord', 'renter', 'contractor']
+
+function SignupForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const initialRole = searchParams.get('role') as Role | null
+  const [role, setRole] = useState<Role | null>(
+    initialRole && VALID_ROLES.includes(initialRole) ? initialRole : null
+  )
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [form, setForm] = useState({
@@ -18,7 +44,6 @@ export default function SignupPage() {
     email: '',
     password: '',
     phone: '',
-    role: '',
     preferred_language: 'en',
   })
 
@@ -28,14 +53,9 @@ export default function SignupPage() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!role) return
     setLoading(true)
     setError(null)
-
-    if (!form.role) {
-      setError('Please select your role.')
-      setLoading(false)
-      return
-    }
 
     const { data, error: signupError } = await supabase.auth.signUp({
       email: form.email,
@@ -44,7 +64,7 @@ export default function SignupPage() {
         data: {
           full_name: form.full_name,
           phone: form.phone,
-          role: form.role,
+          role,
           preferred_language: form.preferred_language,
         },
       },
@@ -62,12 +82,12 @@ export default function SignupPage() {
       return
     }
 
-    if (form.role === 'landlord') {
+    if (role === 'landlord') {
       router.push('/landlord/properties/new?onboarding=1')
-    } else if (form.role === 'renter') {
+    } else if (role === 'renter') {
       await linkPendingInvite(data.user.id, form.email)
       router.push('/renter')
-    } else if (form.role === 'contractor') {
+    } else if (role === 'contractor') {
       router.push('/contractor')
     }
 
@@ -117,16 +137,57 @@ export default function SignupPage() {
     }
   }
 
+  if (!role) {
+    return (
+      <AuthLayout
+        headline="First, who are you?"
+        subtext="We'll set things up just right, depending on your answer."
+      >
+        <div className="text-center mb-8 lg:text-left">
+          <h1 className="text-2xl font-bold text-white">Create your account</h1>
+          <p className="text-white/50 text-sm mt-1">Your property, handled.</p>
+        </div>
+
+        <RolePicker onSelect={setRole} />
+
+        <p className="text-center text-white/40 text-sm mt-6">
+          Already have an account?{' '}
+          <Link href="/login" className="text-[#12A5A9] hover:underline">
+            Sign in
+          </Link>
+        </p>
+      </AuthLayout>
+    )
+  }
+
+  const { headline, subtext, checklist } = ROLE_CONTENT[role]
+
   return (
-    <AuthLayout
-      headline="Run your rentals, not a spreadsheet."
-      subtext="Takes about two minutes to get set up. Less time than deciding what to have for dinner."
-      showChecklist
-    >
-      <div className="text-center mb-8 lg:text-left">
+    <AuthLayout headline={headline} subtext={subtext} checklist={checklist} showChecklist>
+      <div className="text-center mb-6 lg:text-left">
         <h1 className="text-2xl font-bold text-white">Create your account</h1>
-        <p className="text-white/50 text-sm mt-1">Your property, handled.</p>
+        <div className="flex items-center justify-center lg:justify-start gap-2 mt-2">
+          <span className="text-xs bg-[#0A7B7E]/20 text-[#12A5A9] border border-[#12A5A9]/30 rounded-full px-2.5 py-1 font-semibold capitalize">
+            {role}
+          </span>
+          <button
+            type="button"
+            onClick={() => setRole(null)}
+            className="text-white/40 text-xs hover:text-white transition"
+          >
+            Not right? Change
+          </button>
+        </div>
       </div>
+
+      {/* Mobile-only checklist, since the brand panel checklist is desktop-only */}
+      <ul className="lg:hidden flex flex-wrap justify-center gap-2 mb-6">
+        {checklist.map((item) => (
+          <li key={item} className="text-xs bg-white/5 border border-white/10 rounded-full px-3 py-1 text-white/50">
+            {item}
+          </li>
+        ))}
+      </ul>
 
       <form onSubmit={handleSignup} className="space-y-4">
 
@@ -180,22 +241,6 @@ export default function SignupPage() {
         </div>
 
         <div>
-          <label className="text-white/70 text-sm block mb-1">I am a...</label>
-          <select
-            name="role"
-            required
-            value={form.role}
-            onChange={handleChange}
-            className="w-full bg-white/[0.06] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] focus:ring-2 focus:ring-[#12A5A9]/15 transition"
-          >
-            <option value="" disabled className="bg-[#0C1A2E]">Select your role</option>
-            <option value="landlord" className="bg-[#0C1A2E]">Landlord</option>
-            <option value="renter" className="bg-[#0C1A2E]">Renter</option>
-            <option value="contractor" className="bg-[#0C1A2E]">Contractor</option>
-          </select>
-        </div>
-
-        <div>
           <label className="text-white/70 text-sm block mb-1">Preferred language</label>
           <select
             name="preferred_language"
@@ -222,6 +267,13 @@ export default function SignupPage() {
           {loading ? 'Creating account...' : 'Create account'}
         </RippleButton>
 
+        <p className="text-center text-white/30 text-xs">
+          By continuing, you agree to Prophandld's{' '}
+          <Link href="/terms" className="text-[#12A5A9]/80 hover:underline">Terms</Link>
+          {' '}and{' '}
+          <Link href="/privacy" className="text-[#12A5A9]/80 hover:underline">Privacy Policy</Link>.
+        </p>
+
         <p className="text-center text-white/40 text-sm">
           Already have an account?{' '}
           <Link href="/login" className="text-[#12A5A9] hover:underline">
@@ -231,5 +283,17 @@ export default function SignupPage() {
 
       </form>
     </AuthLayout>
+  )
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center">
+        <div className="text-white/50">Loading...</div>
+      </div>
+    }>
+      <SignupForm />
+    </Suspense>
   )
 }
