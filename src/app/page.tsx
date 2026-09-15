@@ -5,7 +5,7 @@ import { MagneticLink } from '@/components/MagneticLink'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { DollarSignIcon, AlertTriangleIcon, FileTextIcon, WrenchIcon, CalendarIcon, CheckCircleIcon } from '@/components/icons'
 import { Logo } from '@/components/Logo'
-import { DashboardPreview } from '@/components/DashboardPreview'
+import { RoleShowcase } from '@/components/RoleShowcase'
 
 const OPERATIONS_FEATURES = [
   { icon: DollarSignIcon, title: 'Rent tracking', desc: 'Expected vs. actual, per unit, per month — know instantly when something is off.' },
@@ -78,8 +78,7 @@ export default function LandingPage() {
       {/* Product preview */}
       <section className="max-w-4xl mx-auto px-6 pb-20">
         <ScrollReveal>
-          <DashboardPreview />
-          <p className="text-white/30 text-xs text-center mt-4">Sample dashboard, shown with example data</p>
+          <RoleShowcase />
         </ScrollReveal>
       </section>
 
