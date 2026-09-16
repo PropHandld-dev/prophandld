@@ -441,3 +441,16 @@ export async function sendDisputeResolvedEmail({
   })
   return sendEmail({ to, subject: `Dispute resolved: ${jobCategory}`, html })
 }
+
+export async function sendRentDueEmail({ to, landlordName, unitLabels }: { to: string; landlordName: string; unitLabels: string[] }) {
+  const monthLabel = new Date().toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+  const list = unitLabels.length === 1 ? unitLabels[0] : `${unitLabels.length} units`
+  const html = baseTemplate({
+    eyebrow: 'Payment',
+    heading: `Rent is due — ${monthLabel}`,
+    bodyHtml: `Hi ${landlordName}, ${monthLabel} rent tracking is ready for ${list}. Mark it received in one tap once it comes in — no typing required.`,
+    ctaLabel: 'View dashboard',
+    ctaUrl: `${SITE_URL}/landlord`,
+  })
+  return sendEmail({ to, subject: `Rent due — ${monthLabel}`, html })
+}

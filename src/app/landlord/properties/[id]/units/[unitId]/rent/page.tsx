@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/Skeleton'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
+import { ensureCurrentMonthRentPayment } from '@/lib/rentAutomation'
 
 export default function UnitRentPage() {
   const router = useRouter()
@@ -17,19 +18,15 @@ export default function UnitRentPage() {
   const unitId = params.unitId as string
 
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
+  const [savingId, setSavingId] = useState<string | null>(null)
   const [unit, setUnit] = useState<any>(null)
   const [tenancy, setTenancy] = useState<any>(null)
   const [payments, setPayments] = useState<any[]>([])
   const [error, setError] = useState<string | null>(null)
-
-  const [form, setForm] = useState({
-    month: '',
-    expected_amount: '',
-    actual_amount: '',
-    paid_date: '',
-    notes: '',
-  })
+  const [adjustingId, setAdjustingId] = useState<string | null>(null)
+  const [adjustAmount, setAdjustAmount] = useState('')
+  const [showAddMonth, setShowAddMonth] = useState(false)
+  const [addForm, setAddForm] = useState({ month: '', expected_amount: '' })
 
   useEffect(() => {
     const init = async () => {
@@ -65,8 +62,9 @@ export default function UnitRentPage() {
         return
       }
       setTenancy(tenancyData)
-      setForm((f) => ({ ...f, expected_amount: tenancyData.rent_amount ? String(tenancyData.rent_amount) : '' }))
+      setAddForm((f) => ({ ...f, expected_amount: tenancyData.rent_amount ? String(tenancyData.rent_amount) : '' }))
 
+      await ensureCurrentMonthRentPayment(supabase, tenancyData.id, tenancyData.rent_amount)
       await loadPayments(tenancyData.id)
       setLoading(false)
     }
@@ -87,49 +85,55 @@ export default function UnitRentPage() {
     setPayments(paymentsData || [])
   }
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value })
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (!form.month) {
-      setError('Please pick a month.')
-      return
-    }
-    if (!form.expected_amount) {
-      setError('Please enter the expected amount.')
-      return
-    }
-    if (!tenancy) return
-
-    setSaving(true)
+  const handleMarkReceived = async (payment: any, amount?: number) => {
+    setSavingId(payment.id)
     setError(null)
 
-    const monthFirstOfMonth = `${form.month}-01`
-
-    const { error: insertError } = await supabase
+    const { error: updateError } = await supabase
       .from('rent_payments')
-      .insert({
-        tenancy_id: tenancy.id,
-        month: monthFirstOfMonth,
-        expected_amount: parseFloat(form.expected_amount),
-        actual_amount: form.actual_amount ? parseFloat(form.actual_amount) : null,
-        paid_date: form.paid_date || null,
-        notes: form.notes.trim() || null,
+      .update({
+        actual_amount: amount ?? payment.expected_amount,
+        paid_date: new Date().toISOString().slice(0, 10),
       })
+      .eq('id', payment.id)
+
+    if (updateError) {
+      console.error('Error marking rent received:', updateError)
+      setError('Could not save. Please try again.')
+      setSavingId(null)
+      return
+    }
+
+    setAdjustingId(null)
+    setAdjustAmount('')
+    await loadPayments(payment.tenancy_id)
+    setSavingId(null)
+  }
+
+  const handleAddMonth = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!addForm.month || !addForm.expected_amount || !tenancy) return
+
+    setSavingId('add')
+    setError(null)
+
+    const { error: insertError } = await supabase.from('rent_payments').insert({
+      tenancy_id: tenancy.id,
+      month: `${addForm.month}-01`,
+      expected_amount: parseFloat(addForm.expected_amount),
+    })
 
     if (insertError) {
       console.error('Error adding rent entry:', insertError)
       setError('Could not add entry. Please try again.')
-      setSaving(false)
+      setSavingId(null)
       return
     }
 
-    setForm({ month: '', expected_amount: String(tenancy.rent_amount || ''), actual_amount: '', paid_date: '', notes: '' })
+    setAddForm({ month: '', expected_amount: String(tenancy.rent_amount || '') })
+    setShowAddMonth(false)
     await loadPayments(tenancy.id)
-    setSaving(false)
+    setSavingId(null)
   }
 
   const handleDelete = async (paymentId: string) => {
@@ -205,99 +209,23 @@ export default function UnitRentPage() {
           </div>
         ) : (
           <>
-            <ScrollReveal>
-            <form onSubmit={handleSubmit} className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6 space-y-4">
-              <h2 className="text-white font-semibold mb-2">Log a month</h2>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-white/70 text-sm block mb-1">Month</label>
-                  <input
-                    type="month"
-                    name="month"
-                    value={form.month}
-                    onChange={handleChange}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
-                  />
-                </div>
-                <div>
-                  <label className="text-white/70 text-sm block mb-1">Expected amount</label>
-                  <input
-                    type="number"
-                    name="expected_amount"
-                    value={form.expected_amount}
-                    onChange={handleChange}
-                    min={0}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
-                  />
-                </div>
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm mb-4">
+                {error}
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-white/70 text-sm block mb-1">Actual amount received</label>
-                  <input
-                    type="number"
-                    name="actual_amount"
-                    value={form.actual_amount}
-                    onChange={handleChange}
-                    min={0}
-                    placeholder="Leave blank if not paid"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
-                  />
-                </div>
-                <div>
-                  <label className="text-white/70 text-sm block mb-1">Paid date</label>
-                  <input
-                    type="date"
-                    name="paid_date"
-                    value={form.paid_date}
-                    onChange={handleChange}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-white/70 text-sm block mb-1">Notes</label>
-                <textarea
-                  name="notes"
-                  value={form.notes}
-                  onChange={handleChange}
-                  rows={2}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition resize-none"
-                />
-              </div>
-
-              {error && (
-                <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">
-                  {error}
-                </div>
-              )}
-
-              <RippleButton
-                type="submit"
-                disabled={saving}
-                className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
-              >
-                {saving ? 'Adding...' : 'Add entry'}
-              </RippleButton>
-            </form>
-            </ScrollReveal>
-
-            <h2 className="text-white font-semibold mb-4">
-              History {payments.length > 0 && `(${payments.length})`}
-            </h2>
+            )}
 
             {payments.length === 0 ? (
-              <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
-                <p className="text-white/30 text-sm">No rent entries logged yet.</p>
+              <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center mb-6">
+                <p className="text-white/30 text-sm">No rent months yet — this fills in automatically once the tenancy is active.</p>
               </div>
             ) : (
               <ScrollReveal>
-              <div className="space-y-3">
+              <div className="space-y-3 mb-6">
                 {payments.map((payment) => {
                   const status = getStatus(payment)
+                  const isPaid = status.label === 'Paid'
+                  const isAdjusting = adjustingId === payment.id
                   return (
                     <div key={payment.id} className="bg-white/3 border border-white/8 rounded-2xl p-5">
                       <div className="flex items-start justify-between gap-4">
@@ -311,27 +239,121 @@ export default function UnitRentPage() {
                               ${payment.actual_amount ?? 0} of ${payment.expected_amount}
                             </span>
                           </div>
-                          {payment.notes && <p className="text-white/40 text-xs mt-2">{payment.notes}</p>}
                         </div>
                         <div className="flex flex-col items-end gap-2 shrink-0">
-                          <button
-                            onClick={() => handleDelete(payment.id)}
-                            className="text-red-400/70 text-xs hover:text-red-400 transition"
-                          >
-                            Delete
-                          </button>
-                          {status.label === 'Paid' && (
+                          {isPaid ? (
                             <Link href={`/receipts/rent/${payment.id}`} className="text-[#12A5A9] text-xs hover:underline">
                               Receipt
                             </Link>
+                          ) : (
+                            <RippleButton
+                              onClick={() => handleMarkReceived(payment)}
+                              disabled={savingId === payment.id}
+                              className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-3.5 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
+                            >
+                              {savingId === payment.id ? 'Saving...' : 'Mark received'}
+                            </RippleButton>
                           )}
+                          <button
+                            onClick={() => handleDelete(payment.id)}
+                            className="text-red-400/50 text-[11px] hover:text-red-400 transition"
+                          >
+                            Delete
+                          </button>
                         </div>
                       </div>
+
+                      {!isPaid && (
+                        isAdjusting ? (
+                          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/8">
+                            <input
+                              type="number"
+                              value={adjustAmount}
+                              onChange={(e) => setAdjustAmount(e.target.value)}
+                              placeholder={String(payment.expected_amount)}
+                              min={0}
+                              className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+                            />
+                            <RippleButton
+                              onClick={() => handleMarkReceived(payment, parseFloat(adjustAmount) || payment.expected_amount)}
+                              disabled={savingId === payment.id}
+                              className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-3 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
+                            >
+                              Save
+                            </RippleButton>
+                            <button
+                              onClick={() => { setAdjustingId(null); setAdjustAmount('') }}
+                              className="text-white/40 hover:text-white text-xs transition"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => { setAdjustingId(payment.id); setAdjustAmount(String(payment.expected_amount)) }}
+                            className="text-white/30 hover:text-white/60 text-[11px] mt-2 transition"
+                          >
+                            Received a different amount?
+                          </button>
+                        )
+                      )}
                     </div>
                   )
                 })}
               </div>
               </ScrollReveal>
+            )}
+
+            {showAddMonth ? (
+              <ScrollReveal>
+                <form onSubmit={handleAddMonth} className="bg-white/3 border border-white/8 rounded-2xl p-6 space-y-4">
+                  <h2 className="text-white font-semibold text-sm">Log a different month</h2>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-white/70 text-sm block mb-1">Month</label>
+                      <input
+                        type="month"
+                        value={addForm.month}
+                        onChange={(e) => setAddForm({ ...addForm, month: e.target.value })}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-white/70 text-sm block mb-1">Expected amount</label>
+                      <input
+                        type="number"
+                        value={addForm.expected_amount}
+                        onChange={(e) => setAddForm({ ...addForm, expected_amount: e.target.value })}
+                        min={0}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <RippleButton
+                      type="submit"
+                      disabled={savingId === 'add'}
+                      className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
+                    >
+                      {savingId === 'add' ? 'Adding...' : 'Add month'}
+                    </RippleButton>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddMonth(false)}
+                      className="text-white/50 hover:text-white text-sm transition"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </ScrollReveal>
+            ) : (
+              <button
+                onClick={() => setShowAddMonth(true)}
+                className="text-white/30 hover:text-white/60 text-xs transition"
+              >
+                + Log a different month
+              </button>
             )}
           </>
         )}
