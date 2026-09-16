@@ -5,24 +5,7 @@ import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import { Skeleton } from '@/components/Skeleton'
 import { UnreadDot } from '@/components/UnreadDot'
-import { getUnreadJobIds } from '@/lib/messageReads'
-
-type Conversation = {
-  jobId: string
-  lastMessage: string
-  lastMessageAt: string
-  lastSenderId: string
-  category: string
-  propertyLabel: string
-  otherName: string
-  otherRole: string
-}
-
-const ROLE_LABELS: Record<string, string> = {
-  landlord: 'Landlord',
-  renter: 'Renter',
-  contractor: 'Contractor',
-}
+import { useConversations } from '@/lib/useConversations'
 
 function formatTimestamp(iso: string) {
   const date = new Date(iso)
@@ -32,88 +15,13 @@ function formatTimestamp(iso: string) {
 }
 
 export function MessagesInbox({ basePath }: { basePath: string }) {
-  const [loading, setLoading] = useState(true)
-  const [conversations, setConversations] = useState<Conversation[]>([])
-  const [unreadJobIds, setUnreadJobIds] = useState<Set<string>>(new Set())
   const [userId, setUserId] = useState<string | null>(null)
 
   useEffect(() => {
-    const init = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-      setUserId(user.id)
-
-      // RLS already scopes this to jobs the caller participates in —
-      // the distinct set of job_ids here IS the conversation list.
-      const { data: messages, error } = await supabase
-        .from('messages')
-        .select('job_id, body, created_at, sender_user_id')
-        .order('created_at', { ascending: false })
-
-      if (error) {
-        console.error('Error loading messages:', error)
-        setLoading(false)
-        return
-      }
-
-      const latestByJob = new Map<string, { body: string; created_at: string; sender_user_id: string }>()
-      for (const m of messages || []) {
-        if (!latestByJob.has(m.job_id)) latestByJob.set(m.job_id, m)
-      }
-
-      const jobIds = Array.from(latestByJob.keys())
-      if (jobIds.length === 0) {
-        setLoading(false)
-        return
-      }
-
-      const [{ data: jobsData }, unread] = await Promise.all([
-        supabase
-          .from('jobs')
-          .select('id, category, units(unit_number, properties(address))')
-          .in('id', jobIds),
-        getUnreadJobIds(jobIds, user.id),
-      ])
-
-      setUnreadJobIds(unread)
-
-      const jobById = new Map((jobsData || []).map((j) => [j.id, j]))
-
-      const participantResults = await Promise.all(
-        jobIds.map((jobId) => supabase.rpc('get_job_participants', { target_job_id: jobId }))
-      )
-
-      const list: Conversation[] = jobIds.map((jobId, i) => {
-        const last = latestByJob.get(jobId)!
-        const job = jobById.get(jobId) as any
-        const unit = job?.units
-        const property = unit?.properties
-        const participants = (participantResults[i].data || []) as { role: string; user_id: string; full_name: string | null }[]
-        const others = participants.filter((p) => p.user_id !== user.id)
-        const otherLabel = others.length > 0
-          ? others.map((p) => p.full_name || 'Unknown').join(', ')
-          : 'Someone'
-        const otherRole = others[0]?.role ? ROLE_LABELS[others[0].role] || others[0].role : ''
-
-        return {
-          jobId,
-          lastMessage: last.body,
-          lastMessageAt: last.created_at,
-          lastSenderId: last.sender_user_id,
-          category: job?.category || 'Job',
-          propertyLabel: property?.address
-            ? `${property.address}${unit?.unit_number ? ` — Unit ${unit.unit_number}` : ''}`
-            : '',
-          otherName: otherLabel,
-          otherRole,
-        }
-      })
-
-      setConversations(list)
-      setLoading(false)
-    }
-    init()
+    supabase.auth.getUser().then(({ data: { user } }) => setUserId(user?.id ?? null))
   }, [])
+
+  const { loading, conversations, unreadJobIds } = useConversations(userId)
 
   if (loading) {
     return (

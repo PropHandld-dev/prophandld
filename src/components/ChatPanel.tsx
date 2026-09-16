@@ -40,7 +40,7 @@ function dayLabel(iso: string) {
   return date.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })
 }
 
-export function ChatPanel({ jobId }: { jobId: string }) {
+export function ChatPanel({ jobId, heightClassName = 'h-[70vh]' }: { jobId: string; heightClassName?: string }) {
   const [userId, setUserId] = useState<string | null>(null)
   const [participants, setParticipants] = useState<Participant[]>([])
   const [messages, setMessages] = useState<Message[]>([])
@@ -145,7 +145,7 @@ export function ChatPanel({ jobId }: { jobId: string }) {
   let lastDay = ''
 
   return (
-    <div className="flex flex-col h-[70vh]">
+    <div className={`flex flex-col ${heightClassName}`}>
       {others.length > 0 && (
         <div className="flex items-center gap-2 flex-wrap pb-3 mb-3 border-b border-white/8">
           <span className="text-white/40 text-xs">With</span>

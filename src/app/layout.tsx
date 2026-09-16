@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { ViewTransition } from "react";
 import { CursorGlow } from "@/components/CursorGlow";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
+import { FloatingChatWidget } from "@/components/FloatingChatWidget";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -43,6 +44,7 @@ export default function RootLayout({
         <CursorGlow />
         <ServiceWorkerRegister />
         <ViewTransition>{children}</ViewTransition>
+        <FloatingChatWidget />
       </body>
     </html>
   );
