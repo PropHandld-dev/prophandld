@@ -12,12 +12,19 @@ export interface TabItem {
 export function BottomTabBar({ tabs }: { tabs: TabItem[] }) {
   const pathname = usePathname()
 
+  // A tab "matches" on an exact hit or a path prefix. Since every
+  // section shares the role root (e.g. /landlord/jobs also starts
+  // with /landlord), take the longest — most specific — match rather
+  // than lighting up both Home and the actual section at once.
+  const matches = tabs.filter((tab) =>
+    tab.href === '/' ? pathname === '/' : pathname === tab.href || pathname.startsWith(`${tab.href}/`)
+  )
+  const bestMatchHref = matches.sort((a, b) => b.href.length - a.href.length)[0]?.href
+
   return (
     <nav className="fixed bottom-0 inset-x-0 bg-[#0C1A2E]/95 backdrop-blur-sm border-t border-white/8 flex items-stretch justify-around z-30 pb-[env(safe-area-inset-bottom)]">
       {tabs.map((tab) => {
-        const isActive = tab.href === '/'
-          ? pathname === '/'
-          : pathname === tab.href || pathname.startsWith(`${tab.href}/`)
+        const isActive = tab.href === bestMatchHref
         const Icon = tab.icon
         return (
           <Link

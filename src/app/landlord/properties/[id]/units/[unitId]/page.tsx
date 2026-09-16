@@ -11,6 +11,7 @@ import { LANDLORD_TABS } from '@/lib/navTabs'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { MagneticLink } from '@/components/MagneticLink'
 import { RippleButton } from '@/components/RippleButton'
+import { ShowMoreList } from '@/components/ShowMoreList'
 
 const IN_PROGRESS_STATUSES = ['pending_approval', 'approved', 'bidding', 'bid_selected', 'scheduled', 'in_progress']
 
@@ -690,20 +691,24 @@ export default function UnitDetailPage() {
             <p className="text-white/30 text-sm">No open jobs for this unit.</p>
           ) : (
             <div className="space-y-1">
-              {openJobs.map((job) => (
-                <Link key={job.id} href={`/landlord/jobs/${job.id}`} className="block rounded-xl px-2 -mx-2 py-3 border-b border-white/5 last:border-0 hover:bg-white/5 transition-all">
-                  <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <p className="text-white font-medium text-sm">{job.category}</p>
-                    {job.is_emergency && (
-                      <span className="text-xs bg-red-500/20 text-red-400 border border-red-500/30 rounded-full px-2 py-0.5 font-semibold">
-                        Emergency
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-white/50 text-xs">{job.description}</p>
-                  <p className="text-[#12A5A9] text-xs mt-1">{statusLabel(job.status)}</p>
-                </Link>
-              ))}
+              <ShowMoreList
+                items={openJobs}
+                itemKey={(job) => job.id}
+                renderItem={(job) => (
+                  <Link href={`/landlord/jobs/${job.id}`} className="block rounded-xl px-2 -mx-2 py-3 border-b border-white/5 last:border-0 hover:bg-white/5 transition-all">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <p className="text-white font-medium text-sm">{job.category}</p>
+                      {job.is_emergency && (
+                        <span className="text-xs bg-red-500/20 text-red-400 border border-red-500/30 rounded-full px-2 py-0.5 font-semibold">
+                          Emergency
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-white/50 text-xs">{job.description}</p>
+                    <p className="text-[#12A5A9] text-xs mt-1">{statusLabel(job.status)}</p>
+                  </Link>
+                )}
+              />
             </div>
           )}
         </div>
@@ -717,13 +722,17 @@ export default function UnitDetailPage() {
             <p className="text-white/30 text-sm">No completed jobs yet.</p>
           ) : (
             <div className="space-y-1">
-              {jobHistory.map((job) => (
-                <Link key={job.id} href={`/landlord/jobs/${job.id}`} className="block rounded-xl px-2 -mx-2 py-3 border-b border-white/5 last:border-0 hover:bg-white/5 transition-all">
-                  <p className="text-white font-medium text-sm">{job.category}</p>
-                  <p className="text-white/50 text-xs">{job.description}</p>
-                  <p className="text-white/30 text-xs mt-1">{statusLabel(job.status)}</p>
-                </Link>
-              ))}
+              <ShowMoreList
+                items={jobHistory}
+                itemKey={(job) => job.id}
+                renderItem={(job) => (
+                  <Link href={`/landlord/jobs/${job.id}`} className="block rounded-xl px-2 -mx-2 py-3 border-b border-white/5 last:border-0 hover:bg-white/5 transition-all">
+                    <p className="text-white font-medium text-sm">{job.category}</p>
+                    <p className="text-white/50 text-xs">{job.description}</p>
+                    <p className="text-white/30 text-xs mt-1">{statusLabel(job.status)}</p>
+                  </Link>
+                )}
+              />
             </div>
           )}
         </div>

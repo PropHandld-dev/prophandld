@@ -14,6 +14,7 @@ import { MagneticLink } from '@/components/MagneticLink'
 import { CountUp } from '@/components/CountUp'
 import { EnableNotificationsCard } from '@/components/EnableNotificationsCard'
 import { UnreadDot } from '@/components/UnreadDot'
+import { ShowMoreList } from '@/components/ShowMoreList'
 import { getUnreadJobIds } from '@/lib/messageReads'
 import {
   CalendarIcon, ClipboardListIcon, WrenchIcon,
@@ -362,12 +363,14 @@ export default function ContractorDashboard() {
                     <p className="text-white/30 text-sm">You haven&apos;t submitted any bids yet.</p>
                   ) : (
                     <div className="space-y-3">
-                      {myBids.filter((b) => !['completed', 'archived'].includes(b.jobs?.status)).map((bid) => {
+                      <ShowMoreList
+                        items={myBids.filter((b) => !['completed', 'archived'].includes(b.jobs?.status))}
+                        itemKey={(bid) => bid.id}
+                        renderItem={(bid) => {
                         const hasPendingSchedule = bid.jobs?.proposed_date && !bid.jobs?.schedule_confirmed
                         const scheduleConfirmed = bid.jobs?.status === 'scheduled' && bid.jobs?.schedule_confirmed
                         return (
                           <Link
-                            key={bid.id}
                             href={`/contractor/jobs/${bid.job_id}`}
                             className="block border-b border-white/5 last:border-0 pb-3 last:pb-0 hover:opacity-80 transition"
                           >
@@ -403,7 +406,8 @@ export default function ContractorDashboard() {
                             )}
                           </Link>
                         )
-                      })}
+                        }}
+                      />
                     </div>
                   )}
                 </div>
@@ -431,20 +435,23 @@ export default function ContractorDashboard() {
                     <p className="text-white/30 text-sm">No past jobs in this view.</p>
                   ) : (
                     <div className="space-y-3">
-                      {filteredPastJobs.map((bid) => (
-                        <Link
-                          key={bid.id}
-                          href={`/contractor/jobs/${bid.job_id}`}
-                          className="block border-b border-white/5 last:border-0 pb-3 last:pb-0 hover:opacity-80 transition"
-                        >
-                          <div className="flex items-center justify-between">
-                            <p className="text-white font-medium text-sm">{bid.jobs?.category}</p>
-                            <span className="text-xs text-white/30 capitalize">{bid.jobs?.status}</span>
-                          </div>
-                          <p className="text-white/30 text-xs mt-1">{jobLocation(bid)}</p>
-                          <p className="text-white/50 text-xs mt-1">${bid.amount}</p>
-                        </Link>
-                      ))}
+                      <ShowMoreList
+                        items={filteredPastJobs}
+                        itemKey={(bid) => bid.id}
+                        renderItem={(bid) => (
+                          <Link
+                            href={`/contractor/jobs/${bid.job_id}`}
+                            className="block border-b border-white/5 last:border-0 pb-3 last:pb-0 hover:opacity-80 transition"
+                          >
+                            <div className="flex items-center justify-between">
+                              <p className="text-white font-medium text-sm">{bid.jobs?.category}</p>
+                              <span className="text-xs text-white/30 capitalize">{bid.jobs?.status}</span>
+                            </div>
+                            <p className="text-white/30 text-xs mt-1">{jobLocation(bid)}</p>
+                            <p className="text-white/50 text-xs mt-1">${bid.amount}</p>
+                          </Link>
+                        )}
+                      />
                     </div>
                   )}
                 </div>

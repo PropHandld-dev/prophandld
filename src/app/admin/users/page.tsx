@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
 import { AdminLayout } from '@/components/AdminLayout'
 import { ScrollReveal } from '@/components/ScrollReveal'
 
@@ -10,16 +9,22 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<any[]>([])
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('all')
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const load = async () => {
-      const { data, error } = await supabase
-        .from('users')
-        .select('id, full_name, email, role, created_at')
-        .order('created_at', { ascending: false })
-
-      if (error) console.error('Error loading users:', error)
-      setUsers(data || [])
+      const res = await fetch('/api/admin/users')
+      const data = await res.json()
+      if (!res.ok) {
+        console.error('Error loading users:', data)
+        setError(data.error || 'Could not load users.')
+        setLoading(false)
+        return
+      }
+      const sorted = (data.users || []).sort(
+        (a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      )
+      setUsers(sorted)
       setLoading(false)
     }
     load()
@@ -56,6 +61,12 @@ export default function AdminUsersPage() {
         </select>
       </div>
 
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm mb-4">
+          {error}
+        </div>
+      )}
+
       {loading ? (
         <div className="text-white/50 text-sm">Loading...</div>
       ) : (
@@ -70,7 +81,7 @@ export default function AdminUsersPage() {
                   <p className="text-white/40 text-xs truncate">{u.email}</p>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
-                  <span className="text-xs bg-white/8 text-white/60 rounded-full px-2.5 py-0.5 capitalize">{u.role}</span>
+                  <span className="text-xs bg-white/8 text-white/60 rounded-full px-2.5 py-0.5 capitalize">{u.role || 'no role'}</span>
                   <span className="text-white/30 text-xs">{new Date(u.created_at).toLocaleDateString()}</span>
                 </div>
               </div>

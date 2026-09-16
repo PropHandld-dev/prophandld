@@ -20,8 +20,8 @@ export default function AdminOverviewPage() {
 
   useEffect(() => {
     const load = async () => {
-      const [{ data: users }, { data: subs }, { data: rentPayments }, { data: paidBids }, { data: disputes }] = await Promise.all([
-        supabase.from('users').select('role'),
+      const [usersRes, { data: subs }, { data: rentPayments }, { data: paidBids }, { data: disputes }] = await Promise.all([
+        fetch('/api/admin/users').then((r) => r.json()).catch(() => ({ users: [] })),
         supabase.from('landlord_subscriptions').select('tier'),
         supabase.from('rent_payments').select('actual_amount, month'),
         supabase.from('bids').select('amount, proposed_amount').eq('payment_status', 'paid'),
@@ -29,7 +29,10 @@ export default function AdminOverviewPage() {
       ])
 
       const userCounts: Record<string, number> = {}
-      ;(users || []).forEach((u) => { userCounts[u.role] = (userCounts[u.role] || 0) + 1 })
+      ;(usersRes.users || []).forEach((u: any) => {
+        if (!u.role) return
+        userCounts[u.role] = (userCounts[u.role] || 0) + 1
+      })
 
       const tierCounts: Record<string, number> = {}
       ;(subs || []).forEach((s) => { tierCounts[s.tier] = (tierCounts[s.tier] || 0) + 1 })

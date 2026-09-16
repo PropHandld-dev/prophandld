@@ -1,4 +1,7 @@
+'use client'
+
 import Link from 'next/link'
+import { useState } from 'react'
 
 export interface AlertItem {
   id: string
@@ -16,8 +19,13 @@ const TONE_STYLES: Record<AlertItem['tone'], { icon: string; badge: string }> = 
   teal: { icon: 'bg-[#12A5A9]/15 text-[#12A5A9]', badge: 'bg-[#12A5A9]/20 text-[#12A5A9]' },
 }
 
+const INITIAL_COUNT = 5
+
 export function AlertsList({ items }: { items: AlertItem[] }) {
+  const [expanded, setExpanded] = useState(false)
   if (items.length === 0) return null
+
+  const visible = expanded ? items : items.slice(0, INITIAL_COUNT)
 
   return (
     <div className="bg-white/3 border border-white/8 rounded-2xl p-5 mb-6">
@@ -25,7 +33,7 @@ export function AlertsList({ items }: { items: AlertItem[] }) {
         Needs your attention ({items.length})
       </h3>
       <div className="space-y-1.5">
-        {items.map((item) => {
+        {visible.map((item) => {
           const tone = TONE_STYLES[item.tone]
           const Icon = item.icon
           return (
@@ -48,6 +56,14 @@ export function AlertsList({ items }: { items: AlertItem[] }) {
           )
         })}
       </div>
+      {!expanded && items.length > INITIAL_COUNT && (
+        <button
+          onClick={() => setExpanded(true)}
+          className="w-full text-center text-[#12A5A9] text-xs font-semibold pt-3 mt-1 hover:underline"
+        >
+          Show all {items.length}
+        </button>
+      )}
     </div>
   )
 }
