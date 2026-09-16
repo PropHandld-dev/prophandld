@@ -3,17 +3,19 @@
 import Link from 'next/link'
 import { MagneticLink } from '@/components/MagneticLink'
 import { ScrollReveal } from '@/components/ScrollReveal'
-import { DollarSignIcon, AlertTriangleIcon, FileTextIcon, WrenchIcon, CalendarIcon, CheckCircleIcon } from '@/components/icons'
+import { DollarSignIcon, AlertTriangleIcon, FileTextIcon, WrenchIcon, CalendarIcon, CheckCircleIcon, MessageCircleIcon, LockIcon } from '@/components/icons'
 import { Logo } from '@/components/Logo'
 import { RoleShowcase } from '@/components/RoleShowcase'
 
 const OPERATIONS_FEATURES = [
-  { icon: DollarSignIcon, title: 'Rent tracking', desc: 'Expected vs. actual, per unit, per month — know instantly when something is off.' },
+  { icon: DollarSignIcon, title: 'Online rent', desc: 'Rent tracks itself every month — renters pay by debit card or bank transfer, no checks or cash to chase down.' },
   { icon: AlertTriangleIcon, title: 'Compliance alerts', desc: "Licenses, certificates, and detectors — get warned before something expires, not after." },
   { icon: FileTextIcon, title: 'Documents vault', desc: 'Leases, deeds, insurance, inspection reports — one place per property, not scattered across email threads.' },
   { icon: WrenchIcon, title: 'Systems & appliances', desc: 'Track HVAC, water heaters, roofs, and panels with install dates and service history.' },
   { icon: CalendarIcon, title: 'Schedule calendar', desc: 'Every confirmed job, across every property, in one month view.' },
   { icon: CheckCircleIcon, title: 'Verified contractors', desc: "Contractors can submit license and insurance for review, so you can see who's verified before you pick a bid." },
+  { icon: MessageCircleIcon, title: 'In-app messaging', desc: 'Landlords, tenants, and contractors message directly on the job — no phone numbers exchanged.' },
+  { icon: LockIcon, title: 'Dispute protection', desc: "If something's not right after a job wraps up, any side can flag it and Prophandld steps in to sort it out." },
 ]
 
 export default function LandingPage() {
@@ -28,7 +30,7 @@ export default function LandingPage() {
         </div>
         <div className="flex items-center gap-6">
           <a href="#how-it-works" className="text-sm text-white/50 hover:text-white transition hidden sm:block">How it works</a>
-          <a href="#roles" className="text-sm text-white/50 hover:text-white transition hidden sm:block">Who it's for</a>
+          <a href="#roles" className="text-sm text-white/50 hover:text-white transition hidden sm:block">Who it&apos;s for</a>
           <Link href="/login" className="text-sm font-medium text-white/70 hover:text-white transition">
             Sign in
           </Link>
@@ -56,8 +58,8 @@ export default function LandingPage() {
         <p className="text-lg text-white/50 max-w-2xl mx-auto mb-10">
           Prophandld is mini property management built for landlords who own
           a few places, not a few hundred. Track your properties and tenants,
-          get competitive contractor bids through sealed bidding, and soon,
-          collect rent — all in one place.
+          get competitive contractor bids through sealed bidding, and collect
+          rent online — all in one place.
         </p>
         <div className="flex items-center justify-center gap-4">
           <MagneticLink
@@ -96,7 +98,7 @@ export default function LandingPage() {
             </div>
             <h3 className="text-white font-bold text-lg mb-2">Sealed bidding</h3>
             <p className="text-white/50 text-sm leading-relaxed">
-              Contractors bid without seeing each other's numbers. You get
+              Contractors bid without seeing each other&apos;s numbers. You get
               real competition, not inflated quotes.
             </p>
           </div>
@@ -140,7 +142,7 @@ export default function LandingPage() {
               Prophandld replaces the whole spreadsheet, not just the group text with your contractor.
             </p>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {OPERATIONS_FEATURES.map(({ icon: Icon, title, desc }) => (
               <div
                 key={title}
@@ -185,7 +187,7 @@ export default function LandingPage() {
               <div className="w-10 h-10 rounded-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-bold flex items-center justify-center mb-4">3</div>
               <h3 className="text-white font-semibold text-lg mb-2">Job done, you confirm</h3>
               <p className="text-white/50 text-sm leading-relaxed">
-                The contractor uploads before-and-after photos when the work's
+                The contractor uploads before-and-after photos when the work&apos;s
                 done. You review and sign off — or flag it for a closer look.
               </p>
             </div>
@@ -206,8 +208,8 @@ export default function LandingPage() {
             <h3 className="text-white font-bold text-lg mt-4 mb-2">Stop chasing quotes</h3>
             <p className="text-white/50 text-sm leading-relaxed mb-5">
               Manage every property, unit, and tenant in one dashboard — no
-              more spreadsheets or scattered notes. Get competitive bids, and
-              soon, collect rent right here too.
+              more spreadsheets or scattered notes. Get competitive bids,
+              collect rent online, and pay contractors right here too.
             </p>
             <Link href="/signup?role=landlord" className="text-[#12A5A9] text-sm font-semibold hover:underline">
               Sign up as a landlord →
@@ -217,8 +219,9 @@ export default function LandingPage() {
             <span className="text-xs font-semibold text-[#12A5A9] bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 border border-[#12A5A9]/30 px-2.5 py-1 rounded-full">Renters</span>
             <h3 className="text-white font-bold text-lg mt-4 mb-2">Get things fixed, fast</h3>
             <p className="text-white/50 text-sm leading-relaxed mb-5">
-              Report an issue in seconds. See emergency contacts for your
-              unit in one tap — no digging through old text threads.
+              Report an issue in seconds, message your landlord directly, and
+              pay rent online — no more checks, cash, or digging through old
+              text threads.
             </p>
             <Link href="/signup?role=renter" className="text-[#12A5A9] text-sm font-semibold hover:underline">
               Sign up as a renter →
@@ -228,8 +231,8 @@ export default function LandingPage() {
             <span className="text-xs font-semibold text-[#12A5A9] bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 border border-[#12A5A9]/30 px-2.5 py-1 rounded-full">Contractors</span>
             <h3 className="text-white font-bold text-lg mt-4 mb-2">Bid fair, get picked on merit</h3>
             <p className="text-white/50 text-sm leading-relaxed mb-5">
-              See real jobs near you, submit a sealed bid, and get picked on
-              the merits — no guessing what everyone else quoted.
+              See real jobs near you, submit a sealed bid, get picked on the
+              merits, and get paid directly the moment the job&apos;s done.
             </p>
             <Link href="/signup?role=contractor" className="text-[#12A5A9] text-sm font-semibold hover:underline">
               Sign up as a contractor →
@@ -247,9 +250,10 @@ export default function LandingPage() {
           <h2 className="text-3xl font-bold text-center mb-12 text-white">Common questions</h2>
           <div className="space-y-4">
             {[
-              { q: 'Is this just for finding contractors?', a: "No — Prophandld is built to replace the spreadsheet. Track every property, unit, and tenant, handle maintenance end-to-end with sealed bidding, and soon collect rent, all in one dashboard." },
+              { q: 'Is this just for finding contractors?', a: "No — Prophandld is built to replace the spreadsheet. Track every property, unit, and tenant, handle maintenance end-to-end with sealed bidding, and collect rent, all in one dashboard." },
               { q: 'How does sealed bidding actually work?', a: "Contractors submit their price privately — they never see what anyone else bid. This keeps quotes honest instead of inflated by guesswork." },
               { q: "What if the contractor's price changes?", a: 'If a contractor needs to adjust their price once work has started, they have to show you the new labor and parts breakdown — and you approve it before they move forward.' },
+              { q: 'How do rent and contractor payments actually work?', a: "Rent is paid by debit card or bank transfer — no credit cards, so nobody's going into credit card debt to make rent. Contractor payouts are just as flexible. Money goes straight from payer to recipient through Stripe; Prophandld never holds it." },
               { q: 'Is Prophandld available in my area?', a: "We're currently onboarding beta landlords in the Philadelphia area, with more markets opening soon." },
             ].map((item) => (
               <div key={item.q} className="bg-white/3 border border-white/8 rounded-xl p-5">

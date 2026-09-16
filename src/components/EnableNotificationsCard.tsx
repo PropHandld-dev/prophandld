@@ -36,10 +36,31 @@ export function EnableNotificationsCard() {
   const handleEnable = async () => {
     setLoading(true)
     setError(null)
+
+    // iOS Safari only supports web push inside an installed (home-screen)
+    // PWA, not a regular browser tab — catch this up front with a clear
+    // message instead of letting subscribe() throw an opaque error.
+    const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent)
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true
+    if (isIos && !isStandalone) {
+      setError('On iPhone/iPad: tap Share → "Add to Home Screen" first, then open the app from there to enable notifications.')
+      setLoading(false)
+      return
+    }
+
     try {
-      const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+      const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim()
       if (!publicKey) {
         setError('Notifications are not configured yet.')
+        setLoading(false)
+        return
+      }
+
+      let applicationServerKey: BufferSource
+      try {
+        applicationServerKey = urlBase64ToUint8Array(publicKey)
+      } catch {
+        setError('Notification setup key looks invalid — check NEXT_PUBLIC_VAPID_PUBLIC_KEY in Vercel for stray whitespace.')
         setLoading(false)
         return
       }
@@ -54,7 +75,7 @@ export function EnableNotificationsCard() {
       const registration = await navigator.serviceWorker.ready
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(publicKey),
+        applicationServerKey,
       })
 
       const json = subscription.toJSON()
@@ -65,7 +86,8 @@ export function EnableNotificationsCard() {
       })
 
       if (!res.ok) {
-        setError('Could not save your subscription.')
+        const data = await res.json().catch(() => ({}))
+        setError(`Could not save your subscription${data.error ? `: ${data.error}` : '.'}`)
         setLoading(false)
         return
       }
@@ -73,7 +95,8 @@ export function EnableNotificationsCard() {
       setSubscribed(true)
     } catch (err) {
       console.error('Push subscribe failed:', err)
-      setError('Could not enable notifications on this device.')
+      const message = err instanceof Error ? err.message : String(err)
+      setError(`Could not enable notifications: ${message}`)
     }
     setLoading(false)
   }

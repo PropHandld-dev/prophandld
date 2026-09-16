@@ -5,9 +5,9 @@ let configured = false
 
 function ensureConfigured() {
   if (configured) return
-  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
-  const privateKey = process.env.VAPID_PRIVATE_KEY
-  const subject = process.env.VAPID_SUBJECT || 'mailto:admin@prophandld.com'
+  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim()
+  const privateKey = process.env.VAPID_PRIVATE_KEY?.trim()
+  const subject = (process.env.VAPID_SUBJECT || 'mailto:admin@prophandld.com').trim()
   if (publicKey && privateKey) {
     webpush.setVapidDetails(subject, publicKey, privateKey)
   }
