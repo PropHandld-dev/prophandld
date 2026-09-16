@@ -47,6 +47,9 @@ export default function ContractorDashboard() {
   const [upcoming, setUpcoming] = useState<any[]>([])
   const [pastJobs, setPastJobs] = useState<any[]>([])
   const [unreadJobIds, setUnreadJobIds] = useState<Set<string>>(new Set())
+  const [totalEarnings, setTotalEarnings] = useState(0)
+  const [connectStatus, setConnectStatus] = useState<'not_started' | 'onboarding' | 'active'>('not_started')
+  const [verificationStatus, setVerificationStatus] = useState<'pending' | 'verified' | 'rejected' | 'unlicensed' | null>(null)
   const [pastFilter, setPastFilter] = useState('all')
 
   useEffect(() => {
@@ -60,7 +63,7 @@ export default function ContractorDashboard() {
 
       const { data: profileData } = await supabase
         .from('users')
-        .select('service_categories, service_zip')
+        .select('service_categories, service_zip, stripe_connect_status')
         .eq('id', user.id)
         .maybeSingle()
 
@@ -69,6 +72,15 @@ export default function ContractorDashboard() {
         setLoading(false)
         return
       }
+
+      setConnectStatus((profileData.stripe_connect_status as any) || 'not_started')
+
+      const { data: verificationData } = await supabase
+        .from('contractor_verifications')
+        .select('status')
+        .eq('contractor_user_id', user.id)
+        .maybeSingle()
+      setVerificationStatus(verificationData?.status ?? null)
 
       const { data: jobsData, error: jobsError } = await supabase
         .rpc('get_available_jobs_for_contractor')
@@ -96,6 +108,12 @@ export default function ContractorDashboard() {
 
         const acceptedJobIds = bids.filter((b) => b.status === 'accepted').map((b) => b.job_id)
         getUnreadJobIds(acceptedJobIds, user.id).then(setUnreadJobIds)
+
+        setTotalEarnings(
+          bids
+            .filter((b) => b.payment_status === 'paid')
+            .reduce((sum, b) => sum + Number(b.proposed_amount ?? b.amount ?? 0), 0)
+        )
 
         setPickTimeAlerts(
           bids.filter((b) =>
@@ -254,24 +272,34 @@ export default function ContractorDashboard() {
                     <CountUp value={activeJobsCount} className="text-2xl font-bold text-white block" />
                     <div className="text-white/40 text-xs mt-1">Active</div>
                   </a>
-                  <div className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center">
+                  <Link href="/contractor/settings" className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
                     <DollarSignIcon className="w-5 h-5 text-[#12A5A9] mx-auto mb-1" />
-                    <div className="text-2xl font-bold text-white">$0</div>
+                    <div className="text-2xl font-bold text-white">${totalEarnings.toLocaleString()}</div>
                     <div className="text-white/40 text-xs mt-1">Earnings</div>
-                  </div>
+                  </Link>
                 </ScrollReveal>
 
                 <div className="grid grid-cols-2 gap-4 mb-6">
-                  <div className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center opacity-50 cursor-not-allowed">
-                    <DollarSignIcon className="w-5 h-5 text-white/40 mx-auto mb-1" />
+                  <Link
+                    href="/contractor/settings"
+                    className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block"
+                  >
+                    <DollarSignIcon className={`w-5 h-5 mx-auto mb-1 ${connectStatus === 'active' ? 'text-[#12A5A9]' : 'text-white/40'}`} />
                     <h3 className="text-white text-sm font-semibold">Payouts</h3>
-                    <p className="text-white/40 text-xs mt-0.5">Coming soon</p>
-                  </div>
-                  <div className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center opacity-50 cursor-not-allowed">
-                    <CheckCircleIcon className="w-5 h-5 text-white/40 mx-auto mb-1" />
-                    <h3 className="text-white text-sm font-semibold">Get verified</h3>
-                    <p className="text-white/40 text-xs mt-0.5">Coming soon</p>
-                  </div>
+                    <p className={`text-xs mt-0.5 ${connectStatus === 'active' ? 'text-[#12A5A9]' : 'text-white/40'}`}>
+                      {connectStatus === 'active' ? 'Active' : connectStatus === 'onboarding' ? 'Finish setup' : 'Set up payouts'}
+                    </p>
+                  </Link>
+                  <Link
+                    href="/contractor/settings"
+                    className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block"
+                  >
+                    <CheckCircleIcon className={`w-5 h-5 mx-auto mb-1 ${verificationStatus === 'verified' ? 'text-[#12A5A9]' : 'text-white/40'}`} />
+                    <h3 className="text-white text-sm font-semibold">Verification</h3>
+                    <p className={`text-xs mt-0.5 ${verificationStatus === 'verified' ? 'text-[#12A5A9]' : 'text-white/40'}`}>
+                      {verificationStatus === 'verified' ? 'Verified ✓' : verificationStatus === 'pending' ? 'Under review' : verificationStatus === 'unlicensed' ? 'Unlicensed' : 'Get verified'}
+                    </p>
+                  </Link>
                 </div>
 
                 {upcoming.length > 0 && (

@@ -30,9 +30,17 @@ export default function RentReceiptPage() {
         .eq('id', rentPaymentId)
         .maybeSingle()
 
-      setReceipt(data)
       const tenancyRow = data?.tenancies as any
-      setBackHref(tenancyRow?.renter_user_id === user.id ? '/renter/rent' : '/landlord')
+      const renterId = tenancyRow?.renter_user_id
+      const landlordId = tenancyRow?.units?.properties?.owner_user_id
+
+      const [{ data: renterData }, { data: landlordData }] = await Promise.all([
+        renterId ? supabase.rpc('get_user_by_id', { user_id_input: renterId }).maybeSingle() : Promise.resolve({ data: null }),
+        landlordId ? supabase.rpc('get_user_by_id', { user_id_input: landlordId }).maybeSingle() : Promise.resolve({ data: null }),
+      ])
+
+      setReceipt(data ? { ...data, renterName: (renterData as any)?.full_name, landlordName: (landlordData as any)?.full_name } : data)
+      setBackHref(renterId === user.id ? '/renter/rent' : '/landlord')
       setLoading(false)
     }
     init()
@@ -69,9 +77,11 @@ export default function RentReceiptPage() {
       title={unitLabel}
       subtitle={monthLabel}
       rows={[
+        { label: 'Paid by', value: receipt.renterName || '—' },
+        { label: 'Paid to', value: receipt.landlordName || '—' },
         { label: 'Property', value: property ? `${property.city}, ${property.state}` : '—' },
         { label: 'Period', value: monthLabel },
-        { label: 'Paid', value: receipt.paid_date ? new Date(receipt.paid_date + 'T00:00:00').toLocaleDateString() : '—' },
+        { label: 'Paid on', value: receipt.paid_date ? new Date(receipt.paid_date + 'T00:00:00').toLocaleDateString() : '—' },
         { label: 'Method', value: receipt.payment_method === 'bank' ? 'Bank transfer' : 'Debit card' },
       ]}
       totalLabel="Amount paid"

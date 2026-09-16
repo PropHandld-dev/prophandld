@@ -29,21 +29,6 @@ export function ReceiptCard({
 }) {
   const refNumber = receiptId.replace(/-/g, '').slice(0, 12).toUpperCase()
 
-  // Deterministic barcode-style pattern derived from the receipt id —
-  // decorative only (not a real scannable code), built as an inline
-  // gradient so it doesn't depend on the global stylesheet load order.
-  const barcodeStops: string[] = []
-  let cursor = 0
-  for (let i = 0; i < refNumber.length; i++) {
-    const barWidth = 2 + (refNumber.charCodeAt(i) % 4)
-    const gapWidth = 2 + ((refNumber.charCodeAt(i) * 3) % 3)
-    barcodeStops.push(`#171717 ${cursor}px`, `#171717 ${cursor + barWidth}px`)
-    cursor += barWidth
-    barcodeStops.push(`transparent ${cursor}px`, `transparent ${cursor + gapWidth}px`)
-    cursor += gapWidth
-  }
-  const barcodeGradient = `repeating-linear-gradient(90deg, ${barcodeStops.join(', ')})`
-
   return (
     <div className="min-h-screen bg-[#0C1A2E] py-10 px-6 print:bg-white print:py-0">
       <style>{`
@@ -102,10 +87,8 @@ export function ReceiptCard({
             </div>
           </div>
 
-          <div className="px-8 pb-10 pt-2">
-            <div className="h-9 w-full opacity-90" style={{ backgroundImage: barcodeGradient }} />
-            <p className="font-mono text-[10px] text-black/30 text-center mt-2 tracking-widest">{refNumber}</p>
-            <p className="text-black/30 text-[11px] text-center mt-4">{footerNote}</p>
+          <div className="px-8 pb-8 pt-1">
+            <p className="text-black/30 text-[11px] text-center">{footerNote}</p>
           </div>
         </div>
       </div>

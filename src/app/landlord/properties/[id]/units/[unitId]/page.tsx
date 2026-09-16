@@ -23,6 +23,8 @@ export default function UnitDetailPage() {
   const [tenancy, setTenancy] = useState<any>(null)
   const [pendingInvite, setPendingInvite] = useState<any>(null)
   const [invitingBusy, setInvitingBusy] = useState(false)
+  const [inviteResendError, setInviteResendError] = useState<string | null>(null)
+  const [inviteResendSuccess, setInviteResendSuccess] = useState(false)
   const [tenantLookupFailed, setTenantLookupFailed] = useState(false)
   const [loading, setLoading] = useState(true)
   const [showMoveOutForm, setShowMoveOutForm] = useState(false)
@@ -149,12 +151,25 @@ export default function UnitDetailPage() {
   const handleResendInvite = async () => {
     if (!pendingInvite) return
     setInvitingBusy(true)
+    setInviteResendError(null)
+    setInviteResendSuccess(false)
 
-    fetch('/api/invite-renter', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ inviteId: pendingInvite.id }),
-    }).catch((err) => console.error('invite-renter fetch failed:', err))
+    try {
+      const res = await fetch('/api/invite-renter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inviteId: pendingInvite.id }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setInviteResendError(data.error || 'Could not resend invite.')
+      } else {
+        setInviteResendSuccess(true)
+      }
+    } catch (err) {
+      console.error('invite-renter fetch failed:', err)
+      setInviteResendError('Could not resend invite.')
+    }
 
     setInvitingBusy(false)
   }
@@ -612,13 +627,19 @@ export default function UnitDetailPage() {
                 Invited: {pendingInvite.renter_email}
               </p>
               <p className="text-white/40 text-xs mt-1">Waiting for them to sign up.</p>
+              {inviteResendError && (
+                <p className="text-red-400 text-xs mt-2">{inviteResendError}</p>
+              )}
+              {inviteResendSuccess && (
+                <p className="text-[#12A5A9] text-xs mt-2">Invite resent.</p>
+              )}
               <div className="flex items-center gap-4 mt-3">
                 <button
                   onClick={handleResendInvite}
                   disabled={invitingBusy}
                   className="text-[#12A5A9] text-xs font-semibold hover:underline disabled:opacity-50"
                 >
-                  Resend
+                  {invitingBusy ? 'Sending...' : 'Resend'}
                 </button>
                 <button
                   onClick={handleCancelInvite}
