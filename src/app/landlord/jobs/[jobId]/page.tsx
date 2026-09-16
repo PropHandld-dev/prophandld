@@ -61,7 +61,7 @@ export default function JobDetailPage() {
   const fetchJob = async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      router.push('/login')
+      router.replace('/login')
       return
     }
     setUserId(user.id)

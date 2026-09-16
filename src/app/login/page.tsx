@@ -68,10 +68,10 @@ function LoginForm() {
 
     if (data.user) {
       const accountRole = data.user.user_metadata?.role
-      if (accountRole === 'landlord') router.push('/landlord')
-      else if (accountRole === 'renter') router.push('/renter')
-      else if (accountRole === 'contractor') router.push('/contractor')
-      else router.push('/')
+      if (accountRole === 'landlord') router.replace('/landlord')
+      else if (accountRole === 'renter') router.replace('/renter')
+      else if (accountRole === 'contractor') router.replace('/contractor')
+      else router.replace('/')
     }
 
     setLoading(false)

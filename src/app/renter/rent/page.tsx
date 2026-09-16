@@ -39,7 +39,7 @@ export default function RenterRentPage() {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
-        router.push('/login')
+        router.replace('/login')
         return
       }
 
@@ -136,7 +136,7 @@ export default function RenterRentPage() {
           <>
             <div className="mb-8">
               <h1 className="text-2xl font-bold text-white">Pay rent</h1>
-              <p className="text-white/50 text-sm mt-1">Pay by card or bank account, straight to your landlord.</p>
+              <p className="text-white/50 text-sm mt-1">Pay by debit card or bank account, straight to your landlord.</p>
             </div>
 
             {error && (
@@ -189,7 +189,7 @@ export default function RenterRentPage() {
             )}
 
             <p className="text-white/30 text-xs mt-6">
-              Bank account payments (ACH) can take a few business days to clear. Card payments are instant.
+              Debit card or bank account only — credit cards aren&apos;t accepted for rent. Bank payments (ACH) can take a few business days to clear; debit card payments are instant.
             </p>
           </>
         )}
@@ -200,7 +200,7 @@ export default function RenterRentPage() {
           clientSecret={modal.clientSecret}
           amount={modal.amount}
           title="Pay rent"
-          note="Bank payments may take a few business days to clear."
+          note="Debit card or bank account only — credit cards aren't accepted for rent and will be refunded. Bank payments may take a few business days to clear."
           onClose={() => setModal(null)}
           onSuccess={handlePaymentSuccess}
         />

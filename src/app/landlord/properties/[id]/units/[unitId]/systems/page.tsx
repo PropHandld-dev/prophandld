@@ -66,7 +66,7 @@ export default function UnitSystemsPage() {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
-        router.push('/login')
+        router.replace('/login')
         return
       }
 

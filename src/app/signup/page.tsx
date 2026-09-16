@@ -83,12 +83,12 @@ function SignupForm() {
     }
 
     if (role === 'landlord') {
-      router.push('/landlord/properties/new?onboarding=1')
+      router.replace('/landlord/properties/new?onboarding=1')
     } else if (role === 'renter') {
       await linkPendingInvite(data.user.id, form.email)
-      router.push('/renter')
+      router.replace('/renter')
     } else if (role === 'contractor') {
-      router.push('/contractor')
+      router.replace('/contractor')
     }
 
     setLoading(false)

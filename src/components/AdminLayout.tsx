@@ -23,7 +23,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     const check = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user || !user.email?.endsWith('@prophandld.com')) {
-        router.push('/')
+        router.replace('/')
         return
       }
       setAuthorized(true)

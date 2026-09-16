@@ -442,6 +442,17 @@ export async function sendDisputeResolvedEmail({
   return sendEmail({ to, subject: `Dispute resolved: ${jobCategory}`, html })
 }
 
+export async function sendCreditCardRejectedEmail({ to, renterName }: { to: string; renterName: string }) {
+  const html = baseTemplate({
+    eyebrow: 'Payment',
+    heading: 'Payment refunded',
+    bodyHtml: `Hi ${renterName}, rent can only be paid by <strong>debit card or bank account</strong> — credit cards aren't accepted. Your payment was fully refunded and rent is still due. Please try again with a debit card or bank transfer.`,
+    ctaLabel: 'Try again',
+    ctaUrl: `${SITE_URL}/renter/rent`,
+  })
+  return sendEmail({ to, subject: 'Your rent payment was refunded', html })
+}
+
 export async function sendRentDueEmail({ to, landlordName, unitLabels }: { to: string; landlordName: string; unitLabels: string[] }) {
   const monthLabel = new Date().toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
   const list = unitLabels.length === 1 ? unitLabels[0] : `${unitLabels.length} units`

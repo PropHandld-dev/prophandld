@@ -48,7 +48,7 @@ export default function UnitDetailPage() {
   const fetchUnit = async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      router.push('/login')
+      router.replace('/login')
       return
     }
 

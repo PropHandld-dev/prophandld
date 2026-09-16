@@ -21,7 +21,7 @@ export default function PropertiesPage() {
   const fetchProperties = async (includeArchived: boolean) => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      router.push('/login')
+      router.replace('/login')
       return
     }
 

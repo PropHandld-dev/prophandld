@@ -37,7 +37,7 @@ export default function ProfilePage() {
     const getProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
-        router.push('/login')
+        router.replace('/login')
         return
       }
       setRole(user.user_metadata?.role || '')
@@ -169,7 +169,7 @@ export default function ProfilePage() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
-    router.push('/login')
+    router.replace('/login')
   }
 
   return (

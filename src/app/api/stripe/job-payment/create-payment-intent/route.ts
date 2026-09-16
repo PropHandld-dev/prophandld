@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
   const paymentIntent = await stripe.paymentIntents.create({
     amount: amountCents,
     currency: 'usd',
-    payment_method_types: ['card'],
+    payment_method_types: ['card', 'us_bank_account'],
     transfer_data: { destination: contractorRow.stripe_connect_account_id },
     metadata: {
       prophandld_type: 'job_payment',
