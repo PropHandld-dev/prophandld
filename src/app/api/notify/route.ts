@@ -9,9 +9,16 @@ const RECIPIENTS: Record<NotifyType, Role[]> = {
   job_reported: ['landlord'],
   bid_received: ['landlord'],
   contractor_selected: ['contractor'],
+  schedule_proposed: ['landlord', 'renter', 'contractor'],
   schedule_confirmed: ['landlord', 'renter', 'contractor'],
   job_pending_review: ['landlord'],
   job_completed: ['renter', 'contractor'],
+  job_declined: ['renter'],
+  price_change_requested: ['landlord'],
+  price_change_approved: ['contractor'],
+  price_change_rejected: ['contractor'],
+  clarification_requested: ['contractor'],
+  clarification_responded: ['landlord'],
 }
 
 export async function POST(request: NextRequest) {
@@ -21,7 +28,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
 
-  const { type, jobId } = (await request.json()) as { type?: NotifyType; jobId?: string }
+  const { type, jobId, excludeRole } = (await request.json()) as { type?: NotifyType; jobId?: string; excludeRole?: Role }
   if (!type || !jobId || !RECIPIENTS[type]) {
     return NextResponse.json({ error: 'Invalid notification request' }, { status: 400 })
   }
@@ -53,7 +60,7 @@ export async function POST(request: NextRequest) {
 
   console.log('notify: resolved job/property', { jobId, type, units: job.units, property })
 
-  const roles = RECIPIENTS[type]
+  const roles = RECIPIENTS[type].filter((r) => r !== excludeRole)
   const roleUserIds: Partial<Record<Role, string>> = {}
 
   if (roles.includes('landlord') && property?.owner_user_id) {

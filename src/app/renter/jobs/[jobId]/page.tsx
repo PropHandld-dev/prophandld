@@ -150,6 +150,7 @@ export default function RenterJobDetailPage() {
       return
     }
 
+    notify('schedule_proposed', jobId, 'renter')
     setShowScheduleModal(false)
     await fetchJob()
     setActioning(false)

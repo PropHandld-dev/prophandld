@@ -156,6 +156,7 @@ export default function ContractorJobDetailPage() {
       return
     }
 
+    notify('schedule_proposed', jobId, 'contractor')
     setShowScheduleModal(false)
     await fetchJob()
     setActioning(false)
@@ -299,6 +300,7 @@ export default function ContractorJobDetailPage() {
       return
     }
 
+    notify('clarification_responded', jobId)
     await fetchJob()
     setActioning(false)
     setShowResponseSentModal(true)
@@ -346,6 +348,7 @@ export default function ContractorJobDetailPage() {
       return
     }
 
+    notify('price_change_requested', jobId)
     setShowPriceChangeModal(false)
     await fetchJob()
     setActioning(false)

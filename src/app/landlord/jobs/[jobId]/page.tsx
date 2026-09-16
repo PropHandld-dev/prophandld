@@ -256,6 +256,8 @@ export default function JobDetailPage() {
     if (updateError) {
       console.error('Error declining job:', updateError)
       setError('Could not decline job.')
+    } else {
+      notify('job_declined', jobId)
     }
 
     setShowDeclineModal(false)
@@ -366,6 +368,7 @@ export default function JobDetailPage() {
       return
     }
 
+    notify('schedule_proposed', jobId, 'landlord')
     setShowScheduleModal(false)
     await fetchJob()
     setActioning(false)
@@ -467,6 +470,7 @@ export default function JobDetailPage() {
       return
     }
 
+    notify('clarification_requested', jobId)
     setShowClarifyModal(false)
     await fetchJob()
     setActioning(false)
@@ -513,6 +517,7 @@ export default function JobDetailPage() {
       }
     }
 
+    notify(priceAction === 'approve' ? 'price_change_approved' : 'price_change_rejected', jobId)
     setShowPriceModal(false)
     setPriceAction(null)
     await fetchJob()

@@ -92,6 +92,16 @@ export default function AdminContractorsPage() {
       return
     }
 
+    fetch('/api/admin/notify-verification-decision', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contractorUserId: rows.find((r) => r.id === id)?.contractor_user_id,
+        approved: status === 'verified',
+        notes: notes[id] || null,
+      }),
+    }).catch((err) => console.error('Failed to send verification decision email:', err))
+
     await load()
     setActioningId(null)
   }
