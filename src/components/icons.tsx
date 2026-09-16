@@ -134,3 +134,29 @@ export function LockIcon({ className }: IconProps) {
     </svg>
   )
 }
+
+export function MessageCircleIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M21 11.5a8.38 8.38 0 0 1-4.5 7.5L3 21l1.5-4.5A8.38 8.38 0 0 1 3 11.5a8.5 8.5 0 0 1 9-8.47 8.44 8.44 0 0 1 9 8.47z" />
+    </svg>
+  )
+}
+
+export function BellIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+    </svg>
+  )
+}
+
+export function ReceiptIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M4 3h16v18l-3-2-2 2-2-2-2 2-2-2-2 2-3-2V3z" />
+      <path d="M8 8h8M8 12h8M8 16h5" />
+    </svg>
+  )
+}

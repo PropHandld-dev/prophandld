@@ -2,14 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { useRouter } from 'next/navigation'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
+import { AdminLayout } from '@/components/AdminLayout'
 
 export default function AdminContractorsPage() {
-  const router = useRouter()
   const [loading, setLoading] = useState(true)
-  const [authorized, setAuthorized] = useState(false)
   const [rows, setRows] = useState<any[]>([])
   const [error, setError] = useState<string | null>(null)
   const [actioningId, setActioningId] = useState<string | null>(null)
@@ -56,17 +54,8 @@ export default function AdminContractorsPage() {
   }
 
   useEffect(() => {
-    const init = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user || !user.email?.endsWith('@prophandld.com')) {
-        router.push('/')
-        return
-      }
-      setAuthorized(true)
-      await load()
-    }
-    init()
-  }, [router])
+    load()
+  }, [])
 
   const handleDecision = async (id: string, status: 'verified' | 'rejected') => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -105,12 +94,6 @@ export default function AdminContractorsPage() {
     await load()
     setActioningId(null)
   }
-
-  if (loading || !authorized) return (
-    <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center">
-      <div className="text-white/50">Loading...</div>
-    </div>
-  )
 
   // 'unlicensed' rows are self-declared, not submitted for review — nothing for an admin to act on
   const pending = rows.filter((r) => r.status === 'pending')
@@ -197,40 +180,38 @@ export default function AdminContractorsPage() {
   )
 
   return (
-    <div className="min-h-screen bg-[#0C1A2E]">
-      <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
-        <span className="text-white/50 text-sm">Admin</span>
-        <span className="text-white font-semibold text-sm">Prophandld</span>
-        <div className="w-16" />
-      </nav>
+    <AdminLayout>
+      <h1 className="text-2xl font-bold text-white mb-8">Contractor verification</h1>
 
-      <main className="max-w-2xl mx-auto px-6 py-10">
-        <h1 className="text-2xl font-bold text-white mb-8">Contractor verification</h1>
-
-        {error && (
-          <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm mb-4">
-            {error}
-          </div>
-        )}
-
-        <ScrollReveal>
-          <h2 className="text-white/70 font-semibold text-sm mb-3">Pending ({pending.length})</h2>
-          {pending.length === 0 ? (
-            <p className="text-white/30 text-sm mb-8">Nothing waiting on review.</p>
-          ) : (
-            <div className="mb-8">{pending.map(renderRow)}</div>
+      {loading ? (
+        <div className="text-white/50 text-sm">Loading...</div>
+      ) : (
+        <>
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm mb-4">
+              {error}
+            </div>
           )}
-        </ScrollReveal>
 
-        <ScrollReveal>
-          <h2 className="text-white/70 font-semibold text-sm mb-3">Reviewed ({reviewed.length})</h2>
-          {reviewed.length === 0 ? (
-            <p className="text-white/30 text-sm">No reviewed submissions yet.</p>
-          ) : (
-            <div>{reviewed.map(renderRow)}</div>
-          )}
-        </ScrollReveal>
-      </main>
-    </div>
+          <ScrollReveal>
+            <h2 className="text-white/70 font-semibold text-sm mb-3">Pending ({pending.length})</h2>
+            {pending.length === 0 ? (
+              <p className="text-white/30 text-sm mb-8">Nothing waiting on review.</p>
+            ) : (
+              <div className="mb-8">{pending.map(renderRow)}</div>
+            )}
+          </ScrollReveal>
+
+          <ScrollReveal>
+            <h2 className="text-white/70 font-semibold text-sm mb-3">Reviewed ({reviewed.length})</h2>
+            {reviewed.length === 0 ? (
+              <p className="text-white/30 text-sm">No reviewed submissions yet.</p>
+            ) : (
+              <div>{reviewed.map(renderRow)}</div>
+            )}
+          </ScrollReveal>
+        </>
+      )}
+    </AdminLayout>
   )
 }

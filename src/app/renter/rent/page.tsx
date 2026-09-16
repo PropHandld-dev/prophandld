@@ -166,7 +166,7 @@ export default function RenterRentPage() {
                             </span>
                           </div>
                         </div>
-                        {status.label !== 'Paid' && (
+                        {status.label !== 'Paid' ? (
                           <RippleButton
                             onClick={() => handlePayNow(payment)}
                             disabled={payingId === payment.id}
@@ -174,6 +174,10 @@ export default function RenterRentPage() {
                           >
                             {payingId === payment.id ? 'Loading...' : `Pay $${amountDue.toFixed(2)}`}
                           </RippleButton>
+                        ) : (
+                          <Link href={`/receipts/rent/${payment.id}`} className="shrink-0 text-[#12A5A9] text-xs font-semibold hover:underline">
+                            Receipt
+                          </Link>
                         )}
                       </div>
                     </div>

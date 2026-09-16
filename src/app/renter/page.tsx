@@ -11,6 +11,7 @@ import { ScrollReveal } from '@/components/ScrollReveal'
 import { MagneticLink } from '@/components/MagneticLink'
 import { CalendarIcon, DollarSignIcon, CheckCircleIcon, FileTextIcon } from '@/components/icons'
 import { RENTER_TABS } from '@/lib/navTabs'
+import { EnableNotificationsCard } from '@/components/EnableNotificationsCard'
 
 export default function RenterDashboard() {
   const router = useRouter()
@@ -210,6 +211,7 @@ export default function RenterDashboard() {
             </div>
 
             <AlertsList items={alertItems} />
+            <EnableNotificationsCard />
 
             {unit && property && (
               <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">

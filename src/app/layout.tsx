@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ViewTransition } from "react";
 import { CursorGlow } from "@/components/CursorGlow";
+import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -17,6 +18,15 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Prophandld | Property Management Without the Spreadsheet",
   description: "Prophandld is mini property management for small landlords — track every property and tenant, get honest contractor bids through sealed bidding, and soon collect rent, all in one place.",
+  manifest: "/manifest.json",
+  icons: {
+    icon: "/icon-192.png",
+    apple: "/icon-192.png",
+  },
+};
+
+export const viewport = {
+  themeColor: "#0C1A2E",
 };
 
 export default function RootLayout({
@@ -31,6 +41,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <CursorGlow />
+        <ServiceWorkerRegister />
         <ViewTransition>{children}</ViewTransition>
       </body>
     </html>

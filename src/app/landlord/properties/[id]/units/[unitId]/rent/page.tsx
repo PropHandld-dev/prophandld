@@ -313,12 +313,19 @@ export default function UnitRentPage() {
                           </div>
                           {payment.notes && <p className="text-white/40 text-xs mt-2">{payment.notes}</p>}
                         </div>
-                        <button
-                          onClick={() => handleDelete(payment.id)}
-                          className="text-red-400/70 text-xs hover:text-red-400 transition shrink-0"
-                        >
-                          Delete
-                        </button>
+                        <div className="flex flex-col items-end gap-2 shrink-0">
+                          <button
+                            onClick={() => handleDelete(payment.id)}
+                            className="text-red-400/70 text-xs hover:text-red-400 transition"
+                          >
+                            Delete
+                          </button>
+                          {status.label === 'Paid' && (
+                            <Link href={`/receipts/rent/${payment.id}`} className="text-[#12A5A9] text-xs hover:underline">
+                              Receipt
+                            </Link>
+                          )}
+                        </div>
                       </div>
                     </div>
                   )

@@ -10,10 +10,11 @@ import { BottomTabBar } from '@/components/BottomTabBar'
 import { Skeleton } from '@/components/Skeleton'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
-import { WrenchIcon, CheckCircleIcon } from '@/components/icons'
+import { WrenchIcon, CheckCircleIcon, MessageCircleIcon } from '@/components/icons'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 import { ReviewForm } from '@/components/ReviewForm'
 import { StripePaymentModal } from '@/components/StripePaymentModal'
+import { RaiseDisputeButton } from '@/components/RaiseDisputeButton'
 
 const TIME_WINDOWS = [
   { value: 'morning', label: 'Morning (8am–12pm)' },
@@ -75,7 +76,7 @@ export default function JobDetailPage() {
       const completedAt = new Date(rawJob.contractor_completed_at).getTime()
       const threeDaysMs = 3 * 24 * 60 * 60 * 1000
       if (Date.now() - completedAt > threeDaysMs) {
-        await supabase.from('jobs').update({ status: 'completed' }).eq('id', jobId)
+        await supabase.from('jobs').update({ status: 'completed', landlord_approved_at: new Date().toISOString() }).eq('id', jobId)
         notify('job_completed', jobId)
       }
     }
@@ -429,7 +430,7 @@ export default function JobDetailPage() {
     setActioning(true)
     const { error: updateError } = await supabase
       .from('jobs')
-      .update({ status: 'completed' })
+      .update({ status: 'completed', landlord_approved_at: new Date().toISOString() })
       .eq('id', jobId)
 
     if (updateError) {
@@ -567,9 +568,16 @@ export default function JobDetailPage() {
       completed: 'Completed',
       archived: 'Archived',
       declined: 'Declined',
+      disputed: 'Under dispute review',
     }
     return labels[status] || status
   }
+
+  const disputeEligible =
+    job?.status === 'pending_review' ||
+    (job?.status === 'completed' &&
+      job?.landlord_approved_at &&
+      Date.now() - new Date(job.landlord_approved_at).getTime() < 48 * 60 * 60 * 1000)
 
   const windowLabel = (w: string) => TIME_WINDOWS.find((t) => t.value === w)?.label || w
 
@@ -618,7 +626,9 @@ export default function JobDetailPage() {
           ← Jobs
         </Link>
         <span className="text-white font-semibold text-sm">Prophandld</span>
-        <div className="w-20" />
+        <Link href={`/landlord/jobs/${jobId}/chat`} className="text-white/50 hover:text-white transition">
+          <MessageCircleIcon className="w-5 h-5" />
+        </Link>
       </nav>
 
       <main className="max-w-2xl mx-auto px-6 py-10 pb-28">
@@ -762,6 +772,21 @@ export default function JobDetailPage() {
           </div>
         )}
 
+        {job.status === 'disputed' && (
+          <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl p-6 mb-4">
+            <h3 className="text-yellow-400 font-semibold mb-1">Under dispute review</h3>
+            <p className="text-white/60 text-sm">
+              Prophandld is reviewing a dispute on this job. Everyone involved will be notified once it&apos;s resolved.
+            </p>
+          </div>
+        )}
+
+        {disputeEligible && (
+          <div className="mb-4">
+            <RaiseDisputeButton jobId={jobId} onRaised={fetchJob} />
+          </div>
+        )}
+
         {job.status === 'bidding' && (
           <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
             <h3 className="text-white font-semibold mb-4">
@@ -884,9 +909,14 @@ export default function JobDetailPage() {
                 </p>
               </div>
               {acceptedBid.payment_status === 'paid' ? (
-                <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-[#0A7B7E]/20 text-[#12A5A9]">
-                  <CheckCircleIcon className="w-3 h-3" /> Paid
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-[#0A7B7E]/20 text-[#12A5A9]">
+                    <CheckCircleIcon className="w-3 h-3" /> Paid
+                  </span>
+                  <Link href={`/receipts/job/${acceptedBid.id}`} className="text-[#12A5A9] text-xs font-semibold hover:underline">
+                    Receipt
+                  </Link>
+                </div>
               ) : (
                 <RippleButton
                   onClick={handlePayContractor}

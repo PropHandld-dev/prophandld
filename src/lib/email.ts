@@ -122,10 +122,49 @@ export interface NotifyJobInfo {
   category: string
   address: string | null
   city: string | null
+  isEmergency?: boolean
 }
 
 function jobLocation(info: NotifyJobInfo) {
   return [info.address, info.city].filter(Boolean).join(', ') || 'your property'
+}
+
+const PUSH_TITLES: Record<NotifyType, string> = {
+  job_reported: 'New issue reported',
+  bid_received: 'New bid received',
+  contractor_selected: "You've been selected",
+  schedule_proposed: 'New time proposed',
+  schedule_confirmed: 'Schedule confirmed',
+  job_pending_review: 'Ready for your review',
+  job_completed: 'Job closed out',
+  job_declined: 'Issue declined',
+  price_change_requested: 'Price change requested',
+  price_change_approved: 'Price change approved',
+  price_change_rejected: 'Price change declined',
+  clarification_requested: 'The landlord has a question',
+  clarification_responded: 'The contractor responded',
+}
+
+export function buildPushMessage(type: NotifyType, role: 'landlord' | 'renter' | 'contractor', info: NotifyJobInfo) {
+  return {
+    title: PUSH_TITLES[type],
+    body: `${info.category} at ${jobLocation(info)}`,
+    url: `${SITE_URL}/${role}/jobs/${info.jobId}`,
+  }
+}
+
+// SMS costs money per message and requires opt-in consent, so only a
+// curated high-value subset of events ever reach sendSms — everything
+// else stays email/push-only.
+export const SMS_ENABLED_TYPES: NotifyType[] = [
+  'job_reported',
+  'schedule_proposed',
+  'schedule_confirmed',
+  'job_pending_review',
+]
+
+export function buildSmsMessage(type: NotifyType, info: NotifyJobInfo) {
+  return `Prophandld: ${PUSH_TITLES[type]} — ${info.category} at ${jobLocation(info)}.`
 }
 
 export function buildNotificationEmail(type: NotifyType, role: 'landlord' | 'renter' | 'contractor', info: NotifyJobInfo) {
@@ -350,4 +389,55 @@ export async function sendContractorVerificationDecisionEmail({
     subject: approved ? "You're verified on Prophandld" : 'Update on your Prophandld verification',
     html,
   })
+}
+
+export async function sendDisputeRaisedAdminEmail({
+  jobCategory,
+  propertyLabel,
+  raisedByRole,
+  reason,
+  jobId,
+}: {
+  jobCategory: string
+  propertyLabel: string
+  raisedByRole: string
+  reason: string
+  jobId: string
+}) {
+  const html = baseTemplate({
+    eyebrow: 'Dispute',
+    heading: 'A dispute was raised',
+    bodyHtml: `A ${raisedByRole} raised a dispute on the <strong>${jobCategory}</strong> job at ${propertyLabel}.<br /><br />"${reason}"`,
+    ctaLabel: 'Review dispute',
+    ctaUrl: `${SITE_URL}/admin/disputes`,
+  })
+  return sendEmail({ to: 'admin@prophandld.com', subject: `Dispute raised: ${jobCategory} (job ${jobId.slice(0, 8)})`, html })
+}
+
+export async function sendDisputeResolvedEmail({
+  to,
+  jobCategory,
+  propertyLabel,
+  outcome,
+  resolutionNotes,
+  role,
+  jobId,
+}: {
+  to: string
+  jobCategory: string
+  propertyLabel: string
+  outcome: string
+  resolutionNotes?: string | null
+  role: 'landlord' | 'renter' | 'contractor'
+  jobId: string
+}) {
+  const outcomeLabel = outcome === 'landlord' ? 'in favor of the landlord' : outcome === 'contractor' ? 'in favor of the contractor' : 'with a neutral outcome'
+  const html = baseTemplate({
+    eyebrow: 'Dispute',
+    heading: 'Your dispute was resolved',
+    bodyHtml: `The dispute on the <strong>${jobCategory}</strong> job at ${propertyLabel} has been resolved ${outcomeLabel}.${resolutionNotes ? `<br /><br />"${resolutionNotes}"` : ''}`,
+    ctaLabel: 'View job',
+    ctaUrl: `${SITE_URL}/${role}/jobs/${jobId}`,
+  })
+  return sendEmail({ to, subject: `Dispute resolved: ${jobCategory}`, html })
 }

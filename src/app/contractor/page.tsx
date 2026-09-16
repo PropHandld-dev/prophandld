@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/Skeleton'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { MagneticLink } from '@/components/MagneticLink'
 import { CountUp } from '@/components/CountUp'
+import { EnableNotificationsCard } from '@/components/EnableNotificationsCard'
 import {
   CalendarIcon, ClipboardListIcon, WrenchIcon,
   DollarSignIcon, AlertTriangleIcon, CheckCircleIcon,
@@ -234,6 +235,7 @@ export default function ContractorDashboard() {
             ) : (
               <>
                 <AlertsList items={alertItems} />
+                <EnableNotificationsCard />
 
                 <ScrollReveal className="grid grid-cols-3 gap-4 mb-6">
                   <a href="#available-jobs" className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">

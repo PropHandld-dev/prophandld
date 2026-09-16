@@ -30,6 +30,8 @@ export default function ProfilePage() {
     new_password: '',
     confirm_password: '',
   })
+  const [smsOptIn, setSmsOptIn] = useState(false)
+  const [smsSaving, setSmsSaving] = useState(false)
 
   useEffect(() => {
     const getProfile = async () => {
@@ -45,10 +47,39 @@ export default function ProfilePage() {
         phone: user.user_metadata?.phone || '',
         preferred_language: user.user_metadata?.preferred_language || 'en',
       })
+
+      const { data: userRow } = await supabase.from('users').select('sms_opt_in').eq('id', user.id).maybeSingle()
+      setSmsOptIn(!!userRow?.sms_opt_in)
+
       setLoading(false)
     }
     getProfile()
   }, [router])
+
+  const handleToggleSms = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    if (!smsOptIn && !form.phone.trim()) {
+      setError('Add a phone number above before enabling text alerts.')
+      return
+    }
+
+    setSmsSaving(true)
+    setError(null)
+    const next = !smsOptIn
+    const { error: updateError } = await supabase.from('users').update({ sms_opt_in: next }).eq('id', user.id)
+
+    if (updateError) {
+      console.error('Error updating sms_opt_in:', updateError)
+      setError('Could not update text alert preference.')
+      setSmsSaving(false)
+      return
+    }
+
+    setSmsOptIn(next)
+    setSmsSaving(false)
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -288,20 +319,34 @@ export default function ProfilePage() {
           <h2 className="text-white font-semibold mb-2">Notification preferences</h2>
           <p className="text-white/40 text-sm mb-6">Choose how you want to be notified</p>
           <div className="space-y-4">
-            {[
-              { label: 'Email notifications', sublabel: 'Job updates, status changes', key: 'email' },
-              { label: 'Push notifications', sublabel: 'In-app alerts', key: 'push' },
-            ].map((item) => (
-              <div key={item.key} className="flex items-center justify-between py-1">
-                <div>
-                  <p className="text-white text-sm font-medium">{item.label}</p>
-                  <p className="text-white/40 text-xs">{item.sublabel}</p>
-                </div>
-                <div className="w-10 h-6 bg-[#0A7B7E] rounded-full relative cursor-pointer">
-                  <div className="w-4 h-4 bg-white rounded-full absolute right-1 top-1 transition" />
-                </div>
+            <div className="flex items-center justify-between py-1">
+              <div>
+                <p className="text-white text-sm font-medium">Email notifications</p>
+                <p className="text-white/40 text-xs">Job updates, status changes — always on</p>
               </div>
-            ))}
+              <div className="w-10 h-6 bg-[#0A7B7E]/40 rounded-full relative">
+                <div className="w-4 h-4 bg-white rounded-full absolute right-1 top-1" />
+              </div>
+            </div>
+            <div className="flex items-center justify-between py-1">
+              <div>
+                <p className="text-white text-sm font-medium">Push notifications</p>
+                <p className="text-white/40 text-xs">Enable from the banner on your dashboard</p>
+              </div>
+            </div>
+            <div className="flex items-center justify-between py-1">
+              <div>
+                <p className="text-white text-sm font-medium">Text alerts</p>
+                <p className="text-white/40 text-xs">Urgent updates only — emergencies, scheduling, review needed</p>
+              </div>
+              <button
+                onClick={handleToggleSms}
+                disabled={smsSaving}
+                className={`w-10 h-6 rounded-full relative transition disabled:opacity-50 ${smsOptIn ? 'bg-[#0A7B7E]' : 'bg-white/10'}`}
+              >
+                <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all ${smsOptIn ? 'right-1' : 'left-1'}`} />
+              </button>
+            </div>
           </div>
         </div>
 

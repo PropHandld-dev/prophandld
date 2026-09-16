@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
-import { buildNotificationEmail, sendEmail, type NotifyType, type NotifyJobInfo } from '@/lib/email'
+import { buildNotificationEmail, buildPushMessage, buildSmsMessage, SMS_ENABLED_TYPES, sendEmail, type NotifyType, type NotifyJobInfo } from '@/lib/email'
+import { sendPush } from '@/lib/push'
+import { sendSms } from '@/lib/sms'
 
 type Role = 'landlord' | 'renter' | 'contractor'
 
@@ -37,7 +39,7 @@ export async function POST(request: NextRequest) {
 
   const { data: job, error: jobError } = await supabaseAdmin
     .from('jobs')
-    .select('id, category, unit_id, units(property_id, properties(address, city, owner_user_id))')
+    .select('id, category, unit_id, is_emergency, units(property_id, properties(address, city, owner_user_id))')
     .eq('id', jobId)
     .maybeSingle()
 
@@ -56,6 +58,7 @@ export async function POST(request: NextRequest) {
     category: job.category,
     address: property?.address ?? null,
     city: property?.city ?? null,
+    isEmergency: job.is_emergency ?? false,
   }
 
   console.log('notify: resolved job/property', { jobId, type, units: job.units, property })
@@ -95,7 +98,7 @@ export async function POST(request: NextRequest) {
     (Object.entries(roleUserIds) as [Role, string][]).map(async ([role, userId]) => {
       const { data: recipient, error: recipientError } = await supabaseAdmin
         .from('users')
-        .select('email')
+        .select('email, phone, sms_opt_in')
         .eq('id', userId)
         .maybeSingle()
 
@@ -111,6 +114,16 @@ export async function POST(request: NextRequest) {
       const { subject, html } = buildNotificationEmail(type, role, jobInfo)
       const result = await sendEmail({ to: recipient.email, subject, html })
       console.log('notify: sendEmail result', { jobId, role, to: recipient.email, result })
+
+      const push = buildPushMessage(type, role, jobInfo)
+      await sendPush(userId, push).catch((err) => console.error('notify: sendPush failed', { jobId, role, err }))
+
+      const smsAllowedForType = SMS_ENABLED_TYPES.includes(type) && (type !== 'job_reported' || jobInfo.isEmergency)
+      if (smsAllowedForType && recipient.sms_opt_in && recipient.phone) {
+        await sendSms(recipient.phone, buildSmsMessage(type, jobInfo)).catch((err) =>
+          console.error('notify: sendSms failed', { jobId, role, err })
+        )
+      }
     })
   )
 

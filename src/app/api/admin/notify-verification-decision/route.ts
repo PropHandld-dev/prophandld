@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { sendContractorVerificationDecisionEmail } from '@/lib/email'
+import { sendPush } from '@/lib/push'
 
 export async function POST(request: NextRequest) {
   const authClient = await createClient()
@@ -45,6 +46,12 @@ export async function POST(request: NextRequest) {
     console.error('notify-verification-decision: sendEmail failed', result)
     return NextResponse.json({ error: 'Could not send email' }, { status: 500 })
   }
+
+  await sendPush(contractorUserId, {
+    title: approved ? "You're verified ✓" : 'Verification update',
+    body: approved ? 'Landlords will now see a Verified badge on your bids.' : "Your verification wasn't approved — check the details.",
+    url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://prophandld.com'}/contractor/settings`,
+  }).catch((err) => console.error('notify-verification-decision: sendPush failed', err))
 
   return NextResponse.json({ ok: true })
 }

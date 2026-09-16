@@ -8,6 +8,7 @@ import { BottomTabBar } from '@/components/BottomTabBar'
 import { AlertsList, type AlertItem } from '@/components/AlertsList'
 import { Skeleton } from '@/components/Skeleton'
 import { ScrollReveal } from '@/components/ScrollReveal'
+import { EnableNotificationsCard } from '@/components/EnableNotificationsCard'
 import { MagneticLink } from '@/components/MagneticLink'
 import { CountUp } from '@/components/CountUp'
 import {
@@ -512,6 +513,7 @@ export default function LandlordDashboard() {
             </div>
 
             <AlertsList items={alertItems} />
+            <EnableNotificationsCard />
 
             <ScrollReveal className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               <Link

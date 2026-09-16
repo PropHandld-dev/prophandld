@@ -10,7 +10,8 @@ import { BottomTabBar } from '@/components/BottomTabBar'
 import { Skeleton } from '@/components/Skeleton'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
-import { CheckCircleIcon } from '@/components/icons'
+import { CheckCircleIcon, MessageCircleIcon } from '@/components/icons'
+import { RaiseDisputeButton } from '@/components/RaiseDisputeButton'
 import { RENTER_TABS } from '@/lib/navTabs'
 import { ReviewForm } from '@/components/ReviewForm'
 
@@ -189,11 +190,18 @@ export default function RenterJobDetailPage() {
       in_progress: 'Work in progress',
       pending_review: 'Work complete — waiting on landlord',
       completed: 'Completed',
+      disputed: 'Under dispute review',
     }
     return labels[status] || status
   }
 
   const windowLabel = (w: string) => TIME_WINDOWS.find((t) => t.value === w)?.label || w
+
+  const disputeEligible =
+    job?.status === 'pending_review' ||
+    (job?.status === 'completed' &&
+      job?.landlord_approved_at &&
+      Date.now() - new Date(job.landlord_approved_at).getTime() < 48 * 60 * 60 * 1000)
 
   if (loading) return (
     <div className="min-h-screen bg-[#0C1A2E]">
@@ -237,7 +245,9 @@ export default function RenterJobDetailPage() {
           ← Dashboard
         </Link>
         <span className="text-white font-semibold text-sm">Prophandld</span>
-        <div className="w-20" />
+        <Link href={`/renter/jobs/${jobId}/chat`} className="text-white/50 hover:text-white transition">
+          <MessageCircleIcon className="w-5 h-5" />
+        </Link>
       </nav>
 
       <main className="max-w-2xl mx-auto px-6 py-10 pb-28">
@@ -264,6 +274,21 @@ export default function RenterJobDetailPage() {
             </div>
           )}
         </ScrollReveal>
+
+        {job.status === 'disputed' && (
+          <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl p-6 mb-4">
+            <h3 className="text-yellow-400 font-semibold mb-1">Under dispute review</h3>
+            <p className="text-white/60 text-sm">
+              Prophandld is reviewing a dispute on this job. Everyone involved will be notified once it&apos;s resolved.
+            </p>
+          </div>
+        )}
+
+        {disputeEligible && (
+          <div className="mb-4">
+            <RaiseDisputeButton jobId={jobId} onRaised={fetchJob} />
+          </div>
+        )}
 
         {['completed', 'archived'].includes(job.status) && acceptedContractorId && (
           <div className="mb-4">

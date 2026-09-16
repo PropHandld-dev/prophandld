@@ -3,6 +3,7 @@ import Stripe from 'stripe'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { getStripe } from '@/lib/stripe'
 import { sendRentPaymentReceivedEmail, sendJobPaymentSentEmail } from '@/lib/email'
+import { sendPush } from '@/lib/push'
 
 export async function POST(request: NextRequest) {
   const signature = request.headers.get('stripe-signature')
@@ -119,18 +120,19 @@ export async function POST(request: NextRequest) {
             const unit = (rentPayment?.tenancies as any)?.units
             const landlordUserId = unit?.properties?.owner_user_id
             if (landlordUserId) {
+              const monthLabel = rentPayment?.month
+                ? new Date(rentPayment.month + 'T00:00:00').toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+                : 'this month'
+              const unitLabel = unit?.properties?.address
+                ? `${unit.properties.address}${unit.unit_number ? ` — Unit ${unit.unit_number}` : ''}`
+                : 'your unit'
+
               const { data: landlord } = await supabaseAdmin
                 .from('users')
                 .select('email, full_name')
                 .eq('id', landlordUserId)
                 .maybeSingle()
               if (landlord?.email) {
-                const monthLabel = rentPayment?.month
-                  ? new Date(rentPayment.month + 'T00:00:00').toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
-                  : 'this month'
-                const unitLabel = unit?.properties?.address
-                  ? `${unit.properties.address}${unit.unit_number ? ` — Unit ${unit.unit_number}` : ''}`
-                  : 'your unit'
                 await sendRentPaymentReceivedEmail({
                   to: landlord.email,
                   landlordName: landlord.full_name || 'there',
@@ -139,6 +141,11 @@ export async function POST(request: NextRequest) {
                   unitLabel,
                 })
               }
+              await sendPush(landlordUserId, {
+                title: 'Rent payment received',
+                body: `$${(paymentIntent.amount / 100).toFixed(2)} for ${unitLabel}`,
+                url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://prophandld.com'}/landlord`,
+              }).catch((err) => console.error('stripe webhook: sendPush (rent) failed', err))
             }
           }
         }
@@ -159,13 +166,13 @@ export async function POST(request: NextRequest) {
               .maybeSingle()
 
             if (bid?.contractor_user_id) {
+              const job = bid.jobs as any
               const { data: contractor } = await supabaseAdmin
                 .from('users')
                 .select('email, full_name')
                 .eq('id', bid.contractor_user_id)
                 .maybeSingle()
               if (contractor?.email) {
-                const job = bid.jobs as any
                 await sendJobPaymentSentEmail({
                   to: contractor.email,
                   contractorName: contractor.full_name || 'there',
@@ -174,6 +181,11 @@ export async function POST(request: NextRequest) {
                   propertyLabel: job?.units?.properties?.address || 'the property',
                 })
               }
+              await sendPush(bid.contractor_user_id, {
+                title: "You've been paid",
+                body: `$${(paymentIntent.amount / 100).toFixed(2)} for ${job?.category || 'your job'}`,
+                url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://prophandld.com'}/contractor`,
+              }).catch((err) => console.error('stripe webhook: sendPush (job payment) failed', err))
             }
           }
         }
