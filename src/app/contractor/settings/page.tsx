@@ -25,6 +25,7 @@ export default function ContractorSettingsPage() {
   const [success, setSuccess] = useState<string | null>(null)
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [zip, setZip] = useState('')
+  const [radiusMiles, setRadiusMiles] = useState(25)
   const [licensed, setLicensed] = useState(false)
 
   const [userId, setUserId] = useState<string | null>(null)
@@ -67,13 +68,14 @@ export default function ContractorSettingsPage() {
 
       const { data: profileData } = await supabase
         .from('users')
-        .select('service_categories, service_zip, licensed')
+        .select('service_categories, service_zip, service_radius_miles, licensed')
         .eq('id', user.id)
         .maybeSingle()
 
       if (profileData) {
         setSelectedCategories(profileData.service_categories || [])
         setZip(profileData.service_zip || '')
+        setRadiusMiles(profileData.service_radius_miles || 25)
         setLicensed(profileData.licensed || false)
       }
 
@@ -127,6 +129,7 @@ export default function ContractorSettingsPage() {
       .update({
         service_categories: selectedCategories,
         service_zip: zip.trim(),
+        service_radius_miles: radiusMiles,
         licensed,
       })
       .eq('id', user.id)
@@ -328,19 +331,33 @@ export default function ContractorSettingsPage() {
             </div>
           </div>
 
-          <div>
-            <label className="text-white/70 text-sm block mb-1">ZIP code you service</label>
-            <input
-              type="text"
-              value={zip}
-              onChange={(e) => setZip(e.target.value)}
-              placeholder="19136"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
-            />
-            <p className="text-white/30 text-xs mt-1">
-              For now, jobs match on exact ZIP. Wider radius matching is coming soon.
-            </p>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-white/70 text-sm block mb-1">Home ZIP code</label>
+              <input
+                type="text"
+                value={zip}
+                onChange={(e) => setZip(e.target.value)}
+                placeholder="19136"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+              />
+            </div>
+            <div>
+              <label className="text-white/70 text-sm block mb-1">Travel radius</label>
+              <select
+                value={radiusMiles}
+                onChange={(e) => setRadiusMiles(parseInt(e.target.value))}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
+              >
+                {[10, 25, 50, 100].map((mi) => (
+                  <option key={mi} value={mi} className="bg-[#0C1A2E]">{mi} miles</option>
+                ))}
+              </select>
+            </div>
           </div>
+          <p className="text-white/30 text-xs -mt-2">
+            You&apos;ll see jobs within your travel radius of this ZIP code, not just an exact match.
+          </p>
 
           <label className="flex items-center gap-3 bg-white/3 border border-white/8 rounded-xl p-4 cursor-pointer hover:bg-white/5 transition-all">
             <input

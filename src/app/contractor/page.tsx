@@ -82,16 +82,16 @@ export default function ContractorDashboard() {
         .maybeSingle()
       setVerificationStatus(verificationData?.status ?? null)
 
-      const { data: jobsData, error: jobsError } = await supabase
-        .rpc('get_available_jobs_for_contractor')
-
-      if (jobsError) {
-        console.error('Error loading available jobs:', jobsError)
-      } else {
-        const sorted = (jobsData || []).slice().sort(
-          (a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        )
-        setAvailableJobs(sorted)
+      try {
+        const jobsRes = await fetch('/api/contractor/available-jobs')
+        const jobsData = await jobsRes.json()
+        if (!jobsRes.ok) {
+          console.error('Error loading available jobs:', jobsData)
+        } else {
+          setAvailableJobs(jobsData.jobs || [])
+        }
+      } catch (err) {
+        console.error('Error loading available jobs:', err)
       }
 
       const { data: bidsData, error: bidsError } = await supabase
