@@ -34,18 +34,28 @@ export function BillingSection() {
 
   const load = async () => {
     try {
-      const res = await fetch('/api/stripe/subscription/sync', { method: 'POST' })
-      if (res.ok) {
-        const data = await res.json()
-        setStatus((s) => (s ? { ...s, unitCount: data.unitCount, tier: data.tier, computedTier: data.tier } : s))
+      const syncRes = await fetch('/api/stripe/subscription/sync', { method: 'POST' })
+      const syncData = await syncRes.json().catch(() => ({}))
+      if (!syncRes.ok) {
+        console.error('BillingSection: sync failed', syncData)
+        setError(syncData.error || 'Could not sync your unit count.')
       }
-    } catch {}
+    } catch (err) {
+      console.error('BillingSection: sync request failed', err)
+    }
 
     try {
       const res = await fetch('/api/stripe/subscription/status')
       const data = await res.json()
-      if (res.ok) setStatus(data)
-    } catch {}
+      if (res.ok) {
+        setStatus(data)
+      } else {
+        setError(data.error || 'Could not load billing status.')
+      }
+    } catch (err) {
+      console.error('BillingSection: status request failed', err)
+      setError('Could not load billing status.')
+    }
     setLoading(false)
   }
 
@@ -97,7 +107,11 @@ export function BillingSection() {
     )
   }
 
-  if (!status) return null
+  if (!status) {
+    return error ? (
+      <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-6 mb-6 text-red-400 text-sm">{error}</div>
+    ) : null
+  }
 
   const needsToSubscribe = status.tier !== 'free' && !status.hasActiveSubscription
 

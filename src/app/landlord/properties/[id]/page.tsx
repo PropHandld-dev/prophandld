@@ -44,7 +44,7 @@ export default function PropertyDetailPage() {
         .single()
 
       if (propertyError || !propertyData) {
-        router.push('/landlord/properties')
+        router.replace('/landlord/properties')
         return
       }
 

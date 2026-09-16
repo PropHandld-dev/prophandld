@@ -15,6 +15,8 @@ import { LANDLORD_TABS } from '@/lib/navTabs'
 import { ReviewForm } from '@/components/ReviewForm'
 import { StripePaymentModal } from '@/components/StripePaymentModal'
 import { RaiseDisputeButton } from '@/components/RaiseDisputeButton'
+import { UnreadDot } from '@/components/UnreadDot'
+import { getUnreadJobIds } from '@/lib/messageReads'
 
 const TIME_WINDOWS = [
   { value: 'morning', label: 'Morning (8am–12pm)' },
@@ -29,6 +31,7 @@ export default function JobDetailPage() {
 
   const [loading, setLoading] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
+  const [hasUnread, setHasUnread] = useState(false)
   const [job, setJob] = useState<any>(null)
   const [photos, setPhotos] = useState<any[]>([])
   const [bids, setBids] = useState<any[]>([])
@@ -65,6 +68,7 @@ export default function JobDetailPage() {
       return
     }
     setUserId(user.id)
+    getUnreadJobIds([jobId], user.id).then((unread) => setHasUnread(unread.has(jobId)))
 
     const { data: rawJob } = await supabase
       .from('jobs')
@@ -626,8 +630,9 @@ export default function JobDetailPage() {
           ← Jobs
         </Link>
         <span className="text-white font-semibold text-sm">Prophandld</span>
-        <Link href={`/landlord/jobs/${jobId}/chat`} className="text-white/50 hover:text-white transition">
+        <Link href={`/landlord/jobs/${jobId}/chat`} className="relative text-white/50 hover:text-white transition">
           <MessageCircleIcon className="w-5 h-5" />
+          {hasUnread && <UnreadDot className="absolute -top-0.5 -right-0.5" />}
         </Link>
       </nav>
 

@@ -13,6 +13,8 @@ import { ScrollReveal } from '@/components/ScrollReveal'
 import { MagneticLink } from '@/components/MagneticLink'
 import { CountUp } from '@/components/CountUp'
 import { EnableNotificationsCard } from '@/components/EnableNotificationsCard'
+import { UnreadDot } from '@/components/UnreadDot'
+import { getUnreadJobIds } from '@/lib/messageReads'
 import {
   CalendarIcon, ClipboardListIcon, WrenchIcon,
   DollarSignIcon, AlertTriangleIcon, CheckCircleIcon,
@@ -44,6 +46,7 @@ export default function ContractorDashboard() {
   const [clarificationAlerts, setClarificationAlerts] = useState<any[]>([])
   const [upcoming, setUpcoming] = useState<any[]>([])
   const [pastJobs, setPastJobs] = useState<any[]>([])
+  const [unreadJobIds, setUnreadJobIds] = useState<Set<string>>(new Set())
   const [pastFilter, setPastFilter] = useState('all')
 
   useEffect(() => {
@@ -90,6 +93,9 @@ export default function ContractorDashboard() {
       } else {
         const bids = bidsData || []
         setMyBids(bids)
+
+        const acceptedJobIds = bids.filter((b) => b.status === 'accepted').map((b) => b.job_id)
+        getUnreadJobIds(acceptedJobIds, user.id).then(setUnreadJobIds)
 
         setPickTimeAlerts(
           bids.filter((b) =>
@@ -338,7 +344,10 @@ export default function ContractorDashboard() {
                             className="block border-b border-white/5 last:border-0 pb-3 last:pb-0 hover:opacity-80 transition"
                           >
                             <div className="flex items-center justify-between">
-                              <p className="text-white font-medium text-sm">{bid.jobs?.category}</p>
+                              <span className="flex items-center gap-1.5">
+                                <p className="text-white font-medium text-sm">{bid.jobs?.category}</p>
+                                {bid.status === 'accepted' && unreadJobIds.has(bid.job_id) && <UnreadDot />}
+                              </span>
                               <span className={
                                 bid.status === 'accepted'
                                   ? 'text-xs bg-[#0A7B7E]/20 text-[#12A5A9] border border-[#12A5A9]/30 rounded-full px-2 py-0.5'

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Skeleton } from '@/components/Skeleton'
 import { RippleButton } from '@/components/RippleButton'
+import { markJobRead } from '@/lib/messageReads'
 
 type Message = {
   id: string
@@ -75,6 +76,7 @@ export function ChatPanel({ jobId }: { jobId: string }) {
 
       setMessages(messagesData || [])
       setLoading(false)
+      await markJobRead(jobId, user.id)
     }
     init()
 
@@ -86,6 +88,9 @@ export function ChatPanel({ jobId }: { jobId: string }) {
         (payload) => {
           const incoming = payload.new as Message
           setMessages((prev) => (prev.some((m) => m.id === incoming.id) ? prev : [...prev, incoming]))
+          supabase.auth.getUser().then(({ data: { user } }) => {
+            if (user) markJobRead(jobId, user.id)
+          })
         }
       )
       .subscribe()

@@ -43,7 +43,7 @@ export default function UnitRentPage() {
         .maybeSingle()
 
       if (!unitData) {
-        router.push(`/landlord/properties/${propertyId}`)
+        router.replace(`/landlord/properties/${propertyId}`)
         return
       }
       setUnit(unitData)
@@ -238,6 +238,11 @@ export default function UnitRentPage() {
                             <span className="text-xs bg-white/8 text-white/50 rounded-full px-2.5 py-0.5">
                               ${payment.actual_amount ?? 0} of ${payment.expected_amount}
                             </span>
+                            {payment.late_fee_applied && (
+                              <span className="text-xs bg-yellow-500/15 text-yellow-400 rounded-full px-2.5 py-0.5">
+                                Includes late fee
+                              </span>
+                            )}
                           </div>
                         </div>
                         <div className="flex flex-col items-end gap-2 shrink-0">

@@ -8,8 +8,10 @@ import { BottomTabBar } from '@/components/BottomTabBar'
 import { Skeleton } from '@/components/Skeleton'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
-import { CheckCircleIcon, ClipboardListIcon } from '@/components/icons'
+import { CheckCircleIcon, ClipboardListIcon, MessageCircleIcon } from '@/components/icons'
 import { LANDLORD_TABS } from '@/lib/navTabs'
+import { UnreadDot } from '@/components/UnreadDot'
+import { getUnreadJobIds } from '@/lib/messageReads'
 
 const FILTERS = [
   { key: 'needs_approval', label: 'Needs Action' },
@@ -26,6 +28,7 @@ function LandlordJobsList() {
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(true)
   const [jobs, setJobs] = useState<any[]>([])
+  const [unreadJobIds, setUnreadJobIds] = useState<Set<string>>(new Set())
   const [activeFilter, setActiveFilter] = useState(searchParams.get('filter') || 'needs_approval')
   const [actioningId, setActioningId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -68,6 +71,8 @@ function LandlordJobsList() {
 
     setJobs(enriched)
     setLoading(false)
+
+    getUnreadJobIds(jobsList.map((j) => j.id), user.id).then(setUnreadJobIds)
   }
 
   useEffect(() => {
@@ -265,6 +270,12 @@ function LandlordJobsList() {
                       <h3 className="text-white font-semibold">{job.category}</h3>
                       {urgencyBadge(job)}
                       <span className="text-xs text-white/30">{statusLabel(job)}</span>
+                      {unreadJobIds.has(job.id) && (
+                        <span className="inline-flex items-center gap-1 text-[#12A5A9]">
+                          <MessageCircleIcon className="w-3.5 h-3.5" />
+                          <UnreadDot />
+                        </span>
+                      )}
                     </div>
                     <p className="text-white/60 text-sm">{job.description}</p>
                     <p className="text-white/30 text-xs mt-2">

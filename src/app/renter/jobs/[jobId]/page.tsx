@@ -12,6 +12,8 @@ import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { CheckCircleIcon, MessageCircleIcon } from '@/components/icons'
 import { RaiseDisputeButton } from '@/components/RaiseDisputeButton'
+import { UnreadDot } from '@/components/UnreadDot'
+import { getUnreadJobIds } from '@/lib/messageReads'
 import { RENTER_TABS } from '@/lib/navTabs'
 import { ReviewForm } from '@/components/ReviewForm'
 
@@ -28,6 +30,7 @@ export default function RenterJobDetailPage() {
 
   const [loading, setLoading] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
+  const [hasUnread, setHasUnread] = useState(false)
   const [job, setJob] = useState<any>(null)
   const [photos, setPhotos] = useState<any[]>([])
   const [acceptedContractorId, setAcceptedContractorId] = useState<string | null>(null)
@@ -47,6 +50,7 @@ export default function RenterJobDetailPage() {
       return
     }
     setUserId(user.id)
+    getUnreadJobIds([jobId], user.id).then((unread) => setHasUnread(unread.has(jobId)))
 
     const { data: jobData, error: jobError } = await supabase
       .from('jobs')
@@ -245,8 +249,9 @@ export default function RenterJobDetailPage() {
           ← Dashboard
         </Link>
         <span className="text-white font-semibold text-sm">Prophandld</span>
-        <Link href={`/renter/jobs/${jobId}/chat`} className="text-white/50 hover:text-white transition">
+        <Link href={`/renter/jobs/${jobId}/chat`} className="relative text-white/50 hover:text-white transition">
           <MessageCircleIcon className="w-5 h-5" />
+          {hasUnread && <UnreadDot className="absolute -top-0.5 -right-0.5" />}
         </Link>
       </nav>
 

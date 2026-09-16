@@ -24,10 +24,16 @@ export async function POST() {
   const stripe = getStripe()
   const origin = process.env.NEXT_PUBLIC_SITE_URL || 'https://prophandld.com'
 
-  const session = await stripe.billingPortal.sessions.create({
-    customer: userRow.stripe_customer_id,
-    return_url: `${origin}/profile`,
-  })
+  try {
+    const session = await stripe.billingPortal.sessions.create({
+      customer: userRow.stripe_customer_id,
+      return_url: `${origin}/profile`,
+    })
 
-  return NextResponse.json({ url: session.url })
+    return NextResponse.json({ url: session.url })
+  } catch (err) {
+    console.error('billing-portal: unhandled error', err)
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    return NextResponse.json({ error: message }, { status: 500 })
+  }
 }

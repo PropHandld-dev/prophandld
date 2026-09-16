@@ -43,6 +43,8 @@ export default function UnitDetailPage() {
     occupants: '',
     pets: '',
     lease_notes: '',
+    late_fee_amount: '',
+    grace_period_days: '',
   })
 
   const fetchUnit = async () => {
@@ -59,7 +61,7 @@ export default function UnitDetailPage() {
       .single()
 
     if (!unitData) {
-      router.push(`/landlord/properties/${propertyId}`)
+      router.replace(`/landlord/properties/${propertyId}`)
       return
     }
 
@@ -218,6 +220,8 @@ export default function UnitDetailPage() {
       occupants: tenancy.occupants?.toString() || '',
       pets: tenancy.pets || '',
       lease_notes: tenancy.lease_notes || '',
+      late_fee_amount: tenancy.late_fee_amount?.toString() || '',
+      grace_period_days: tenancy.grace_period_days?.toString() || '5',
     })
     setTenancyEditError(null)
     setEditingTenancy(true)
@@ -240,6 +244,8 @@ export default function UnitDetailPage() {
         occupants: editForm.occupants ? parseInt(editForm.occupants) : null,
         pets: editForm.pets.trim() || null,
         lease_notes: editForm.lease_notes.trim() || null,
+        late_fee_amount: editForm.late_fee_amount ? parseFloat(editForm.late_fee_amount) : null,
+        grace_period_days: editForm.grace_period_days ? parseInt(editForm.grace_period_days) : 5,
       })
       .eq('id', tenancy.id)
 
@@ -389,6 +395,12 @@ export default function UnitDetailPage() {
                 </p>
               )}
 
+              {!editingTenancy && tenancy.late_fee_amount && (
+                <p className="text-white/40 text-sm">
+                  ⏰ ${tenancy.late_fee_amount} late fee after {tenancy.grace_period_days ?? 5} days
+                </p>
+              )}
+
               {!editingTenancy && tenancy.occupants && (
                 <p className="text-white/40 text-sm flex items-center gap-1.5">
                   <UserIcon className="w-3.5 h-3.5 text-white/40" />
@@ -441,6 +453,32 @@ export default function UnitDetailPage() {
                       />
                     </div>
                   </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-white/70 text-xs block mb-1">Late fee ($, optional)</label>
+                      <input
+                        type="number"
+                        name="late_fee_amount"
+                        value={editForm.late_fee_amount}
+                        onChange={handleEditFormChange}
+                        placeholder="No fee"
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-white/70 text-xs block mb-1">Grace period (days)</label>
+                      <input
+                        type="number"
+                        name="grace_period_days"
+                        value={editForm.grace_period_days}
+                        onChange={handleEditFormChange}
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#12A5A9] transition"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-white/30 text-[11px] -mt-2">
+                    Leave the fee blank for no automatic late fee. If set, it&apos;s added to the amount due (never auto-charged) once the grace period passes with rent unpaid.
+                  </p>
                   <div>
                     <label className="text-white/70 text-xs block mb-1">Occupants</label>
                     <input

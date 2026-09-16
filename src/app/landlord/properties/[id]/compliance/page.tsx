@@ -63,7 +63,7 @@ export default function PropertyCompliancePage() {
         .single()
 
       if (propertyError || !propertyData) {
-        router.push('/landlord/properties')
+        router.replace('/landlord/properties')
         return
       }
       setProperty(propertyData)

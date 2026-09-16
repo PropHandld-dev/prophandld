@@ -465,3 +465,37 @@ export async function sendRentDueEmail({ to, landlordName, unitLabels }: { to: s
   })
   return sendEmail({ to, subject: `Rent due — ${monthLabel}`, html })
 }
+
+export async function sendRentDueRenterEmail({ to, unitLabel, amount }: { to: string; unitLabel: string; amount: number }) {
+  const monthLabel = new Date().toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+  const html = baseTemplate({
+    eyebrow: 'Payment',
+    heading: `Rent is due — ${monthLabel}`,
+    bodyHtml: `$${amount.toFixed(2)} is due for ${unitLabel}. Pay by debit card or bank account, right from your dashboard.`,
+    ctaLabel: 'Pay rent',
+    ctaUrl: `${SITE_URL}/renter/rent`,
+  })
+  return sendEmail({ to, subject: `Rent due — ${monthLabel}`, html })
+}
+
+export async function sendRentLateRenterEmail({ to, unitLabel, amount, lateFeeAdded }: { to: string; unitLabel: string; amount: number; lateFeeAdded: number | null }) {
+  const html = baseTemplate({
+    eyebrow: 'Payment',
+    heading: 'Rent is now late',
+    bodyHtml: `Rent for ${unitLabel} is still unpaid.${lateFeeAdded ? ` A $${lateFeeAdded.toFixed(2)} late fee has been added.` : ''} $${amount.toFixed(2)} is now due — pay as soon as you can.`,
+    ctaLabel: 'Pay rent',
+    ctaUrl: `${SITE_URL}/renter/rent`,
+  })
+  return sendEmail({ to, subject: `Rent is late — ${unitLabel}`, html })
+}
+
+export async function sendRentLateLandlordEmail({ to, landlordName, unitLabel, lateFeeAdded }: { to: string; landlordName: string; unitLabel: string; lateFeeAdded: number | null }) {
+  const html = baseTemplate({
+    eyebrow: 'Payment',
+    heading: 'Rent is now late',
+    bodyHtml: `Hi ${landlordName}, rent for ${unitLabel} is past due and still unpaid.${lateFeeAdded ? ` A $${lateFeeAdded.toFixed(2)} late fee was automatically added.` : ' The renter has been notified.'}`,
+    ctaLabel: 'View dashboard',
+    ctaUrl: `${SITE_URL}/landlord`,
+  })
+  return sendEmail({ to, subject: `Rent is late — ${unitLabel}`, html })
+}

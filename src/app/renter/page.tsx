@@ -9,9 +9,11 @@ import { AlertsList, type AlertItem } from '@/components/AlertsList'
 import { Skeleton } from '@/components/Skeleton'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { MagneticLink } from '@/components/MagneticLink'
-import { CalendarIcon, DollarSignIcon, CheckCircleIcon, FileTextIcon } from '@/components/icons'
+import { CalendarIcon, DollarSignIcon, CheckCircleIcon, FileTextIcon, MessageCircleIcon } from '@/components/icons'
 import { RENTER_TABS } from '@/lib/navTabs'
 import { EnableNotificationsCard } from '@/components/EnableNotificationsCard'
+import { UnreadDot } from '@/components/UnreadDot'
+import { getUnreadJobIds } from '@/lib/messageReads'
 
 export default function RenterDashboard() {
   const router = useRouter()
@@ -22,6 +24,7 @@ export default function RenterDashboard() {
   const [contacts, setContacts] = useState<any[]>([])
   const [contactsLoading, setContactsLoading] = useState(true)
   const [jobs, setJobs] = useState<any[]>([])
+  const [unreadJobIds, setUnreadJobIds] = useState<Set<string>>(new Set())
   const [pickTimeAlerts, setPickTimeAlerts] = useState<any[]>([])
   const [scheduleAlerts, setScheduleAlerts] = useState<any[]>([])
   const [needsRating, setNeedsRating] = useState<any[]>([])
@@ -99,6 +102,7 @@ export default function RenterDashboard() {
       } else {
         const jobsList = jobsData || []
         setJobs(jobsList)
+        getUnreadJobIds(jobsList.map((j) => j.id), user.id).then(setUnreadJobIds)
         setPickTimeAlerts(
           jobsList.filter((j) => j.schedule_ask_tenant && !j.proposed_date)
         )
@@ -286,6 +290,12 @@ export default function RenterDashboard() {
                         {job.is_emergency && (
                           <span className="text-xs bg-red-500/20 text-red-400 border border-red-500/30 rounded-full px-2 py-0.5 font-semibold">
                             Emergency
+                          </span>
+                        )}
+                        {unreadJobIds.has(job.id) && (
+                          <span className="inline-flex items-center gap-1 text-[#12A5A9]">
+                            <MessageCircleIcon className="w-3.5 h-3.5" />
+                            <UnreadDot />
                           </span>
                         )}
                       </div>

@@ -56,21 +56,27 @@ export async function POST(request: NextRequest) {
   const stripe = getStripe()
   const amountCents = Math.round(amountDue * 100)
 
-  const paymentIntent = await stripe.paymentIntents.create({
-    amount: amountCents,
-    currency: 'usd',
-    payment_method_types: ['card', 'us_bank_account'],
-    transfer_data: { destination: landlordRow.stripe_connect_account_id },
-    metadata: {
-      prophandld_type: 'rent_payment',
-      prophandld_rent_payment_id: rentPayment.id,
-    },
-  })
+  try {
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: amountCents,
+      currency: 'usd',
+      payment_method_types: ['card', 'us_bank_account'],
+      transfer_data: { destination: landlordRow.stripe_connect_account_id },
+      metadata: {
+        prophandld_type: 'rent_payment',
+        prophandld_rent_payment_id: rentPayment.id,
+      },
+    })
 
-  await supabaseAdmin
-    .from('rent_payments')
-    .update({ stripe_payment_intent_id: paymentIntent.id, stripe_status: 'requires_payment' })
-    .eq('id', rentPayment.id)
+    await supabaseAdmin
+      .from('rent_payments')
+      .update({ stripe_payment_intent_id: paymentIntent.id, stripe_status: 'requires_payment' })
+      .eq('id', rentPayment.id)
 
-  return NextResponse.json({ clientSecret: paymentIntent.client_secret, amount: amountDue })
+    return NextResponse.json({ clientSecret: paymentIntent.client_secret, amount: amountDue })
+  } catch (err) {
+    console.error('rent/create-payment-intent: unhandled error', err)
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    return NextResponse.json({ error: message }, { status: 500 })
+  }
 }

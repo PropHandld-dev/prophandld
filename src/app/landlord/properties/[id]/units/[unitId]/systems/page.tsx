@@ -77,7 +77,7 @@ export default function UnitSystemsPage() {
         .maybeSingle()
 
       if (!unitData) {
-        router.push(`/landlord/properties/${propertyId}`)
+        router.replace(`/landlord/properties/${propertyId}`)
         return
       }
       setUnit(unitData)
