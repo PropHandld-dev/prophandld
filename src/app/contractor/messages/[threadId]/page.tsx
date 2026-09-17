@@ -1,12 +1,15 @@
 'use client'
 
+import { useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { ChatPanel } from '@/components/ChatPanel'
+import { popStashedDraft } from '@/lib/dmThreads'
 
 export default function ContractorDmThreadPage() {
   const params = useParams()
   const threadId = params.threadId as string
+  const [initialDraft] = useState(() => popStashedDraft(threadId))
 
   return (
     <div className="min-h-screen bg-[#0C1A2E]">
@@ -19,7 +22,7 @@ export default function ContractorDmThreadPage() {
       </nav>
 
       <main className="max-w-2xl mx-auto px-6 py-6">
-        <ChatPanel threadId={threadId} />
+        <ChatPanel threadId={threadId} initialDraft={initialDraft} />
       </main>
     </div>
   )

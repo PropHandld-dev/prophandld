@@ -520,10 +520,10 @@ export async function sendSupportEscalationEmail({
 export async function sendSupportConfirmationEmail({ to, question }: { to: string; question: string }) {
   const html = baseTemplate({
     eyebrow: 'Support',
-    heading: 'We got your question',
-    bodyHtml: `Thanks for reaching out to Prophandld. You asked:<br /><br />"${question}"<br /><br />Our team will follow up at this email address shortly.`,
+    heading: 'Got it — thanks for reaching out',
+    bodyHtml: `We're a small startup, not a call center, so this isn't an auto-reply bot pretending to care — a real person read this. You asked:<br /><br />"${question}"<br /><br />We'll get back to you at this email address soon (probably faster than your cable company, definitely faster than a DMV line).`,
     ctaLabel: 'Visit Prophandld',
     ctaUrl: SITE_URL,
   })
-  return sendEmail({ to, subject: 'We got your question — Prophandld', html })
+  return sendEmail({ to, subject: 'Got it — thanks for reaching out', html })
 }

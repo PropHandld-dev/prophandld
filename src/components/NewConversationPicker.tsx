@@ -2,16 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-
-type Contact = {
-  other_user_id: string
-  other_role: 'renter' | 'contractor' | 'landlord'
-  full_name: string | null
-  context_label: string | null
-  last_job_category: string | null
-  last_job_completed_at: string | null
-  thread_id: string | null
-}
+import { startDmThread, type DmContact, type StartedConversation } from '@/lib/dmThreads'
 
 const ROLE_LABELS: Record<string, string> = {
   renter: 'Tenant',
@@ -19,12 +10,7 @@ const ROLE_LABELS: Record<string, string> = {
   landlord: 'Landlord',
 }
 
-export type StartedConversation = {
-  threadId: string
-  otherName: string
-  otherRole: string
-  initialDraft: string
-}
+export type { StartedConversation }
 
 export function NewConversationPicker({
   myRole,
@@ -36,7 +22,7 @@ export function NewConversationPicker({
   onCancel: () => void
 }) {
   const [loading, setLoading] = useState(true)
-  const [contacts, setContacts] = useState<Contact[]>([])
+  const [contacts, setContacts] = useState<DmContact[]>([])
   const [error, setError] = useState<string | null>(null)
   const [startingId, setStartingId] = useState<string | null>(null)
 
@@ -52,43 +38,11 @@ export function NewConversationPicker({
     })
   }, [])
 
-  const start = async (contact: Contact) => {
+  const start = async (contact: DmContact) => {
     setStartingId(contact.other_user_id)
     setError(null)
-
-    const name = contact.full_name || 'Unknown'
-    const firstName = name.split(' ')[0]
-    const initialDraft = contact.last_job_category
-      ? `Hi ${firstName}, I have another ${contact.last_job_category.toLowerCase()} issue — are you available?`
-      : ''
-
     try {
-      let threadId = contact.thread_id
-
-      if (!threadId) {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser()
-        if (!user) throw new Error('Not signed in')
-
-        // myRole tells us which side of the pair we are, so we know
-        // whether we're calling as the landlord or as the tenant/contractor
-        // reaching out first — both RPCs accept either caller as long as
-        // they're one of the two ids and the relationship checks out.
-        const { data, error: startError } =
-          myRole === 'landlord'
-            ? contact.other_role === 'renter'
-              ? await supabase.rpc('start_landlord_tenant_thread', { p_landlord_user_id: user.id, p_renter_user_id: contact.other_user_id })
-              : await supabase.rpc('start_landlord_contractor_thread', { p_landlord_user_id: user.id, p_contractor_user_id: contact.other_user_id })
-            : myRole === 'renter'
-              ? await supabase.rpc('start_landlord_tenant_thread', { p_landlord_user_id: contact.other_user_id, p_renter_user_id: user.id })
-              : await supabase.rpc('start_landlord_contractor_thread', { p_landlord_user_id: contact.other_user_id, p_contractor_user_id: user.id })
-
-        if (startError || !data) throw startError || new Error('Could not start conversation')
-        threadId = data as string
-      }
-
-      onStart({ threadId, otherName: name, otherRole: ROLE_LABELS[contact.other_role] || contact.other_role, initialDraft })
+      onStart(await startDmThread(myRole, contact))
     } catch (err) {
       console.error('Error starting conversation:', err)
       setError('Could not start that conversation.')

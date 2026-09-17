@@ -3,9 +3,12 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Skeleton } from '@/components/Skeleton'
 import { UnreadDot } from '@/components/UnreadDot'
 import { useConversations } from '@/lib/useConversations'
+import { DmContactsStrip } from '@/components/DmContactsStrip'
+import type { StartedConversation } from '@/lib/dmThreads'
 
 function formatTimestamp(iso: string) {
   const date = new Date(iso)
@@ -15,13 +18,23 @@ function formatTimestamp(iso: string) {
 }
 
 export function MessagesInbox({ basePath }: { basePath: string }) {
+  const router = useRouter()
   const [userId, setUserId] = useState<string | null>(null)
+  const myRole = basePath.replace('/', '') as 'landlord' | 'renter' | 'contractor'
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => setUserId(user?.id ?? null))
   }, [])
 
   const { loading, conversations, unreadIds } = useConversations(userId)
+
+  const handleStarted = (c: StartedConversation) => {
+    // The draft prefill (e.g. the rehire starter message) can't travel
+    // through a full page navigation as component state, so stash it
+    // for the thread page to pick up on mount.
+    if (c.initialDraft) sessionStorage.setItem(`dm-draft:${c.threadId}`, c.initialDraft)
+    router.push(`${basePath}/messages/${c.threadId}`)
+  }
 
   if (loading) {
     return (
@@ -33,16 +46,14 @@ export function MessagesInbox({ basePath }: { basePath: string }) {
     )
   }
 
-  if (conversations.length === 0) {
-    return (
-      <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
-        <p className="text-white/30 text-sm">No conversations yet — start one, or messages on a job will show up here.</p>
-      </div>
-    )
-  }
-
   return (
     <div className="space-y-3">
+      <DmContactsStrip myRole={myRole} onStart={handleStarted} onSeeAll={() => router.push(`${basePath}/messages/new`)} />
+      {conversations.length === 0 && (
+        <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
+          <p className="text-white/30 text-sm">No conversations yet — start one, or messages on a job will show up here.</p>
+        </div>
+      )}
       {conversations.map((c) => {
         const isMine = c.lastSenderId === userId
         const isUnread = unreadIds.has(`${c.kind}:${c.id}`)

@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { useConversations } from '@/lib/useConversations'
 import { ChatPanel } from '@/components/ChatPanel'
 import { NewConversationPicker, type StartedConversation } from '@/components/NewConversationPicker'
+import { DmContactsStrip } from '@/components/DmContactsStrip'
 import { MessageCircleIcon } from '@/components/icons'
 
 function formatTimestamp(iso: string) {
@@ -36,7 +37,7 @@ export function FloatingChatWidget() {
     })
   }, [])
 
-  const { loading, conversations, unreadIds, totalUnread } = useConversations(userId)
+  const { loading, conversations, unreadIds, totalUnread, refetch } = useConversations(userId)
 
   // Skip on the pages that already show conversations full-screen —
   // a floating bubble on top of the full chat/inbox view would be
@@ -60,6 +61,22 @@ export function FloatingChatWidget() {
     setActive({ kind: 'dm', id: c.threadId, otherName: c.otherName, otherRole: c.otherRole, initialDraft: c.initialDraft })
   }
 
+  const handleBackToList = () => {
+    setActive(null)
+    // Don't rely solely on the realtime subscription catching up — a
+    // conversation just started via the picker/strip has no messages
+    // yet, and the freshly-sent one should show up immediately rather
+    // than waiting on a delayed postgres_changes event.
+    refetch()
+  }
+
+  const handleToggleOpen = () => {
+    setOpen((v) => {
+      if (!v) refetch()
+      return !v
+    })
+  }
+
   return (
     <>
       {open && (
@@ -71,7 +88,7 @@ export function FloatingChatWidget() {
             <div className="flex items-center gap-3 px-4 py-3.5 border-b border-white/8 shrink-0">
               {active ? (
                 <>
-                  <button onClick={() => setActive(null)} className="text-white/50 hover:text-white transition shrink-0">
+                  <button onClick={handleBackToList} className="text-white/50 hover:text-white transition shrink-0">
                     ←
                   </button>
                   <div className="min-w-0 flex-1">
@@ -112,6 +129,7 @@ export function FloatingChatWidget() {
                 <NewConversationPicker myRole={role} onStart={handleStarted} onCancel={() => setShowPicker(false)} />
               ) : (
                 <div className="h-full overflow-y-auto px-3 py-3">
+                  <DmContactsStrip myRole={role} onStart={handleStarted} onSeeAll={() => setShowPicker(true)} />
                   {loading ? (
                     <div className="space-y-2">
                       <div className="h-16 bg-white/5 rounded-xl animate-pulse" />
@@ -165,7 +183,7 @@ export function FloatingChatWidget() {
       )}
 
       <button
-        onClick={() => setOpen((v) => !v)}
+        onClick={handleToggleOpen}
         className="fixed bottom-24 right-5 z-50 w-14 h-14 rounded-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] shadow-[0_10px_30px_-8px_rgba(18,165,169,0.6)] flex items-center justify-center text-white hover:scale-105 active:scale-95 transition-transform motion-safe:animate-[floatUp_0.3s_ease-out]"
         aria-label="Messages"
       >

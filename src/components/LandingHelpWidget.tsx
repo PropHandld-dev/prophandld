@@ -77,6 +77,11 @@ export function LandingHelpWidget() {
             </div>
 
             <div className="flex-1 min-h-0 overflow-y-auto px-3 py-3 space-y-2">
+              <div className="bg-gradient-to-r from-[#0A7B7E]/15 to-[#12A5A9]/15 border border-[#12A5A9]/20 rounded-xl px-3.5 py-3 mb-1">
+                <p className="text-white text-sm leading-relaxed">
+                  👋 Hey! Thanks for stopping by. We&apos;re a scrappy startup, not a call center, so no hold music — just real answers below, or send us something and an actual human will get back to you.
+                </p>
+              </div>
               {FAQS.map((f, i) => (
                 <div key={f.q} className="bg-white/5 rounded-xl overflow-hidden">
                   <button

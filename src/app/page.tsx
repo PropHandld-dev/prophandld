@@ -15,7 +15,7 @@ const OPERATIONS_FEATURES = [
   { icon: WrenchIcon, title: 'Systems & appliances', desc: 'Track HVAC, water heaters, roofs, and panels with install dates and service history.' },
   { icon: CalendarIcon, title: 'Schedule calendar', desc: 'Every confirmed job, across every property, in one month view.' },
   { icon: CheckCircleIcon, title: 'Verified contractors', desc: "Contractors can submit license and insurance for review, so you can see who's verified before you pick a bid." },
-  { icon: MessageCircleIcon, title: 'In-app messaging', desc: 'Landlords, tenants, and contractors message directly on the job — no phone numbers exchanged.' },
+  { icon: MessageCircleIcon, title: 'In-app messaging', desc: 'Message your tenants or a contractor you\'ve worked with before, job or no job — no phone numbers exchanged.' },
   { icon: LockIcon, title: 'Dispute protection', desc: "If something's not right after a job wraps up, any side can flag it and Prophandld steps in to sort it out." },
 ]
 
