@@ -4,17 +4,10 @@ import { sendSupportEscalationEmail, sendSupportConfirmationEmail } from '@/lib/
 export const runtime = 'nodejs'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const MAX_MESSAGES = 12
-
-type ChatMessage = { role: 'user' | 'assistant'; content: string }
 
 export async function POST(req: Request) {
   try {
-    const { email, question, transcript } = (await req.json()) as {
-      email: string
-      question: string
-      transcript: ChatMessage[]
-    }
+    const { email, question } = (await req.json()) as { email: string; question: string }
 
     if (typeof email !== 'string' || !EMAIL_RE.test(email)) {
       return NextResponse.json({ error: 'A valid email is required' }, { status: 400 })
@@ -22,10 +15,9 @@ export async function POST(req: Request) {
     if (typeof question !== 'string' || question.trim().length === 0 || question.length > 2000) {
       return NextResponse.json({ error: 'question required' }, { status: 400 })
     }
-    const safeTranscript = Array.isArray(transcript) ? transcript.slice(-MAX_MESSAGES) : []
 
     const [toAdmin, toAsker] = await Promise.all([
-      sendSupportEscalationEmail({ askerEmail: email, question, transcript: safeTranscript }),
+      sendSupportEscalationEmail({ askerEmail: email, question }),
       sendSupportConfirmationEmail({ to: email, question }),
     ])
 

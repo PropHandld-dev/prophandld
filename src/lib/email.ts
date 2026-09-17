@@ -503,19 +503,14 @@ export async function sendRentLateLandlordEmail({ to, landlordName, unitLabel, l
 export async function sendSupportEscalationEmail({
   askerEmail,
   question,
-  transcript,
 }: {
   askerEmail: string
   question: string
-  transcript: { role: 'user' | 'assistant'; content: string }[]
 }) {
-  const transcriptHtml = transcript
-    .map((m) => `<div style="margin:0 0 10px;"><strong style="color:rgba(255,255,255,0.75);">${m.role === 'user' ? 'Asker' : 'Assistant'}:</strong> ${m.content}</div>`)
-    .join('')
   const html = baseTemplate({
     eyebrow: 'Support',
-    heading: 'A question the AI couldn\'t answer',
-    bodyHtml: `<strong>${askerEmail}</strong> asked something the landing page assistant couldn't confidently answer:<br /><br />"${question}"<br /><br />Full conversation:<br />${transcriptHtml}`,
+    heading: 'A question from the landing page',
+    bodyHtml: `<strong>${askerEmail}</strong> asked:<br /><br />"${question}"`,
     ctaLabel: 'Reply to asker',
     ctaUrl: `mailto:${askerEmail}`,
   })

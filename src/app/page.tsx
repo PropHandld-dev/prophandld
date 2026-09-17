@@ -6,7 +6,7 @@ import { ScrollReveal } from '@/components/ScrollReveal'
 import { DollarSignIcon, AlertTriangleIcon, FileTextIcon, WrenchIcon, CalendarIcon, CheckCircleIcon, MessageCircleIcon, LockIcon } from '@/components/icons'
 import { Logo } from '@/components/Logo'
 import { RoleShowcase } from '@/components/RoleShowcase'
-import { LandingAIChat } from '@/components/LandingAIChat'
+import { LandingHelpWidget } from '@/components/LandingHelpWidget'
 
 const OPERATIONS_FEATURES = [
   { icon: DollarSignIcon, title: 'Online rent', desc: 'Rent tracks itself every month — renters pay by debit card or bank transfer, no checks or cash to chase down.' },
@@ -293,7 +293,7 @@ export default function LandingPage() {
         </div>
       </footer>
 
-      <LandingAIChat />
+      <LandingHelpWidget />
     </div>
   )
 }
