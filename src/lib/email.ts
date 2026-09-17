@@ -499,3 +499,36 @@ export async function sendRentLateLandlordEmail({ to, landlordName, unitLabel, l
   })
   return sendEmail({ to, subject: `Rent is late — ${unitLabel}`, html })
 }
+
+export async function sendSupportEscalationEmail({
+  askerEmail,
+  question,
+  transcript,
+}: {
+  askerEmail: string
+  question: string
+  transcript: { role: 'user' | 'assistant'; content: string }[]
+}) {
+  const transcriptHtml = transcript
+    .map((m) => `<div style="margin:0 0 10px;"><strong style="color:rgba(255,255,255,0.75);">${m.role === 'user' ? 'Asker' : 'Assistant'}:</strong> ${m.content}</div>`)
+    .join('')
+  const html = baseTemplate({
+    eyebrow: 'Support',
+    heading: 'A question the AI couldn\'t answer',
+    bodyHtml: `<strong>${askerEmail}</strong> asked something the landing page assistant couldn't confidently answer:<br /><br />"${question}"<br /><br />Full conversation:<br />${transcriptHtml}`,
+    ctaLabel: 'Reply to asker',
+    ctaUrl: `mailto:${askerEmail}`,
+  })
+  return sendEmail({ to: 'admin@prophandld.com', subject: `Support question from ${askerEmail}`, html })
+}
+
+export async function sendSupportConfirmationEmail({ to, question }: { to: string; question: string }) {
+  const html = baseTemplate({
+    eyebrow: 'Support',
+    heading: 'We got your question',
+    bodyHtml: `Thanks for reaching out to Prophandld. You asked:<br /><br />"${question}"<br /><br />Our team will follow up at this email address shortly.`,
+    ctaLabel: 'Visit Prophandld',
+    ctaUrl: SITE_URL,
+  })
+  return sendEmail({ to, subject: 'We got your question — Prophandld', html })
+}
