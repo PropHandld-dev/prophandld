@@ -84,9 +84,19 @@ export function useConversations(userId: string | null) {
       const job = jobById.get(jobId) as any
       const unit = job?.units
       const property = unit?.properties
+
+      if (participantResults[i].error) {
+        console.error('useConversations: get_job_participants failed', { jobId, error: participantResults[i].error })
+      }
+
       const participants = (participantResults[i].data || []) as { role: string; user_id: string; full_name: string | null }[]
       const others = participants.filter((p) => p.user_id !== userId)
-      const otherLabel = others.length > 0 ? others.map((p) => p.full_name || 'Unknown').join(', ') : 'Someone'
+      // Falls back to job context (not a bare "Someone") when the RPC
+      // can't resolve another participant — e.g. a job with no accepted
+      // contractor yet, or the SQL grant for this RPC hasn't been run.
+      const otherLabel = others.length > 0
+        ? others.map((p) => p.full_name || 'Unknown').join(', ')
+        : (job?.category || 'This job')
       const otherRole = others[0]?.role ? ROLE_LABELS[others[0].role] || others[0].role : ''
 
       return {
