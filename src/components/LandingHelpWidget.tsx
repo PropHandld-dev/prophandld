@@ -3,40 +3,107 @@
 import { useState } from 'react'
 import { HelpCircleIcon } from '@/components/icons'
 
-const FAQS: { q: string; a: string }[] = [
-  {
-    q: 'How does bidding work?',
-    a: 'Landlords post a job, contractors submit sealed bids — nobody sees anyone else’s price — and the landlord picks whoever they trust most, not just the lowest number.',
-  },
-  {
-    q: 'How much does it cost?',
-    a: 'Free for landlords with 1–2 units. $20/mo for 3–5 units, $50/mo for 6–10, and $80/mo for 11+. Renters and contractors don’t pay a platform fee.',
-  },
-  {
-    q: 'Is paying rent through Prophandld safe?',
-    a: 'Yes — rent is paid by debit card or bank transfer through Stripe, the same payment processor used by most major platforms. Prophandld never sees or stores your card details.',
-  },
-  {
-    q: 'Do contractors need a license?',
-    a: 'Contractors can optionally submit license and insurance for a "Verified" badge, but unlicensed contractors can also use the platform — they’re just labeled as unverified so landlords can decide.',
-  },
-  {
-    q: 'What happens if a job goes wrong?',
-    a: 'Any party can raise a dispute within 48 hours of the job being marked done, and Prophandld’s team reviews it and resolves it — the job is paused until it’s sorted out.',
-  },
-  {
-    q: 'Where is Prophandld available?',
-    a: 'We’re currently onboarding landlords in the Philadelphia area, with more areas planned as we grow.',
-  },
+type Role = 'general' | 'landlord' | 'renter' | 'contractor'
+
+const ROLE_TABS: { key: Role; label: string }[] = [
+  { key: 'general', label: 'General' },
+  { key: 'landlord', label: 'Landlord' },
+  { key: 'renter', label: 'Renter' },
+  { key: 'contractor', label: 'Contractor' },
 ]
+
+const FAQS: Record<Role, { q: string; a: string }[]> = {
+  general: [
+    {
+      q: 'What is Prophandld?',
+      a: 'Mini property management for landlords who own a few units, not a few hundred — plus the tenants and contractors connected to those properties. One place to track properties, handle maintenance through sealed bidding, and collect rent.',
+    },
+    {
+      q: 'Where is Prophandld available?',
+      a: 'We’re currently onboarding landlords in the Philadelphia area, with more areas planned as we grow.',
+    },
+    {
+      q: 'What happens if a job goes wrong?',
+      a: 'Any party can raise a dispute within 48 hours of the job being marked done, and Prophandld’s team reviews it and resolves it — the job is paused until it’s sorted out.',
+    },
+  ],
+  landlord: [
+    {
+      q: 'How does bidding work?',
+      a: 'Post a job and contractors submit sealed bids — nobody sees anyone else’s price. You pick whoever you trust most, not just the lowest number.',
+    },
+    {
+      q: 'How much does it cost?',
+      a: 'Free for 1–2 units. $20/mo for 3–5 units, $50/mo for 6–10, and $80/mo for 11+. That\'s the only fee — no per-job cut on top.',
+    },
+    {
+      q: 'Do contractors need a license?',
+      a: 'Contractors can optionally submit license and insurance for a "Verified" badge, but unlicensed contractors can also use the platform — they\'re just labeled as unverified so you can decide.',
+    },
+    {
+      q: 'Can I message my tenants or contractors directly?',
+      a: 'Yes — message any active tenant or any contractor you\'ve worked with before, with or without an open job. Handy for a quick "you around Thursday?" without waiting on a new job to exist.',
+    },
+    {
+      q: 'How does rent collection work?',
+      a: 'Rent tracks itself every month — tenants pay by debit card or bank transfer, no checks or cash to chase down, and you get one tap to mark a payment received if it came in outside the app.',
+    },
+  ],
+  renter: [
+    {
+      q: 'Is paying rent through Prophandld safe?',
+      a: 'Yes — rent is paid by debit card or bank transfer through Stripe, the same payment processor used by most major platforms. Prophandld never sees or stores your card details. Credit cards aren\'t accepted for rent, on purpose, so you\'re not tempted into card debt to make rent.',
+    },
+    {
+      q: 'How do I report a maintenance issue?',
+      a: 'A couple taps from your dashboard — category, a photo, a short description. Your landlord is notified right away.',
+    },
+    {
+      q: 'Can I message my landlord directly?',
+      a: 'Yes, anytime — you don\'t need an open maintenance issue to reach out.',
+    },
+    {
+      q: 'What if my issue is an emergency?',
+      a: 'Flag it as an emergency when you report it and it\'s treated with priority — just use it for things that actually can\'t wait, the app will show you what qualifies.',
+    },
+  ],
+  contractor: [
+    {
+      q: 'How does bidding work for me?',
+      a: 'You submit a sealed bid on a job — your price, availability, and notes — without seeing what anyone else bid. The landlord picks based on trust and value, not just who\'s cheapest.',
+    },
+    {
+      q: 'Does it cost anything to use Prophandld?',
+      a: 'No — there\'s no platform fee for contractors. You keep what you\'re paid for the job.',
+    },
+    {
+      q: 'Do I need to be licensed to bid?',
+      a: 'No — unlicensed contractors can bid too, you\'re just labeled as unverified so landlords can decide. Submitting license and insurance gets you a "Verified" badge, which some landlords weight heavily.',
+    },
+    {
+      q: 'How do jobs get matched to me?',
+      a: 'By the categories you service and a travel radius around your ZIP code, not an exact-address match — so you\'ll see jobs anywhere reasonably close, not just next door.',
+    },
+    {
+      q: 'How and when do I get paid?',
+      a: 'Directly through the platform once the job\'s marked complete and approved — money moves straight from the landlord to you via Stripe, Prophandld never holds it.',
+    },
+  ],
+}
 
 export function LandingHelpWidget() {
   const [open, setOpen] = useState(false)
+  const [role, setRole] = useState<Role>('general')
   const [expanded, setExpanded] = useState<number | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [email, setEmail] = useState('')
   const [question, setQuestion] = useState('')
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
+
+  const selectRole = (r: Role) => {
+    setRole(r)
+    setExpanded(null)
+  }
 
   const submit = async () => {
     if (!email.trim() || !question.trim()) return
@@ -76,13 +143,31 @@ export function LandingHelpWidget() {
               </button>
             </div>
 
+            <div className="flex items-center gap-1.5 px-3 pt-3 pb-1 shrink-0 overflow-x-auto">
+              {ROLE_TABS.map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => selectRole(tab.key)}
+                  className={`text-xs font-semibold px-3 py-1.5 rounded-full whitespace-nowrap transition ${
+                    role === tab.key
+                      ? 'bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white'
+                      : 'bg-white/5 text-white/50 hover:bg-white/8 hover:text-white'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
             <div className="flex-1 min-h-0 overflow-y-auto px-3 py-3 space-y-2">
-              <div className="bg-gradient-to-r from-[#0A7B7E]/15 to-[#12A5A9]/15 border border-[#12A5A9]/20 rounded-xl px-3.5 py-3 mb-1">
-                <p className="text-white text-sm leading-relaxed">
-                  👋 Hi there! Take a look at the common questions below, or send us your own and a member of our team will get back to you personally.
-                </p>
-              </div>
-              {FAQS.map((f, i) => (
+              {role === 'general' && (
+                <div className="bg-gradient-to-r from-[#0A7B7E]/15 to-[#12A5A9]/15 border border-[#12A5A9]/20 rounded-xl px-3.5 py-3 mb-1">
+                  <p className="text-white text-sm leading-relaxed">
+                    👋 Hi there! Pick your role above for questions specific to you, or browse the general basics below.
+                  </p>
+                </div>
+              )}
+              {FAQS[role].map((f, i) => (
                 <div key={f.q} className="bg-white/5 rounded-xl overflow-hidden">
                   <button
                     onClick={() => setExpanded(expanded === i ? null : i)}
