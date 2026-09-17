@@ -553,3 +553,24 @@ export async function sendDmScheduleEmail({
   })
   return sendEmail({ to, subject: heading, html })
 }
+
+export async function sendJobInviteEmail({
+  to,
+  landlordName,
+  jobCategory,
+  jobId,
+}: {
+  to: string
+  landlordName: string
+  jobCategory: string
+  jobId: string
+}) {
+  const html = baseTemplate({
+    eyebrow: 'New job',
+    heading: `${landlordName} posted a job for you`,
+    bodyHtml: `${landlordName} messaged you and just posted a new <strong>${jobCategory}</strong> job — take a look and submit a bid if you're available. It's open to other contractors too, so don't wait too long.`,
+    ctaLabel: 'View job',
+    ctaUrl: `${SITE_URL}/contractor/jobs/${jobId}`,
+  })
+  return sendEmail({ to, subject: `New job from ${landlordName}: ${jobCategory}`, html })
+}

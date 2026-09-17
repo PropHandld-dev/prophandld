@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { AlertTriangleIcon } from '@/components/icons'
@@ -18,8 +18,14 @@ const CATEGORIES = [
 export default function NewLandlordJobPage() {
   const router = useRouter()
   const params = useParams()
+  const searchParams = useSearchParams()
   const propertyId = params.id as string
   const unitId = params.unitId as string
+  // Set when this job is posted from a DM with a contractor (the "start a
+  // job" rehire flow) — after creating the job, that contractor gets a
+  // direct nudge (chat message + email) to bid, on top of the job staying
+  // open to everyone else the normal way.
+  const nudgeThreadId = searchParams.get('nudgeThread')
 
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -111,6 +117,21 @@ export default function NewLandlordJobPage() {
       })
     }
 
+    if (nudgeThreadId) {
+      await supabase.from('messages').insert({
+        thread_id: nudgeThreadId,
+        sender_user_id: user.id,
+        body: `📋 New job posted: ${jobData.category} — take a look and submit a bid if you're available.`,
+      })
+      fetch('/api/dm-job-invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ threadId: nudgeThreadId, jobId: jobData.id }),
+      }).catch((err) => console.error('Failed to send job invite email:', err))
+      router.push(`/landlord/messages/${nudgeThreadId}`)
+      return
+    }
+
     router.push(`/landlord/properties/${propertyId}/units/${unitId}`)
   }
 
@@ -132,6 +153,14 @@ export default function NewLandlordJobPage() {
         <p className="text-white/50 text-sm mb-8">
           Start a maintenance job directly — no approval needed since you're the landlord.
         </p>
+
+        {nudgeThreadId && (
+          <div className="bg-[#12A5A9]/10 border border-[#12A5A9]/25 rounded-xl px-4 py-3 mb-6">
+            <p className="text-[#12A5A9] text-sm">
+              This job will be posted openly, and the contractor you were messaging will be notified directly to bid on it first.
+            </p>
+          </div>
+        )}
 
         <ScrollReveal>
         <form onSubmit={handleSubmit} className="space-y-4">

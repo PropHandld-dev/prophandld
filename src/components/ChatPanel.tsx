@@ -1,11 +1,12 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Skeleton } from '@/components/Skeleton'
 import { RippleButton } from '@/components/RippleButton'
 import { markJobRead, markThreadRead } from '@/lib/messageReads'
-import { CalendarIcon } from '@/components/icons'
+import { CalendarIcon, WrenchIcon } from '@/components/icons'
 
 type Message = {
   id: string
@@ -55,6 +56,7 @@ export function ChatPanel({
   initialDraft?: string
   onRead?: () => void
 }) {
+  const router = useRouter()
   const [userId, setUserId] = useState<string | null>(null)
   const [participants, setParticipants] = useState<Participant[]>([])
   const [messages, setMessages] = useState<Message[]>([])
@@ -132,6 +134,14 @@ export function ChatPanel({
 
   const participantByUserId = new Map(participants.map((p) => [p.user_id, p]))
   const others = participants.filter((p) => p.user_id !== userId)
+  const myRole = participantByUserId.get(userId || '')?.role
+  // Only a landlord messaging a contractor gets "Start a job" — that's
+  // the one DM pairing where "let's schedule something" should really
+  // mean a real job (photos, bidding, payment, disputes), not just a
+  // time floating in chat with no context behind it. Every other DM
+  // pairing keeps the lightweight "Propose a time" chat shortcut.
+  const contractorInThread = threadId ? others.find((p) => p.role === 'contractor') : undefined
+  const showStartJob = !!contractorInThread && myRole === 'landlord'
 
   const sendMessage = async (body: string) => {
     if (!body.trim() || !userId) return false
@@ -299,7 +309,7 @@ export function ChatPanel({
         </div>
       )}
 
-      {threadId && showSchedule && (
+      {threadId && !showStartJob && showSchedule && (
         <form onSubmit={handleSendSchedule} className="bg-white/5 border border-white/10 rounded-xl p-3 mb-3 space-y-2">
           <p className="text-white/50 text-xs font-medium">Propose a time</p>
           <div className="flex items-center gap-2">
@@ -334,7 +344,18 @@ export function ChatPanel({
       )}
 
       <form onSubmit={handleSend} className="flex items-center gap-2 pt-2 border-t border-white/8">
-        {threadId && (
+        {threadId && showStartJob && (
+          <button
+            type="button"
+            onClick={() => router.push(`/landlord/messages/${threadId}/new-job`)}
+            aria-label="Start a job"
+            title="Start a job"
+            className="shrink-0 w-11 h-11 rounded-xl border bg-white/5 border-white/10 text-white/50 hover:text-white hover:border-[#12A5A9]/40 flex items-center justify-center transition"
+          >
+            <WrenchIcon className="w-4.5 h-4.5" />
+          </button>
+        )}
+        {threadId && !showStartJob && (
           <button
             type="button"
             onClick={() => setShowSchedule((v) => !v)}
