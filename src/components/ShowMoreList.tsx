@@ -21,12 +21,12 @@ export function ShowMoreList<T>({
       {visible.map((item) => (
         <Fragment key={itemKey(item)}>{renderItem(item)}</Fragment>
       ))}
-      {!expanded && items.length > initialCount && (
+      {items.length > initialCount && (
         <button
-          onClick={() => setExpanded(true)}
+          onClick={() => setExpanded((v) => !v)}
           className="w-full text-center text-[#12A5A9] text-xs font-semibold py-3 hover:underline"
         >
-          Show all {items.length}
+          {expanded ? 'Show less' : `Show all ${items.length}`}
         </button>
       )}
     </>

@@ -123,6 +123,7 @@ export function FloatingChatWidget() {
                   <ChatPanel
                     {...(active.kind === 'job' ? { jobId: active.id } : { threadId: active.id, initialDraft: active.initialDraft })}
                     heightClassName="h-full"
+                    onRead={refetch}
                   />
                 </div>
               ) : showPicker ? (

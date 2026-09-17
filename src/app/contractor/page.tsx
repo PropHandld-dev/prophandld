@@ -413,8 +413,13 @@ export default function ContractorDashboard() {
                 </div>
 
                 <div className="bg-white/3 border border-white/8 rounded-2xl p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-white font-semibold">Past jobs</h3>
+                  <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+                    <div className="flex items-center gap-3">
+                      <h3 className="text-white font-semibold">Past jobs</h3>
+                      <Link href="/contractor/earnings" className="text-[#12A5A9] text-xs font-semibold hover:underline">
+                        Earnings & receipts →
+                      </Link>
+                    </div>
                     <div className="flex gap-1.5">
                       {PAST_FILTERS.map((f) => (
                         <button

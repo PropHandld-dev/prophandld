@@ -56,12 +56,12 @@ export function AlertsList({ items }: { items: AlertItem[] }) {
           )
         })}
       </div>
-      {!expanded && items.length > INITIAL_COUNT && (
+      {items.length > INITIAL_COUNT && (
         <button
-          onClick={() => setExpanded(true)}
+          onClick={() => setExpanded((v) => !v)}
           className="w-full text-center text-[#12A5A9] text-xs font-semibold pt-3 mt-1 hover:underline"
         >
-          Show all {items.length}
+          {expanded ? 'Show less' : `Show all ${items.length}`}
         </button>
       )}
     </div>

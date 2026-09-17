@@ -14,6 +14,7 @@ import { RENTER_TABS } from '@/lib/navTabs'
 import { EnableNotificationsCard } from '@/components/EnableNotificationsCard'
 import { UnreadDot } from '@/components/UnreadDot'
 import { getUnreadJobIds } from '@/lib/messageReads'
+import { ShowMoreList } from '@/components/ShowMoreList'
 
 export default function RenterDashboard() {
   const router = useRouter()
@@ -279,30 +280,33 @@ export default function RenterDashboard() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {jobs.map((job) => (
-                    <Link
-                      key={job.id}
-                      href={`/renter/jobs/${job.id}`}
-                      className="block border-b border-white/5 last:border-0 pb-3 last:pb-0 hover:opacity-80 transition"
-                    >
-                      <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <p className="text-white font-medium">{job.category}</p>
-                        {job.is_emergency && (
-                          <span className="text-xs bg-red-500/20 text-red-400 border border-red-500/30 rounded-full px-2 py-0.5 font-semibold">
-                            Emergency
-                          </span>
-                        )}
-                        {unreadJobIds.has(job.id) && (
-                          <span className="inline-flex items-center gap-1 text-[#12A5A9]">
-                            <MessageCircleIcon className="w-3.5 h-3.5" />
-                            <UnreadDot />
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-white/50 text-sm">{job.description}</p>
-                      <p className="text-[#12A5A9] text-xs mt-1">{statusLabel(job)}</p>
-                    </Link>
-                  ))}
+                  <ShowMoreList
+                    items={jobs}
+                    itemKey={(job) => job.id}
+                    renderItem={(job) => (
+                      <Link
+                        href={`/renter/jobs/${job.id}`}
+                        className="block border-b border-white/5 last:border-0 pb-3 last:pb-0 hover:opacity-80 transition"
+                      >
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <p className="text-white font-medium">{job.category}</p>
+                          {job.is_emergency && (
+                            <span className="text-xs bg-red-500/20 text-red-400 border border-red-500/30 rounded-full px-2 py-0.5 font-semibold">
+                              Emergency
+                            </span>
+                          )}
+                          {unreadJobIds.has(job.id) && (
+                            <span className="inline-flex items-center gap-1 text-[#12A5A9]">
+                              <MessageCircleIcon className="w-3.5 h-3.5" />
+                              <UnreadDot />
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-white/50 text-sm">{job.description}</p>
+                        <p className="text-[#12A5A9] text-xs mt-1">{statusLabel(job)}</p>
+                      </Link>
+                    )}
+                  />
                 </div>
               )}
             </div>

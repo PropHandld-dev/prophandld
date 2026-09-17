@@ -166,6 +166,23 @@ export function useConversations(userId: string | null) {
     }
   }, [userId, load])
 
+  // Safety net alongside realtime — polls every 25s and refreshes the
+  // instant the tab regains focus, so a missed/delayed realtime event
+  // (or a badge left stale from another device) self-corrects without
+  // requiring a manual page reload.
+  useEffect(() => {
+    if (!userId) return
+    const interval = setInterval(load, 25000)
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') load()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [userId, load])
+
   const totalUnread = unreadIds.size
 
   return { loading, conversations, unreadIds, totalUnread, refetch: load }

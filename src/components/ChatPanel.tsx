@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { Skeleton } from '@/components/Skeleton'
 import { RippleButton } from '@/components/RippleButton'
 import { markJobRead, markThreadRead } from '@/lib/messageReads'
+import { CalendarIcon } from '@/components/icons'
 
 type Message = {
   id: string
@@ -46,11 +47,13 @@ export function ChatPanel({
   threadId,
   heightClassName = 'h-[70vh]',
   initialDraft = '',
+  onRead,
 }: {
   jobId?: string
   threadId?: string
   heightClassName?: string
   initialDraft?: string
+  onRead?: () => void
 }) {
   const [userId, setUserId] = useState<string | null>(null)
   const [participants, setParticipants] = useState<Participant[]>([])
@@ -59,9 +62,15 @@ export function ChatPanel({
   const [draft, setDraft] = useState(initialDraft)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showSchedule, setShowSchedule] = useState(false)
+  const [scheduleDate, setScheduleDate] = useState('')
+  const [scheduleTime, setScheduleTime] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  const markRead = (uid: string) => (jobId ? markJobRead(jobId, uid) : threadId ? markThreadRead(threadId, uid) : Promise.resolve())
+  const markRead = async (uid: string) => {
+    await (jobId ? markJobRead(jobId, uid) : threadId ? markThreadRead(threadId, uid) : Promise.resolve())
+    onRead?.()
+  }
 
   useEffect(() => {
     const init = async () => {
@@ -124,28 +133,61 @@ export function ChatPanel({
   const participantByUserId = new Map(participants.map((p) => [p.user_id, p]))
   const others = participants.filter((p) => p.user_id !== userId)
 
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!draft.trim() || !userId) return
+  const sendMessage = async (body: string) => {
+    if (!body.trim() || !userId) return false
 
     setSending(true)
     setError(null)
 
-    const { error: insertError } = await supabase.from('messages').insert(
-      jobId
-        ? { job_id: jobId, sender_user_id: userId, body: draft.trim() }
-        : { thread_id: threadId, sender_user_id: userId, body: draft.trim() }
-    )
+    const { data: inserted, error: insertError } = await supabase
+      .from('messages')
+      .insert(
+        jobId
+          ? { job_id: jobId, sender_user_id: userId, body: body.trim() }
+          : { thread_id: threadId, sender_user_id: userId, body: body.trim() }
+      )
+      .select('id, job_id, thread_id, sender_user_id, body, created_at')
+      .single()
 
     if (insertError) {
       console.error('Error sending message:', insertError)
       setError('Could not send message.')
       setSending(false)
-      return
+      return false
     }
 
-    setDraft('')
+    // Append immediately rather than waiting on the realtime echo — the
+    // duplicate guard in the realtime handler already no-ops if it also
+    // arrives that way.
+    if (inserted) {
+      setMessages((prev) => (prev.some((m) => m.id === inserted.id) ? prev : [...prev, inserted]))
+    }
+
     setSending(false)
+    return true
+  }
+
+  const handleSend = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (await sendMessage(draft)) setDraft('')
+  }
+
+  const handleSendSchedule = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!scheduleDate) return
+    const dt = new Date(`${scheduleDate}T${scheduleTime || '09:00'}`)
+    const formatted = dt.toLocaleString(undefined, {
+      weekday: 'long',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    })
+    if (await sendMessage(`📅 Proposed time: ${formatted}${scheduleTime ? '' : ' (time TBD)'}`)) {
+      setShowSchedule(false)
+      setScheduleDate('')
+      setScheduleTime('')
+    }
   }
 
   if (loading) {
@@ -225,7 +267,53 @@ export function ChatPanel({
         </div>
       )}
 
+      {threadId && showSchedule && (
+        <form onSubmit={handleSendSchedule} className="bg-white/5 border border-white/10 rounded-xl p-3 mb-3 space-y-2">
+          <p className="text-white/50 text-xs font-medium">Propose a time</p>
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={scheduleDate}
+              onChange={(e) => setScheduleDate(e.target.value)}
+              min={new Date().toISOString().split('T')[0]}
+              required
+              className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#12A5A9] transition [color-scheme:dark]"
+            />
+            <input
+              type="time"
+              value={scheduleTime}
+              onChange={(e) => setScheduleTime(e.target.value)}
+              className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#12A5A9] transition [color-scheme:dark]"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="submit"
+              disabled={sending || !scheduleDate}
+              className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold rounded-lg px-3.5 py-2 disabled:opacity-50 transition"
+            >
+              Send proposal
+            </button>
+            <button type="button" onClick={() => setShowSchedule(false)} className="text-white/40 hover:text-white text-xs transition">
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
+
       <form onSubmit={handleSend} className="flex items-center gap-2 pt-2 border-t border-white/8">
+        {threadId && (
+          <button
+            type="button"
+            onClick={() => setShowSchedule((v) => !v)}
+            aria-label="Propose a time"
+            className={`shrink-0 w-11 h-11 rounded-xl border flex items-center justify-center transition ${
+              showSchedule ? 'bg-[#12A5A9]/20 border-[#12A5A9]/40 text-[#12A5A9]' : 'bg-white/5 border-white/10 text-white/50 hover:text-white'
+            }`}
+          >
+            <CalendarIcon className="w-4.5 h-4.5" />
+          </button>
+        )}
         <input
           type="text"
           value={draft}
