@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { useConversations } from '@/lib/useConversations'
 import { ChatPanel } from '@/components/ChatPanel'
+import { NewConversationPicker, type StartedConversation } from '@/components/NewConversationPicker'
 import { MessageCircleIcon } from '@/components/icons'
 
 function formatTimestamp(iso: string) {
@@ -15,12 +16,17 @@ function formatTimestamp(iso: string) {
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
+type ActivePanel =
+  | { kind: 'job'; id: string; otherName: string; otherRole: string; category: string }
+  | { kind: 'dm'; id: string; otherName: string; otherRole: string; initialDraft?: string }
+
 export function FloatingChatWidget() {
   const pathname = usePathname()
   const [userId, setUserId] = useState<string | null>(null)
-  const [role, setRole] = useState<string | null>(null)
+  const [role, setRole] = useState<'landlord' | 'renter' | 'contractor' | null>(null)
   const [open, setOpen] = useState(false)
-  const [activeJobId, setActiveJobId] = useState<string | null>(null)
+  const [showPicker, setShowPicker] = useState(false)
+  const [active, setActive] = useState<ActivePanel | null>(null)
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -30,20 +36,28 @@ export function FloatingChatWidget() {
     })
   }, [])
 
-  const { loading, conversations, unreadJobIds, totalUnread } = useConversations(userId)
+  const { loading, conversations, unreadIds, totalUnread } = useConversations(userId)
 
   // Skip on the pages that already show conversations full-screen —
   // a floating bubble on top of the full chat/inbox view would be
   // redundant clutter, not a shortcut.
-  const isChatOrInboxPage = /\/jobs\/[^/]+\/chat$/.test(pathname) || pathname.endsWith('/messages')
+  const isChatOrInboxPage = /\/jobs\/[^/]+\/chat$/.test(pathname) || /\/messages(\/|$)/.test(pathname)
 
   if (!userId || !role || isChatOrInboxPage) return null
 
-  const active = conversations.find((c) => c.jobId === activeJobId)
-
   const handleClose = () => {
     setOpen(false)
-    setActiveJobId(null)
+    setActive(null)
+    setShowPicker(false)
+  }
+
+  const openConversation = (c: (typeof conversations)[number]) => {
+    setActive({ kind: c.kind, id: c.id, otherName: c.otherName, otherRole: c.otherRole, category: c.category })
+  }
+
+  const handleStarted = (c: StartedConversation) => {
+    setShowPicker(false)
+    setActive({ kind: 'dm', id: c.threadId, otherName: c.otherName, otherRole: c.otherRole, initialDraft: c.initialDraft })
   }
 
   return (
@@ -57,16 +71,29 @@ export function FloatingChatWidget() {
             <div className="flex items-center gap-3 px-4 py-3.5 border-b border-white/8 shrink-0">
               {active ? (
                 <>
-                  <button onClick={() => setActiveJobId(null)} className="text-white/50 hover:text-white transition shrink-0">
+                  <button onClick={() => setActive(null)} className="text-white/50 hover:text-white transition shrink-0">
                     ←
                   </button>
                   <div className="min-w-0 flex-1">
                     <p className="text-white text-sm font-semibold truncate">{active.otherName}</p>
-                    <p className="text-white/40 text-xs truncate">{active.otherRole} · {active.category}</p>
+                    <p className="text-white/40 text-xs truncate">
+                      {active.otherRole}{active.kind === 'job' ? ` · ${active.category}` : ''}
+                    </p>
                   </div>
                 </>
+              ) : showPicker ? (
+                <p className="text-white text-sm font-semibold flex-1">New message</p>
               ) : (
-                <p className="text-white text-sm font-semibold flex-1">Messages</p>
+                <>
+                  <p className="text-white text-sm font-semibold flex-1">Messages</p>
+                  <button
+                    onClick={() => setShowPicker(true)}
+                    className="text-white/50 hover:text-white text-lg leading-none transition shrink-0 w-6 h-6 flex items-center justify-center"
+                    aria-label="New message"
+                  >
+                    +
+                  </button>
+                </>
               )}
               <button onClick={handleClose} className="text-white/40 hover:text-white text-lg leading-none transition shrink-0">
                 ×
@@ -76,8 +103,13 @@ export function FloatingChatWidget() {
             <div className="flex-1 min-h-0 overflow-hidden">
               {active ? (
                 <div className="px-4 h-full">
-                  <ChatPanel jobId={active.jobId} heightClassName="h-full" />
+                  <ChatPanel
+                    {...(active.kind === 'job' ? { jobId: active.id } : { threadId: active.id, initialDraft: active.initialDraft })}
+                    heightClassName="h-full"
+                  />
                 </div>
+              ) : showPicker ? (
+                <NewConversationPicker myRole={role} onStart={handleStarted} onCancel={() => setShowPicker(false)} />
               ) : (
                 <div className="h-full overflow-y-auto px-3 py-3">
                   {loading ? (
@@ -91,11 +123,11 @@ export function FloatingChatWidget() {
                     <div className="space-y-2">
                       {conversations.map((c) => {
                         const isMine = c.lastSenderId === userId
-                        const isUnread = unreadJobIds.has(c.jobId)
+                        const isUnread = unreadIds.has(`${c.kind}:${c.id}`)
                         return (
                           <button
-                            key={c.jobId}
-                            onClick={() => setActiveJobId(c.jobId)}
+                            key={`${c.kind}:${c.id}`}
+                            onClick={() => openConversation(c)}
                             className="w-full text-left bg-white/5 hover:bg-white/8 rounded-xl p-3 transition"
                           >
                             <div className="flex items-start justify-between gap-2">
@@ -119,7 +151,7 @@ export function FloatingChatWidget() {
               )}
             </div>
 
-            {!active && (
+            {!active && !showPicker && (
               <Link
                 href={`/${role}/messages`}
                 onClick={handleClose}

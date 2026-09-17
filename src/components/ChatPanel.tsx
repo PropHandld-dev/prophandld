@@ -4,11 +4,12 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Skeleton } from '@/components/Skeleton'
 import { RippleButton } from '@/components/RippleButton'
-import { markJobRead } from '@/lib/messageReads'
+import { markJobRead, markThreadRead } from '@/lib/messageReads'
 
 type Message = {
   id: string
-  job_id: string
+  job_id: string | null
+  thread_id: string | null
   sender_user_id: string
   body: string
   created_at: string
@@ -40,15 +41,27 @@ function dayLabel(iso: string) {
   return date.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })
 }
 
-export function ChatPanel({ jobId, heightClassName = 'h-[70vh]' }: { jobId: string; heightClassName?: string }) {
+export function ChatPanel({
+  jobId,
+  threadId,
+  heightClassName = 'h-[70vh]',
+  initialDraft = '',
+}: {
+  jobId?: string
+  threadId?: string
+  heightClassName?: string
+  initialDraft?: string
+}) {
   const [userId, setUserId] = useState<string | null>(null)
   const [participants, setParticipants] = useState<Participant[]>([])
   const [messages, setMessages] = useState<Message[]>([])
   const [loading, setLoading] = useState(true)
-  const [draft, setDraft] = useState('')
+  const [draft, setDraft] = useState(initialDraft)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
+
+  const markRead = (uid: string) => (jobId ? markJobRead(jobId, uid) : threadId ? markThreadRead(threadId, uid) : Promise.resolve())
 
   useEffect(() => {
     const init = async () => {
@@ -56,13 +69,16 @@ export function ChatPanel({ jobId, heightClassName = 'h-[70vh]' }: { jobId: stri
       if (!user) return
       setUserId(user.id)
 
+      const participantsQuery = jobId
+        ? supabase.rpc('get_job_participants', { target_job_id: jobId })
+        : supabase.rpc('get_dm_thread_participants', { target_thread_id: threadId })
+      const messagesQuery = jobId
+        ? supabase.from('messages').select('id, job_id, thread_id, sender_user_id, body, created_at').eq('job_id', jobId).order('created_at', { ascending: true })
+        : supabase.from('messages').select('id, job_id, thread_id, sender_user_id, body, created_at').eq('thread_id', threadId).order('created_at', { ascending: true })
+
       const [{ data: participantsData }, { data: messagesData, error: loadError }] = await Promise.all([
-        supabase.rpc('get_job_participants', { target_job_id: jobId }),
-        supabase
-          .from('messages')
-          .select('id, job_id, sender_user_id, body, created_at')
-          .eq('job_id', jobId)
-          .order('created_at', { ascending: true }),
+        participantsQuery,
+        messagesQuery,
       ])
 
       setParticipants(participantsData || [])
@@ -76,20 +92,21 @@ export function ChatPanel({ jobId, heightClassName = 'h-[70vh]' }: { jobId: stri
 
       setMessages(messagesData || [])
       setLoading(false)
-      await markJobRead(jobId, user.id)
+      await markRead(user.id)
     }
     init()
 
+    const filter = jobId ? `job_id=eq.${jobId}` : `thread_id=eq.${threadId}`
     const channel = supabase
-      .channel(`messages:${jobId}`)
+      .channel(`messages:${jobId ? 'job' : 'thread'}:${jobId || threadId}`)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages', filter: `job_id=eq.${jobId}` },
+        { event: 'INSERT', schema: 'public', table: 'messages', filter },
         (payload) => {
           const incoming = payload.new as Message
           setMessages((prev) => (prev.some((m) => m.id === incoming.id) ? prev : [...prev, incoming]))
           supabase.auth.getUser().then(({ data: { user } }) => {
-            if (user) markJobRead(jobId, user.id)
+            if (user) markRead(user.id)
           })
         }
       )
@@ -98,7 +115,7 @@ export function ChatPanel({ jobId, heightClassName = 'h-[70vh]' }: { jobId: stri
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [jobId])
+  }, [jobId, threadId])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -114,11 +131,11 @@ export function ChatPanel({ jobId, heightClassName = 'h-[70vh]' }: { jobId: stri
     setSending(true)
     setError(null)
 
-    const { error: insertError } = await supabase.from('messages').insert({
-      job_id: jobId,
-      sender_user_id: userId,
-      body: draft.trim(),
-    })
+    const { error: insertError } = await supabase.from('messages').insert(
+      jobId
+        ? { job_id: jobId, sender_user_id: userId, body: draft.trim() }
+        : { thread_id: threadId, sender_user_id: userId, body: draft.trim() }
+    )
 
     if (insertError) {
       console.error('Error sending message:', insertError)

@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { MessagesInbox } from '@/components/MessagesInbox'
 import { CONTRACTOR_TABS } from '@/lib/navTabs'
@@ -12,7 +13,15 @@ export default function ContractorMessagesPage() {
       </nav>
 
       <main className="max-w-2xl mx-auto px-6 py-10 pb-28">
-        <h1 className="text-2xl font-bold text-white mb-8">Messages</h1>
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-2xl font-bold text-white">Messages</h1>
+          <Link
+            href="/contractor/messages/new"
+            className="text-xs font-semibold bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white px-3.5 py-2 rounded-full hover:opacity-90 transition"
+          >
+            New message
+          </Link>
+        </div>
         <MessagesInbox basePath="/contractor" />
       </main>
 

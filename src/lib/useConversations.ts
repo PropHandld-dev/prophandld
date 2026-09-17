@@ -2,10 +2,11 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
-import { getUnreadJobIds } from '@/lib/messageReads'
+import { getUnreadJobIds, getUnreadThreadIds } from '@/lib/messageReads'
 
 export type Conversation = {
-  jobId: string
+  kind: 'job' | 'dm'
+  id: string
   lastMessage: string
   lastMessageAt: string
   lastSenderId: string
@@ -23,26 +24,28 @@ const ROLE_LABELS: Record<string, string> = {
 
 // Shared by the full-page inbox and the floating widget. Deliberately
 // has no server-side "who can you message" logic of its own — it only
-// ever surfaces conversations that already exist, and a conversation
+// ever surfaces conversations that already exist. A job conversation
 // can only exist because someone inserted a message, which the
-// `messages` RLS policy already restricts to actual job participants
-// (see is_job_participant: landlord via property ownership, renter via
-// their own active tenancy, contractor via an accepted bid on that
-// specific job — never an open contact list). Querying "all messages,
-// most recent first" and grouping by job_id client-side is safe
-// precisely because RLS has already filtered the rows to jobs this
-// user is legitimately part of.
+// `messages` RLS policy restricts to actual job participants (see
+// is_job_participant). A DM conversation can only exist because a
+// `dm_threads` row was created by start_landlord_tenant_thread /
+// start_landlord_contractor_thread, both of which independently
+// re-derive the relationship from real tenancy/bid rows — never an
+// open contact list. Querying "all messages, most recent first" and
+// grouping by job_id/thread_id client-side is safe precisely because
+// RLS has already filtered the rows to conversations this user is
+// legitimately part of.
 export function useConversations(userId: string | null) {
   const [loading, setLoading] = useState(true)
   const [conversations, setConversations] = useState<Conversation[]>([])
-  const [unreadJobIds, setUnreadJobIds] = useState<Set<string>>(new Set())
+  const [unreadIds, setUnreadIds] = useState<Set<string>>(new Set())
 
   const load = useCallback(async () => {
     if (!userId) return
 
     const { data: messages, error } = await supabase
       .from('messages')
-      .select('job_id, body, created_at, sender_user_id')
+      .select('job_id, thread_id, body, created_at, sender_user_id')
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -51,63 +54,94 @@ export function useConversations(userId: string | null) {
       return
     }
 
-    const latestByJob = new Map<string, { body: string; created_at: string; sender_user_id: string }>()
+    const latestByKey = new Map<string, { kind: 'job' | 'dm'; id: string; body: string; created_at: string; sender_user_id: string }>()
     for (const m of messages || []) {
-      if (!latestByJob.has(m.job_id)) latestByJob.set(m.job_id, m)
+      const kind: 'job' | 'dm' = m.job_id ? 'job' : 'dm'
+      const id = m.job_id || m.thread_id!
+      const key = `${kind}:${id}`
+      if (!latestByKey.has(key)) latestByKey.set(key, { kind, id, body: m.body, created_at: m.created_at, sender_user_id: m.sender_user_id })
     }
 
-    const jobIds = Array.from(latestByJob.keys())
-    if (jobIds.length === 0) {
+    const entries = Array.from(latestByKey.values())
+    if (entries.length === 0) {
       setConversations([])
+      setUnreadIds(new Set())
       setLoading(false)
       return
     }
 
-    const [{ data: jobsData }, unread] = await Promise.all([
-      supabase
-        .from('jobs')
-        .select('id, category, units(unit_number, properties(address))')
-        .in('id', jobIds),
+    const jobIds = entries.filter((e) => e.kind === 'job').map((e) => e.id)
+    const threadIds = entries.filter((e) => e.kind === 'dm').map((e) => e.id)
+
+    const [{ data: jobsData }, unreadJobs, unreadThreads, jobParticipantResults, dmParticipantResults] = await Promise.all([
+      jobIds.length > 0
+        ? supabase.from('jobs').select('id, category, units(unit_number, properties(address))').in('id', jobIds)
+        : Promise.resolve({ data: [] as any[] }),
       getUnreadJobIds(jobIds, userId),
+      getUnreadThreadIds(threadIds, userId),
+      Promise.all(jobIds.map((jobId) => supabase.rpc('get_job_participants', { target_job_id: jobId }))),
+      Promise.all(threadIds.map((threadId) => supabase.rpc('get_dm_thread_participants', { target_thread_id: threadId }))),
     ])
 
-    setUnreadJobIds(unread)
+    setUnreadIds(new Set([...Array.from(unreadJobs, (id) => `job:${id}`), ...Array.from(unreadThreads, (id) => `thread:${id}`)]))
 
     const jobById = new Map((jobsData || []).map((j) => [j.id, j]))
+    const jobParticipantsById = new Map(jobIds.map((id, i) => [id, jobParticipantResults[i]]))
+    const dmParticipantsById = new Map(threadIds.map((id, i) => [id, dmParticipantResults[i]]))
 
-    const participantResults = await Promise.all(
-      jobIds.map((jobId) => supabase.rpc('get_job_participants', { target_job_id: jobId }))
-    )
+    const list: Conversation[] = entries.map((e) => {
+      if (e.kind === 'job') {
+        const job = jobById.get(e.id) as any
+        const unit = job?.units
+        const property = unit?.properties
+        const result = jobParticipantsById.get(e.id)
 
-    const list: Conversation[] = jobIds.map((jobId, i) => {
-      const last = latestByJob.get(jobId)!
-      const job = jobById.get(jobId) as any
-      const unit = job?.units
-      const property = unit?.properties
+        if (result?.error) {
+          console.error('useConversations: get_job_participants failed', { jobId: e.id, error: result.error })
+        }
 
-      if (participantResults[i].error) {
-        console.error('useConversations: get_job_participants failed', { jobId, error: participantResults[i].error })
+        const participants = (result?.data || []) as { role: string; user_id: string; full_name: string | null }[]
+        const others = participants.filter((p) => p.user_id !== userId)
+        // Falls back to job context (not a bare "Someone") when the RPC
+        // can't resolve another participant — e.g. a job with no accepted
+        // contractor yet, or the SQL grant for this RPC hasn't been run.
+        const otherLabel = others.length > 0
+          ? others.map((p) => p.full_name || 'Unknown').join(', ')
+          : (job?.category || 'This job')
+        const otherRole = others[0]?.role ? ROLE_LABELS[others[0].role] || others[0].role : ''
+
+        return {
+          kind: 'job' as const,
+          id: e.id,
+          lastMessage: e.body,
+          lastMessageAt: e.created_at,
+          lastSenderId: e.sender_user_id,
+          category: job?.category || 'Job',
+          propertyLabel: property?.address
+            ? `${property.address}${unit?.unit_number ? ` — Unit ${unit.unit_number}` : ''}`
+            : '',
+          otherName: otherLabel,
+          otherRole,
+        }
       }
 
-      const participants = (participantResults[i].data || []) as { role: string; user_id: string; full_name: string | null }[]
+      const result = dmParticipantsById.get(e.id)
+      if (result?.error) {
+        console.error('useConversations: get_dm_thread_participants failed', { threadId: e.id, error: result.error })
+      }
+      const participants = (result?.data || []) as { role: string; user_id: string; full_name: string | null }[]
       const others = participants.filter((p) => p.user_id !== userId)
-      // Falls back to job context (not a bare "Someone") when the RPC
-      // can't resolve another participant — e.g. a job with no accepted
-      // contractor yet, or the SQL grant for this RPC hasn't been run.
-      const otherLabel = others.length > 0
-        ? others.map((p) => p.full_name || 'Unknown').join(', ')
-        : (job?.category || 'This job')
+      const otherLabel = others.length > 0 ? others.map((p) => p.full_name || 'Unknown').join(', ') : 'Direct message'
       const otherRole = others[0]?.role ? ROLE_LABELS[others[0].role] || others[0].role : ''
 
       return {
-        jobId,
-        lastMessage: last.body,
-        lastMessageAt: last.created_at,
-        lastSenderId: last.sender_user_id,
-        category: job?.category || 'Job',
-        propertyLabel: property?.address
-          ? `${property.address}${unit?.unit_number ? ` — Unit ${unit.unit_number}` : ''}`
-          : '',
+        kind: 'dm' as const,
+        id: e.id,
+        lastMessage: e.body,
+        lastMessageAt: e.created_at,
+        lastSenderId: e.sender_user_id,
+        category: 'Direct message',
+        propertyLabel: '',
         otherName: otherLabel,
         otherRole,
       }
@@ -132,7 +166,7 @@ export function useConversations(userId: string | null) {
     }
   }, [userId, load])
 
-  const totalUnread = unreadJobIds.size
+  const totalUnread = unreadIds.size
 
-  return { loading, conversations, unreadJobIds, totalUnread, refetch: load }
+  return { loading, conversations, unreadIds, totalUnread, refetch: load }
 }

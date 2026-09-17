@@ -27,6 +27,7 @@ export default function UnitDetailPage() {
   const [inviteResendError, setInviteResendError] = useState<string | null>(null)
   const [inviteResendSuccess, setInviteResendSuccess] = useState(false)
   const [tenantLookupFailed, setTenantLookupFailed] = useState(false)
+  const [messagingTenant, setMessagingTenant] = useState(false)
   const [loading, setLoading] = useState(true)
   const [showMoveOutForm, setShowMoveOutForm] = useState(false)
   const [moveOutDate, setMoveOutDate] = useState('')
@@ -129,6 +130,26 @@ export default function UnitDetailPage() {
   const handleStartEndTenancy = () => {
     setShowMoveOutForm(true)
     setMoveOutError(null)
+  }
+
+  const handleMessageTenant = async () => {
+    if (!tenancy) return
+    setMessagingTenant(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      router.replace('/login')
+      return
+    }
+    const { data: threadId, error } = await supabase.rpc('start_landlord_tenant_thread', {
+      p_landlord_user_id: user.id,
+      p_renter_user_id: tenancy.renter_user_id,
+    })
+    setMessagingTenant(false)
+    if (error || !threadId) {
+      console.error('Error starting conversation:', error)
+      return
+    }
+    router.push(`/landlord/messages/${threadId}`)
   }
 
   const handleCancelInvite = async () => {
@@ -360,12 +381,21 @@ export default function UnitDetailPage() {
               </MagneticLink>
             )}
             {tenancy && !editingTenancy && (
-              <button
-                onClick={openTenancyEdit}
-                className="text-[#12A5A9] text-xs font-semibold hover:underline"
-              >
-                Edit
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleMessageTenant}
+                  disabled={messagingTenant}
+                  className="text-[#12A5A9] text-xs font-semibold hover:underline disabled:opacity-50"
+                >
+                  {messagingTenant ? 'Opening…' : 'Message'}
+                </button>
+                <button
+                  onClick={openTenancyEdit}
+                  className="text-[#12A5A9] text-xs font-semibold hover:underline"
+                >
+                  Edit
+                </button>
+              </div>
             )}
           </div>
 

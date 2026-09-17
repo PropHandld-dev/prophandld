@@ -21,7 +21,7 @@ export function MessagesInbox({ basePath }: { basePath: string }) {
     supabase.auth.getUser().then(({ data: { user } }) => setUserId(user?.id ?? null))
   }, [])
 
-  const { loading, conversations, unreadJobIds } = useConversations(userId)
+  const { loading, conversations, unreadIds } = useConversations(userId)
 
   if (loading) {
     return (
@@ -36,7 +36,7 @@ export function MessagesInbox({ basePath }: { basePath: string }) {
   if (conversations.length === 0) {
     return (
       <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
-        <p className="text-white/30 text-sm">No conversations yet — messages you send or receive on a job will show up here.</p>
+        <p className="text-white/30 text-sm">No conversations yet — start one, or messages on a job will show up here.</p>
       </div>
     )
   }
@@ -45,11 +45,11 @@ export function MessagesInbox({ basePath }: { basePath: string }) {
     <div className="space-y-3">
       {conversations.map((c) => {
         const isMine = c.lastSenderId === userId
-        const isUnread = unreadJobIds.has(c.jobId)
+        const isUnread = unreadIds.has(`${c.kind}:${c.id}`)
         return (
           <Link
-            key={c.jobId}
-            href={`${basePath}/jobs/${c.jobId}/chat`}
+            key={`${c.kind}:${c.id}`}
+            href={c.kind === 'job' ? `${basePath}/jobs/${c.id}/chat` : `${basePath}/messages/${c.id}`}
             className="block bg-white/3 border border-white/8 rounded-2xl p-4 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all"
           >
             <div className="flex items-start justify-between gap-3">
