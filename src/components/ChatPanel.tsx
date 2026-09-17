@@ -172,6 +172,17 @@ export function ChatPanel({
     if (await sendMessage(draft)) setDraft('')
   }
 
+  // DM threads only — job-scoped chat has its own notification pipeline.
+  // Fire-and-forget: a failed email shouldn't block the chat itself.
+  const notifySchedule = (text: string, kind: 'proposed' | 'confirmed') => {
+    if (!threadId) return
+    fetch('/api/dm-schedule-notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ threadId, text, kind }),
+    }).catch((err) => console.error('Failed to send schedule notification email:', err))
+  }
+
   const handleSendSchedule = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!scheduleDate) return
@@ -183,11 +194,19 @@ export function ChatPanel({
       hour: 'numeric',
       minute: '2-digit',
     })
-    if (await sendMessage(`📅 Proposed time: ${formatted}${scheduleTime ? '' : ' (time TBD)'}`)) {
+    const text = `📅 Proposed time: ${formatted}${scheduleTime ? '' : ' (time TBD)'}`
+    if (await sendMessage(text)) {
       setShowSchedule(false)
       setScheduleDate('')
       setScheduleTime('')
+      notifySchedule(text, 'proposed')
     }
+  }
+
+  const handleConfirmSchedule = async (proposalBody: string) => {
+    const timePart = proposalBody.replace('📅 Proposed time: ', '')
+    const text = `✅ Confirmed: ${timePart}`
+    if (await sendMessage(text)) notifySchedule(text, 'confirmed')
   }
 
   if (loading) {
@@ -221,12 +240,16 @@ export function ChatPanel({
         {messages.length === 0 ? (
           <p className="text-white/30 text-sm text-center py-10">No messages yet — say hello.</p>
         ) : (
-          messages.map((m) => {
+          messages.map((m, i) => {
             const isMine = m.sender_user_id === userId
             const sender = participantByUserId.get(m.sender_user_id)
             const thisDay = dayLabel(m.created_at)
             const showDayDivider = thisDay !== lastDay
             lastDay = thisDay
+
+            const isProposal = threadId && m.body.startsWith('📅 Proposed time: ')
+            const alreadyConfirmed = isProposal && messages.slice(i + 1).some((later) => later.sender_user_id === userId && later.body.startsWith('✅ Confirmed:'))
+            const canConfirm = isProposal && !isMine && !alreadyConfirmed
 
             return (
               <div key={m.id}>
@@ -252,6 +275,15 @@ export function ChatPanel({
                     <p className={`text-[10px] text-white/30 mt-1 ${isMine ? 'text-right' : 'text-left'}`}>
                       {formatTimestamp(m.created_at)}
                     </p>
+                    {canConfirm && (
+                      <button
+                        onClick={() => handleConfirmSchedule(m.body)}
+                        disabled={sending}
+                        className="mt-1.5 text-[#12A5A9] text-xs font-semibold bg-[#12A5A9]/10 hover:bg-[#12A5A9]/15 rounded-full px-3 py-1.5 transition disabled:opacity-50"
+                      >
+                        ✓ Confirm this time
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { getUnreadJobIds, getUnreadThreadIds } from '@/lib/messageReads'
 
@@ -39,6 +39,12 @@ export function useConversations(userId: string | null) {
   const [loading, setLoading] = useState(true)
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [unreadIds, setUnreadIds] = useState<Set<string>>(new Set())
+  // FloatingChatWidget and MessagesInbox both call this hook, sometimes
+  // simultaneously (the widget's effects don't stop just because it
+  // renders null on /messages routes) — a shared channel name per user
+  // collides the moment a second instance tries to subscribe, so each
+  // hook instance gets its own unique channel.
+  const instanceId = useRef(Math.random().toString(36).slice(2)).current
 
   const load = useCallback(async () => {
     if (!userId) return
@@ -158,7 +164,7 @@ export function useConversations(userId: string | null) {
   useEffect(() => {
     if (!userId) return
     const channel = supabase
-      .channel(`inbox:${userId}`)
+      .channel(`inbox:${userId}:${instanceId}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => load())
       .subscribe()
     return () => {

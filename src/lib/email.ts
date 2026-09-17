@@ -521,9 +521,35 @@ export async function sendSupportConfirmationEmail({ to, question }: { to: strin
   const html = baseTemplate({
     eyebrow: 'Support',
     heading: 'Got it — thanks for reaching out',
-    bodyHtml: `We're a small startup, not a call center, so this isn't an auto-reply bot pretending to care — a real person read this. You asked:<br /><br />"${question}"<br /><br />We'll get back to you at this email address soon (probably faster than your cable company, definitely faster than a DMV line).`,
+    bodyHtml: `Thanks for reaching out to Prophandld. You asked:<br /><br />"${question}"<br /><br />A member of our team will review this and follow up at this email address soon.`,
     ctaLabel: 'Visit Prophandld',
     ctaUrl: SITE_URL,
   })
   return sendEmail({ to, subject: 'Got it — thanks for reaching out', html })
+}
+
+export async function sendDmScheduleEmail({
+  to,
+  fromName,
+  text,
+  kind,
+  role,
+  threadId,
+}: {
+  to: string
+  fromName: string
+  text: string
+  kind: 'proposed' | 'confirmed'
+  role: 'landlord' | 'renter' | 'contractor'
+  threadId: string
+}) {
+  const heading = kind === 'proposed' ? `${fromName} proposed a time` : `${fromName} confirmed a time`
+  const html = baseTemplate({
+    eyebrow: 'Schedule',
+    heading,
+    bodyHtml: text,
+    ctaLabel: 'Open conversation',
+    ctaUrl: `${SITE_URL}/${role}/messages/${threadId}`,
+  })
+  return sendEmail({ to, subject: heading, html })
 }

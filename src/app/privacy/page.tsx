@@ -115,7 +115,7 @@ export default function PrivacyPage() {
             <h2>9. Contact</h2>
             <p>
               Questions about your data? Reach out at{' '}
-              <a href="mailto:privacy@prophandld.com" className="text-[#12A5A9] hover:underline">privacy@prophandld.com</a>.
+              <a href="mailto:admin@prophandld.com" className="text-[#12A5A9] hover:underline">admin@prophandld.com</a>.
             </p>
           </section>
 

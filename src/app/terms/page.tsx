@@ -141,7 +141,7 @@ export default function TermsPage() {
             <h2>12. Contact</h2>
             <p>
               Questions about these terms? Reach out at{' '}
-              <a href="mailto:support@prophandld.com" className="text-[#12A5A9] hover:underline">support@prophandld.com</a>.
+              <a href="mailto:admin@prophandld.com" className="text-[#12A5A9] hover:underline">admin@prophandld.com</a>.
             </p>
           </section>
 

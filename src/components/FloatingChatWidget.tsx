@@ -30,11 +30,20 @@ export function FloatingChatWidget() {
   const [active, setActive] = useState<ActivePanel | null>(null)
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    const applyUser = (user: { id: string; user_metadata?: { role?: string } } | null | undefined) => {
       setUserId(user?.id ?? null)
       const r = user?.user_metadata?.role
       setRole(r === 'landlord' || r === 'renter' || r === 'contractor' ? r : null)
+    }
+    supabase.auth.getUser().then(({ data: { user } }) => applyUser(user))
+    // Right after sign-in the session can still be settling when this
+    // mounts, so getUser() alone can miss it — also react to auth state
+    // changes so the icon appears as soon as the session is ready,
+    // without needing a manual refresh.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      applyUser(session?.user)
     })
+    return () => subscription.unsubscribe()
   }, [])
 
   const { loading, conversations, unreadIds, totalUnread, refetch } = useConversations(userId)
@@ -183,27 +192,23 @@ export function FloatingChatWidget() {
         </div>
       )}
 
-      <button
-        onClick={handleToggleOpen}
-        className="fixed bottom-24 right-5 z-50 w-14 h-14 rounded-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] shadow-[0_10px_30px_-8px_rgba(18,165,169,0.6)] flex items-center justify-center text-white hover:scale-105 active:scale-95 transition-transform motion-safe:animate-[floatUp_0.3s_ease-out]"
-        aria-label="Messages"
-      >
-        {open ? (
-          <span className="text-2xl leading-none">×</span>
-        ) : (
-          <>
-            <MessageCircleIcon className="w-6 h-6" />
-            {totalUnread > 0 && (
-              <>
-                <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
-                  {totalUnread > 9 ? '9+' : totalUnread}
-                </span>
-                <span className="absolute inset-0 rounded-full motion-safe:animate-[bubblePulse_2.5s_ease-out_infinite]" />
-              </>
-            )}
-          </>
-        )}
-      </button>
+      {!open && (
+        <button
+          onClick={handleToggleOpen}
+          className="fixed bottom-24 right-5 z-50 w-14 h-14 rounded-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] shadow-[0_10px_30px_-8px_rgba(18,165,169,0.6)] flex items-center justify-center text-white hover:scale-105 active:scale-95 transition-transform motion-safe:animate-[floatUp_0.3s_ease-out]"
+          aria-label="Messages"
+        >
+          <MessageCircleIcon className="w-6 h-6" />
+          {totalUnread > 0 && (
+            <>
+              <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                {totalUnread > 9 ? '9+' : totalUnread}
+              </span>
+              <span className="absolute inset-0 rounded-full motion-safe:animate-[bubblePulse_2.5s_ease-out_infinite]" />
+            </>
+          )}
+        </button>
+      )}
     </>
   )
 }
