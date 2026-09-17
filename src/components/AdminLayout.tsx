@@ -20,17 +20,24 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const [checking, setChecking] = useState(true)
 
   useEffect(() => {
-    const check = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user || !user.email?.endsWith('@prophandld.com')) {
-        router.replace('/')
-        return
-      }
-      setAuthorized(true)
+    // A one-shot getUser() check on mount can race right after sign-in —
+    // it makes a network round-trip that can resolve before the session
+    // is fully synced, bouncing a legitimate admin. onAuthStateChange's
+    // first callback (INITIAL_SESSION) reflects the actual persisted
+    // session instead, so it's the single source of truth here rather
+    // than racing two separate checks against each other.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const user = session?.user
+      setAuthorized(!!user && !!user.email?.endsWith('@prophandld.com'))
       setChecking(false)
-    }
-    check()
-  }, [router])
+    })
+    return () => subscription.unsubscribe()
+  }, [])
+
+  useEffect(() => {
+    if (checking) return
+    if (!authorized) router.replace('/')
+  }, [checking, authorized, router])
 
   if (checking || !authorized) {
     return (
