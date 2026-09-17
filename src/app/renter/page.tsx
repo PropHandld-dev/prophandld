@@ -192,7 +192,7 @@ export default function RenterDashboard() {
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className="text-white font-semibold">Prophandld</span>
+          <Link href="/renter" className="text-white font-semibold hover:opacity-80 transition">Prophandld</Link>
           <span className="text-xs bg-[#0A7B7E]/20 text-[#12A5A9] border border-[#12A5A9]/30 rounded-full px-2 py-0.5">Renter</span>
         </div>
         <span className="text-white/50 text-sm">{user?.user_metadata?.full_name}</span>
@@ -210,7 +210,10 @@ export default function RenterDashboard() {
           <>
             <div className="mb-8">
               <h1 className="text-2xl font-bold text-white">
-                Hi, {user?.user_metadata?.full_name?.split(' ')[0]}
+                Hi,{' '}
+                <Link href="/profile" className="hover:text-[#12A5A9] transition">
+                  {user?.user_metadata?.full_name?.split(' ')[0]}
+                </Link>
               </h1>
               <p className="text-white/50 mt-1">Track your maintenance requests here.</p>
             </div>

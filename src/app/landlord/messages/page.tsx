@@ -9,7 +9,7 @@ export default function LandlordMessagesPage() {
   return (
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
-        <span className="text-white font-semibold text-sm">Prophandld</span>
+        <Link href="/landlord" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
       </nav>
 
       <main className="max-w-2xl mx-auto px-6 py-10 pb-28">

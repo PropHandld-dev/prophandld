@@ -482,7 +482,7 @@ export default function LandlordDashboard() {
             <rect x="38" y="78" width="9" height="18" rx="4" fill="white"/>
             <rect x="53" y="78" width="9" height="18" rx="4" fill="white"/>
           </svg>
-          <span className="text-white font-semibold text-lg tracking-tight">Prophandld</span>
+          <Link href="/landlord" className="text-white font-semibold text-lg tracking-tight hover:opacity-80 transition">Prophandld</Link>
           <span className="text-xs bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 text-[#12A5A9] border border-[#12A5A9]/30 rounded-full px-2.5 py-1">
             Landlord
           </span>
@@ -507,7 +507,10 @@ export default function LandlordDashboard() {
           <>
             <div className="mb-8">
               <h1 className="text-3xl font-bold text-white tracking-tight">
-                Welcome back, {user?.user_metadata?.full_name?.split(' ')[0]}
+                Welcome back,{' '}
+                <Link href="/profile" className="hover:text-[#12A5A9] transition">
+                  {user?.user_metadata?.full_name?.split(' ')[0]}
+                </Link>
               </h1>
               <p className="text-white/50 mt-2">Here&apos;s the state of your portfolio right now.</p>
             </div>

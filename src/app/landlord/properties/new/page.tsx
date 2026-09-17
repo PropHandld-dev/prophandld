@@ -142,7 +142,7 @@ function NewPropertyForm() {
         <Link href="/landlord" className="text-white/50 hover:text-white text-sm transition">
           ← Back to dashboard
         </Link>
-        <span className="text-white font-semibold text-sm">Prophandld</span>
+        <Link href="/landlord" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
       </nav>
 
       <main className="max-w-xl mx-auto px-6 py-10 pb-28">

@@ -146,7 +146,7 @@ export default function EditPropertyPage() {
         >
           ← Back to property
         </Link>
-        <span className="text-white font-semibold text-sm">Prophandld</span>
+        <Link href="/landlord" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
         <div className="w-24" />
       </nav>
 

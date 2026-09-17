@@ -71,7 +71,7 @@ export default function RenterCalendarPage() {
         <Link href="/renter" className="text-white/50 hover:text-white text-sm transition">
           ← Dashboard
         </Link>
-        <span className="text-white font-semibold text-sm">Prophandld</span>
+        <Link href="/renter" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
         <div className="w-20" />
       </nav>
 

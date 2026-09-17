@@ -209,7 +209,7 @@ export default function PropertyDetailPage() {
         <Link href="/landlord/properties" className="text-white/50 hover:text-white text-sm transition">
           ← Properties
         </Link>
-        <span className="text-white font-semibold text-sm">Prophandld</span>
+        <Link href="/landlord" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
         <MagneticLink
           href={`/landlord/properties/${propertyId}/units/new`}
           className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-4 py-2 rounded-xl hover:opacity-90 transition"

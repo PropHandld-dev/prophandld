@@ -181,7 +181,7 @@ export default function ProfilePage() {
             ← Back to dashboard
           </Link>
         </div>
-        <span className="text-white font-semibold text-sm">Prophandld</span>
+        <Link href={getDashboardLink()} className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
       </nav>
 
       <main className="max-w-2xl mx-auto px-6 py-10 pb-28">

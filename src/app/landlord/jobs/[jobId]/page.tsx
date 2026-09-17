@@ -591,7 +591,7 @@ export default function JobDetailPage() {
         <Link href="/landlord/jobs" className="text-white/50 hover:text-white text-sm transition">
           ← Jobs
         </Link>
-        <span className="text-white font-semibold text-sm">Prophandld</span>
+        <Link href="/landlord" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
         <div className="w-20" />
       </nav>
       <main className="max-w-2xl mx-auto px-6 py-10 pb-28">
@@ -629,7 +629,7 @@ export default function JobDetailPage() {
         <Link href="/landlord/jobs" className="text-white/50 hover:text-white text-sm transition">
           ← Jobs
         </Link>
-        <span className="text-white font-semibold text-sm">Prophandld</span>
+        <Link href="/landlord" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
         <Link href={`/landlord/jobs/${jobId}/chat`} className="relative text-white/50 hover:text-white transition">
           <MessageCircleIcon className="w-5 h-5" />
           {hasUnread && <UnreadDot className="absolute -top-0.5 -right-0.5" />}

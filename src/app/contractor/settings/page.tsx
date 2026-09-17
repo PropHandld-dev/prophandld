@@ -11,6 +11,7 @@ import { RippleButton } from '@/components/RippleButton'
 import { CheckCircleIcon } from '@/components/icons'
 import { CONTRACTOR_TABS } from '@/lib/navTabs'
 import { StripeConnectCard } from '@/components/StripeConnectCard'
+import { Switch } from '@/components/Switch'
 
 const CATEGORIES = [
   'Plumbing', 'Electrical', 'HVAC', 'Appliance',
@@ -283,7 +284,7 @@ export default function ContractorSettingsPage() {
         <Link href="/contractor" className="text-white/50 hover:text-white text-sm transition">
           ← Dashboard
         </Link>
-        <span className="text-white font-semibold text-sm">Prophandld</span>
+        <Link href="/contractor" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
         <div className="w-24" />
       </nav>
 
@@ -309,25 +310,26 @@ export default function ContractorSettingsPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="text-white/70 text-sm block mb-2">Categories you service</label>
-            <div className="grid grid-cols-2 gap-2">
-              {CATEGORIES.map((cat) => (
-                <label
-                  key={cat}
-                  className={
-                    selectedCategories.includes(cat)
-                      ? 'flex items-center gap-2 bg-[#0A7B7E]/15 border border-[#12A5A9]/40 rounded-xl px-3 py-2.5 cursor-pointer'
-                      : 'flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 cursor-pointer hover:bg-white/8 transition'
-                  }
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedCategories.includes(cat)}
-                    onChange={() => toggleCategory(cat)}
-                    className="w-4 h-4"
-                  />
-                  <span className="text-white text-sm">{cat}</span>
-                </label>
-              ))}
+            <div className="flex flex-wrap gap-2">
+              {CATEGORIES.map((cat) => {
+                const selected = selectedCategories.includes(cat)
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => toggleCategory(cat)}
+                    aria-pressed={selected}
+                    className={
+                      selected
+                        ? 'inline-flex items-center gap-1.5 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-medium rounded-full px-4 py-2 transition'
+                        : 'inline-flex items-center gap-1.5 bg-white/5 border border-white/10 text-white/60 text-sm font-medium rounded-full px-4 py-2 hover:bg-white/8 hover:text-white transition'
+                    }
+                  >
+                    {selected && <CheckCircleIcon className="w-3.5 h-3.5" />}
+                    {cat}
+                  </button>
+                )
+              })}
             </div>
           </div>
 
@@ -359,15 +361,10 @@ export default function ContractorSettingsPage() {
             You&apos;ll see jobs within your travel radius of this ZIP code, not just an exact match.
           </p>
 
-          <label className="flex items-center gap-3 bg-white/3 border border-white/8 rounded-xl p-4 cursor-pointer hover:bg-white/5 transition-all">
-            <input
-              type="checkbox"
-              checked={licensed}
-              onChange={(e) => setLicensed(e.target.checked)}
-              className="w-4 h-4"
-            />
+          <div className="flex items-center justify-between gap-3 bg-white/3 border border-white/8 rounded-xl p-4">
             <span className="text-white text-sm">I am a licensed contractor</span>
-          </label>
+            <Switch checked={licensed} onChange={setLicensed} />
+          </div>
 
           {error && (
             <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">

@@ -219,7 +219,7 @@ export default function ContractorDashboard() {
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className="text-white font-semibold">Prophandld</span>
+          <Link href="/contractor" className="text-white font-semibold hover:opacity-80 transition">Prophandld</Link>
           <span className="text-xs bg-[#0A7B7E]/20 text-[#12A5A9] border border-[#12A5A9]/30 rounded-full px-2 py-0.5">Contractor</span>
         </div>
         <span className="text-white/50 text-sm">{user?.user_metadata?.full_name}</span>
@@ -239,7 +239,10 @@ export default function ContractorDashboard() {
           <>
             <div className="mb-8">
               <h1 className="text-2xl font-bold text-white">
-                Welcome, {user?.user_metadata?.full_name?.split(' ')[0]}
+                Welcome,{' '}
+                <Link href="/profile" className="hover:text-[#12A5A9] transition">
+                  {user?.user_metadata?.full_name?.split(' ')[0]}
+                </Link>
               </h1>
               <p className="text-white/50 mt-1">Find jobs and manage your bids.</p>
             </div>
@@ -273,7 +276,7 @@ export default function ContractorDashboard() {
                     <CountUp value={activeJobsCount} className="text-2xl font-bold text-white block" />
                     <div className="text-white/40 text-xs mt-1">Active</div>
                   </a>
-                  <Link href="/contractor/settings" className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
+                  <Link href="/contractor/earnings" className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
                     <DollarSignIcon className="w-5 h-5 text-[#12A5A9] mx-auto mb-1" />
                     <div className="text-2xl font-bold text-white">${totalEarnings.toLocaleString()}</div>
                     <div className="text-white/40 text-xs mt-1">Earnings</div>
@@ -414,12 +417,7 @@ export default function ContractorDashboard() {
 
                 <div className="bg-white/3 border border-white/8 rounded-2xl p-6">
                   <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
-                    <div className="flex items-center gap-3">
-                      <h3 className="text-white font-semibold">Past jobs</h3>
-                      <Link href="/contractor/earnings" className="text-[#12A5A9] text-xs font-semibold hover:underline">
-                        Earnings & receipts →
-                      </Link>
-                    </div>
+                    <h3 className="text-white font-semibold">Past jobs</h3>
                     <div className="flex gap-1.5">
                       {PAST_FILTERS.map((f) => (
                         <button
@@ -459,6 +457,12 @@ export default function ContractorDashboard() {
                       />
                     </div>
                   )}
+                  <Link
+                    href="/contractor/earnings"
+                    className="w-full text-center text-[#12A5A9] text-xs font-semibold pt-4 mt-1 border-t border-white/8 block hover:underline"
+                  >
+                    View earnings, receipts & tax history →
+                  </Link>
                 </div>
               </>
             )}

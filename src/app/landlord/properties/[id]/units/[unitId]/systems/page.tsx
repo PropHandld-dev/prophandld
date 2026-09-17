@@ -279,7 +279,7 @@ export default function UnitSystemsPage() {
         >
           ← Unit
         </Link>
-        <span className="text-white font-semibold text-sm">Prophandld</span>
+        <Link href="/landlord" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
         <div className="w-20" />
       </nav>
 

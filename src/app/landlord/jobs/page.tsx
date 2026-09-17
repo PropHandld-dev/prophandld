@@ -204,7 +204,7 @@ function LandlordJobsList() {
         <Link href="/landlord" className="text-white/50 hover:text-white text-sm transition">
           ← Dashboard
         </Link>
-        <span className="text-white font-semibold text-sm">Prophandld</span>
+        <Link href="/landlord" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
         <div className="w-24" />
       </nav>
       <main className="max-w-4xl mx-auto px-6 py-10 pb-28">
@@ -226,7 +226,7 @@ function LandlordJobsList() {
         <Link href="/landlord" className="text-white/50 hover:text-white text-sm transition">
           ← Dashboard
         </Link>
-        <span className="text-white font-semibold text-sm">Prophandld</span>
+        <Link href="/landlord" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
         <div className="w-24" />
       </nav>
 

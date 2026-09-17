@@ -80,7 +80,7 @@ export default function ContractorEarningsPage() {
         <Link href="/contractor" className="text-white/50 hover:text-white text-sm transition">
           ← Home
         </Link>
-        <span className="text-white font-semibold text-sm">Prophandld</span>
+        <Link href="/contractor" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
         <div className="w-14" />
       </nav>
 

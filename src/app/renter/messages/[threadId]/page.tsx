@@ -17,7 +17,7 @@ export default function RenterDmThreadPage() {
         <Link href="/renter/messages" className="text-white/50 hover:text-white text-sm transition">
           ← Messages
         </Link>
-        <span className="text-white font-semibold text-sm">Prophandld</span>
+        <Link href="/renter" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
         <div className="w-16" />
       </nav>
 
