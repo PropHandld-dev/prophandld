@@ -43,7 +43,7 @@ export async function GET() {
 
     const { data: candidates, error: jobsError } = await supabaseAdmin
       .from('jobs')
-      .select('id, category, description, is_emergency, created_at, units(unit_number, properties(address, city, zip))')
+      .select('id, category, description, is_emergency, created_at, units(unit_number, properties(address, city, state, zip))')
       .eq('status', 'bidding')
       .in('category', categories)
       .order('created_at', { ascending: false })
@@ -87,6 +87,7 @@ export async function GET() {
           created_at: job.created_at,
           address: property?.address ?? null,
           city: property?.city ?? null,
+          state: property?.state ?? null,
           unit_number: unit?.unit_number ?? null,
           distance,
         }

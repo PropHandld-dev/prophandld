@@ -41,8 +41,14 @@ export default function SubmitBidPage() {
         return
       }
 
-      const { data: availableJobs } = await supabase.rpc('get_available_jobs_for_contractor')
-      const matchedJob = (availableJobs || []).find((j: any) => j.id === jobId)
+      // Must match the same zip+radius logic the dashboard job list uses
+      // (/api/contractor/available-jobs) — this used to call the old
+      // exact-zip-match RPC that route replaced, which wrongly rejected
+      // jobs the contractor could see and open from the dashboard list.
+      const availableJobsRes = await fetch('/api/contractor/available-jobs')
+      const availableJobsData = await availableJobsRes.json().catch(() => ({ jobs: [] }))
+      const availableJobs = availableJobsData.jobs || []
+      const matchedJob = availableJobs.find((j: any) => j.id === jobId)
 
       if (!matchedJob) {
         const { data: existingBid } = await supabase
