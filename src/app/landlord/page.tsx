@@ -23,7 +23,8 @@ const TOUR_STEPS: TourStep[] = [
   { target: '[data-tour="welcome"]', title: 'Welcome to Prophandld', body: "This is your portfolio dashboard — everything about your properties, tenants, and maintenance lives here. Let's take a quick look around." },
   { target: '[data-tour="stats"]', title: 'Your portfolio at a glance', body: 'Property count, units, occupancy, and your monthly rent roll — updated live as things change.' },
   { target: '[data-tour="pipeline"]', title: 'What needs you', body: 'Jobs waiting on your approval, currently in progress, and bids ready for you to review — the three things worth checking daily.' },
-  { target: '[data-tour="properties"]', title: 'Your properties', body: 'Add a property to get started, or open one to manage units, tenants, rent, and documents.' },
+  { target: '[data-tour="properties"]', title: 'Your properties', body: 'Add a property to get started, or open one to manage units and tenants.' },
+  { target: '[data-tour="quicklinks"]', title: 'Rent, documents & compliance', body: 'Rent collection, your document vault (leases, deeds, inspections), and compliance tracking (licenses, certs, detectors) all live inside each property — open one to get to them.' },
   { target: '[aria-label="Messages"]', title: 'Message anyone, anytime', body: "Tap here to message an active tenant or a contractor you've worked with before — no open job required." },
   { target: '[data-tour="bottomtabs"]', title: "You're all set", body: 'Home, Properties, Jobs, Calendar, and your Profile are always one tap away down here.' },
 ]
@@ -518,6 +519,7 @@ export default function LandlordDashboard() {
         ) : (
           <>
             <div className="mb-8" data-tour="welcome">
+              <p className="text-[#12A5A9] text-xs font-semibold uppercase tracking-wide mb-1.5">Landlord Dashboard</p>
               <h1 className="text-3xl font-bold text-white tracking-tight">
                 Welcome back,{' '}
                 <Link href="/profile" className="hover:text-[#12A5A9] transition">
@@ -654,7 +656,7 @@ export default function LandlordDashboard() {
             )}
 
             <h2 className="text-white font-semibold text-lg mb-4">Quick actions</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4" data-tour="quicklinks">
               <Link href="/landlord/properties" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
                 <BuildingIcon className="w-5 h-5 text-[#12A5A9] mb-2" />
                 <h3 className="text-white font-semibold mb-1">Properties</h3>
@@ -670,15 +672,15 @@ export default function LandlordDashboard() {
                 <h3 className="text-white font-semibold mb-1">View jobs</h3>
                 <p className="text-white/40 text-sm">See all maintenance requests</p>
               </Link>
-              <div className="bg-white/3 border border-white/8 rounded-2xl p-6 opacity-50 cursor-not-allowed">
-                <DollarSignIcon className="w-5 h-5 text-white/40 mb-2" />
+              <Link href="/landlord/properties" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
+                <DollarSignIcon className="w-5 h-5 text-[#12A5A9] mb-2" />
                 <h3 className="text-white font-semibold mb-1">Rent collection</h3>
-                <p className="text-white/40 text-sm">Coming soon</p>
-              </div>
+                <p className="text-white/40 text-sm">Open a unit to track and collect rent</p>
+              </Link>
               <Link href="/landlord/properties" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
                 <FileTextIcon className="w-5 h-5 text-[#12A5A9] mb-2" />
                 <h3 className="text-white font-semibold mb-1">Documents</h3>
-                <p className="text-white/40 text-sm">Open a property to manage its documents</p>
+                <p className="text-white/40 text-sm">Open a property to upload and manage its documents</p>
               </Link>
               <Link href="/landlord/properties" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
                 <ClipboardListIcon className="w-5 h-5 text-[#12A5A9] mb-2" />
@@ -691,7 +693,7 @@ export default function LandlordDashboard() {
       </main>
 
       <BottomTabBar tabs={LANDLORD_TABS} />
-      {tour.show && <ProductTour steps={TOUR_STEPS} onDone={tour.dismiss} />}
+      {tour.show && <ProductTour steps={TOUR_STEPS} onDone={tour.dismiss} onNeverAskAgain={tour.dismissForever} />}
     </div>
   )
 }

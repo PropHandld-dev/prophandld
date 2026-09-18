@@ -28,6 +28,7 @@ const TOUR_STEPS: TourStep[] = [
   { target: '[data-tour="welcome"]', title: 'Welcome to Prophandld', body: "This is where you'll find jobs, track your bids, and manage everything you've worked on. Quick look around?" },
   { target: '[data-tour="stats"]', title: 'Your work at a glance', body: 'New jobs matching your service area, active jobs you\'ve won, and your total earnings — all live.' },
   { target: '[data-tour="pastjobs"]', title: 'Past jobs', body: 'Everything you\'ve completed, filterable by status — and your Earnings page has the full breakdown with receipts, by year.' },
+  { target: '[data-tour="settings"]', title: 'Payouts & verification', body: 'Connect a payout account to get paid, and optionally upload your license and insurance for a "Verified" badge landlords can see.' },
   { target: '[aria-label="Messages"]', title: 'Message anyone, anytime', body: 'Reach a landlord you\'ve worked with before directly, no open job required — handy for asking about new work.' },
   { target: '[data-tour="bottomtabs"]', title: "You're all set", body: 'Home, Calendar, Settings, and your Profile are always one tap away down here.' },
 ]
@@ -249,6 +250,7 @@ export default function ContractorDashboard() {
         ) : (
           <>
             <div className="mb-8" data-tour="welcome">
+              <p className="text-[#12A5A9] text-xs font-semibold uppercase tracking-wide mb-1.5">Contractor Dashboard</p>
               <h1 className="text-2xl font-bold text-white">
                 Welcome,{' '}
                 <Link href="/profile" className="hover:text-[#12A5A9] transition">
@@ -294,7 +296,7 @@ export default function ContractorDashboard() {
                   </Link>
                 </ScrollReveal>
 
-                <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="grid grid-cols-2 gap-4 mb-6" data-tour="settings">
                   <Link
                     href="/contractor/settings"
                     className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block"
@@ -482,7 +484,7 @@ export default function ContractorDashboard() {
       </main>
 
       <BottomTabBar tabs={CONTRACTOR_TABS} />
-      {tour.show && hasProfile && <ProductTour steps={TOUR_STEPS} onDone={tour.dismiss} />}
+      {tour.show && hasProfile && <ProductTour steps={TOUR_STEPS} onDone={tour.dismiss} onNeverAskAgain={tour.dismissForever} />}
     </div>
   )
 }

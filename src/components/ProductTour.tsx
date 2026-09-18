@@ -17,9 +17,11 @@ function getRect(selector: string): DOMRect | null {
 export function ProductTour({
   steps,
   onDone,
+  onNeverAskAgain,
 }: {
   steps: TourStep[]
   onDone: () => void
+  onNeverAskAgain?: () => void
 }) {
   const [index, setIndex] = useState(0)
   const [rect, setRect] = useState<DOMRect | null>(null)
@@ -106,12 +108,22 @@ export function ProductTour({
         <div className="fixed inset-0 bg-black/70" />
       )}
 
-      <button
-        onClick={onDone}
-        className="fixed top-4 right-4 text-white/50 hover:text-white text-sm font-medium bg-white/5 hover:bg-white/10 rounded-full px-3.5 py-2 transition"
-      >
-        Skip tour
-      </button>
+      <div className="fixed top-4 right-4 flex items-center gap-2">
+        {onNeverAskAgain && (
+          <button
+            onClick={onNeverAskAgain}
+            className="text-white/40 hover:text-white/70 text-xs font-medium underline underline-offset-2 transition"
+          >
+            Don't show this again
+          </button>
+        )}
+        <button
+          onClick={onDone}
+          className="text-white/50 hover:text-white text-sm font-medium bg-white/5 hover:bg-white/10 rounded-full px-3.5 py-2 transition"
+        >
+          Skip tour
+        </button>
+      </div>
 
       <div
         className="fixed bg-[#0F2138] border border-white/10 rounded-2xl shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)] p-5 transition-all duration-300"

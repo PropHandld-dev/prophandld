@@ -23,7 +23,7 @@ export async function GET() {
 
     if (propertiesError) {
       console.error('subscription/status: error fetching properties', propertiesError)
-      return NextResponse.json({ error: 'Could not load properties' }, { status: 500 })
+      return NextResponse.json({ error: 'Could not load properties', detail: propertiesError.message }, { status: 500 })
     }
 
     const propertyIds = (properties || []).map((p) => p.id)
@@ -35,7 +35,7 @@ export async function GET() {
         .in('property_id', propertyIds)
       if (unitsError) {
         console.error('subscription/status: error counting units', unitsError)
-        return NextResponse.json({ error: 'Could not count units' }, { status: 500 })
+        return NextResponse.json({ error: 'Could not count units', detail: unitsError.message }, { status: 500 })
       }
       unitCount = count || 0
     }
@@ -48,7 +48,7 @@ export async function GET() {
 
     if (subscriptionError) {
       console.error('subscription/status: error fetching subscription', subscriptionError)
-      return NextResponse.json({ error: 'Could not load subscription' }, { status: 500 })
+      return NextResponse.json({ error: 'Could not load subscription', detail: subscriptionError.message }, { status: 500 })
     }
 
     const { data: userRow, error: userRowError } = await supabaseAdmin
@@ -59,7 +59,7 @@ export async function GET() {
 
     if (userRowError) {
       console.error('subscription/status: error fetching user row', userRowError)
-      return NextResponse.json({ error: 'Could not load account' }, { status: 500 })
+      return NextResponse.json({ error: 'Could not load account', detail: userRowError.message }, { status: 500 })
     }
 
     return NextResponse.json({

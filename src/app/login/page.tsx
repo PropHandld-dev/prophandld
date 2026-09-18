@@ -67,6 +67,9 @@ function LoginForm() {
     }
 
     if (data.user) {
+      try {
+        sessionStorage.setItem('ph_just_signed_in', '1')
+      } catch {}
       const accountRole = data.user.user_metadata?.role
       if (accountRole === 'landlord') router.replace('/landlord')
       else if (accountRole === 'renter') router.replace('/renter')

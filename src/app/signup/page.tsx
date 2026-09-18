@@ -82,6 +82,10 @@ function SignupForm() {
       return
     }
 
+    try {
+      sessionStorage.setItem('ph_just_signed_in', '1')
+    } catch {}
+
     if (role === 'landlord') {
       router.replace('/landlord/properties/new?onboarding=1')
     } else if (role === 'renter') {

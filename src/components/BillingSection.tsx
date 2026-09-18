@@ -12,6 +12,13 @@ type Status = {
   hasStripeCustomer: boolean
 }
 
+const TIER_PRICE_LABELS: Record<Status['tier'], string> = {
+  free: 'Free plan',
+  tier_20: '$20/month plan',
+  tier_50: '$50/month plan',
+  tier_80: '$80/month plan',
+}
+
 const TIER_LABELS: Record<Status['tier'], string> = {
   free: 'Free',
   tier_20: '$20/month',
@@ -38,7 +45,7 @@ export function BillingSection() {
       const syncData = await syncRes.json().catch(() => ({}))
       if (!syncRes.ok) {
         console.error('BillingSection: sync failed', syncData)
-        setError(syncData.error || 'Could not sync your unit count.')
+        setError((syncData.error || 'Could not sync your unit count.') + (syncData.detail ? ` (${syncData.detail})` : ''))
       }
     } catch (err) {
       console.error('BillingSection: sync request failed', err)
@@ -50,7 +57,7 @@ export function BillingSection() {
       if (res.ok) {
         setStatus(data)
       } else {
-        setError(data.error || 'Could not load billing status.')
+        setError((data.error || 'Could not load billing status.') + (data.detail ? ` (${data.detail})` : ''))
       }
     } catch (err) {
       console.error('BillingSection: status request failed', err)
@@ -118,6 +125,10 @@ export function BillingSection() {
   return (
     <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
       <h2 className="text-white font-semibold mb-2">Billing</h2>
+      <p className="text-white/50 text-sm mb-1">
+        You have <span className="text-white font-semibold">{status.unitCount} unit{status.unitCount === 1 ? '' : 's'}</span>, so your plan is the{' '}
+        <span className="text-white font-semibold">{TIER_PRICE_LABELS[status.tier]}</span>.
+      </p>
       <p className="text-white/40 text-sm mb-6">Your Prophandld platform fee, based on how many units you manage.</p>
 
       <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-xl px-5 py-4 mb-4">

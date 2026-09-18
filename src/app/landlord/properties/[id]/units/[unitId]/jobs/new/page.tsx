@@ -9,11 +9,7 @@ import { AlertTriangleIcon } from '@/components/icons'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
-
-const CATEGORIES = [
-  'Plumbing', 'Electrical', 'HVAC', 'Appliance',
-  'Structural', 'Pest', 'Turnover', 'Other',
-]
+import { useCategoryOptions, saveCustomCategory } from '@/lib/categories'
 
 export default function NewLandlordJobPage() {
   const router = useRouter()
@@ -33,12 +29,14 @@ export default function NewLandlordJobPage() {
 
   const [form, setForm] = useState({
     category: '',
+    categoryOther: '',
     urgency: 'normal',
     description: '',
     is_emergency: false,
   })
+  const categoryOptions = useCategoryOptions()
 
-  const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLTextAreaElement | HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })
   }
 
@@ -60,6 +58,10 @@ export default function NewLandlordJobPage() {
       setError('Please select a category.')
       return
     }
+    if (form.category === 'Other' && !form.categoryOther.trim()) {
+      setError('Please tell us what kind of job this is.')
+      return
+    }
     if (!form.description.trim()) {
       setError('Please describe the issue.')
       return
@@ -75,13 +77,17 @@ export default function NewLandlordJobPage() {
       return
     }
 
+    const finalCategory = form.category === 'Other'
+      ? await saveCustomCategory(form.categoryOther, user.id)
+      : form.category
+
     // Landlord-created jobs skip approval — they're already self-approved
     const { data: jobData, error: insertError } = await supabase
       .from('jobs')
       .insert({
         unit_id: unitId,
         reported_by: user.id,
-        category: form.category,
+        category: finalCategory,
         urgency: form.is_emergency ? 'emergency' : form.urgency,
         description: form.description.trim(),
         is_emergency: form.is_emergency,
@@ -174,11 +180,26 @@ export default function NewLandlordJobPage() {
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
             >
               <option value="" className="bg-[#0C1A2E]">Select a category</option>
-              {CATEGORIES.map((cat) => (
+              {categoryOptions.map((cat) => (
                 <option key={cat} value={cat} className="bg-[#0C1A2E]">{cat}</option>
               ))}
+              <option value="Other" className="bg-[#0C1A2E]">Other</option>
             </select>
           </div>
+
+          {form.category === 'Other' && (
+            <div>
+              <label className="text-white/70 text-sm block mb-1">What kind of job is it?</label>
+              <input
+                type="text"
+                name="categoryOther"
+                value={form.categoryOther}
+                onChange={handleChange}
+                placeholder="e.g. Landscaping, Locksmith, Painting"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+              />
+            </div>
+          )}
 
           <div>
             <label className="text-white/70 text-sm block mb-1">Description</label>

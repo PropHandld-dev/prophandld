@@ -22,6 +22,7 @@ const TOUR_STEPS: TourStep[] = [
   { target: '[data-tour="welcome"]', title: 'Welcome to Prophandld', body: "This is where you'll report issues, message your landlord, and pay rent. Quick look around?" },
   { target: '[data-tour="report"]', title: 'Something broken?', body: 'A couple taps — category, a photo, a short description — and your landlord is notified right away.' },
   { target: '[data-tour="issues"]', title: 'Your issues', body: 'Track everything you\'ve reported, from "just submitted" through to done.' },
+  { target: '[data-tour="documents"]', title: 'Your documents', body: 'Your lease and any other paperwork your landlord has shared, all in one place.' },
   { target: '[aria-label="Messages"]', title: 'Message your landlord anytime', body: "No need to wait for an open issue — reach out directly whenever you need to." },
   { target: '[data-tour="bottomtabs"]', title: "You're all set", body: 'Home, Report, Calendar, and your Profile are always one tap away down here.' },
 ]
@@ -220,6 +221,7 @@ export default function RenterDashboard() {
         ) : (
           <>
             <div className="mb-8" data-tour="welcome">
+              <p className="text-[#12A5A9] text-xs font-semibold uppercase tracking-wide mb-1.5">Renter Dashboard</p>
               <h1 className="text-2xl font-bold text-white">
                 Hi,{' '}
                 <Link href="/profile" className="hover:text-[#12A5A9] transition">
@@ -245,6 +247,7 @@ export default function RenterDashboard() {
             {unit && (
               <Link
                 href="/renter/documents"
+                data-tour="documents"
                 className="block bg-white/3 border border-white/8 rounded-2xl p-6 mb-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all"
               >
                 <div className="flex items-center gap-2">
@@ -363,7 +366,7 @@ export default function RenterDashboard() {
       </main>
 
       <BottomTabBar tabs={RENTER_TABS} />
-      {tour.show && <ProductTour steps={TOUR_STEPS} onDone={tour.dismiss} />}
+      {tour.show && <ProductTour steps={TOUR_STEPS} onDone={tour.dismiss} onNeverAskAgain={tour.dismissForever} />}
     </div>
   )
 }

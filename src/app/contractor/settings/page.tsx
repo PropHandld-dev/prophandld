@@ -12,11 +12,7 @@ import { CheckCircleIcon } from '@/components/icons'
 import { CONTRACTOR_TABS } from '@/lib/navTabs'
 import { StripeConnectCard } from '@/components/StripeConnectCard'
 import { Switch } from '@/components/Switch'
-
-const CATEGORIES = [
-  'Plumbing', 'Electrical', 'HVAC', 'Appliance',
-  'Structural', 'Pest', 'Turnover', 'Other',
-]
+import { useCategoryOptions, saveCustomCategory } from '@/lib/categories'
 
 export default function ContractorSettingsPage() {
   const router = useRouter()
@@ -25,9 +21,11 @@ export default function ContractorSettingsPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
+  const [otherCategoryText, setOtherCategoryText] = useState('')
   const [zip, setZip] = useState('')
   const [radiusMiles, setRadiusMiles] = useState(25)
   const [licensed, setLicensed] = useState(false)
+  const categoryOptions = useCategoryOptions()
 
   const [userId, setUserId] = useState<string | null>(null)
   const [verification, setVerification] = useState<any>(null)
@@ -112,6 +110,11 @@ export default function ContractorSettingsPage() {
       setSaving(false)
       return
     }
+    if (selectedCategories.includes('Other') && !otherCategoryText.trim()) {
+      setError('Tell us what "Other" service you offer.')
+      setSaving(false)
+      return
+    }
     if (!zip.trim()) {
       setError('Enter the ZIP code you service.')
       setSaving(false)
@@ -125,10 +128,16 @@ export default function ContractorSettingsPage() {
       return
     }
 
+    let finalCategories = selectedCategories
+    if (selectedCategories.includes('Other')) {
+      const customName = await saveCustomCategory(otherCategoryText, user.id)
+      finalCategories = selectedCategories.map((c) => (c === 'Other' ? customName : c))
+    }
+
     const { error: updateError } = await supabase
       .from('users')
       .update({
-        service_categories: selectedCategories,
+        service_categories: finalCategories,
         service_zip: zip.trim(),
         service_radius_miles: radiusMiles,
         licensed,
@@ -311,7 +320,7 @@ export default function ContractorSettingsPage() {
           <div>
             <label className="text-white/70 text-sm block mb-2">Categories you service</label>
             <div className="flex flex-wrap gap-2">
-              {CATEGORIES.map((cat) => {
+              {[...categoryOptions, 'Other'].map((cat) => {
                 const selected = selectedCategories.includes(cat)
                 return (
                   <button
@@ -331,6 +340,15 @@ export default function ContractorSettingsPage() {
                 )
               })}
             </div>
+            {selectedCategories.includes('Other') && (
+              <input
+                type="text"
+                value={otherCategoryText}
+                onChange={(e) => setOtherCategoryText(e.target.value)}
+                placeholder="What service do you offer? e.g. Landscaping"
+                className="w-full mt-2 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+              />
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">

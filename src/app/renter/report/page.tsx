@@ -11,11 +11,7 @@ import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { AlertTriangleIcon } from '@/components/icons'
 import { RENTER_TABS } from '@/lib/navTabs'
-
-const CATEGORIES = [
-  'Plumbing', 'Electrical', 'HVAC', 'Appliance',
-  'Structural', 'Pest', 'Turnover', 'Other',
-]
+import { useCategoryOptions, saveCustomCategory } from '@/lib/categories'
 
 const EMERGENCY_EXAMPLES = [
   'Active water leak or flooding',
@@ -39,11 +35,13 @@ export default function ReportIssuePage() {
 
   const [form, setForm] = useState({
     category: '',
+    categoryOther: '',
     urgency: 'normal',
     description: '',
     is_emergency: false,
     maintenance_item_id: '',
   })
+  const categoryOptions = useCategoryOptions()
 
   useEffect(() => {
     const init = async () => {
@@ -82,7 +80,7 @@ export default function ReportIssuePage() {
     init()
   }, [router])
 
-  const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLTextAreaElement | HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })
   }
 
@@ -117,6 +115,10 @@ export default function ReportIssuePage() {
       setError('Please select a category.')
       return
     }
+    if (form.category === 'Other' && !form.categoryOther.trim()) {
+      setError('Please tell us what kind of issue this is.')
+      return
+    }
     if (!form.description.trim()) {
       setError('Please describe the issue.')
       return
@@ -129,12 +131,16 @@ export default function ReportIssuePage() {
     setSubmitting(true)
     setError(null)
 
+    const finalCategory = form.category === 'Other'
+      ? await saveCustomCategory(form.categoryOther, userId)
+      : form.category
+
     const { data: jobData, error: insertError } = await supabase
       .from('jobs')
       .insert({
         unit_id: unitId,
         reported_by: userId,
-        category: form.category,
+        category: finalCategory,
         urgency: form.is_emergency ? 'emergency' : form.urgency,
         description: form.description.trim(),
         is_emergency: form.is_emergency,
@@ -236,11 +242,26 @@ export default function ReportIssuePage() {
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
               >
                 <option value="" className="bg-[#0C1A2E]">Select a category</option>
-                {CATEGORIES.map((cat) => (
+                {categoryOptions.map((cat) => (
                   <option key={cat} value={cat} className="bg-[#0C1A2E]">{cat}</option>
                 ))}
+                <option value="Other" className="bg-[#0C1A2E]">Other</option>
               </select>
             </div>
+
+            {form.category === 'Other' && (
+              <div>
+                <label className="text-white/70 text-sm block mb-1">What kind of issue is it?</label>
+                <input
+                  type="text"
+                  name="categoryOther"
+                  value={form.categoryOther}
+                  onChange={handleChange}
+                  placeholder="e.g. Landscaping, Mold, Locksmith"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+                />
+              </div>
+            )}
 
             {form.category && systems.filter((s) => s.item_type?.toLowerCase() === form.category.toLowerCase()).length > 0 && (
               <div>
