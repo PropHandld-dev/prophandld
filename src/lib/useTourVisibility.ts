@@ -35,11 +35,16 @@ export function useTourVisibility(userId: string | null) {
       .eq('id', userId)
       .maybeSingle()
       .then(({ data, error }) => {
+        // Fail open, not closed — if this query errors (e.g. the
+        // tour_opt_out column doesn't exist yet), showing an unwanted
+        // tour once is a much smaller problem than the tour silently
+        // never showing at all with no visible sign anything's wrong.
         if (error) {
-          console.error('useTourVisibility: could not load tour state', error)
-          return
+          console.error('useTourVisibility: could not load tour state — showing the tour anyway', error)
+          setShow(true)
+        } else if (!data?.tour_opt_out) {
+          setShow(true)
         }
-        if (!data?.tour_opt_out) setShow(true)
         try {
           sessionStorage.removeItem('ph_just_signed_in')
         } catch {}

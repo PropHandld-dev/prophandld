@@ -34,7 +34,7 @@ export default function NewLandlordJobPage() {
     description: '',
     is_emergency: false,
   })
-  const categoryOptions = useCategoryOptions()
+  const [categoryOptions] = useCategoryOptions()
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLTextAreaElement | HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })

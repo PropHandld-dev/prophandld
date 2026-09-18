@@ -25,7 +25,7 @@ export default function ContractorSettingsPage() {
   const [zip, setZip] = useState('')
   const [radiusMiles, setRadiusMiles] = useState(25)
   const [licensed, setLicensed] = useState(false)
-  const categoryOptions = useCategoryOptions()
+  const [categoryOptions, addCategoryOption] = useCategoryOptions()
 
   const [userId, setUserId] = useState<string | null>(null)
   const [verification, setVerification] = useState<any>(null)
@@ -132,6 +132,9 @@ export default function ContractorSettingsPage() {
     if (selectedCategories.includes('Other')) {
       const customName = await saveCustomCategory(otherCategoryText, user.id)
       finalCategories = selectedCategories.map((c) => (c === 'Other' ? customName : c))
+      addCategoryOption(customName)
+      setSelectedCategories(finalCategories)
+      setOtherCategoryText('')
     }
 
     const { error: updateError } = await supabase

@@ -28,6 +28,8 @@ export default function EditPropertyPage() {
     property_type: 'residential',
   })
   const [placeGeo, setPlaceGeo] = useState<{ lat: number; lng: number } | null>(null)
+  const [archived, setArchived] = useState(false)
+  const [archiving, setArchiving] = useState(false)
 
   useEffect(() => {
     const init = async () => {
@@ -56,6 +58,7 @@ export default function EditPropertyPage() {
         zip: propertyData.zip || '',
         property_type: propertyData.property_type || 'residential',
       })
+      setArchived(!!propertyData.archived)
       setLoading(false)
     }
     init()
@@ -135,6 +138,27 @@ export default function EditPropertyPage() {
     }
 
     router.push(`/landlord/properties/${propertyId}`)
+  }
+
+  const handleArchiveToggle = async () => {
+    const confirmed = archived
+      ? window.confirm('Unarchive this property? It\'ll show up in your active portfolio again.')
+      : window.confirm('Archive this property? It\'ll be hidden from your active portfolio, but nothing is deleted — you can unarchive it anytime from Properties → Show archived.')
+    if (!confirmed) return
+
+    setArchiving(true)
+    const { error: archiveError } = await supabase
+      .from('properties')
+      .update({ archived: !archived })
+      .eq('id', propertyId)
+
+    if (archiveError) {
+      setError('Could not update archive status: ' + archiveError.message)
+      setArchiving(false)
+      return
+    }
+
+    router.push('/landlord/properties')
   }
 
   return (
@@ -254,6 +278,22 @@ export default function EditPropertyPage() {
 
         </form>
         </ScrollReveal>
+
+        <div className="mt-10 pt-8 border-t border-white/8">
+          <h2 className="text-white font-semibold mb-1">{archived ? 'Archived' : 'Archive this property'}</h2>
+          <p className="text-white/40 text-sm mb-4">
+            {archived
+              ? "This property is archived and hidden from your active portfolio. Nothing's been deleted."
+              : "Hide this property from your active portfolio without deleting anything — handy once you've sold it or stopped managing it. You can unarchive it anytime."}
+          </p>
+          <button
+            onClick={handleArchiveToggle}
+            disabled={archiving}
+            className="bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/8 font-semibold px-5 py-2.5 rounded-xl text-sm transition disabled:opacity-50"
+          >
+            {archiving ? 'Working…' : archived ? 'Unarchive property' : 'Archive property'}
+          </button>
+        </div>
         </>
         )}
       </main>

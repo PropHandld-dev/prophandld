@@ -41,7 +41,7 @@ export default function ReportIssuePage() {
     is_emergency: false,
     maintenance_item_id: '',
   })
-  const categoryOptions = useCategoryOptions()
+  const [categoryOptions] = useCategoryOptions()
 
   useEffect(() => {
     const init = async () => {

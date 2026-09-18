@@ -165,15 +165,17 @@ export default function PropertiesPage() {
                         </div>
                       </Link>
                       <div className="flex items-center gap-4">
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault()
-                            handleArchiveToggle(property.id, property.archived)
-                          }}
-                          className="text-white/40 hover:text-white text-xs transition"
-                        >
-                          {property.archived ? 'Unarchive' : 'Archive'}
-                        </button>
+                        {property.archived && (
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault()
+                              handleArchiveToggle(property.id, property.archived)
+                            }}
+                            className="text-white/40 hover:text-white text-xs transition"
+                          >
+                            Unarchive
+                          </button>
+                        )}
                         <Link href={`/landlord/properties/${property.id}`} className="text-white/30 text-xl">→</Link>
                       </div>
                     </div>

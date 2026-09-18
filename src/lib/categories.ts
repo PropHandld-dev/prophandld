@@ -16,7 +16,7 @@ export const FIXED_CATEGORIES = [
 // gets it saved here so it becomes a real, selectable option for
 // everyone else from then on — the category list grows with real usage
 // instead of "Other" being a dead end.
-export function useCategoryOptions() {
+export function useCategoryOptions(): [string[], (name: string) => void] {
   const [customCategories, setCustomCategories] = useState<string[]>([])
 
   useEffect(() => {
@@ -33,7 +33,16 @@ export function useCategoryOptions() {
       })
   }, [])
 
-  return [...FIXED_CATEGORIES, ...customCategories]
+  // Called right after saveCustomCategory resolves, so a category typed
+  // under "Other" shows up as its own real option immediately — without
+  // this, the caller would have to wait for a full page reload to see it
+  // reflected back (the table write already happened, this just updates
+  // what's rendered on this page).
+  const addLocalCategory = (name: string) => {
+    setCustomCategories((prev) => (prev.includes(name) ? prev : [...prev, name].sort()))
+  }
+
+  return [[...FIXED_CATEGORIES, ...customCategories], addLocalCategory]
 }
 
 // Saves a new custom category (case-insensitive de-duped by the table's
