@@ -16,12 +16,24 @@ import {
   DollarSignIcon, FileTextIcon, AlertTriangleIcon, CheckCircleIcon, UserIcon,
 } from '@/components/icons'
 import { LANDLORD_TABS } from '@/lib/navTabs'
+import { ProductTour, type TourStep } from '@/components/ProductTour'
+import { useTourVisibility } from '@/lib/useTourVisibility'
+
+const TOUR_STEPS: TourStep[] = [
+  { target: '[data-tour="welcome"]', title: 'Welcome to Prophandld', body: "This is your portfolio dashboard — everything about your properties, tenants, and maintenance lives here. Let's take a quick look around." },
+  { target: '[data-tour="stats"]', title: 'Your portfolio at a glance', body: 'Property count, units, occupancy, and your monthly rent roll — updated live as things change.' },
+  { target: '[data-tour="pipeline"]', title: 'What needs you', body: 'Jobs waiting on your approval, currently in progress, and bids ready for you to review — the three things worth checking daily.' },
+  { target: '[data-tour="properties"]', title: 'Your properties', body: 'Add a property to get started, or open one to manage units, tenants, rent, and documents.' },
+  { target: '[aria-label="Messages"]', title: 'Message anyone, anytime', body: "Tap here to message an active tenant or a contractor you've worked with before — no open job required." },
+  { target: '[data-tour="bottomtabs"]', title: "You're all set", body: 'Home, Properties, Jobs, Calendar, and your Profile are always one tap away down here.' },
+]
 
 export default function LandlordDashboard() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [now] = useState(() => Date.now())
   const [loading, setLoading] = useState(true)
+  const tour = useTourVisibility(user?.id ?? null)
   const [stats, setStats] = useState({
     properties: 0,
     totalUnits: 0,
@@ -505,7 +517,7 @@ export default function LandlordDashboard() {
           </div>
         ) : (
           <>
-            <div className="mb-8">
+            <div className="mb-8" data-tour="welcome">
               <h1 className="text-3xl font-bold text-white tracking-tight">
                 Welcome back,{' '}
                 <Link href="/profile" className="hover:text-[#12A5A9] transition">
@@ -518,7 +530,7 @@ export default function LandlordDashboard() {
             <AlertsList items={alertItems} />
             <EnableNotificationsCard />
 
-            <ScrollReveal className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <ScrollReveal className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6" data-tour="stats">
               <Link
                 href="/landlord/properties"
                 className="bg-white/3 border border-white/8 rounded-2xl p-5 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all group"
@@ -557,7 +569,7 @@ export default function LandlordDashboard() {
               </div>
             </ScrollReveal>
 
-            <div className="grid grid-cols-3 gap-4 mb-10">
+            <div className="grid grid-cols-3 gap-4 mb-10" data-tour="pipeline">
               <Link href="/landlord/jobs?filter=needs_approval" className="bg-white/3 border border-white/8 rounded-2xl p-5 flex items-center gap-4 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all">
                 <ClipboardListIcon className="w-6 h-6 text-white/50 shrink-0" />
                 <div>
@@ -584,7 +596,7 @@ export default function LandlordDashboard() {
               </Link>
             </div>
 
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-4" data-tour="properties">
               <h2 className="text-white font-semibold text-lg">Your properties</h2>
               <Link href="/landlord/properties" className="text-[#12A5A9] text-sm hover:underline">
                 View all
@@ -679,6 +691,7 @@ export default function LandlordDashboard() {
       </main>
 
       <BottomTabBar tabs={LANDLORD_TABS} />
+      {tour.show && <ProductTour steps={TOUR_STEPS} onDone={tour.dismiss} />}
     </div>
   )
 }

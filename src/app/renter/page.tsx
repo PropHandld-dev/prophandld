@@ -15,11 +15,22 @@ import { EnableNotificationsCard } from '@/components/EnableNotificationsCard'
 import { UnreadDot } from '@/components/UnreadDot'
 import { getUnreadJobIds } from '@/lib/messageReads'
 import { ShowMoreList } from '@/components/ShowMoreList'
+import { ProductTour, type TourStep } from '@/components/ProductTour'
+import { useTourVisibility } from '@/lib/useTourVisibility'
+
+const TOUR_STEPS: TourStep[] = [
+  { target: '[data-tour="welcome"]', title: 'Welcome to Prophandld', body: "This is where you'll report issues, message your landlord, and pay rent. Quick look around?" },
+  { target: '[data-tour="report"]', title: 'Something broken?', body: 'A couple taps — category, a photo, a short description — and your landlord is notified right away.' },
+  { target: '[data-tour="issues"]', title: 'Your issues', body: 'Track everything you\'ve reported, from "just submitted" through to done.' },
+  { target: '[aria-label="Messages"]', title: 'Message your landlord anytime', body: "No need to wait for an open issue — reach out directly whenever you need to." },
+  { target: '[data-tour="bottomtabs"]', title: "You're all set", body: 'Home, Report, Calendar, and your Profile are always one tap away down here.' },
+]
 
 export default function RenterDashboard() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const tour = useTourVisibility(user?.id ?? null)
   const [unit, setUnit] = useState<any>(null)
   const [property, setProperty] = useState<any>(null)
   const [contacts, setContacts] = useState<any[]>([])
@@ -208,7 +219,7 @@ export default function RenterDashboard() {
           </div>
         ) : (
           <>
-            <div className="mb-8">
+            <div className="mb-8" data-tour="welcome">
               <h1 className="text-2xl font-bold text-white">
                 Hi,{' '}
                 <Link href="/profile" className="hover:text-[#12A5A9] transition">
@@ -257,7 +268,7 @@ export default function RenterDashboard() {
               </Link>
             )}
 
-            <ScrollReveal className="bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/10 border border-[#12A5A9]/30 rounded-2xl p-6 mb-6">
+            <ScrollReveal className="bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/10 border border-[#12A5A9]/30 rounded-2xl p-6 mb-6" data-tour="report">
               <h3 className="text-white font-semibold mb-1">Report an issue</h3>
               <p className="text-white/50 text-sm mb-4">Something broken? Let your landlord know.</p>
               <MagneticLink
@@ -268,7 +279,7 @@ export default function RenterDashboard() {
               </MagneticLink>
             </ScrollReveal>
 
-            <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
+            <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6" data-tour="issues">
               <h3 className="text-white font-semibold mb-4">Your issues</h3>
 
               {jobsLoading ? (
@@ -352,6 +363,7 @@ export default function RenterDashboard() {
       </main>
 
       <BottomTabBar tabs={RENTER_TABS} />
+      {tour.show && <ProductTour steps={TOUR_STEPS} onDone={tour.dismiss} />}
     </div>
   )
 }

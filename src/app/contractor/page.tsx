@@ -21,6 +21,16 @@ import {
   DollarSignIcon, AlertTriangleIcon, CheckCircleIcon,
 } from '@/components/icons'
 import { CONTRACTOR_TABS } from '@/lib/navTabs'
+import { ProductTour, type TourStep } from '@/components/ProductTour'
+import { useTourVisibility } from '@/lib/useTourVisibility'
+
+const TOUR_STEPS: TourStep[] = [
+  { target: '[data-tour="welcome"]', title: 'Welcome to Prophandld', body: "This is where you'll find jobs, track your bids, and manage everything you've worked on. Quick look around?" },
+  { target: '[data-tour="stats"]', title: 'Your work at a glance', body: 'New jobs matching your service area, active jobs you\'ve won, and your total earnings — all live.' },
+  { target: '[data-tour="pastjobs"]', title: 'Past jobs', body: 'Everything you\'ve completed, filterable by status — and your Earnings page has the full breakdown with receipts, by year.' },
+  { target: '[aria-label="Messages"]', title: 'Message anyone, anytime', body: 'Reach a landlord you\'ve worked with before directly, no open job required — handy for asking about new work.' },
+  { target: '[data-tour="bottomtabs"]', title: "You're all set", body: 'Home, Calendar, Settings, and your Profile are always one tap away down here.' },
+]
 
 const TIME_WINDOWS: Record<string, string> = {
   morning: 'Morning (8am–12pm)',
@@ -39,6 +49,7 @@ export default function ContractorDashboard() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [hasProfile, setHasProfile] = useState(true)
+  const tour = useTourVisibility(user?.id ?? null)
   const [availableJobs, setAvailableJobs] = useState<any[]>([])
   const [myBids, setMyBids] = useState<any[]>([])
   const [pickTimeAlerts, setPickTimeAlerts] = useState<any[]>([])
@@ -237,7 +248,7 @@ export default function ContractorDashboard() {
           </div>
         ) : (
           <>
-            <div className="mb-8">
+            <div className="mb-8" data-tour="welcome">
               <h1 className="text-2xl font-bold text-white">
                 Welcome,{' '}
                 <Link href="/profile" className="hover:text-[#12A5A9] transition">
@@ -265,7 +276,7 @@ export default function ContractorDashboard() {
                 <AlertsList items={alertItems} />
                 <EnableNotificationsCard />
 
-                <ScrollReveal className="grid grid-cols-3 gap-4 mb-6">
+                <ScrollReveal className="grid grid-cols-3 gap-4 mb-6" data-tour="stats">
                   <a href="#available-jobs" className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
                     <ClipboardListIcon className="w-5 h-5 text-[#12A5A9] mx-auto mb-1" />
                     <CountUp value={availableJobs.length} className="text-2xl font-bold text-white block" />
@@ -415,7 +426,7 @@ export default function ContractorDashboard() {
                   )}
                 </div>
 
-                <div className="bg-white/3 border border-white/8 rounded-2xl p-6">
+                <div className="bg-white/3 border border-white/8 rounded-2xl p-6" data-tour="pastjobs">
                   <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
                     <h3 className="text-white font-semibold">Past jobs</h3>
                     <div className="flex gap-1.5">
@@ -471,6 +482,7 @@ export default function ContractorDashboard() {
       </main>
 
       <BottomTabBar tabs={CONTRACTOR_TABS} />
+      {tour.show && hasProfile && <ProductTour steps={TOUR_STEPS} onDone={tour.dismiss} />}
     </div>
   )
 }

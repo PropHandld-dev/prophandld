@@ -350,6 +350,15 @@ export default function ProfilePage() {
           </div>
         </div>
 
+        {/* Replay tour */}
+        <Link
+          href={`${getDashboardLink()}?tour=replay`}
+          className="block bg-white/3 border border-white/8 rounded-2xl p-6 mb-6 hover:border-[#12A5A9]/30 hover:bg-white/5 transition-all"
+        >
+          <h2 className="text-white font-semibold mb-1">Take the tour</h2>
+          <p className="text-white/40 text-sm">Replay the quick walkthrough of your dashboard.</p>
+        </Link>
+
         {/* Delete account */}
         <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-6 mb-6">
           <h2 className="text-white font-semibold mb-2">Delete account</h2>

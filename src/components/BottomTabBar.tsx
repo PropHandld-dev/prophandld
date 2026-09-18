@@ -22,7 +22,7 @@ export function BottomTabBar({ tabs }: { tabs: TabItem[] }) {
   const bestMatchHref = matches.sort((a, b) => b.href.length - a.href.length)[0]?.href
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 bg-[#0C1A2E]/95 backdrop-blur-sm border-t border-white/8 flex items-stretch justify-around z-30 pb-[env(safe-area-inset-bottom)]">
+    <nav data-tour="bottomtabs" className="fixed bottom-0 inset-x-0 bg-[#0C1A2E]/95 backdrop-blur-sm border-t border-white/8 flex items-stretch justify-around z-30 pb-[env(safe-area-inset-bottom)]">
       {tabs.map((tab) => {
         const isActive = tab.href === bestMatchHref
         const Icon = tab.icon
