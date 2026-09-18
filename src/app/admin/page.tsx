@@ -20,13 +20,28 @@ export default function AdminOverviewPage() {
 
   useEffect(() => {
     const load = async () => {
-      const [usersRes, { data: subs }, { data: rentPayments }, { data: paidBids }, { data: disputes }] = await Promise.all([
+      const [
+        usersRes,
+        { data: subs, error: subsError },
+        { data: rentPayments, error: rentError },
+        { data: paidBids, error: bidsError },
+        { data: disputes, error: disputesError },
+      ] = await Promise.all([
         fetch('/api/admin/users').then((r) => r.json()).catch(() => ({ users: [] })),
         supabase.from('landlord_subscriptions').select('tier'),
         supabase.from('rent_payments').select('actual_amount, month'),
         supabase.from('bids').select('amount, proposed_amount').eq('payment_status', 'paid'),
         supabase.from('disputes').select('id').eq('status', 'open'),
       ])
+
+      // These queries failing shouldn't crash the page, but they also
+      // shouldn't silently render as "0 of everything" with no clue why —
+      // log each one so a real permissions/grant issue is diagnosable
+      // instead of just looking like an empty platform.
+      if (subsError) console.error('Admin overview: could not load landlord_subscriptions', subsError)
+      if (rentError) console.error('Admin overview: could not load rent_payments', rentError)
+      if (bidsError) console.error('Admin overview: could not load bids', bidsError)
+      if (disputesError) console.error('Admin overview: could not load disputes', disputesError)
 
       const userCounts: Record<string, number> = {}
       ;(usersRes.users || []).forEach((u: any) => {
