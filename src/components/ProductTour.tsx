@@ -108,51 +108,55 @@ export function ProductTour({
         <div className="fixed inset-0 bg-black/70" />
       )}
 
-      <div className="fixed top-4 right-4 flex items-center gap-2">
-        {onNeverAskAgain && (
-          <button
-            onClick={onNeverAskAgain}
-            className="text-white/40 hover:text-white/70 text-xs font-medium underline underline-offset-2 transition"
-          >
-            Don't show this again
-          </button>
-        )}
-        <button
-          onClick={onDone}
-          className="text-white/50 hover:text-white text-sm font-medium bg-white/5 hover:bg-white/10 rounded-full px-3.5 py-2 transition"
-        >
-          Skip tour
-        </button>
-      </div>
-
       <div
         className="fixed bg-[#0F2138] border border-white/10 rounded-2xl shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)] p-5 transition-all duration-300"
         style={{ top: cardTop, left: cardLeft, width: cardWidth }}
       >
-        <div className="flex items-center gap-1.5 mb-3">
-          {steps.map((_, i) => (
-            <span
-              key={i}
-              className={`h-1.5 rounded-full transition-all ${i === index ? 'w-6 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9]' : 'w-1.5 bg-white/15'}`}
-            />
-          ))}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-1.5">
+            {steps.map((_, i) => (
+              <span
+                key={i}
+                className={`h-1.5 rounded-full transition-all ${i === index ? 'w-6 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9]' : 'w-1.5 bg-white/15'}`}
+              />
+            ))}
+          </div>
+          <button onClick={onDone} aria-label="Close tour" className="text-white/30 hover:text-white text-sm leading-none transition">
+            ×
+          </button>
         </div>
         <h3 className="text-white font-semibold text-base mb-1.5">{step.title}</h3>
         <p className="text-white/60 text-sm leading-relaxed">{step.body}</p>
-        <div className="flex items-center justify-between mt-5">
+        <div className="flex items-center justify-between mt-5 gap-2">
           <button
             onClick={back}
             disabled={index === 0}
-            className="text-white/40 hover:text-white text-xs font-semibold disabled:opacity-0 disabled:pointer-events-none transition"
+            className="text-white/40 hover:text-white text-xs font-semibold disabled:opacity-0 disabled:pointer-events-none transition shrink-0"
           >
             ← Back
           </button>
-          <button
-            onClick={next}
-            className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold rounded-full px-4 py-2 hover:opacity-90 transition"
-          >
-            {index === steps.length - 1 ? "Let's go" : 'Next →'}
-          </button>
+          <div className="flex items-center gap-3 shrink-0">
+            {onNeverAskAgain && (
+              <button
+                onClick={onNeverAskAgain}
+                className="text-white/35 hover:text-white/60 text-[11px] font-medium underline underline-offset-2 transition whitespace-nowrap"
+              >
+                Never show again
+              </button>
+            )}
+            <button
+              onClick={onDone}
+              className="text-white/50 hover:text-white text-xs font-semibold transition whitespace-nowrap"
+            >
+              Skip
+            </button>
+            <button
+              onClick={next}
+              className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold rounded-full px-4 py-2 hover:opacity-90 transition shrink-0"
+            >
+              {index === steps.length - 1 ? "Let's go" : 'Next →'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

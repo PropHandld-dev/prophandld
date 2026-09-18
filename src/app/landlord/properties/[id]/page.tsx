@@ -11,11 +11,22 @@ import { LANDLORD_TABS } from '@/lib/navTabs'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { MagneticLink } from '@/components/MagneticLink'
 import { CountUp } from '@/components/CountUp'
+import { ProductTour, type TourStep } from '@/components/ProductTour'
+import { usePropertyTourVisibility } from '@/lib/usePropertyTourVisibility'
+
+const TOUR_STEPS: TourStep[] = [
+  { target: '[data-tour="addunit"]', title: 'Add a unit', body: "Every property starts with at least one unit — add more here if this property has several, like a duplex or an apartment building." },
+  { target: '[data-tour="units"]', title: 'Your units', body: 'Click into any unit to link a tenant, track rent, start an inspection, or see its job history.' },
+  { target: '[data-tour="documents"]', title: 'Documents', body: 'Leases, deeds, insurance, inspection reports — upload anything worth keeping on file for this property.' },
+  { target: '[data-tour="compliance"]', title: 'Compliance tracking', body: "Rental license, lead certification, smoke detectors — track expiry dates here and you'll get a dashboard alert before anything lapses." },
+]
 
 export default function PropertyDetailPage() {
   const router = useRouter()
   const params = useParams()
   const propertyId = params.id as string
+  const [userId, setUserId] = useState<string | null>(null)
+  const tour = usePropertyTourVisibility(userId)
   const [property, setProperty] = useState<any>(null)
   const [units, setUnits] = useState<any[]>([])
   const [occupiedUnitIds, setOccupiedUnitIds] = useState<Set<string>>(new Set())
@@ -35,6 +46,7 @@ export default function PropertyDetailPage() {
         router.replace('/login')
         return
       }
+      setUserId(user.id)
 
       const { data: propertyData, error: propertyError } = await supabase
         .from('properties')
@@ -210,12 +222,14 @@ export default function PropertyDetailPage() {
           ← Properties
         </Link>
         <Link href="/landlord" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
-        <MagneticLink
-          href={`/landlord/properties/${propertyId}/units/new`}
-          className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-4 py-2 rounded-xl hover:opacity-90 transition"
-        >
-          + Add unit
-        </MagneticLink>
+        <div data-tour="addunit">
+          <MagneticLink
+            href={`/landlord/properties/${propertyId}/units/new`}
+            className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-4 py-2 rounded-xl hover:opacity-90 transition"
+          >
+            + Add unit
+          </MagneticLink>
+        </div>
       </nav>
 
       <main className="max-w-4xl mx-auto px-6 py-10 pb-28">
@@ -279,8 +293,7 @@ export default function PropertyDetailPage() {
         </ScrollReveal>
 
         {/* Units */}
-        {/* Units */}
-<div className="mb-4">
+<div className="mb-4" data-tour="units">
   <h2 className="text-white font-semibold">Units</h2>
   <p className="text-white/40 text-sm mt-1">
     Click a unit to add a tenant, start an inspection, or view details. Use "Rename" just to change the unit's label.
@@ -425,7 +438,7 @@ export default function PropertyDetailPage() {
         </ScrollReveal>
 
         {/* Documents */}
-        <ScrollReveal className="mt-8">
+        <ScrollReveal className="mt-8" data-tour="documents">
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-white font-semibold flex items-center gap-2">
@@ -464,7 +477,7 @@ export default function PropertyDetailPage() {
         </ScrollReveal>
 
         {/* Compliance */}
-        <ScrollReveal className="mt-8">
+        <ScrollReveal className="mt-8" data-tour="compliance">
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-white font-semibold flex items-center gap-2">
@@ -508,6 +521,7 @@ export default function PropertyDetailPage() {
       </main>
 
       <BottomTabBar tabs={LANDLORD_TABS} />
+      {tour.show && units.length > 0 && <ProductTour steps={TOUR_STEPS} onDone={tour.dismiss} />}
     </div>
   )
 }
