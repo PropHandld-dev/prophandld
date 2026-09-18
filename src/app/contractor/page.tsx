@@ -25,7 +25,7 @@ import { ProductTour, type TourStep } from '@/components/ProductTour'
 import { useTourVisibility } from '@/lib/useTourVisibility'
 
 const TOUR_STEPS: TourStep[] = [
-  { target: '[data-tour="welcome"]', title: 'Welcome to Prophandld', body: "This is where you'll find jobs, track your bids, and manage everything you've worked on. Quick look around?" },
+  { target: '[data-tour="welcome"]', title: 'Welcome to your Contractor Dashboard', body: "This is where you'll find jobs, track your bids, and manage everything you've worked on. Quick look around?" },
   { target: '[data-tour="stats"]', title: 'Your work at a glance', body: 'New jobs matching your service area, active jobs you\'ve won, and your total earnings — all live.' },
   { target: '[data-tour="pastjobs"]', title: 'Past jobs', body: 'Everything you\'ve completed, filterable by status — and your Earnings page has the full breakdown with receipts, by year.' },
   { target: '[data-tour="settings"]', title: 'Payouts & verification', body: 'Connect a payout account to get paid, and optionally upload your license and insurance for a "Verified" badge landlords can see.' },

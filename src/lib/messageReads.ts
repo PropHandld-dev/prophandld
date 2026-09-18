@@ -1,10 +1,39 @@
 import { supabase } from '@/lib/supabase'
 
+// Read state lives in localStorage now, not a `message_read_state` table.
+// That table kept breaking in production for reasons that were always
+// some flavor of "the grant/policy on this specific table isn't quite
+// right" — three separate rounds of SQL fixes and the unread badge kept
+// getting stuck. The underlying data this needs (a per-conversation
+// "when did I last look at this") doesn't need to be shared across
+// devices to be useful, so moving it client-side removes an entire
+// category of server-side permission failure at the cost of read state
+// not syncing across browsers/devices — a fine trade for how much more
+// reliable this makes the badge.
+function readKey(userId: string, kind: 'job' | 'thread', id: string) {
+  return `ph_read_${userId}_${kind}_${id}`
+}
+
+function getLastRead(userId: string, kind: 'job' | 'thread', id: string): string | null {
+  try {
+    return localStorage.getItem(readKey(userId, kind, id))
+  } catch {
+    return null
+  }
+}
+
+function setLastRead(userId: string, kind: 'job' | 'thread', id: string) {
+  try {
+    localStorage.setItem(readKey(userId, kind, id), new Date().toISOString())
+  } catch {}
+}
+
 export async function markJobRead(jobId: string, userId: string) {
-  const { error } = await supabase
-    .from('message_read_state')
-    .upsert({ user_id: userId, job_id: jobId, last_read_at: new Date().toISOString() }, { onConflict: 'user_id,job_id' })
-  if (error) console.error('markJobRead failed — unread badge will stay stuck until this succeeds:', error)
+  setLastRead(userId, 'job', jobId)
+}
+
+export async function markThreadRead(threadId: string, userId: string) {
+  setLastRead(userId, 'thread', threadId)
 }
 
 // Given a set of jobs a user is involved in, returns the ids of the ones
@@ -13,17 +42,20 @@ export async function markJobRead(jobId: string, userId: string) {
 export async function getUnreadJobIds(jobIds: string[], userId: string): Promise<Set<string>> {
   if (jobIds.length === 0) return new Set()
 
-  const [{ data: reads, error: readsError }, { data: messages }] = await Promise.all([
-    supabase.from('message_read_state').select('job_id, last_read_at').eq('user_id', userId).in('job_id', jobIds),
-    supabase.from('messages').select('job_id, sender_user_id, created_at').in('job_id', jobIds).neq('sender_user_id', userId),
-  ])
-  if (readsError) console.error('getUnreadJobIds: could not load read state — everything will look unread until this succeeds:', readsError)
+  const { data: messages, error } = await supabase
+    .from('messages')
+    .select('job_id, sender_user_id, created_at')
+    .in('job_id', jobIds)
+    .neq('sender_user_id', userId)
 
-  const lastReadByJob = new Map((reads || []).map((r) => [r.job_id, r.last_read_at]))
+  if (error) {
+    console.error('getUnreadJobIds: could not load messages', error)
+    return new Set()
+  }
+
   const unread = new Set<string>()
-
   for (const m of messages || []) {
-    const lastRead = lastReadByJob.get(m.job_id)
+    const lastRead = getLastRead(userId, 'job', m.job_id)
     if (!lastRead || new Date(m.created_at) > new Date(lastRead)) {
       unread.add(m.job_id)
     }
@@ -32,31 +64,23 @@ export async function getUnreadJobIds(jobIds: string[], userId: string): Promise
   return unread
 }
 
-// Thread (direct-message) equivalents of the two functions above — same
-// shape, kept separate rather than a combined "conversation key" API so
-// the job-only badge call sites (job lists, job detail nav) don't need to
-// change at all.
-export async function markThreadRead(threadId: string, userId: string) {
-  const { error } = await supabase
-    .from('message_read_state')
-    .upsert({ user_id: userId, thread_id: threadId, last_read_at: new Date().toISOString() }, { onConflict: 'user_id,thread_id' })
-  if (error) console.error('markThreadRead failed — unread badge will stay stuck until this succeeds:', error)
-}
-
 export async function getUnreadThreadIds(threadIds: string[], userId: string): Promise<Set<string>> {
   if (threadIds.length === 0) return new Set()
 
-  const [{ data: reads, error: readsError }, { data: messages }] = await Promise.all([
-    supabase.from('message_read_state').select('thread_id, last_read_at').eq('user_id', userId).in('thread_id', threadIds),
-    supabase.from('messages').select('thread_id, sender_user_id, created_at').in('thread_id', threadIds).neq('sender_user_id', userId),
-  ])
-  if (readsError) console.error('getUnreadThreadIds: could not load read state — everything will look unread until this succeeds:', readsError)
+  const { data: messages, error } = await supabase
+    .from('messages')
+    .select('thread_id, sender_user_id, created_at')
+    .in('thread_id', threadIds)
+    .neq('sender_user_id', userId)
 
-  const lastReadByThread = new Map((reads || []).map((r) => [r.thread_id, r.last_read_at]))
+  if (error) {
+    console.error('getUnreadThreadIds: could not load messages', error)
+    return new Set()
+  }
+
   const unread = new Set<string>()
-
   for (const m of messages || []) {
-    const lastRead = lastReadByThread.get(m.thread_id)
+    const lastRead = getLastRead(userId, 'thread', m.thread_id)
     if (!lastRead || new Date(m.created_at) > new Date(lastRead)) {
       unread.add(m.thread_id)
     }

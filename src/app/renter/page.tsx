@@ -19,7 +19,7 @@ import { ProductTour, type TourStep } from '@/components/ProductTour'
 import { useTourVisibility } from '@/lib/useTourVisibility'
 
 const TOUR_STEPS: TourStep[] = [
-  { target: '[data-tour="welcome"]', title: 'Welcome to Prophandld', body: "This is where you'll report issues, message your landlord, and pay rent. Quick look around?" },
+  { target: '[data-tour="welcome"]', title: 'Welcome to your Renter Dashboard', body: "This is where you'll report issues, message your landlord, and pay rent. Quick look around?" },
   { target: '[data-tour="report"]', title: 'Something broken?', body: 'A couple taps — category, a photo, a short description — and your landlord is notified right away.' },
   { target: '[data-tour="issues"]', title: 'Your issues', body: 'Track everything you\'ve reported, from "just submitted" through to done.' },
   { target: '[data-tour="documents"]', title: 'Your documents', body: 'Your lease and any other paperwork your landlord has shared, all in one place.' },
@@ -228,7 +228,7 @@ export default function RenterDashboard() {
                   {user?.user_metadata?.full_name?.split(' ')[0]}
                 </Link>
               </h1>
-              <p className="text-white/50 mt-1">Track your maintenance requests here.</p>
+              <p className="text-white/50 mt-1">Report issues, pay rent, and reach your landlord directly — all in one place.</p>
             </div>
 
             <AlertsList items={alertItems} />

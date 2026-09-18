@@ -20,7 +20,7 @@ import { ProductTour, type TourStep } from '@/components/ProductTour'
 import { useTourVisibility } from '@/lib/useTourVisibility'
 
 const TOUR_STEPS: TourStep[] = [
-  { target: '[data-tour="welcome"]', title: 'Welcome to Prophandld', body: "This is your portfolio dashboard — everything about your properties, tenants, and maintenance lives here. Let's take a quick look around." },
+  { target: '[data-tour="welcome"]', title: 'Welcome to your Landlord Dashboard', body: "Everything about your properties, tenants, and maintenance lives here. Let's take a quick look around." },
   { target: '[data-tour="stats"]', title: 'Your portfolio at a glance', body: 'Property count, units, occupancy, and your monthly rent roll — updated live as things change.' },
   { target: '[data-tour="pipeline"]', title: 'What needs you', body: 'Jobs waiting on your approval, currently in progress, and bids ready for you to review — the three things worth checking daily.' },
   { target: '[data-tour="properties"]', title: 'Your properties', body: 'Add a property to get started, or open one to manage units and tenants.' },

@@ -521,7 +521,9 @@ export default function PropertyDetailPage() {
       </main>
 
       <BottomTabBar tabs={LANDLORD_TABS} />
-      {tour.show && units.length > 0 && <ProductTour steps={TOUR_STEPS} onDone={tour.dismiss} />}
+      {tour.show && units.length > 0 && (
+        <ProductTour steps={TOUR_STEPS} onDone={tour.dismiss} onNeverAskAgain={tour.dismiss} />
+      )}
     </div>
   )
 }
