@@ -832,6 +832,9 @@ export default function JobDetailPage() {
                     {bid.availability && <p className="text-white/50 text-xs">Availability: {bid.availability}</p>}
                     {bid.estimated_hours && <p className="text-white/50 text-xs">Est. hours: {bid.estimated_hours}</p>}
                     {bid.notes && <p className="text-white/60 text-xs mt-1 italic">{bid.notes}</p>}
+                    {bid.not_included && (
+                      <p className="text-yellow-400/80 text-xs mt-1">Not included: {bid.not_included}</p>
+                    )}
                     <RippleButton
                       onClick={() => handleSelectBidClick(bid.id)}
                       disabled={actioning}

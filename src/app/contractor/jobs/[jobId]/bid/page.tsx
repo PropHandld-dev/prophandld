@@ -51,6 +51,7 @@ export default function SubmitBidPage() {
     availability: '',
     estimated_hours: '',
     notes: '',
+    not_included: '',
   })
 
   useEffect(() => {
@@ -152,6 +153,7 @@ export default function SubmitBidPage() {
         availability: form.availability || null,
         estimated_hours: form.estimated_hours ? parseFloat(form.estimated_hours) : null,
         notes: form.notes || null,
+        not_included: form.not_included || null,
         status: 'pending',
       })
 
@@ -375,6 +377,19 @@ export default function SubmitBidPage() {
                   placeholder="Anything the landlord should know"
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition resize-none"
                 />
+              </div>
+
+              <div>
+                <label className="text-white/70 text-sm block mb-1">What's not included (optional)</label>
+                <textarea
+                  name="not_included"
+                  value={form.not_included}
+                  onChange={handleChange}
+                  rows={2}
+                  placeholder="e.g. Doesn't cover replacement parts if the issue turns out bigger than expected"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition resize-none"
+                />
+                <p className="text-white/40 text-xs mt-1">Sets expectations up front if this estimate could grow once you're on site.</p>
               </div>
 
               {error && (

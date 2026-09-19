@@ -43,14 +43,13 @@ export default function RenterRentPage() {
         return
       }
 
-      const { data: tenancyData } = await supabase
-        .from('tenancies')
-        .select('*')
-        .eq('renter_user_id', user.id)
-        .eq('ended', false)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
+      // Resolves to the caller's tenancy whether they're the primary
+      // tenant or a co-renter added on the unit (tenancy_occupants) —
+      // rent is one shared amount for the household either way.
+      const { data: tenancyId } = await supabase.rpc('get_my_active_tenancy_id')
+      const { data: tenancyData } = tenancyId
+        ? await supabase.from('tenancies').select('*').eq('id', tenancyId).maybeSingle()
+        : { data: null }
 
       if (!tenancyData) {
         setLoading(false)

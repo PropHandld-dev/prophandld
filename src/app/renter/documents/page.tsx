@@ -24,14 +24,12 @@ export default function RenterDocumentsPage() {
         return
       }
 
-      const { data: tenancyData } = await supabase
-        .from('tenancies')
-        .select('unit_id')
-        .eq('renter_user_id', user.id)
-        .eq('ended', false)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
+      // Resolves to the caller's tenancy whether they're the primary
+      // tenant or a co-renter added on the unit (tenancy_occupants).
+      const { data: tenancyId } = await supabase.rpc('get_my_active_tenancy_id')
+      const { data: tenancyData } = tenancyId
+        ? await supabase.from('tenancies').select('unit_id').eq('id', tenancyId).maybeSingle()
+        : { data: null }
 
       if (!tenancyData) {
         setLoading(false)

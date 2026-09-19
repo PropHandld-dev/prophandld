@@ -27,6 +27,10 @@ export default function UnitDetailPage() {
   const [inviteResendError, setInviteResendError] = useState<string | null>(null)
   const [inviteResendSuccess, setInviteResendSuccess] = useState(false)
   const [tenantLookupFailed, setTenantLookupFailed] = useState(false)
+  const [coOccupants, setCoOccupants] = useState<any[]>([])
+  const [coRenterEmail, setCoRenterEmail] = useState('')
+  const [addingCoRenter, setAddingCoRenter] = useState(false)
+  const [coRenterError, setCoRenterError] = useState<string | null>(null)
   const [messagingTenant, setMessagingTenant] = useState(false)
   const [loading, setLoading] = useState(true)
   const [showMoveOutForm, setShowMoveOutForm] = useState(false)
@@ -50,6 +54,63 @@ export default function UnitDetailPage() {
     late_fee_amount: '',
     grace_period_days: '',
   })
+
+  const loadCoOccupants = async (tenancyId: string) => {
+    const { data: occupants } = await supabase
+      .from('tenancy_occupants')
+      .select('*')
+      .eq('tenancy_id', tenancyId)
+      .order('added_at', { ascending: true })
+
+    if (!occupants || occupants.length === 0) {
+      setCoOccupants([])
+      return
+    }
+
+    const withNames = await Promise.all(
+      occupants.map(async (o) => {
+        const { data: renterData } = await supabase.rpc('get_user_by_id', { user_id_input: o.renter_user_id }).maybeSingle()
+        return { ...o, users: renterData }
+      })
+    )
+    setCoOccupants(withNames)
+  }
+
+  const handleAddCoRenter = async () => {
+    if (!tenancy || !coRenterEmail.trim()) return
+    setAddingCoRenter(true)
+    setCoRenterError(null)
+
+    const { data: renterId, error: lookupError } = await supabase
+      .rpc('get_user_id_by_email', { email_input: coRenterEmail.trim() })
+
+    if (lookupError || !renterId) {
+      setCoRenterError('No Prophandld account found with that email. They need to sign up first.')
+      setAddingCoRenter(false)
+      return
+    }
+
+    const { error: insertError } = await supabase
+      .from('tenancy_occupants')
+      .insert({ tenancy_id: tenancy.id, renter_user_id: renterId })
+
+    if (insertError) {
+      setCoRenterError(insertError.code === '23505' ? 'They\'re already a co-renter on this unit.' : 'Could not add co-renter: ' + insertError.message)
+      setAddingCoRenter(false)
+      return
+    }
+
+    setCoRenterEmail('')
+    await loadCoOccupants(tenancy.id)
+    setAddingCoRenter(false)
+  }
+
+  const handleRemoveCoRenter = async (occupantId: string) => {
+    if (!tenancy) return
+    if (!window.confirm('Remove this co-renter? They\'ll lose access to this unit.')) return
+    await supabase.from('tenancy_occupants').delete().eq('id', occupantId)
+    await loadCoOccupants(tenancy.id)
+  }
 
   const fetchUnit = async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -92,7 +153,9 @@ export default function UnitDetailPage() {
 
       setTenancy({ ...tenancyData, users: renterData })
       setPendingInvite(null)
+      await loadCoOccupants(tenancyData.id)
     } else {
+      setCoOccupants([])
       setTenancy(null)
 
       const { data: inviteData } = await supabase
@@ -461,6 +524,49 @@ export default function UnitDetailPage() {
               {!editingTenancy && tenancy.lease_notes && (
                 <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 mt-2">
                   <p className="text-white/50 text-sm">{tenancy.lease_notes}</p>
+                </div>
+              )}
+
+              {!editingTenancy && (
+                <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 mt-2">
+                  <p className="text-white/70 text-xs font-semibold mb-2">Co-renters</p>
+                  {coOccupants.length === 0 ? (
+                    <p className="text-white/40 text-xs mb-3">No co-renters added. Everyone added here gets the same access as the primary tenant: reporting issues and viewing documents.</p>
+                  ) : (
+                    <div className="space-y-2 mb-3">
+                      {coOccupants.map((o) => (
+                        <div key={o.id} className="flex items-center justify-between">
+                          <div>
+                            <p className="text-white text-sm">{o.users?.full_name || 'Unknown'}</p>
+                            <p className="text-white/40 text-xs">{o.users?.email}</p>
+                          </div>
+                          <button
+                            onClick={() => handleRemoveCoRenter(o.id)}
+                            className="text-red-400/70 hover:text-red-400 text-xs transition"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <input
+                      type="email"
+                      value={coRenterEmail}
+                      onChange={(e) => setCoRenterEmail(e.target.value)}
+                      placeholder="Co-renter's email"
+                      className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-xs placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
+                    />
+                    <button
+                      onClick={handleAddCoRenter}
+                      disabled={addingCoRenter || !coRenterEmail.trim()}
+                      className="shrink-0 bg-white/8 text-white text-xs font-semibold px-3 py-2 rounded-lg hover:bg-white/12 transition disabled:opacity-50"
+                    >
+                      {addingCoRenter ? 'Adding…' : 'Add'}
+                    </button>
+                  </div>
+                  {coRenterError && <p className="text-red-400 text-xs mt-2">{coRenterError}</p>}
                 </div>
               )}
 
