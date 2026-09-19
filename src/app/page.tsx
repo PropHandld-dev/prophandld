@@ -28,6 +28,7 @@ export default function LandingPage() {
         <div className="flex items-center gap-2.5">
           <Logo className="w-[30px] h-[30px]" />
           <span className="font-bold text-lg tracking-tight">Prophandld</span>
+          <span className="hidden md:inline text-white/50 text-xs border-l border-white/15 pl-2.5 ml-0.5">Your Property. Handled.</span>
         </div>
         <div className="flex items-center gap-6">
           <a href="#how-it-works" className="text-sm text-white/50 hover:text-white transition hidden sm:block">How it works</a>

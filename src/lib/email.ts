@@ -72,9 +72,9 @@ function baseTemplate({
               </td>
             </tr>
             <tr>
-              <td style="padding:22px 4px 0;color:rgba(255,255,255,0.28);font-size:12px;line-height:1.6;">
+              <td style="padding:22px 4px 0;color:rgba(255,255,255,0.5);font-size:12px;line-height:1.6;">
                 ${footerText}<br />
-                <a href="${SITE_URL}" style="color:rgba(255,255,255,0.4);text-decoration:none;">prophandld.com</a>
+                <a href="${SITE_URL}" style="color:rgba(255,255,255,0.5);text-decoration:none;">prophandld.com</a> · Your Property. Handled.
               </td>
             </tr>
           </table>
