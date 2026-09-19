@@ -26,12 +26,12 @@ export default function PrivacyPage() {
             <h2>1. What we collect</h2>
             <p>To run the platform, we collect:</p>
             <ul>
-              <li><strong className="text-white/80">Account info</strong> — name, email, phone number, role (landlord/renter/contractor), preferred language</li>
-              <li><strong className="text-white/80">Property data</strong> — addresses, unit details, tenancy terms, rent amounts, entered by landlords</li>
-              <li><strong className="text-white/80">Job data</strong> — maintenance descriptions, categories, bids, photos, and documents you upload</li>
-              <li><strong className="text-white/80">Contractor verification</strong> — license numbers, license/insurance documents, if you submit them for review</li>
-              <li><strong className="text-white/80">Usage data</strong> — pages visited and actions taken, collected automatically to understand how the product is used</li>
-              <li><strong className="text-white/80">Location</strong> — a property's address is geocoded to approximate coordinates, used to match jobs with nearby contractors by service area</li>
+              <li><strong className="text-white/80">Account info:</strong> name, email, phone number, role (landlord/renter/contractor), preferred language</li>
+              <li><strong className="text-white/80">Property data:</strong> addresses, unit details, tenancy terms, rent amounts, entered by landlords</li>
+              <li><strong className="text-white/80">Job data:</strong> maintenance descriptions, categories, bids, photos, and documents you upload</li>
+              <li><strong className="text-white/80">Contractor verification:</strong> license numbers, license/insurance documents, if you submit them for review</li>
+              <li><strong className="text-white/80">Usage data:</strong> pages visited and actions taken, collected automatically to understand how the product is used</li>
+              <li><strong className="text-white/80">Location:</strong> a property's address is geocoded to approximate coordinates, used to match jobs with nearby contractors by service area</li>
             </ul>
           </section>
 
@@ -53,17 +53,17 @@ export default function PrivacyPage() {
               through them as part of normal operation:
             </p>
             <ul>
-              <li><strong className="text-white/80">Supabase</strong> — our database, authentication, and file storage provider. Nearly everything you enter is stored here.</li>
-              <li><strong className="text-white/80">Resend</strong> — sends transactional emails (job notifications, invites, password resets) on our behalf.</li>
-              <li><strong className="text-white/80">PostHog</strong> — product analytics, so we can see which features are actually being used.</li>
-              <li><strong className="text-white/80">Sentry</strong> — error tracking, so we know when something breaks.</li>
-              <li><strong className="text-white/80">Vercel</strong> — hosts the application itself.</li>
+              <li><strong className="text-white/80">Supabase:</strong> our database, authentication, and file storage provider. Nearly everything you enter is stored here.</li>
+              <li><strong className="text-white/80">Resend:</strong> sends transactional emails (job notifications, invites, password resets) on our behalf.</li>
+              <li><strong className="text-white/80">PostHog:</strong> product analytics, so we can see which features are actually being used.</li>
+              <li><strong className="text-white/80">Sentry:</strong> error tracking, so we know when something breaks.</li>
+              <li><strong className="text-white/80">Vercel:</strong> hosts the application itself.</li>
             </ul>
             <p>
-              Within the platform, your data is also visible to other users where it needs to be —
-              for example, a landlord sees their renters' reported issues and contact info; a
+              Within the platform, your data is also visible to other users where it needs to be.
+              For example, a landlord sees their renters' reported issues and contact info; a
               contractor with an accepted bid sees the property address and unit for that job.
-              Tenant-facing views are deliberately limited — for instance, renters never see bid
+              Tenant-facing views are deliberately limited. For instance, renters never see bid
               amounts or other contractors' information during sealed bidding.
             </p>
           </section>

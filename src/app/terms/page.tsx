@@ -35,7 +35,7 @@ export default function TermsPage() {
           <section>
             <h2>2. Accounts and roles</h2>
             <p>
-              You choose a role when you sign up — landlord, renter, or contractor — and the
+              You choose a role when you sign up (landlord, renter, or contractor), and the
               information you can see and the actions you can take depend on that role. You're
               responsible for keeping your login credentials secure and for the accuracy of the
               information you provide, including your contact details and (for contractors) license
@@ -46,8 +46,8 @@ export default function TermsPage() {
           <section>
             <h2>3. Sealed bidding</h2>
             <p>
-              When a maintenance job goes out to bid, contractors submit their price privately —
-              they can't see what anyone else has bid. Landlords choose who to select. Prophandld
+              When a maintenance job goes out to bid, contractors submit their price privately.
+              They can't see what anyone else has bid. Landlords choose who to select. Prophandld
               doesn't set prices, doesn't guarantee any particular outcome from bidding, and isn't a
               party to the agreement between a landlord and the contractor they select.
             </p>
@@ -57,7 +57,7 @@ export default function TermsPage() {
             <h2>4. Contractor verification</h2>
             <p>
               Contractors may submit license and insurance information for review. A "Verified" badge
-              means Prophandld has reviewed the documents a contractor submitted — it is not a
+              means Prophandld has reviewed the documents a contractor submitted. It is not a
               guarantee of a contractor's work quality, licensing status at any given moment, or
               insurance coverage for a specific job. Landlords are responsible for their own diligence
               before hiring.
@@ -69,11 +69,11 @@ export default function TermsPage() {
             <p>
               Rent (debit card or bank transfer) and contractor job payments are processed through
               Stripe, our third-party payment processor. Prophandld does not hold or custody your
-              funds — money moves directly from the paying party to the recipient through Stripe's
+              funds. Money moves directly from the paying party to the recipient through Stripe's
               infrastructure. Landlords separately pay Prophandld a flat monthly platform fee based
               on how many units they manage; this fee is unrelated to and not deducted from any
               individual rent or job payment. Prophandld never sees or stores your card or bank
-              account details — that information is handled entirely by Stripe.
+              account details; that information is handled entirely by Stripe.
             </p>
           </section>
 
@@ -83,7 +83,7 @@ export default function TermsPage() {
               You may upload photos, documents, and other content (job photos, lease documents,
               inspection reports, license/insurance files). You keep ownership of what you upload,
               but you grant Prophandld the right to store and display it to the people it's meant
-              for — for example, before/after job photos are visible to the landlord, renter, and
+              for. For example, before/after job photos are visible to the landlord, renter, and
               contractor involved in that job.
             </p>
             <p>
@@ -126,7 +126,7 @@ export default function TermsPage() {
           <section>
             <h2>10. Changes to these terms</h2>
             <p>
-              We may update these terms as the platform evolves — for example, when new features like
+              We may update these terms as the platform evolves. For example, when new features like
               in-app rent payments launch. We'll update the date at the top of this page when we do.
               Continuing to use Prophandld after a change means you accept the updated terms.
             </p>
