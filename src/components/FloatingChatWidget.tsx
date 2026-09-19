@@ -79,8 +79,13 @@ export function FloatingChatWidget() {
   // signed-in user viewing it would see two bubbles stacked together.
   const isChatOrInboxPage = /\/jobs\/[^/]+\/chat$/.test(pathname) || /\/messages(\/|$)/.test(pathname)
   const isLandingPage = pathname === '/'
+  // Auth pages: if a session is still valid while someone's on /login
+  // (e.g. navigating there without signing out first), showing a chat
+  // bubble tied to that old session here is just confusing — this
+  // screen should be a clean, singular "sign in" moment.
+  const isAuthPage = ['/login', '/signup', '/forgot-password', '/reset-password'].includes(pathname)
 
-  if (!userId || !role || isChatOrInboxPage || isLandingPage) return null
+  if (!userId || !role || isChatOrInboxPage || isLandingPage || isAuthPage) return null
 
   const handleClose = () => {
     setOpen(false)
@@ -189,6 +194,9 @@ export function FloatingChatWidget() {
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-1.5 flex-wrap">
                                   <p className="text-white text-sm font-medium truncate">{c.otherName}</p>
+                                  {c.otherRole && (
+                                    <span className="text-white/50 text-[10px] bg-white/8 rounded-full px-1.5 py-0.5 shrink-0">{c.otherRole}</span>
+                                  )}
                                   {isUnread && <span className="w-1.5 h-1.5 rounded-full bg-[#12A5A9] shrink-0" />}
                                 </div>
                                 <p className="text-white/50 text-xs truncate mt-0.5">
