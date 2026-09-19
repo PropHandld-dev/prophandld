@@ -170,3 +170,21 @@ export function HelpCircleIcon({ className }: IconProps) {
     </svg>
   )
 }
+
+export function EyeIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  )
+}
+
+export function EyeOffIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M17.94 17.94A10.5 10.5 0 0 1 12 19c-7 0-10.5-7-10.5-7a19 19 0 0 1 4.22-5.19M9.9 4.24A9.12 9.12 0 0 1 12 5c7 0 10.5 7 10.5 7a19 19 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+      <path d="M1 1l22 22" />
+    </svg>
+  )
+}

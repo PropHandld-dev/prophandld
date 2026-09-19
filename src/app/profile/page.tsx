@@ -8,6 +8,7 @@ import { BottomTabBar } from '@/components/BottomTabBar'
 import { Skeleton } from '@/components/Skeleton'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
+import { PasswordInput } from '@/components/PasswordInput'
 import { LogOutIcon } from '@/components/icons'
 import { TABS_BY_ROLE } from '@/lib/navTabs'
 import { StripeConnectCard } from '@/components/StripeConnectCard'
@@ -368,8 +369,7 @@ export default function ProfilePage() {
           <form onSubmit={handleChangePassword} className="space-y-4">
             <div>
               <label className="text-white/70 text-sm block mb-1">Current password</label>
-              <input
-                type="password"
+              <PasswordInput
                 value={passwordForm.current_password}
                 onChange={(e) => setPasswordForm({ ...passwordForm, current_password: e.target.value })}
                 placeholder="Your current password"
@@ -378,8 +378,7 @@ export default function ProfilePage() {
             </div>
             <div>
               <label className="text-white/70 text-sm block mb-1">New password</label>
-              <input
-                type="password"
+              <PasswordInput
                 value={passwordForm.new_password}
                 onChange={(e) => setPasswordForm({ ...passwordForm, new_password: e.target.value })}
                 placeholder="Min. 8 characters"
@@ -388,8 +387,7 @@ export default function ProfilePage() {
             </div>
             <div>
               <label className="text-white/70 text-sm block mb-1">Confirm new password</label>
-              <input
-                type="password"
+              <PasswordInput
                 value={passwordForm.confirm_password}
                 onChange={(e) => setPasswordForm({ ...passwordForm, confirm_password: e.target.value })}
                 placeholder="Re-enter new password"
