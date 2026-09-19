@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/Skeleton'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { WrenchIcon } from '@/components/icons'
+import { FieldLabel } from '@/components/FieldLabel'
 import { CONTRACTOR_TABS } from '@/lib/navTabs'
 
 export default function SubmitBidPage() {
@@ -262,11 +263,12 @@ export default function SubmitBidPage() {
 
             <p className="text-white/50 text-xs mb-4">
               🔒 Your bid is sealed. Other contractors can't see your price, and you can't see theirs.
+              <span className="block mt-0.5">Su oferta es sellada. Otros contratistas no pueden ver su precio, y usted no puede ver el de ellos.</span>
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="text-white/70 text-sm block mb-1">Pricing</label>
+                <FieldLabel es="Precio">Pricing</FieldLabel>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
@@ -278,6 +280,7 @@ export default function SubmitBidPage() {
                     }`}
                   >
                     Fixed price
+                    <span className="block text-[10px] font-normal opacity-70">Precio fijo</span>
                   </button>
                   <button
                     type="button"
@@ -289,13 +292,14 @@ export default function SubmitBidPage() {
                     }`}
                   >
                     Hourly rate
+                    <span className="block text-[10px] font-normal opacity-70">Tarifa por hora</span>
                   </button>
                 </div>
               </div>
 
               {form.pricing_type === 'hourly' && (
                 <div>
-                  <label className="text-white/70 text-sm block mb-1">Labor rate ($/hour)</label>
+                  <FieldLabel es="Tarifa de mano de obra ($/hora)">Labor rate ($/hour)</FieldLabel>
                   <input
                     type="number"
                     name="labor_rate"
@@ -311,7 +315,7 @@ export default function SubmitBidPage() {
               )}
 
               <div>
-                <label className="text-white/70 text-sm block mb-1">Estimated hours</label>
+                <FieldLabel es="Horas estimadas">Estimated hours</FieldLabel>
                 <input
                   type="number"
                   name="estimated_hours"
@@ -325,9 +329,9 @@ export default function SubmitBidPage() {
               </div>
 
               <div>
-                <label className="text-white/70 text-sm block mb-1">
+                <FieldLabel es={form.pricing_type === 'hourly' ? 'Monto total de la oferta ($)' : 'Monto de su oferta ($)'}>
                   {form.pricing_type === 'hourly' ? 'Total bid amount ($)' : 'Your bid amount ($)'}
-                </label>
+                </FieldLabel>
                 <input
                   type="number"
                   name="amount"
@@ -356,7 +360,7 @@ export default function SubmitBidPage() {
               </div>
 
               <div>
-                <label className="text-white/70 text-sm block mb-1">Availability</label>
+                <FieldLabel es="Disponibilidad">Availability</FieldLabel>
                 <input
                   type="text"
                   name="availability"
@@ -368,7 +372,7 @@ export default function SubmitBidPage() {
               </div>
 
               <div>
-                <label className="text-white/70 text-sm block mb-1">Notes (optional)</label>
+                <FieldLabel es="Notas (opcional)">Notes (optional)</FieldLabel>
                 <textarea
                   name="notes"
                   value={form.notes}
@@ -380,7 +384,7 @@ export default function SubmitBidPage() {
               </div>
 
               <div>
-                <label className="text-white/70 text-sm block mb-1">What's not included (optional)</label>
+                <FieldLabel es="Qué no está incluido (opcional)">What's not included (optional)</FieldLabel>
                 <textarea
                   name="not_included"
                   value={form.not_included}
@@ -404,6 +408,7 @@ export default function SubmitBidPage() {
                 className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
               >
                 {submitting ? 'Submitting...' : 'Submit sealed bid'}
+                {!submitting && <span className="block text-xs font-normal opacity-80">Enviar oferta sellada</span>}
               </RippleButton>
             </form>
           </ScrollReveal>

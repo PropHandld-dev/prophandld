@@ -17,10 +17,10 @@ export const RENTER_TABS: TabItem[] = [
 ]
 
 export const CONTRACTOR_TABS: TabItem[] = [
-  { href: '/contractor', label: 'Home', icon: HomeIcon },
-  { href: '/contractor/calendar', label: 'Calendar', icon: CalendarIcon },
-  { href: '/contractor/settings', label: 'Settings', icon: SettingsIcon },
-  { href: '/profile', label: 'Profile', icon: UserIcon },
+  { href: '/contractor', label: 'Home', labelEs: 'Inicio', icon: HomeIcon },
+  { href: '/contractor/calendar', label: 'Calendar', labelEs: 'Calendario', icon: CalendarIcon },
+  { href: '/contractor/settings', label: 'Settings', labelEs: 'Ajustes', icon: SettingsIcon },
+  { href: '/profile', label: 'Profile', labelEs: 'Perfil', icon: UserIcon },
 ]
 
 export const TABS_BY_ROLE: Record<string, TabItem[]> = {

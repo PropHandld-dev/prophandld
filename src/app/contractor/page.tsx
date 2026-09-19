@@ -267,7 +267,10 @@ export default function ContractorDashboard() {
 
             {!hasProfile ? (
               <div className="bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/10 border border-[#12A5A9]/30 rounded-2xl p-6 mb-6">
-                <h3 className="text-white font-semibold mb-1">Set up your service profile</h3>
+                <h3 className="text-white font-semibold mb-1">
+                  Set up your service profile
+                  <span className="block text-xs font-normal text-white/60 mt-0.5">Configure su perfil de servicio</span>
+                </h3>
                 <p className="text-white/50 text-sm mb-4">
                   Tell us what you do and where, so we can start matching you to jobs.
                 </p>
@@ -346,7 +349,8 @@ export default function ContractorDashboard() {
                 )}
 
                 <div id="available-jobs" className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6 scroll-mt-6">
-                  <h3 className="text-white font-semibold mb-4">Available jobs near you</h3>
+                  <h3 className="text-white font-semibold">Available jobs near you</h3>
+                  <p className="text-white/50 text-xs mb-4">Trabajos disponibles cerca de usted</p>
                   {availableJobs.length === 0 ? (
                     <p className="text-white/50 text-sm">No jobs available right now. Check back soon.</p>
                   ) : (

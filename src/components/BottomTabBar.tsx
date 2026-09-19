@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 export interface TabItem {
   href: string
   label: string
+  labelEs?: string
   icon: React.ComponentType<{ className?: string }>
 }
 
@@ -36,6 +37,7 @@ export function BottomTabBar({ tabs }: { tabs: TabItem[] }) {
           >
             <Icon className="w-5 h-5" />
             <span className="text-[10px] font-medium">{tab.label}</span>
+            {tab.labelEs && <span className="text-[8px] text-white/60 leading-none">{tab.labelEs}</span>}
           </Link>
         )
       })}
