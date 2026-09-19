@@ -23,7 +23,7 @@ export function RolePicker({ onSelect }: { onSelect: (role: Role) => void }) {
           </div>
           <div>
             <p className="text-white font-semibold">{label}</p>
-            <p className="text-white/40 text-sm">{desc}</p>
+            <p className="text-white/60 text-sm">{desc}</p>
           </div>
         </button>
       ))}

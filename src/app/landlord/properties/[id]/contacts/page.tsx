@@ -179,7 +179,7 @@ export default function PropertyContactsPage() {
               value={form.name}
               onChange={handleChange}
               placeholder="Joe's Plumbing"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
             />
           </div>
 
@@ -191,7 +191,7 @@ export default function PropertyContactsPage() {
               value={form.role}
               onChange={handleChange}
               placeholder="Plumber, Gas company, Building manager..."
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
             />
           </div>
 
@@ -204,7 +204,7 @@ export default function PropertyContactsPage() {
                 value={form.phone}
                 onChange={handleChange}
                 placeholder="(555) 123-4567"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
               />
             </div>
             <div>
@@ -215,7 +215,7 @@ export default function PropertyContactsPage() {
                 value={form.email}
                 onChange={handleChange}
                 placeholder="contact@email.com"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
               />
             </div>
           </div>
@@ -254,13 +254,13 @@ export default function PropertyContactsPage() {
         </ScrollReveal>
 
         <h2 className="text-white font-semibold mb-4 flex items-center gap-2">
-          <UserIcon className="w-4 h-4 text-white/40" />
+          <UserIcon className="w-4 h-4 text-white/60" />
           All contacts {contacts.length > 0 && `(${contacts.length})`}
         </h2>
 
         {contacts.length === 0 ? (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
-            <p className="text-white/30 text-sm">No emergency contacts added yet.</p>
+            <p className="text-white/50 text-sm">No emergency contacts added yet.</p>
           </div>
         ) : (
           <ScrollReveal>
@@ -271,8 +271,8 @@ export default function PropertyContactsPage() {
                   <div>
                     <h3 className="text-white font-semibold">{contact.name}</h3>
                     {contact.role && <p className="text-white/50 text-sm mt-0.5">{contact.role}</p>}
-                    {contact.phone && <p className="text-white/40 text-sm mt-1">📞 {contact.phone}</p>}
-                    {contact.email && <p className="text-white/40 text-sm">✉️ {contact.email}</p>}
+                    {contact.phone && <p className="text-white/60 text-sm mt-1">📞 {contact.phone}</p>}
+                    {contact.email && <p className="text-white/60 text-sm">✉️ {contact.email}</p>}
                     <span className="inline-block text-xs bg-white/8 text-white/50 rounded-full px-2 py-0.5 mt-2">
                       {getUnitLabel(contact.unit_id)}
                     </span>

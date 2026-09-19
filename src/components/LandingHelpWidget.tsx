@@ -136,9 +136,9 @@ export function LandingHelpWidget() {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-white text-sm font-semibold">Questions?</p>
-                <p className="text-white/40 text-xs">Common questions, answered</p>
+                <p className="text-white/60 text-xs">Common questions, answered</p>
               </div>
-              <button onClick={() => setOpen(false)} className="text-white/40 hover:text-white text-lg leading-none transition shrink-0">
+              <button onClick={() => setOpen(false)} className="text-white/60 hover:text-white text-lg leading-none transition shrink-0">
                 ×
               </button>
             </div>
@@ -174,7 +174,7 @@ export function LandingHelpWidget() {
                     className="w-full text-left flex items-center justify-between gap-2 px-3.5 py-3"
                   >
                     <span className="text-white text-sm font-medium">{f.q}</span>
-                    <span className={`text-white/40 text-xs shrink-0 transition-transform ${expanded === i ? 'rotate-45' : ''}`}>+</span>
+                    <span className={`text-white/60 text-xs shrink-0 transition-transform ${expanded === i ? 'rotate-45' : ''}`}>+</span>
                   </button>
                   {expanded === i && (
                     <p className="text-white/55 text-sm leading-relaxed px-3.5 pb-3.5">{f.a}</p>
@@ -203,14 +203,14 @@ export function LandingHelpWidget() {
                       placeholder="What do you want to know?"
                       maxLength={2000}
                       rows={3}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#12A5A9]/50 resize-none"
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/50 focus:outline-none focus:border-[#12A5A9]/50 resize-none"
                     />
                     <input
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="you@email.com"
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#12A5A9]/50"
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/50 focus:outline-none focus:border-[#12A5A9]/50"
                     />
                     {status === 'error' && <p className="text-red-400 text-xs">Couldn’t send — try again.</p>}
                     <button

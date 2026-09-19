@@ -228,7 +228,7 @@ export default function ProfilePage() {
                 name="full_name"
                 value={form.full_name}
                 onChange={handleChange}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
               />
             </div>
 
@@ -239,9 +239,9 @@ export default function ProfilePage() {
                 name="email"
                 value={form.email}
                 disabled
-                className="w-full bg-white/3 border border-white/5 rounded-xl px-4 py-3 text-white/40 cursor-not-allowed"
+                className="w-full bg-white/3 border border-white/5 rounded-xl px-4 py-3 text-white/60 cursor-not-allowed"
               />
-              <p className="text-white/30 text-xs mt-1">Email cannot be changed</p>
+              <p className="text-white/50 text-xs mt-1">Email cannot be changed</p>
             </div>
 
             <div>
@@ -252,7 +252,7 @@ export default function ProfilePage() {
                 value={form.phone}
                 onChange={handleChange}
                 placeholder="+1 (555) 000-0000"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
               />
             </div>
 
@@ -290,7 +290,7 @@ export default function ProfilePage() {
                 value={passwordForm.new_password}
                 onChange={(e) => setPasswordForm({ ...passwordForm, new_password: e.target.value })}
                 placeholder="Min. 8 characters"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
               />
             </div>
             <div>
@@ -300,7 +300,7 @@ export default function ProfilePage() {
                 value={passwordForm.confirm_password}
                 onChange={(e) => setPasswordForm({ ...passwordForm, confirm_password: e.target.value })}
                 placeholder="Re-enter new password"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
               />
             </div>
             <RippleButton
@@ -338,25 +338,25 @@ export default function ProfilePage() {
         {/* Notification preferences */}
         <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
           <h2 className="text-white font-semibold mb-2">Notification preferences</h2>
-          <p className="text-white/40 text-sm mb-6">Choose how you want to be notified</p>
+          <p className="text-white/60 text-sm mb-6">Choose how you want to be notified</p>
           <div className="space-y-4">
             <div className="flex items-center justify-between py-1">
               <div>
                 <p className="text-white text-sm font-medium">Email notifications</p>
-                <p className="text-white/40 text-xs">Job updates, status changes — always on</p>
+                <p className="text-white/60 text-xs">Job updates, status changes — always on</p>
               </div>
               <span className="text-[#12A5A9] text-xs font-semibold bg-[#12A5A9]/10 border border-[#12A5A9]/20 rounded-full px-2.5 py-1">Always on</span>
             </div>
             <div className="flex items-center justify-between py-1">
               <div>
                 <p className="text-white text-sm font-medium">Push notifications</p>
-                <p className="text-white/40 text-xs">Enable from the banner on your dashboard</p>
+                <p className="text-white/60 text-xs">Enable from the banner on your dashboard</p>
               </div>
             </div>
             <div className="flex items-center justify-between py-1">
               <div>
                 <p className="text-white text-sm font-medium">Text alerts</p>
-                <p className="text-white/40 text-xs">Urgent updates only — emergencies, scheduling, review needed</p>
+                <p className="text-white/60 text-xs">Urgent updates only — emergencies, scheduling, review needed</p>
               </div>
               <button
                 onClick={handleToggleSms}
@@ -375,13 +375,13 @@ export default function ProfilePage() {
           className="block bg-white/3 border border-white/8 rounded-2xl p-6 mb-6 hover:border-[#12A5A9]/30 hover:bg-white/5 transition-all"
         >
           <h2 className="text-white font-semibold mb-1">Take the tour</h2>
-          <p className="text-white/40 text-sm">Replay the quick walkthrough of your dashboard.</p>
+          <p className="text-white/60 text-sm">Replay the quick walkthrough of your dashboard.</p>
         </Link>
 
         {/* Delete account */}
         <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-6 mb-6">
           <h2 className="text-white font-semibold mb-2">Delete account</h2>
-          <p className="text-white/40 text-sm mb-4">Permanently delete your account and all associated data. This cannot be undone.</p>
+          <p className="text-white/60 text-sm mb-4">Permanently delete your account and all associated data. This cannot be undone.</p>
           {!showDeleteConfirm ? (
             <button
               onClick={() => setShowDeleteConfirm(true)}
@@ -397,7 +397,7 @@ export default function ProfilePage() {
                 value={deleteConfirmText}
                 onChange={(e) => setDeleteConfirmText(e.target.value)}
                 placeholder="DELETE"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-white/20 focus:outline-none focus:border-red-400 transition text-sm"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-white/50 focus:outline-none focus:border-red-400 transition text-sm"
               />
               <div className="flex items-center gap-3">
                 <button

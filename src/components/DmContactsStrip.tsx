@@ -42,7 +42,7 @@ export function DmContactsStrip({
   return (
     <div className="pb-3 mb-3 border-b border-white/8">
       <div className="flex items-center justify-between px-1 mb-2">
-        <p className="text-white/40 text-xs font-medium">Message someone</p>
+        <p className="text-white/60 text-xs font-medium">Message someone</p>
         {contacts.length > 6 && (
           <button onClick={onSeeAll} className="text-[#12A5A9] text-xs font-semibold hover:underline">
             See all

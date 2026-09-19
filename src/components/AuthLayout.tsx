@@ -46,7 +46,7 @@ export function AuthLayout({
           )}
         </div>
 
-        <p className="relative text-white/30 text-xs">© 2026 Prophandld</p>
+        <p className="relative text-white/50 text-xs">© 2026 Prophandld</p>
       </div>
 
       {/* Form panel */}

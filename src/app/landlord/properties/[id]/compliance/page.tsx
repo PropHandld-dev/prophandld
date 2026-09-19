@@ -339,7 +339,7 @@ export default function PropertyCompliancePage() {
                 value={form.custom_item_type}
                 onChange={handleChange}
                 placeholder="Enter a type"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition mt-2"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition mt-2"
               />
             )}
           </div>
@@ -405,7 +405,7 @@ export default function PropertyCompliancePage() {
 
         {items.length === 0 ? (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
-            <p className="text-white/30 text-sm">No compliance items tracked yet.</p>
+            <p className="text-white/50 text-sm">No compliance items tracked yet.</p>
           </div>
         ) : (
           <ScrollReveal>

@@ -47,7 +47,7 @@ export default function AdminUsersPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search name or email..."
-          className="flex-1 min-w-[200px] bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+          className="flex-1 min-w-[200px] bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
         />
         <select
           value={roleFilter}
@@ -72,17 +72,17 @@ export default function AdminUsersPage() {
       ) : (
         <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl overflow-hidden">
           {filtered.length === 0 ? (
-            <p className="text-white/30 text-sm p-6">No users match.</p>
+            <p className="text-white/50 text-sm p-6">No users match.</p>
           ) : (
             filtered.map((u) => (
               <div key={u.id} className="flex items-center justify-between px-6 py-4 border-b border-white/5 last:border-0">
                 <div className="min-w-0">
                   <p className="text-white text-sm font-medium truncate">{u.full_name || 'Unnamed'}</p>
-                  <p className="text-white/40 text-xs truncate">{u.email}</p>
+                  <p className="text-white/60 text-xs truncate">{u.email}</p>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   <span className="text-xs bg-white/8 text-white/60 rounded-full px-2.5 py-0.5 capitalize">{u.role || 'no role'}</span>
-                  <span className="text-white/30 text-xs">{new Date(u.created_at).toLocaleDateString()}</span>
+                  <span className="text-white/50 text-xs">{new Date(u.created_at).toLocaleDateString()}</span>
                 </div>
               </div>
             ))

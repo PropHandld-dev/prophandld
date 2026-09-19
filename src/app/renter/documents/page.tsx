@@ -113,11 +113,11 @@ export default function RenterDocumentsPage() {
 
         {!hasUnit ? (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
-            <p className="text-white/30 text-sm">No unit linked to your account yet.</p>
+            <p className="text-white/50 text-sm">No unit linked to your account yet.</p>
           </div>
         ) : documents.length === 0 ? (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
-            <p className="text-white/30 text-sm">No documents available yet.</p>
+            <p className="text-white/50 text-sm">No documents available yet.</p>
           </div>
         ) : (
           <ScrollReveal className="space-y-3">
@@ -125,7 +125,7 @@ export default function RenterDocumentsPage() {
               <div key={doc.id} className="bg-white/3 border border-white/8 rounded-2xl p-5 hover:border-[#12A5A9]/30 hover:bg-white/5 transition-all">
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0 flex items-start gap-3">
-                    <FileTextIcon className="w-4 h-4 text-white/40 shrink-0 mt-1" />
+                    <FileTextIcon className="w-4 h-4 text-white/60 shrink-0 mt-1" />
                     <div className="min-w-0">
                       <h3 className="text-white font-semibold truncate">{doc.filename}</h3>
                       <div className="flex items-center gap-2 flex-wrap mt-2">
@@ -135,7 +135,7 @@ export default function RenterDocumentsPage() {
                           </span>
                         )}
                       </div>
-                      <p className="text-white/30 text-xs mt-2">
+                      <p className="text-white/50 text-xs mt-2">
                         {new Date(doc.created_at).toLocaleDateString()}
                       </p>
                     </div>

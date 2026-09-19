@@ -18,7 +18,7 @@ export default function PrivacyPage() {
 
       <main className="max-w-3xl mx-auto px-6 py-16">
         <h1 className="text-3xl font-bold mb-2">Privacy Policy</h1>
-        <p className="text-white/40 text-sm mb-12">Last updated September 14, 2026</p>
+        <p className="text-white/60 text-sm mb-12">Last updated September 14, 2026</p>
 
         <div className="space-y-10 text-white/60 text-sm leading-relaxed [&_h2]:text-white [&_h2]:font-semibold [&_h2]:text-lg [&_h2]:mb-3 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5">
 
@@ -123,7 +123,7 @@ export default function PrivacyPage() {
       </main>
 
       <footer className="border-t border-white/8 py-8">
-        <div className="max-w-3xl mx-auto px-6 flex items-center justify-between text-sm text-white/40">
+        <div className="max-w-3xl mx-auto px-6 flex items-center justify-between text-sm text-white/60">
           <span>© 2026 Prophandld</span>
           <Link href="/terms" className="hover:text-white transition">Terms of Service</Link>
         </div>

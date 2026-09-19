@@ -127,11 +127,11 @@ export function EnableNotificationsCard() {
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-white text-sm font-medium">Turn on notifications</p>
-          <p className="text-white/40 text-xs mt-0.5">
+          <p className="text-white/60 text-xs mt-0.5">
             iPhone/iPad only support notifications for apps added to your Home Screen. Tap Share → &quot;Add to Home Screen&quot;, then open Prophandld from there to turn them on.
           </p>
         </div>
-        <button onClick={handleDismiss} className="text-white/30 hover:text-white/60 text-xs transition shrink-0">
+        <button onClick={handleDismiss} className="text-white/50 hover:text-white/60 text-xs transition shrink-0">
           Not now
         </button>
       </div>
@@ -145,7 +145,7 @@ export function EnableNotificationsCard() {
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-white text-sm font-medium">Turn on notifications</p>
-        <p className="text-white/40 text-xs mt-0.5">Get alerted the moment something needs your attention.</p>
+        <p className="text-white/60 text-xs mt-0.5">Get alerted the moment something needs your attention.</p>
         {error && <p className="text-red-400 text-xs mt-1">{error}</p>}
       </div>
       <RippleButton
@@ -155,7 +155,7 @@ export function EnableNotificationsCard() {
       >
         {loading ? 'Enabling...' : 'Enable'}
       </RippleButton>
-      <button onClick={handleDismiss} className="text-white/30 hover:text-white/60 text-xs transition shrink-0">
+      <button onClick={handleDismiss} className="text-white/50 hover:text-white/60 text-xs transition shrink-0">
         Not now
       </button>
     </div>

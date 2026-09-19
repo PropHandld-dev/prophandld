@@ -121,7 +121,7 @@ export function ProductTour({
               />
             ))}
           </div>
-          <button onClick={onDone} aria-label="Close tour" className="text-white/30 hover:text-white text-sm leading-none transition">
+          <button onClick={onDone} aria-label="Close tour" className="text-white/50 hover:text-white text-sm leading-none transition">
             ×
           </button>
         </div>
@@ -131,7 +131,7 @@ export function ProductTour({
           <button
             onClick={back}
             disabled={index === 0}
-            className="text-white/40 hover:text-white text-xs font-semibold disabled:opacity-0 disabled:pointer-events-none transition shrink-0"
+            className="text-white/60 hover:text-white text-xs font-semibold disabled:opacity-0 disabled:pointer-events-none transition shrink-0"
           >
             ← Back
           </button>
@@ -139,7 +139,7 @@ export function ProductTour({
             {onNeverAskAgain && (
               <button
                 onClick={onNeverAskAgain}
-                className="text-white/35 hover:text-white/60 text-[11px] font-medium underline underline-offset-2 transition whitespace-nowrap"
+                className="text-white/50 hover:text-white/70 text-[11px] font-medium underline underline-offset-2 transition whitespace-nowrap"
               >
                 Never show again
               </button>

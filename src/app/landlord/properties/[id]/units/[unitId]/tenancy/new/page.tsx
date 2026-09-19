@@ -171,7 +171,7 @@ export default function NewTenancyPage() {
               value={form.renter_email}
               onChange={handleChange}
               placeholder="renter@email.com"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
             />
           </div>
 
@@ -183,7 +183,7 @@ export default function NewTenancyPage() {
               value={form.rent_amount}
               onChange={handleChange}
               placeholder="1500"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
             />
           </div>
 
@@ -195,7 +195,7 @@ export default function NewTenancyPage() {
               value={form.security_deposit}
               onChange={handleChange}
               placeholder="1500"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
             />
           </div>
 
@@ -232,7 +232,7 @@ export default function NewTenancyPage() {
                 value={form.escalation_percent}
                 onChange={handleChange}
                 placeholder="4"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
               />
             </div>
             <div>
@@ -243,7 +243,7 @@ export default function NewTenancyPage() {
                 value={form.escalation_frequency_months}
                 onChange={handleChange}
                 placeholder="12"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
               />
             </div>
           </div>
@@ -256,7 +256,7 @@ export default function NewTenancyPage() {
               value={form.occupants}
               onChange={handleChange}
               placeholder="2"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
             />
           </div>
 
@@ -268,7 +268,7 @@ export default function NewTenancyPage() {
               value={form.pets}
               onChange={handleChange}
               placeholder="e.g. 1 dog (Labrador)"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
             />
           </div>
 
@@ -280,7 +280,7 @@ export default function NewTenancyPage() {
               onChange={handleChange}
               rows={3}
               placeholder="Anything else worth noting about this lease"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition resize-none"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition resize-none"
             />
           </div>
 

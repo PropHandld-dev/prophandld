@@ -317,7 +317,7 @@ export default function RenterJobDetailPage() {
 
             {!job.proposed_date ? (
               <div className="text-center py-4">
-                <p className="text-white/30 text-sm mb-4">No appointment proposed yet.</p>
+                <p className="text-white/50 text-sm mb-4">No appointment proposed yet.</p>
                 <RippleButton
                   onClick={openScheduleModal}
                   className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition"
@@ -362,7 +362,7 @@ export default function RenterJobDetailPage() {
                     </button>
                   </div>
                 ) : (
-                  <p className="text-white/40 text-xs mt-3">Waiting on the other party to confirm.</p>
+                  <p className="text-white/60 text-xs mt-3">Waiting on the other party to confirm.</p>
                 )}
               </div>
             )}

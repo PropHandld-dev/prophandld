@@ -102,7 +102,7 @@ export function ScheduleCalendar({ events }: { events: CalendarEvent[] }) {
 
       <div className="grid grid-cols-7 gap-1 mb-1">
         {WEEKDAY_LABELS.map((label) => (
-          <div key={label} className="text-white/30 text-xs font-medium text-center py-1">
+          <div key={label} className="text-white/50 text-xs font-medium text-center py-1">
             {label}
           </div>
         ))}
@@ -120,7 +120,7 @@ export function ScheduleCalendar({ events }: { events: CalendarEvent[] }) {
               key={i}
               className={`min-h-20 rounded-lg p-1.5 border ${isToday ? 'border-[#12A5A9]/40 bg-[#12A5A9]/5' : 'border-white/5'}`}
             >
-              <p className={`text-xs mb-1 ${isToday ? 'text-[#12A5A9] font-semibold' : 'text-white/40'}`}>
+              <p className={`text-xs mb-1 ${isToday ? 'text-[#12A5A9] font-semibold' : 'text-white/60'}`}>
                 {cell.day}
               </p>
               <div className="space-y-1">
@@ -135,7 +135,7 @@ export function ScheduleCalendar({ events }: { events: CalendarEvent[] }) {
                   </Link>
                 ))}
                 {dayEvents.length > 2 && (
-                  <p className="text-white/30 text-[10px] px-1.5">+{dayEvents.length - 2} more</p>
+                  <p className="text-white/50 text-[10px] px-1.5">+{dayEvents.length - 2} more</p>
                 )}
               </div>
             </div>
@@ -144,7 +144,7 @@ export function ScheduleCalendar({ events }: { events: CalendarEvent[] }) {
       </div>
 
       {events.length === 0 && (
-        <p className="text-white/30 text-sm text-center mt-6">No confirmed schedules yet.</p>
+        <p className="text-white/50 text-sm text-center mt-6">No confirmed schedules yet.</p>
       )}
     </div>
   )

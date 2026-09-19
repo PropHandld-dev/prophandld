@@ -255,7 +255,7 @@ export default function PropertyDocumentsPage() {
                 value={form.custom_document_type}
                 onChange={handleChange}
                 placeholder="Enter a document type"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition mt-2"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition mt-2"
               />
             )}
           </div>
@@ -331,7 +331,7 @@ export default function PropertyDocumentsPage() {
 
         {documents.length === 0 ? (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
-            <p className="text-white/30 text-sm">No documents uploaded yet.</p>
+            <p className="text-white/50 text-sm">No documents uploaded yet.</p>
           </div>
         ) : (
           <ScrollReveal>
@@ -340,7 +340,7 @@ export default function PropertyDocumentsPage() {
               <div key={doc.id} className="bg-white/3 border border-white/8 rounded-2xl p-5 hover:border-[#12A5A9]/30 hover:bg-white/5 transition-all">
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0 flex items-start gap-3">
-                    <FileTextIcon className="w-4 h-4 text-white/40 shrink-0 mt-1" />
+                    <FileTextIcon className="w-4 h-4 text-white/60 shrink-0 mt-1" />
                     <div className="min-w-0">
                       <h3 className="text-white font-semibold truncate">{doc.filename}</h3>
                       <div className="flex items-center gap-2 flex-wrap mt-2">
@@ -358,7 +358,7 @@ export default function PropertyDocumentsPage() {
                           </span>
                         )}
                       </div>
-                      <p className="text-white/30 text-xs mt-2">
+                      <p className="text-white/50 text-xs mt-2">
                         {new Date(doc.created_at).toLocaleDateString()}
                       </p>
                     </div>

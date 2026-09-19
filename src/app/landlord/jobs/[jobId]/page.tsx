@@ -649,7 +649,7 @@ export default function JobDetailPage() {
                   </span>
                 )}
               </div>
-              <p className="text-white/40 text-sm">
+              <p className="text-white/60 text-sm">
                 {job.units?.properties?.address}, {job.units?.properties?.city} · Unit {job.units?.unit_number}
               </p>
               {job.maintenance_items && (
@@ -664,7 +664,7 @@ export default function JobDetailPage() {
             {job.status === 'completed' && (
               <button
                 onClick={() => setShowArchiveModal(true)}
-                className="text-white/40 hover:text-white text-xs transition shrink-0"
+                className="text-white/60 hover:text-white text-xs transition shrink-0"
               >
                 Archive
               </button>
@@ -732,7 +732,7 @@ export default function JobDetailPage() {
             </span>
           </div>
 
-          <p className="text-white/30 text-xs mt-3">
+          <p className="text-white/50 text-xs mt-3">
             Reported by {job.reporter?.full_name || 'Unknown'} · {new Date(job.created_at).toLocaleString()}
           </p>
 
@@ -754,24 +754,24 @@ export default function JobDetailPage() {
             <h3 className="text-yellow-400 font-semibold mb-2">Verification requested</h3>
             {job.clarification_note && (
               <div className="mb-3">
-                <p className="text-white/40 text-xs mb-1">You asked:</p>
+                <p className="text-white/60 text-xs mb-1">You asked:</p>
                 <p className="text-white/70 text-sm">{job.clarification_note}</p>
               </div>
             )}
             {job.clarification_response ? (
               <div>
-                <p className="text-white/40 text-xs mb-1">Contractor responded:</p>
+                <p className="text-white/60 text-xs mb-1">Contractor responded:</p>
                 <p className="text-white/70 text-sm">{job.clarification_response}</p>
               </div>
             ) : (
-              <p className="text-white/40 text-xs italic">Waiting on contractor's response.</p>
+              <p className="text-white/60 text-xs italic">Waiting on contractor's response.</p>
             )}
           </div>
         )}
 
         {job.status === 'pending_review' && (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-4 mb-4">
-            <p className="text-white/40 text-xs">
+            <p className="text-white/60 text-xs">
               ⏳ This will auto-approve within 3 days of the contractor marking it complete if you don&apos;t take action.
             </p>
           </div>
@@ -798,7 +798,7 @@ export default function JobDetailPage() {
               Sealed bids {bids.length > 0 && `(${bids.length})`}
             </h3>
             {bids.length === 0 ? (
-              <p className="text-white/30 text-sm">No bids yet — contractors in range have been notified.</p>
+              <p className="text-white/50 text-sm">No bids yet — contractors in range have been notified.</p>
             ) : (
               <div className="space-y-3">
                 {bids.map((bid) => (
@@ -826,7 +826,7 @@ export default function JobDetailPage() {
                     </div>
                     {bid.availability && <p className="text-white/50 text-xs">Availability: {bid.availability}</p>}
                     {bid.estimated_hours && <p className="text-white/50 text-xs">Est. hours: {bid.estimated_hours}</p>}
-                    {bid.notes && <p className="text-white/40 text-xs mt-1 italic">{bid.notes}</p>}
+                    {bid.notes && <p className="text-white/60 text-xs mt-1 italic">{bid.notes}</p>}
                     <RippleButton
                       onClick={() => handleSelectBidClick(bid.id)}
                       disabled={actioning}
@@ -867,7 +867,7 @@ export default function JobDetailPage() {
                 {acceptedBid.price_change_status === 'pending' ? (
   <div className="mt-2 bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
     <p className="text-yellow-400 text-xs font-semibold mb-1">Price change requested</p>
-    <p className="text-white/40 text-sm line-through">${acceptedBid.amount}</p>
+    <p className="text-white/60 text-sm line-through">${acceptedBid.amount}</p>
     <p className="text-white font-bold text-lg">${acceptedBid.proposed_amount}</p>
     {(acceptedBid.price_change_labor || acceptedBid.price_change_parts) && (
       <div className="text-white/50 text-xs mt-2 space-y-0.5">
@@ -909,7 +909,7 @@ export default function JobDetailPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-white font-semibold">Pay contractor</h3>
-                <p className="text-white/40 text-sm mt-1">
+                <p className="text-white/60 text-sm mt-1">
                   ${acceptedBid.proposed_amount ?? acceptedBid.amount} to {acceptedBid.contractor?.full_name}
                 </p>
               </div>
@@ -956,7 +956,7 @@ export default function JobDetailPage() {
 
             {!job.proposed_date ? (
               <div className="text-center py-4">
-                <p className="text-white/30 text-sm mb-4">No appointment proposed yet.</p>
+                <p className="text-white/50 text-sm mb-4">No appointment proposed yet.</p>
                 <div className="flex items-center justify-center gap-3">
                   <button
                     onClick={openScheduleModal}
@@ -1010,7 +1010,7 @@ export default function JobDetailPage() {
                     </button>
                   </div>
                 ) : (
-                  <p className="text-white/40 text-xs mt-3">Waiting on the other party to confirm.</p>
+                  <p className="text-white/60 text-xs mt-3">Waiting on the other party to confirm.</p>
                 )}
               </div>
             )}
@@ -1023,7 +1023,7 @@ export default function JobDetailPage() {
             <div className="mb-5">
               <p className="text-white/70 text-sm font-medium mb-2">Before ({beforePhotos.length})</p>
               {beforePhotos.length === 0 ? (
-                <p className="text-white/30 text-xs">No before photos yet.</p>
+                <p className="text-white/50 text-xs">No before photos yet.</p>
               ) : (
                 <PhotoGrid photos={beforePhotos} columns={3} />
               )}
@@ -1031,7 +1031,7 @@ export default function JobDetailPage() {
             <div>
               <p className="text-white/70 text-sm font-medium mb-2">After ({afterPhotos.length})</p>
               {afterPhotos.length === 0 ? (
-                <p className="text-white/30 text-xs">No after photos yet.</p>
+                <p className="text-white/50 text-xs">No after photos yet.</p>
               ) : (
                 <PhotoGrid photos={afterPhotos} columns={3} />
               )}
@@ -1045,7 +1045,7 @@ export default function JobDetailPage() {
           </h3>
           {generalPhotos.length === 0 ? (
             <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
-              <p className="text-white/30 text-sm">No photos attached.</p>
+              <p className="text-white/50 text-sm">No photos attached.</p>
             </div>
           ) : (
             <PhotoGrid
@@ -1100,7 +1100,7 @@ export default function JobDetailPage() {
               onChange={(e) => setDeclineNote(e.target.value)}
               rows={3}
               placeholder="e.g. Already scheduled with our regular contractor"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition resize-none mb-5"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition resize-none mb-5"
             />
             <div className="flex gap-3">
               <button
@@ -1274,7 +1274,7 @@ export default function JobDetailPage() {
               onChange={(e) => setClarifyNote(e.target.value)}
               rows={3}
               placeholder="e.g. Can you confirm the leak under the sink was fully sealed?"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition resize-none mb-5"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition resize-none mb-5"
             />
             {error && (
               <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm mb-4">

@@ -279,15 +279,15 @@ export default function PropertyDetailPage() {
         <div className="grid grid-cols-3 gap-4 mb-8">
           <div className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center hover:border-[#12A5A9]/30 hover:-translate-y-0.5 transition-all">
             <CountUp value={units.length} className="text-2xl font-bold text-white" />
-            <div className="text-white/40 text-xs mt-1">Total units</div>
+            <div className="text-white/60 text-xs mt-1">Total units</div>
           </div>
           <div className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center hover:border-[#12A5A9]/30 hover:-translate-y-0.5 transition-all">
             <CountUp value={occupiedCount} className="text-2xl font-bold text-white" />
-            <div className="text-white/40 text-xs mt-1">Occupied</div>
+            <div className="text-white/60 text-xs mt-1">Occupied</div>
           </div>
           <div className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center hover:border-[#12A5A9]/30 hover:-translate-y-0.5 transition-all">
             <CountUp value={vacantCount} className="text-2xl font-bold text-white" />
-            <div className="text-white/40 text-xs mt-1">Vacant</div>
+            <div className="text-white/60 text-xs mt-1">Vacant</div>
           </div>
         </div>
         </ScrollReveal>
@@ -295,7 +295,7 @@ export default function PropertyDetailPage() {
         {/* Units */}
 <div className="mb-4" data-tour="units">
   <h2 className="text-white font-semibold">Units</h2>
-  <p className="text-white/40 text-sm mt-1">
+  <p className="text-white/60 text-sm mt-1">
     Click a unit to add a tenant, start an inspection, or view details. Use "Rename" just to change the unit's label.
   </p>
 </div>
@@ -308,7 +308,7 @@ export default function PropertyDetailPage() {
 
         {units.length === 0 ? (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
-            <p className="text-white/40 text-sm">No units yet.</p>
+            <p className="text-white/60 text-sm">No units yet.</p>
             <Link
               href={`/landlord/properties/${propertyId}/units/new`}
               className="text-[#12A5A9] text-sm hover:underline block mt-2"
@@ -351,7 +351,7 @@ export default function PropertyDetailPage() {
                         </button>
                         <button
                           onClick={cancelEditing}
-                          className="text-white/40 text-xs hover:text-white transition"
+                          className="text-white/60 text-xs hover:text-white transition"
                         >
                           Cancel
                         </button>
@@ -362,8 +362,8 @@ export default function PropertyDetailPage() {
                         className="flex-1"
                       >
                         <h3 className="text-white font-semibold">{unit.unit_number}</h3>
-                        <p className="text-white/30 text-sm mt-1">{isOccupied ? 'Occupied' : 'Vacant'}</p>
-                        {unit.sqft && <p className="text-white/30 text-xs mt-1">{unit.sqft} sqft</p>}
+                        <p className="text-white/50 text-sm mt-1">{isOccupied ? 'Occupied' : 'Vacant'}</p>
+                        {unit.sqft && <p className="text-white/50 text-xs mt-1">{unit.sqft} sqft</p>}
                       </Link>
                     )}
 
@@ -373,14 +373,14 @@ export default function PropertyDetailPage() {
                           className={
                             isOccupied
                               ? 'text-xs bg-[#0A7B7E]/20 text-[#12A5A9] border border-[#12A5A9]/30 rounded-full px-2 py-0.5'
-                              : 'text-xs bg-white/5 text-white/30 border border-white/10 rounded-full px-2 py-0.5'
+                              : 'text-xs bg-white/5 text-white/50 border border-white/10 rounded-full px-2 py-0.5'
                           }
                         >
                           {isOccupied ? 'Occupied' : 'Vacant'}
                         </span>
                         <button
   onClick={() => startEditing(unit)}
-  className="text-white/40 hover:text-white text-xs transition"
+  className="text-white/60 hover:text-white text-xs transition"
 >
   Rename
 </button>
@@ -405,7 +405,7 @@ export default function PropertyDetailPage() {
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-white font-semibold flex items-center gap-2">
-              <UserIcon className="w-4 h-4 text-white/40" />
+              <UserIcon className="w-4 h-4 text-white/60" />
               Emergency contacts
             </h2>
             <Link
@@ -417,7 +417,7 @@ export default function PropertyDetailPage() {
           </div>
           {contacts.length === 0 ? (
             <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
-              <p className="text-white/30 text-sm">No emergency contacts added yet.</p>
+              <p className="text-white/50 text-sm">No emergency contacts added yet.</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -425,12 +425,12 @@ export default function PropertyDetailPage() {
                 <div key={contact.id} className="bg-white/3 border border-white/8 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-white text-sm font-medium truncate">{contact.name}</p>
-                    <p className="text-white/40 text-xs mt-0.5">{contact.role}{contact.phone ? ` · ${contact.phone}` : ''}</p>
+                    <p className="text-white/60 text-xs mt-0.5">{contact.role}{contact.phone ? ` · ${contact.phone}` : ''}</p>
                   </div>
                 </div>
               ))}
               {contacts.length > 3 && (
-                <p className="text-white/30 text-xs px-1">+{contacts.length - 3} more</p>
+                <p className="text-white/50 text-xs px-1">+{contacts.length - 3} more</p>
               )}
             </div>
           )}
@@ -442,7 +442,7 @@ export default function PropertyDetailPage() {
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-white font-semibold flex items-center gap-2">
-              <FileTextIcon className="w-4 h-4 text-white/40" />
+              <FileTextIcon className="w-4 h-4 text-white/60" />
               Documents
             </h2>
             <Link
@@ -454,7 +454,7 @@ export default function PropertyDetailPage() {
           </div>
           {documents.length === 0 ? (
             <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
-              <p className="text-white/30 text-sm">Leases, deeds, insurance, and inspection reports for this property.</p>
+              <p className="text-white/50 text-sm">Leases, deeds, insurance, and inspection reports for this property.</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -469,7 +469,7 @@ export default function PropertyDetailPage() {
                 </div>
               ))}
               {documents.length > 3 && (
-                <p className="text-white/30 text-xs px-1">+{documents.length - 3} more</p>
+                <p className="text-white/50 text-xs px-1">+{documents.length - 3} more</p>
               )}
             </div>
           )}
@@ -481,7 +481,7 @@ export default function PropertyDetailPage() {
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-white font-semibold flex items-center gap-2">
-              <ClipboardListIcon className="w-4 h-4 text-white/40" />
+              <ClipboardListIcon className="w-4 h-4 text-white/60" />
               Compliance
             </h2>
             <Link
@@ -493,7 +493,7 @@ export default function PropertyDetailPage() {
           </div>
           {complianceItems.length === 0 ? (
             <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
-              <p className="text-white/30 text-sm">Rental license, lead certification, and inspection expiry tracking.</p>
+              <p className="text-white/50 text-sm">Rental license, lead certification, and inspection expiry tracking.</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -509,7 +509,7 @@ export default function PropertyDetailPage() {
                 )
               })}
               {complianceItems.length > 3 && (
-                <p className="text-white/30 text-xs px-1">+{complianceItems.length - 3} more</p>
+                <p className="text-white/50 text-xs px-1">+{complianceItems.length - 3} more</p>
               )}
             </div>
           )}

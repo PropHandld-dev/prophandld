@@ -86,7 +86,7 @@ export default function ContractorEarningsPage() {
 
       <main className="max-w-2xl mx-auto px-6 py-10 pb-16">
         <h1 className="text-2xl font-bold text-white mb-1">Past jobs & earnings</h1>
-        <p className="text-white/40 text-sm mb-8">Every completed job, with a receipt for each paid one — handy at tax time.</p>
+        <p className="text-white/60 text-sm mb-8">Every completed job, with a receipt for each paid one — handy at tax time.</p>
 
         {loading ? (
           <div className="space-y-3">
@@ -99,14 +99,14 @@ export default function ContractorEarningsPage() {
               <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
                 <div className="flex items-center gap-2 mb-1.5">
                   <DollarSignIcon className="w-4 h-4 text-[#12A5A9]" />
-                  <span className="text-white/40 text-xs font-medium">This year ({thisYear})</span>
+                  <span className="text-white/60 text-xs font-medium">This year ({thisYear})</span>
                 </div>
                 <p className="text-white text-2xl font-bold">${thisYearTotal.toFixed(2)}</p>
               </div>
               <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
                 <div className="flex items-center gap-2 mb-1.5">
                   <DollarSignIcon className="w-4 h-4 text-[#12A5A9]" />
-                  <span className="text-white/40 text-xs font-medium">All time</span>
+                  <span className="text-white/60 text-xs font-medium">All time</span>
                 </div>
                 <p className="text-white text-2xl font-bold">${allTimeTotal.toFixed(2)}</p>
               </div>
@@ -114,7 +114,7 @@ export default function ContractorEarningsPage() {
 
             {years.length === 0 && unpaid.length === 0 && (
               <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
-                <p className="text-white/30 text-sm">No completed jobs yet.</p>
+                <p className="text-white/50 text-sm">No completed jobs yet.</p>
               </div>
             )}
 
@@ -126,8 +126,8 @@ export default function ContractorEarningsPage() {
                     <div key={b.id} className="flex items-center justify-between gap-3 px-5 py-4">
                       <div className="min-w-0 flex-1">
                         <p className="text-white font-medium text-sm truncate">{b.jobs?.category}</p>
-                        <p className="text-white/40 text-xs truncate">{jobLocation(b)}</p>
-                        <p className="text-white/30 text-xs mt-0.5">
+                        <p className="text-white/60 text-xs truncate">{jobLocation(b)}</p>
+                        <p className="text-white/50 text-xs mt-0.5">
                           Paid {new Date(b.paid_at || b.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                         </p>
                       </div>
@@ -159,7 +159,7 @@ export default function ContractorEarningsPage() {
                     >
                       <div className="min-w-0 flex-1">
                         <p className="text-white font-medium text-sm truncate">{b.jobs?.category}</p>
-                        <p className="text-white/40 text-xs truncate">{jobLocation(b)}</p>
+                        <p className="text-white/60 text-xs truncate">{jobLocation(b)}</p>
                       </div>
                       <div className="text-right shrink-0">
                         <p className="text-white font-semibold text-sm">${b.amount}</p>

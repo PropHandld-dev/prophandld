@@ -55,7 +55,7 @@ export default function AdminJobsPage() {
       ) : (
         <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl overflow-hidden">
           {filtered.length === 0 ? (
-            <p className="text-white/30 text-sm p-6">No jobs match.</p>
+            <p className="text-white/50 text-sm p-6">No jobs match.</p>
           ) : (
             filtered.map((j) => {
               const property = (j.units as any)?.properties
@@ -70,7 +70,7 @@ export default function AdminJobsPage() {
                         </span>
                       )}
                     </div>
-                    <p className="text-white/40 text-xs truncate">
+                    <p className="text-white/60 text-xs truncate">
                       {property?.address}{property?.city ? `, ${property.city}` : ''}
                     </p>
                   </div>
@@ -78,7 +78,7 @@ export default function AdminJobsPage() {
                     <span className="text-xs bg-white/8 text-white/60 rounded-full px-2.5 py-0.5 capitalize">
                       {j.status.replace('_', ' ')}
                     </span>
-                    <span className="text-white/30 text-xs">{new Date(j.created_at).toLocaleDateString()}</span>
+                    <span className="text-white/50 text-xs">{new Date(j.created_at).toLocaleDateString()}</span>
                   </div>
                 </div>
               )

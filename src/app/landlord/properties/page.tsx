@@ -98,7 +98,7 @@ export default function PropertiesPage() {
               <h1 className="text-2xl font-bold text-white">Your properties</h1>
               <button
                 onClick={() => setShowArchived(!showArchived)}
-                className="text-white/40 hover:text-white text-sm transition"
+                className="text-white/60 hover:text-white text-sm transition"
               >
                 {showArchived ? 'Hide archived' : 'Show archived'}
               </button>
@@ -112,14 +112,14 @@ export default function PropertiesPage() {
                     <BuildingIcon className="w-5 h-5 text-[#12A5A9]" />
                   </div>
                   <CountUp value={activeCount} className="text-2xl font-bold text-white" />
-                  <div className="text-white/40 text-sm mt-1">Active properties</div>
+                  <div className="text-white/60 text-sm mt-1">Active properties</div>
                 </div>
                 <div className="bg-white/3 border border-white/8 rounded-2xl p-5 hover:border-[#12A5A9]/30 hover:-translate-y-0.5 transition-all">
                   <div className="flex items-center justify-between mb-2">
-                    <BuildingIcon className="w-5 h-5 text-white/40" />
+                    <BuildingIcon className="w-5 h-5 text-white/60" />
                   </div>
                   <CountUp value={archivedCount} className="text-2xl font-bold text-white" />
-                  <div className="text-white/40 text-sm mt-1">Archived</div>
+                  <div className="text-white/60 text-sm mt-1">Archived</div>
                 </div>
               </div>
               </ScrollReveal>
@@ -127,13 +127,13 @@ export default function PropertiesPage() {
 
             {properties.length === 0 ? (
               <div className="bg-white/3 border border-white/8 rounded-2xl p-12 text-center">
-                <BuildingIcon className="w-10 h-10 text-white/30 mx-auto mb-4" />
+                <BuildingIcon className="w-10 h-10 text-white/50 mx-auto mb-4" />
                 <h3 className="text-white font-semibold mb-2">
                   {showArchived ? 'No archived properties' : 'No properties yet'}
                 </h3>
                 {!showArchived && (
                   <>
-                    <p className="text-white/40 text-sm mb-6">Add your first property to get started.</p>
+                    <p className="text-white/60 text-sm mb-6">Add your first property to get started.</p>
                     <MagneticLink
                       href="/landlord/properties/new"
                       className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-6 py-3 rounded-xl hover:opacity-90 transition inline-block"
@@ -171,12 +171,12 @@ export default function PropertiesPage() {
                               e.preventDefault()
                               handleArchiveToggle(property.id, property.archived)
                             }}
-                            className="text-white/40 hover:text-white text-xs transition"
+                            className="text-white/60 hover:text-white text-xs transition"
                           >
                             Unarchive
                           </button>
                         )}
-                        <Link href={`/landlord/properties/${property.id}`} className="text-white/30 text-xl">→</Link>
+                        <Link href={`/landlord/properties/${property.id}`} className="text-white/50 text-xl">→</Link>
                       </div>
                     </div>
                   </div>

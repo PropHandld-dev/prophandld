@@ -52,7 +52,7 @@ function WindowChrome({ path, children }: { path: string; children: React.ReactN
         <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
         <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
         <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
-        <span className="ml-3 text-white/30 text-xs">{path}</span>
+        <span className="ml-3 text-white/50 text-xs">{path}</span>
       </div>
       <div className="p-6 sm:p-8 text-left min-h-[420px]">{children}</div>
     </div>
@@ -65,7 +65,7 @@ function LandlordPreview() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <p className="text-white font-semibold">Good morning, Alex</p>
-          <p className="text-white/40 text-xs mt-0.5">Here&apos;s what&apos;s happening across your properties</p>
+          <p className="text-white/60 text-xs mt-0.5">Here&apos;s what&apos;s happening across your properties</p>
         </div>
         <div className="hidden sm:flex w-9 h-9 rounded-full bg-gradient-to-r from-[#0A7B7E]/30 to-[#12A5A9]/30 border border-[#12A5A9]/30 items-center justify-center">
           <BuildingIcon className="w-4 h-4 text-[#12A5A9]" />
@@ -76,7 +76,7 @@ function LandlordPreview() {
         {[['4', 'Properties'], ['11', 'Total units'], ['9', 'Occupied']].map(([value, label]) => (
           <div key={label} className="bg-white/3 border border-white/8 rounded-xl p-3 sm:p-4 text-center">
             <div className="text-xl sm:text-2xl font-bold text-white">{value}</div>
-            <div className="text-white/40 text-[10px] sm:text-xs mt-0.5">{label}</div>
+            <div className="text-white/60 text-[10px] sm:text-xs mt-0.5">{label}</div>
           </div>
         ))}
       </div>
@@ -91,7 +91,7 @@ function LandlordPreview() {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-white text-xs sm:text-sm font-medium truncate">{p.address}</p>
-                <p className="text-white/40 text-[10px] sm:text-xs truncate">{p.detail}</p>
+                <p className="text-white/60 text-[10px] sm:text-xs truncate">{p.detail}</p>
               </div>
             </div>
           ))}
@@ -108,7 +108,7 @@ function LandlordPreview() {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-white text-xs sm:text-sm font-medium truncate">{title}</p>
-                <p className="text-white/40 text-[10px] sm:text-xs truncate">{subtitle}</p>
+                <p className="text-white/60 text-[10px] sm:text-xs truncate">{subtitle}</p>
               </div>
               <span className={`text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 ${TONE_STYLES[tone]}`}>
                 {badge}
@@ -127,7 +127,7 @@ function RenterPreview() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <p className="text-white font-semibold">Hi, Jamie</p>
-          <p className="text-white/40 text-xs mt-0.5">Track your maintenance requests here</p>
+          <p className="text-white/60 text-xs mt-0.5">Track your maintenance requests here</p>
         </div>
         <div className="hidden sm:flex w-9 h-9 rounded-full bg-gradient-to-r from-[#0A7B7E]/30 to-[#12A5A9]/30 border border-[#12A5A9]/30 items-center justify-center">
           <HomeIcon className="w-4 h-4 text-[#12A5A9]" />
@@ -151,10 +151,10 @@ function RenterPreview() {
 
       <div className="bg-white/3 border border-white/8 rounded-2xl p-4 sm:p-5 mb-4">
         <div className="flex items-center gap-2 mb-3">
-          <DollarSignIcon className="w-3.5 h-3.5 text-white/40" />
+          <DollarSignIcon className="w-3.5 h-3.5 text-white/60" />
           <p className="text-white/70 text-xs font-semibold">Pay rent</p>
         </div>
-        <p className="text-white/40 text-[10px] sm:text-xs">Secure online payments — card or bank account.</p>
+        <p className="text-white/60 text-[10px] sm:text-xs">Secure online payments — card or bank account.</p>
       </div>
 
       <div className="bg-white/3 border border-white/8 rounded-2xl p-4 sm:p-5">
@@ -178,7 +178,7 @@ function ContractorPreview() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <p className="text-white font-semibold">Hi, Marcus</p>
-          <p className="text-white/40 text-xs mt-0.5">6 open jobs near you</p>
+          <p className="text-white/60 text-xs mt-0.5">6 open jobs near you</p>
         </div>
         <div className="hidden sm:flex w-9 h-9 rounded-full bg-gradient-to-r from-[#0A7B7E]/30 to-[#12A5A9]/30 border border-[#12A5A9]/30 items-center justify-center">
           <WrenchIcon className="w-4 h-4 text-[#12A5A9]" />
@@ -188,15 +188,15 @@ function ContractorPreview() {
       <div className="grid grid-cols-3 gap-3 mb-5">
         <div className="bg-white/3 border border-white/8 rounded-xl p-3 sm:p-4 text-center">
           <div className="text-xl sm:text-2xl font-bold text-white">6</div>
-          <div className="text-white/40 text-[10px] sm:text-xs mt-0.5">Open jobs</div>
+          <div className="text-white/60 text-[10px] sm:text-xs mt-0.5">Open jobs</div>
         </div>
         <div className="bg-white/3 border border-white/8 rounded-xl p-3 sm:p-4 text-center">
           <div className="text-xl sm:text-2xl font-bold text-white">4.9★</div>
-          <div className="text-white/40 text-[10px] sm:text-xs mt-0.5">Rating</div>
+          <div className="text-white/60 text-[10px] sm:text-xs mt-0.5">Rating</div>
         </div>
         <div className="bg-white/3 border border-white/8 rounded-xl p-3 sm:p-4 text-center">
           <div className="text-xl sm:text-2xl font-bold text-white">$2.4k</div>
-          <div className="text-white/40 text-[10px] sm:text-xs mt-0.5">This month</div>
+          <div className="text-white/60 text-[10px] sm:text-xs mt-0.5">This month</div>
         </div>
       </div>
 
@@ -204,12 +204,12 @@ function ContractorPreview() {
         <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-[#0A7B7E]/20 text-[#12A5A9]">
           <CheckCircleIcon className="w-3 h-3" /> Verified ✓
         </span>
-        <span className="text-white/30 text-xs">Landlords see this before picking a bid</span>
+        <span className="text-white/50 text-xs">Landlords see this before picking a bid</span>
       </div>
 
       <div className="bg-white/3 border border-white/8 rounded-2xl p-4 sm:p-5">
         <div className="flex items-center gap-2 mb-3">
-          <ClipboardListIcon className="w-3.5 h-3.5 text-white/40" />
+          <ClipboardListIcon className="w-3.5 h-3.5 text-white/60" />
           <p className="text-white/70 text-xs font-semibold">Jobs near you</p>
         </div>
         <div className="space-y-2.5">
@@ -217,7 +217,7 @@ function ContractorPreview() {
             <div key={job.title} className="flex items-center gap-3 bg-white/[0.03] rounded-xl px-3 py-2.5">
               <div className="min-w-0 flex-1">
                 <p className="text-white text-xs sm:text-sm font-medium truncate">{job.title}</p>
-                <p className="text-white/40 text-[10px] sm:text-xs truncate">{job.meta}</p>
+                <p className="text-white/60 text-[10px] sm:text-xs truncate">{job.meta}</p>
               </div>
               <span className="text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 bg-[#12A5A9]/15 text-[#12A5A9]">
                 {job.badge}
@@ -291,7 +291,7 @@ export function RoleShowcase() {
         </WindowChrome>
       </div>
 
-      <p className="text-white/30 text-xs text-center mt-4">Sample dashboard, shown with example data</p>
+      <p className="text-white/50 text-xs text-center mt-4">Sample dashboard, shown with example data</p>
     </div>
   )
 }

@@ -440,7 +440,7 @@ export default function ContractorJobDetailPage() {
               </span>
             )}
           </div>
-          <p className="text-white/40 text-sm">
+          <p className="text-white/60 text-sm">
             {job.units?.properties?.address}, {job.units?.properties?.city} · Unit {job.units?.unit_number}
           </p>
           {job.maintenance_items && (
@@ -475,14 +475,14 @@ export default function ContractorJobDetailPage() {
               <p className="text-white/50 text-xs">Your accepted bid</p>
               {myBid.price_change_status === 'pending' ? (
                 <div>
-                  <p className="text-white/40 text-sm line-through">${myBid.amount}</p>
+                  <p className="text-white/60 text-sm line-through">${myBid.amount}</p>
                   <p className="text-yellow-400 font-bold">${myBid.proposed_amount} <span className="text-xs font-normal">(pending landlord approval)</span></p>
                 </div>
               ) : (
                 <p className="text-[#12A5A9] font-bold">${myBid.amount}</p>
               )}
               {myBid.selected_at && (
-                <p className="text-white/30 text-xs mt-1">Selected {new Date(myBid.selected_at).toLocaleString()}</p>
+                <p className="text-white/50 text-xs mt-1">Selected {new Date(myBid.selected_at).toLocaleString()}</p>
               )}
               {myBid.price_change_status === 'rejected' && (
                 <p className="text-red-400/70 text-xs mt-2">Your last price change request was declined.</p>
@@ -532,7 +532,7 @@ export default function ContractorJobDetailPage() {
               onChange={(e) => setResponseText(e.target.value)}
               rows={3}
               placeholder="Add any details or context for the landlord"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition resize-none mb-3"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition resize-none mb-3"
             />
             <button
               onClick={submitResponse}
@@ -557,7 +557,7 @@ export default function ContractorJobDetailPage() {
 
             {!job.proposed_date ? (
               <div className="text-center py-4">
-                <p className="text-white/30 text-sm mb-4">No appointment proposed yet.</p>
+                <p className="text-white/50 text-sm mb-4">No appointment proposed yet.</p>
                 <button
                   onClick={openScheduleModal}
                   className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition"
@@ -602,7 +602,7 @@ export default function ContractorJobDetailPage() {
                     </button>
                   </div>
                 ) : (
-                  <p className="text-white/40 text-xs mt-3">Waiting on the other party to confirm.</p>
+                  <p className="text-white/60 text-xs mt-3">Waiting on the other party to confirm.</p>
                 )}
               </div>
             )}
@@ -624,7 +624,7 @@ export default function ContractorJobDetailPage() {
                 )}
               </div>
               {beforePhotos.length === 0 ? (
-                <p className="text-white/30 text-xs">No before photos yet.</p>
+                <p className="text-white/50 text-xs">No before photos yet.</p>
               ) : (
                 <PhotoGrid
                   photos={beforePhotos}
@@ -646,7 +646,7 @@ export default function ContractorJobDetailPage() {
                 )}
               </div>
               {afterPhotos.length === 0 ? (
-                <p className="text-white/30 text-xs">No after photos yet.</p>
+                <p className="text-white/50 text-xs">No after photos yet.</p>
               ) : (
                 <PhotoGrid
                   photos={afterPhotos}
@@ -801,7 +801,7 @@ export default function ContractorJobDetailPage() {
               min="0"
               step="0.01"
               placeholder="150"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition mb-4"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition mb-4"
             />
 
             <label className="text-white/70 text-sm block mb-1">Parts (optional, $)</label>
@@ -812,7 +812,7 @@ export default function ContractorJobDetailPage() {
               min="0"
               step="0.01"
               placeholder="80"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition mb-4"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition mb-4"
             />
 
             <p className="text-white/50 text-sm mb-4">
@@ -825,7 +825,7 @@ export default function ContractorJobDetailPage() {
               onChange={(e) => setPriceChangeReason(e.target.value)}
               rows={3}
               placeholder="e.g. Found additional pipe damage behind the wall"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition resize-none mb-5"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition resize-none mb-5"
             />
 
             {error && (

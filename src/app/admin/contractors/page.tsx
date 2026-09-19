@@ -119,15 +119,15 @@ export default function AdminContractorsPage() {
 
       <div className="grid grid-cols-2 gap-4 text-sm mb-3">
         <div>
-          <p className="text-white/30 text-xs">License #</p>
+          <p className="text-white/50 text-xs">License #</p>
           <p className="text-white/70">{row.license_number || '—'}</p>
         </div>
         <div>
-          <p className="text-white/30 text-xs">License expiry</p>
+          <p className="text-white/50 text-xs">License expiry</p>
           <p className="text-white/70">{row.license_expiry ? new Date(row.license_expiry).toLocaleDateString() : '—'}</p>
         </div>
         <div>
-          <p className="text-white/30 text-xs">Insurance expiry</p>
+          <p className="text-white/50 text-xs">Insurance expiry</p>
           <p className="text-white/70">{row.insurance_expiry ? new Date(row.insurance_expiry).toLocaleDateString() : '—'}</p>
         </div>
       </div>
@@ -146,7 +146,7 @@ export default function AdminContractorsPage() {
       </div>
 
       {row.admin_notes && row.status !== 'pending' && (
-        <p className="text-white/40 text-xs mb-3">Note: {row.admin_notes}</p>
+        <p className="text-white/60 text-xs mb-3">Note: {row.admin_notes}</p>
       )}
 
       {row.status === 'pending' && (
@@ -156,7 +156,7 @@ export default function AdminContractorsPage() {
             placeholder="Optional note (e.g. reason for rejection)"
             value={notes[row.id] || ''}
             onChange={(e) => setNotes({ ...notes, [row.id]: e.target.value })}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
           />
           <div className="flex gap-3">
             <RippleButton
@@ -196,7 +196,7 @@ export default function AdminContractorsPage() {
           <ScrollReveal>
             <h2 className="text-white/70 font-semibold text-sm mb-3">Pending ({pending.length})</h2>
             {pending.length === 0 ? (
-              <p className="text-white/30 text-sm mb-8">Nothing waiting on review.</p>
+              <p className="text-white/50 text-sm mb-8">Nothing waiting on review.</p>
             ) : (
               <div className="mb-8">{pending.map(renderRow)}</div>
             )}
@@ -205,7 +205,7 @@ export default function AdminContractorsPage() {
           <ScrollReveal>
             <h2 className="text-white/70 font-semibold text-sm mb-3">Reviewed ({reviewed.length})</h2>
             {reviewed.length === 0 ? (
-              <p className="text-white/30 text-sm">No reviewed submissions yet.</p>
+              <p className="text-white/50 text-sm">No reviewed submissions yet.</p>
             ) : (
               <div>{reviewed.map(renderRow)}</div>
             )}

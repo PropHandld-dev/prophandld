@@ -99,7 +99,7 @@ export default function AdminOverviewPage() {
           <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6">
             <h2 className="text-white font-semibold mb-2">Job payments processed</h2>
             <p className="text-white text-2xl font-bold">${stats.jobPaymentsAllTime.toLocaleString()}</p>
-            <p className="text-white/30 text-xs mt-1">All-time total paid to contractors through Prophandld</p>
+            <p className="text-white/50 text-xs mt-1">All-time total paid to contractors through Prophandld</p>
           </ScrollReveal>
         </>
       )}
@@ -111,7 +111,7 @@ function StatCard({ label, value, tone }: { label: string; value: string | numbe
   return (
     <div className="bg-white/3 border border-white/8 rounded-xl p-4 text-center">
       <div className={`text-xl font-bold ${tone === 'yellow' ? 'text-yellow-400' : 'text-white'}`}>{value}</div>
-      <div className="text-white/40 text-xs mt-0.5">{label}</div>
+      <div className="text-white/60 text-xs mt-0.5">{label}</div>
     </div>
   )
 }

@@ -68,7 +68,7 @@ export default function AdminDisputesPage() {
         <div className="flex items-center justify-between mb-2">
           <div>
             <p className="text-white font-semibold">{job?.category || 'Unknown job'}</p>
-            <p className="text-white/40 text-xs">{property?.address}{property?.city ? `, ${property.city}` : ''}</p>
+            <p className="text-white/60 text-xs">{property?.address}{property?.city ? `, ${property.city}` : ''}</p>
           </div>
           <span className={
             row.status === 'open'
@@ -83,7 +83,7 @@ export default function AdminDisputesPage() {
         <p className="text-white/70 text-sm mb-3">{row.reason}</p>
 
         {row.status === 'resolved' && row.resolution_notes && (
-          <p className="text-white/40 text-xs italic mb-3">Resolution: {row.resolution_notes}</p>
+          <p className="text-white/60 text-xs italic mb-3">Resolution: {row.resolution_notes}</p>
         )}
 
         {row.status === 'open' && (
@@ -108,7 +108,7 @@ export default function AdminDisputesPage() {
               value={notesById[row.id] || ''}
               onChange={(e) => setNotesById({ ...notesById, [row.id]: e.target.value })}
               rows={2}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition resize-none"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition resize-none"
             />
             <RippleButton
               onClick={() => handleResolve(row.id)}
@@ -140,7 +140,7 @@ export default function AdminDisputesPage() {
           <ScrollReveal>
             <h2 className="text-white/70 font-semibold text-sm mb-3">Open ({open.length})</h2>
             {open.length === 0 ? (
-              <p className="text-white/30 text-sm mb-8">No open disputes.</p>
+              <p className="text-white/50 text-sm mb-8">No open disputes.</p>
             ) : (
               <div className="mb-8">{open.map(renderRow)}</div>
             )}
@@ -149,7 +149,7 @@ export default function AdminDisputesPage() {
           <ScrollReveal>
             <h2 className="text-white/70 font-semibold text-sm mb-3">Resolved ({resolved.length})</h2>
             {resolved.length === 0 ? (
-              <p className="text-white/30 text-sm">Nothing resolved yet.</p>
+              <p className="text-white/50 text-sm">Nothing resolved yet.</p>
             ) : (
               <div>{resolved.map(renderRow)}</div>
             )}

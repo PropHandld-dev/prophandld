@@ -61,7 +61,7 @@ export default function NewJobFromThreadPage() {
 
       <main className="max-w-2xl mx-auto px-6 py-10 pb-16">
         <h1 className="text-2xl font-bold text-white mb-1">Start a job for {contractorName}</h1>
-        <p className="text-white/40 text-sm mb-8">
+        <p className="text-white/60 text-sm mb-8">
           Pick which property and unit this is for — {contractorName} will be notified to bid, and the job stays open to other contractors too.
         </p>
 
@@ -72,7 +72,7 @@ export default function NewJobFromThreadPage() {
           </div>
         ) : properties.length === 0 ? (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
-            <p className="text-white/30 text-sm">Add a property first before posting a job.</p>
+            <p className="text-white/50 text-sm">Add a property first before posting a job.</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -83,7 +83,7 @@ export default function NewJobFromThreadPage() {
                   <p className="text-white font-medium text-sm">{property.address}</p>
                 </div>
                 {property.units.length === 0 ? (
-                  <p className="text-white/30 text-xs">No units added yet.</p>
+                  <p className="text-white/50 text-xs">No units added yet.</p>
                 ) : (
                   <div className="flex flex-wrap gap-2">
                     {property.units.map((unit) => (

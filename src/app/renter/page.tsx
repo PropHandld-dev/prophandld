@@ -251,10 +251,10 @@ export default function RenterDashboard() {
                 className="block bg-white/3 border border-white/8 rounded-2xl p-6 mb-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all"
               >
                 <div className="flex items-center gap-2">
-                  <FileTextIcon className="w-4 h-4 text-white/40" />
+                  <FileTextIcon className="w-4 h-4 text-white/60" />
                   <h3 className="text-white font-semibold">Documents</h3>
                 </div>
-                <p className="text-white/40 text-sm mt-1">Your lease and related paperwork</p>
+                <p className="text-white/60 text-sm mt-1">Your lease and related paperwork</p>
               </Link>
             )}
 
@@ -264,10 +264,10 @@ export default function RenterDashboard() {
                 className="block bg-white/3 border border-white/8 rounded-2xl p-6 mb-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all"
               >
                 <div className="flex items-center gap-2 mb-1">
-                  <DollarSignIcon className="w-4 h-4 text-white/40" />
+                  <DollarSignIcon className="w-4 h-4 text-white/60" />
                   <h3 className="text-white font-semibold">Pay rent</h3>
                 </div>
-                <p className="text-white/40 text-sm mt-1">Secure online rent payments, right from your dashboard — no more checks or cash.</p>
+                <p className="text-white/60 text-sm mt-1">Secure online rent payments, right from your dashboard — no more checks or cash.</p>
               </Link>
             )}
 
@@ -291,7 +291,7 @@ export default function RenterDashboard() {
                   <Skeleton className="h-4 w-2/3" />
                 </div>
               ) : jobs.length === 0 ? (
-                <div className="flex items-center gap-2 text-white/30 text-sm">
+                <div className="flex items-center gap-2 text-white/50 text-sm">
                   <CheckCircleIcon className="w-4 h-4" />
                   No open issues — you&apos;re all good!
                 </div>
@@ -337,9 +337,9 @@ export default function RenterDashboard() {
                   <Skeleton className="h-4 w-1/2" />
                 </div>
               ) : !unit ? (
-                <p className="text-white/30 text-sm">No unit linked to your account yet.</p>
+                <p className="text-white/50 text-sm">No unit linked to your account yet.</p>
               ) : contacts.length === 0 ? (
-                <p className="text-white/30 text-sm">No emergency contacts added for your unit yet.</p>
+                <p className="text-white/50 text-sm">No emergency contacts added for your unit yet.</p>
               ) : (
                 <div className="space-y-3">
                   {contacts.map((contact) => (
@@ -352,7 +352,7 @@ export default function RenterDashboard() {
                         </a>
                       )}
                       {contact.email && (
-                        <a href={`mailto:${contact.email}`} className="text-white/40 text-sm hover:underline block">
+                        <a href={`mailto:${contact.email}`} className="text-white/60 text-sm hover:underline block">
                           {contact.email}
                         </a>
                       )}

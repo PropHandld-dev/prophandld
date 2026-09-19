@@ -258,7 +258,7 @@ export default function ReportIssuePage() {
                   value={form.categoryOther}
                   onChange={handleChange}
                   placeholder="e.g. Landscaping, Mold, Locksmith"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
                 />
               </div>
             )}
@@ -291,7 +291,7 @@ export default function ReportIssuePage() {
                 required
                 rows={4}
                 placeholder="What's going on? Be as specific as you can."
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition resize-none"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition resize-none"
               />
             </div>
 
@@ -360,7 +360,7 @@ export default function ReportIssuePage() {
                 <p className={form.is_emergency ? 'text-red-400 font-semibold text-sm flex items-center gap-1.5' : 'text-white font-semibold text-sm flex items-center gap-1.5'}>
                   <AlertTriangleIcon className="w-4 h-4" /> This is an emergency
                 </p>
-                <p className="text-white/40 text-xs mt-1">
+                <p className="text-white/60 text-xs mt-1">
                   Only use this for issues that need attention right away — active leaks, gas smells, no heat, broken locks.
                 </p>
               </div>
@@ -411,7 +411,7 @@ export default function ReportIssuePage() {
                 </li>
               ))}
             </ul>
-            <p className="text-white/30 text-xs mb-5">
+            <p className="text-white/50 text-xs mb-5">
               Marking non-urgent issues as emergencies slows down response times for everyone.
             </p>
             <div className="flex gap-3">

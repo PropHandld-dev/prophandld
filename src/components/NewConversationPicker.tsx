@@ -70,7 +70,7 @@ export function NewConversationPicker({
           <div className="h-16 bg-white/5 rounded-xl animate-pulse" />
         </div>
       ) : contacts.length === 0 ? (
-        <p className="text-white/30 text-sm text-center py-10">No one to message yet.</p>
+        <p className="text-white/50 text-sm text-center py-10">No one to message yet.</p>
       ) : (
         <div className="space-y-2">
           {contacts.map((c) => (
@@ -84,7 +84,7 @@ export function NewConversationPicker({
                 <p className="text-white text-sm font-medium truncate">{c.full_name || 'Unknown'}</p>
                 <span className="text-[10px] bg-white/8 text-white/50 rounded-full px-1.5 py-0.5 shrink-0">{ROLE_LABELS[c.other_role] || c.other_role}</span>
               </div>
-              {c.context_label && <p className="text-white/40 text-xs truncate">{c.context_label}</p>}
+              {c.context_label && <p className="text-white/60 text-xs truncate">{c.context_label}</p>}
               {c.last_job_category && (
                 <p className="text-[#12A5A9] text-xs mt-1">
                   You worked with them before on {c.last_job_category} — message {c.thread_id ? 'again' : 'them again'}?

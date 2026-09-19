@@ -542,15 +542,15 @@ export default function LandlordDashboard() {
                   <span className="text-white/20 group-hover:text-[#12A5A9]/60 transition text-sm">→</span>
                 </div>
                 <CountUp value={stats.properties} className="text-3xl font-bold text-white block" />
-                <div className="text-white/40 text-sm mt-1">Properties</div>
+                <div className="text-white/60 text-sm mt-1">Properties</div>
               </Link>
 
               <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
                 <div className="flex items-center justify-between mb-3">
-                  <BuildingIcon className="w-5 h-5 text-white/40" />
+                  <BuildingIcon className="w-5 h-5 text-white/60" />
                 </div>
                 <CountUp value={stats.totalUnits} className="text-3xl font-bold text-white block" />
-                <div className="text-white/40 text-sm mt-1">Total units</div>
+                <div className="text-white/60 text-sm mt-1">Total units</div>
               </div>
 
               <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
@@ -559,7 +559,7 @@ export default function LandlordDashboard() {
                   <span className="text-[#12A5A9] text-xs font-semibold">{occupancyRate}%</span>
                 </div>
                 <CountUp value={stats.occupiedUnits} className="text-3xl font-bold text-white block" />
-                <div className="text-white/40 text-sm mt-1">Occupied · {stats.vacantUnits} vacant</div>
+                <div className="text-white/60 text-sm mt-1">Occupied · {stats.vacantUnits} vacant</div>
               </div>
 
               <div className="bg-gradient-to-br from-[#0A7B7E]/15 to-[#12A5A9]/5 border border-[#12A5A9]/20 rounded-2xl p-5">
@@ -567,7 +567,7 @@ export default function LandlordDashboard() {
                   <DollarSignIcon className="w-5 h-5 text-[#12A5A9]" />
                 </div>
                 <div className="text-3xl font-bold text-white">{formatCurrency(stats.monthlyRentRoll)}</div>
-                <div className="text-white/40 text-sm mt-1">Monthly rent roll</div>
+                <div className="text-white/60 text-sm mt-1">Monthly rent roll</div>
               </div>
             </ScrollReveal>
 
@@ -576,14 +576,14 @@ export default function LandlordDashboard() {
                 <ClipboardListIcon className="w-6 h-6 text-white/50 shrink-0" />
                 <div>
                   <div className="text-xl font-bold text-white">{stats.needsApproval}</div>
-                  <div className="text-white/40 text-xs">Needs action</div>
+                  <div className="text-white/60 text-xs">Needs action</div>
                 </div>
               </Link>
               <Link href="/landlord/jobs?filter=in_progress" className="bg-white/3 border border-white/8 rounded-2xl p-5 flex items-center gap-4 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all">
                 <WrenchIcon className="w-6 h-6 text-white/50 shrink-0" />
                 <div>
                   <div className="text-xl font-bold text-white">{stats.inProgress}</div>
-                  <div className="text-white/40 text-xs">In progress</div>
+                  <div className="text-white/60 text-xs">In progress</div>
                 </div>
               </Link>
               <Link
@@ -593,7 +593,7 @@ export default function LandlordDashboard() {
                 <ClipboardListIcon className="w-6 h-6 text-white/50 shrink-0" />
                 <div>
                   <div className="text-xl font-bold text-white">{stats.pendingBids}</div>
-                  <div className="text-white/40 text-xs">Bids to review</div>
+                  <div className="text-white/60 text-xs">Bids to review</div>
                 </div>
               </Link>
             </div>
@@ -607,9 +607,9 @@ export default function LandlordDashboard() {
 
             {properties.length === 0 ? (
               <div className="bg-white/3 border border-white/8 rounded-2xl p-10 text-center mb-10">
-                <BuildingIcon className="w-10 h-10 text-white/30 mx-auto mb-3" />
+                <BuildingIcon className="w-10 h-10 text-white/50 mx-auto mb-3" />
                 <h3 className="text-white font-semibold mb-1">No properties yet</h3>
-                <p className="text-white/40 text-sm mb-5">Add your first property to start building your portfolio.</p>
+                <p className="text-white/60 text-sm mb-5">Add your first property to start building your portfolio.</p>
                 <MagneticLink
                   href="/landlord/properties/new"
                   className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-6 py-3 rounded-xl hover:opacity-90 transition inline-block"
@@ -632,7 +632,7 @@ export default function LandlordDashboard() {
                       <div className="flex items-center justify-between gap-4">
                         <div className="flex-1 min-w-0">
                           <h3 className="text-white font-semibold truncate">{property.address}</h3>
-                          <p className="text-white/40 text-sm mt-0.5">{property.city}, {property.state}</p>
+                          <p className="text-white/60 text-sm mt-0.5">{property.city}, {property.state}</p>
                         </div>
                         <div className="flex items-center gap-6 shrink-0">
                           <div className="text-right">
@@ -660,32 +660,32 @@ export default function LandlordDashboard() {
               <Link href="/landlord/properties" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
                 <BuildingIcon className="w-5 h-5 text-[#12A5A9] mb-2" />
                 <h3 className="text-white font-semibold mb-1">Properties</h3>
-                <p className="text-white/40 text-sm">Manage your properties and units</p>
+                <p className="text-white/60 text-sm">Manage your properties and units</p>
               </Link>
               <Link href="/landlord/properties/new" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
                 <BuildingIcon className="w-5 h-5 text-[#12A5A9] mb-2" />
                 <h3 className="text-white font-semibold mb-1">Add a property</h3>
-                <p className="text-white/40 text-sm">Start tracking a new address</p>
+                <p className="text-white/60 text-sm">Start tracking a new address</p>
               </Link>
               <Link href="/landlord/jobs" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
                 <WrenchIcon className="w-5 h-5 text-[#12A5A9] mb-2" />
                 <h3 className="text-white font-semibold mb-1">View jobs</h3>
-                <p className="text-white/40 text-sm">See all maintenance requests</p>
+                <p className="text-white/60 text-sm">See all maintenance requests</p>
               </Link>
               <Link href="/landlord/properties" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
                 <DollarSignIcon className="w-5 h-5 text-[#12A5A9] mb-2" />
                 <h3 className="text-white font-semibold mb-1">Rent collection</h3>
-                <p className="text-white/40 text-sm">Open a unit to track and collect rent</p>
+                <p className="text-white/60 text-sm">Open a unit to track and collect rent</p>
               </Link>
               <Link href="/landlord/properties" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
                 <FileTextIcon className="w-5 h-5 text-[#12A5A9] mb-2" />
                 <h3 className="text-white font-semibold mb-1">Documents</h3>
-                <p className="text-white/40 text-sm">Open a property to upload and manage its documents</p>
+                <p className="text-white/60 text-sm">Open a property to upload and manage its documents</p>
               </Link>
               <Link href="/landlord/properties" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
                 <ClipboardListIcon className="w-5 h-5 text-[#12A5A9] mb-2" />
                 <h3 className="text-white font-semibold mb-1">Compliance tracking</h3>
-                <p className="text-white/40 text-sm">Open a property to manage compliance items</p>
+                <p className="text-white/60 text-sm">Open a property to manage compliance items</p>
               </Link>
             </div>
           </>

@@ -47,7 +47,7 @@ export function AlertsList({ items }: { items: AlertItem[] }) {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-white text-sm font-medium truncate">{item.title}</p>
-                {item.subtitle && <p className="text-white/40 text-xs truncate">{item.subtitle}</p>}
+                {item.subtitle && <p className="text-white/60 text-xs truncate">{item.subtitle}</p>}
               </div>
               <span className={`text-[10px] font-semibold rounded-full px-2 py-1 shrink-0 ${tone.badge}`}>
                 {item.badge}

@@ -79,7 +79,7 @@ export default function ForgotPasswordPage() {
             {loading ? 'Sending...' : 'Send reset link'}
           </RippleButton>
 
-          <Link href="/login" className="block text-center text-white/40 hover:text-white text-sm transition">
+          <Link href="/login" className="block text-center text-white/60 hover:text-white text-sm transition">
             Back to login
           </Link>
         </form>

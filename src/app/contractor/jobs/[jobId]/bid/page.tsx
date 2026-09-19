@@ -219,7 +219,7 @@ export default function SubmitBidPage() {
                 )}
               </div>
               <p className="text-white/60 text-sm">{job.description}</p>
-              <p className="text-white/30 text-xs mt-2">
+              <p className="text-white/50 text-xs mt-2">
                 {job.address}, {job.city}, {job.state} · Unit {job.unit_number}
               </p>
               {linkedSystem && (
@@ -254,7 +254,7 @@ export default function SubmitBidPage() {
               </div>
             )}
 
-            <p className="text-white/30 text-xs mb-4">
+            <p className="text-white/50 text-xs mb-4">
               🔒 Your bid is sealed — other contractors can't see your price, and you can't see theirs.
             </p>
 
@@ -270,7 +270,7 @@ export default function SubmitBidPage() {
                   min="1"
                   step="0.01"
                   placeholder="450"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
                 />
               </div>
 
@@ -282,7 +282,7 @@ export default function SubmitBidPage() {
                   value={form.availability}
                   onChange={handleChange}
                   placeholder="Can start tomorrow, mornings work best"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
                 />
               </div>
 
@@ -296,7 +296,7 @@ export default function SubmitBidPage() {
                   min="0"
                   step="0.5"
                   placeholder="2"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
                 />
               </div>
 
@@ -308,7 +308,7 @@ export default function SubmitBidPage() {
                   onChange={handleChange}
                   rows={3}
                   placeholder="Anything the landlord should know"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition resize-none"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition resize-none"
                 />
               </div>
 

@@ -31,7 +31,7 @@ export function BottomTabBar({ tabs }: { tabs: TabItem[] }) {
             key={tab.href}
             href={tab.href}
             className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 transition ${
-              isActive ? 'text-[#12A5A9]' : 'text-white/40 hover:text-white/60'
+              isActive ? 'text-[#12A5A9]' : 'text-white/60 hover:text-white/60'
             }`}
           >
             <Icon className="w-5 h-5" />

@@ -236,11 +236,11 @@ export function ChatPanel({
     <div className={`flex flex-col ${heightClassName}`}>
       {others.length > 0 && (
         <div className="flex items-center gap-2 flex-wrap pb-3 mb-3 border-b border-white/8">
-          <span className="text-white/40 text-xs">With</span>
+          <span className="text-white/60 text-xs">With</span>
           {others.map((p) => (
             <span key={p.user_id} className="inline-flex items-center gap-1 text-xs bg-white/5 border border-white/10 rounded-full px-2.5 py-1">
               <span className="text-white font-medium">{p.full_name || 'Unknown'}</span>
-              <span className="text-white/40">· {ROLE_LABELS[p.role] || p.role}</span>
+              <span className="text-white/60">· {ROLE_LABELS[p.role] || p.role}</span>
             </span>
           ))}
         </div>
@@ -248,7 +248,7 @@ export function ChatPanel({
 
       <div className="flex-1 overflow-y-auto space-y-1 pb-4">
         {messages.length === 0 ? (
-          <p className="text-white/30 text-sm text-center py-10">No messages yet — say hello.</p>
+          <p className="text-white/50 text-sm text-center py-10">No messages yet — say hello.</p>
         ) : (
           messages.map((m, i) => {
             const isMine = m.sender_user_id === userId
@@ -265,12 +265,12 @@ export function ChatPanel({
               <div key={m.id}>
                 {showDayDivider && (
                   <div className="flex items-center justify-center my-4">
-                    <span className="text-white/30 text-[11px] font-medium bg-white/5 rounded-full px-3 py-1">{thisDay}</span>
+                    <span className="text-white/50 text-[11px] font-medium bg-white/5 rounded-full px-3 py-1">{thisDay}</span>
                   </div>
                 )}
                 <div className={`flex ${isMine ? 'justify-end' : 'justify-start'} mb-3`}>
                   <div className="max-w-[78%]">
-                    <p className={`text-[11px] font-medium mb-1 ${isMine ? 'text-right text-white/40' : 'text-left text-white/50'}`}>
+                    <p className={`text-[11px] font-medium mb-1 ${isMine ? 'text-right text-white/60' : 'text-left text-white/50'}`}>
                       {isMine ? 'You' : `${sender?.full_name || 'Someone'} · ${ROLE_LABELS[sender?.role || ''] || 'Unknown'}`}
                     </p>
                     <div
@@ -282,7 +282,7 @@ export function ChatPanel({
                     >
                       <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{m.body}</p>
                     </div>
-                    <p className={`text-[10px] text-white/30 mt-1 ${isMine ? 'text-right' : 'text-left'}`}>
+                    <p className={`text-[10px] text-white/50 mt-1 ${isMine ? 'text-right' : 'text-left'}`}>
                       {formatTimestamp(m.created_at)}
                     </p>
                     {canConfirm && (
@@ -336,7 +336,7 @@ export function ChatPanel({
             >
               Send proposal
             </button>
-            <button type="button" onClick={() => setShowSchedule(false)} className="text-white/40 hover:text-white text-xs transition">
+            <button type="button" onClick={() => setShowSchedule(false)} className="text-white/60 hover:text-white text-xs transition">
               Cancel
             </button>
           </div>
@@ -372,7 +372,7 @@ export function ChatPanel({
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           placeholder="Message..."
-          className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+          className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
         />
         <RippleButton
           type="submit"

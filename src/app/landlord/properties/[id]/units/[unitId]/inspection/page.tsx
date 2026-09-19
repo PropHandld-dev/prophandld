@@ -311,7 +311,7 @@ export default function InspectionPage() {
               </h3>
               {photos.length === 0 ? (
                 <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
-                  <p className="text-white/30 text-sm">No photos added yet.</p>
+                  <p className="text-white/50 text-sm">No photos added yet.</p>
                 </div>
               ) : (
                 <ScrollReveal>
@@ -327,7 +327,7 @@ export default function InspectionPage() {
                         <p className="text-white/60 text-xs">
                           {photo.uploader?.full_name || 'Unknown'} · {photo.uploaded_by_role}
                         </p>
-                        <p className="text-white/30 text-xs mt-0.5">
+                        <p className="text-white/50 text-xs mt-0.5">
                           {new Date(photo.created_at).toLocaleString()}
                         </p>
                       </div>

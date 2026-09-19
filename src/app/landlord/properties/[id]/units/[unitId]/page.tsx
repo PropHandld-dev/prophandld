@@ -415,24 +415,24 @@ export default function UnitDetailPage() {
                 </div>
               </div>
               {tenancy.users?.phone && (
-                <p className="text-white/40 text-sm">📞 {tenancy.users.phone}</p>
+                <p className="text-white/60 text-sm">📞 {tenancy.users.phone}</p>
               )}
               {tenancy.rent_amount && (
-                <p className="text-white/40 text-sm flex items-center gap-1.5">
-                  <DollarSignIcon className="w-3.5 h-3.5 text-white/40" />
+                <p className="text-white/60 text-sm flex items-center gap-1.5">
+                  <DollarSignIcon className="w-3.5 h-3.5 text-white/60" />
                   ${tenancy.rent_amount}/month
                 </p>
               )}
               {tenancy.lease_start && (
-                <p className="text-white/40 text-sm flex items-center gap-1.5">
-                  <CalendarIcon className="w-3.5 h-3.5 text-white/40" />
+                <p className="text-white/60 text-sm flex items-center gap-1.5">
+                  <CalendarIcon className="w-3.5 h-3.5 text-white/60" />
                   {new Date(tenancy.lease_start + 'T00:00:00').toLocaleDateString()}
                   {tenancy.lease_end ? ` → ${new Date(tenancy.lease_end + 'T00:00:00').toLocaleDateString()}` : ' → ongoing'}
                 </p>
               )}
 
               {!editingTenancy && tenancy.escalation_percent && tenancy.escalation_frequency_months && (
-                <p className="text-white/40 text-sm">
+                <p className="text-white/60 text-sm">
                   📈 +{tenancy.escalation_percent}% every {tenancy.escalation_frequency_months} months
                   {tenancy.lease_start && (() => {
                     const next = nextEscalationDate(tenancy.lease_start, tenancy.escalation_frequency_months)
@@ -442,20 +442,20 @@ export default function UnitDetailPage() {
               )}
 
               {!editingTenancy && tenancy.late_fee_amount && (
-                <p className="text-white/40 text-sm">
+                <p className="text-white/60 text-sm">
                   ⏰ ${tenancy.late_fee_amount} late fee after {tenancy.grace_period_days ?? 5} days
                 </p>
               )}
 
               {!editingTenancy && tenancy.occupants && (
-                <p className="text-white/40 text-sm flex items-center gap-1.5">
-                  <UserIcon className="w-3.5 h-3.5 text-white/40" />
+                <p className="text-white/60 text-sm flex items-center gap-1.5">
+                  <UserIcon className="w-3.5 h-3.5 text-white/60" />
                   {tenancy.occupants} occupant{tenancy.occupants === 1 ? '' : 's'}
                 </p>
               )}
 
               {!editingTenancy && tenancy.pets && (
-                <p className="text-white/40 text-sm">🐾 {tenancy.pets}</p>
+                <p className="text-white/60 text-sm">🐾 {tenancy.pets}</p>
               )}
 
               {!editingTenancy && tenancy.lease_notes && (
@@ -508,7 +508,7 @@ export default function UnitDetailPage() {
                         value={editForm.late_fee_amount}
                         onChange={handleEditFormChange}
                         placeholder="No fee"
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
                       />
                     </div>
                     <div>
@@ -522,7 +522,7 @@ export default function UnitDetailPage() {
                       />
                     </div>
                   </div>
-                  <p className="text-white/30 text-[11px] -mt-2">
+                  <p className="text-white/50 text-[11px] -mt-2">
                     Leave the fee blank for no automatic late fee. If set, it&apos;s added to the amount due (never auto-charged) once the grace period passes with rent unpaid.
                   </p>
                   <div>
@@ -543,7 +543,7 @@ export default function UnitDetailPage() {
                       value={editForm.pets}
                       onChange={handleEditFormChange}
                       placeholder="e.g. 1 dog (Labrador)"
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
                     />
                   </div>
                   <div>
@@ -571,7 +571,7 @@ export default function UnitDetailPage() {
                     </RippleButton>
                     <button
                       onClick={() => setEditingTenancy(false)}
-                      className="text-white/40 text-xs hover:text-white transition"
+                      className="text-white/60 text-xs hover:text-white transition"
                     >
                       Cancel
                     </button>
@@ -612,7 +612,7 @@ export default function UnitDetailPage() {
                     </button>
                     <button
                       onClick={() => setShowMoveOutForm(false)}
-                      className="text-white/40 text-xs hover:text-white transition"
+                      className="text-white/60 text-xs hover:text-white transition"
                     >
                       Cancel
                     </button>
@@ -657,7 +657,7 @@ export default function UnitDetailPage() {
               <p className="text-yellow-400/80 text-sm font-medium">
                 Invited: {pendingInvite.renter_email}
               </p>
-              <p className="text-white/40 text-xs mt-1">Waiting for them to sign up.</p>
+              <p className="text-white/60 text-xs mt-1">Waiting for them to sign up.</p>
               {inviteResendError && (
                 <p className="text-red-400 text-xs mt-2">{inviteResendError}</p>
               )}
@@ -682,7 +682,7 @@ export default function UnitDetailPage() {
               </div>
             </div>
           ) : (
-            <p className="text-white/30 text-sm">No tenant linked — unit is vacant.</p>
+            <p className="text-white/50 text-sm">No tenant linked — unit is vacant.</p>
           )}
         </div>
         </ScrollReveal>
@@ -700,7 +700,7 @@ export default function UnitDetailPage() {
                 Manage
               </Link>
             </div>
-            <p className="text-white/30 text-sm">Track expected vs. actual rent payments each month.</p>
+            <p className="text-white/50 text-sm">Track expected vs. actual rent payments each month.</p>
           </div>
           </ScrollReveal>
         )}
@@ -718,7 +718,7 @@ export default function UnitDetailPage() {
             </Link>
           </div>
           {openJobs.length === 0 ? (
-            <p className="text-white/30 text-sm">No open jobs for this unit.</p>
+            <p className="text-white/50 text-sm">No open jobs for this unit.</p>
           ) : (
             <div className="space-y-1">
               <ShowMoreList
@@ -749,7 +749,7 @@ export default function UnitDetailPage() {
         <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
           <h2 className="text-white font-semibold mb-4">Job history</h2>
           {jobHistory.length === 0 ? (
-            <p className="text-white/30 text-sm">No completed jobs yet.</p>
+            <p className="text-white/50 text-sm">No completed jobs yet.</p>
           ) : (
             <div className="space-y-1">
               <ShowMoreList
@@ -759,7 +759,7 @@ export default function UnitDetailPage() {
                   <Link href={`/landlord/jobs/${job.id}`} className="block rounded-xl px-2 -mx-2 py-3 border-b border-white/5 last:border-0 hover:bg-white/5 transition-all">
                     <p className="text-white font-medium text-sm">{job.category}</p>
                     <p className="text-white/50 text-xs">{job.description}</p>
-                    <p className="text-white/30 text-xs mt-1">{statusLabel(job.status)}</p>
+                    <p className="text-white/50 text-xs mt-1">{statusLabel(job.status)}</p>
                   </Link>
                 )}
               />
@@ -780,7 +780,7 @@ export default function UnitDetailPage() {
               Manage
             </Link>
           </div>
-          <p className="text-white/30 text-sm">Track major systems (HVAC, water heater, roof, panel) with service history and replacement cost.</p>
+          <p className="text-white/50 text-sm">Track major systems (HVAC, water heater, roof, panel) with service history and replacement cost.</p>
         </div>
         </ScrollReveal>
         </>

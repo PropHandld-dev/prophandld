@@ -129,7 +129,7 @@ export function FloatingChatWidget() {
                   </button>
                   <div className="min-w-0 flex-1">
                     <p className="text-white text-sm font-semibold truncate">{active.otherName}</p>
-                    <p className="text-white/40 text-xs truncate">
+                    <p className="text-white/60 text-xs truncate">
                       {active.otherRole}{active.kind === 'job' ? ` · ${active.category}` : ''}
                     </p>
                   </div>
@@ -148,7 +148,7 @@ export function FloatingChatWidget() {
                   </button>
                 </>
               )}
-              <button onClick={handleClose} className="text-white/40 hover:text-white text-lg leading-none transition shrink-0">
+              <button onClick={handleClose} className="text-white/60 hover:text-white text-lg leading-none transition shrink-0">
                 ×
               </button>
             </div>
@@ -173,7 +173,7 @@ export function FloatingChatWidget() {
                       <div className="h-16 bg-white/5 rounded-xl animate-pulse" />
                     </div>
                   ) : conversations.length === 0 ? (
-                    <p className="text-white/30 text-sm text-center py-10">No conversations yet.</p>
+                    <p className="text-white/50 text-sm text-center py-10">No conversations yet.</p>
                   ) : (
                     <div className="space-y-2">
                       {conversations.map((c) => {
@@ -195,7 +195,7 @@ export function FloatingChatWidget() {
                                   {isMine ? 'You: ' : ''}{c.lastMessage}
                                 </p>
                               </div>
-                              <span className="text-white/30 text-[10px] shrink-0">{formatTimestamp(c.lastMessageAt)}</span>
+                              <span className="text-white/50 text-[10px] shrink-0">{formatTimestamp(c.lastMessageAt)}</span>
                             </div>
                           </button>
                         )

@@ -315,7 +315,7 @@ export default function UnitSystemsPage() {
               value={form.name}
               onChange={handleChange}
               placeholder="Water heater"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
             />
           </div>
 
@@ -358,7 +358,7 @@ export default function UnitSystemsPage() {
                 value={form.brand}
                 onChange={handleChange}
                 placeholder="Whirlpool"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
               />
             </div>
             <div>
@@ -368,7 +368,7 @@ export default function UnitSystemsPage() {
                 name="model"
                 value={form.model}
                 onChange={handleChange}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
               />
             </div>
           </div>
@@ -393,7 +393,7 @@ export default function UnitSystemsPage() {
                 onChange={handleChange}
                 min={0}
                 placeholder="1200"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
               />
             </div>
           </div>
@@ -420,7 +420,7 @@ export default function UnitSystemsPage() {
 
         {items.length === 0 ? (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
-            <p className="text-white/30 text-sm">No systems tracked yet.</p>
+            <p className="text-white/50 text-sm">No systems tracked yet.</p>
           </div>
         ) : (
           <ScrollReveal className="space-y-3">
@@ -444,17 +444,17 @@ export default function UnitSystemsPage() {
                         </span>
                       </div>
                       {(item.brand || item.model) && (
-                        <p className="text-white/40 text-xs mt-2">
+                        <p className="text-white/60 text-xs mt-2">
                           {[item.brand, item.model].filter(Boolean).join(' · ')}
                         </p>
                       )}
                       <div className="flex items-center gap-3 flex-wrap mt-1">
-                        {age && <p className="text-white/30 text-xs">{age}</p>}
+                        {age && <p className="text-white/50 text-xs">{age}</p>}
                         {item.replacement_cost != null && (
-                          <p className="text-white/30 text-xs">Replace: ${item.replacement_cost}</p>
+                          <p className="text-white/50 text-xs">Replace: ${item.replacement_cost}</p>
                         )}
                         {itemLogs.length > 0 && (
-                          <p className="text-white/30 text-xs">Spent to date: ${getTotalSpent(item.id).toFixed(2)}</p>
+                          <p className="text-white/50 text-xs">Spent to date: ${getTotalSpent(item.id).toFixed(2)}</p>
                         )}
                       </div>
                     </div>
@@ -487,7 +487,7 @@ export default function UnitSystemsPage() {
                   {isExpanded && (
                     <div className="mt-3 border-t border-white/8 pt-3 space-y-2">
                       {itemLogs.length === 0 && addingLogForId !== item.id && (
-                        <p className="text-white/30 text-xs">No service history yet.</p>
+                        <p className="text-white/50 text-xs">No service history yet.</p>
                       )}
                       {itemLogs.map((log) => (
                         <div key={log.id} className="flex items-start justify-between bg-white/5 rounded-lg px-3 py-2">
@@ -496,7 +496,7 @@ export default function UnitSystemsPage() {
                               {new Date(log.service_date + 'T00:00:00').toLocaleDateString()}
                               {log.cost != null && ` · $${log.cost}`}
                             </p>
-                            {log.description && <p className="text-white/40 text-xs mt-0.5">{log.description}</p>}
+                            {log.description && <p className="text-white/60 text-xs mt-0.5">{log.description}</p>}
                           </div>
                           <button
                             onClick={() => deleteLog(log.id, item.id)}
@@ -522,7 +522,7 @@ export default function UnitSystemsPage() {
                             value={logForm.description}
                             onChange={handleLogChange}
                             placeholder="What was done"
-                            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-xs placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+                            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-xs placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
                           />
                           <input
                             type="number"
@@ -531,7 +531,7 @@ export default function UnitSystemsPage() {
                             onChange={handleLogChange}
                             min={0}
                             placeholder="Cost"
-                            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-xs placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+                            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-xs placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
                           />
                           <div className="flex gap-2">
                             <button

@@ -349,7 +349,7 @@ export default function ContractorSettingsPage() {
                 value={otherCategoryText}
                 onChange={(e) => setOtherCategoryText(e.target.value)}
                 placeholder="What service do you offer? e.g. Landscaping"
-                className="w-full mt-2 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+                className="w-full mt-2 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
               />
             )}
           </div>
@@ -362,7 +362,7 @@ export default function ContractorSettingsPage() {
                 value={zip}
                 onChange={(e) => setZip(e.target.value)}
                 placeholder="19136"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
               />
             </div>
             <div>
@@ -378,7 +378,7 @@ export default function ContractorSettingsPage() {
               </select>
             </div>
           </div>
-          <p className="text-white/30 text-xs -mt-2">
+          <p className="text-white/50 text-xs -mt-2">
             You&apos;ll see jobs within your travel radius of this ZIP code, not just an exact match.
           </p>
 
@@ -476,7 +476,7 @@ export default function ContractorSettingsPage() {
                     value={licenseNumber}
                     onChange={(e) => setLicenseNumber(e.target.value)}
                     placeholder="e.g. PA-123456"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
                   />
                 </div>
 
@@ -515,7 +515,7 @@ export default function ContractorSettingsPage() {
                     </span>
                   </label>
                   {!licenseFile && verification?.license_document_url && (
-                    <p className="text-white/30 text-xs mt-1">On file</p>
+                    <p className="text-white/50 text-xs mt-1">On file</p>
                   )}
                 </div>
 
@@ -533,7 +533,7 @@ export default function ContractorSettingsPage() {
                     </span>
                   </label>
                   {!insuranceFile && verification?.insurance_document_url && (
-                    <p className="text-white/30 text-xs mt-1">On file</p>
+                    <p className="text-white/50 text-xs mt-1">On file</p>
                   )}
                 </div>
               </>

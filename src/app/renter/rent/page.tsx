@@ -130,7 +130,7 @@ export default function RenterRentPage() {
           </div>
         ) : !tenancy ? (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
-            <p className="text-white/30 text-sm">No active lease linked to your account yet.</p>
+            <p className="text-white/50 text-sm">No active lease linked to your account yet.</p>
           </div>
         ) : (
           <>
@@ -147,7 +147,7 @@ export default function RenterRentPage() {
 
             {payments.length === 0 ? (
               <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
-                <p className="text-white/30 text-sm">Nothing to pay yet — check back once your lease&apos;s rent amount is set up.</p>
+                <p className="text-white/50 text-sm">Nothing to pay yet — check back once your lease&apos;s rent amount is set up.</p>
               </div>
             ) : (
               <ScrollReveal className="space-y-3">
@@ -193,7 +193,7 @@ export default function RenterRentPage() {
               </ScrollReveal>
             )}
 
-            <p className="text-white/30 text-xs mt-6">
+            <p className="text-white/50 text-xs mt-6">
               Debit card or bank account only — credit cards aren&apos;t accepted for rent. Bank payments (ACH) can take a few business days to clear; debit card payments are instant.
             </p>
           </>

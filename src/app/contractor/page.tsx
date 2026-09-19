@@ -287,17 +287,17 @@ export default function ContractorDashboard() {
                   <a href="#available-jobs" className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
                     <ClipboardListIcon className="w-5 h-5 text-[#12A5A9] mx-auto mb-1" />
                     <CountUp value={availableJobs.length} className="text-2xl font-bold text-white block" />
-                    <div className="text-white/40 text-xs mt-1">New Jobs</div>
+                    <div className="text-white/60 text-xs mt-1">New Jobs</div>
                   </a>
                   <a href="#your-bids" className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
                     <WrenchIcon className="w-5 h-5 text-[#12A5A9] mx-auto mb-1" />
                     <CountUp value={activeJobsCount} className="text-2xl font-bold text-white block" />
-                    <div className="text-white/40 text-xs mt-1">Active</div>
+                    <div className="text-white/60 text-xs mt-1">Active</div>
                   </a>
                   <Link href="/contractor/earnings" className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
                     <DollarSignIcon className="w-5 h-5 text-[#12A5A9] mx-auto mb-1" />
                     <div className="text-2xl font-bold text-white">${totalEarnings.toLocaleString()}</div>
-                    <div className="text-white/40 text-xs mt-1">Earnings</div>
+                    <div className="text-white/60 text-xs mt-1">Earnings</div>
                   </Link>
                 </ScrollReveal>
 
@@ -306,9 +306,9 @@ export default function ContractorDashboard() {
                     href="/contractor/settings"
                     className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block"
                   >
-                    <DollarSignIcon className={`w-5 h-5 mx-auto mb-1 ${connectStatus === 'active' ? 'text-[#12A5A9]' : 'text-white/40'}`} />
+                    <DollarSignIcon className={`w-5 h-5 mx-auto mb-1 ${connectStatus === 'active' ? 'text-[#12A5A9]' : 'text-white/60'}`} />
                     <h3 className="text-white text-sm font-semibold">Payouts</h3>
-                    <p className={`text-xs mt-0.5 ${connectStatus === 'active' ? 'text-[#12A5A9]' : 'text-white/40'}`}>
+                    <p className={`text-xs mt-0.5 ${connectStatus === 'active' ? 'text-[#12A5A9]' : 'text-white/60'}`}>
                       {connectStatus === 'active' ? 'Active' : connectStatus === 'onboarding' ? 'Finish setup' : 'Set up payouts'}
                     </p>
                   </Link>
@@ -316,9 +316,9 @@ export default function ContractorDashboard() {
                     href="/contractor/settings"
                     className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block"
                   >
-                    <CheckCircleIcon className={`w-5 h-5 mx-auto mb-1 ${verificationStatus === 'verified' ? 'text-[#12A5A9]' : 'text-white/40'}`} />
+                    <CheckCircleIcon className={`w-5 h-5 mx-auto mb-1 ${verificationStatus === 'verified' ? 'text-[#12A5A9]' : 'text-white/60'}`} />
                     <h3 className="text-white text-sm font-semibold">Verification</h3>
-                    <p className={`text-xs mt-0.5 ${verificationStatus === 'verified' ? 'text-[#12A5A9]' : 'text-white/40'}`}>
+                    <p className={`text-xs mt-0.5 ${verificationStatus === 'verified' ? 'text-[#12A5A9]' : 'text-white/60'}`}>
                       {verificationStatus === 'verified' ? 'Verified ✓' : verificationStatus === 'pending' ? 'Under review' : verificationStatus === 'unlicensed' ? 'Unlicensed' : 'Get verified'}
                     </p>
                   </Link>
@@ -338,7 +338,7 @@ export default function ContractorDashboard() {
                           <p className="text-[#12A5A9] text-xs mt-1">
                             {new Date(bid.jobs.proposed_date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })} · {TIME_WINDOWS[bid.jobs.proposed_window] || bid.jobs.proposed_window}
                           </p>
-                          <p className="text-white/30 text-xs mt-0.5">{jobLocation(bid)}</p>
+                          <p className="text-white/50 text-xs mt-0.5">{jobLocation(bid)}</p>
                         </Link>
                       ))}
                     </div>
@@ -348,7 +348,7 @@ export default function ContractorDashboard() {
                 <div id="available-jobs" className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6 scroll-mt-6">
                   <h3 className="text-white font-semibold mb-4">Available jobs near you</h3>
                   {availableJobs.length === 0 ? (
-                    <p className="text-white/30 text-sm">No jobs available right now — check back soon.</p>
+                    <p className="text-white/50 text-sm">No jobs available right now — check back soon.</p>
                   ) : (
                     <div className="space-y-3">
                       {availableJobs.map((job) => (
@@ -366,10 +366,10 @@ export default function ContractorDashboard() {
                                 </span>
                               )}
                             </div>
-                            <span className="text-white/30 text-xs shrink-0">{formatDate(job.created_at)}</span>
+                            <span className="text-white/50 text-xs shrink-0">{formatDate(job.created_at)}</span>
                           </div>
                           <p className="text-white/50 text-xs">{job.description}</p>
-                          <p className="text-white/30 text-xs mt-1">
+                          <p className="text-white/50 text-xs mt-1">
                             {job.address}, {job.city} · Unit {job.unit_number}
                           </p>
                         </Link>
@@ -381,7 +381,7 @@ export default function ContractorDashboard() {
                 <div id="your-bids" className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6 scroll-mt-6">
                   <h3 className="text-white font-semibold mb-4">Your bids</h3>
                   {myBids.length === 0 ? (
-                    <p className="text-white/30 text-sm">You haven&apos;t submitted any bids yet.</p>
+                    <p className="text-white/50 text-sm">You haven&apos;t submitted any bids yet.</p>
                   ) : (
                     <div className="space-y-3">
                       <ShowMoreList
@@ -404,16 +404,16 @@ export default function ContractorDashboard() {
                                 bid.status === 'accepted'
                                   ? 'text-xs bg-[#0A7B7E]/20 text-[#12A5A9] border border-[#12A5A9]/30 rounded-full px-2 py-0.5'
                                   : bid.status === 'declined'
-                                  ? 'text-xs bg-white/5 text-white/30 border border-white/10 rounded-full px-2 py-0.5'
+                                  ? 'text-xs bg-white/5 text-white/50 border border-white/10 rounded-full px-2 py-0.5'
                                   : 'text-xs bg-yellow-500/15 text-yellow-400 border border-yellow-500/25 rounded-full px-2 py-0.5'
                               }>
                                 {bid.status === 'accepted' ? 'Selected' : bid.status === 'declined' ? 'Not selected' : 'Pending'}
                               </span>
                             </div>
-                            <p className="text-white/30 text-xs mt-1">{jobLocation(bid)}</p>
+                            <p className="text-white/50 text-xs mt-1">{jobLocation(bid)}</p>
                             <p className="text-white/50 text-xs mt-1">Your bid: ${bid.amount}</p>
                             {bid.status === 'accepted' && bid.selected_at && (
-                              <p className="text-white/30 text-xs mt-0.5">
+                              <p className="text-white/50 text-xs mt-0.5">
                                 Selected {new Date(bid.selected_at).toLocaleString()}
                               </p>
                             )}
@@ -453,7 +453,7 @@ export default function ContractorDashboard() {
                     </div>
                   </div>
                   {filteredPastJobs.length === 0 ? (
-                    <p className="text-white/30 text-sm">No past jobs in this view.</p>
+                    <p className="text-white/50 text-sm">No past jobs in this view.</p>
                   ) : (
                     <div className="space-y-3">
                       <ShowMoreList
@@ -466,9 +466,9 @@ export default function ContractorDashboard() {
                           >
                             <div className="flex items-center justify-between">
                               <p className="text-white font-medium text-sm">{bid.jobs?.category}</p>
-                              <span className="text-xs text-white/30 capitalize">{bid.jobs?.status}</span>
+                              <span className="text-xs text-white/50 capitalize">{bid.jobs?.status}</span>
                             </div>
-                            <p className="text-white/30 text-xs mt-1">{jobLocation(bid)}</p>
+                            <p className="text-white/50 text-xs mt-1">{jobLocation(bid)}</p>
                             <p className="text-white/50 text-xs mt-1">${bid.amount}</p>
                           </Link>
                         )}

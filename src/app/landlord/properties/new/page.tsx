@@ -188,9 +188,9 @@ function NewPropertyForm() {
               onPlaceSelected={handlePlaceSelected}
               placeholder="Start typing your address..."
               required
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
             />
-            <p className="text-white/30 text-xs mt-1">Pick a suggestion to auto-fill city, state, and ZIP</p>
+            <p className="text-white/50 text-xs mt-1">Pick a suggestion to auto-fill city, state, and ZIP</p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -203,7 +203,7 @@ function NewPropertyForm() {
                 value={form.city}
                 onChange={handleChange}
                 placeholder="Philadelphia"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
               />
             </div>
             <div>
@@ -216,7 +216,7 @@ function NewPropertyForm() {
                 onChange={handleChange}
                 placeholder="PA"
                 maxLength={2}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
               />
             </div>
           </div>
@@ -229,7 +229,7 @@ function NewPropertyForm() {
               value={form.zip}
               onChange={handleChange}
               placeholder="19103"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
             />
           </div>
 
@@ -257,9 +257,9 @@ function NewPropertyForm() {
               max="50"
               value={form.num_units}
               onChange={handleChange}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
             />
-            <p className="text-white/30 text-xs mt-1">Units will be created automatically</p>
+            <p className="text-white/50 text-xs mt-1">Units will be created automatically</p>
           </div>
 
           {error && (

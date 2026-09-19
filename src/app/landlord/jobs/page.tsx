@@ -257,8 +257,8 @@ function LandlordJobsList() {
 
         {filteredJobs.length === 0 ? (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-12 text-center">
-            <ClipboardListIcon className="w-8 h-8 text-white/30 mx-auto mb-3" />
-            <p className="text-white/40 text-sm">No jobs in this view.</p>
+            <ClipboardListIcon className="w-8 h-8 text-white/50 mx-auto mb-3" />
+            <p className="text-white/60 text-sm">No jobs in this view.</p>
           </div>
         ) : (
           <ScrollReveal className="grid gap-3">
@@ -269,7 +269,7 @@ function LandlordJobsList() {
                     <div className="flex items-center gap-2 flex-wrap mb-1.5">
                       <h3 className="text-white font-semibold">{job.category}</h3>
                       {urgencyBadge(job)}
-                      <span className="text-xs text-white/30">{statusLabel(job)}</span>
+                      <span className="text-xs text-white/50">{statusLabel(job)}</span>
                       {unreadJobIds.has(job.id) && (
                         <span className="inline-flex items-center gap-1 text-[#12A5A9]">
                           <MessageCircleIcon className="w-3.5 h-3.5" />
@@ -278,14 +278,14 @@ function LandlordJobsList() {
                       )}
                     </div>
                     <p className="text-white/60 text-sm">{job.description}</p>
-                    <p className="text-white/30 text-xs mt-2">
+                    <p className="text-white/50 text-xs mt-2">
                       {job.units?.properties?.address}, {job.units?.properties?.city} · Unit {job.units?.unit_number}
                     </p>
-                    <p className="text-white/30 text-xs mt-0.5">
+                    <p className="text-white/50 text-xs mt-0.5">
                       Reported by {job.reporter?.full_name || 'Unknown'} · {new Date(job.created_at).toLocaleString()}
                     </p>
                     {job.landlord_notes && (
-                      <p className="text-white/40 text-xs mt-2 italic">Note: {job.landlord_notes}</p>
+                      <p className="text-white/60 text-xs mt-2 italic">Note: {job.landlord_notes}</p>
                     )}
                   </Link>
 
@@ -355,7 +355,7 @@ function LandlordJobsList() {
               onChange={(e) => setDeclineNote(e.target.value)}
               rows={3}
               placeholder="e.g. Already scheduled with our regular contractor"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition resize-none mb-5"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition resize-none mb-5"
             />
             <div className="flex gap-3">
               <button

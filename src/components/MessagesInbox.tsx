@@ -51,7 +51,7 @@ export function MessagesInbox({ basePath }: { basePath: string }) {
       <DmContactsStrip myRole={myRole} onStart={handleStarted} onSeeAll={() => router.push(`${basePath}/messages/new`)} />
       {conversations.length === 0 && (
         <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
-          <p className="text-white/30 text-sm">No conversations yet — start one, or messages on a job will show up here.</p>
+          <p className="text-white/50 text-sm">No conversations yet — start one, or messages on a job will show up here.</p>
         </div>
       )}
       {conversations.map((c) => {
@@ -72,12 +72,12 @@ export function MessagesInbox({ basePath }: { basePath: string }) {
                   )}
                   {isUnread && <UnreadDot />}
                 </div>
-                <p className="text-white/40 text-xs truncate">{c.category}{c.propertyLabel ? ` · ${c.propertyLabel}` : ''}</p>
+                <p className="text-white/60 text-xs truncate">{c.category}{c.propertyLabel ? ` · ${c.propertyLabel}` : ''}</p>
                 <p className={`text-sm truncate mt-1 ${isUnread ? 'text-white font-medium' : 'text-white/50'}`}>
                   {isMine ? 'You: ' : ''}{c.lastMessage}
                 </p>
               </div>
-              <span className="text-white/30 text-xs shrink-0">{formatTimestamp(c.lastMessageAt)}</span>
+              <span className="text-white/50 text-xs shrink-0">{formatTimestamp(c.lastMessageAt)}</span>
             </div>
           </Link>
         )

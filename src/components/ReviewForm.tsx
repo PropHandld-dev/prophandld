@@ -133,7 +133,7 @@ export function ReviewForm({
           ))}
         </div>
         {existingReview.comment && (
-          <p className="text-white/40 text-sm mt-3 italic">&quot;{existingReview.comment}&quot;</p>
+          <p className="text-white/60 text-sm mt-3 italic">&quot;{existingReview.comment}&quot;</p>
         )}
       </div>
     )
@@ -157,7 +157,7 @@ export function ReviewForm({
           onChange={(e) => setComment(e.target.value)}
           rows={3}
           placeholder="Anything else worth mentioning?"
-          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition resize-none"
+          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition resize-none"
         />
       </div>
       {error && (

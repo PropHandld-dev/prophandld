@@ -51,7 +51,7 @@ export function RaiseDisputeButton({ jobId, onRaised }: { jobId: string; onRaise
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-[#0F2138] border border-white/10 rounded-2xl p-6 w-full max-w-md">
             <h3 className="text-white font-semibold text-lg mb-2">Raise a dispute</h3>
-            <p className="text-white/40 text-sm mb-4">
+            <p className="text-white/60 text-sm mb-4">
               This pauses the job and brings in Prophandld to review. Explain what&apos;s wrong.
             </p>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -60,7 +60,7 @@ export function RaiseDisputeButton({ jobId, onRaised }: { jobId: string; onRaise
                 onChange={(e) => setReason(e.target.value)}
                 rows={4}
                 placeholder="What happened?"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition resize-none"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition resize-none"
               />
               {error && (
                 <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">

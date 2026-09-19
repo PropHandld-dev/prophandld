@@ -282,7 +282,7 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="border-t border-white/8 py-8">
-        <div className="max-w-5xl mx-auto px-6 flex items-center justify-between text-sm text-white/40 flex-wrap gap-3">
+        <div className="max-w-5xl mx-auto px-6 flex items-center justify-between text-sm text-white/60 flex-wrap gap-3">
           <span>© 2026 Prophandld</span>
           <div className="flex gap-6 flex-wrap">
             <Link href="/terms" className="hover:text-white transition">Terms</Link>

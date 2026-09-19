@@ -93,7 +93,7 @@ function LoginForm() {
 
         <RolePicker onSelect={setRole} />
 
-        <p className="text-center text-white/40 text-sm mt-6">
+        <p className="text-center text-white/60 text-sm mt-6">
           Don't have an account?{' '}
           <Link href="/signup" className="text-[#12A5A9] hover:underline">
             Create one
@@ -116,7 +116,7 @@ function LoginForm() {
           <button
             type="button"
             onClick={() => setRole(null)}
-            className="text-white/40 text-xs hover:text-white transition"
+            className="text-white/60 text-xs hover:text-white transition"
           >
             Not you? Change
           </button>
@@ -171,7 +171,7 @@ function LoginForm() {
           {loading ? 'Signing in...' : 'Sign in'}
         </RippleButton>
 
-        <p className="text-center text-white/40 text-sm">
+        <p className="text-center text-white/60 text-sm">
           Don't have an account?{' '}
           <Link href="/signup" className="text-[#12A5A9] hover:underline">
             Create one

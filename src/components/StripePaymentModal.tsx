@@ -54,7 +54,7 @@ function PaymentForm({
         <span className="text-white/50 text-sm">Amount</span>
         <span className="text-white font-bold text-xl">${amount.toFixed(2)}</span>
       </div>
-      {note && <p className="text-white/40 text-xs">{note}</p>}
+      {note && <p className="text-white/60 text-xs">{note}</p>}
 
       <div className="bg-white/5 border border-white/10 rounded-xl p-4">
         <PaymentElement />

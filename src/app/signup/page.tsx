@@ -126,7 +126,7 @@ function SignupForm() {
 
         <RolePicker onSelect={setRole} />
 
-        <p className="text-center text-white/40 text-sm mt-6">
+        <p className="text-center text-white/60 text-sm mt-6">
           Already have an account?{' '}
           <Link href="/login" className="text-[#12A5A9] hover:underline">
             Sign in
@@ -149,7 +149,7 @@ function SignupForm() {
           <button
             type="button"
             onClick={() => setRole(null)}
-            className="text-white/40 text-xs hover:text-white transition"
+            className="text-white/60 text-xs hover:text-white transition"
           >
             Not right? Change
           </button>
@@ -243,14 +243,14 @@ function SignupForm() {
           {loading ? 'Creating account...' : 'Create account'}
         </RippleButton>
 
-        <p className="text-center text-white/30 text-xs">
+        <p className="text-center text-white/50 text-xs">
           By continuing, you agree to Prophandld's{' '}
           <Link href="/terms" className="text-[#12A5A9]/80 hover:underline">Terms</Link>
           {' '}and{' '}
           <Link href="/privacy" className="text-[#12A5A9]/80 hover:underline">Privacy Policy</Link>.
         </p>
 
-        <p className="text-center text-white/40 text-sm">
+        <p className="text-center text-white/60 text-sm">
           Already have an account?{' '}
           <Link href="/login" className="text-[#12A5A9] hover:underline">
             Sign in

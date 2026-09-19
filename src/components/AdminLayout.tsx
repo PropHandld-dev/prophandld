@@ -51,7 +51,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
         <span className="text-white font-semibold text-sm">Prophandld Admin</span>
-        <Link href="/" className="text-white/40 hover:text-white text-xs transition">
+        <Link href="/" className="text-white/60 hover:text-white text-xs transition">
           Exit
         </Link>
       </nav>
@@ -65,7 +65,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
               className={
                 active
                   ? 'text-sm font-semibold px-4 py-3 border-b-2 border-[#12A5A9] text-white whitespace-nowrap'
-                  : 'text-sm font-medium px-4 py-3 border-b-2 border-transparent text-white/40 hover:text-white/70 transition whitespace-nowrap'
+                  : 'text-sm font-medium px-4 py-3 border-b-2 border-transparent text-white/60 hover:text-white/70 transition whitespace-nowrap'
               }
             >
               {tab.label}

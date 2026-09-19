@@ -129,12 +129,12 @@ export function BillingSection() {
         You have <span className="text-white font-semibold">{status.unitCount} unit{status.unitCount === 1 ? '' : 's'}</span>, so your plan is the{' '}
         <span className="text-white font-semibold">{TIER_PRICE_LABELS[status.tier]}</span>.
       </p>
-      <p className="text-white/40 text-sm mb-6">Your Prophandld platform fee, based on how many units you manage.</p>
+      <p className="text-white/60 text-sm mb-6">Your Prophandld platform fee, based on how many units you manage.</p>
 
       <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-xl px-5 py-4 mb-4">
         <div>
           <p className="text-white font-semibold">{TIER_LABELS[status.tier]}</p>
-          <p className="text-white/40 text-xs mt-0.5">
+          <p className="text-white/60 text-xs mt-0.5">
             {status.unitCount} unit{status.unitCount === 1 ? '' : 's'} · {TIER_RANGE_LABELS[status.tier]} tier
           </p>
         </div>
@@ -172,7 +172,7 @@ export function BillingSection() {
           {redirecting ? 'Redirecting...' : 'Manage billing'}
         </RippleButton>
       ) : (
-        <p className="text-white/30 text-xs">0–2 units stay free — no card needed.</p>
+        <p className="text-white/50 text-xs">0–2 units stay free — no card needed.</p>
       )}
     </ScrollReveal>
   )

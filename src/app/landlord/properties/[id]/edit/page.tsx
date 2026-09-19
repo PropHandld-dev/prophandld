@@ -231,7 +231,7 @@ export default function EditPropertyPage() {
               onPlaceSelected={handlePlaceSelected}
               placeholder="Start typing your address..."
               required
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
             />
           </div>
 
@@ -245,7 +245,7 @@ export default function EditPropertyPage() {
                 value={form.city}
                 onChange={handleChange}
                 placeholder="Philadelphia"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
               />
             </div>
             <div>
@@ -258,7 +258,7 @@ export default function EditPropertyPage() {
                 onChange={handleChange}
                 placeholder="PA"
                 maxLength={2}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
               />
             </div>
           </div>
@@ -271,7 +271,7 @@ export default function EditPropertyPage() {
               value={form.zip}
               onChange={handleChange}
               placeholder="19103"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
             />
           </div>
 
@@ -308,7 +308,7 @@ export default function EditPropertyPage() {
 
         <div className="mt-10 pt-8 border-t border-white/8">
           <h2 className="text-white font-semibold mb-1">{archived ? 'Archived' : 'Archive this property'}</h2>
-          <p className="text-white/40 text-sm mb-4">
+          <p className="text-white/60 text-sm mb-4">
             {archived
               ? "This property is archived and hidden from your active portfolio. Nothing's been deleted."
               : "Hide this property from your active portfolio without deleting anything — handy once you've sold it or stopped managing it. You can unarchive it anytime."}
@@ -324,7 +324,7 @@ export default function EditPropertyPage() {
 
         <div className="mt-8 pt-8 border-t border-red-500/20">
           <h2 className="text-red-400 font-semibold mb-1">Delete this property</h2>
-          <p className="text-white/40 text-sm mb-4">
+          <p className="text-white/60 text-sm mb-4">
             Permanently deletes this property and everything under it — units, tenancies, rent history, jobs, bids, documents, and compliance records. This cannot be undone. Archiving above is the safer, reversible option.
           </p>
           {!showDeleteConfirm ? (
@@ -344,7 +344,7 @@ export default function EditPropertyPage() {
                 value={deleteConfirmText}
                 onChange={(e) => setDeleteConfirmText(e.target.value)}
                 placeholder={form.address}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-white/20 focus:outline-none focus:border-red-400 transition text-sm"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-white/50 focus:outline-none focus:border-red-400 transition text-sm"
               />
               <div className="flex items-center gap-3">
                 <button
