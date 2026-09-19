@@ -185,6 +185,50 @@ export default function ContractorJobDetailPage() {
     setActioning(false)
   }
 
+  const handleCancelJob = async () => {
+    if (!myBid) return
+    if (!window.confirm("Cancel this job? It reopens for sealed bidding — including your other existing bids — and the landlord will need to pick someone else.")) return
+
+    setActioning(true)
+    setError(null)
+
+    const { error: bidError } = await supabase
+      .from('bids')
+      .update({ status: 'declined' })
+      .eq('id', myBid.id)
+
+    if (bidError) {
+      console.error('Error cancelling bid:', bidError)
+      setError('Could not cancel: ' + bidError.message)
+      setActioning(false)
+      return
+    }
+
+    const { error: jobUpdateError } = await supabase
+      .from('jobs')
+      .update({
+        status: 'bidding',
+        proposed_date: null,
+        proposed_window: null,
+        proposed_time: null,
+        proposed_by: null,
+        schedule_confirmed: false,
+        schedule_ask_tenant: false,
+      })
+      .eq('id', jobId)
+
+    if (jobUpdateError) {
+      console.error('Error reopening job:', jobUpdateError)
+      setError('Could not reopen the job: ' + jobUpdateError.message)
+      setActioning(false)
+      return
+    }
+
+    notify('contractor_cancelled', jobId, 'contractor')
+    await fetchJob()
+    setActioning(false)
+  }
+
   const handleStartJob = async () => {
     setActioning(true)
     const { error: updateError } = await supabase
@@ -515,6 +559,16 @@ export default function ContractorJobDetailPage() {
                 </div>
               )}
             </div>
+          )}
+
+          {myBid?.status === 'accepted' && ['bid_selected', 'scheduled'].includes(job.status) && (
+            <button
+              onClick={handleCancelJob}
+              disabled={actioning}
+              className="text-red-400/70 hover:text-red-400 text-xs transition mt-3 disabled:opacity-50"
+            >
+              Can&apos;t do this job? Cancel and reopen bidding
+            </button>
           )}
 
           {error && (

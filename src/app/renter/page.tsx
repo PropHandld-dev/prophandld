@@ -41,7 +41,6 @@ export default function RenterDashboard() {
   const [unreadJobIds, setUnreadJobIds] = useState<Set<string>>(new Set())
   const [pickTimeAlerts, setPickTimeAlerts] = useState<any[]>([])
   const [scheduleAlerts, setScheduleAlerts] = useState<any[]>([])
-  const [needsRating, setNeedsRating] = useState<any[]>([])
   const [jobsLoading, setJobsLoading] = useState(true)
 
   useEffect(() => {
@@ -135,23 +134,6 @@ export default function RenterDashboard() {
         )
       }
 
-      const { data: completedJobsData } = await supabase
-        .from('jobs')
-        .select('*')
-        .eq('unit_id', unitData.id)
-        .in('status', ['completed', 'archived'])
-
-      if (completedJobsData && completedJobsData.length > 0) {
-        const { data: myReviews } = await supabase
-          .from('contractor_reviews')
-          .select('job_id')
-          .eq('reviewer_user_id', user.id)
-          .in('job_id', completedJobsData.map((j) => j.id))
-
-        const reviewedJobIds = new Set((myReviews || []).map((r) => r.job_id))
-        setNeedsRating(completedJobsData.filter((j) => !reviewedJobIds.has(j.id)))
-      }
-
       setJobsLoading(false)
     }
     getUser()
@@ -197,15 +179,6 @@ export default function RenterDashboard() {
       subtitle: 'New time proposed',
       href: `/renter/jobs/${job.id}`,
       badge: 'Review',
-    })),
-    ...needsRating.map((job) => ({
-      id: `rate-${job.id}`,
-      icon: CheckCircleIcon,
-      tone: 'teal' as const,
-      title: job.category,
-      subtitle: 'How did the contractor do?',
-      href: `/renter/jobs/${job.id}`,
-      badge: 'Rate contractor',
     })),
   ]
 

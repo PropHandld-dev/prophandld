@@ -139,6 +139,7 @@ export type NotifyType =
   | 'price_change_rejected'
   | 'clarification_requested'
   | 'clarification_responded'
+  | 'contractor_cancelled'
 
 export interface NotifyJobInfo {
   jobId: string
@@ -166,6 +167,7 @@ const PUSH_TITLES: Record<NotifyType, string> = {
   price_change_rejected: 'Price change declined',
   clarification_requested: 'The landlord has a question',
   clarification_responded: 'The contractor responded',
+  contractor_cancelled: 'Contractor cancelled, job reopened',
 }
 
 export function buildPushMessage(type: NotifyType, role: 'landlord' | 'renter' | 'contractor', info: NotifyJobInfo) {
@@ -335,6 +337,17 @@ export function buildNotificationEmail(type: NotifyType, role: 'landlord' | 'ren
           heading: 'The contractor responded',
           bodyHtml: `The contractor replied to your question on the <strong>${info.category}</strong> job at ${at}.`,
           ctaLabel: 'View response',
+          ctaUrl,
+        }),
+      }
+    case 'contractor_cancelled':
+      return {
+        subject: `Contractor cancelled: ${info.category}`,
+        html: baseTemplate({
+          eyebrow: 'Job update',
+          heading: 'The contractor had to cancel',
+          bodyHtml: `The contractor selected for your <strong>${info.category}</strong> job at ${at} isn't able to do it anymore. The job is back open for sealed bidding, including your other existing bids.`,
+          ctaLabel: 'View job',
           ctaUrl,
         }),
       }

@@ -15,7 +15,6 @@ import { RaiseDisputeButton } from '@/components/RaiseDisputeButton'
 import { UnreadDot } from '@/components/UnreadDot'
 import { getUnreadJobIds } from '@/lib/messageReads'
 import { RENTER_TABS } from '@/lib/navTabs'
-import { ReviewForm } from '@/components/ReviewForm'
 
 const TIME_WINDOWS = [
   { value: 'morning', label: 'Morning (8am–12pm)' },
@@ -33,7 +32,6 @@ export default function RenterJobDetailPage() {
   const [hasUnread, setHasUnread] = useState(false)
   const [job, setJob] = useState<any>(null)
   const [photos, setPhotos] = useState<any[]>([])
-  const [acceptedContractorId, setAcceptedContractorId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [actioning, setActioning] = useState(false)
 
@@ -66,16 +64,6 @@ export default function RenterJobDetailPage() {
     }
 
     setJob(jobData)
-
-    if (['completed', 'archived'].includes(jobData.status)) {
-      const { data: contractorId, error: contractorError } = await supabase
-        .rpc('get_accepted_contractor_for_job', { target_job_id: jobId })
-      if (contractorError) {
-        console.error('Error fetching accepted contractor:', contractorError)
-      } else if (contractorId) {
-        setAcceptedContractorId(contractorId as unknown as string)
-      }
-    }
 
     const { data: photosData } = await supabase
       .from('job_photos')
@@ -295,15 +283,6 @@ export default function RenterJobDetailPage() {
           </div>
         )}
 
-        {['completed', 'archived'].includes(job.status) && acceptedContractorId && (
-          <div className="mb-4">
-            <ReviewForm
-              jobId={jobId}
-              contractorUserId={acceptedContractorId}
-              reviewerRole="renter"
-            />
-          </div>
-        )}
 
         {job.schedule_ask_tenant && !job.proposed_date && (
           <div className="bg-blue-500/10 border border-blue-400/30 rounded-2xl p-5 mb-4">

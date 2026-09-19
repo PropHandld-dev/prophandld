@@ -21,6 +21,7 @@ const RECIPIENTS: Record<NotifyType, Role[]> = {
   price_change_rejected: ['contractor'],
   clarification_requested: ['contractor'],
   clarification_responded: ['landlord'],
+  contractor_cancelled: ['landlord', 'renter'],
 }
 
 export async function POST(request: NextRequest) {
