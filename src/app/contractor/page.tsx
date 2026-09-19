@@ -26,10 +26,10 @@ import { useTourVisibility } from '@/lib/useTourVisibility'
 
 const TOUR_STEPS: TourStep[] = [
   { target: '[data-tour="welcome"]', title: 'Welcome to your Contractor Dashboard', body: "This is where you'll find jobs, track your bids, and manage everything you've worked on. Quick look around?" },
-  { target: '[data-tour="stats"]', title: 'Your work at a glance', body: 'New jobs matching your service area, active jobs you\'ve won, and your total earnings — all live.' },
-  { target: '[data-tour="pastjobs"]', title: 'Past jobs', body: 'Everything you\'ve completed, filterable by status — and your Earnings page has the full breakdown with receipts, by year.' },
+  { target: '[data-tour="stats"]', title: 'Your work at a glance', body: 'New jobs matching your service area, active jobs you\'ve won, and your total earnings, all live.' },
+  { target: '[data-tour="pastjobs"]', title: 'Past jobs', body: 'Everything you\'ve completed, filterable by status. Your Earnings page has the full breakdown with receipts, by year.' },
   { target: '[data-tour="settings"]', title: 'Payouts & verification', body: 'Connect a payout account to get paid, and optionally upload your license and insurance for a "Verified" badge landlords can see.' },
-  { target: '[aria-label="Messages"]', title: 'Message anyone, anytime', body: 'Reach a landlord you\'ve worked with before directly, no open job required — handy for asking about new work.' },
+  { target: '[aria-label="Messages"]', title: 'Message anyone, anytime', body: 'Reach a landlord you\'ve worked with before directly, no open job required. Handy for asking about new work.' },
   { target: '[data-tour="bottomtabs"]', title: "You're all set", body: 'Home, Calendar, Settings, and your Profile are always one tap away down here.' },
 ]
 
@@ -348,7 +348,7 @@ export default function ContractorDashboard() {
                 <div id="available-jobs" className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6 scroll-mt-6">
                   <h3 className="text-white font-semibold mb-4">Available jobs near you</h3>
                   {availableJobs.length === 0 ? (
-                    <p className="text-white/50 text-sm">No jobs available right now — check back soon.</p>
+                    <p className="text-white/50 text-sm">No jobs available right now. Check back soon.</p>
                   ) : (
                     <div className="space-y-3">
                       {availableJobs.map((job) => (
@@ -422,7 +422,7 @@ export default function ContractorDashboard() {
                             )}
                             {hasPendingSchedule && !scheduleConfirmed && (
                               <p className="text-yellow-400 text-xs mt-1 font-medium">
-                                New time proposed{bid.jobs?.proposed_by !== 'contractor' ? ' — awaiting your response' : ''}
+                                New time proposed{bid.jobs?.proposed_by !== 'contractor' ? ', awaiting your response' : ''}
                               </p>
                             )}
                           </Link>

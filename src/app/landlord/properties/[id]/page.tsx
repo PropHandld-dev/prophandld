@@ -15,10 +15,10 @@ import { ProductTour, type TourStep } from '@/components/ProductTour'
 import { usePropertyTourVisibility } from '@/lib/usePropertyTourVisibility'
 
 const TOUR_STEPS: TourStep[] = [
-  { target: '[data-tour="addunit"]', title: 'Add a unit', body: "Every property starts with at least one unit — add more here if this property has several, like a duplex or an apartment building." },
+  { target: '[data-tour="addunit"]', title: 'Add a unit', body: "Every property starts with at least one unit. Add more here if this property has several, like a duplex or an apartment building." },
   { target: '[data-tour="units"]', title: 'Your units', body: 'Click into any unit to link a tenant, track rent, start an inspection, or see its job history.' },
-  { target: '[data-tour="documents"]', title: 'Documents', body: 'Leases, deeds, insurance, inspection reports — upload anything worth keeping on file for this property.' },
-  { target: '[data-tour="compliance"]', title: 'Compliance tracking', body: "Rental license, lead certification, smoke detectors — track expiry dates here and you'll get a dashboard alert before anything lapses." },
+  { target: '[data-tour="documents"]', title: 'Documents', body: 'Leases, deeds, insurance, inspection reports: upload anything worth keeping on file for this property.' },
+  { target: '[data-tour="compliance"]', title: 'Compliance tracking', body: "Rental license, lead certification, smoke detectors: track expiry dates here and you'll get a dashboard alert before anything lapses." },
 ]
 
 export default function PropertyDetailPage() {

@@ -21,11 +21,11 @@ import { useTourVisibility } from '@/lib/useTourVisibility'
 
 const TOUR_STEPS: TourStep[] = [
   { target: '[data-tour="welcome"]', title: 'Welcome to your Landlord Dashboard', body: "Everything about your properties, tenants, and maintenance lives here. Let's take a quick look around." },
-  { target: '[data-tour="stats"]', title: 'Your portfolio at a glance', body: 'Property count, units, occupancy, and your monthly rent roll — updated live as things change.' },
-  { target: '[data-tour="pipeline"]', title: 'What needs you', body: 'Jobs waiting on your approval, currently in progress, and bids ready for you to review — the three things worth checking daily.' },
+  { target: '[data-tour="stats"]', title: 'Your portfolio at a glance', body: 'Property count, units, occupancy, and your monthly rent roll, updated live as things change.' },
+  { target: '[data-tour="pipeline"]', title: 'What needs you', body: 'Jobs waiting on your approval, currently in progress, and bids ready for you to review: the three things worth checking daily.' },
   { target: '[data-tour="properties"]', title: 'Your properties', body: 'Add a property to get started, or open one to manage units and tenants.' },
-  { target: '[data-tour="quicklinks"]', title: 'Rent, documents & compliance', body: 'Rent collection, your document vault (leases, deeds, inspections), and compliance tracking (licenses, certs, detectors) all live inside each property — open one to get to them.' },
-  { target: '[aria-label="Messages"]', title: 'Message anyone, anytime', body: "Tap here to message an active tenant or a contractor you've worked with before — no open job required." },
+  { target: '[data-tour="quicklinks"]', title: 'Rent, documents & compliance', body: 'Rent collection, your document vault (leases, deeds, inspections), and compliance tracking (licenses, certs, detectors) all live inside each property. Open one to get to them.' },
+  { target: '[aria-label="Messages"]', title: 'Message anyone, anytime', body: "Tap here to message an active tenant or a contractor you've worked with before. No open job required." },
   { target: '[data-tour="bottomtabs"]', title: "You're all set", body: 'Home, Properties, Jobs, Calendar, and your Profile are always one tap away down here.' },
 ]
 
@@ -418,7 +418,7 @@ export default function LandlordDashboard() {
       icon: CheckCircleIcon,
       tone: 'teal' as const,
       title: `${job.category} · Unit ${job.units?.unit_number}`,
-      subtitle: `${job.units?.properties?.address} — ${job.contractorName} notified work complete`,
+      subtitle: `${job.units?.properties?.address}: ${job.contractorName} notified work complete`,
       href: `/landlord/jobs/${job.id}`,
       badge: 'Review',
     })),

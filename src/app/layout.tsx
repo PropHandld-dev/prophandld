@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Prophandld | Property Management Without the Spreadsheet",
-  description: "Prophandld is mini property management for small landlords — track every property and tenant, get honest contractor bids through sealed bidding, and soon collect rent, all in one place.",
+  description: "Prophandld is mini property management for small landlords. Track every property and tenant, get honest contractor bids through sealed bidding, and collect rent, all in one place.",
   manifest: "/manifest.json",
   icons: {
     icon: "/icon-192.png",

@@ -20,10 +20,10 @@ import { useTourVisibility } from '@/lib/useTourVisibility'
 
 const TOUR_STEPS: TourStep[] = [
   { target: '[data-tour="welcome"]', title: 'Welcome to your Renter Dashboard', body: "This is where you'll report issues, message your landlord, and pay rent. Quick look around?" },
-  { target: '[data-tour="report"]', title: 'Something broken?', body: 'A couple taps — category, a photo, a short description — and your landlord is notified right away.' },
-  { target: '[data-tour="issues"]', title: 'Your issues', body: 'Track everything you\'ve reported, from "just submitted" through to done.' },
+  { target: '[data-tour="report"]', title: 'Something broken?', body: 'A category, a photo, a short description. Your landlord is notified right away.' },
+  { target: '[data-tour="issues"]', title: 'Your issues', body: 'See the status of everything you\'ve reported, at a glance.' },
   { target: '[data-tour="documents"]', title: 'Your documents', body: 'Your lease and any other paperwork your landlord has shared, all in one place.' },
-  { target: '[aria-label="Messages"]', title: 'Message your landlord anytime', body: "No need to wait for an open issue — reach out directly whenever you need to." },
+  { target: '[aria-label="Messages"]', title: 'Message your landlord anytime', body: "No need to wait for an open issue. Reach out directly whenever you need to." },
   { target: '[data-tour="bottomtabs"]', title: "You're all set", body: 'Home, Report, Calendar, and your Profile are always one tap away down here.' },
 ]
 
@@ -165,7 +165,7 @@ export default function RenterDashboard() {
     return 'Work in progress'
   }
   if (job.status === 'pending_review') {
-    return 'Work complete — waiting on landlord'
+    return 'Work complete, waiting on landlord'
   }
   return job.status
 }
@@ -228,7 +228,7 @@ export default function RenterDashboard() {
                   {user?.user_metadata?.full_name?.split(' ')[0]}
                 </Link>
               </h1>
-              <p className="text-white/50 mt-1">Report issues, pay rent, and reach your landlord directly — all in one place.</p>
+              <p className="text-white/50 mt-1">Report issues, pay rent, and reach your landlord directly, all in one place.</p>
             </div>
 
             <AlertsList items={alertItems} />
@@ -267,7 +267,7 @@ export default function RenterDashboard() {
                   <DollarSignIcon className="w-4 h-4 text-white/60" />
                   <h3 className="text-white font-semibold">Pay rent</h3>
                 </div>
-                <p className="text-white/60 text-sm mt-1">Secure online rent payments, right from your dashboard — no more checks or cash.</p>
+                <p className="text-white/60 text-sm mt-1">Secure online rent payments, right from your dashboard. No more checks or cash.</p>
               </Link>
             )}
 
@@ -293,7 +293,7 @@ export default function RenterDashboard() {
               ) : jobs.length === 0 ? (
                 <div className="flex items-center gap-2 text-white/50 text-sm">
                   <CheckCircleIcon className="w-4 h-4" />
-                  No open issues — you&apos;re all good!
+                  No open issues. You&apos;re all good!
                 </div>
               ) : (
                 <div className="space-y-3">
