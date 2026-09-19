@@ -28,6 +28,7 @@ export default function UnitDetailPage() {
   const [inviteResendSuccess, setInviteResendSuccess] = useState(false)
   const [tenantLookupFailed, setTenantLookupFailed] = useState(false)
   const [coOccupants, setCoOccupants] = useState<any[]>([])
+  const [tenantBackupContacts, setTenantBackupContacts] = useState<any[]>([])
   const [coRenterEmail, setCoRenterEmail] = useState('')
   const [addingCoRenter, setAddingCoRenter] = useState(false)
   const [coRenterError, setCoRenterError] = useState<string | null>(null)
@@ -74,6 +75,21 @@ export default function UnitDetailPage() {
       })
     )
     setCoOccupants(withNames)
+  }
+
+  const loadTenantBackupContacts = async (tenancyRow: any) => {
+    const { data: occupants } = await supabase
+      .from('tenancy_occupants')
+      .select('renter_user_id')
+      .eq('tenancy_id', tenancyRow.id)
+
+    const userIds = [tenancyRow.renter_user_id, ...(occupants || []).map((o) => o.renter_user_id)]
+    const { data } = await supabase
+      .from('personal_emergency_contacts')
+      .select('*')
+      .in('user_id', userIds)
+
+    setTenantBackupContacts(data || [])
   }
 
   const handleAddCoRenter = async () => {
@@ -154,8 +170,10 @@ export default function UnitDetailPage() {
       setTenancy({ ...tenancyData, users: renterData })
       setPendingInvite(null)
       await loadCoOccupants(tenancyData.id)
+      await loadTenantBackupContacts(tenancyData)
     } else {
       setCoOccupants([])
+      setTenantBackupContacts([])
       setTenancy(null)
 
       const { data: inviteData } = await supabase
@@ -567,6 +585,20 @@ export default function UnitDetailPage() {
                     </button>
                   </div>
                   {coRenterError && <p className="text-red-400 text-xs mt-2">{coRenterError}</p>}
+                </div>
+              )}
+
+              {!editingTenancy && tenantBackupContacts.length > 0 && (
+                <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 mt-2">
+                  <p className="text-white/70 text-xs font-semibold mb-1">If they don&apos;t answer</p>
+                  <div className="space-y-2">
+                    {tenantBackupContacts.map((c) => (
+                      <div key={c.id}>
+                        <p className="text-white text-sm">{c.name}{c.relationship ? ` · ${c.relationship}` : ''}</p>
+                        <a href={`tel:${c.phone}`} className="text-[#12A5A9] text-xs hover:underline">{c.phone}</a>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 

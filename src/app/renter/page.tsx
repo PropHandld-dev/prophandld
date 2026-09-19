@@ -36,6 +36,7 @@ export default function RenterDashboard() {
   const [property, setProperty] = useState<any>(null)
   const [contacts, setContacts] = useState<any[]>([])
   const [contactsLoading, setContactsLoading] = useState(true)
+  const [landlordBackupContacts, setLandlordBackupContacts] = useState<any[]>([])
   const [jobs, setJobs] = useState<any[]>([])
   const [unreadJobIds, setUnreadJobIds] = useState<Set<string>>(new Set())
   const [pickTimeAlerts, setPickTimeAlerts] = useState<any[]>([])
@@ -86,7 +87,16 @@ export default function RenterDashboard() {
         .eq('id', unitData.property_id)
         .maybeSingle()
 
-      if (propertyData) setProperty(propertyData)
+      if (propertyData) {
+        setProperty(propertyData)
+        if (propertyData.owner_user_id) {
+          const { data: backupData } = await supabase
+            .from('personal_emergency_contacts')
+            .select('*')
+            .eq('user_id', propertyData.owner_user_id)
+          setLandlordBackupContacts(backupData || [])
+        }
+      }
 
       const { data: contactsData, error: contactsError } = await supabase
         .from('contacts')
@@ -360,6 +370,21 @@ export default function RenterDashboard() {
                 </div>
               )}
             </div>
+
+            {landlordBackupContacts.length > 0 && (
+              <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mt-4">
+                <h3 className="text-white font-semibold mb-1">If your landlord doesn&apos;t answer</h3>
+                <p className="text-white/40 text-xs mb-4">Their backup contact</p>
+                <div className="space-y-3">
+                  {landlordBackupContacts.map((c) => (
+                    <div key={c.id} className="border-b border-white/5 last:border-0 pb-3 last:pb-0">
+                      <p className="text-white font-medium">{c.name}{c.relationship ? ` · ${c.relationship}` : ''}</p>
+                      <a href={`tel:${c.phone}`} className="text-[#12A5A9] text-sm hover:underline block mt-1">{c.phone}</a>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </>
         )}
       </main>

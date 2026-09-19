@@ -37,6 +37,10 @@ export default function ProfilePage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
   const [deletingAccount, setDeletingAccount] = useState(false)
+  const [backupContacts, setBackupContacts] = useState<any[]>([])
+  const [backupForm, setBackupForm] = useState({ name: '', relationship: '', phone: '' })
+  const [savingBackupContact, setSavingBackupContact] = useState(false)
+  const [backupError, setBackupError] = useState<string | null>(null)
 
   useEffect(() => {
     const getProfile = async () => {
@@ -56,10 +60,59 @@ export default function ProfilePage() {
       const { data: userRow } = await supabase.from('users').select('sms_opt_in').eq('id', user.id).maybeSingle()
       setSmsOptIn(!!userRow?.sms_opt_in)
 
+      await loadBackupContacts(user.id)
+
       setLoading(false)
+    }
+
+    const loadBackupContacts = async (userId: string) => {
+      const { data } = await supabase
+        .from('personal_emergency_contacts')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: true })
+      setBackupContacts(data || [])
     }
     getProfile()
   }, [router])
+
+  const handleAddBackupContact = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!backupForm.name.trim() || !backupForm.phone.trim()) return
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    setSavingBackupContact(true)
+    setBackupError(null)
+
+    const { error: insertError } = await supabase.from('personal_emergency_contacts').insert({
+      user_id: user.id,
+      name: backupForm.name.trim(),
+      relationship: backupForm.relationship.trim() || null,
+      phone: backupForm.phone.trim(),
+    })
+
+    if (insertError) {
+      setBackupError('Could not save: ' + insertError.message)
+      setSavingBackupContact(false)
+      return
+    }
+
+    setBackupForm({ name: '', relationship: '', phone: '' })
+    const { data } = await supabase
+      .from('personal_emergency_contacts')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: true })
+    setBackupContacts(data || [])
+    setSavingBackupContact(false)
+  }
+
+  const handleRemoveBackupContact = async (id: string) => {
+    await supabase.from('personal_emergency_contacts').delete().eq('id', id)
+    setBackupContacts((prev) => prev.filter((c) => c.id !== id))
+  }
 
   const handleToggleSms = async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -408,6 +461,71 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
+
+        {/* Personal backup contact */}
+        {(role === 'landlord' || role === 'renter') && (
+          <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
+            <h2 className="text-white font-semibold mb-1">Backup contact</h2>
+            <p className="text-white/40 text-sm mb-6">
+              {role === 'landlord'
+                ? "A family member or friend your tenant can reach if you don't answer."
+                : "A family member or friend your landlord can reach if you don't answer."}
+            </p>
+
+            {backupContacts.length > 0 && (
+              <div className="space-y-2 mb-4">
+                {backupContacts.map((c) => (
+                  <div key={c.id} className="flex items-center justify-between bg-white/5 border border-white/10 rounded-xl px-4 py-3">
+                    <div>
+                      <p className="text-white text-sm font-medium">{c.name}{c.relationship ? ` · ${c.relationship}` : ''}</p>
+                      <p className="text-white/50 text-xs">{c.phone}</p>
+                    </div>
+                    <button
+                      onClick={() => handleRemoveBackupContact(c.id)}
+                      className="text-red-400/70 hover:text-red-400 text-xs transition"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <form onSubmit={handleAddBackupContact} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  type="text"
+                  value={backupForm.name}
+                  onChange={(e) => setBackupForm({ ...backupForm, name: e.target.value })}
+                  placeholder="Name"
+                  className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
+                />
+                <input
+                  type="text"
+                  value={backupForm.relationship}
+                  onChange={(e) => setBackupForm({ ...backupForm, relationship: e.target.value })}
+                  placeholder="Relationship (e.g. spouse)"
+                  className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
+                />
+              </div>
+              <input
+                type="tel"
+                value={backupForm.phone}
+                onChange={(e) => setBackupForm({ ...backupForm, phone: e.target.value })}
+                placeholder="Phone number"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
+              />
+              {backupError && <p className="text-red-400 text-xs">{backupError}</p>}
+              <RippleButton
+                type="submit"
+                disabled={savingBackupContact || !backupForm.name.trim() || !backupForm.phone.trim()}
+                className="bg-white/8 text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-white/12 transition disabled:opacity-50"
+              >
+                {savingBackupContact ? 'Adding…' : 'Add backup contact'}
+              </RippleButton>
+            </form>
+          </div>
+        )}
 
         {/* Replay tour */}
         <Link
