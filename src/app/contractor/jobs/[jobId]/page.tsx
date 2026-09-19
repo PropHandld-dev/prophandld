@@ -6,6 +6,7 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { PhotoGrid } from '@/components/PhotoGrid'
 import { notify } from '@/lib/notify'
+import { postJobStatusMessage } from '@/lib/systemMessage'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { Skeleton } from '@/components/Skeleton'
 import { ScrollReveal } from '@/components/ScrollReveal'
@@ -179,6 +180,7 @@ export default function ContractorJobDetailPage() {
       setError('Could not confirm the schedule.')
     } else {
       notify('schedule_confirmed', jobId)
+      if (userId) postJobStatusMessage(jobId, userId, '✓ Schedule confirmed')
     }
 
     await fetchJob()
@@ -331,6 +333,7 @@ export default function ContractorJobDetailPage() {
     }
 
     notify('job_pending_review', jobId)
+    if (userId) postJobStatusMessage(jobId, userId, '✓ Work marked complete, awaiting landlord review')
 
     router.push('/contractor')
   }

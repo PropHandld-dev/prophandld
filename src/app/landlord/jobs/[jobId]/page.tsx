@@ -6,6 +6,7 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { PhotoGrid } from '@/components/PhotoGrid'
 import { notify } from '@/lib/notify'
+import { postJobStatusMessage } from '@/lib/systemMessage'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { Skeleton } from '@/components/Skeleton'
 import { ScrollReveal } from '@/components/ScrollReveal'
@@ -330,6 +331,10 @@ export default function JobDetailPage() {
       setError('Bid selected, but job status failed to update.')
     } else {
       notify('contractor_selected', jobId)
+      if (userId) {
+        const contractorName = selectedBid?.contractor?.full_name || 'Contractor'
+        postJobStatusMessage(jobId, userId, `✓ ${contractorName} selected for this job`)
+      }
     }
 
     setShowSelectModal(false)
@@ -442,6 +447,7 @@ export default function JobDetailPage() {
       setError('Could not approve completion: ' + updateError.message)
     } else {
       notify('job_completed', jobId)
+      if (userId) postJobStatusMessage(jobId, userId, '✓ Job approved, payment released')
     }
 
     setShowApproveModal(false)

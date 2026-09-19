@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
 
             const { data: rentPayment } = await supabaseAdmin
               .from('rent_payments')
-              .select('expected_amount, actual_amount, month, tenancies(unit_id, units(unit_number, properties(address, owner_user_id)))')
+              .select('expected_amount, actual_amount, month, tenancies(unit_id, renter_user_id, units(unit_number, properties(address, owner_user_id)))')
               .eq('id', rentPaymentId)
               .maybeSingle()
 
@@ -184,6 +184,24 @@ export async function POST(request: NextRequest) {
                 body: `$${(paymentIntent.amount / 100).toFixed(2)} for ${unitLabel}`,
                 url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://prophandld.com'}/landlord`,
               }).catch((err) => console.error('stripe webhook: sendPush (rent) failed', err))
+
+              const renterUserId = (rentPayment?.tenancies as any)?.renter_user_id
+              if (renterUserId) {
+                const { data: threadId, error: threadError } = await supabaseAdmin.rpc('start_landlord_tenant_thread', {
+                  p_landlord_user_id: landlordUserId,
+                  p_renter_user_id: renterUserId,
+                })
+                if (threadError) {
+                  console.error('stripe webhook: start_landlord_tenant_thread failed', threadError)
+                } else if (threadId) {
+                  const { error: messageError } = await supabaseAdmin.from('messages').insert({
+                    thread_id: threadId,
+                    sender_user_id: renterUserId,
+                    body: `✓ Rent paid — $${(paymentIntent.amount / 100).toFixed(2)} for ${monthLabel}`,
+                  })
+                  if (messageError) console.error('stripe webhook: rent-paid message insert failed', messageError)
+                }
+              }
             }
           }
         }
