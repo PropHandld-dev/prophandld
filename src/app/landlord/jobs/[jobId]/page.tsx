@@ -822,7 +822,12 @@ export default function JobDetailPage() {
                           </span>
                         )}
                       </div>
-                      <p className="text-[#12A5A9] font-bold">${bid.amount}</p>
+                      <div className="text-right">
+                        <p className="text-[#12A5A9] font-bold">${bid.amount}</p>
+                        {bid.pricing_type === 'hourly' && bid.labor_rate && (
+                          <p className="text-white/40 text-[11px]">${bid.labor_rate}/hr</p>
+                        )}
+                      </div>
                     </div>
                     {bid.availability && <p className="text-white/50 text-xs">Availability: {bid.availability}</p>}
                     {bid.estimated_hours && <p className="text-white/50 text-xs">Est. hours: {bid.estimated_hours}</p>}
@@ -896,7 +901,12 @@ export default function JobDetailPage() {
                     </div>
                   </div>
                 ) : (
-                  <p className="text-[#12A5A9] font-bold text-sm mt-1">${acceptedBid.amount}</p>
+                  <p className="text-[#12A5A9] font-bold text-sm mt-1">
+                    ${acceptedBid.amount}
+                    {acceptedBid.pricing_type === 'hourly' && acceptedBid.labor_rate && (
+                      <span className="text-white/40 font-normal text-xs ml-1.5">(${acceptedBid.labor_rate}/hr)</span>
+                    )}
+                  </p>
                 )}
                 {acceptedBid.availability && <p className="text-white/50 text-xs mt-1">Availability: {acceptedBid.availability}</p>}
               </div>

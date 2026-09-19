@@ -484,7 +484,12 @@ export default function ContractorJobDetailPage() {
                   <p className="text-yellow-400 font-bold">${myBid.proposed_amount} <span className="text-xs font-normal">(pending landlord approval)</span></p>
                 </div>
               ) : (
-                <p className="text-[#12A5A9] font-bold">${myBid.amount}</p>
+                <p className="text-[#12A5A9] font-bold">
+                  ${myBid.amount}
+                  {myBid.pricing_type === 'hourly' && myBid.labor_rate && (
+                    <span className="text-white/40 font-normal text-xs ml-1.5">(${myBid.labor_rate}/hr)</span>
+                  )}
+                </p>
               )}
               {myBid.selected_at && (
                 <p className="text-white/50 text-xs mt-1">Selected {new Date(myBid.selected_at).toLocaleString()}</p>

@@ -45,6 +45,8 @@ export default function SubmitBidPage() {
   }, [])
 
   const [form, setForm] = useState({
+    pricing_type: 'fixed' as 'fixed' | 'hourly',
+    labor_rate: '',
     amount: '',
     availability: '',
     estimated_hours: '',
@@ -145,6 +147,8 @@ export default function SubmitBidPage() {
         job_id: jobId,
         contractor_user_id: user.id,
         amount: parseFloat(form.amount),
+        pricing_type: form.pricing_type,
+        labor_rate: form.pricing_type === 'hourly' && form.labor_rate ? parseFloat(form.labor_rate) : null,
         availability: form.availability || null,
         estimated_hours: form.estimated_hours ? parseFloat(form.estimated_hours) : null,
         notes: form.notes || null,
@@ -260,31 +264,49 @@ export default function SubmitBidPage() {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="text-white/70 text-sm block mb-1">Your bid amount ($)</label>
-                <input
-                  type="number"
-                  name="amount"
-                  value={form.amount}
-                  onChange={handleChange}
-                  required
-                  min="1"
-                  step="0.01"
-                  placeholder="450"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
-                />
+                <label className="text-white/70 text-sm block mb-1">Pricing</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, pricing_type: 'fixed' })}
+                    className={`text-sm font-semibold py-2.5 rounded-xl transition ${
+                      form.pricing_type === 'fixed'
+                        ? 'bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white'
+                        : 'bg-white/5 border border-white/10 text-white/60 hover:bg-white/8'
+                    }`}
+                  >
+                    Fixed price
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, pricing_type: 'hourly' })}
+                    className={`text-sm font-semibold py-2.5 rounded-xl transition ${
+                      form.pricing_type === 'hourly'
+                        ? 'bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white'
+                        : 'bg-white/5 border border-white/10 text-white/60 hover:bg-white/8'
+                    }`}
+                  >
+                    Hourly rate
+                  </button>
+                </div>
               </div>
 
-              <div>
-                <label className="text-white/70 text-sm block mb-1">Availability</label>
-                <input
-                  type="text"
-                  name="availability"
-                  value={form.availability}
-                  onChange={handleChange}
-                  placeholder="Can start tomorrow, mornings work best"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
-                />
-              </div>
+              {form.pricing_type === 'hourly' && (
+                <div>
+                  <label className="text-white/70 text-sm block mb-1">Labor rate ($/hour)</label>
+                  <input
+                    type="number"
+                    name="labor_rate"
+                    value={form.labor_rate}
+                    onChange={handleChange}
+                    required
+                    min="1"
+                    step="0.01"
+                    placeholder="75"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
+                  />
+                </div>
+              )}
 
               <div>
                 <label className="text-white/70 text-sm block mb-1">Estimated hours</label>
@@ -296,6 +318,49 @@ export default function SubmitBidPage() {
                   min="0"
                   step="0.5"
                   placeholder="2"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
+                />
+              </div>
+
+              <div>
+                <label className="text-white/70 text-sm block mb-1">
+                  {form.pricing_type === 'hourly' ? 'Total bid amount ($)' : 'Your bid amount ($)'}
+                </label>
+                <input
+                  type="number"
+                  name="amount"
+                  value={form.amount}
+                  onChange={handleChange}
+                  required
+                  min="1"
+                  step="0.01"
+                  placeholder="450"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
+                />
+                {form.pricing_type === 'hourly' && form.labor_rate && form.estimated_hours && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setForm({
+                        ...form,
+                        amount: (parseFloat(form.labor_rate) * parseFloat(form.estimated_hours)).toFixed(2),
+                      })
+                    }
+                    className="text-[#12A5A9] text-xs font-medium mt-1.5 hover:underline"
+                  >
+                    Use ${(parseFloat(form.labor_rate) * parseFloat(form.estimated_hours)).toFixed(2)} (rate × hours)
+                  </button>
+                )}
+              </div>
+
+              <div>
+                <label className="text-white/70 text-sm block mb-1">Availability</label>
+                <input
+                  type="text"
+                  name="availability"
+                  value={form.availability}
+                  onChange={handleChange}
+                  placeholder="Can start tomorrow, mornings work best"
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
                 />
               </div>
