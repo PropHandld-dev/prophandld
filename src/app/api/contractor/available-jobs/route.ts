@@ -53,10 +53,15 @@ export async function GET() {
       return NextResponse.json({ error: 'Could not load jobs' }, { status: 500 })
     }
 
+    // Excludes jobs with an active (non-declined) bid only — a job that
+    // reopened for bidding after the winning contractor cancelled should
+    // let a previously-declined bidder see and re-bid on it, not lock
+    // them out forever because of a bid row from the earlier round.
     const { data: existingBids, error: bidsError } = await supabaseAdmin
       .from('bids')
       .select('job_id')
       .eq('contractor_user_id', user.id)
+      .neq('status', 'declined')
 
     if (bidsError) {
       console.error('available-jobs: error fetching existing bids', bidsError)

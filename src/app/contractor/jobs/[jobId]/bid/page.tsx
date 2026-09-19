@@ -143,24 +143,38 @@ export default function SubmitBidPage() {
       return
     }
 
-    const { error: insertError } = await supabase
-      .from('bids')
-      .insert({
-        job_id: jobId,
-        contractor_user_id: user.id,
-        amount: parseFloat(form.amount),
-        pricing_type: form.pricing_type,
-        labor_rate: form.pricing_type === 'hourly' && form.labor_rate ? parseFloat(form.labor_rate) : null,
-        availability: form.availability || null,
-        estimated_hours: form.estimated_hours ? parseFloat(form.estimated_hours) : null,
-        notes: form.notes || null,
-        not_included: form.not_included || null,
-        status: 'pending',
-      })
+    const bidFields = {
+      amount: parseFloat(form.amount),
+      pricing_type: form.pricing_type,
+      labor_rate: form.pricing_type === 'hourly' && form.labor_rate ? parseFloat(form.labor_rate) : null,
+      availability: form.availability || null,
+      estimated_hours: form.estimated_hours ? parseFloat(form.estimated_hours) : null,
+      notes: form.notes || null,
+      not_included: form.not_included || null,
+      status: 'pending',
+    }
 
-    if (insertError) {
-      console.error('Error submitting bid:', insertError)
-      setError('Could not submit bid: ' + insertError.message)
+    // A job that reopened for bidding (the previously-selected contractor
+    // cancelled) can already have a 'declined' bid row from this same
+    // contractor's earlier round — reuse it instead of inserting a
+    // second row for the same job+contractor.
+    const { data: existingBid } = await supabase
+      .from('bids')
+      .select('id')
+      .eq('job_id', jobId)
+      .eq('contractor_user_id', user.id)
+      .maybeSingle()
+
+    const { error: submitError } = existingBid
+      ? await supabase
+          .from('bids')
+          .update({ ...bidFields, selected_at: null, price_change_status: null })
+          .eq('id', existingBid.id)
+      : await supabase.from('bids').insert({ job_id: jobId, contractor_user_id: user.id, ...bidFields })
+
+    if (submitError) {
+      console.error('Error submitting bid:', submitError)
+      setError('Could not submit bid: ' + submitError.message)
       setSubmitting(false)
       return
     }

@@ -18,12 +18,7 @@ import { StripePaymentModal } from '@/components/StripePaymentModal'
 import { RaiseDisputeButton } from '@/components/RaiseDisputeButton'
 import { UnreadDot } from '@/components/UnreadDot'
 import { getUnreadJobIds } from '@/lib/messageReads'
-
-const TIME_WINDOWS = [
-  { value: 'morning', label: 'Morning (8am–12pm)' },
-  { value: 'afternoon', label: 'Afternoon (12pm–5pm)' },
-  { value: 'evening', label: 'Evening (5pm–8pm)' },
-]
+import { TIME_WINDOWS, validateScheduleTime, rescheduleLockError } from '@/lib/scheduleWindows'
 
 export default function JobDetailPage() {
   const router = useRouter()
@@ -71,21 +66,6 @@ export default function JobDetailPage() {
     setUserId(user.id)
     getUnreadJobIds([jobId], user.id).then((unread) => setHasUnread(unread.has(jobId)))
 
-    const { data: rawJob } = await supabase
-      .from('jobs')
-      .select('id, status, contractor_completed_at')
-      .eq('id', jobId)
-      .maybeSingle()
-
-    if (rawJob?.status === 'pending_review' && rawJob.contractor_completed_at) {
-      const completedAt = new Date(rawJob.contractor_completed_at).getTime()
-      const threeDaysMs = 3 * 24 * 60 * 60 * 1000
-      if (Date.now() - completedAt > threeDaysMs) {
-        await supabase.from('jobs').update({ status: 'completed', landlord_approved_at: new Date().toISOString() }).eq('id', jobId)
-        notify('job_completed', jobId)
-      }
-    }
-
     const { data: jobData, error: jobError } = await supabase
       .from('jobs')
       .select('*, units(unit_number, property_id, properties(id, address, city, state)), maintenance_items(name, item_type, brand, model, install_date)')
@@ -97,6 +77,18 @@ export default function JobDetailPage() {
       setError('Job not found.')
       setLoading(false)
       return
+    }
+
+    if (jobData.status === 'pending_review' && jobData.contractor_completed_at) {
+      const completedAt = new Date(jobData.contractor_completed_at).getTime()
+      const threeDaysMs = 3 * 24 * 60 * 60 * 1000
+      if (Date.now() - completedAt > threeDaysMs) {
+        const approvedAt = new Date().toISOString()
+        await supabase.from('jobs').update({ status: 'completed', landlord_approved_at: approvedAt }).eq('id', jobId)
+        jobData.status = 'completed'
+        jobData.landlord_approved_at = approvedAt
+        notify('job_completed', jobId)
+      }
     }
 
     const { data: reporterData } = await supabase
@@ -354,6 +346,20 @@ export default function JobDetailPage() {
     if (!scheduleDate) {
       setError('Please pick a date.')
       return
+    }
+
+    const timeError = validateScheduleTime(scheduleWindow, scheduleTime)
+    if (timeError) {
+      setError(timeError)
+      return
+    }
+
+    if (job.schedule_confirmed && job.proposed_date) {
+      const lockError = rescheduleLockError(job.proposed_date)
+      if (lockError) {
+        setError(lockError)
+        return
+      }
     }
 
     setActioning(true)
@@ -623,6 +629,11 @@ export default function JobDetailPage() {
 
   const selectedBid = bids.find((b) => b.id === selectedBidId)
   const acceptedBid = bids.find((b) => b.status === 'accepted')
+  // Excludes 'declined' bids from a prior round — a job that reopened
+  // after the selected contractor cancelled otherwise showed every
+  // losing (and the cancelling contractor's own) bid with a live
+  // "Select this contractor" button, including the one who just backed out.
+  const openBids = bids.filter((b) => b.status === 'pending')
   const showSchedulingSection = ['bid_selected', 'scheduled'].includes(job.status)
   const isMyTurnToRespond = job.proposed_by && job.proposed_by !== 'landlord' && !job.schedule_confirmed
   const beforePhotos = photos.filter((p) => p.stage === 'before')
@@ -801,13 +812,13 @@ export default function JobDetailPage() {
         {job.status === 'bidding' && (
           <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
             <h3 className="text-white font-semibold mb-4">
-              Sealed bids {bids.length > 0 && `(${bids.length})`}
+              Sealed bids {openBids.length > 0 && `(${openBids.length})`}
             </h3>
-            {bids.length === 0 ? (
+            {openBids.length === 0 ? (
               <p className="text-white/50 text-sm">No bids yet. Contractors in range have been notified.</p>
             ) : (
               <div className="space-y-3">
-                {bids.map((bid) => (
+                {openBids.map((bid) => (
                   <div key={bid.id} className="bg-white/5 border border-white/10 rounded-xl p-4">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
@@ -1001,6 +1012,17 @@ export default function JobDetailPage() {
                   {new Date(job.proposed_date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })} · {windowLabel(job.proposed_window)}
                   {job.proposed_time && ` · ${job.proposed_time}`}
                 </p>
+                {rescheduleLockError(job.proposed_date) ? (
+                  <p className="text-white/40 text-xs mt-2">{rescheduleLockError(job.proposed_date)}</p>
+                ) : (
+                  <button
+                    onClick={openScheduleModal}
+                    disabled={actioning}
+                    className="text-white/50 text-xs hover:text-white transition mt-2"
+                  >
+                    Reschedule
+                  </button>
+                )}
               </div>
             ) : (
               <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
@@ -1029,7 +1051,7 @@ export default function JobDetailPage() {
                     </button>
                   </div>
                 ) : (
-                  <p className="text-white/60 text-xs mt-3">Waiting on the other party to confirm.</p>
+                  <p className="text-white/60 text-xs mt-3">Waiting on the contractor or tenant to confirm.</p>
                 )}
               </div>
             )}

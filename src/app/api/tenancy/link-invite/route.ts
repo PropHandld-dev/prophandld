@@ -21,7 +21,7 @@ export async function POST() {
   const { data: invite, error: inviteError } = await supabaseAdmin
     .from('tenancy_invites')
     .select('*')
-    .eq('renter_email', user.email)
+    .eq('renter_email', user.email.toLowerCase())
     .eq('status', 'pending')
     .order('created_at', { ascending: false })
     .limit(1)

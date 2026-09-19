@@ -16,12 +16,7 @@ import { RaiseDisputeButton } from '@/components/RaiseDisputeButton'
 import { UnreadDot } from '@/components/UnreadDot'
 import { getUnreadJobIds } from '@/lib/messageReads'
 import { RENTER_TABS } from '@/lib/navTabs'
-
-const TIME_WINDOWS = [
-  { value: 'morning', label: 'Morning (8am–12pm)' },
-  { value: 'afternoon', label: 'Afternoon (12pm–5pm)' },
-  { value: 'evening', label: 'Evening (5pm–8pm)' },
-]
+import { TIME_WINDOWS, validateScheduleTime, rescheduleLockError } from '@/lib/scheduleWindows'
 
 export default function RenterJobDetailPage() {
   const router = useRouter()
@@ -120,6 +115,20 @@ export default function RenterJobDetailPage() {
     if (!scheduleDate) {
       setError('Please pick a date.')
       return
+    }
+
+    const timeError = validateScheduleTime(scheduleWindow, scheduleTime)
+    if (timeError) {
+      setError(timeError)
+      return
+    }
+
+    if (job.schedule_confirmed && job.proposed_date) {
+      const lockError = rescheduleLockError(job.proposed_date)
+      if (lockError) {
+        setError(lockError)
+        return
+      }
     }
 
     setActioning(true)
@@ -315,6 +324,17 @@ export default function RenterJobDetailPage() {
                   {new Date(job.proposed_date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })} · {windowLabel(job.proposed_window)}
                   {job.proposed_time && ` · ${job.proposed_time}`}
                 </p>
+                {rescheduleLockError(job.proposed_date) ? (
+                  <p className="text-white/40 text-xs mt-2">{rescheduleLockError(job.proposed_date)}</p>
+                ) : (
+                  <button
+                    onClick={openScheduleModal}
+                    disabled={actioning}
+                    className="text-white/50 text-xs hover:text-white transition mt-2"
+                  >
+                    Reschedule
+                  </button>
+                )}
               </div>
             ) : (
               <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
@@ -343,7 +363,7 @@ export default function RenterJobDetailPage() {
                     </button>
                   </div>
                 ) : (
-                  <p className="text-white/60 text-xs mt-3">Waiting on the other party to confirm.</p>
+                  <p className="text-white/60 text-xs mt-3">Waiting on the landlord or contractor to confirm.</p>
                 )}
               </div>
             )}

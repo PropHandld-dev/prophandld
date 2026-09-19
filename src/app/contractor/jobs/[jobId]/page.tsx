@@ -16,12 +16,7 @@ import { RaiseDisputeButton } from '@/components/RaiseDisputeButton'
 import { UnreadDot } from '@/components/UnreadDot'
 import { getUnreadJobIds } from '@/lib/messageReads'
 import { CONTRACTOR_TABS } from '@/lib/navTabs'
-
-const TIME_WINDOWS = [
-  { value: 'morning', label: 'Morning (8am–12pm)' },
-  { value: 'afternoon', label: 'Afternoon (12pm–5pm)' },
-  { value: 'evening', label: 'Evening (5pm–8pm)' },
-]
+import { TIME_WINDOWS, validateScheduleTime, rescheduleLockError } from '@/lib/scheduleWindows'
 
 export default function ContractorJobDetailPage() {
   const router = useRouter()
@@ -61,21 +56,6 @@ export default function ContractorJobDetailPage() {
     setUserId(user.id)
     getUnreadJobIds([jobId], user.id).then((unread) => setHasUnread(unread.has(jobId)))
 
-    const { data: rawJob } = await supabase
-      .from('jobs')
-      .select('id, status, contractor_completed_at')
-      .eq('id', jobId)
-      .maybeSingle()
-
-    if (rawJob?.status === 'pending_review' && rawJob.contractor_completed_at) {
-      const completedAt = new Date(rawJob.contractor_completed_at).getTime()
-      const threeDaysMs = 3 * 24 * 60 * 60 * 1000
-      if (Date.now() - completedAt > threeDaysMs) {
-        await supabase.from('jobs').update({ status: 'completed', landlord_approved_at: new Date().toISOString() }).eq('id', jobId)
-        notify('job_completed', jobId)
-      }
-    }
-
     const { data: jobData, error: jobError } = await supabase
       .from('jobs')
       .select('*, units(unit_number, properties(address, city, state)), maintenance_items(name, item_type, brand, model, install_date)')
@@ -87,6 +67,18 @@ export default function ContractorJobDetailPage() {
       setError('Job not found or not accessible.')
       setLoading(false)
       return
+    }
+
+    if (jobData.status === 'pending_review' && jobData.contractor_completed_at) {
+      const completedAt = new Date(jobData.contractor_completed_at).getTime()
+      const threeDaysMs = 3 * 24 * 60 * 60 * 1000
+      if (Date.now() - completedAt > threeDaysMs) {
+        const approvedAt = new Date().toISOString()
+        await supabase.from('jobs').update({ status: 'completed', landlord_approved_at: approvedAt }).eq('id', jobId)
+        jobData.status = 'completed'
+        jobData.landlord_approved_at = approvedAt
+        notify('job_completed', jobId)
+      }
     }
 
     setJob(jobData)
@@ -140,6 +132,18 @@ export default function ContractorJobDetailPage() {
       setError('Please pick a date.')
       return
     }
+    const timeError = validateScheduleTime(scheduleWindow, scheduleTime)
+    if (timeError) {
+      setError(timeError)
+      return
+    }
+    if (job.schedule_confirmed && job.proposed_date) {
+      const lockError = rescheduleLockError(job.proposed_date)
+      if (lockError) {
+        setError(lockError)
+        return
+      }
+    }
     setActioning(true)
     setError(null)
 
@@ -189,7 +193,7 @@ export default function ContractorJobDetailPage() {
 
   const handleCancelJob = async () => {
     if (!myBid) return
-    if (!window.confirm("Cancel this job? It reopens for sealed bidding — including your other existing bids — and the landlord will need to pick someone else.")) return
+    if (!window.confirm("Cancel this job? The landlord will be notified and will need to pick a different contractor. This can't be undone.")) return
 
     setActioning(true)
     setError(null)
@@ -233,6 +237,7 @@ export default function ContractorJobDetailPage() {
 
   const handleStartJob = async () => {
     setActioning(true)
+    setError(null)
     const { error: updateError } = await supabase
       .from('jobs')
       .update({ status: 'in_progress' })
@@ -241,9 +246,16 @@ export default function ContractorJobDetailPage() {
     if (updateError) {
       console.error('Error starting job:', updateError)
       setError('Could not start job.')
+      setActioning(false)
+      return
     }
 
-    await fetchJob()
+    // Updates local state directly instead of re-fetching the whole job —
+    // the write already succeeded, so there's nothing a re-fetch could
+    // tell us that we don't already know, and it removed a flash of
+    // "Job not found or not accessible" some contractors hit here from
+    // fetchJob()'s own query racing right behind this write.
+    setJob((prev: any) => (prev ? { ...prev, status: 'in_progress' } : prev))
     setActioning(false)
   }
 
@@ -504,7 +516,7 @@ export default function ContractorJobDetailPage() {
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-white font-semibold">
               Status: <span className="text-[#12A5A9]">
-                {myBid?.status === 'declined' ? 'Not selected' : statusLabel(job.status)}
+                {myBid?.status === 'declined' ? (myBid.selected_at ? 'Cancelled' : 'Not selected') : statusLabel(job.status)}
               </span>
             </h2>
             {job.status === 'scheduled' && myBid?.status === 'accepted' && (
@@ -519,7 +531,9 @@ export default function ContractorJobDetailPage() {
           </div>
           {myBid?.status === 'declined' && (
             <p className="text-white/40 text-xs -mt-1 mb-3">
-              The landlord went with another contractor for this job.
+              {myBid.selected_at
+                ? "You cancelled this job — it's back to sealed bidding for the landlord to pick someone else."
+                : 'The landlord went with another contractor for this job.'}
             </p>
           )}
           {myBid?.status === 'accepted' && job.status === 'pending_review' && (
@@ -648,6 +662,17 @@ export default function ContractorJobDetailPage() {
                   {new Date(job.proposed_date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })} · {windowLabel(job.proposed_window)}
                   {job.proposed_time && ` · ${job.proposed_time}`}
                 </p>
+                {rescheduleLockError(job.proposed_date) ? (
+                  <p className="text-white/40 text-xs mt-2">{rescheduleLockError(job.proposed_date)}</p>
+                ) : (
+                  <button
+                    onClick={openScheduleModal}
+                    disabled={actioning}
+                    className="text-white/50 text-xs hover:text-white transition mt-2"
+                  >
+                    Reschedule
+                  </button>
+                )}
               </div>
             ) : (
               <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
@@ -676,7 +701,7 @@ export default function ContractorJobDetailPage() {
                     </button>
                   </div>
                 ) : (
-                  <p className="text-white/60 text-xs mt-3">Waiting on the other party to confirm.</p>
+                  <p className="text-white/60 text-xs mt-3">Waiting on the landlord or tenant to confirm.</p>
                 )}
               </div>
             )}

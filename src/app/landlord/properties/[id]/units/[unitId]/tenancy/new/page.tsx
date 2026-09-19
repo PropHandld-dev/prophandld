@@ -41,9 +41,15 @@ export default function NewTenancyPage() {
     setLoading(true)
     setError(null)
 
+    // Normalized to lowercase so it matches however the tenant actually
+    // capitalized their email at signup — mismatched case here was why
+    // link-invite could never find the invite and it stayed stuck on
+    // "pending" even after the tenant signed up and got linked.
+    const renterEmail = form.renter_email.trim().toLowerCase()
+
     // Find renter by email using secure function
     const { data: renterId, error: renterError } = await supabase
-      .rpc('get_user_id_by_email', { email_input: form.renter_email })
+      .rpc('get_user_id_by_email', { email_input: renterEmail })
 
     if (renterError || !renterId) {
       await sendInvite()
@@ -97,7 +103,7 @@ export default function NewTenancyPage() {
       .insert({
         unit_id: unitId,
         landlord_user_id: user.id,
-        renter_email: form.renter_email.trim(),
+        renter_email: form.renter_email.trim().toLowerCase(),
         rent_amount: form.rent_amount ? parseFloat(form.rent_amount) : null,
         rent_due_day: form.rent_due_day ? parseInt(form.rent_due_day) : 1,
         lease_start: form.lease_start || null,

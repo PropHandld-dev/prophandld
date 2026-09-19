@@ -98,6 +98,22 @@ export default function UnitDetailPage() {
     setAddingCoRenter(true)
     setCoRenterError(null)
 
+    // Co-renters (this unit's primary tenant plus everyone added here)
+    // are capped at the occupant count the landlord set for the lease —
+    // that number already represents how many people actually live
+    // there, so co-renter accounts shouldn't be able to exceed it.
+    // Falls back to a sane default when no occupant count was set.
+    const maxCoRenters = tenancy.occupants ? Math.max(tenancy.occupants - 1, 0) : 5
+    if (coOccupants.length >= maxCoRenters) {
+      setCoRenterError(
+        tenancy.occupants
+          ? `This lease is set for ${tenancy.occupants} occupant${tenancy.occupants === 1 ? '' : 's'} — update the occupant count first to add more co-renters.`
+          : `You've reached the default limit of ${maxCoRenters} co-renters. Set an occupant count on the lease to raise it.`
+      )
+      setAddingCoRenter(false)
+      return
+    }
+
     const { data: renterId, error: lookupError } = await supabase
       .rpc('get_user_id_by_email', { email_input: coRenterEmail.trim() })
 
