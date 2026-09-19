@@ -105,6 +105,26 @@ export async function sendRenterInviteEmail({
   return sendEmail({ to, subject: `${landlordName} invited you to Prophandld`, html })
 }
 
+export async function sendContractorInviteEmail({
+  to,
+  landlordName,
+  note,
+}: {
+  to: string
+  landlordName: string
+  note?: string | null
+}) {
+  const html = baseTemplate({
+    eyebrow: 'Invite',
+    heading: `${landlordName} invited you to Prophandld`,
+    bodyHtml: `${landlordName} wants to work with you through Prophandld: sealed bidding, no platform fee, and you get paid directly the moment a job's done.${note ? `<br /><br />Their note: "${note}"` : ''} Sign up as a contractor with this same email address to get started.`,
+    ctaLabel: 'Create your account',
+    ctaUrl: `${SITE_URL}/signup?role=contractor`,
+    footerText: `You're receiving this because ${landlordName} invited you to Prophandld.`,
+  })
+  return sendEmail({ to, subject: `${landlordName} invited you to Prophandld`, html })
+}
+
 export type NotifyType =
   | 'job_reported'
   | 'bid_received'

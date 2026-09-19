@@ -92,6 +92,7 @@ function SignupForm() {
       await linkPendingInvite()
       router.replace('/renter')
     } else if (role === 'contractor') {
+      fetch('/api/contractor/accept-invite', { method: 'POST' }).catch(() => {})
       router.replace('/contractor')
     }
 

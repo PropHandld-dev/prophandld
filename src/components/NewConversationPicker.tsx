@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { startDmThread, type DmContact, type StartedConversation } from '@/lib/dmThreads'
 
@@ -70,7 +71,14 @@ export function NewConversationPicker({
           <div className="h-16 bg-white/5 rounded-xl animate-pulse" />
         </div>
       ) : contacts.length === 0 ? (
-        <p className="text-white/50 text-sm text-center py-10">No one to message yet.</p>
+        <>
+          <p className="text-white/50 text-sm text-center py-10">No one to message yet.</p>
+          {myRole === 'landlord' && (
+            <Link href="/landlord/contractors/invite" className="block text-center text-[#12A5A9] text-xs hover:underline">
+              Invite a contractor who isn&apos;t on Prophandld yet →
+            </Link>
+          )}
+        </>
       ) : (
         <div className="space-y-2">
           {contacts.map((c) => (
@@ -93,6 +101,12 @@ export function NewConversationPicker({
             </button>
           ))}
         </div>
+      )}
+
+      {!loading && contacts.length > 0 && myRole === 'landlord' && (
+        <Link href="/landlord/contractors/invite" className="block text-center text-[#12A5A9] text-xs hover:underline mt-3 pt-3 border-t border-white/8">
+          Invite a contractor who isn&apos;t on Prophandld yet →
+        </Link>
       )}
     </div>
   )
