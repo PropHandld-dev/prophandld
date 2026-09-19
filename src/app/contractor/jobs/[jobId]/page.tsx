@@ -468,6 +468,11 @@ export default function ContractorJobDetailPage() {
               </RippleButton>
             )}
           </div>
+          {job.status === 'pending_review' && (
+            <p className="text-white/40 text-xs -mt-1 mb-3">
+              Once the landlord reviews and approves, your payment is released.
+            </p>
+          )}
           <p className="text-white/70 text-sm leading-relaxed">{job.description}</p>
 
           {myBid && (
@@ -749,7 +754,7 @@ export default function ContractorJobDetailPage() {
           <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
             <h3 className="text-white font-semibold mb-2">Mark this job complete?</h3>
             <p className="text-white/50 text-sm mb-6">
-              This sends it to the landlord for review. They have 3 days to review before it's automatically approved.
+              This sends it to the landlord for review. They have 3 days to review before it's automatically approved. Once approved, your payment is released.
             </p>
             <div className="flex gap-3">
               <button
