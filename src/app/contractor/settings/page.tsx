@@ -287,7 +287,7 @@ export default function ContractorSettingsPage() {
     if (status === 'pending') return { label: 'Pending review', className: 'bg-yellow-500/15 text-yellow-400', icon: false }
     if (status === 'verified') return { label: 'Verified', className: 'bg-[#0A7B7E]/20 text-[#12A5A9]', icon: true }
     if (status === 'unlicensed') return { label: 'No license on file', className: 'bg-white/8 text-white/50', icon: false }
-    return { label: 'Rejected — resubmit', className: 'bg-red-500/15 text-red-400', icon: false }
+    return { label: 'Rejected, resubmit', className: 'bg-red-500/15 text-red-400', icon: false }
   }
 
   return (
@@ -432,7 +432,7 @@ export default function ContractorSettingsPage() {
           </div>
           <p className="text-white/50 text-sm mb-6">
             Landlords can see whether you're licensed and insured before selecting a bid. If you
-            don't have documentation to share yet, that's fine — just let them know.
+            don't have documentation to share yet, that's fine. Just let them know.
           </p>
 
           {verification?.status === 'rejected' && verification.admin_notes && (
@@ -541,7 +541,7 @@ export default function ContractorSettingsPage() {
               <div className="bg-white/3 border border-white/8 rounded-xl px-4 py-3">
                 <p className="text-white/50 text-sm">
                   Landlords will see that you don't have a license or insurance on file. You can
-                  still bid on jobs — some landlords are fine hiring unlicensed contractors for
+                  still bid on jobs. Some landlords are fine hiring unlicensed contractors for
                   smaller work.
                 </p>
               </div>

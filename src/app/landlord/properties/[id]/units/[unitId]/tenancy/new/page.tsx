@@ -142,7 +142,7 @@ export default function NewTenancyPage() {
       <main className="max-w-xl mx-auto px-6 py-10 pb-28">
         <h1 className="text-2xl font-bold text-white mb-2">Link a renter</h1>
         <p className="text-white/50 text-sm mb-8">
-          Enter their email to link them to this unit. If they don't have a Prophandld account yet, we'll invite them — they'll be linked automatically once they sign up.
+          Enter their email to link them to this unit. If they don't have a Prophandld account yet, we'll invite them. They'll be linked automatically once they sign up.
         </p>
 
         {inviteSent ? (

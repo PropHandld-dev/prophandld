@@ -87,7 +87,7 @@ export function NewConversationPicker({
               {c.context_label && <p className="text-white/60 text-xs truncate">{c.context_label}</p>}
               {c.last_job_category && (
                 <p className="text-[#12A5A9] text-xs mt-1">
-                  You worked with them before on {c.last_job_category} — message {c.thread_id ? 'again' : 'them again'}?
+                  You worked with them before on {c.last_job_category}. Message {c.thread_id ? 'again' : 'them again'}?
                 </p>
               )}
             </button>

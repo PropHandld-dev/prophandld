@@ -129,7 +129,7 @@ export function ScheduleCalendar({ events }: { events: CalendarEvent[] }) {
                     key={event.id}
                     href={event.href}
                     className="block bg-gradient-to-r from-[#0A7B7E]/25 to-[#12A5A9]/25 text-[#12A5A9] text-[10px] leading-tight rounded px-1.5 py-1 truncate hover:opacity-80 transition"
-                    title={event.subtitle ? `${event.title} — ${event.subtitle}` : event.title}
+                    title={event.subtitle ? `${event.title}: ${event.subtitle}` : event.title}
                   >
                     {event.title}
                   </Link>

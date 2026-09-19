@@ -52,7 +52,7 @@ export function StripeConnectCard({ purpose }: { purpose: 'rent' | 'jobs' }) {
       }
     : {
         title: 'Get paid for jobs',
-        body: 'Connect a payout method — bank account or instant debit-card payout — so landlords can pay you through Prophandld.',
+        body: 'Connect a payout method (bank account or instant debit-card payout) so landlords can pay you through Prophandld.',
       }
 
   return (

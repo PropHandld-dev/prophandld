@@ -16,7 +16,7 @@ function urlBase64ToUint8Array(base64String: string) {
   // obvious (wrong length/prefix means the value got truncated or
   // mangled somewhere, e.g. copy-pasted with extra characters).
   if (bytes.length !== 65 || bytes[0] !== 4) {
-    throw new Error(`Notification key is malformed (got ${bytes.length} bytes, expected 65) — check NEXT_PUBLIC_VAPID_PUBLIC_KEY in Vercel for a corrupted paste.`)
+    throw new Error(`Notification key is malformed (got ${bytes.length} bytes, expected 65). Check NEXT_PUBLIC_VAPID_PUBLIC_KEY in Vercel for a corrupted paste.`)
   }
   return bytes
 }

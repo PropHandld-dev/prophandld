@@ -205,7 +205,7 @@ export default function UnitRentPage() {
 
         {!tenancy ? (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
-            <p className="text-white/50 text-sm">No active tenant on this unit — link a renter first to track rent.</p>
+            <p className="text-white/50 text-sm">No active tenant on this unit. Link a renter first to track rent.</p>
           </div>
         ) : (
           <>
@@ -217,7 +217,7 @@ export default function UnitRentPage() {
 
             {payments.length === 0 ? (
               <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center mb-6">
-                <p className="text-white/50 text-sm">No rent months yet — this fills in automatically once the tenancy is active.</p>
+                <p className="text-white/50 text-sm">No rent months yet. This fills in automatically once the tenancy is active.</p>
               </div>
             ) : (
               <ScrollReveal>

@@ -127,7 +127,7 @@ export default function NewLandlordJobPage() {
       await supabase.from('messages').insert({
         thread_id: nudgeThreadId,
         sender_user_id: user.id,
-        body: `📋 New job posted: ${jobData.category} — take a look and submit a bid if you're available.`,
+        body: `📋 New job posted: ${jobData.category}. Take a look and submit a bid if you're available.`,
       })
       fetch('/api/dm-job-invite', {
         method: 'POST',
@@ -157,7 +157,7 @@ export default function NewLandlordJobPage() {
       <main className="max-w-xl mx-auto px-6 py-10 pb-28">
         <h1 className="text-2xl font-bold text-white mb-2">Create a job</h1>
         <p className="text-white/50 text-sm mb-8">
-          Start a maintenance job directly — no approval needed since you're the landlord.
+          Start a maintenance job directly. No approval needed since you're the landlord.
         </p>
 
         {nudgeThreadId && (

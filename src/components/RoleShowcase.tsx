@@ -154,7 +154,7 @@ function RenterPreview() {
           <DollarSignIcon className="w-3.5 h-3.5 text-white/60" />
           <p className="text-white/70 text-xs font-semibold">Pay rent</p>
         </div>
-        <p className="text-white/60 text-[10px] sm:text-xs">Secure online payments — card or bank account.</p>
+        <p className="text-white/60 text-[10px] sm:text-xs">Secure online payments, card or bank account.</p>
       </div>
 
       <div className="bg-white/3 border border-white/8 rounded-2xl p-4 sm:p-5">

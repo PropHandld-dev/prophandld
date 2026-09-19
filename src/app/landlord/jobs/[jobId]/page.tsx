@@ -656,7 +656,7 @@ export default function JobDetailPage() {
                 <p className="text-[#12A5A9] text-xs mt-1 flex items-center gap-1">
                   <WrenchIcon className="w-3 h-3" />
                   {job.maintenance_items.name}
-                  {job.maintenance_items.brand && ` — ${job.maintenance_items.brand}`}
+                  {job.maintenance_items.brand && `, ${job.maintenance_items.brand}`}
                   {job.maintenance_items.install_date && `, installed ${new Date(job.maintenance_items.install_date + 'T00:00:00').getFullYear()}`}
                 </p>
               )}
@@ -798,7 +798,7 @@ export default function JobDetailPage() {
               Sealed bids {bids.length > 0 && `(${bids.length})`}
             </h3>
             {bids.length === 0 ? (
-              <p className="text-white/50 text-sm">No bids yet — contractors in range have been notified.</p>
+              <p className="text-white/50 text-sm">No bids yet. Contractors in range have been notified.</p>
             ) : (
               <div className="space-y-3">
                 {bids.map((bid) => (

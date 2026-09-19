@@ -173,7 +173,7 @@ function NewPropertyForm() {
         </h1>
         <p className="text-white/50 text-sm mb-8">
           {isOnboarding
-            ? "Tell us about the property you manage — we'll set up the units for you."
+            ? "Tell us about the property you manage. We'll set up the units for you."
             : 'Enter your property details below.'}
         </p>
 

@@ -86,7 +86,7 @@ export default function ContractorEarningsPage() {
 
       <main className="max-w-2xl mx-auto px-6 py-10 pb-16">
         <h1 className="text-2xl font-bold text-white mb-1">Past jobs & earnings</h1>
-        <p className="text-white/60 text-sm mb-8">Every completed job, with a receipt for each paid one — handy at tax time.</p>
+        <p className="text-white/60 text-sm mb-8">Every completed job, with a receipt for each paid one, handy at tax time.</p>
 
         {loading ? (
           <div className="space-y-3">

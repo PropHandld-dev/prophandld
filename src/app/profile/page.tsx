@@ -343,7 +343,7 @@ export default function ProfilePage() {
             <div className="flex items-center justify-between py-1">
               <div>
                 <p className="text-white text-sm font-medium">Email notifications</p>
-                <p className="text-white/60 text-xs">Job updates, status changes — always on</p>
+                <p className="text-white/60 text-xs">Job updates and status changes</p>
               </div>
               <span className="text-[#12A5A9] text-xs font-semibold bg-[#12A5A9]/10 border border-[#12A5A9]/20 rounded-full px-2.5 py-1">Always on</span>
             </div>
@@ -356,7 +356,7 @@ export default function ProfilePage() {
             <div className="flex items-center justify-between py-1">
               <div>
                 <p className="text-white text-sm font-medium">Text alerts</p>
-                <p className="text-white/60 text-xs">Urgent updates only — emergencies, scheduling, review needed</p>
+                <p className="text-white/60 text-xs">Urgent updates only: emergencies, scheduling, review needed</p>
               </div>
               <button
                 onClick={handleToggleSms}

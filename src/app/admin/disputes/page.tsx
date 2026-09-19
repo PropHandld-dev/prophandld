@@ -75,7 +75,7 @@ export default function AdminDisputesPage() {
               ? 'text-xs font-semibold px-2.5 py-1 rounded-full bg-yellow-500/15 text-yellow-400'
               : 'text-xs font-semibold px-2.5 py-1 rounded-full bg-[#0A7B7E]/20 text-[#12A5A9]'
           }>
-            {row.status === 'open' ? 'Open' : `Resolved — ${row.outcome}`}
+            {row.status === 'open' ? 'Open' : `Resolved: ${row.outcome}`}
           </span>
         </div>
 

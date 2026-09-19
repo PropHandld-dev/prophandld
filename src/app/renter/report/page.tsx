@@ -225,7 +225,7 @@ export default function ReportIssuePage() {
       <main className="max-w-xl mx-auto px-6 py-10 pb-28">
         <h1 className="text-2xl font-bold text-white mb-2">Report an issue</h1>
         <p className="text-white/50 text-sm mb-8">
-          Let your landlord know what's going on. Add photos if you can — it helps get the right contractor.
+          Let your landlord know what's going on. Add photos if you can, it helps get the right contractor.
         </p>
 
         {unitId && (
@@ -361,7 +361,7 @@ export default function ReportIssuePage() {
                   <AlertTriangleIcon className="w-4 h-4" /> This is an emergency
                 </p>
                 <p className="text-white/60 text-xs mt-1">
-                  Only use this for issues that need attention right away — active leaks, gas smells, no heat, broken locks.
+                  Only use this for issues that need attention right away: active leaks, gas smells, no heat, broken locks.
                 </p>
               </div>
               <span

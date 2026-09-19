@@ -51,7 +51,7 @@ export function MessagesInbox({ basePath }: { basePath: string }) {
       <DmContactsStrip myRole={myRole} onStart={handleStarted} onSeeAll={() => router.push(`${basePath}/messages/new`)} />
       {conversations.length === 0 && (
         <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
-          <p className="text-white/50 text-sm">No conversations yet — start one, or messages on a job will show up here.</p>
+          <p className="text-white/50 text-sm">No conversations yet. Start one, or messages on a job will show up here.</p>
         </div>
       )}
       {conversations.map((c) => {

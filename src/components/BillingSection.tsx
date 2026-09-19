@@ -161,7 +161,7 @@ export function BillingSection() {
           disabled={redirecting}
           className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
         >
-          {redirecting ? 'Redirecting...' : `Subscribe — ${TIER_LABELS[status.tier]}`}
+          {redirecting ? 'Redirecting...' : `Subscribe: ${TIER_LABELS[status.tier]}`}
         </RippleButton>
       ) : status.hasStripeCustomer ? (
         <RippleButton
@@ -172,7 +172,7 @@ export function BillingSection() {
           {redirecting ? 'Redirecting...' : 'Manage billing'}
         </RippleButton>
       ) : (
-        <p className="text-white/50 text-xs">0–2 units stay free — no card needed.</p>
+        <p className="text-white/50 text-xs">0–2 units stay free, no card needed.</p>
       )}
     </ScrollReveal>
   )

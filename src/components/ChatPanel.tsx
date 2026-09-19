@@ -248,7 +248,7 @@ export function ChatPanel({
 
       <div className="flex-1 overflow-y-auto space-y-1 pb-4">
         {messages.length === 0 ? (
-          <p className="text-white/50 text-sm text-center py-10">No messages yet — say hello.</p>
+          <p className="text-white/50 text-sm text-center py-10">No messages yet. Say hello.</p>
         ) : (
           messages.map((m, i) => {
             const isMine = m.sender_user_id === userId

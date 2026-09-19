@@ -436,7 +436,7 @@ export default function UnitDetailPage() {
                   📈 +{tenancy.escalation_percent}% every {tenancy.escalation_frequency_months} months
                   {tenancy.lease_start && (() => {
                     const next = nextEscalationDate(tenancy.lease_start, tenancy.escalation_frequency_months)
-                    return next ? ` — next due ${next.toLocaleDateString()}` : ''
+                    return next ? `, next due ${next.toLocaleDateString()}` : ''
                   })()}
                 </p>
               )}
@@ -682,7 +682,7 @@ export default function UnitDetailPage() {
               </div>
             </div>
           ) : (
-            <p className="text-white/50 text-sm">No tenant linked — unit is vacant.</p>
+            <p className="text-white/50 text-sm">No tenant linked. Unit is vacant.</p>
           )}
         </div>
         </ScrollReveal>

@@ -447,7 +447,7 @@ export default function ContractorJobDetailPage() {
             <p className="text-[#12A5A9] text-xs mt-1 flex items-center gap-1">
               <WrenchIcon className="w-3 h-3" />
               {job.maintenance_items.name}
-              {job.maintenance_items.brand && ` — ${job.maintenance_items.brand}`}
+              {job.maintenance_items.brand && `, ${job.maintenance_items.brand}`}
               {job.maintenance_items.install_date && `, installed ${new Date(job.maintenance_items.install_date + 'T00:00:00').getFullYear()}`}
             </p>
           )}

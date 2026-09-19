@@ -345,7 +345,7 @@ export default function InspectionPage() {
             href={`/landlord/properties/${propertyId}/units/${unitId}`}
             className="block text-center bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl mt-6 hover:opacity-90 transition"
           >
-            Done — back to unit
+            Done, back to unit
           </MagneticLink>
         )}
         </>

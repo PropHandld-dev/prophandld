@@ -192,7 +192,7 @@ export default function RenterJobDetailPage() {
       bid_selected: 'Landlord is finding a contractor',
       scheduled: 'Scheduled',
       in_progress: 'Work in progress',
-      pending_review: 'Work complete — waiting on landlord',
+      pending_review: 'Work complete, waiting on landlord',
       completed: 'Completed',
       disputed: 'Under dispute review',
     }

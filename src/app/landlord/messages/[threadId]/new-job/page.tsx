@@ -62,7 +62,7 @@ export default function NewJobFromThreadPage() {
       <main className="max-w-2xl mx-auto px-6 py-10 pb-16">
         <h1 className="text-2xl font-bold text-white mb-1">Start a job for {contractorName}</h1>
         <p className="text-white/60 text-sm mb-8">
-          Pick which property and unit this is for — {contractorName} will be notified to bid, and the job stays open to other contractors too.
+          Pick which property and unit this is for. {contractorName} will be notified to bid, and the job stays open to other contractors too.
         </p>
 
         {loading ? (

@@ -67,7 +67,7 @@ export default function RentReceiptPage() {
   const property = unit?.properties
   const monthLabel = new Date(receipt.month + 'T00:00:00').toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
   const unitLabel = property?.address
-    ? `${property.address}${unit?.unit_number ? ` — Unit ${unit.unit_number}` : ''}`
+    ? `${property.address}${unit?.unit_number ? `, Unit ${unit.unit_number}` : ''}`
     : 'Unit'
 
   return (

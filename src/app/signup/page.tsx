@@ -18,12 +18,12 @@ const ROLE_CONTENT: Record<Role, { headline: string; subtext: string; checklist:
   },
   renter: {
     headline: 'Get things fixed, fast.',
-    subtext: "Report an issue in seconds — no digging through old texts to find your landlord's number.",
+    subtext: "Report an issue in seconds, no digging through old texts to find your landlord's number.",
     checklist: ['Report issues in one tap', 'See emergency contacts for your unit', 'Track your lease documents', 'Pay rent online, no checks or cash'],
   },
   contractor: {
     headline: 'Bid fair, get picked on merit.',
-    subtext: 'See real jobs near you and submit a sealed bid — no guessing what everyone else quoted.',
+    subtext: 'See real jobs near you and submit a sealed bid, no guessing what everyone else quoted.',
     checklist: ['Sealed, fair bidding', 'Get verified, get trusted', 'Build your rating over time'],
   },
 }

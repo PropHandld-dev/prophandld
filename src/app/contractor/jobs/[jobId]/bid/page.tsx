@@ -226,7 +226,7 @@ export default function SubmitBidPage() {
                 <p className="text-[#12A5A9] text-xs mt-1 flex items-center gap-1">
                   <WrenchIcon className="w-3 h-3" />
                   {linkedSystem.name}
-                  {linkedSystem.brand && ` — ${linkedSystem.brand}`}
+                  {linkedSystem.brand && `, ${linkedSystem.brand}`}
                   {linkedSystem.install_date && `, installed ${new Date(linkedSystem.install_date + 'T00:00:00').getFullYear()}`}
                 </p>
               )}
@@ -255,7 +255,7 @@ export default function SubmitBidPage() {
             )}
 
             <p className="text-white/50 text-xs mb-4">
-              🔒 Your bid is sealed — other contractors can't see your price, and you can't see theirs.
+              🔒 Your bid is sealed. Other contractors can't see your price, and you can't see theirs.
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-4">

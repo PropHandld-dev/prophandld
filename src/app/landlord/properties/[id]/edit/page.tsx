@@ -153,7 +153,7 @@ export default function EditPropertyPage() {
   const handleArchiveToggle = async () => {
     const confirmed = archived
       ? window.confirm('Unarchive this property? It\'ll show up in your active portfolio again.')
-      : window.confirm('Archive this property? It\'ll be hidden from your active portfolio, but nothing is deleted — you can unarchive it anytime from Properties → Show archived.')
+      : window.confirm('Archive this property? It\'ll be hidden from your active portfolio, but nothing is deleted. You can unarchive it anytime from Properties → Show archived.')
     if (!confirmed) return
 
     setArchiving(true)
@@ -311,7 +311,7 @@ export default function EditPropertyPage() {
           <p className="text-white/60 text-sm mb-4">
             {archived
               ? "This property is archived and hidden from your active portfolio. Nothing's been deleted."
-              : "Hide this property from your active portfolio without deleting anything — handy once you've sold it or stopped managing it. You can unarchive it anytime."}
+              : "Hide this property from your active portfolio without deleting anything, handy once you've sold it or stopped managing it. You can unarchive it anytime."}
           </p>
           <button
             onClick={handleArchiveToggle}
@@ -325,7 +325,7 @@ export default function EditPropertyPage() {
         <div className="mt-8 pt-8 border-t border-red-500/20">
           <h2 className="text-red-400 font-semibold mb-1">Delete this property</h2>
           <p className="text-white/60 text-sm mb-4">
-            Permanently deletes this property and everything under it — units, tenancies, rent history, jobs, bids, documents, and compliance records. This cannot be undone. Archiving above is the safer, reversible option.
+            Permanently deletes this property and everything under it: units, tenancies, rent history, jobs, bids, documents, and compliance records. This cannot be undone. Archiving above is the safer, reversible option.
           </p>
           {!showDeleteConfirm ? (
             <button
