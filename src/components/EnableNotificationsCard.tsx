@@ -27,8 +27,20 @@ export function EnableNotificationsCard() {
   const [dismissed, setDismissed] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isIosBrowserTab, setIsIosBrowserTab] = useState(false)
 
   useEffect(() => {
+    // iOS Safari only exposes PushManager inside an installed (home-screen)
+    // PWA — never in a regular browser tab, even on versions that do
+    // support web push once installed. That means the plain feature-detect
+    // below reads as "unsupported" for the vast majority of iPhone/iPad
+    // visitors who are just using Safari normally, and the card used to
+    // disappear entirely with no explanation. Track this case separately
+    // so we can still show something actionable instead of nothing.
+    const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent)
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true
+    setIsIosBrowserTab(isIos && !isStandalone)
+
     const isSupported = typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window
     setSupported(isSupported)
     if (!isSupported) return
@@ -46,17 +58,6 @@ export function EnableNotificationsCard() {
   const handleEnable = async () => {
     setLoading(true)
     setError(null)
-
-    // iOS Safari only supports web push inside an installed (home-screen)
-    // PWA, not a regular browser tab — catch this up front with a clear
-    // message instead of letting subscribe() throw an opaque error.
-    const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent)
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true
-    if (isIos && !isStandalone) {
-      setError('On iPhone/iPad: tap Share → "Add to Home Screen" first, then open the app from there to enable notifications.')
-      setLoading(false)
-      return
-    }
 
     try {
       const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim()
@@ -116,7 +117,26 @@ export function EnableNotificationsCard() {
     setDismissed(true)
   }
 
-  if (!supported || subscribed || dismissed) return null
+  if ((!supported && !isIosBrowserTab) || subscribed || dismissed) return null
+
+  if (isIosBrowserTab && !supported) {
+    return (
+      <div className="bg-white/3 border border-white/8 rounded-2xl p-5 mb-6 flex items-center gap-4">
+        <div className="w-9 h-9 rounded-full bg-gradient-to-r from-[#0A7B7E]/30 to-[#12A5A9]/30 border border-[#12A5A9]/30 flex items-center justify-center shrink-0">
+          <BellIcon className="w-4 h-4 text-[#12A5A9]" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-white text-sm font-medium">Turn on notifications</p>
+          <p className="text-white/40 text-xs mt-0.5">
+            iPhone/iPad only support notifications for apps added to your Home Screen. Tap Share → &quot;Add to Home Screen&quot;, then open Prophandld from there to turn them on.
+          </p>
+        </div>
+        <button onClick={handleDismiss} className="text-white/30 hover:text-white/60 text-xs transition shrink-0">
+          Not now
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div className="bg-white/3 border border-white/8 rounded-2xl p-5 mb-6 flex items-center gap-4">
