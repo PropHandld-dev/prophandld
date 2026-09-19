@@ -410,7 +410,7 @@ export default function ContractorJobDetailPage() {
 
   if (!job) return null
 
-  const showSchedulingSection = ['bid_selected', 'scheduled'].includes(job.status)
+  const showSchedulingSection = myBid?.status === 'accepted' && ['bid_selected', 'scheduled'].includes(job.status)
   const isMyTurnToRespond = job.proposed_by && job.proposed_by !== 'contractor' && !job.schedule_confirmed
   const beforePhotos = photos.filter((p) => p.stage === 'before')
   const afterPhotos = photos.filter((p) => p.stage === 'after')
@@ -456,9 +456,11 @@ export default function ContractorJobDetailPage() {
         <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-white font-semibold">
-              Status: <span className="text-[#12A5A9]">{statusLabel(job.status)}</span>
+              Status: <span className="text-[#12A5A9]">
+                {myBid?.status === 'declined' ? 'Not selected' : statusLabel(job.status)}
+              </span>
             </h2>
-            {job.status === 'scheduled' && (
+            {job.status === 'scheduled' && myBid?.status === 'accepted' && (
               <RippleButton
                 onClick={handleStartJob}
                 disabled={actioning}
@@ -468,7 +470,12 @@ export default function ContractorJobDetailPage() {
               </RippleButton>
             )}
           </div>
-          {job.status === 'pending_review' && (
+          {myBid?.status === 'declined' && (
+            <p className="text-white/40 text-xs -mt-1 mb-3">
+              The landlord went with another contractor for this job.
+            </p>
+          )}
+          {myBid?.status === 'accepted' && job.status === 'pending_review' && (
             <p className="text-white/40 text-xs -mt-1 mb-3">
               Once the landlord reviews and approves, your payment is released.
             </p>
@@ -517,7 +524,7 @@ export default function ContractorJobDetailPage() {
           )}
         </ScrollReveal>
 
-        {job.status === 'disputed' && (
+        {myBid?.status === 'accepted' && job.status === 'disputed' && (
           <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl p-6 mb-4">
             <h3 className="text-yellow-400 font-semibold mb-1">Under dispute review</h3>
             <p className="text-white/60 text-sm">
@@ -526,13 +533,13 @@ export default function ContractorJobDetailPage() {
           </div>
         )}
 
-        {disputeEligible && (
+        {myBid?.status === 'accepted' && disputeEligible && (
           <div className="mb-4">
             <RaiseDisputeButton jobId={jobId} onRaised={fetchJob} />
           </div>
         )}
 
-        {job.status === 'pending_review' && job.clarification_note && (
+        {myBid?.status === 'accepted' && job.status === 'pending_review' && job.clarification_note && (
           <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl p-6 mb-4">
             <h3 className="text-yellow-400 font-semibold mb-2">Landlord asked for verification</h3>
             <p className="text-white/70 text-sm mb-4">{job.clarification_note}</p>
@@ -619,7 +626,7 @@ export default function ContractorJobDetailPage() {
           </ScrollReveal>
         )}
 
-        {['in_progress', 'pending_review', 'completed', 'archived'].includes(job.status) && (
+        {myBid?.status === 'accepted' && ['in_progress', 'pending_review', 'completed', 'archived'].includes(job.status) && (
           <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
             <h3 className="text-white font-semibold mb-4">Proof of work</h3>
 
