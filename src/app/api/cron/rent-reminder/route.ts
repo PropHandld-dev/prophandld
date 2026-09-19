@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
   for (const tenancy of tenancies || []) {
     const unit = tenancy.units as any
     const landlordUserId = unit?.properties?.owner_user_id
-    const unitLabel = `${unit?.properties?.address || 'a property'}${unit?.unit_number ? ` — Unit ${unit.unit_number}` : ''}`
+    const unitLabel = `${unit?.properties?.address || 'a property'}${unit?.unit_number ? `, Unit ${unit.unit_number}` : ''}`
 
     const createdId = await ensureCurrentMonthRentPayment(supabaseAdmin, tenancy.id, tenancy.rent_amount)
     if (createdId) {
@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
       }
       await sendPush(tenancy.renter_user_id, {
         title: 'Rent is late',
-        body: lateFeeAdded ? `${unitLabel} — a $${lateFeeAdded.toFixed(2)} late fee was added.` : `${unitLabel} is past due.`,
+        body: lateFeeAdded ? `${unitLabel}: a $${lateFeeAdded.toFixed(2)} late fee was added.` : `${unitLabel} is past due.`,
         url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://prophandld.com'}/renter/rent`,
       }).catch((err) => console.error('cron/rent-reminder: sendPush (renter late) failed', err))
     }
@@ -131,7 +131,7 @@ export async function GET(request: NextRequest) {
       }
       await sendPush(landlordUserId, {
         title: 'Rent due',
-        body: unitLabels.length === 1 ? `${unitLabels[0]} — mark it received once it's in.` : `${unitLabels.length} units — mark rent received once it's in.`,
+        body: unitLabels.length === 1 ? `${unitLabels[0]}: mark it received once it's in.` : `${unitLabels.length} units: mark rent received once it's in.`,
         url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://prophandld.com'}/landlord`,
       }).catch((err) => console.error('cron/rent-reminder: sendPush failed', err))
     })

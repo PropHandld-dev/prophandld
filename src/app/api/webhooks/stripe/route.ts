@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
                 }
                 await sendPush(renterUserId, {
                   title: 'Payment refunded',
-                  body: "Credit cards aren't accepted for rent — use a debit card or bank account instead.",
+                  body: "Credit cards aren't accepted for rent. Use a debit card or bank account instead.",
                   url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://prophandld.com'}/renter/rent`,
                 }).catch((err) => console.error('stripe webhook: sendPush (credit rejected) failed', err))
               }
@@ -162,7 +162,7 @@ export async function POST(request: NextRequest) {
                 ? new Date(rentPayment.month + 'T00:00:00').toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
                 : 'this month'
               const unitLabel = unit?.properties?.address
-                ? `${unit.properties.address}${unit.unit_number ? ` — Unit ${unit.unit_number}` : ''}`
+                ? `${unit.properties.address}${unit.unit_number ? `, Unit ${unit.unit_number}` : ''}`
                 : 'your unit'
 
               const { data: landlord } = await supabaseAdmin

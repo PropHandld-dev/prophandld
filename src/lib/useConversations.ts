@@ -124,7 +124,7 @@ export function useConversations(userId: string | null) {
           lastSenderId: e.sender_user_id,
           category: job?.category || 'Job',
           propertyLabel: property?.address
-            ? `${property.address}${unit?.unit_number ? ` — Unit ${unit.unit_number}` : ''}`
+            ? `${property.address}${unit?.unit_number ? `, Unit ${unit.unit_number}` : ''}`
             : '',
           otherName: otherLabel,
           otherRole,

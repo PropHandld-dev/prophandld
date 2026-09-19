@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
 
   const unit = invite.units as any
   const unitLabel = unit
-    ? `${unit.properties?.address}${unit.unit_number ? ` — Unit ${unit.unit_number}` : ''}`
+    ? `${unit.properties?.address}${unit.unit_number ? `, Unit ${unit.unit_number}` : ''}`
     : 'your unit'
 
   const result = await sendRenterInviteEmail({

@@ -41,12 +41,14 @@ function baseTemplate({
   bodyHtml,
   ctaLabel,
   ctaUrl,
+  footerText = 'Sent because you have an active Prophandld account.',
 }: {
   eyebrow: string
   heading: string
   bodyHtml: string
   ctaLabel: string
   ctaUrl: string
+  footerText?: string
 }) {
   return `<!doctype html>
 <html>
@@ -71,7 +73,7 @@ function baseTemplate({
             </tr>
             <tr>
               <td style="padding:22px 4px 0;color:rgba(255,255,255,0.28);font-size:12px;line-height:1.6;">
-                Sent because you have an active Prophandld account.<br />
+                ${footerText}<br />
                 <a href="${SITE_URL}" style="color:rgba(255,255,255,0.4);text-decoration:none;">prophandld.com</a>
               </td>
             </tr>
@@ -95,9 +97,10 @@ export async function sendRenterInviteEmail({
   const html = baseTemplate({
     eyebrow: 'Invite',
     heading: `${landlordName} invited you to Prophandld`,
-    bodyHtml: `You've been added for <strong>${unitLabel}</strong>. Sign up with this same email address and you'll be linked to your unit automatically — maintenance requests, documents, and rent payments, all in one place.`,
+    bodyHtml: `You've been added for <strong>${unitLabel}</strong>. Sign up with this same email address and you'll be linked to your unit automatically: maintenance requests, documents, and rent payments, all in one place.`,
     ctaLabel: 'Create your account',
     ctaUrl: `${SITE_URL}/signup`,
+    footerText: `You're receiving this because ${landlordName} invited you to Prophandld.`,
   })
   return sendEmail({ to, subject: `${landlordName} invited you to Prophandld`, html })
 }
@@ -164,7 +167,7 @@ export const SMS_ENABLED_TYPES: NotifyType[] = [
 ]
 
 export function buildSmsMessage(type: NotifyType, info: NotifyJobInfo) {
-  return `Prophandld: ${PUSH_TITLES[type]} — ${info.category} at ${jobLocation(info)}.`
+  return `Prophandld: ${PUSH_TITLES[type]}. ${info.category} at ${jobLocation(info)}.`
 }
 
 export function buildNotificationEmail(type: NotifyType, role: 'landlord' | 'renter' | 'contractor', info: NotifyJobInfo) {
@@ -338,7 +341,7 @@ export async function sendRentPaymentReceivedEmail({
     ctaLabel: 'View rent history',
     ctaUrl: `${SITE_URL}/landlord`,
   })
-  return sendEmail({ to, subject: `Rent payment received — ${unitLabel}`, html })
+  return sendEmail({ to, subject: `Rent payment received: ${unitLabel}`, html })
 }
 
 export async function sendJobPaymentSentEmail({
@@ -361,7 +364,7 @@ export async function sendJobPaymentSentEmail({
     ctaLabel: 'View job',
     ctaUrl: `${SITE_URL}/contractor`,
   })
-  return sendEmail({ to, subject: `You've been paid — ${category}`, html })
+  return sendEmail({ to, subject: `You've been paid: ${category}`, html })
 }
 
 export async function sendContractorVerificationDecisionEmail({
@@ -446,7 +449,7 @@ export async function sendCreditCardRejectedEmail({ to, renterName }: { to: stri
   const html = baseTemplate({
     eyebrow: 'Payment',
     heading: 'Payment refunded',
-    bodyHtml: `Hi ${renterName}, rent can only be paid by <strong>debit card or bank account</strong> — credit cards aren't accepted. Your payment was fully refunded and rent is still due. Please try again with a debit card or bank transfer.`,
+    bodyHtml: `Hi ${renterName}, rent can only be paid by <strong>debit card or bank account</strong>. Credit cards aren't accepted. Your payment was fully refunded and rent is still due. Please try again with a debit card or bank transfer.`,
     ctaLabel: 'Try again',
     ctaUrl: `${SITE_URL}/renter/rent`,
   })
@@ -458,35 +461,35 @@ export async function sendRentDueEmail({ to, landlordName, unitLabels }: { to: s
   const list = unitLabels.length === 1 ? unitLabels[0] : `${unitLabels.length} units`
   const html = baseTemplate({
     eyebrow: 'Payment',
-    heading: `Rent is due — ${monthLabel}`,
-    bodyHtml: `Hi ${landlordName}, ${monthLabel} rent tracking is ready for ${list}. Mark it received in one tap once it comes in — no typing required.`,
+    heading: `Rent is due: ${monthLabel}`,
+    bodyHtml: `Hi ${landlordName}, ${monthLabel} rent tracking is ready for ${list}. Mark it received in one tap once it comes in, no typing required.`,
     ctaLabel: 'View dashboard',
     ctaUrl: `${SITE_URL}/landlord`,
   })
-  return sendEmail({ to, subject: `Rent due — ${monthLabel}`, html })
+  return sendEmail({ to, subject: `Rent due: ${monthLabel}`, html })
 }
 
 export async function sendRentDueRenterEmail({ to, unitLabel, amount }: { to: string; unitLabel: string; amount: number }) {
   const monthLabel = new Date().toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
   const html = baseTemplate({
     eyebrow: 'Payment',
-    heading: `Rent is due — ${monthLabel}`,
+    heading: `Rent is due: ${monthLabel}`,
     bodyHtml: `$${amount.toFixed(2)} is due for ${unitLabel}. Pay by debit card or bank account, right from your dashboard.`,
     ctaLabel: 'Pay rent',
     ctaUrl: `${SITE_URL}/renter/rent`,
   })
-  return sendEmail({ to, subject: `Rent due — ${monthLabel}`, html })
+  return sendEmail({ to, subject: `Rent due: ${monthLabel}`, html })
 }
 
 export async function sendRentLateRenterEmail({ to, unitLabel, amount, lateFeeAdded }: { to: string; unitLabel: string; amount: number; lateFeeAdded: number | null }) {
   const html = baseTemplate({
     eyebrow: 'Payment',
     heading: 'Rent is now late',
-    bodyHtml: `Rent for ${unitLabel} is still unpaid.${lateFeeAdded ? ` A $${lateFeeAdded.toFixed(2)} late fee has been added.` : ''} $${amount.toFixed(2)} is now due — pay as soon as you can.`,
+    bodyHtml: `Rent for ${unitLabel} is still unpaid.${lateFeeAdded ? ` A $${lateFeeAdded.toFixed(2)} late fee has been added.` : ''} $${amount.toFixed(2)} is now due. Pay as soon as you can.`,
     ctaLabel: 'Pay rent',
     ctaUrl: `${SITE_URL}/renter/rent`,
   })
-  return sendEmail({ to, subject: `Rent is late — ${unitLabel}`, html })
+  return sendEmail({ to, subject: `Rent is late: ${unitLabel}`, html })
 }
 
 export async function sendRentLateLandlordEmail({ to, landlordName, unitLabel, lateFeeAdded }: { to: string; landlordName: string; unitLabel: string; lateFeeAdded: number | null }) {
@@ -497,7 +500,7 @@ export async function sendRentLateLandlordEmail({ to, landlordName, unitLabel, l
     ctaLabel: 'View dashboard',
     ctaUrl: `${SITE_URL}/landlord`,
   })
-  return sendEmail({ to, subject: `Rent is late — ${unitLabel}`, html })
+  return sendEmail({ to, subject: `Rent is late: ${unitLabel}`, html })
 }
 
 export async function sendSupportEscalationEmail({
@@ -520,12 +523,12 @@ export async function sendSupportEscalationEmail({
 export async function sendSupportConfirmationEmail({ to, question }: { to: string; question: string }) {
   const html = baseTemplate({
     eyebrow: 'Support',
-    heading: 'Got it — thanks for reaching out',
+    heading: 'Got it, thanks for reaching out',
     bodyHtml: `Thanks for reaching out to Prophandld. You asked:<br /><br />"${question}"<br /><br />A member of our team will review this and follow up at this email address soon.`,
     ctaLabel: 'Visit Prophandld',
     ctaUrl: SITE_URL,
   })
-  return sendEmail({ to, subject: 'Got it — thanks for reaching out', html })
+  return sendEmail({ to, subject: 'Got it, thanks for reaching out', html })
 }
 
 export async function sendDmScheduleEmail({
@@ -568,7 +571,7 @@ export async function sendJobInviteEmail({
   const html = baseTemplate({
     eyebrow: 'New job',
     heading: `${landlordName} posted a job for you`,
-    bodyHtml: `${landlordName} messaged you and just posted a new <strong>${jobCategory}</strong> job — take a look and submit a bid if you're available. It's open to other contractors too, so don't wait too long.`,
+    bodyHtml: `${landlordName} messaged you and just posted a new <strong>${jobCategory}</strong> job. Take a look and submit a bid if you're available. It's open to other contractors too, so don't wait too long.`,
     ctaLabel: 'View job',
     ctaUrl: `${SITE_URL}/contractor/jobs/${jobId}`,
   })

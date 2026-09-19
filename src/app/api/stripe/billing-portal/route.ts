@@ -18,7 +18,7 @@ export async function POST() {
     .maybeSingle()
 
   if (!userRow?.stripe_customer_id) {
-    return NextResponse.json({ error: 'No billing account yet — subscribe first.' }, { status: 400 })
+    return NextResponse.json({ error: 'No billing account yet. Subscribe first.' }, { status: 400 })
   }
 
   const stripe = getStripe()

@@ -32,7 +32,7 @@ export async function startDmThread(myRole: 'landlord' | 'renter' | 'contractor'
   const name = contact.full_name || 'Unknown'
   const firstName = name.split(' ')[0]
   const initialDraft = contact.last_job_category
-    ? `Hi ${firstName}, I have another ${contact.last_job_category.toLowerCase()} issue — are you available?`
+    ? `Hi ${firstName}, I have another ${contact.last_job_category.toLowerCase()} issue. Are you available?`
     : ''
 
   let threadId = contact.thread_id
