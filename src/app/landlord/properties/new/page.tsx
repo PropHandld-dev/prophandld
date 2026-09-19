@@ -10,6 +10,7 @@ import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { AddressAutocomplete, type AutocompletePlace } from '@/components/AddressAutocomplete'
 import { LANDLORD_TABS } from '@/lib/navTabs'
+import { normalizeAddress } from '@/lib/address'
 
 function NewPropertyForm() {
   const router = useRouter()
@@ -65,6 +66,27 @@ function NewPropertyForm() {
     const { data: session } = await supabase.auth.getSession()
     if (!session.session) {
       setError('No active session found')
+      setLoading(false)
+      return
+    }
+
+    const { data: ownedProperties } = await supabase
+      .from('properties')
+      .select('id, address, city, state')
+      .eq('owner_user_id', user.id)
+
+    const normalizedNew = normalizeAddress(form.address)
+    const normalizedCity = form.city.trim().toLowerCase()
+    const normalizedState = form.state.trim().toLowerCase()
+    const duplicate = (ownedProperties || []).find(
+      (p) =>
+        normalizeAddress(p.address || '') === normalizedNew &&
+        (p.city || '').trim().toLowerCase() === normalizedCity &&
+        (p.state || '').trim().toLowerCase() === normalizedState
+    )
+
+    if (duplicate) {
+      setError('You already have a property at this address.')
       setLoading(false)
       return
     }

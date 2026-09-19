@@ -567,7 +567,7 @@ export default function ContractorSettingsPage() {
                 ? 'Saving...'
                 : hasCredentials === 'no'
                   ? 'Save'
-                  : verification
+                  : verification?.status === 'rejected'
                     ? 'Resubmit for review'
                     : 'Submit for review'}
             </RippleButton>

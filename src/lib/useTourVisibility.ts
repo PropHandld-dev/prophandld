@@ -12,11 +12,11 @@ import { supabase } from '@/lib/supabase'
 // directly (rather than next/navigation's useSearchParams) so this
 // doesn't force an otherwise-static dashboard page into dynamic
 // rendering.
-export function useTourVisibility(userId: string | null) {
+export function useTourVisibility(userId: string | null, enabled: boolean = true) {
   const [show, setShow] = useState(false)
 
   useEffect(() => {
-    if (!userId) return
+    if (!userId || !enabled) return
 
     if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('tour') === 'replay') {
       setShow(true)
@@ -49,7 +49,7 @@ export function useTourVisibility(userId: string | null) {
           sessionStorage.removeItem('ph_just_signed_in')
         } catch {}
       })
-  }, [userId])
+  }, [userId, enabled])
 
   const dismiss = () => {
     setShow(false)

@@ -426,8 +426,8 @@ export default function UnitDetailPage() {
               {tenancy.lease_start && (
                 <p className="text-white/40 text-sm flex items-center gap-1.5">
                   <CalendarIcon className="w-3.5 h-3.5 text-white/40" />
-                  {new Date(tenancy.lease_start).toLocaleDateString()}
-                  {tenancy.lease_end ? ` → ${new Date(tenancy.lease_end).toLocaleDateString()}` : ' → ongoing'}
+                  {new Date(tenancy.lease_start + 'T00:00:00').toLocaleDateString()}
+                  {tenancy.lease_end ? ` → ${new Date(tenancy.lease_end + 'T00:00:00').toLocaleDateString()}` : ' → ongoing'}
                 </p>
               )}
 

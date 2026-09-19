@@ -49,8 +49,12 @@ export default function ContractorDashboard() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [hasProfile, setHasProfile] = useState(true)
-  const tour = useTourVisibility(user?.id ?? null)
+  const [hasProfile, setHasProfile] = useState<boolean | null>(null)
+  // Only let the tour hook consume the one-shot "just signed in" flag once
+  // we actually know the profile is complete — otherwise a fresh signup
+  // (hasProfile still resolving) burns the flag before the tour is ever
+  // allowed to render, and it silently never shows again this session.
+  const tour = useTourVisibility(user?.id ?? null, hasProfile === true)
   const [availableJobs, setAvailableJobs] = useState<any[]>([])
   const [myBids, setMyBids] = useState<any[]>([])
   const [pickTimeAlerts, setPickTimeAlerts] = useState<any[]>([])
@@ -85,6 +89,7 @@ export default function ContractorDashboard() {
         setLoading(false)
         return
       }
+      setHasProfile(true)
 
       setConnectStatus((profileData.stripe_connect_status as any) || 'not_started')
 

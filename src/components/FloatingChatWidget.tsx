@@ -34,6 +34,14 @@ export function FloatingChatWidget() {
       setUserId(user?.id ?? null)
       const r = user?.user_metadata?.role
       setRole(r === 'landlord' || r === 'renter' || r === 'contractor' ? r : null)
+      // Sign-out: clear any open panel so a stale conversation can't
+      // resurface if this component is ever revived from the browser's
+      // back-forward cache instead of a fresh mount.
+      if (!user) {
+        setOpen(false)
+        setActive(null)
+        setShowPicker(false)
+      }
     }
     supabase.auth.getUser().then(({ data: { user } }) => applyUser(user))
     // Right after sign-in the session can still be settling when this
@@ -43,17 +51,36 @@ export function FloatingChatWidget() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       applyUser(session?.user)
     })
-    return () => subscription.unsubscribe()
+
+    // If the browser restores this page from its back-forward cache
+    // after a sign-out (e.g. hitting Back), the whole React tree comes
+    // back exactly as it was — including a signed-in widget with a
+    // stale conversation open — without re-running this effect. Force
+    // a fresh auth check in that specific case.
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        supabase.auth.getUser().then(({ data: { user } }) => applyUser(user))
+      }
+    }
+    window.addEventListener('pageshow', handlePageShow)
+
+    return () => {
+      subscription.unsubscribe()
+      window.removeEventListener('pageshow', handlePageShow)
+    }
   }, [])
 
   const { loading, conversations, unreadIds, totalUnread, refetch } = useConversations(userId)
 
   // Skip on the pages that already show conversations full-screen —
   // a floating bubble on top of the full chat/inbox view would be
-  // redundant clutter, not a shortcut.
+  // redundant clutter, not a shortcut. Also skip the landing page: its
+  // own help/FAQ bubble sits at the exact same fixed position, so a
+  // signed-in user viewing it would see two bubbles stacked together.
   const isChatOrInboxPage = /\/jobs\/[^/]+\/chat$/.test(pathname) || /\/messages(\/|$)/.test(pathname)
+  const isLandingPage = pathname === '/'
 
-  if (!userId || !role || isChatOrInboxPage) return null
+  if (!userId || !role || isChatOrInboxPage || isLandingPage) return null
 
   const handleClose = () => {
     setOpen(false)

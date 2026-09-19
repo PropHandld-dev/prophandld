@@ -24,7 +24,25 @@ export default function SubmitBidPage() {
   const [photos, setPhotos] = useState<any[]>([])
   const [error, setError] = useState<string | null>(null)
   const [alreadyBid, setAlreadyBid] = useState(false)
-  const [zoomedPhoto, setZoomedPhoto] = useState<string | null>(null)
+  const [zoomedPhoto, setZoomedPhotoState] = useState<string | null>(null)
+
+  // Zooming pushes a throwaway history entry so the browser's own Back
+  // button/gesture closes the zoom instead of navigating off the page
+  // entirely — closing it any other way pops that entry back off so a
+  // real Back press afterward doesn't need to be pressed twice.
+  const openZoom = (url: string) => {
+    window.history.pushState({ zoom: true }, '')
+    setZoomedPhotoState(url)
+  }
+  const closeZoom = () => {
+    if (window.history.state?.zoom) window.history.back()
+    setZoomedPhotoState(null)
+  }
+  useEffect(() => {
+    const handlePopState = () => setZoomedPhotoState(null)
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
 
   const [form, setForm] = useState({
     amount: '',
@@ -222,7 +240,7 @@ export default function SubmitBidPage() {
                     <button
                       key={p.id}
                       type="button"
-                      onClick={() => setZoomedPhoto(p.displayUrl)}
+                      onClick={() => openZoom(p.displayUrl)}
                       className="block"
                     >
                       <img
@@ -315,7 +333,7 @@ export default function SubmitBidPage() {
       {zoomedPhoto && (
         <div
           className="fixed inset-0 bg-black/90 flex items-center justify-center p-6 z-30 cursor-zoom-out"
-          onClick={() => setZoomedPhoto(null)}
+          onClick={closeZoom}
         >
           <img
             src={zoomedPhoto}

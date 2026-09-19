@@ -318,7 +318,6 @@ export default function ReportIssuePage() {
                   type="file"
                   accept="image/*"
                   multiple
-                  capture="environment"
                   onChange={handleFileChange}
                   className="hidden"
                 />
@@ -348,11 +347,13 @@ export default function ReportIssuePage() {
               )}
             </div>
 
-            <div
+            <button
+              type="button"
+              onClick={toggleEmergency}
               className={
                 form.is_emergency
-                  ? 'bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex items-start justify-between gap-4'
-                  : 'bg-white/3 border border-white/8 rounded-xl p-4 flex items-start justify-between gap-4'
+                  ? 'w-full text-left bg-red-500/10 border-2 border-red-500/40 rounded-xl p-4 flex items-center justify-between gap-4 transition'
+                  : 'w-full text-left bg-white/3 border-2 border-red-500/25 hover:border-red-500/40 hover:bg-red-500/5 rounded-xl p-4 flex items-center justify-between gap-4 transition'
               }
             >
               <div>
@@ -363,18 +364,16 @@ export default function ReportIssuePage() {
                   Only use this for issues that need attention right away — active leaks, gas smells, no heat, broken locks.
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={toggleEmergency}
+              <span
                 className={
                   form.is_emergency
-                    ? 'shrink-0 bg-red-500/20 text-red-400 text-xs font-semibold px-3 py-1.5 rounded-lg'
-                    : 'shrink-0 bg-white/8 text-white/70 text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-white/12 transition'
+                    ? 'shrink-0 bg-red-500 text-white text-xs font-semibold px-4 py-2 rounded-lg'
+                    : 'shrink-0 bg-red-500/15 text-red-400 text-xs font-semibold px-4 py-2 rounded-lg'
                 }
               >
-                {form.is_emergency ? 'Marked' : 'Mark as emergency'}
-              </button>
-            </div>
+                {form.is_emergency ? 'Marked ✓' : 'Mark as emergency'}
+              </span>
+            </button>
 
             {error && (
               <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">

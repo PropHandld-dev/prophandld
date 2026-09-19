@@ -294,7 +294,6 @@ export default function InspectionPage() {
                     type="file"
                     accept="image/*"
                     multiple
-                    capture="environment"
                     onChange={handleFileChange}
                     disabled={uploading}
                     className="hidden"

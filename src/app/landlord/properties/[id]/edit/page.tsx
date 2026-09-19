@@ -11,6 +11,7 @@ import { LANDLORD_TABS } from '@/lib/navTabs'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { AddressAutocomplete, type AutocompletePlace } from '@/components/AddressAutocomplete'
+import { normalizeAddress } from '@/lib/address'
 
 export default function EditPropertyPage() {
   const router = useRouter()
@@ -30,6 +31,9 @@ export default function EditPropertyPage() {
   const [placeGeo, setPlaceGeo] = useState<{ lat: number; lng: number } | null>(null)
   const [archived, setArchived] = useState(false)
   const [archiving, setArchiving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   useEffect(() => {
     const init = async () => {
@@ -98,18 +102,24 @@ export default function EditPropertyPage() {
       return
     }
 
-    const { data: existing } = await supabase
+    const { data: ownedProperties } = await supabase
       .from('properties')
-      .select('id')
+      .select('id, address, city, state')
       .eq('owner_user_id', user.id)
-      .eq('address', form.address)
-      .eq('city', form.city)
-      .eq('state', form.state)
       .neq('id', propertyId)
-      .maybeSingle()
 
-    if (existing) {
-      setError('You already have another property with this address, city, and state.')
+    const normalizedNew = normalizeAddress(form.address)
+    const normalizedCity = form.city.trim().toLowerCase()
+    const normalizedState = form.state.trim().toLowerCase()
+    const duplicate = (ownedProperties || []).find(
+      (p) =>
+        normalizeAddress(p.address || '') === normalizedNew &&
+        (p.city || '').trim().toLowerCase() === normalizedCity &&
+        (p.state || '').trim().toLowerCase() === normalizedState
+    )
+
+    if (duplicate) {
+      setError('You already have another property with this address.')
       setSaving(false)
       return
     }
@@ -155,6 +165,23 @@ export default function EditPropertyPage() {
     if (archiveError) {
       setError('Could not update archive status: ' + archiveError.message)
       setArchiving(false)
+      return
+    }
+
+    router.push('/landlord/properties')
+  }
+
+  const handleDelete = async () => {
+    if (deleteConfirmText.trim().toLowerCase() !== form.address.trim().toLowerCase()) return
+
+    setDeleting(true)
+    setError(null)
+    const res = await fetch(`/api/landlord/properties/${propertyId}/delete`, { method: 'POST' })
+    const data = await res.json().catch(() => ({}))
+
+    if (!res.ok) {
+      setError('Could not delete property' + (data.error ? ': ' + data.error : '.'))
+      setDeleting(false)
       return
     }
 
@@ -293,6 +320,50 @@ export default function EditPropertyPage() {
           >
             {archiving ? 'Working…' : archived ? 'Unarchive property' : 'Archive property'}
           </button>
+        </div>
+
+        <div className="mt-8 pt-8 border-t border-red-500/20">
+          <h2 className="text-red-400 font-semibold mb-1">Delete this property</h2>
+          <p className="text-white/40 text-sm mb-4">
+            Permanently deletes this property and everything under it — units, tenancies, rent history, jobs, bids, documents, and compliance records. This cannot be undone. Archiving above is the safer, reversible option.
+          </p>
+          {!showDeleteConfirm ? (
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 font-semibold px-5 py-2.5 rounded-xl text-sm transition"
+            >
+              Delete property
+            </button>
+          ) : (
+            <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-4 space-y-3">
+              <p className="text-white/70 text-sm">
+                Type the property&apos;s address (<span className="text-white font-medium">{form.address}</span>) to confirm.
+              </p>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder={form.address}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-white/20 focus:outline-none focus:border-red-400 transition text-sm"
+              />
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleDelete}
+                  disabled={deleting || deleteConfirmText.trim().toLowerCase() !== form.address.trim().toLowerCase()}
+                  className="bg-red-500 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition hover:opacity-90 disabled:opacity-40"
+                >
+                  {deleting ? 'Deleting…' : 'Permanently delete'}
+                </button>
+                <button
+                  onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText('') }}
+                  disabled={deleting}
+                  className="text-white/50 hover:text-white text-sm transition"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
         </div>
         </>
         )}

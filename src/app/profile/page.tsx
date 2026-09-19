@@ -32,6 +32,9 @@ export default function ProfilePage() {
   })
   const [smsOptIn, setSmsOptIn] = useState(false)
   const [smsSaving, setSmsSaving] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
+  const [deletingAccount, setDeletingAccount] = useState(false)
 
   useEffect(() => {
     const getProfile = async () => {
@@ -72,7 +75,7 @@ export default function ProfilePage() {
 
     if (updateError) {
       console.error('Error updating sms_opt_in:', updateError)
-      setError('Could not update text alert preference.')
+      setError('Could not update text alert preference: ' + updateError.message)
       setSmsSaving(false)
       return
     }
@@ -170,6 +173,24 @@ export default function ProfilePage() {
   const handleSignOut = async () => {
     await supabase.auth.signOut()
     router.replace('/login')
+  }
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText.trim().toUpperCase() !== 'DELETE') return
+
+    setDeletingAccount(true)
+    setError(null)
+    const res = await fetch('/api/account/delete', { method: 'POST' })
+    const data = await res.json().catch(() => ({}))
+
+    if (!res.ok) {
+      setError('Could not delete account' + (data.error ? ': ' + data.error : '.'))
+      setDeletingAccount(false)
+      return
+    }
+
+    await supabase.auth.signOut()
+    router.replace('/')
   }
 
   return (
@@ -324,9 +345,7 @@ export default function ProfilePage() {
                 <p className="text-white text-sm font-medium">Email notifications</p>
                 <p className="text-white/40 text-xs">Job updates, status changes — always on</p>
               </div>
-              <div className="w-10 h-6 bg-[#0A7B7E]/40 rounded-full relative">
-                <div className="w-4 h-4 bg-white rounded-full absolute right-1 top-1" />
-              </div>
+              <span className="text-[#12A5A9] text-xs font-semibold bg-[#12A5A9]/10 border border-[#12A5A9]/20 rounded-full px-2.5 py-1">Always on</span>
             </div>
             <div className="flex items-center justify-between py-1">
               <div>
@@ -363,9 +382,41 @@ export default function ProfilePage() {
         <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-6 mb-6">
           <h2 className="text-white font-semibold mb-2">Delete account</h2>
           <p className="text-white/40 text-sm mb-4">Permanently delete your account and all associated data. This cannot be undone.</p>
-          <button className="bg-red-500/10 border border-red-500/30 text-red-400 font-semibold px-6 py-2.5 rounded-xl text-sm hover:bg-red-500/20 transition">
-            Request account deletion
-          </button>
+          {!showDeleteConfirm ? (
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="bg-red-500/10 border border-red-500/30 text-red-400 font-semibold px-6 py-2.5 rounded-xl text-sm hover:bg-red-500/20 transition"
+            >
+              Delete account
+            </button>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-white/70 text-sm">Type <span className="text-white font-medium">DELETE</span> to confirm.</p>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="DELETE"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-white/20 focus:outline-none focus:border-red-400 transition text-sm"
+              />
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleDeleteAccount}
+                  disabled={deletingAccount || deleteConfirmText.trim().toUpperCase() !== 'DELETE'}
+                  className="bg-red-500 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition hover:opacity-90 disabled:opacity-40"
+                >
+                  {deletingAccount ? 'Deleting…' : 'Permanently delete my account'}
+                </button>
+                <button
+                  onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText('') }}
+                  disabled={deletingAccount}
+                  className="text-white/50 hover:text-white text-sm transition"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Sign out */}

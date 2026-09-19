@@ -812,7 +812,7 @@ export default function JobDetailPage() {
                           </span>
                         )}
                         {unlicensedContractorIds.has(bid.contractor_user_id) && (
-                          <span className="text-xs bg-white/8 text-white/50 rounded-full px-2 py-0.5 font-semibold">
+                          <span className="text-xs bg-yellow-500/15 text-yellow-400 border border-yellow-500/30 rounded-full px-2 py-0.5 font-semibold">
                             No license on file
                           </span>
                         )}
@@ -854,7 +854,7 @@ export default function JobDetailPage() {
                     </span>
                   )}
                   {unlicensedContractorIds.has(acceptedBid.contractor_user_id) && (
-                    <span className="text-xs bg-white/8 text-white/50 rounded-full px-2 py-0.5 font-semibold">
+                    <span className="text-xs bg-yellow-500/15 text-yellow-400 border border-yellow-500/30 rounded-full px-2 py-0.5 font-semibold">
                       No license on file
                     </span>
                   )}

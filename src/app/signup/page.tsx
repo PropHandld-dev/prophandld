@@ -89,7 +89,7 @@ function SignupForm() {
     if (role === 'landlord') {
       router.replace('/landlord/properties/new?onboarding=1')
     } else if (role === 'renter') {
-      await linkPendingInvite(data.user.id, form.email)
+      await linkPendingInvite()
       router.replace('/renter')
     } else if (role === 'contractor') {
       router.replace('/contractor')
@@ -98,44 +98,16 @@ function SignupForm() {
     setLoading(false)
   }
 
-  const linkPendingInvite = async (userId: string, email: string) => {
+  const linkPendingInvite = async () => {
+    // Must run server-side (service role) — the renter isn't the unit's
+    // landlord, so the tenancies INSERT policy blocks this from the
+    // renter's own client session. See /api/tenancy/link-invite.
     try {
-      const { data: invite } = await supabase
-        .from('tenancy_invites')
-        .select('*')
-        .eq('renter_email', email)
-        .eq('status', 'pending')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-
-      if (!invite) return
-
-      const { error: tenancyError } = await supabase
-        .from('tenancies')
-        .insert({
-          unit_id: invite.unit_id,
-          renter_user_id: userId,
-          rent_amount: invite.rent_amount,
-          lease_start: invite.lease_start,
-          lease_end: invite.lease_end,
-          security_deposit: invite.security_deposit,
-          escalation_percent: invite.escalation_percent,
-          escalation_frequency_months: invite.escalation_frequency_months,
-          occupants: invite.occupants,
-          pets: invite.pets,
-          lease_notes: invite.lease_notes,
-        })
-
-      if (tenancyError) {
-        console.error('Error auto-linking invited tenancy:', tenancyError)
-        return
+      const res = await fetch('/api/tenancy/link-invite', { method: 'POST' })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        console.error('Error auto-linking invited tenancy:', data.error)
       }
-
-      await supabase
-        .from('tenancy_invites')
-        .update({ status: 'accepted', accepted_at: new Date().toISOString() })
-        .eq('id', invite.id)
     } catch (err) {
       console.error('Error checking pending invite:', err)
     }
