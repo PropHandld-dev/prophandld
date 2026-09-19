@@ -164,6 +164,7 @@ export default function RenterRentPage() {
                             </span>
                             <span className="text-xs bg-white/8 text-white/50 rounded-full px-2.5 py-0.5">
                               ${payment.actual_amount ?? 0} of ${payment.expected_amount}
+                              {payment.water_amount ? ` (incl. $${payment.water_amount} water)` : ''}
                             </span>
                             {payment.late_fee_applied && (
                               <span className="text-xs bg-yellow-500/15 text-yellow-400 rounded-full px-2.5 py-0.5">

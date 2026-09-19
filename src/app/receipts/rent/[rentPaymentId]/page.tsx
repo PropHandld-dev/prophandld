@@ -25,7 +25,7 @@ export default function RentReceiptPage() {
       const { data } = await supabase
         .from('rent_payments')
         .select(
-          'id, month, expected_amount, actual_amount, paid_date, payment_method, stripe_status, tenancies(renter_user_id, units(unit_number, properties(address, city, state, owner_user_id)))'
+          'id, month, expected_amount, actual_amount, water_amount, paid_date, payment_method, stripe_status, tenancies(renter_user_id, units(unit_number, properties(address, city, state, owner_user_id)))'
         )
         .eq('id', rentPaymentId)
         .maybeSingle()
@@ -81,6 +81,12 @@ export default function RentReceiptPage() {
         { label: 'Paid to', value: receipt.landlordName || '—' },
         { label: 'Property', value: property ? `${property.city}, ${property.state}` : '—' },
         { label: 'Period', value: monthLabel },
+        ...(receipt.water_amount
+          ? [
+              { label: 'Rent', value: `$${(Number(receipt.expected_amount) - Number(receipt.water_amount)).toFixed(2)}` },
+              { label: 'Water', value: `$${Number(receipt.water_amount).toFixed(2)}` },
+            ]
+          : []),
         { label: 'Paid on', value: receipt.paid_date ? new Date(receipt.paid_date + 'T00:00:00').toLocaleDateString() : '—' },
         { label: 'Method', value: receipt.payment_method === 'bank' ? 'Bank transfer' : 'Debit card' },
       ]}

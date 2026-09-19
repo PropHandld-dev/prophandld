@@ -25,6 +25,8 @@ export default function UnitRentPage() {
   const [error, setError] = useState<string | null>(null)
   const [adjustingId, setAdjustingId] = useState<string | null>(null)
   const [adjustAmount, setAdjustAmount] = useState('')
+  const [waterEditId, setWaterEditId] = useState<string | null>(null)
+  const [waterAmount, setWaterAmount] = useState('')
   const [showAddMonth, setShowAddMonth] = useState(false)
   const [addForm, setAddForm] = useState({ month: '', expected_amount: '' })
 
@@ -106,6 +108,35 @@ export default function UnitRentPage() {
 
     setAdjustingId(null)
     setAdjustAmount('')
+    await loadPayments(payment.tenancy_id)
+    setSavingId(null)
+  }
+
+  const handleSetWaterAmount = async (payment: any, newWaterAmount: number) => {
+    setSavingId(payment.id)
+    setError(null)
+
+    // expected_amount is the combined rent+water total actually charged —
+    // recompute it from the rent portion (whatever it was before this
+    // month's water amount was factored in) rather than adding on top,
+    // so re-editing the water amount doesn't double-count.
+    const rentPortion = Number(payment.expected_amount) - Number(payment.water_amount || 0)
+    const newExpected = rentPortion + newWaterAmount
+
+    const { error: updateError } = await supabase
+      .from('rent_payments')
+      .update({ water_amount: newWaterAmount, expected_amount: newExpected })
+      .eq('id', payment.id)
+
+    if (updateError) {
+      console.error('Error setting water amount:', updateError)
+      setError('Could not save water bill: ' + updateError.message)
+      setSavingId(null)
+      return
+    }
+
+    setWaterEditId(null)
+    setWaterAmount('')
     await loadPayments(payment.tenancy_id)
     setSavingId(null)
   }
@@ -237,6 +268,7 @@ export default function UnitRentPage() {
                             </span>
                             <span className="text-xs bg-white/8 text-white/50 rounded-full px-2.5 py-0.5">
                               ${payment.actual_amount ?? 0} of ${payment.expected_amount}
+                              {payment.water_amount ? ` (incl. $${payment.water_amount} water)` : ''}
                             </span>
                             {payment.late_fee_applied && (
                               <span className="text-xs bg-yellow-500/15 text-yellow-400 rounded-full px-2.5 py-0.5">
@@ -268,6 +300,41 @@ export default function UnitRentPage() {
                         </div>
                       </div>
 
+                      {!isPaid && (
+                        waterEditId === payment.id ? (
+                          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/8">
+                            <input
+                              type="number"
+                              value={waterAmount}
+                              onChange={(e) => setWaterAmount(e.target.value)}
+                              placeholder="Water bill this month"
+                              min={0}
+                              step="0.01"
+                              className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
+                            />
+                            <RippleButton
+                              onClick={() => handleSetWaterAmount(payment, parseFloat(waterAmount) || 0)}
+                              disabled={savingId === payment.id}
+                              className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-3 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
+                            >
+                              Save
+                            </RippleButton>
+                            <button
+                              onClick={() => { setWaterEditId(null); setWaterAmount('') }}
+                              className="text-white/60 hover:text-white text-xs transition"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => { setWaterEditId(payment.id); setWaterAmount(payment.water_amount ? String(payment.water_amount) : '') }}
+                            className="text-white/50 hover:text-white/60 text-[11px] mt-2 mr-3 transition"
+                          >
+                            {payment.water_amount ? 'Edit water bill' : '+ Add water bill'}
+                          </button>
+                        )
+                      )}
                       {!isPaid && (
                         isAdjusting ? (
                           <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/8">
