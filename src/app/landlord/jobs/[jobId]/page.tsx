@@ -980,7 +980,7 @@ export default function JobDetailPage() {
                   <button
                     onClick={askTenantToPropose}
                     disabled={actioning || job.schedule_ask_tenant}
-                    className="text-white/50 hover:text-white text-xs transition disabled:opacity-50"
+                    className="bg-white/8 text-white text-xs font-semibold px-4 py-2 rounded-lg hover:bg-white/12 transition disabled:opacity-50"
                   >
                     {job.schedule_ask_tenant ? 'Waiting on tenant...' : 'Let tenant pick a time'}
                   </button>

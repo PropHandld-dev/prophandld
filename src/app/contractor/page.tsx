@@ -141,6 +141,7 @@ export default function ContractorDashboard() {
 
         setScheduleAlerts(
           bids.filter((b) =>
+            b.status === 'accepted' &&
             b.jobs?.proposed_date &&
             !b.jobs?.schedule_confirmed &&
             b.jobs?.proposed_by !== 'contractor' &&
@@ -149,11 +150,12 @@ export default function ContractorDashboard() {
         )
 
         setConfirmedAlerts(
-          bids.filter((b) => b.jobs?.status === 'scheduled' && b.jobs?.schedule_confirmed)
+          bids.filter((b) => b.status === 'accepted' && b.jobs?.status === 'scheduled' && b.jobs?.schedule_confirmed)
         )
 
         setClarificationAlerts(
           bids.filter((b) =>
+            b.status === 'accepted' &&
             b.jobs?.status === 'pending_review' &&
             b.jobs?.clarification_note &&
             !b.jobs?.clarification_response
@@ -162,12 +164,12 @@ export default function ContractorDashboard() {
 
         setUpcoming(
           bids
-            .filter((b) => b.jobs?.status === 'scheduled' && b.jobs?.schedule_confirmed && b.jobs?.proposed_date)
+            .filter((b) => b.status === 'accepted' && b.jobs?.status === 'scheduled' && b.jobs?.schedule_confirmed && b.jobs?.proposed_date)
             .sort((a, b) => new Date(a.jobs.proposed_date).getTime() - new Date(b.jobs.proposed_date).getTime())
         )
 
         setPastJobs(
-          bids.filter((b) => ['completed', 'archived'].includes(b.jobs?.status))
+          bids.filter((b) => b.status === 'accepted' && ['completed', 'archived'].includes(b.jobs?.status))
         )
       }
 
@@ -176,7 +178,13 @@ export default function ContractorDashboard() {
     init()
   }, [router])
 
-  const activeJobsCount = myBids.filter((b) => b.status === 'accepted').length
+  // A bid stays "accepted" forever once won — status alone doesn't tell
+  // you whether the underlying job is actually still going. Without
+  // checking the job's own status too, a finished job kept counting as
+  // active indefinitely.
+  const activeJobsCount = myBids.filter(
+    (b) => b.status === 'accepted' && !['completed', 'archived'].includes(b.jobs?.status)
+  ).length
 
   const formatDate = (dateStr: string) =>
     new Date(dateStr).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })

@@ -33,6 +33,7 @@ export default function EditPropertyPage() {
   const [archiving, setArchiving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
+  const [deleteConfirmError, setDeleteConfirmError] = useState<string | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   useEffect(() => {
@@ -172,8 +173,12 @@ export default function EditPropertyPage() {
   }
 
   const handleDelete = async () => {
-    if (deleteConfirmText.trim().toLowerCase() !== form.address.trim().toLowerCase()) return
+    if (deleteConfirmText.trim().toLowerCase() !== form.address.trim().toLowerCase()) {
+      setDeleteConfirmError("That didn't match the property's address. Check it and try again.")
+      return
+    }
 
+    setDeleteConfirmError(null)
     setDeleting(true)
     setError(null)
     const res = await fetch(`/api/landlord/properties/${propertyId}/delete`, { method: 'POST' })
@@ -342,14 +347,15 @@ export default function EditPropertyPage() {
               <input
                 type="text"
                 value={deleteConfirmText}
-                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                onChange={(e) => { setDeleteConfirmText(e.target.value); setDeleteConfirmError(null) }}
                 placeholder={form.address}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-white/50 focus:outline-none focus:border-red-400 transition text-sm"
               />
+              {deleteConfirmError && <p className="text-red-400 text-xs">{deleteConfirmError}</p>}
               <div className="flex items-center gap-3">
                 <button
                   onClick={handleDelete}
-                  disabled={deleting || deleteConfirmText.trim().toLowerCase() !== form.address.trim().toLowerCase()}
+                  disabled={deleting}
                   className="bg-red-500 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition hover:opacity-90 disabled:opacity-40"
                 >
                   {deleting ? 'Deleting…' : 'Permanently delete'}
