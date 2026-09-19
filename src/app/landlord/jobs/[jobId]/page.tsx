@@ -439,7 +439,7 @@ export default function JobDetailPage() {
 
     if (updateError) {
       console.error('Error approving completion:', updateError)
-      setError('Could not approve completion.')
+      setError('Could not approve completion: ' + updateError.message)
     } else {
       notify('job_completed', jobId)
     }
