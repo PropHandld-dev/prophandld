@@ -1,17 +1,19 @@
 // Shared by the landlord/renter rent pages (client-side, lazy fallback)
 // and the daily cron route (server-side, authoritative source). Both call
 // this with a Supabase client (browser or admin) so a given tenancy's
-// current-month rent_payments row always exists without anyone typing
+// rent_payments row for a given month always exists without anyone typing
 // a month + expected amount by hand — it's derived from tenancies.rent_amount.
-export async function ensureCurrentMonthRentPayment(
+async function ensureRentPaymentForMonth(
   supabase: { from: (table: string) => any },
   tenancyId: string,
-  rentAmount: number | null
+  rentAmount: number | null,
+  monthsAhead: number
 ) {
   if (!rentAmount) return null
 
   const monthStart = new Date()
   monthStart.setDate(1)
+  monthStart.setMonth(monthStart.getMonth() + monthsAhead)
   const month = monthStart.toISOString().slice(0, 10)
 
   const { data: existing } = await supabase
@@ -30,9 +32,27 @@ export async function ensureCurrentMonthRentPayment(
     .maybeSingle()
 
   if (error) {
-    console.error('ensureCurrentMonthRentPayment: insert failed', { tenancyId, error })
+    console.error('ensureRentPaymentForMonth: insert failed', { tenancyId, monthsAhead, error })
     return null
   }
 
   return created?.id ?? null
+}
+
+export async function ensureCurrentMonthRentPayment(
+  supabase: { from: (table: string) => any },
+  tenancyId: string,
+  rentAmount: number | null
+) {
+  return ensureRentPaymentForMonth(supabase, tenancyId, rentAmount, 0)
+}
+
+// Lets the renter rent page show next month's row (with an early-pay
+// option) ahead of the cron/reminder job ever creating it.
+export async function ensureNextMonthRentPayment(
+  supabase: { from: (table: string) => any },
+  tenancyId: string,
+  rentAmount: number | null
+) {
+  return ensureRentPaymentForMonth(supabase, tenancyId, rentAmount, 1)
 }

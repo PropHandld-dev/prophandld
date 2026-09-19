@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
 
   const { data: tenancies, error } = await supabaseAdmin
     .from('tenancies')
-    .select('id, rent_amount, unit_id, renter_user_id, late_fee_amount, grace_period_days, units(unit_number, properties(address, owner_user_id))')
+    .select('id, rent_amount, unit_id, renter_user_id, late_fee_amount, grace_period_days, rent_due_day, units(unit_number, properties(address, owner_user_id))')
     .eq('ended', false)
     .not('rent_amount', 'is', null)
 
@@ -82,7 +82,8 @@ export async function GET(request: NextRequest) {
     if (!isUnpaid) continue
 
     const gracePeriodDays = tenancy.grace_period_days ?? 5
-    const daysSinceDue = Math.floor((Date.now() - monthStart.getTime()) / (24 * 60 * 60 * 1000))
+    const dueDate = new Date(monthStart.getFullYear(), monthStart.getMonth(), tenancy.rent_due_day ?? 1)
+    const daysSinceDue = Math.floor((Date.now() - dueDate.getTime()) / (24 * 60 * 60 * 1000))
     if (daysSinceDue < gracePeriodDays) continue
 
     let lateFeeAdded: number | null = null

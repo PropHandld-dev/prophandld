@@ -10,7 +10,7 @@ import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { StripePaymentModal } from '@/components/StripePaymentModal'
 import { RENTER_TABS } from '@/lib/navTabs'
-import { ensureCurrentMonthRentPayment } from '@/lib/rentAutomation'
+import { ensureCurrentMonthRentPayment, ensureNextMonthRentPayment } from '@/lib/rentAutomation'
 
 export default function RenterRentPage() {
   const router = useRouter()
@@ -24,7 +24,7 @@ export default function RenterRentPage() {
   const loadPayments = async (tenancyId: string) => {
     const { data, error: paymentsError } = await supabase
       .from('rent_payments')
-      .select('*')
+      .select('*, documents(filename, file_url)')
       .eq('tenancy_id', tenancyId)
       .order('month', { ascending: false })
 
@@ -32,7 +32,18 @@ export default function RenterRentPage() {
       console.error('Error loading rent payments:', paymentsError)
       return
     }
-    setPayments(data || [])
+
+    const enriched = await Promise.all(
+      (data || []).map(async (payment) => {
+        if (!payment.documents) return payment
+        const { data: signedUrlData } = await supabase.storage
+          .from('documents')
+          .createSignedUrl(payment.documents.file_url, 3600)
+        return { ...payment, waterBillViewUrl: signedUrlData?.signedUrl }
+      })
+    )
+
+    setPayments(enriched)
   }
 
   useEffect(() => {
@@ -57,6 +68,7 @@ export default function RenterRentPage() {
       }
       setTenancy(tenancyData)
       await ensureCurrentMonthRentPayment(supabase, tenancyData.id, tenancyData.rent_amount)
+      await ensureNextMonthRentPayment(supabase, tenancyData.id, tenancyData.rent_amount)
       await loadPayments(tenancyData.id)
       setLoading(false)
     }
@@ -91,20 +103,42 @@ export default function RenterRentPage() {
     if (tenancy) await loadPayments(tenancy.id)
   }
 
+  const getDueDate = (payment: any) => {
+    const monthDate = new Date(payment.month + 'T00:00:00')
+    return new Date(monthDate.getFullYear(), monthDate.getMonth(), tenancy?.rent_due_day || 1)
+  }
+
+  const getDaysUntilDue = (payment: any) => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const dueDate = getDueDate(payment)
+    return Math.round((dueDate.getTime() - today.getTime()) / (24 * 60 * 60 * 1000))
+  }
+
+  const isUpcomingMonth = (payment: any) => {
+    const today = new Date()
+    const monthDate = new Date(payment.month + 'T00:00:00')
+    return monthDate.getFullYear() > today.getFullYear() ||
+      (monthDate.getFullYear() === today.getFullYear() && monthDate.getMonth() > today.getMonth())
+  }
+
   const getStatus = (payment: any) => {
     const expected = payment.expected_amount || 0
     const actual = payment.actual_amount || 0
     if (actual >= expected && expected > 0) {
       return { label: 'Paid', color: 'bg-[#12A5A9]/15 text-[#12A5A9]' }
     }
-    const today = new Date()
-    today.setDate(1)
-    today.setHours(0, 0, 0, 0)
-    const monthDate = new Date(payment.month + 'T00:00:00')
-    if (monthDate < today) {
-      return { label: 'Late', color: 'bg-red-500/15 text-red-400' }
+    if (isUpcomingMonth(payment)) {
+      return { label: 'Upcoming', color: 'bg-white/8 text-white/60' }
     }
-    return { label: 'Due', color: 'bg-yellow-500/15 text-yellow-400' }
+    const daysUntilDue = getDaysUntilDue(payment)
+    if (daysUntilDue < 0) {
+      return { label: `${Math.abs(daysUntilDue)}d late`, color: 'bg-red-500/15 text-red-400' }
+    }
+    if (daysUntilDue === 0) {
+      return { label: 'Due today', color: 'bg-yellow-500/15 text-yellow-400' }
+    }
+    return { label: `Due in ${daysUntilDue}d`, color: 'bg-yellow-500/15 text-yellow-400' }
   }
 
   const formatMonth = (month: string) =>
@@ -172,6 +206,21 @@ export default function RenterRentPage() {
                               </span>
                             )}
                           </div>
+                          {status.label !== 'Paid' && (
+                            <p className="text-white/40 text-xs mt-2">
+                              Due {getDueDate(payment).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                            </p>
+                          )}
+                          {payment.waterBillViewUrl && (
+                            <a
+                              href={payment.waterBillViewUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[#12A5A9] text-xs hover:underline mt-1 inline-block"
+                            >
+                              View water bill →
+                            </a>
+                          )}
                         </div>
                         {status.label !== 'Paid' ? (
                           <RippleButton
@@ -179,7 +228,7 @@ export default function RenterRentPage() {
                             disabled={payingId === payment.id}
                             className="shrink-0 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
                           >
-                            {payingId === payment.id ? 'Loading...' : `Pay $${amountDue.toFixed(2)}`}
+                            {payingId === payment.id ? 'Loading...' : isUpcomingMonth(payment) ? `Pay early $${amountDue.toFixed(2)}` : `Pay $${amountDue.toFixed(2)}`}
                           </RippleButton>
                         ) : (
                           <Link href={`/receipts/rent/${payment.id}`} className="shrink-0 text-[#12A5A9] text-xs font-semibold hover:underline">

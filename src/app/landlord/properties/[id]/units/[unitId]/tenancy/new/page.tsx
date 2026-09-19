@@ -21,6 +21,7 @@ export default function NewTenancyPage() {
   const [form, setForm] = useState({
     renter_email: '',
     rent_amount: '',
+    rent_due_day: '1',
     lease_start: '',
     lease_end: '',
     security_deposit: '',
@@ -56,6 +57,7 @@ export default function NewTenancyPage() {
         unit_id: unitId,
         renter_user_id: renterId,
         rent_amount: form.rent_amount ? parseFloat(form.rent_amount) : null,
+        rent_due_day: form.rent_due_day ? parseInt(form.rent_due_day) : 1,
         lease_start: form.lease_start || null,
         lease_end: form.lease_end || null,
         security_deposit: form.security_deposit ? parseFloat(form.security_deposit) : null,
@@ -97,6 +99,7 @@ export default function NewTenancyPage() {
         landlord_user_id: user.id,
         renter_email: form.renter_email.trim(),
         rent_amount: form.rent_amount ? parseFloat(form.rent_amount) : null,
+        rent_due_day: form.rent_due_day ? parseInt(form.rent_due_day) : 1,
         lease_start: form.lease_start || null,
         lease_end: form.lease_end || null,
         security_deposit: form.security_deposit ? parseFloat(form.security_deposit) : null,
@@ -185,6 +188,21 @@ export default function NewTenancyPage() {
               placeholder="1500"
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
             />
+          </div>
+
+          <div>
+            <label className="text-white/70 text-sm block mb-1">Rent due day of month</label>
+            <input
+              type="number"
+              name="rent_due_day"
+              min={1}
+              max={28}
+              value={form.rent_due_day}
+              onChange={handleChange}
+              placeholder="1"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
+            />
+            <p className="text-white/40 text-xs mt-1">Pick 1–28 so it lands on every month, including February.</p>
           </div>
 
           <div>

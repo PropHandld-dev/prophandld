@@ -47,6 +47,7 @@ export default function UnitDetailPage() {
   const [tenancyEditError, setTenancyEditError] = useState<string | null>(null)
   const [editForm, setEditForm] = useState({
     rent_amount: '',
+    rent_due_day: '1',
     escalation_percent: '',
     escalation_frequency_months: '',
     occupants: '',
@@ -333,6 +334,7 @@ export default function UnitDetailPage() {
   const openTenancyEdit = () => {
     setEditForm({
       rent_amount: tenancy.rent_amount?.toString() || '',
+      rent_due_day: tenancy.rent_due_day?.toString() || '1',
       escalation_percent: tenancy.escalation_percent?.toString() || '',
       escalation_frequency_months: tenancy.escalation_frequency_months?.toString() || '',
       occupants: tenancy.occupants?.toString() || '',
@@ -357,6 +359,7 @@ export default function UnitDetailPage() {
       .from('tenancies')
       .update({
         rent_amount: editForm.rent_amount ? parseFloat(editForm.rent_amount) : null,
+        rent_due_day: editForm.rent_due_day ? parseInt(editForm.rent_due_day) : 1,
         escalation_percent: editForm.escalation_percent ? parseFloat(editForm.escalation_percent) : null,
         escalation_frequency_months: editForm.escalation_frequency_months ? parseInt(editForm.escalation_frequency_months) : null,
         occupants: editForm.occupants ? parseInt(editForm.occupants) : null,
@@ -377,6 +380,13 @@ export default function UnitDetailPage() {
     setEditingTenancy(false)
     setSavingTenancy(false)
     await fetchUnit()
+  }
+
+  const ordinal = (day: number) => {
+    if (day % 10 === 1 && day !== 11) return `${day}st`
+    if (day % 10 === 2 && day !== 12) return `${day}nd`
+    if (day % 10 === 3 && day !== 13) return `${day}rd`
+    return `${day}th`
   }
 
   const nextEscalationDate = (leaseStart: string | null, frequencyMonths: number | null) => {
@@ -501,7 +511,7 @@ export default function UnitDetailPage() {
               {tenancy.rent_amount && (
                 <p className="text-white/60 text-sm flex items-center gap-1.5">
                   <DollarSignIcon className="w-3.5 h-3.5 text-white/60" />
-                  ${tenancy.rent_amount}/month
+                  ${tenancy.rent_amount}/month, due the {ordinal(tenancy.rent_due_day ?? 1)}
                 </p>
               )}
               {tenancy.lease_start && (
@@ -604,15 +614,29 @@ export default function UnitDetailPage() {
 
               {editingTenancy && (
                 <div className="bg-white/5 border border-white/10 rounded-xl p-4 mt-2 space-y-3">
-                  <div>
-                    <label className="text-white/70 text-xs block mb-1">Monthly rent ($)</label>
-                    <input
-                      type="number"
-                      name="rent_amount"
-                      value={editForm.rent_amount}
-                      onChange={handleEditFormChange}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#12A5A9] transition"
-                    />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-white/70 text-xs block mb-1">Monthly rent ($)</label>
+                      <input
+                        type="number"
+                        name="rent_amount"
+                        value={editForm.rent_amount}
+                        onChange={handleEditFormChange}
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#12A5A9] transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-white/70 text-xs block mb-1">Due day of month</label>
+                      <input
+                        type="number"
+                        name="rent_due_day"
+                        min={1}
+                        max={28}
+                        value={editForm.rent_due_day}
+                        onChange={handleEditFormChange}
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#12A5A9] transition"
+                      />
+                    </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>

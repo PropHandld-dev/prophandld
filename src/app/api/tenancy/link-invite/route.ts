@@ -41,6 +41,7 @@ export async function POST() {
       unit_id: invite.unit_id,
       renter_user_id: user.id,
       rent_amount: invite.rent_amount,
+      rent_due_day: invite.rent_due_day,
       lease_start: invite.lease_start,
       lease_end: invite.lease_end,
       security_deposit: invite.security_deposit,

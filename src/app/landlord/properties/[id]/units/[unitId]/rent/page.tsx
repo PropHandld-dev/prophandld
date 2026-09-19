@@ -10,6 +10,7 @@ import { LANDLORD_TABS } from '@/lib/navTabs'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { ensureCurrentMonthRentPayment } from '@/lib/rentAutomation'
+import { FileTextIcon } from '@/components/icons'
 
 export default function UnitRentPage() {
   const router = useRouter()
@@ -19,6 +20,7 @@ export default function UnitRentPage() {
 
   const [loading, setLoading] = useState(true)
   const [savingId, setSavingId] = useState<string | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
   const [unit, setUnit] = useState<any>(null)
   const [tenancy, setTenancy] = useState<any>(null)
   const [payments, setPayments] = useState<any[]>([])
@@ -27,6 +29,7 @@ export default function UnitRentPage() {
   const [adjustAmount, setAdjustAmount] = useState('')
   const [waterEditId, setWaterEditId] = useState<string | null>(null)
   const [waterAmount, setWaterAmount] = useState('')
+  const [uploadingWaterBillId, setUploadingWaterBillId] = useState<string | null>(null)
   const [showAddMonth, setShowAddMonth] = useState(false)
   const [addForm, setAddForm] = useState({ month: '', expected_amount: '' })
 
@@ -37,6 +40,7 @@ export default function UnitRentPage() {
         router.replace('/login')
         return
       }
+      setUserId(user.id)
 
       const { data: unitData } = await supabase
         .from('units')
@@ -76,7 +80,7 @@ export default function UnitRentPage() {
   const loadPayments = async (tenancyId: string) => {
     const { data: paymentsData, error: paymentsError } = await supabase
       .from('rent_payments')
-      .select('*')
+      .select('*, documents(filename, file_url)')
       .eq('tenancy_id', tenancyId)
       .order('month', { ascending: false })
 
@@ -84,7 +88,70 @@ export default function UnitRentPage() {
       console.error('Error loading rent payments:', paymentsError)
       return
     }
-    setPayments(paymentsData || [])
+
+    const enriched = await Promise.all(
+      (paymentsData || []).map(async (payment) => {
+        if (!payment.documents) return payment
+        const { data: signedUrlData } = await supabase.storage
+          .from('documents')
+          .createSignedUrl(payment.documents.file_url, 3600)
+        return { ...payment, waterBillViewUrl: signedUrlData?.signedUrl }
+      })
+    )
+
+    setPayments(enriched)
+  }
+
+  const handleAttachWaterBill = async (payment: any, file: File) => {
+    if (!userId) return
+    setUploadingWaterBillId(payment.id)
+    setError(null)
+
+    const fileExt = file.name.split('.').pop()
+    const filePath = `${propertyId}/water-bill-${payment.id}-${crypto.randomUUID()}.${fileExt}`
+
+    const { error: uploadError } = await supabase.storage.from('documents').upload(filePath, file)
+    if (uploadError) {
+      console.error('Error uploading water bill:', uploadError)
+      setError('Could not upload the water bill file.')
+      setUploadingWaterBillId(null)
+      return
+    }
+
+    const { data: doc, error: docError } = await supabase
+      .from('documents')
+      .insert({
+        property_id: propertyId,
+        unit_id: unitId,
+        uploaded_by: userId,
+        document_type: 'Water Bill',
+        filename: file.name,
+        file_url: filePath,
+      })
+      .select('id')
+      .single()
+
+    if (docError || !doc) {
+      console.error('Error saving water bill document record:', docError)
+      setError('Could not save the water bill.')
+      setUploadingWaterBillId(null)
+      return
+    }
+
+    const { error: updateError } = await supabase
+      .from('rent_payments')
+      .update({ water_bill_document_id: doc.id })
+      .eq('id', payment.id)
+
+    if (updateError) {
+      console.error('Error linking water bill to rent payment:', updateError)
+      setError('Could not attach the water bill to this month.')
+      setUploadingWaterBillId(null)
+      return
+    }
+
+    await loadPayments(payment.tenancy_id)
+    setUploadingWaterBillId(null)
   }
 
   const handleMarkReceived = async (payment: any, amount?: number) => {
@@ -327,12 +394,39 @@ export default function UnitRentPage() {
                             </button>
                           </div>
                         ) : (
-                          <button
-                            onClick={() => { setWaterEditId(payment.id); setWaterAmount(payment.water_amount ? String(payment.water_amount) : '') }}
-                            className="text-white/50 hover:text-white/60 text-[11px] mt-2 mr-3 transition"
-                          >
-                            {payment.water_amount ? 'Edit water bill' : '+ Add water bill'}
-                          </button>
+                          <div className="flex items-center gap-3 flex-wrap mt-2">
+                            <button
+                              onClick={() => { setWaterEditId(payment.id); setWaterAmount(payment.water_amount ? String(payment.water_amount) : '') }}
+                              className="text-white/50 hover:text-white/60 text-[11px] transition"
+                            >
+                              {payment.water_amount ? 'Edit water bill' : '+ Add water bill'}
+                            </button>
+                            <label className="text-white/50 hover:text-white/60 text-[11px] transition cursor-pointer flex items-center gap-1">
+                              <FileTextIcon className="w-3 h-3" />
+                              {uploadingWaterBillId === payment.id ? 'Uploading…' : payment.waterBillViewUrl ? 'Replace water bill file' : 'Attach water bill file'}
+                              <input
+                                type="file"
+                                accept=".pdf,.jpg,.jpeg,.png"
+                                className="hidden"
+                                disabled={uploadingWaterBillId === payment.id}
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0]
+                                  if (file) handleAttachWaterBill(payment, file)
+                                  e.target.value = ''
+                                }}
+                              />
+                            </label>
+                            {payment.waterBillViewUrl && (
+                              <a
+                                href={payment.waterBillViewUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[#12A5A9] text-[11px] hover:underline"
+                              >
+                                View →
+                              </a>
+                            )}
+                          </div>
                         )
                       )}
                       {!isPaid && (
