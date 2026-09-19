@@ -27,9 +27,11 @@ export default function ProfilePage() {
     preferred_language: 'en',
   })
   const [passwordForm, setPasswordForm] = useState({
+    current_password: '',
     new_password: '',
     confirm_password: '',
   })
+  const [showPasswordToast, setShowPasswordToast] = useState(false)
   const [smsOptIn, setSmsOptIn] = useState(false)
   const [smsSaving, setSmsSaving] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -137,6 +139,11 @@ export default function ProfilePage() {
     setError(null)
     setSuccess(null)
 
+    if (!passwordForm.current_password) {
+      setError('Enter your current password.')
+      return
+    }
+
     if (passwordForm.new_password !== passwordForm.confirm_password) {
       setError('Passwords do not match.')
       return
@@ -148,6 +155,22 @@ export default function ProfilePage() {
     }
 
     setSaving(true)
+
+    // Supabase's updateUser() doesn't require the current password — it
+    // trusts the existing session. Re-authenticating with it here first is
+    // what actually makes this a real "change password" flow instead of
+    // "anyone with an unlocked device can set a new one."
+    const { error: verifyError } = await supabase.auth.signInWithPassword({
+      email: form.email,
+      password: passwordForm.current_password,
+    })
+
+    if (verifyError) {
+      setError('Current password is incorrect.')
+      setSaving(false)
+      return
+    }
+
     const { error: updateError } = await supabase.auth.updateUser({
       password: passwordForm.new_password,
     })
@@ -159,7 +182,9 @@ export default function ProfilePage() {
     }
 
     setSuccess('Password updated successfully.')
-    setPasswordForm({ new_password: '', confirm_password: '' })
+    setShowPasswordToast(true)
+    setTimeout(() => setShowPasswordToast(false), 3000)
+    setPasswordForm({ current_password: '', new_password: '', confirm_password: '' })
     setSaving(false)
   }
 
@@ -281,8 +306,23 @@ export default function ProfilePage() {
 
         {/* Change password */}
         <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
-          <h2 className="text-white font-semibold mb-6">Change password</h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-white font-semibold">Change password</h2>
+            <Link href="/forgot-password" className="text-[#12A5A9] text-xs font-medium hover:underline">
+              Forgot your password?
+            </Link>
+          </div>
           <form onSubmit={handleChangePassword} className="space-y-4">
+            <div>
+              <label className="text-white/70 text-sm block mb-1">Current password</label>
+              <input
+                type="password"
+                value={passwordForm.current_password}
+                onChange={(e) => setPasswordForm({ ...passwordForm, current_password: e.target.value })}
+                placeholder="Your current password"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
+              />
+            </div>
             <div>
               <label className="text-white/70 text-sm block mb-1">New password</label>
               <input
@@ -433,6 +473,13 @@ export default function ProfilePage() {
       </main>
 
       {role && TABS_BY_ROLE[role] && <BottomTabBar tabs={TABS_BY_ROLE[role]} />}
+
+      {showPasswordToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-[#0F2138] border border-[#12A5A9]/30 rounded-xl px-5 py-3 shadow-lg flex items-center gap-2 z-50 motion-safe:animate-[floatUp_0.25s_ease-out]">
+          <span className="text-[#12A5A9]">✓</span>
+          <span className="text-white text-sm font-medium">Password updated</span>
+        </div>
+      )}
     </div>
   )
 }
