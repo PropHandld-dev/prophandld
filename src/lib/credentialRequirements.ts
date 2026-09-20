@@ -4,9 +4,9 @@
 // general. Rules change, so every entry links to where it's verified and the
 // UI tells people to confirm with the issuing agency.
 //
-// Last reviewed: September 2026. Covered: federal, PA (incl. Philadelphia),
-// NJ, DE. Other states get the federal + insurance items and a prompt to
-// check their state licensing board.
+// Last reviewed: September 2026. Detailed rules: federal, PA (incl.
+// Philadelphia), NJ, DE, MD, MA, CT. Every other state gets the federal +
+// insurance items and a link to its licensing board (stateLicensingBoards.ts).
 
 export type RequirementLevel = 'required' | 'conditional' | 'recommended'
 
@@ -214,6 +214,68 @@ export const REQUIREMENTS: Record<string, Requirement> = {
     badge: 'NJ master HVACR',
   },
 
+  // ---- Maryland ----
+  md_mhic: {
+    id: 'md_mhic',
+    name: 'Maryland Home Improvement Commission license',
+    level: 'conditional',
+    appliesTo: HOME_IMPROVEMENT_TRADES,
+    issuer: 'Maryland Department of Labor, Home Improvement Commission',
+    summary: 'Home improvement contractors are licensed by the Maryland Home Improvement Commission. Confirm whether your type of work is covered.',
+    lookupUrl: 'https://labor.maryland.gov/pq/',
+    lookupLabel: 'Maryland license search',
+    infoUrl: 'https://labor.maryland.gov/license/mhic/',
+    badge: 'MD HIC licensed',
+  },
+  md_trade_license: {
+    id: 'md_trade_license',
+    name: 'Maryland electrician, plumber or HVACR license',
+    level: 'required',
+    appliesTo: [T.electrical, T.plumbing, T.hvac],
+    issuer: 'Maryland Department of Labor, Occupational and Professional Licensing',
+    summary: 'The state licenses electricians, plumbers and HVACR technicians, and the same public search covers them.',
+    lookupUrl: 'https://labor.maryland.gov/pq/',
+    lookupLabel: 'Maryland license search',
+    badge: 'MD trade licensed',
+  },
+
+  // ---- Massachusetts ----
+  ma_hic: {
+    id: 'ma_hic',
+    name: 'Massachusetts Home Improvement Contractor registration',
+    level: 'conditional',
+    appliesTo: HOME_IMPROVEMENT_TRADES,
+    issuer: 'Office of Consumer Affairs and Business Regulation',
+    summary: 'Home improvement contractors register with the state. Confirm whether your type of job is covered.',
+    lookupUrl: 'https://contractorhub.mass.gov/s/hic-contractor-search',
+    lookupLabel: 'MA HIC search',
+    infoUrl: 'https://www.mass.gov/how-to/check-a-home-improvement-contractor-registration',
+    badge: 'MA HIC registered',
+  },
+  ma_csl: {
+    id: 'ma_csl',
+    name: 'Massachusetts Construction Supervisor License',
+    level: 'conditional',
+    appliesTo: [T.structural, T.turnover],
+    issuer: 'Division of Occupational Licensure, Board of Building Regulations and Standards',
+    summary: 'A separate license from HIC registration. The two are not interchangeable. Confirm whether your work requires a supervisor license.',
+    badge: 'MA construction supervisor',
+  },
+
+  // ---- Connecticut ----
+  ct_hic: {
+    id: 'ct_hic',
+    name: 'Connecticut Home Improvement Contractor registration',
+    level: 'required',
+    appliesTo: HOME_IMPROVEMENT_TRADES,
+    issuer: 'CT Department of Consumer Protection',
+    summary: 'Contractors must be registered before advertising or starting home improvement work over $200. The registration number goes on every contract and ad.',
+    lookupUrl: 'https://www.elicense.ct.gov/Lookup/LicenseLookup.aspx',
+    lookupLabel: 'CT license lookup',
+    infoUrl: 'https://portal.ct.gov/dcp/Trade-Practices-Division/Home-Improvement-for-Consumers',
+    badge: 'CT HIC registered',
+  },
+
   // ---- Delaware ----
   de_contractor_registration: {
     id: 'de_contractor_registration',
@@ -280,6 +342,9 @@ export const LEGACY_LICENSE: Requirement = {
 const STATE_REQUIREMENTS: Record<string, string[]> = {
   PA: ['pa_hic', 'pa_pesticide_business'],
   NJ: ['nj_hic', 'nj_master_plumber', 'nj_electrical', 'nj_hvacr', 'state_pesticide_license'],
+  MD: ['md_mhic', 'md_trade_license', 'state_pesticide_license'],
+  MA: ['ma_hic', 'ma_csl', 'state_pesticide_license'],
+  CT: ['ct_hic', 'state_pesticide_license'],
   DE: ['de_contractor_registration', 'de_business_license', 'de_electrical', 'de_plumbing', 'de_hvacr', 'state_pesticide_license'],
 }
 
@@ -296,30 +361,71 @@ export function requirementById(id: string): Requirement | undefined {
   return REQUIREMENTS[id]
 }
 
+export type ScopedRequirement = Requirement & { regions: string[] }
+
+// A contractor can work across a state line (a 25-mile radius from
+// Northeast Philadelphia reaches New Jersey), and the license that matters
+// depends on where the JOB is — so requirements are built from every state
+// and city inside their service area, each tagged with where it applies.
 export function requirementsFor({
-  state,
-  city,
+  states,
+  cities,
   categories,
 }: {
-  state: string | null
-  city: string | null
+  states: string[]
+  cities: { state: string; city: string }[]
   categories: string[]
-}): { requirements: Requirement[]; coverage: 'full' | 'federal_only' } {
-  const ids = [...BASE]
-  let coverage: 'full' | 'federal_only' = 'federal_only'
-
-  if (state && STATE_REQUIREMENTS[state]) {
-    coverage = 'full'
-    ids.push(...STATE_REQUIREMENTS[state])
-    if (city) ids.push(...(CITY_REQUIREMENTS[`${state}:${city.toLowerCase()}`] || []))
-  } else {
-    ids.push('state_pesticide_license')
+}): { requirements: ScopedRequirement[]; unmappedStates: string[] } {
+  const regionsById = new Map<string, Set<string>>()
+  const add = (id: string, region: string) => {
+    if (!regionsById.has(id)) regionsById.set(id, new Set())
+    regionsById.get(id)!.add(region)
   }
 
-  const requirements = Array.from(new Set(ids))
-    .map((id) => REQUIREMENTS[id])
-    .filter((r): r is Requirement => !!r)
+  BASE.forEach((id) => add(id, 'Federal'))
+
+  const unmappedStates: string[] = []
+  for (const state of states) {
+    if (STATE_REQUIREMENTS[state]) {
+      STATE_REQUIREMENTS[state].forEach((id) => add(id, state))
+    } else {
+      unmappedStates.push(state)
+      add('state_pesticide_license', state)
+    }
+  }
+  for (const { state, city } of cities) {
+    const key = `${state}:${city.toLowerCase()}`
+    ;(CITY_REQUIREMENTS[key] || []).forEach((id) => add(id, city))
+  }
+
+  const requirements = Array.from(regionsById.entries())
+    .map(([id, regions]) => ({ ...REQUIREMENTS[id], regions: Array.from(regions) }))
+    .filter((r): r is ScopedRequirement => !!r.id)
     .filter((r) => r.appliesTo === 'all' || r.appliesTo.some((t) => categories.includes(t)))
 
-  return { requirements, coverage }
+  return { requirements, unmappedStates }
 }
+
+export const CITY_KEYS = Object.keys(CITY_REQUIREMENTS)
+
+// Everything on file for one state (and its mapped cities), regardless of
+// a contractor's trade — used by the admin "where to verify" guide.
+export function regionRequirements(state: string): {
+  state: Requirement[]
+  cities: { city: string; requirements: Requirement[] }[]
+} {
+  const pick = (ids: string[]) => ids.map((id) => REQUIREMENTS[id]).filter((r): r is Requirement => !!r)
+  return {
+    state: pick(STATE_REQUIREMENTS[state] || []),
+    cities: Object.entries(CITY_REQUIREMENTS)
+      .filter(([key]) => key.startsWith(`${state}:`))
+      .map(([key, ids]) => ({
+        city: key.split(':')[1].replace(/^./, (c) => c.toUpperCase()),
+        requirements: pick(ids),
+      })),
+  }
+}
+
+export const FEDERAL_REQUIREMENTS: Requirement[] = ['federal_epa_rrp', 'federal_epa_608', 'liability_insurance', 'workers_comp'].map(
+  (id) => REQUIREMENTS[id]
+)

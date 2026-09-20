@@ -5,7 +5,106 @@ import { supabase } from '@/lib/supabase'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { AdminLayout } from '@/components/AdminLayout'
-import { requirementById } from '@/lib/credentialRequirements'
+import { requirementById, regionRequirements, FEDERAL_REQUIREMENTS, type Requirement } from '@/lib/credentialRequirements'
+import { STATE_BOARDS } from '@/lib/stateLicensingBoards'
+
+
+const SORTED_STATES = Object.values(STATE_BOARDS).sort((a, b) => a.stateName.localeCompare(b.stateName))
+
+function LinkList({ items }: { items: Requirement[] }) {
+  return (
+    <ul className="space-y-2">
+      {items.map((r) => (
+        <li key={r.id} className="text-sm">
+          <span className="text-white/80">{r.name}</span>
+          <span className="text-white/40"> · {r.issuer}</span>
+          <div className="flex flex-wrap gap-x-4 mt-0.5">
+            {r.lookupUrl ? (
+              <a href={r.lookupUrl} target="_blank" rel="noopener noreferrer" className="text-[#12A5A9] text-xs font-semibold hover:underline">
+                {r.lookupLabel || 'Look it up'} →
+              </a>
+            ) : (
+              <span className="text-white/40 text-xs">No public search</span>
+            )}
+            {r.infoUrl && (
+              <a href={r.infoUrl} target="_blank" rel="noopener noreferrer" className="text-white/60 text-xs hover:underline">
+                About →
+              </a>
+            )}
+          </div>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+function VerificationGuide() {
+  const [state, setState] = useState('PA')
+  const board = STATE_BOARDS[state]
+  const detail = regionRequirements(state)
+
+  return (
+    <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-8">
+      <h2 className="text-white font-semibold text-sm mb-1">Where to verify</h2>
+      <p className="text-white/50 text-xs mb-4">
+        Pick the state the contractor works in. Requirements are for that state and its cities; the official record is the source of truth, not the uploaded document.
+      </p>
+
+      <select
+        value={state}
+        onChange={(e) => setState(e.target.value)}
+        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-[#12A5A9] transition mb-4"
+      >
+        {SORTED_STATES.map((b) => (
+          <option key={b.state} value={b.state} className="bg-[#0C1A2E]">{b.stateName}</option>
+        ))}
+      </select>
+
+      <div className="space-y-5">
+        <div>
+          <p className="text-white/60 text-xs font-semibold uppercase tracking-wide mb-2">{board.stateName} licensing office</p>
+          {board.url ? (
+            <a href={board.url} target="_blank" rel="noopener noreferrer" className="text-[#12A5A9] text-sm font-semibold hover:underline">
+              {board.board} →
+            </a>
+          ) : (
+            <p className="text-white/80 text-sm">{board.board} (no public lookup site found; call the office)</p>
+          )}
+          {board.note && <p className="text-white/50 text-xs mt-1">{board.note}</p>}
+        </div>
+
+        {detail.state.length > 0 && (
+          <div>
+            <p className="text-white/60 text-xs font-semibold uppercase tracking-wide mb-2">State-level credentials</p>
+            <LinkList items={detail.state} />
+          </div>
+        )}
+
+        {detail.cities.map((c) => (
+          <div key={c.city}>
+            <p className="text-white/60 text-xs font-semibold uppercase tracking-wide mb-2">{c.city} (city rules)</p>
+            <LinkList items={c.requirements} />
+          </div>
+        ))}
+
+        <div>
+          <p className="text-white/60 text-xs font-semibold uppercase tracking-wide mb-2">Federal and insurance (any state)</p>
+          <LinkList items={FEDERAL_REQUIREMENTS} />
+        </div>
+
+        <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3">
+          <p className="text-white/70 text-xs font-semibold mb-1">Checking a credential</p>
+          <ol className="text-white/50 text-xs space-y-1 list-decimal list-inside">
+            <li>Open the uploaded document and note the name, number and expiry.</li>
+            <li>Search the official record by license number (or business name). For New Jersey registrations use Business Search, not the owner&apos;s name.</li>
+            <li>Confirm the status is active, the name matches the contractor, and the expiry matches the document.</li>
+            <li>For insurance there is no public search: check the policy dates, the coverage amounts, and that the insured name matches the business.</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function AdminContractorsPage() {
   const [loading, setLoading] = useState(true)
@@ -344,6 +443,8 @@ export default function AdminContractorsPage() {
   return (
     <AdminLayout>
       <h1 className="text-2xl font-bold text-white mb-8">Contractor verification</h1>
+
+      <VerificationGuide />
 
       {loading ? (
         <div className="text-white/50 text-sm">Loading...</div>

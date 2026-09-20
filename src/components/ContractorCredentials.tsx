@@ -5,14 +5,17 @@ import { supabase } from '@/lib/supabase'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { CheckCircleIcon } from '@/components/icons'
-import { LEGACY_LICENSE, type Requirement } from '@/lib/credentialRequirements'
+import { LEGACY_LICENSE, type ScopedRequirement } from '@/lib/credentialRequirements'
+import type { StateBoard } from '@/lib/stateLicensingBoards'
 
 type RequirementsResponse = {
-  state: string | null
-  city: string | null
+  homeState: string | null
+  homeCity: string | null
+  radiusMiles: number
+  states: string[]
   categories: string[]
-  coverage: 'full' | 'federal_only'
-  requirements: Requirement[]
+  requirements: ScopedRequirement[]
+  boards: StateBoard[]
 }
 
 type Credential = {
@@ -25,7 +28,7 @@ type Credential = {
   admin_notes: string | null
 }
 
-const LEVEL_LABEL: Record<Requirement['level'], string> = {
+const LEVEL_LABEL: Record<ScopedRequirement['level'], string> = {
   required: 'Required',
   conditional: 'Depends on the job',
   recommended: 'Recommended',
@@ -67,14 +70,14 @@ export function ContractorCredentials({ userId }: { userId: string }) {
 
   const credentialFor = (requirementId: string) => credentials.find((c) => c.requirement_id === requirementId)
 
-  const openForm = (req: Requirement) => {
+  const openForm = (req: ScopedRequirement) => {
     const existing = credentialFor(req.id)
     setForm({ number: existing?.credential_number || '', expiry: existing?.expiry || '', file: null })
     setError(null)
     setOpenId(openId === req.id ? null : req.id)
   }
 
-  const save = async (req: Requirement) => {
+  const save = async (req: ScopedRequirement) => {
     const existing = credentialFor(req.id)
     if (!existing?.document_url && !form.file) {
       setError('Upload a photo or PDF of it so it can be reviewed.')
@@ -171,19 +174,19 @@ export function ContractorCredentials({ userId }: { userId: string }) {
 
   const requirements = info?.requirements || []
   const legacy = credentialFor(LEGACY_LICENSE.id)
-  const listed = legacy ? [...requirements, LEGACY_LICENSE] : requirements
+  const listed: ScopedRequirement[] = legacy ? [...requirements, { ...LEGACY_LICENSE, regions: [] }] : requirements
   const required = requirements.filter((r) => r.level === 'required')
   const verifiedRequired = required.filter((r) => credentialFor(r.id)?.status === 'verified').length
 
-  const groups: { title: string; items: Requirement[] }[] = [
+  const groups: { title: string; items: ScopedRequirement[] }[] = [
     { title: 'Required for your work', items: listed.filter((r) => r.level === 'required') },
     { title: 'Depends on the job', items: listed.filter((r) => r.level === 'conditional') },
     { title: 'Recommended', items: listed.filter((r) => r.level === 'recommended') },
   ].filter((g) => g.items.length > 0)
 
-  const place = [info?.city, info?.state].filter(Boolean).join(', ')
+  const place = [info?.homeCity, info?.homeState].filter(Boolean).join(', ')
 
-  const renderCard = (req: Requirement) => {
+  const renderCard = (req: ScopedRequirement) => {
     const credential = credentialFor(req.id)
     const exp = expiryState(credential?.expiry || null)
     const isOpen = openId === req.id
@@ -194,6 +197,15 @@ export function ContractorCredentials({ userId }: { userId: string }) {
           <div className="min-w-0">
             <p className="text-white font-medium text-sm">{req.name}</p>
             <p className="text-white/50 text-xs mt-0.5">{req.issuer}</p>
+            {req.regions.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-1.5">
+                {req.regions.map((region) => (
+                  <span key={region} className="text-[10px] font-semibold uppercase tracking-wide bg-white/8 text-white/60 rounded px-1.5 py-0.5">
+                    {region}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
           {credential ? (
             <span
@@ -323,22 +335,45 @@ export function ContractorCredentials({ userId }: { userId: string }) {
         )}
       </div>
 
-      {!info || info.categories.length === 0 || !info.state ? (
+      {!info || info.categories.length === 0 || !info.homeState ? (
         <p className="text-white/50 text-sm mb-4">
           Add your trades and service ZIP code above and save. Requirements are different for each trade and state, and
           this list will show exactly what applies to you.
         </p>
       ) : (
         <p className="text-white/50 text-sm mb-4">
-          For <span className="text-white/80">{info.categories.join(', ')}</span> work around{' '}
-          <span className="text-white/80">{place}</span>. Landlords see the ones we verify next to your bids.
+          For <span className="text-white/80">{info.categories.join(', ')}</span> work within {info.radiusMiles} miles of{' '}
+          <span className="text-white/80">{place}</span>
+          {info.states.length > 1 && (
+            <>
+              {' '}(this reaches <span className="text-white/80">{info.states.join(', ')}</span>, and each state has its own rules)
+            </>
+          )}
+          . Landlords see the ones we verify next to your bids.
         </p>
       )}
 
-      {info && info.state && info.coverage === 'federal_only' && (
-        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl px-4 py-3 text-yellow-400/90 text-xs mb-4">
-          We haven&apos;t mapped {info.state} licensing yet. Below are the federal and insurance items. Check your state
-          licensing board for anything specific to your trade there. We&apos;re currently covering PA, NJ and DE.
+      {info && info.boards.length > 0 && (
+        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl px-4 py-3 text-yellow-400/90 text-xs mb-4 space-y-2">
+          <p>
+            We don&apos;t list detailed trade rules for {info.boards.map((b) => b.stateName).join(', ')} yet. Below are the
+            federal and insurance items. For anything specific to your trade there, check the state office:
+          </p>
+          <ul className="space-y-1.5">
+            {info.boards.map((b) => (
+              <li key={b.state}>
+                <span className="font-semibold">{b.stateName}:</span>{' '}
+                {b.url ? (
+                  <a href={b.url} target="_blank" rel="noopener noreferrer" className="underline">
+                    {b.board}
+                  </a>
+                ) : (
+                  b.board
+                )}
+                {b.note ? <span className="text-yellow-400/70"> — {b.note}</span> : null}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
