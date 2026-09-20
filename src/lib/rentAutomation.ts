@@ -11,19 +11,26 @@ async function ensureRentPaymentForMonth(
 ) {
   if (!rentAmount) return null
 
-  const monthStart = new Date()
-  monthStart.setDate(1)
-  monthStart.setMonth(monthStart.getMonth() + monthsAhead)
-  const month = monthStart.toISOString().slice(0, 10)
+  // Built from local date parts, never toISOString(): that converts to UTC,
+  // so an evening load in the US turned "the 1st" into "the 2nd" and
+  // created a second, unpaid row for a month that was already paid.
+  const now = new Date()
+  const first = new Date(now.getFullYear(), now.getMonth() + monthsAhead, 1)
+  const following = new Date(first.getFullYear(), first.getMonth() + 1, 1)
+  const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
+  const month = fmt(first)
 
+  // Matches any row inside the calendar month, not just the exact 1st, so
+  // rows that already exist under a shifted date still count.
   const { data: existing } = await supabase
     .from('rent_payments')
     .select('id')
     .eq('tenancy_id', tenancyId)
-    .eq('month', month)
-    .maybeSingle()
+    .gte('month', month)
+    .lt('month', fmt(following))
+    .limit(1)
 
-  if (existing) return null
+  if (existing && existing.length > 0) return null
 
   const { data: created, error } = await supabase
     .from('rent_payments')

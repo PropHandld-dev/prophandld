@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
-import { getStripe } from '@/lib/stripe'
+import { getStripe, isPayoutReady } from '@/lib/stripe'
 
 export async function GET() {
   const authClient = await createClient()
@@ -28,7 +28,7 @@ export async function GET() {
 
   const stripe = getStripe()
   const account = await stripe.accounts.retrieve(userRow.stripe_connect_account_id)
-  const status = account.charges_enabled && account.payouts_enabled ? 'active' : 'onboarding'
+  const status = isPayoutReady(account) ? 'active' : 'onboarding'
 
   if (status !== userRow.stripe_connect_status) {
     await supabaseAdmin

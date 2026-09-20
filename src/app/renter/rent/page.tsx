@@ -56,7 +56,16 @@ export default function RenterRentPage() {
       })
     )
 
-    setPayments(enriched)
+    // One row per calendar month, preferring a paid one — guards against
+    // duplicate rows for the same month showing as both paid and overdue.
+    const byMonth = new Map<string, any>()
+    const paidRow = (p: any) => Number(p.expected_amount) > 0 && Number(p.actual_amount || 0) >= Number(p.expected_amount)
+    for (const p of enriched) {
+      const key = p.month.slice(0, 7)
+      const current = byMonth.get(key)
+      if (!current || (paidRow(p) && !paidRow(current))) byMonth.set(key, p)
+    }
+    setPayments(Array.from(byMonth.values()))
   }
 
   useEffect(() => {

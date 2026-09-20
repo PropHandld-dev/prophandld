@@ -1,11 +1,16 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import { usePathname } from 'next/navigation'
 
 export function CursorGlow() {
   const ref = useRef<HTMLDivElement>(null)
+  // Built for the landing page. Mounted in the root layout it ran on every
+  // screen: a full-viewport blended layer repainted on each mouse move.
+  const isLanding = usePathname() === '/'
 
   useEffect(() => {
+    if (!isLanding) return
     if (window.matchMedia('(pointer: coarse)').matches) return
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
@@ -30,7 +35,9 @@ export function CursorGlow() {
       window.removeEventListener('pointermove', handleMove)
       if (frame !== null) cancelAnimationFrame(frame)
     }
-  }, [])
+  }, [isLanding])
+
+  if (!isLanding) return null
 
   return (
     <div

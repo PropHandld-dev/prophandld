@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { RippleButton } from '@/components/RippleButton'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { CheckCircleIcon } from '@/components/icons'
+import { openPendingTab, goToTab, abandonTab } from '@/lib/externalTab'
 
 type ConnectStatus = 'not_started' | 'onboarding' | 'active'
 
@@ -25,21 +26,33 @@ export function StripeConnectCard({ purpose }: { purpose: 'rent' | 'jobs' }) {
       setLoading(false)
     }
     load()
+
+    // Stripe opens in another tab, so pick up the new status when the
+    // user comes back to this one.
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') load()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
   }, [])
 
   const handleSetup = async () => {
+    const tab = openPendingTab()
     setRedirecting(true)
     setError(null)
     try {
       const res = await fetch('/api/stripe/connect/onboard', { method: 'POST' })
       const data = await res.json()
       if (!res.ok || !data.url) {
+        abandonTab(tab)
         setError(data.error || 'Could not start payout setup.')
         setRedirecting(false)
         return
       }
-      window.location.href = data.url
+      goToTab(tab, data.url)
+      setRedirecting(false)
     } catch {
+      abandonTab(tab)
       setError('Could not start payout setup.')
       setRedirecting(false)
     }

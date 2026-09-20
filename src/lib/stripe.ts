@@ -13,6 +13,14 @@ export function getStripe() {
   return stripeClient
 }
 
+// Payout accounts only request the `transfers` capability (no
+// card_payments), so charges_enabled never turns true for them. Setup is
+// complete once transfers are active and payouts are enabled — this also
+// holds for older accounts that still carry card_payments.
+export function isPayoutReady(account: Stripe.Account) {
+  return account.capabilities?.transfers === 'active' && account.payouts_enabled === true
+}
+
 export type LandlordTier = 'free' | 'tier_20' | 'tier_50' | 'tier_80'
 
 export function tierForUnitCount(unitCount: number): LandlordTier {

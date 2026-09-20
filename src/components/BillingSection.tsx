@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
+import { openPendingTab, goToTab, abandonTab } from '@/lib/externalTab'
 
 type Status = {
   unitCount: number
@@ -68,39 +69,54 @@ export function BillingSection() {
 
   useEffect(() => {
     load()
+
+    // Checkout/portal open in another tab — refresh when the user returns.
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') load()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
   }, [])
 
   const handleSubscribe = async () => {
+    const tab = openPendingTab()
     setRedirecting(true)
     setError(null)
     try {
       const res = await fetch('/api/stripe/subscription/checkout', { method: 'POST' })
       const data = await res.json()
       if (!res.ok || !data.url) {
+        abandonTab(tab)
         setError(data.error || 'Could not start checkout.')
         setRedirecting(false)
         return
       }
-      window.location.href = data.url
+      goToTab(tab, data.url)
+      setRedirecting(false)
     } catch {
+      abandonTab(tab)
       setError('Could not start checkout.')
       setRedirecting(false)
     }
   }
 
   const handleManageBilling = async () => {
+    const tab = openPendingTab()
     setRedirecting(true)
     setError(null)
     try {
       const res = await fetch('/api/stripe/billing-portal', { method: 'POST' })
       const data = await res.json()
       if (!res.ok || !data.url) {
+        abandonTab(tab)
         setError(data.error || 'Could not open billing portal.')
         setRedirecting(false)
         return
       }
-      window.location.href = data.url
+      goToTab(tab, data.url)
+      setRedirecting(false)
     } catch {
+      abandonTab(tab)
       setError('Could not open billing portal.')
       setRedirecting(false)
     }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
-import { getUnreadJobIds, getUnreadThreadIds } from '@/lib/messageReads'
+import { mergedLastRead } from '@/lib/messageReads'
 
 export type Conversation = {
   kind: 'job' | 'dm'
@@ -15,6 +15,23 @@ export type Conversation = {
   otherName: string
   otherRole: string
 }
+
+// Participants and job labels almost never change, so they're looked up
+// once per conversation and reused. Before this, every reload (each new
+// message, tab focus and a 25s timer, on every page) re-ran one request
+// per conversation.
+const CACHE_TTL_MS = 5 * 60 * 1000
+type Cached<T> = { at: number; value: T }
+const participantsCache = new Map<string, Cached<{ role: string; user_id: string; full_name: string | null }[]>>()
+const jobLabelCache = new Map<string, Cached<any>>()
+
+function fresh<T>(entry: Cached<T> | undefined): entry is Cached<T> {
+  return !!entry && Date.now() - entry.at < CACHE_TTL_MS
+}
+
+// Only the most recent messages are needed to build the conversation list
+// and unread badges — loading every message ever sent didn't scale.
+const RECENT_MESSAGE_LIMIT = 400
 
 const ROLE_LABELS: Record<string, string> = {
   landlord: 'Landlord',
@@ -53,6 +70,7 @@ export function useConversations(userId: string | null) {
       .from('messages')
       .select('job_id, thread_id, body, created_at, sender_user_id')
       .order('created_at', { ascending: false })
+      .limit(RECENT_MESSAGE_LIMIT)
 
     if (error) {
       console.error('Error loading messages:', error)
@@ -79,21 +97,55 @@ export function useConversations(userId: string | null) {
     const jobIds = entries.filter((e) => e.kind === 'job').map((e) => e.id)
     const threadIds = entries.filter((e) => e.kind === 'dm').map((e) => e.id)
 
-    const [{ data: jobsData }, unreadJobs, unreadThreads, jobParticipantResults, dmParticipantResults] = await Promise.all([
-      jobIds.length > 0
-        ? supabase.from('jobs').select('id, category, units(unit_number, properties(address))').in('id', jobIds)
+    const missingJobIds = jobIds.filter((id) => !fresh(jobLabelCache.get(id)))
+    const missingParticipantKeys = [
+      ...jobIds.filter((id) => !fresh(participantsCache.get(`job:${id}`))).map((id) => ({ kind: 'job' as const, id })),
+      ...threadIds.filter((id) => !fresh(participantsCache.get(`dm:${id}`))).map((id) => ({ kind: 'dm' as const, id })),
+    ]
+
+    const [jobsResult, jobReads, threadReads, participantResults] = await Promise.all([
+      missingJobIds.length > 0
+        ? supabase.from('jobs').select('id, category, units(unit_number, properties(address))').in('id', missingJobIds)
         : Promise.resolve({ data: [] as any[] }),
-      getUnreadJobIds(jobIds, userId),
-      getUnreadThreadIds(threadIds, userId),
-      Promise.all(jobIds.map((jobId) => supabase.rpc('get_job_participants', { target_job_id: jobId }))),
-      Promise.all(threadIds.map((threadId) => supabase.rpc('get_dm_thread_participants', { target_thread_id: threadId }))),
+      jobIds.length > 0 ? mergedLastRead(userId, 'job', jobIds) : Promise.resolve(new Map<string, string>()),
+      threadIds.length > 0 ? mergedLastRead(userId, 'thread', threadIds) : Promise.resolve(new Map<string, string>()),
+      Promise.all(
+        missingParticipantKeys.map((k) =>
+          k.kind === 'job'
+            ? supabase.rpc('get_job_participants', { target_job_id: k.id })
+            : supabase.rpc('get_dm_thread_participants', { target_thread_id: k.id })
+        )
+      ),
     ])
 
-    setUnreadIds(new Set([...Array.from(unreadJobs, (id) => `job:${id}`), ...Array.from(unreadThreads, (id) => `thread:${id}`)]))
+    for (const job of jobsResult.data || []) jobLabelCache.set(job.id, { at: Date.now(), value: job })
+    missingParticipantKeys.forEach((k, i) => {
+      const result = participantResults[i]
+      if (result?.error) {
+        console.error('useConversations: participants lookup failed', { ...k, error: result.error })
+        return
+      }
+      // Empty results (e.g. no contractor selected yet) aren't cached, so
+      // a participant who joins later shows up on the next reload.
+      const data = (result?.data || []) as any[]
+      if (data.length > 0) participantsCache.set(`${k.kind}:${k.id}`, { at: Date.now(), value: data })
+    })
 
-    const jobById = new Map((jobsData || []).map((j) => [j.id, j]))
-    const jobParticipantsById = new Map(jobIds.map((id, i) => [id, jobParticipantResults[i]]))
-    const dmParticipantsById = new Map(threadIds.map((id, i) => [id, dmParticipantResults[i]]))
+    // Unread is worked out from the messages already loaded above, instead
+    // of two more queries that pulled every message from other people.
+    const unread = new Set<string>()
+    for (const m of messages || []) {
+      if (m.sender_user_id === userId) continue
+      const isJob = !!m.job_id
+      const id = (m.job_id || m.thread_id) as string
+      const lastRead = (isJob ? jobReads : threadReads).get(id)
+      if (!lastRead || new Date(m.created_at) > new Date(lastRead)) unread.add(`${isJob ? 'job' : 'thread'}:${id}`)
+    }
+    setUnreadIds(unread)
+
+    const jobById = new Map(jobIds.map((id) => [id, jobLabelCache.get(id)?.value]))
+    const jobParticipantsById = new Map(jobIds.map((id) => [id, { data: participantsCache.get(`job:${id}`)?.value ?? [], error: null as any }]))
+    const dmParticipantsById = new Map(threadIds.map((id) => [id, { data: participantsCache.get(`dm:${id}`)?.value ?? [], error: null as any }]))
 
     const list: Conversation[] = entries.map((e) => {
       if (e.kind === 'job') {
@@ -163,22 +215,29 @@ export function useConversations(userId: string | null) {
 
   useEffect(() => {
     if (!userId) return
+    let debounce: ReturnType<typeof setTimeout> | null = null
     const channel = supabase
       .channel(`inbox:${userId}:${instanceId}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => load())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => {
+        if (debounce) clearTimeout(debounce)
+        debounce = setTimeout(load, 600)
+      })
       .subscribe()
     return () => {
+      if (debounce) clearTimeout(debounce)
       supabase.removeChannel(channel)
     }
   }, [userId, load])
 
-  // Safety net alongside realtime — polls every 25s and refreshes the
+  // Safety net alongside realtime — polls every 60s while the tab is visible and refreshes the
   // instant the tab regains focus, so a missed/delayed realtime event
   // (or a badge left stale from another device) self-corrects without
   // requiring a manual page reload.
   useEffect(() => {
     if (!userId) return
-    const interval = setInterval(load, 25000)
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') load()
+    }, 60000)
     const onVisible = () => {
       if (document.visibilityState === 'visible') load()
     }

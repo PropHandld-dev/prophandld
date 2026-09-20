@@ -61,7 +61,7 @@ export async function markThreadRead(threadId: string, userId: string) {
 
 // Merges local and remote last-read timestamps for a batch of
 // conversations, taking whichever is newer per conversation.
-async function mergedLastRead(
+export async function mergedLastRead(
   userId: string,
   kind: 'job' | 'thread',
   ids: string[]

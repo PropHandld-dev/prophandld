@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
-import { getStripe } from '@/lib/stripe'
+import { getStripe, isPayoutReady } from '@/lib/stripe'
 import { sendRentPaymentReceivedEmail, sendJobPaymentSentEmail, sendCreditCardRejectedEmail } from '@/lib/email'
 import { sendPush } from '@/lib/push'
 
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     switch (event.type) {
       case 'account.updated': {
         const account = event.data.object as Stripe.Account
-        const status = account.charges_enabled && account.payouts_enabled ? 'active' : 'onboarding'
+        const status = isPayoutReady(account) ? 'active' : 'onboarding'
         const { error } = await supabaseAdmin
           .from('users')
           .update({ stripe_connect_status: status })
