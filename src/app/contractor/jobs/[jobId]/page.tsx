@@ -285,14 +285,34 @@ export default function ContractorJobDetailPage() {
         continue
       }
 
-      const { error: insertError } = await supabase
-        .from('job_photos')
-        .insert({
-          job_id: jobId,
-          uploaded_by: userId,
-          photo_url: filePath,
-          stage,
-        })
+      // The database can be slow under load and cancel the insert with a
+      // statement timeout. Retry a couple of times, checking first whether
+      // an earlier attempt actually landed so a photo is never saved twice.
+      let insertError: { message: string } | null = null
+      for (let attempt = 0; attempt < 3; attempt++) {
+        if (attempt > 0) {
+          await new Promise((r) => setTimeout(r, 1500 * attempt))
+          const { data: existing } = await supabase
+            .from('job_photos')
+            .select('id')
+            .eq('photo_url', filePath)
+            .maybeSingle()
+          if (existing) {
+            insertError = null
+            break
+          }
+        }
+        const { error } = await supabase
+          .from('job_photos')
+          .insert({
+            job_id: jobId,
+            uploaded_by: userId,
+            photo_url: filePath,
+            stage,
+          })
+        insertError = error
+        if (!error) break
+      }
 
       if (insertError) {
         console.error('Error saving photo record:', insertError)
