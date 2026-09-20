@@ -37,9 +37,19 @@ export async function POST() {
         type: 'express',
         email: userRow?.email || user.email || undefined,
         business_type: 'individual',
+        // Payments are destination charges with Prophandld as the merchant,
+        // so payout accounts only receive transfers. Requesting
+        // card_payments is what made Stripe ask each person for a website,
+        // statement descriptor and product description.
         capabilities: {
           transfers: { requested: true },
-          card_payments: { requested: true },
+        },
+        business_profile: {
+          mcc: role === 'landlord' ? '6513' : '1799',
+          url: process.env.NEXT_PUBLIC_SITE_URL || 'https://prophandld.com',
+          product_description: role === 'landlord'
+            ? 'Rental property owner receiving rent payments through Prophandld'
+            : 'Home repair and maintenance contractor paid for jobs through Prophandld',
         },
         metadata: {
           prophandld_user_id: user.id,
