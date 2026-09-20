@@ -501,7 +501,7 @@ export default function JobDetailPage() {
     // start (e.g. the contractor's payout account isn't ready), the error
     // and the Pay now button are waiting in the payment card.
     const bid = bids.find((b) => b.status === 'accepted')
-    if (!updateError && bid && bid.payment_status !== 'paid' && bid.payment_status !== 'processing' && bid.price_change_status !== 'pending') {
+    if (!updateError && bid && bid.payment_status !== 'paid' && bid.price_change_status !== 'pending') {
       const started = await handlePayContractor()
       if (!started) {
         setTimeout(() => document.getElementById('pay-contractor')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100)
@@ -623,9 +623,19 @@ export default function JobDetailPage() {
   // moment later, so refresh again a couple of times.
   const handlePaid = (outcome: PaymentOutcome) => {
     setPaidBanner(outcome)
-    fetchJob()
-    setTimeout(fetchJob, 2000)
-    setTimeout(fetchJob, 6000)
+    const bid = bids.find((b) => b.status === 'accepted')
+    // Ask Stripe directly so the card flips to Paid now, without waiting on
+    // the webhook; the timed refreshes below are just a backstop.
+    const confirmed = bid
+      ? fetch('/api/stripe/job-payment/confirm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bidId: bid.id }),
+        }).catch(() => null)
+      : Promise.resolve(null)
+    confirmed.then(() => fetchJob())
+    setTimeout(fetchJob, 3000)
+    setTimeout(fetchJob, 8000)
   }
 
   const handlePaymentSuccess = async () => {
@@ -696,7 +706,6 @@ export default function JobDetailPage() {
   const payOnApprove =
     !!acceptedBid &&
     acceptedBid.payment_status !== 'paid' &&
-    acceptedBid.payment_status !== 'processing' &&
     acceptedBid.price_change_status !== 'pending'
   const payOnApproveAmount = acceptedBid ? Number(acceptedBid.proposed_amount ?? acceptedBid.amount ?? 0) : 0
   // Excludes 'declined' bids from a prior round — a job that reopened
@@ -1045,7 +1054,7 @@ export default function JobDetailPage() {
                   ${acceptedBid.proposed_amount ?? acceptedBid.amount} to {acceptedBid.contractor?.full_name}
                 </p>
               </div>
-              {acceptedBid.payment_status === 'processing' || (paidBanner === 'processing' && acceptedBid.payment_status !== 'paid') ? (
+              {paidBanner === 'processing' && acceptedBid.payment_status !== 'paid' ? (
                 <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-yellow-500/15 text-yellow-400">
                   Processing
                 </span>

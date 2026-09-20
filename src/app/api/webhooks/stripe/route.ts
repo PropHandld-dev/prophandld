@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { getStripe, isPayoutReady } from '@/lib/stripe'
-import { sendRentPaymentReceivedEmail, sendJobPaymentSentEmail, sendCreditCardRejectedEmail } from '@/lib/email'
+import { sendRentPaymentReceivedEmail, sendJobPaymentSentEmail, sendJobPaymentReceiptEmail, sendCreditCardRejectedEmail } from '@/lib/email'
 import { sendPush } from '@/lib/push'
 
 export async function POST(request: NextRequest) {
@@ -217,9 +217,30 @@ export async function POST(request: NextRequest) {
 
             const { data: bid } = await supabaseAdmin
               .from('bids')
-              .select('contractor_user_id, jobs(category, units(properties(address)))')
+              .select('contractor_user_id, jobs(category, units(properties(address, owner_user_id)))')
               .eq('id', bidId)
               .maybeSingle()
+
+            // Landlord's receipt: an emailed copy of what's also saved on the job.
+            const receiptJob = bid?.jobs as any
+            const landlordId = receiptJob?.units?.properties?.owner_user_id
+            if (bid?.contractor_user_id && landlordId) {
+              const [{ data: landlord }, { data: payee }] = await Promise.all([
+                supabaseAdmin.from('users').select('email, full_name').eq('id', landlordId).maybeSingle(),
+                supabaseAdmin.from('users').select('full_name').eq('id', bid.contractor_user_id).maybeSingle(),
+              ])
+              if (landlord?.email) {
+                await sendJobPaymentReceiptEmail({
+                  to: landlord.email,
+                  landlordName: landlord.full_name || 'there',
+                  contractorName: payee?.full_name || 'your contractor',
+                  amount: paymentIntent.amount / 100,
+                  category: receiptJob?.category || 'your job',
+                  propertyLabel: receiptJob?.units?.properties?.address || 'the property',
+                  bidId,
+                }).catch((err) => console.error('stripe webhook: landlord job receipt email failed', err))
+              }
+            }
 
             if (bid?.contractor_user_id) {
               const job = bid.jobs as any

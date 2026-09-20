@@ -446,6 +446,33 @@ export async function sendRentPaymentReceivedEmail({
   return sendEmail({ to, subject: `Rent payment received: ${unitLabel}`, html })
 }
 
+export async function sendJobPaymentReceiptEmail({
+  to,
+  landlordName,
+  contractorName,
+  amount,
+  category,
+  propertyLabel,
+  bidId,
+}: {
+  to: string
+  landlordName: string
+  contractorName: string
+  amount: number
+  category: string
+  propertyLabel: string
+  bidId: string
+}) {
+  const html = baseTemplate({
+    eyebrow: 'Receipt',
+    heading: 'Payment receipt',
+    bodyHtml: `Hi ${escapeHtml(landlordName)}, your payment of <strong>$${amount.toFixed(2)}</strong> to <strong>${escapeHtml(contractorName)}</strong> for the <strong>${escapeHtml(category)}</strong> job at ${escapeHtml(propertyLabel)} went through. Your receipt is saved on the job for your records.`,
+    ctaLabel: 'View receipt',
+    ctaUrl: `${SITE_URL}/receipts/job/${bidId}`,
+  })
+  return sendEmail({ to, subject: `Receipt: $${amount.toFixed(2)} paid for ${category}`, html })
+}
+
 export async function sendJobPaymentSentEmail({
   to,
   contractorName,

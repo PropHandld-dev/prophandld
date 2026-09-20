@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
 
   const { data: bid, error: bidError } = await supabaseAdmin
     .from('bids')
-    .select('id, amount, proposed_amount, status, payment_status, contractor_user_id, job_id, jobs(unit_id, status, units(property_id, properties(owner_user_id)))')
+    .select('id, amount, proposed_amount, status, payment_status, stripe_payment_intent_id, contractor_user_id, job_id, jobs(unit_id, status, units(property_id, properties(owner_user_id)))')
     .eq('id', bidId)
     .maybeSingle()
 
@@ -56,6 +56,49 @@ export async function POST(request: NextRequest) {
   const amount = Number(bid.proposed_amount ?? bid.amount)
   const stripe = getStripe()
   const amountCents = Math.round(amount * 100)
+
+  // "processing" is written when a payment window opens, so it can be left
+  // over from a window that was closed without paying. Check what Stripe
+  // actually has before starting another attempt, so a landlord can neither
+  // pay twice nor be stuck after cancelling.
+  if (bid.stripe_payment_intent_id) {
+    try {
+      const existing = await stripe.paymentIntents.retrieve(bid.stripe_payment_intent_id)
+
+      if (existing.status === 'succeeded') {
+        await supabaseAdmin
+          .from('bids')
+          .update({ payment_status: 'paid', paid_at: new Date().toISOString() })
+          .eq('id', bid.id)
+          .neq('payment_status', 'paid')
+        return NextResponse.json({ error: 'This job has already been paid.' }, { status: 400 })
+      }
+
+      if (existing.status === 'processing') {
+        return NextResponse.json(
+          { error: 'A bank payment for this job is already clearing. It usually takes 1 to 3 business days.' },
+          { status: 400 }
+        )
+      }
+
+      if (existing.status !== 'canceled') {
+        const reusable =
+          ['requires_payment_method', 'requires_confirmation', 'requires_action'].includes(existing.status) &&
+          existing.amount === amountCents &&
+          existing.client_secret &&
+          existing.transfer_data?.destination === contractorRow.stripe_connect_account_id
+        if (reusable) {
+          return NextResponse.json({ clientSecret: existing.client_secret, amount })
+        }
+        // Amount or payee changed since it was created: retire the old one.
+        await stripe.paymentIntents.cancel(existing.id).catch((err) => {
+          console.error('job-payment/create-payment-intent: could not cancel old intent', err)
+        })
+      }
+    } catch (err) {
+      console.error('job-payment/create-payment-intent: could not check existing intent', err)
+    }
+  }
 
   try {
     const paymentIntent = await stripe.paymentIntents.create({
