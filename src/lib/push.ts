@@ -1,5 +1,6 @@
 import webpush from 'web-push'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
+import { isPreviewDeployment } from '@/lib/env'
 
 let configured = false
 
@@ -15,6 +16,7 @@ function ensureConfigured() {
 }
 
 export async function sendPush(userId: string, { title, body, url }: { title: string; body: string; url?: string }) {
+  if (isPreviewDeployment()) return
   if (!process.env.VAPID_PRIVATE_KEY || !process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) return
   ensureConfigured()
 

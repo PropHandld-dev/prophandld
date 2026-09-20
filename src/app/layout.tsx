@@ -4,6 +4,7 @@ import { ViewTransition } from "react";
 import { CursorGlow } from "@/components/CursorGlow";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { FloatingChatWidget } from "@/components/FloatingChatWidget";
+import { StagingBadge } from "@/components/StagingBadge";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -63,6 +64,7 @@ export default function RootLayout({
         <ServiceWorkerRegister />
         <ViewTransition>{children}</ViewTransition>
         <FloatingChatWidget />
+        <StagingBadge />
       </body>
     </html>
   );

@@ -1,4 +1,5 @@
 import Twilio from 'twilio'
+import { isPreviewDeployment } from '@/lib/env'
 
 let twilioClient: ReturnType<typeof Twilio> | null = null
 
@@ -10,6 +11,10 @@ function getTwilioClient() {
 }
 
 export async function sendSms(to: string, body: string) {
+  if (isPreviewDeployment()) {
+    console.log('[staging] sms suppressed', { to })
+    return { ok: true, id: 'suppressed-on-preview' }
+  }
   if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN || !process.env.TWILIO_PHONE_NUMBER) {
     return { ok: false, error: 'SMS not configured' }
   }

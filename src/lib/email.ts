@@ -1,4 +1,5 @@
 import { Resend } from 'resend'
+import { isPreviewDeployment } from '@/lib/env'
 
 const SITE_URL = 'https://prophandld.com'
 
@@ -12,6 +13,10 @@ function getResendClient() {
 }
 
 export async function sendEmail({ to, subject, html }: { to: string; subject: string; html: string }) {
+  if (isPreviewDeployment()) {
+    console.log('[staging] email suppressed', { to, subject })
+    return { ok: true, id: 'suppressed-on-preview', from: 'staging' }
+  }
   const fromAddress = process.env.RESEND_FROM_EMAIL || 'Prophandld <onboarding@resend.dev>'
   try {
     const { data, error } = await getResendClient().emails.send({
