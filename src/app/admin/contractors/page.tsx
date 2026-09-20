@@ -5,10 +5,12 @@ import { supabase } from '@/lib/supabase'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { AdminLayout } from '@/components/AdminLayout'
+import { requirementById } from '@/lib/credentialRequirements'
 
 export default function AdminContractorsPage() {
   const [loading, setLoading] = useState(true)
   const [rows, setRows] = useState<any[]>([])
+  const [credRows, setCredRows] = useState<any[]>([])
   const [error, setError] = useState<string | null>(null)
   const [actioningId, setActioningId] = useState<string | null>(null)
   const [notes, setNotes] = useState<Record<string, string>>({})
@@ -50,6 +52,31 @@ export default function AdminContractorsPage() {
     )
 
     setRows(enriched)
+
+    const { data: creds, error: credsError } = await supabase
+      .from('contractor_credentials')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (credsError) {
+      console.error('Error loading credentials:', credsError)
+    } else {
+      const contractorCache = new Map<string, any>()
+      const enrichedCreds = await Promise.all(
+        (creds || []).map(async (c) => {
+          if (!contractorCache.has(c.contractor_user_id)) {
+            const { data } = await supabase.rpc('get_user_by_id', { user_id_input: c.contractor_user_id }).maybeSingle()
+            contractorCache.set(c.contractor_user_id, data)
+          }
+          const { data: docUrl } = c.document_url
+            ? await supabase.storage.from('contractor-documents').createSignedUrl(c.document_url, 3600)
+            : { data: null }
+          return { ...c, contractor: contractorCache.get(c.contractor_user_id), viewUrl: docUrl?.signedUrl }
+        })
+      )
+      setCredRows(enrichedCreds)
+    }
+
     setLoading(false)
   }
 
@@ -88,6 +115,45 @@ export default function AdminContractorsPage() {
         contractorUserId: rows.find((r) => r.id === id)?.contractor_user_id,
         approved: status === 'verified',
         notes: notes[id] || null,
+      }),
+    }).catch((err) => console.error('Failed to send verification decision email:', err))
+
+    await load()
+    setActioningId(null)
+  }
+
+  const handleCredentialDecision = async (row: any, status: 'verified' | 'rejected') => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    setActioningId(row.id)
+    setError(null)
+
+    const { error: updateError } = await supabase
+      .from('contractor_credentials')
+      .update({
+        status,
+        admin_notes: notes[row.id] || null,
+        reviewed_by: user.id,
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq('id', row.id)
+
+    if (updateError) {
+      console.error('Error updating credential:', updateError)
+      setError('Could not save decision.')
+      setActioningId(null)
+      return
+    }
+
+    const requirementName = requirementById(row.requirement_id)?.name || 'credential'
+    fetch('/api/admin/notify-verification-decision', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contractorUserId: row.contractor_user_id,
+        approved: status === 'verified',
+        notes: [requirementName, notes[row.id]].filter(Boolean).join(': '),
       }),
     }).catch((err) => console.error('Failed to send verification decision email:', err))
 
@@ -179,6 +245,102 @@ export default function AdminContractorsPage() {
     </div>
   )
 
+  const pendingCreds = credRows.filter((c) => c.status === 'pending')
+  const reviewedCreds = credRows.filter((c) => c.status !== 'pending')
+
+  const renderCredential = (row: any) => {
+    const req = requirementById(row.requirement_id)
+    const expired = row.expiry && new Date(row.expiry + 'T00:00:00').getTime() < Date.now()
+    return (
+      <div key={row.id} className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div>
+            <p className="text-white font-semibold">{req?.name || row.requirement_id}</p>
+            <p className="text-white/50 text-sm">
+              {row.contractor?.full_name || 'Unknown contractor'} · {row.contractor?.email}
+            </p>
+            {req && <p className="text-white/40 text-xs mt-0.5">{req.issuer}</p>}
+          </div>
+          <span className={
+            row.status === 'verified'
+              ? 'text-xs font-semibold px-2.5 py-1 rounded-full bg-[#0A7B7E]/20 text-[#12A5A9]'
+              : row.status === 'rejected'
+                ? 'text-xs font-semibold px-2.5 py-1 rounded-full bg-red-500/15 text-red-400'
+                : 'text-xs font-semibold px-2.5 py-1 rounded-full bg-yellow-500/15 text-yellow-400'
+          }>
+            {row.status}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 text-sm mb-3">
+          <div>
+            <p className="text-white/50 text-xs">Number</p>
+            <p className="text-white/70">{row.credential_number || '—'}</p>
+          </div>
+          <div>
+            <p className="text-white/50 text-xs">Expiry</p>
+            <p className={expired ? 'text-red-400' : 'text-white/70'}>
+              {row.expiry ? new Date(row.expiry + 'T00:00:00').toLocaleDateString() : '—'}{expired ? ' (expired)' : ''}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-3">
+          {row.viewUrl && (
+            <a href={row.viewUrl} target="_blank" rel="noopener noreferrer" className="text-[#12A5A9] text-xs font-semibold hover:underline">
+              View document →
+            </a>
+          )}
+          {req?.lookupUrl && (
+            <a href={req.lookupUrl} target="_blank" rel="noopener noreferrer" className="text-[#12A5A9] text-xs font-semibold hover:underline">
+              Check official record: {req.lookupLabel} →
+            </a>
+          )}
+          {req && !req.lookupUrl && req.infoUrl && (
+            <a href={req.infoUrl} target="_blank" rel="noopener noreferrer" className="text-white/60 text-xs hover:underline">
+              How to verify →
+            </a>
+          )}
+        </div>
+        {req && !req.lookupUrl && (
+          <p className="text-white/40 text-xs mb-3">No public search for this one. Compare the uploaded document against the issuer&apos;s requirements.</p>
+        )}
+
+        {row.admin_notes && row.status !== 'pending' && (
+          <p className="text-white/60 text-xs mb-3">Note: {row.admin_notes}</p>
+        )}
+
+        {row.status === 'pending' && (
+          <div className="space-y-3">
+            <input
+              type="text"
+              placeholder="Optional note (e.g. reason for rejection)"
+              value={notes[row.id] || ''}
+              onChange={(e) => setNotes({ ...notes, [row.id]: e.target.value })}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
+            />
+            <div className="flex gap-3">
+              <RippleButton
+                onClick={() => handleCredentialDecision(row, 'verified')}
+                disabled={actioningId === row.id}
+                className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
+              >
+                Approve
+              </RippleButton>
+              <button
+                onClick={() => handleCredentialDecision(row, 'rejected')}
+                disabled={actioningId === row.id}
+                className="text-red-400/70 hover:text-red-400 text-xs transition"
+              >
+                Reject
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return (
     <AdminLayout>
       <h1 className="text-2xl font-bold text-white mb-8">Contractor verification</h1>
@@ -194,7 +356,23 @@ export default function AdminContractorsPage() {
           )}
 
           <ScrollReveal>
-            <h2 className="text-white/70 font-semibold text-sm mb-3">Pending ({pending.length})</h2>
+            <h2 className="text-white/70 font-semibold text-sm mb-3">Credentials to review ({pendingCreds.length})</h2>
+            {pendingCreds.length === 0 ? (
+              <p className="text-white/50 text-sm mb-8">No licenses, registrations or insurance waiting on review.</p>
+            ) : (
+              <div className="mb-8">{pendingCreds.map(renderCredential)}</div>
+            )}
+          </ScrollReveal>
+
+          {reviewedCreds.length > 0 && (
+            <ScrollReveal>
+              <h2 className="text-white/70 font-semibold text-sm mb-3">Reviewed credentials ({reviewedCreds.length})</h2>
+              <div className="mb-8">{reviewedCreds.map(renderCredential)}</div>
+            </ScrollReveal>
+          )}
+
+          <ScrollReveal>
+            <h2 className="text-white/70 font-semibold text-sm mb-3">Earlier submissions, pending ({pending.length})</h2>
             {pending.length === 0 ? (
               <p className="text-white/50 text-sm mb-8">Nothing waiting on review.</p>
             ) : (
@@ -203,7 +381,7 @@ export default function AdminContractorsPage() {
           </ScrollReveal>
 
           <ScrollReveal>
-            <h2 className="text-white/70 font-semibold text-sm mb-3">Reviewed ({reviewed.length})</h2>
+            <h2 className="text-white/70 font-semibold text-sm mb-3">Earlier submissions, reviewed ({reviewed.length})</h2>
             {reviewed.length === 0 ? (
               <p className="text-white/50 text-sm">No reviewed submissions yet.</p>
             ) : (

@@ -19,6 +19,7 @@ import { RaiseDisputeButton } from '@/components/RaiseDisputeButton'
 import { UnreadDot } from '@/components/UnreadDot'
 import { getUnreadJobIds } from '@/lib/messageReads'
 import { useJobRealtime } from '@/lib/useJobRealtime'
+import { requirementById } from '@/lib/credentialRequirements'
 import { TIME_WINDOWS, validateScheduleTime, rescheduleLockError } from '@/lib/scheduleWindows'
 
 export default function JobDetailPage() {
@@ -34,6 +35,7 @@ export default function JobDetailPage() {
   const [bids, setBids] = useState<any[]>([])
   const [verifiedContractorIds, setVerifiedContractorIds] = useState<Set<string>>(new Set())
   const [unlicensedContractorIds, setUnlicensedContractorIds] = useState<Set<string>>(new Set())
+  const [credentialBadges, setCredentialBadges] = useState<Record<string, string[]>>({})
   const [ratingSummaries, setRatingSummaries] = useState<Record<string, { avg_rating: number; review_count: number }>>({})
   const [error, setError] = useState<string | null>(null)
   const [actioning, setActioning] = useState(false)
@@ -158,6 +160,22 @@ export default function JobDetailPage() {
             new Set(verifsData.filter((v) => v.status === 'unlicensed').map((v) => v.contractor_user_id))
           )
         }
+
+        // Only credentials an admin verified, and that haven't expired.
+        const { data: credData } = await supabase
+          .from('contractor_credentials')
+          .select('contractor_user_id, requirement_id, expiry')
+          .eq('status', 'verified')
+          .in('contractor_user_id', bidsData.map((b) => b.contractor_user_id))
+
+        const badges: Record<string, string[]> = {}
+        for (const c of credData || []) {
+          if (c.expiry && new Date(c.expiry + 'T00:00:00').getTime() < Date.now()) continue
+          const label = requirementById(c.requirement_id)?.badge
+          if (!label) continue
+          ;(badges[c.contractor_user_id] ||= []).push(label)
+        }
+        setCredentialBadges(badges)
 
         const uniqueContractorIds = Array.from(new Set(bidsData.map((b) => b.contractor_user_id)))
         const summaries = await Promise.all(
@@ -826,12 +844,17 @@ export default function JobDetailPage() {
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <p className="text-white font-semibold">{bid.contractor?.full_name || 'Unknown contractor'}</p>
-                        {verifiedContractorIds.has(bid.contractor_user_id) && (
+                        {(credentialBadges[bid.contractor_user_id] || []).map((label) => (
+                          <span key={label} className="text-xs bg-[#0A7B7E]/20 text-[#12A5A9] rounded-full px-2 py-0.5 font-semibold">
+                            {label} ✓
+                          </span>
+                        ))}
+                        {verifiedContractorIds.has(bid.contractor_user_id) && !credentialBadges[bid.contractor_user_id]?.length && (
                           <span className="text-xs bg-[#0A7B7E]/20 text-[#12A5A9] rounded-full px-2 py-0.5 font-semibold">
                             Verified ✓
                           </span>
                         )}
-                        {unlicensedContractorIds.has(bid.contractor_user_id) && (
+                        {unlicensedContractorIds.has(bid.contractor_user_id) && !credentialBadges[bid.contractor_user_id]?.length && (
                           <span className="text-xs bg-yellow-500/15 text-yellow-400 border border-yellow-500/30 rounded-full px-2 py-0.5 font-semibold">
                             No license on file
                           </span>
@@ -876,12 +899,17 @@ export default function JobDetailPage() {
               <div>
                 <div className="flex items-center gap-2">
                   <p className="text-white font-semibold">{acceptedBid.contractor?.full_name}</p>
-                  {verifiedContractorIds.has(acceptedBid.contractor_user_id) && (
+                  {(credentialBadges[acceptedBid.contractor_user_id] || []).map((label) => (
+                    <span key={label} className="text-xs bg-[#0A7B7E]/20 text-[#12A5A9] rounded-full px-2 py-0.5 font-semibold">
+                      {label} ✓
+                    </span>
+                  ))}
+                  {verifiedContractorIds.has(acceptedBid.contractor_user_id) && !credentialBadges[acceptedBid.contractor_user_id]?.length && (
                     <span className="text-xs bg-[#0A7B7E]/20 text-[#12A5A9] rounded-full px-2 py-0.5 font-semibold">
                       Verified ✓
                     </span>
                   )}
-                  {unlicensedContractorIds.has(acceptedBid.contractor_user_id) && (
+                  {unlicensedContractorIds.has(acceptedBid.contractor_user_id) && !credentialBadges[acceptedBid.contractor_user_id]?.length && (
                     <span className="text-xs bg-yellow-500/15 text-yellow-400 border border-yellow-500/30 rounded-full px-2 py-0.5 font-semibold">
                       No license on file
                     </span>

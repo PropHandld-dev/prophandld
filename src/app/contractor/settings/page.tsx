@@ -11,6 +11,7 @@ import { RippleButton } from '@/components/RippleButton'
 import { CheckCircleIcon } from '@/components/icons'
 import { CONTRACTOR_TABS } from '@/lib/navTabs'
 import { StripeConnectCard } from '@/components/StripeConnectCard'
+import { ContractorCredentials } from '@/components/ContractorCredentials'
 import { Switch } from '@/components/Switch'
 import { useCategoryOptions, saveCustomCategory } from '@/lib/categories'
 
@@ -28,34 +29,8 @@ export default function ContractorSettingsPage() {
   const [categoryOptions, addCategoryOption] = useCategoryOptions()
 
   const [userId, setUserId] = useState<string | null>(null)
-  const [verification, setVerification] = useState<any>(null)
+  const [credentialsKey, setCredentialsKey] = useState(0)
   const [ratingSummary, setRatingSummary] = useState<{ avg_rating: number; review_count: number } | null>(null)
-  const [verifSaving, setVerifSaving] = useState(false)
-  const [verifError, setVerifError] = useState<string | null>(null)
-  const [verifSuccess, setVerifSuccess] = useState<string | null>(null)
-  const [licenseNumber, setLicenseNumber] = useState('')
-  const [licenseExpiry, setLicenseExpiry] = useState('')
-  const [insuranceExpiry, setInsuranceExpiry] = useState('')
-  const [licenseFile, setLicenseFile] = useState<File | null>(null)
-  const [insuranceFile, setInsuranceFile] = useState<File | null>(null)
-  const [hasCredentials, setHasCredentials] = useState<'yes' | 'no'>('yes')
-
-  const loadVerification = async (uid: string) => {
-    const { data: verifData } = await supabase
-      .from('contractor_verifications')
-      .select('*')
-      .eq('contractor_user_id', uid)
-      .maybeSingle()
-
-    if (verifData) {
-      setVerification(verifData)
-      setLicenseNumber(verifData.license_number || '')
-      setLicenseExpiry(verifData.license_expiry || '')
-      setInsuranceExpiry(verifData.insurance_expiry || '')
-      if (verifData.status === 'unlicensed') setHasCredentials('no')
-    }
-  }
-
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -77,8 +52,6 @@ export default function ContractorSettingsPage() {
         setRadiusMiles(profileData.service_radius_miles || 25)
         setLicensed(profileData.licensed || false)
       }
-
-      await loadVerification(user.id)
 
       const { data: summary } = await supabase
         .rpc('get_contractor_rating_summary', { target_contractor_id: user.id })
@@ -155,139 +128,8 @@ export default function ContractorSettingsPage() {
     }
 
     setSuccess('Profile saved. You\'ll now see matching jobs on your dashboard.')
+    setCredentialsKey((k) => k + 1)
     setSaving(false)
-  }
-
-  const handleVerificationSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!userId) return
-
-    if (hasCredentials === 'no') {
-      setVerifSaving(true)
-      setVerifError(null)
-      setVerifSuccess(null)
-
-      const { error: upsertError } = await supabase
-        .from('contractor_verifications')
-        .upsert(
-          {
-            contractor_user_id: userId,
-            license_number: null,
-            license_expiry: null,
-            license_document_url: null,
-            insurance_document_url: null,
-            insurance_expiry: null,
-            status: 'unlicensed',
-            admin_notes: null,
-            reviewed_by: null,
-            reviewed_at: null,
-          },
-          { onConflict: 'contractor_user_id' }
-        )
-
-      if (upsertError) {
-        console.error('Error saving verification:', upsertError)
-        setVerifError(`Could not save: ${upsertError.message}`)
-        setVerifSaving(false)
-        return
-      }
-
-      setVerifSuccess("Saved. Landlords will see that you don't have license/insurance on file.")
-      await loadVerification(userId)
-      setVerifSaving(false)
-      return
-    }
-
-    if (!licenseNumber.trim()) {
-      setVerifError('Enter your license number.')
-      return
-    }
-    if (!verification?.license_document_url && !licenseFile) {
-      setVerifError('Upload a license document.')
-      return
-    }
-    if (!verification?.insurance_document_url && !insuranceFile) {
-      setVerifError('Upload an insurance document.')
-      return
-    }
-
-    setVerifSaving(true)
-    setVerifError(null)
-    setVerifSuccess(null)
-
-    let licenseDocUrl = verification?.license_document_url || null
-    let insuranceDocUrl = verification?.insurance_document_url || null
-
-    if (licenseFile) {
-      const ext = licenseFile.name.split('.').pop()
-      const path = `${userId}/license-${crypto.randomUUID()}.${ext}`
-      const { error: uploadError } = await supabase.storage
-        .from('contractor-documents')
-        .upload(path, licenseFile)
-
-      if (uploadError) {
-        console.error('Error uploading license doc:', uploadError)
-        setVerifError(`Could not upload license document: ${uploadError.message}`)
-        setVerifSaving(false)
-        return
-      }
-      licenseDocUrl = path
-    }
-
-    if (insuranceFile) {
-      const ext = insuranceFile.name.split('.').pop()
-      const path = `${userId}/insurance-${crypto.randomUUID()}.${ext}`
-      const { error: uploadError } = await supabase.storage
-        .from('contractor-documents')
-        .upload(path, insuranceFile)
-
-      if (uploadError) {
-        console.error('Error uploading insurance doc:', uploadError)
-        setVerifError(`Could not upload insurance document: ${uploadError.message}`)
-        setVerifSaving(false)
-        return
-      }
-      insuranceDocUrl = path
-    }
-
-    const { error: upsertError } = await supabase
-      .from('contractor_verifications')
-      .upsert(
-        {
-          contractor_user_id: userId,
-          license_number: licenseNumber.trim(),
-          license_expiry: licenseExpiry || null,
-          license_document_url: licenseDocUrl,
-          insurance_document_url: insuranceDocUrl,
-          insurance_expiry: insuranceExpiry || null,
-          status: 'pending',
-          reviewed_by: null,
-          reviewed_at: null,
-        },
-        { onConflict: 'contractor_user_id' }
-      )
-
-    if (upsertError) {
-      console.error('Error saving verification:', upsertError)
-      setVerifError(`Could not save verification info: ${upsertError.message}`)
-      setVerifSaving(false)
-      return
-    }
-
-    setLicenseFile(null)
-    setInsuranceFile(null)
-    setVerifSuccess('Submitted for review.')
-    await loadVerification(userId)
-    setVerifSaving(false)
-  }
-
-  const verificationStatusBadge = () => {
-    const status = verification?.status
-    if (!status) return { label: 'Not submitted', className: 'bg-white/8 text-white/50', icon: false }
-    if (status === 'pending') return { label: 'Pending review', className: 'bg-yellow-500/15 text-yellow-400', icon: false }
-    if (status === 'verified') return { label: 'Verified', className: 'bg-[#0A7B7E]/20 text-[#12A5A9]', icon: true }
-    if (status === 'unlicensed') return { label: 'No license on file', className: 'bg-white/8 text-white/50', icon: false }
-    return { label: 'Rejected, resubmit', className: 'bg-red-500/15 text-red-400', icon: false }
   }
 
   return (
@@ -422,157 +264,7 @@ export default function ContractorSettingsPage() {
           </ScrollReveal>
         )}
 
-        <ScrollReveal className="mt-10 pt-8 border-t border-white/8">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-white font-semibold">Verification</h2>
-            <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${verificationStatusBadge().className}`}>
-              {verificationStatusBadge().icon && <CheckCircleIcon className="w-3 h-3" />}
-              {verificationStatusBadge().label}
-            </span>
-          </div>
-          <p className="text-white/50 text-sm mb-6">
-            Landlords can see whether you're licensed and insured before selecting a bid. If you
-            don't have documentation to share yet, that's fine. Just let them know.
-          </p>
-
-          {verification?.status === 'rejected' && verification.admin_notes && (
-            <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm mb-4">
-              Reviewer note: {verification.admin_notes}
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <button
-              type="button"
-              onClick={() => setHasCredentials('yes')}
-              className={
-                hasCredentials === 'yes'
-                  ? 'bg-[#0A7B7E]/15 border border-[#12A5A9]/40 rounded-xl px-4 py-3 text-white text-sm font-medium text-left'
-                  : 'bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white/50 text-sm font-medium text-left hover:bg-white/8 transition'
-              }
-            >
-              I have a license & insurance
-            </button>
-            <button
-              type="button"
-              onClick={() => setHasCredentials('no')}
-              className={
-                hasCredentials === 'no'
-                  ? 'bg-[#0A7B7E]/15 border border-[#12A5A9]/40 rounded-xl px-4 py-3 text-white text-sm font-medium text-left'
-                  : 'bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white/50 text-sm font-medium text-left hover:bg-white/8 transition'
-              }
-            >
-              Not yet / not applicable
-            </button>
-          </div>
-
-          <form onSubmit={handleVerificationSubmit} className="space-y-4">
-            {hasCredentials === 'yes' ? (
-              <>
-                <div>
-                  <label className="text-white/70 text-sm block mb-1">License number</label>
-                  <input
-                    type="text"
-                    value={licenseNumber}
-                    onChange={(e) => setLicenseNumber(e.target.value)}
-                    placeholder="e.g. PA-123456"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-white/70 text-sm block mb-1">License expiry</label>
-                    <input
-                      type="date"
-                      value={licenseExpiry}
-                      onChange={(e) => setLicenseExpiry(e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-white/70 text-sm block mb-1">Insurance expiry</label>
-                    <input
-                      type="date"
-                      value={insuranceExpiry}
-                      onChange={(e) => setInsuranceExpiry(e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-white/70 text-sm block mb-1">License document</label>
-                  <label className="block">
-                    <input
-                      type="file"
-                      accept=".pdf,.jpg,.jpeg,.png"
-                      onChange={(e) => setLicenseFile(e.target.files?.[0] || null)}
-                      className="hidden"
-                    />
-                    <span className="inline-block bg-white/8 text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-white/12 transition cursor-pointer">
-                      {licenseFile ? licenseFile.name : verification?.license_document_url ? 'Replace file' : '+ Choose file'}
-                    </span>
-                  </label>
-                  {!licenseFile && verification?.license_document_url && (
-                    <p className="text-white/50 text-xs mt-1">On file</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="text-white/70 text-sm block mb-1">Insurance document</label>
-                  <label className="block">
-                    <input
-                      type="file"
-                      accept=".pdf,.jpg,.jpeg,.png"
-                      onChange={(e) => setInsuranceFile(e.target.files?.[0] || null)}
-                      className="hidden"
-                    />
-                    <span className="inline-block bg-white/8 text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-white/12 transition cursor-pointer">
-                      {insuranceFile ? insuranceFile.name : verification?.insurance_document_url ? 'Replace file' : '+ Choose file'}
-                    </span>
-                  </label>
-                  {!insuranceFile && verification?.insurance_document_url && (
-                    <p className="text-white/50 text-xs mt-1">On file</p>
-                  )}
-                </div>
-              </>
-            ) : (
-              <div className="bg-white/3 border border-white/8 rounded-xl px-4 py-3">
-                <p className="text-white/50 text-sm">
-                  Landlords will see that you don't have a license or insurance on file. You can
-                  still bid on jobs. Some landlords are fine hiring unlicensed contractors for
-                  smaller work.
-                </p>
-              </div>
-            )}
-
-            {verifError && (
-              <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">
-                {verifError}
-              </div>
-            )}
-            {verifSuccess && (
-              <div className="bg-[#0A7B7E]/15 border border-[#12A5A9]/30 rounded-xl px-4 py-3 text-[#12A5A9] text-sm">
-                {verifSuccess}
-              </div>
-            )}
-
-            <RippleButton
-              type="submit"
-              disabled={verifSaving}
-              className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
-            >
-              {verifSaving
-                ? 'Saving...'
-                : hasCredentials === 'no'
-                  ? 'Save'
-                  : verification?.status === 'rejected'
-                    ? 'Resubmit for review'
-                    : 'Submit for review'}
-            </RippleButton>
-          </form>
-        </ScrollReveal>
+        {userId && <ContractorCredentials key={credentialsKey} userId={userId} />}
 
         <div className="mt-10 pt-8 border-t border-white/8">
           <StripeConnectCard purpose="jobs" />

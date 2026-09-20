@@ -93,12 +93,17 @@ export default function ContractorDashboard() {
 
       setConnectStatus((profileData.stripe_connect_status as any) || 'not_started')
 
-      const { data: verificationData } = await supabase
-        .from('contractor_verifications')
-        .select('status')
-        .eq('contractor_user_id', user.id)
-        .maybeSingle()
-      setVerificationStatus(verificationData?.status ?? null)
+      const [{ data: credentialRows }, { data: verificationData }] = await Promise.all([
+        supabase.from('contractor_credentials').select('status').eq('contractor_user_id', user.id),
+        supabase.from('contractor_verifications').select('status').eq('contractor_user_id', user.id).maybeSingle(),
+      ])
+      const credentialStatuses = (credentialRows || []).map((c) => c.status)
+      setVerificationStatus(
+        credentialStatuses.includes('verified') ? 'verified'
+          : credentialStatuses.includes('pending') ? 'pending'
+          : credentialStatuses.includes('rejected') ? 'rejected'
+          : verificationData?.status ?? null
+      )
 
       try {
         const jobsRes = await fetch('/api/contractor/available-jobs')
