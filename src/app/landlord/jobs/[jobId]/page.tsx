@@ -94,40 +94,54 @@ export default function JobDetailPage() {
       }
     }
 
-    const { data: reporterData } = await supabase
-      .rpc('get_user_by_id', { user_id_input: jobData.reported_by })
-      .maybeSingle()
-
-    setJob({ ...jobData, reporter: reporterData })
-
-    const { data: photosData, error: photosError } = await supabase
-      .from('job_photos')
-      .select('*')
-      .eq('job_id', jobId)
-      .order('created_at', { ascending: false })
-
-    if (photosError) {
-      console.error('Error loading photos:', photosError)
-    } else if (photosData && photosData.length > 0) {
-      const enriched = await Promise.all(
-        photosData.map(async (photo) => {
-          const { data: uploaderData } = await supabase
-            .rpc('get_user_by_id', { user_id_input: photo.uploaded_by })
-            .maybeSingle()
-
-          const { data: signedUrlData } = await supabase.storage
-            .from('job-photos')
-            .createSignedUrl(photo.photo_url, 3600)
-
-          return { ...photo, uploader: uploaderData, displayUrl: signedUrlData?.signedUrl }
-        })
-      )
-      setPhotos(enriched)
-    } else {
-      setPhotos([])
+    // The reporter, the photos and the bids don't depend on each other, so
+    // they load together instead of one after another. People are looked up
+    // once each (not once per photo or per bid).
+    const personCache = new Map<string, Promise<any>>()
+    const person = (id: string | null | undefined) => {
+      if (!id) return Promise.resolve(null)
+      if (!personCache.has(id)) {
+        personCache.set(
+          id,
+          Promise.resolve(supabase.rpc('get_user_by_id', { user_id_input: id }).maybeSingle()).then((r) => r.data)
+        )
+      }
+      return personCache.get(id)!
     }
 
-    if (['bidding', 'bid_selected', 'scheduled', 'in_progress', 'pending_review', 'completed', 'archived'].includes(jobData.status)) {
+    const loadReporter = async () => {
+      const reporter = await person(jobData.reported_by)
+      setJob({ ...jobData, reporter })
+    }
+
+    const loadPhotos = async () => {
+      const { data: photosData, error: photosError } = await supabase
+        .from('job_photos')
+        .select('*')
+        .eq('job_id', jobId)
+        .order('created_at', { ascending: false })
+
+      if (photosError) {
+        console.error('Error loading photos:', photosError)
+      } else if (photosData && photosData.length > 0) {
+        const enriched = await Promise.all(
+          photosData.map(async (photo) => {
+            const [uploader, { data: signedUrlData }] = await Promise.all([
+              person(photo.uploaded_by),
+              supabase.storage.from('job-photos').createSignedUrl(photo.photo_url, 3600),
+            ])
+            return { ...photo, uploader, displayUrl: signedUrlData?.signedUrl }
+          })
+        )
+        setPhotos(enriched)
+      } else {
+        setPhotos([])
+      }
+    }
+
+    const loadBids = async () => {
+      if (!['bidding', 'bid_selected', 'scheduled', 'in_progress', 'pending_review', 'completed', 'archived'].includes(jobData.status)) return
+
       const { data: bidsData, error: bidsError } = await supabase
         .from('bids')
         .select('*')
@@ -136,63 +150,63 @@ export default function JobDetailPage() {
 
       if (bidsError) {
         console.error('Error loading bids:', bidsError)
-      } else if (bidsData) {
-        const enrichedBids = await Promise.all(
-          bidsData.map(async (bid) => {
-            const { data: contractorData } = await supabase
-              .rpc('get_user_by_id', { user_id_input: bid.contractor_user_id })
-              .maybeSingle()
-            return { ...bid, contractor: contractorData }
-          })
-        )
-        setBids(enrichedBids)
+        return
+      }
+      if (!bidsData) return
 
-        const { data: verifsData } = await supabase
+      const uniqueContractorIds = Array.from(new Set(bidsData.map((b) => b.contractor_user_id)))
+
+      const [contractors, { data: verifsData }, { data: credData }, summaries] = await Promise.all([
+        Promise.all(uniqueContractorIds.map((id) => person(id))),
+        supabase
           .from('contractor_verifications')
           .select('contractor_user_id, status')
-          .in('contractor_user_id', bidsData.map((b) => b.contractor_user_id))
-
-        if (verifsData) {
-          setVerifiedContractorIds(
-            new Set(verifsData.filter((v) => v.status === 'verified').map((v) => v.contractor_user_id))
-          )
-          setUnlicensedContractorIds(
-            new Set(verifsData.filter((v) => v.status === 'unlicensed').map((v) => v.contractor_user_id))
-          )
-        }
-
+          .in('contractor_user_id', uniqueContractorIds),
         // Only credentials an admin verified, and that haven't expired.
-        const { data: credData } = await supabase
+        supabase
           .from('contractor_credentials')
           .select('contractor_user_id, requirement_id, expiry')
           .eq('status', 'verified')
-          .in('contractor_user_id', bidsData.map((b) => b.contractor_user_id))
-
-        const badges: Record<string, string[]> = {}
-        for (const c of credData || []) {
-          if (c.expiry && new Date(c.expiry + 'T00:00:00').getTime() < Date.now()) continue
-          const label = requirementById(c.requirement_id)?.badge
-          if (!label) continue
-          ;(badges[c.contractor_user_id] ||= []).push(label)
-        }
-        setCredentialBadges(badges)
-
-        const uniqueContractorIds = Array.from(new Set(bidsData.map((b) => b.contractor_user_id)))
-        const summaries = await Promise.all(
+          .in('contractor_user_id', uniqueContractorIds),
+        Promise.all(
           uniqueContractorIds.map(async (contractorId) => {
             const { data } = await supabase
               .rpc('get_contractor_rating_summary', { target_contractor_id: contractorId })
               .maybeSingle()
             return [contractorId, data as { avg_rating: number; review_count: number } | null] as const
           })
+        ),
+      ])
+
+      const contractorById = new Map(uniqueContractorIds.map((id, i) => [id, contractors[i]]))
+      setBids(bidsData.map((bid) => ({ ...bid, contractor: contractorById.get(bid.contractor_user_id) })))
+
+      if (verifsData) {
+        setVerifiedContractorIds(
+          new Set(verifsData.filter((v) => v.status === 'verified').map((v) => v.contractor_user_id))
         )
-        const summaryMap: Record<string, { avg_rating: number; review_count: number }> = {}
-        summaries.forEach(([contractorId, data]) => {
-          if (data && data.review_count > 0) summaryMap[contractorId] = data
-        })
-        setRatingSummaries(summaryMap)
+        setUnlicensedContractorIds(
+          new Set(verifsData.filter((v) => v.status === 'unlicensed').map((v) => v.contractor_user_id))
+        )
       }
+
+      const badges: Record<string, string[]> = {}
+      for (const c of credData || []) {
+        if (c.expiry && new Date(c.expiry + 'T00:00:00').getTime() < Date.now()) continue
+        const label = requirementById(c.requirement_id)?.badge
+        if (!label) continue
+        ;(badges[c.contractor_user_id] ||= []).push(label)
+      }
+      setCredentialBadges(badges)
+
+      const summaryMap: Record<string, { avg_rating: number; review_count: number }> = {}
+      summaries.forEach(([contractorId, data]) => {
+        if (data && data.review_count > 0) summaryMap[contractorId] = data
+      })
+      setRatingSummaries(summaryMap)
     }
+
+    await Promise.all([loadReporter(), loadPhotos(), loadBids()])
 
     setLoading(false)
   }

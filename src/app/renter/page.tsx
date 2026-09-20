@@ -67,57 +67,29 @@ export default function RenterDashboard() {
         return
       }
 
-      const { data: unitData } = await supabase
-        .from('units')
-        .select('*')
-        .eq('id', tenancyData.unit_id)
-        .maybeSingle()
+      // The unit (with its property) and this unit's open jobs only need the
+      // lease we already have, so they load together instead of one at a
+      // time; contacts and the landlord's backup contacts then load together.
+      const [{ data: unitData }, jobsResult] = await Promise.all([
+        supabase.from('units').select('*, properties(*)').eq('id', tenancyData.unit_id).maybeSingle(),
+        supabase
+          .from('jobs')
+          .select('*')
+          .eq('unit_id', tenancyData.unit_id)
+          .not('status', 'in', '(completed,archived,declined)')
+          .order('created_at', { ascending: false }),
+      ])
 
       if (!unitData) {
         setContactsLoading(false)
         setJobsLoading(false)
         return
       }
-      setUnit(unitData)
+      const { properties: propertyData, ...unitRow } = unitData as any
+      setUnit(unitRow)
+      if (propertyData) setProperty(propertyData)
 
-      const { data: propertyData } = await supabase
-        .from('properties')
-        .select('*')
-        .eq('id', unitData.property_id)
-        .maybeSingle()
-
-      if (propertyData) {
-        setProperty(propertyData)
-        if (propertyData.owner_user_id) {
-          const { data: backupData } = await supabase
-            .from('personal_emergency_contacts')
-            .select('*')
-            .eq('user_id', propertyData.owner_user_id)
-          setLandlordBackupContacts(backupData || [])
-        }
-      }
-
-      const { data: contactsData, error: contactsError } = await supabase
-        .from('contacts')
-        .select('*')
-        .eq('property_id', unitData.property_id)
-        .or(`unit_id.is.null,unit_id.eq.${unitData.id}`)
-        .order('created_at', { ascending: false })
-
-      if (contactsError) {
-        console.error('Error loading contacts:', contactsError)
-      } else {
-        setContacts(contactsData || [])
-      }
-      setContactsLoading(false)
-
-      const { data: jobsData, error: jobsError } = await supabase
-        .from('jobs')
-        .select('*')
-        .eq('unit_id', unitData.id)
-        .not('status', 'in', '(completed,archived,declined)')
-        .order('created_at', { ascending: false })
-
+      const { jobsData, jobsError } = { jobsData: jobsResult.data, jobsError: jobsResult.error }
       if (jobsError) {
         console.error('Error loading jobs:', jobsError)
       } else {
@@ -133,8 +105,27 @@ export default function RenterDashboard() {
           )
         )
       }
-
       setJobsLoading(false)
+
+      const [contactsResult, backupResult] = await Promise.all([
+        supabase
+          .from('contacts')
+          .select('*')
+          .eq('property_id', unitRow.property_id)
+          .or(`unit_id.is.null,unit_id.eq.${unitRow.id}`)
+          .order('created_at', { ascending: false }),
+        propertyData?.owner_user_id
+          ? supabase.from('personal_emergency_contacts').select('*').eq('user_id', propertyData.owner_user_id)
+          : Promise.resolve({ data: [] as any[] }),
+      ])
+
+      if (contactsResult.error) {
+        console.error('Error loading contacts:', contactsResult.error)
+      } else {
+        setContacts(contactsResult.data || [])
+      }
+      setLandlordBackupContacts(backupResult.data || [])
+      setContactsLoading(false)
     }
     getUser()
   }, [router])

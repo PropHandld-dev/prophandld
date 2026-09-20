@@ -83,11 +83,17 @@ export default function LandlordDashboard() {
 
       const propertyIds = propertyList.map((p) => p.id)
 
-      const { data: complianceItemsData } = await supabase
-        .from('compliance_items')
-        .select('*, properties(address, city)')
-        .in('property_id', propertyIds)
-        .not('expiry_date', 'is', null)
+      // The dashboard used to run 20+ queries one after another, each waiting
+      // on the last. Almost none depend on each other, so they run together
+      // in rounds — only what genuinely needs an earlier result waits for it.
+      const [{ data: complianceItemsData }, { data: unitsData }] = await Promise.all([
+        supabase
+          .from('compliance_items')
+          .select('*, properties(address, city)')
+          .in('property_id', propertyIds)
+          .not('expiry_date', 'is', null),
+        supabase.from('units').select('*').in('property_id', propertyIds),
+      ])
 
       const today = new Date()
       today.setHours(0, 0, 0, 0)
@@ -98,230 +104,147 @@ export default function LandlordDashboard() {
         return daysUntil <= reminderDays
       })
 
-      const { data: unitsData } = await supabase
-        .from('units')
-        .select('*')
-        .in('property_id', propertyIds)
-
       const unitList = unitsData || []
       const unitIds = unitList.map((u) => u.id)
+      const none = Promise.resolve({ data: [] as any[] })
+      const jobSelect = '*, units(unit_number, properties(address, city))'
 
-      let tenancyList: any[] = []
-      if (unitIds.length > 0) {
-        const { data: tenanciesData } = await supabase
-          .from('tenancies')
-          .select('id, unit_id, rent_amount')
-          .in('unit_id', unitIds)
-          .eq('ended', false)
+      // One query for every job that's still live (previously nine separate
+      // queries against the same table, one per status), and a capped one
+      // for recently finished jobs (only used for "rate this contractor").
+      const [tenanciesRes, openJobsRes, completedRes, invitesRes] = await Promise.all([
+        unitIds.length > 0
+          ? supabase.from('tenancies').select('id, unit_id, rent_amount').in('unit_id', unitIds).eq('ended', false)
+          : none,
+        unitIds.length > 0
+          ? supabase
+              .from('jobs')
+              .select(jobSelect)
+              .in('unit_id', unitIds)
+              .not('status', 'in', '(completed,archived,declined)')
+              .order('created_at', { ascending: false })
+          : none,
+        unitIds.length > 0
+          ? supabase
+              .from('jobs')
+              .select(jobSelect)
+              .in('unit_id', unitIds)
+              .in('status', ['completed', 'archived'])
+              .order('created_at', { ascending: false })
+              .limit(100)
+          : none,
+        unitIds.length > 0
+          ? supabase
+              .from('tenancy_invites')
+              .select('*, units(unit_number, property_id, properties(address, city))')
+              .in('unit_id', unitIds)
+              .eq('status', 'pending')
+          : none,
+      ])
 
-        tenancyList = tenanciesData || []
-      }
+      const tenancyList: any[] = tenanciesRes.data || []
+      const openJobs: any[] = openJobsRes.data || []
+      const completedJobs: any[] = completedRes.data || []
+      const pendingInvitesList: any[] = invitesRes.data || []
 
       const occupiedUnitIds = new Set(tenancyList.map((t) => t.unit_id))
       const monthlyRentRoll = tenancyList.reduce((sum, t) => sum + (t.rent_amount || 0), 0)
 
-      let rentAlertsList: any[] = []
+      const thisMonthStart = new Date()
+      thisMonthStart.setDate(1)
+      thisMonthStart.setHours(0, 0, 0, 0)
+      // Only the last year is scanned for overdue rent, so this stays a
+      // fixed size instead of growing with every month the tenancy exists.
+      const rentWindowStart = new Date(thisMonthStart.getFullYear(), thisMonthStart.getMonth() - 12, 1)
+      const rentWindowKey = `${rentWindowStart.getFullYear()}-${String(rentWindowStart.getMonth() + 1).padStart(2, '0')}-01`
+
       const tenancyIds = tenancyList.map((t) => t.id)
-      if (tenancyIds.length > 0) {
-        const { data: rentPaymentsData } = await supabase
-          .from('rent_payments')
-          .select('*')
-          .in('tenancy_id', tenancyIds)
+      const openJobIds = openJobs.map((j) => j.id)
 
-        const thisMonthStart = new Date()
-        thisMonthStart.setDate(1)
-        thisMonthStart.setHours(0, 0, 0, 0)
+      const [rentRes, bidsRes, reviewsRes] = await Promise.all([
+        tenancyIds.length > 0
+          ? supabase
+              .from('rent_payments')
+              .select('id, tenancy_id, month, expected_amount, actual_amount')
+              .in('tenancy_id', tenancyIds)
+              .gte('month', rentWindowKey)
+          : none,
+        openJobIds.length > 0
+          ? supabase
+              .from('bids')
+              .select('job_id, contractor_user_id, status, price_change_status')
+              .in('job_id', openJobIds)
+          : none,
+        completedJobs.length > 0
+          ? supabase
+              .from('contractor_reviews')
+              .select('job_id')
+              .eq('reviewer_user_id', user.id)
+              .in('job_id', completedJobs.map((j) => j.id))
+          : none,
+      ])
 
-        rentAlertsList = (rentPaymentsData || [])
-          .filter((rp) => {
-            const monthDate = new Date(rp.month + 'T00:00:00')
-            const actual = rp.actual_amount || 0
-            return monthDate <= thisMonthStart && actual < (rp.expected_amount || 0)
-          })
-          .map((rp) => {
-            const tenancyForPayment = tenancyList.find((t) => t.id === rp.tenancy_id)
-            const unitForPayment = unitList.find((u) => u.id === tenancyForPayment?.unit_id)
-            const propertyForPayment = propertyList.find((p) => p.id === unitForPayment?.property_id)
-            return { ...rp, unit: unitForPayment, property: propertyForPayment }
-          })
-      }
+      const rentAlertsList = ((rentRes.data as any[]) || [])
+        .filter((rp) => {
+          const monthDate = new Date(rp.month + 'T00:00:00')
+          const actual = rp.actual_amount || 0
+          return monthDate <= thisMonthStart && actual < (rp.expected_amount || 0)
+        })
+        .map((rp) => {
+          const tenancyForPayment = tenancyList.find((t) => t.id === rp.tenancy_id)
+          const unitForPayment = unitList.find((u) => u.id === tenancyForPayment?.unit_id)
+          const propertyForPayment = propertyList.find((p) => p.id === unitForPayment?.property_id)
+          return { ...rp, unit: unitForPayment, property: propertyForPayment }
+        })
 
-      let needsApprovalCount = 0
-      let inProgressCount = 0
-      let biddingJobsWithBids: any[] = []
-      let newIssuesList: any[] = []
-      let readyToBidList: any[] = []
-      let priceChangeRequestsList: any[] = []
-      let scheduleProposalsList: any[] = []
-      let pendingReviewList: any[] = []
-      let confirmedSchedulesList: any[] = []
-      let needsRatingList: any[] = []
-      let pendingInvitesList: any[] = []
+      // Everything below is sorting the jobs already loaded, no more queries.
+      const bids: any[] = (bidsRes.data as any[]) || []
+      const byStatus = (...statuses: string[]) => openJobs.filter((j) => statuses.includes(j.status))
 
-      if (unitIds.length > 0) {
-        // "Needs action" covers jobs awaiting acknowledgment (pending_approval)
-        // AND jobs already approved but not yet opened to bidding (e.g. ones
-        // the landlord created directly, which skip pending_approval entirely).
-        const { count: approvalCount } = await supabase
-          .from('jobs')
-          .select('*', { count: 'exact', head: true })
-          .in('unit_id', unitIds)
-          .in('status', ['pending_approval', 'approved'])
+      const needsApprovalCount = byStatus('pending_approval', 'approved').length
+      const inProgressCount = byStatus('approved', 'bidding', 'bid_selected', 'scheduled', 'in_progress', 'pending_review').length
+      const newIssuesList = byStatus('pending_approval')
+      const readyToBidList = byStatus('approved')
 
-        needsApprovalCount = approvalCount || 0
+      const priceChangeJobIds = new Set(
+        bids.filter((b) => b.status === 'accepted' && b.price_change_status === 'pending').map((b) => b.job_id)
+      )
+      const priceChangeRequestsList = byStatus('bid_selected', 'scheduled', 'in_progress').filter((j) => priceChangeJobIds.has(j.id))
 
-        const { count: progressCount } = await supabase
-          .from('jobs')
-          .select('*', { count: 'exact', head: true })
-          .in('unit_id', unitIds)
-          .in('status', ['approved', 'bidding', 'bid_selected', 'scheduled', 'in_progress', 'pending_review'])
+      const scheduleProposalsList = openJobs.filter(
+        (j) => j.proposed_date && j.schedule_confirmed === false && j.proposed_by && j.proposed_by !== 'landlord'
+      )
+      const confirmedSchedulesList = openJobs.filter((j) => j.status === 'scheduled' && j.schedule_confirmed === true)
+      const pendingReviewList = byStatus('pending_review')
 
-        inProgressCount = progressCount || 0
+      const reviewedJobIds = new Set(((reviewsRes.data as any[]) || []).map((r) => r.job_id))
+      const needsRatingList = completedJobs.filter((j) => !reviewedJobIds.has(j.id))
 
-        // Jobs newly reported, awaiting acknowledgment
-        const { data: newJobs } = await supabase
-          .from('jobs')
-          .select('*, units(unit_number, properties(address, city))')
-          .in('unit_id', unitIds)
-          .eq('status', 'pending_approval')
-          .order('created_at', { ascending: false })
+      // Only bids still open count, so a job reopened after a contractor
+      // cancelled doesn't show its old declined bids as "N bids".
+      const openBidCounts = new Map<string, number>()
+      bids.filter((b) => b.status === 'pending').forEach((b) => {
+        openBidCounts.set(b.job_id, (openBidCounts.get(b.job_id) || 0) + 1)
+      })
+      const biddingJobsWithBids = byStatus('bidding')
+        .map((job) => ({ ...job, bidCount: openBidCounts.get(job.id) || 0 }))
+        .filter((job) => job.bidCount > 0)
 
-        newIssuesList = newJobs || []
-
-        // Jobs already approved (e.g. landlord-created) but not yet opened to bidding
-        const { data: readyToBidJobs } = await supabase
-          .from('jobs')
-          .select('*, units(unit_number, properties(address, city))')
-          .in('unit_id', unitIds)
-          .eq('status', 'approved')
-          .order('created_at', { ascending: false })
-
-        readyToBidList = readyToBidJobs || []
-
-        // Jobs where the contractor requested a price change, awaiting landlord approval
-        const { data: activeJobsForPriceCheck } = await supabase
-          .from('jobs')
-          .select('*, units(unit_number, properties(address, city))')
-          .in('unit_id', unitIds)
-          .in('status', ['bid_selected', 'scheduled', 'in_progress'])
-
-        const candidateJobs = activeJobsForPriceCheck || []
-        if (candidateJobs.length > 0) {
-          const candidateJobIds = candidateJobs.map((j) => j.id)
-          const { data: pendingPriceBids } = await supabase
-            .from('bids')
-            .select('job_id, price_change_labor, price_change_parts, price_change_reason')
-            .in('job_id', candidateJobIds)
-            .eq('status', 'accepted')
-            .eq('price_change_status', 'pending')
-
-          const priceChangeJobIds = new Set((pendingPriceBids || []).map((b) => b.job_id))
-          priceChangeRequestsList = candidateJobs.filter((j) => priceChangeJobIds.has(j.id))
-        }
-
-        // Jobs with an unconfirmed schedule proposal not made by the landlord
-        const { data: schedJobs } = await supabase
-          .from('jobs')
-          .select('*, units(unit_number, properties(address, city))')
-          .in('unit_id', unitIds)
-          .not('proposed_date', 'is', null)
-          .eq('schedule_confirmed', false)
-          .neq('proposed_by', 'landlord')
-
-        scheduleProposalsList = schedJobs || []
-
-        // Jobs where the schedule has just been confirmed
-        const { data: confirmedJobs } = await supabase
-          .from('jobs')
-          .select('*, units(unit_number, properties(address, city))')
-          .in('unit_id', unitIds)
-          .eq('status', 'scheduled')
-          .eq('schedule_confirmed', true)
-
-        confirmedSchedulesList = confirmedJobs || []
-
-        // Jobs contractor marked complete, awaiting landlord review
-        const { data: reviewJobs } = await supabase
-          .from('jobs')
-          .select('*, units(unit_number, properties(address, city))')
-          .in('unit_id', unitIds)
-          .eq('status', 'pending_review')
-
-        pendingReviewList = reviewJobs || []
-
-        // Renter invites still waiting on the invitee to sign up
-        const { data: invitesData } = await supabase
-          .from('tenancy_invites')
-          .select('*, units(unit_number, property_id, properties(address, city))')
-          .in('unit_id', unitIds)
-          .eq('status', 'pending')
-
-        pendingInvitesList = invitesData || []
-
-        // Completed/archived jobs this landlord hasn't rated the contractor for yet
-        const { data: completedJobsForRating } = await supabase
-          .from('jobs')
-          .select('*, units(unit_number, properties(address, city))')
-          .in('unit_id', unitIds)
-          .in('status', ['completed', 'archived'])
-
-        if (completedJobsForRating && completedJobsForRating.length > 0) {
-          const { data: myReviews } = await supabase
-            .from('contractor_reviews')
-            .select('job_id')
-            .eq('reviewer_user_id', user.id)
-            .in('job_id', completedJobsForRating.map((j) => j.id))
-
-          const reviewedJobIds = new Set((myReviews || []).map((r) => r.job_id))
-          needsRatingList = completedJobsForRating.filter((j) => !reviewedJobIds.has(j.id))
-        }
-
-        // Find jobs currently in bidding status with bids
-        const { data: biddingJobs } = await supabase
-          .from('jobs')
-          .select('*, units(unit_number, properties(address, city))')
-          .in('unit_id', unitIds)
-          .eq('status', 'bidding')
-
-        if (biddingJobs && biddingJobs.length > 0) {
-          const jobIds = biddingJobs.map((j) => j.id)
-          const { data: bidsData } = await supabase
-            .from('bids')
-            .select('job_id')
-            .in('job_id', jobIds)
-
-          const bidCounts = new Map<string, number>()
-          ;(bidsData || []).forEach((b) => {
-            bidCounts.set(b.job_id, (bidCounts.get(b.job_id) || 0) + 1)
-          })
-
-          biddingJobsWithBids = biddingJobs
-            .map((job) => ({ ...job, bidCount: bidCounts.get(job.id) || 0 }))
-            .filter((job) => job.bidCount > 0)
-        }
-      }
-
-      // Enrich pending-review jobs with the contractor's name for the banner
-      const enrichedReviewJobs = await Promise.all(
-        pendingReviewList.map(async (job) => {
-          const { data: bidData } = await supabase
-            .from('bids')
-            .select('contractor_user_id')
-            .eq('job_id', job.id)
-            .eq('status', 'accepted')
-            .maybeSingle()
-
-          let contractorName = 'Contractor'
-          if (bidData?.contractor_user_id) {
-            const { data: contractorData } = await supabase
-              .rpc('get_user_by_id', { user_id_input: bidData.contractor_user_id })
-              .maybeSingle()
-            contractorName = (contractorData as any)?.full_name || 'Contractor'
-          }
-
-          return { ...job, contractorName }
+      // Names for the "work complete" banners: one lookup per contractor.
+      const acceptedByJob = new Map<string, string>()
+      bids.filter((b) => b.status === 'accepted').forEach((b) => acceptedByJob.set(b.job_id, b.contractor_user_id))
+      const contractorIds = Array.from(new Set(pendingReviewList.map((j) => acceptedByJob.get(j.id)).filter(Boolean))) as string[]
+      const nameEntries = await Promise.all(
+        contractorIds.map(async (id) => {
+          const { data } = await supabase.rpc('get_user_by_id', { user_id_input: id }).maybeSingle()
+          return [id, (data as any)?.full_name || 'Contractor'] as const
         })
       )
+      const contractorNames = new Map(nameEntries)
+      const enrichedReviewJobs = pendingReviewList.map((job) => ({
+        ...job,
+        contractorName: contractorNames.get(acceptedByJob.get(job.id) || '') || 'Contractor',
+      }))
 
       const propertyBreakdown = propertyList.map((property) => {
         const propertyUnits = unitList.filter((u) => u.property_id === property.id)

@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { notify } from '@/lib/notify'
+import { compressImage } from '@/lib/imageCompress'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { Skeleton } from '@/components/Skeleton'
 import { ScrollReveal } from '@/components/ScrollReveal'
@@ -157,32 +158,37 @@ export default function ReportIssuePage() {
 
     notify('job_reported', jobData.id)
 
-    for (const file of files) {
-      const fileExt = file.name.split('.').pop()
-      const filePath = `${jobData.id}/${crypto.randomUUID()}.${fileExt}`
+    // Photos are shrunk first and uploaded together rather than one after
+    // another, which is most of the wait after tapping Submit on a phone.
+    await Promise.all(
+      files.map(async (original) => {
+        const file = await compressImage(original)
+        const fileExt = file.name.split('.').pop()
+        const filePath = `${jobData.id}/${crypto.randomUUID()}.${fileExt}`
 
-      const { error: uploadError } = await supabase.storage
-        .from('job-photos')
-        .upload(filePath, file)
+        const { error: uploadError } = await supabase.storage
+          .from('job-photos')
+          .upload(filePath, file)
 
-      if (uploadError) {
-        console.error('Error uploading photo:', uploadError)
-        continue
-      }
+        if (uploadError) {
+          console.error('Error uploading photo:', uploadError)
+          return
+        }
 
-      const { error: photoInsertError } = await supabase
-        .from('job_photos')
-        .insert({
-          job_id: jobData.id,
-          uploaded_by: userId,
-          photo_url: filePath,
-          stage: 'general',
-        })
+        const { error: photoInsertError } = await supabase
+          .from('job_photos')
+          .insert({
+            job_id: jobData.id,
+            uploaded_by: userId,
+            photo_url: filePath,
+            stage: 'general',
+          })
 
-      if (photoInsertError) {
-        console.error('Error saving photo record:', photoInsertError)
-      }
-    }
+        if (photoInsertError) {
+          console.error('Error saving photo record:', photoInsertError)
+        }
+      })
+    )
 
     router.push('/renter')
   }

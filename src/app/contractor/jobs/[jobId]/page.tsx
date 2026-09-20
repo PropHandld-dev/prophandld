@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { compressImage } from '@/lib/imageCompress'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { PhotoGrid } from '@/components/PhotoGrid'
@@ -269,7 +270,8 @@ export default function ContractorJobDetailPage() {
     setUploading(true)
     setError(null)
 
-    for (const file of Array.from(files)) {
+    for (const original of Array.from(files)) {
+      const file = await compressImage(original)
       const fileExt = file.name.split('.').pop()
       const filePath = `${jobId}/${crypto.randomUUID()}.${fileExt}`
 

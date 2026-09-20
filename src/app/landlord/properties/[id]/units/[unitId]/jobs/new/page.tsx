@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { compressImage } from '@/lib/imageCompress'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
@@ -103,7 +104,8 @@ export default function NewLandlordJobPage() {
       return
     }
 
-    for (const file of files) {
+    for (const original of files) {
+      const file = await compressImage(original)
       const fileExt = file.name.split('.').pop()
       const filePath = `${jobData.id}/${crypto.randomUUID()}.${fileExt}`
 
