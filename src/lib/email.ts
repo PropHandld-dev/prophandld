@@ -130,6 +130,70 @@ export async function sendContractorInviteEmail({
   return sendEmail({ to, subject: `${landlordName} invited you to Prophandld`, html })
 }
 
+function escapeHtml(value: string) {
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
+
+export async function sendCredentialSubmittedAdminEmail({
+  contractorName,
+  contractorEmail,
+  requirementName,
+  issuer,
+}: {
+  contractorName: string
+  contractorEmail: string
+  requirementName: string
+  issuer: string
+}) {
+  const html = baseTemplate({
+    eyebrow: 'Verification',
+    heading: 'A credential is waiting for review',
+    bodyHtml: `<strong>${escapeHtml(contractorName)}</strong> (${escapeHtml(contractorEmail)}) submitted <strong>${escapeHtml(requirementName)}</strong>, issued by ${escapeHtml(issuer)}. Open it, check it against the official record, then approve or reject.`,
+    ctaLabel: 'Review credential',
+    ctaUrl: `${SITE_URL}/admin/contractors`,
+  })
+  return sendEmail({ to: 'admin@prophandld.com', subject: `Credential to review: ${requirementName} (${contractorName})`, html })
+}
+
+export type CredentialExpiryItem = { name: string; expiry: string; stage: 1 | 2 | 3 }
+
+// stage 1 = within 30 days, 2 = within 7 days, 3 = expired.
+export async function sendCredentialExpiryEmail({
+  to,
+  contractorName,
+  items,
+}: {
+  to: string
+  contractorName: string
+  items: CredentialExpiryItem[]
+}) {
+  const anyExpired = items.some((i) => i.stage === 3)
+  const lines = items
+    .map((i) => {
+      const date = new Date(i.expiry + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+      const when = i.stage === 3 ? `expired on ${date}` : `expires ${date}`
+      return `<li><strong>${escapeHtml(i.name)}</strong> ${when}</li>`
+    })
+    .join('')
+  const html = baseTemplate({
+    eyebrow: anyExpired ? 'Expired' : 'Renewal',
+    heading: anyExpired ? 'A credential on your profile has expired' : 'A credential on your profile is expiring soon',
+    bodyHtml: `Hi ${escapeHtml(contractorName)},<ul style="padding-left:18px;margin:12px 0;">${lines}</ul>${
+      anyExpired
+        ? 'Landlords no longer see expired credentials next to your bids. Upload the renewal and we\'ll review it.'
+        : 'Upload the renewal before it lapses so landlords keep seeing it next to your bids.'
+    }`,
+    ctaLabel: 'Update credentials',
+    ctaUrl: `${SITE_URL}/contractor/settings`,
+    footerText: 'Sent because you have credentials on file with Prophandld.',
+  })
+  return sendEmail({
+    to,
+    subject: anyExpired ? 'A credential on your Prophandld profile has expired' : 'A credential on your Prophandld profile is expiring soon',
+    html,
+  })
+}
+
 export type NotifyType =
   | 'job_reported'
   | 'bid_received'

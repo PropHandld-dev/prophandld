@@ -134,6 +134,20 @@ export function ContractorCredentials({ userId }: { userId: string }) {
       await supabase.from('contractor_verifications').delete().eq('contractor_user_id', userId)
     }
 
+    // A renewal restarts the expiry reminders. Separate from the save above
+    // so it can never block a submission.
+    await supabase
+      .from('contractor_credentials')
+      .update({ expiry_reminder_stage: 0 })
+      .eq('contractor_user_id', userId)
+      .eq('requirement_id', req.id)
+
+    fetch('/api/contractor/credential-submitted', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requirementId: req.id }),
+    }).catch(() => {})
+
     setOpenId(null)
     await load()
     setSavingId(null)

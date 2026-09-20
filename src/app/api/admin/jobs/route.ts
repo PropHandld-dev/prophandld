@@ -102,7 +102,18 @@ export async function GET() {
           .filter(Boolean)
       : []
 
+    const expiredNames = accepted
+      ? credentials
+          .filter((c) => c.contractor_user_id === accepted.contractor_user_id)
+          .filter((c) => c.expiry && new Date(c.expiry + 'T00:00:00').getTime() < now)
+          .map((c) => requirementById(c.requirement_id)?.badge)
+          .filter(Boolean)
+      : []
+
     const flags: Flag[] = []
+    if (expiredNames.length > 0 && !['completed', 'archived'].includes(j.status)) {
+      flags.push({ key: 'cred_expired', label: `Contractor credential expired: ${expiredNames.join(', ')}`, severity: 'yellow' })
+    }
     if (dispute) flags.push({ key: 'dispute', label: 'Open dispute', severity: 'red' })
     if (j.is_emergency && ['pending_approval', 'approved', 'bidding'].includes(j.status) && ageDays > 1) {
       flags.push({ key: 'emergency', label: 'Emergency still unassigned', severity: 'red' })

@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/rent-reminder",
       "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/cron/credential-expiry",
+      "schedule": "0 14 * * *"
     }
   ]
 }

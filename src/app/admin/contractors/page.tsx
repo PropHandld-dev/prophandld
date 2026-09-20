@@ -350,6 +350,11 @@ export default function AdminContractorsPage() {
     </div>
   )
 
+  const daysLeft = (c: any) =>
+    c.expiry ? Math.round((new Date(c.expiry + 'T00:00:00').getTime() - new Date().setHours(0, 0, 0, 0)) / 86400000) : null
+  const expiringCreds = credRows
+    .filter((c) => c.status === 'verified' && daysLeft(c) !== null && daysLeft(c)! <= 30)
+    .sort((a, b) => daysLeft(a)! - daysLeft(b)!)
   const pendingCreds = credRows.filter((c) => c.status === 'pending')
   const reviewedCreds = credRows.filter((c) => c.status !== 'pending')
 
@@ -460,6 +465,29 @@ export default function AdminContractorsPage() {
             <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm mb-4">
               {error}
             </div>
+          )}
+
+          {expiringCreds.length > 0 && (
+            <ScrollReveal>
+              <h2 className="text-yellow-400/90 font-semibold text-sm mb-3">Expiring or expired ({expiringCreds.length})</h2>
+              <div className="bg-yellow-500/8 border border-yellow-500/25 rounded-2xl divide-y divide-white/5 mb-8">
+                {expiringCreds.map((c) => {
+                  const d = daysLeft(c)!
+                  return (
+                    <div key={c.id} className="flex items-center justify-between gap-4 px-5 py-3.5">
+                      <div className="min-w-0">
+                        <p className="text-white text-sm font-medium">{requirementById(c.requirement_id)?.name || c.requirement_id}</p>
+                        <p className="text-white/50 text-xs">{c.contractor?.full_name || 'Unknown contractor'} · {c.contractor?.email}</p>
+                      </div>
+                      <span className={`shrink-0 text-xs font-semibold rounded-full px-2.5 py-1 ${d < 0 ? 'bg-red-500/15 text-red-400' : 'bg-yellow-500/15 text-yellow-400'}`}>
+                        {d < 0 ? `Expired ${Math.abs(d)}d ago` : d === 0 ? 'Expires today' : `${d} day${d === 1 ? '' : 's'} left`}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+              <p className="text-white/40 text-xs -mt-5 mb-8">Contractors are emailed at 30 days, 7 days and on expiry. Expired credentials stop showing to landlords.</p>
+            </ScrollReveal>
           )}
 
           <ScrollReveal>
