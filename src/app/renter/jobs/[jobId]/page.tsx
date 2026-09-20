@@ -15,6 +15,7 @@ import { CheckCircleIcon, MessageCircleIcon } from '@/components/icons'
 import { RaiseDisputeButton } from '@/components/RaiseDisputeButton'
 import { UnreadDot } from '@/components/UnreadDot'
 import { getUnreadJobIds } from '@/lib/messageReads'
+import { useJobRealtime } from '@/lib/useJobRealtime'
 import { RENTER_TABS } from '@/lib/navTabs'
 import { TIME_WINDOWS, validateScheduleTime, rescheduleLockError } from '@/lib/scheduleWindows'
 
@@ -87,6 +88,8 @@ export default function RenterJobDetailPage() {
   useEffect(() => {
     fetchJob()
   }, [jobId, router])
+
+  useJobRealtime(jobId, fetchJob)
 
   const handleDeletePhoto = async (photo: any) => {
     const { error: storageError } = await supabase.storage.from('job-photos').remove([photo.photo_url])

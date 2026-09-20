@@ -15,6 +15,7 @@ import { WrenchIcon, CheckCircleIcon, MessageCircleIcon } from '@/components/ico
 import { RaiseDisputeButton } from '@/components/RaiseDisputeButton'
 import { UnreadDot } from '@/components/UnreadDot'
 import { getUnreadJobIds } from '@/lib/messageReads'
+import { useJobRealtime } from '@/lib/useJobRealtime'
 import { CONTRACTOR_TABS } from '@/lib/navTabs'
 import { TIME_WINDOWS, validateScheduleTime, rescheduleLockError } from '@/lib/scheduleWindows'
 
@@ -119,6 +120,8 @@ export default function ContractorJobDetailPage() {
   useEffect(() => {
     fetchJob()
   }, [jobId, router])
+
+  useJobRealtime(jobId, fetchJob)
 
   const openScheduleModal = () => {
     setScheduleDate(job.proposed_date || '')
@@ -519,7 +522,7 @@ export default function ContractorJobDetailPage() {
                 {myBid?.status === 'declined' ? (myBid.selected_at ? 'Cancelled' : 'Not selected') : statusLabel(job.status)}
               </span>
             </h2>
-            {job.status === 'scheduled' && myBid?.status === 'accepted' && (
+            {job.status === 'scheduled' && job.schedule_confirmed && myBid?.status === 'accepted' && (
               <RippleButton
                 onClick={handleStartJob}
                 disabled={actioning}
