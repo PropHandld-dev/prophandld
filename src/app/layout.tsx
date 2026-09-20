@@ -3,7 +3,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { ViewTransition } from "react";
 import { CursorGlow } from "@/components/CursorGlow";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
-import { FloatingChatWidget } from "@/components/FloatingChatWidget";
 import { StagingBadge } from "@/components/StagingBadge";
 import "./globals.css";
 
@@ -63,7 +62,10 @@ export default function RootLayout({
         <CursorGlow />
         <ServiceWorkerRegister />
         <ViewTransition>{children}</ViewTransition>
-        <FloatingChatWidget />
+        {/* Floating chat bubble switched off to cut background database load
+            (it ran a full inbox query, Realtime subscription and 60s poll on
+            every page). Messages tab and job chat pages are unaffected.
+            Re-enable by restoring <FloatingChatWidget /> here. */}
         <StagingBadge />
       </body>
     </html>
