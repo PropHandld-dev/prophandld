@@ -40,6 +40,12 @@ function LinkList({ items }: { items: Requirement[] }) {
 
 function VerificationGuide() {
   const [state, setState] = useState('PA')
+
+  // Jobs link here with ?state=XX so the guide opens on the right state.
+  useEffect(() => {
+    const fromUrl = new URLSearchParams(window.location.search).get('state')?.toUpperCase()
+    if (fromUrl && STATE_BOARDS[fromUrl]) setState(fromUrl)
+  }, [])
   const board = STATE_BOARDS[state]
   const detail = regionRequirements(state)
 
