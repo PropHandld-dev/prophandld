@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Logo } from '@/components/Logo'
+import { BrandLink } from '@/components/BrandLink'
 
 export const metadata = {
   title: 'Privacy Policy | Prophandld',
@@ -9,10 +10,10 @@ export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-[#0C1A2E] text-white">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between sticky top-0 bg-[#0C1A2E]/90 backdrop-blur-sm z-10">
-        <Link href="/" className="flex items-center gap-2.5">
+        <BrandLink className="gap-2.5">
           <Logo className="w-[26px] h-[26px]" />
           <span className="font-bold tracking-tight">Prophandld</span>
-        </Link>
+        </BrandLink>
         <Link href="/" className="text-sm text-white/50 hover:text-white transition">← Back home</Link>
       </nav>
 

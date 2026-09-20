@@ -400,6 +400,7 @@ export default function LandlordDashboard() {
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between backdrop-blur-sm sticky top-0 bg-[#0C1A2E]/90 z-10">
         <div className="flex items-center gap-3">
+          <Link href="/landlord" aria-label="Prophandld home" className="flex items-center gap-3 transition hover:opacity-80 active:scale-[0.97] motion-reduce:active:scale-100">
           <svg width="30" height="30" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
             <polygon points="50,5 38,16 38,28 62,28 62,16" fill="white" opacity="0.95"/>
             <rect x="44" y="18" width="12" height="10" rx="0.5" fill="#0C1A2E"/>
@@ -418,7 +419,8 @@ export default function LandlordDashboard() {
             <rect x="38" y="78" width="9" height="18" rx="4" fill="white"/>
             <rect x="53" y="78" width="9" height="18" rx="4" fill="white"/>
           </svg>
-          <Link href="/landlord" className="text-white font-semibold text-lg tracking-tight hover:opacity-80 transition">Prophandld</Link>
+          <span className="text-white font-semibold text-lg tracking-tight">Prophandld</span>
+          </Link>
           <span className="text-xs bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 text-[#12A5A9] border border-[#12A5A9]/30 rounded-full px-2.5 py-1">
             Landlord
           </span>

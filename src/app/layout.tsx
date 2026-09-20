@@ -25,7 +25,19 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   icons: {
     icon: "/icon-192.png",
-    apple: "/icon-192.png",
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
+  // What iPhone uses when the site is added to the Home Screen: launches
+  // full-screen under its own name, with a solid status bar so the clock
+  // never sits on top of page content.
+  appleWebApp: {
+    capable: true,
+    title: "Prophandld",
+    statusBarStyle: "black",
+  },
+  // Stops iOS turning rent amounts and ID numbers into blue phone links.
+  formatDetection: {
+    telephone: false,
   },
   openGraph: {
     title: SITE_TITLE,

@@ -87,6 +87,41 @@ body {
   }
 }
 
+@keyframes popIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes ringOut {
+  from {
+    opacity: 0.55;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.9);
+  }
+}
+
+@keyframes drawStroke {
+  from {
+    stroke-dashoffset: 24;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
 @keyframes bubblePulse {
   0%,
   100% {

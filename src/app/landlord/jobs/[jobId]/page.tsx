@@ -14,7 +14,7 @@ import { RippleButton } from '@/components/RippleButton'
 import { WrenchIcon, CheckCircleIcon, MessageCircleIcon } from '@/components/icons'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 import { ReviewForm } from '@/components/ReviewForm'
-import { StripePaymentModal } from '@/components/StripePaymentModal'
+import { StripePaymentModal, type PaymentOutcome } from '@/components/StripePaymentModal'
 import { RaiseDisputeButton } from '@/components/RaiseDisputeButton'
 import { UnreadDot } from '@/components/UnreadDot'
 import { getUnreadJobIds } from '@/lib/messageReads'
@@ -48,6 +48,7 @@ export default function JobDetailPage() {
   const [showArchiveModal, setShowArchiveModal] = useState(false)
   const [showApproveModal, setShowApproveModal] = useState(false)
   const [payingContractor, setPayingContractor] = useState(false)
+  const [paidBanner, setPaidBanner] = useState<PaymentOutcome | null>(null)
   const [paymentModal, setPaymentModal] = useState<{ clientSecret: string; amount: number } | null>(null)
   const [paymentError, setPaymentError] = useState<string | null>(null)
   const [showClarifyModal, setShowClarifyModal] = useState(false)
@@ -494,6 +495,18 @@ export default function JobDetailPage() {
     setShowApproveModal(false)
     await fetchJob()
     setActioning(false)
+
+    // Approving is the moment money is owed, so go straight to payment
+    // instead of leaving a separate "Pay now" step to be found. If it can't
+    // start (e.g. the contractor's payout account isn't ready), the error
+    // and the Pay now button are waiting in the payment card.
+    const bid = bids.find((b) => b.status === 'accepted')
+    if (!updateError && bid && bid.payment_status !== 'paid' && bid.payment_status !== 'processing' && bid.price_change_status !== 'pending') {
+      const started = await handlePayContractor()
+      if (!started) {
+        setTimeout(() => document.getElementById('pay-contractor')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100)
+      }
+    }
   }
 
   const openClarifyModal = () => {
@@ -576,13 +589,15 @@ export default function JobDetailPage() {
     setActioning(false)
   }
 
-  const handlePayContractor = async () => {
+  // Returns true when the payment window opened, false if it couldn't start.
+  const handlePayContractor = async (): Promise<boolean> => {
     const acceptedBid = bids.find((b) => b.status === 'accepted')
-    if (!acceptedBid) return
+    if (!acceptedBid) return false
 
     setPayingContractor(true)
     setPaymentError(null)
 
+    let started = false
     try {
       const res = await fetch('/api/stripe/job-payment/create-payment-intent', {
         method: 'POST',
@@ -592,14 +607,25 @@ export default function JobDetailPage() {
       const data = await res.json()
       if (!res.ok || !data.clientSecret) {
         setPaymentError(data.error || 'Could not start payment.')
-        setPayingContractor(false)
-        return
+      } else {
+        setPaymentModal({ clientSecret: data.clientSecret, amount: data.amount })
+        started = true
       }
-      setPaymentModal({ clientSecret: data.clientSecret, amount: data.amount })
     } catch {
       setPaymentError('Could not start payment.')
     }
     setPayingContractor(false)
+    return started
+  }
+
+  // Fires the moment Stripe confirms the payment, while the confirmation
+  // screen is still showing. The webhook that marks the bid paid can land a
+  // moment later, so refresh again a couple of times.
+  const handlePaid = (outcome: PaymentOutcome) => {
+    setPaidBanner(outcome)
+    fetchJob()
+    setTimeout(fetchJob, 2000)
+    setTimeout(fetchJob, 6000)
   }
 
   const handlePaymentSuccess = async () => {
@@ -664,6 +690,15 @@ export default function JobDetailPage() {
 
   const selectedBid = bids.find((b) => b.id === selectedBidId)
   const acceptedBid = bids.find((b) => b.status === 'accepted')
+  // Approving a finished job hands straight over to payment when there is
+  // something to pay (not already paid or clearing, and no price change
+  // waiting on the landlord's answer first).
+  const payOnApprove =
+    !!acceptedBid &&
+    acceptedBid.payment_status !== 'paid' &&
+    acceptedBid.payment_status !== 'processing' &&
+    acceptedBid.price_change_status !== 'pending'
+  const payOnApproveAmount = acceptedBid ? Number(acceptedBid.proposed_amount ?? acceptedBid.amount ?? 0) : 0
   // Excludes 'declined' bids from a prior round — a job that reopened
   // after the selected contractor cancelled otherwise showed every
   // losing (and the cancelling contractor's own) bid with a live
@@ -980,7 +1015,29 @@ export default function JobDetailPage() {
         )}
 
         {['completed', 'archived'].includes(job.status) && acceptedBid && (
-          <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
+          <div id="pay-contractor" className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4 scroll-mt-24">
+            {paidBanner && (
+              <div
+                role="status"
+                className={`flex items-start gap-3 rounded-xl px-4 py-3 mb-5 border motion-safe:animate-[fadeIn_0.4s_ease-out] ${
+                  paidBanner === 'succeeded'
+                    ? 'bg-[#0A7B7E]/15 border-[#12A5A9]/30'
+                    : 'bg-yellow-500/10 border-yellow-500/25'
+                }`}
+              >
+                <CheckCircleIcon className={`w-5 h-5 shrink-0 mt-0.5 ${paidBanner === 'succeeded' ? 'text-[#12A5A9]' : 'text-yellow-400'}`} />
+                <div className="min-w-0">
+                  <p className="text-white text-sm font-semibold">
+                    {paidBanner === 'succeeded' ? 'Payment complete' : 'Payment on its way'}
+                  </p>
+                  <p className="text-white/60 text-xs mt-0.5">
+                    {paidBanner === 'succeeded'
+                      ? `$${payOnApproveAmount} sent to ${acceptedBid.contractor?.full_name || 'the contractor'}. Your receipt is ready below.`
+                      : 'Your bank payment has started and usually clears in 1 to 3 business days. We’ll email you when it’s done.'}
+                  </p>
+                </div>
+              </div>
+            )}
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-white font-semibold">Pay contractor</h3>
@@ -988,7 +1045,11 @@ export default function JobDetailPage() {
                   ${acceptedBid.proposed_amount ?? acceptedBid.amount} to {acceptedBid.contractor?.full_name}
                 </p>
               </div>
-              {acceptedBid.payment_status === 'paid' ? (
+              {acceptedBid.payment_status === 'processing' || (paidBanner === 'processing' && acceptedBid.payment_status !== 'paid') ? (
+                <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-yellow-500/15 text-yellow-400">
+                  Processing
+                </span>
+              ) : acceptedBid.payment_status === 'paid' || paidBanner === 'succeeded' ? (
                 <div className="flex items-center gap-3">
                   <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-[#0A7B7E]/20 text-[#12A5A9]">
                     <CheckCircleIcon className="w-3 h-3" /> Paid
@@ -1326,7 +1387,9 @@ export default function JobDetailPage() {
           <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
             <h3 className="text-white font-semibold mb-2">Approve this completed job?</h3>
             <p className="text-white/50 text-sm mb-6">
-              This confirms the work is done to your satisfaction and marks the job as completed.
+              {payOnApprove
+                ? `This confirms the work is done to your satisfaction, then takes you straight to payment: $${payOnApproveAmount} to ${acceptedBid?.contractor?.full_name || 'the contractor'}.`
+                : 'This confirms the work is done to your satisfaction and marks the job as completed.'}
             </p>
             <div className="flex gap-3">
               <button
@@ -1341,7 +1404,7 @@ export default function JobDetailPage() {
                 disabled={actioning}
                 className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
               >
-                {actioning ? 'Approving...' : 'Approve'}
+                {actioning ? 'Approving...' : payOnApprove ? 'Approve & pay' : 'Approve'}
               </button>
             </div>
           </div>
@@ -1427,7 +1490,13 @@ export default function JobDetailPage() {
           clientSecret={paymentModal.clientSecret}
           amount={paymentModal.amount}
           title="Pay contractor"
+          successMessage={
+            acceptedBid?.contractor?.full_name
+              ? `Sent to ${acceptedBid.contractor.full_name}. A receipt is saved on this job.`
+              : undefined
+          }
           onClose={() => setPaymentModal(null)}
+          onPaid={handlePaid}
           onSuccess={handlePaymentSuccess}
         />
       )}

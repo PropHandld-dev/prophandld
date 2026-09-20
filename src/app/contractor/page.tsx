@@ -11,6 +11,7 @@ import { AlertsList, type AlertItem } from '@/components/AlertsList'
 import { Skeleton } from '@/components/Skeleton'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { MagneticLink } from '@/components/MagneticLink'
+import { Logo } from '@/components/Logo'
 import { CountUp } from '@/components/CountUp'
 import { EnableNotificationsCard } from '@/components/EnableNotificationsCard'
 import { UnreadDot } from '@/components/UnreadDot'
@@ -253,7 +254,10 @@ export default function ContractorDashboard() {
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Link href="/contractor" className="text-white font-semibold hover:opacity-80 transition">Prophandld</Link>
+          <Link href="/contractor" aria-label="Prophandld home" className="flex items-center gap-2 text-white font-semibold transition hover:opacity-80 active:scale-[0.97] motion-reduce:active:scale-100">
+            <Logo className="w-[26px] h-[26px]" />
+            Prophandld
+          </Link>
           <span className="text-xs bg-[#0A7B7E]/20 text-[#12A5A9] border border-[#12A5A9]/30 rounded-full px-2 py-0.5">Contractor</span>
         </div>
         <span className="text-white/50 text-sm">{user?.user_metadata?.full_name}</span>

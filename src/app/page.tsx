@@ -5,6 +5,7 @@ import { MagneticLink } from '@/components/MagneticLink'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { DollarSignIcon, AlertTriangleIcon, FileTextIcon, WrenchIcon, CalendarIcon, CheckCircleIcon, MessageCircleIcon, LockIcon } from '@/components/icons'
 import { Logo } from '@/components/Logo'
+import { BrandLink } from '@/components/BrandLink'
 import { RoleShowcase } from '@/components/RoleShowcase'
 import { LandingHelpWidget } from '@/components/LandingHelpWidget'
 
@@ -26,8 +27,10 @@ export default function LandingPage() {
       {/* Nav */}
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between sticky top-0 bg-[#0C1A2E]/90 backdrop-blur-sm z-10">
         <div className="flex items-center gap-2.5">
-          <Logo className="w-[30px] h-[30px]" />
-          <span className="font-bold text-lg tracking-tight">Prophandld</span>
+          <BrandLink className="gap-2.5">
+            <Logo className="w-[30px] h-[30px]" />
+            <span className="font-bold text-lg tracking-tight">Prophandld</span>
+          </BrandLink>
           <span className="hidden md:inline text-white/50 text-xs border-l border-white/15 pl-2.5 ml-0.5">Your Property. Handled.</span>
         </div>
         <div className="flex items-center gap-6">

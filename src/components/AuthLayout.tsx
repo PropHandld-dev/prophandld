@@ -1,4 +1,5 @@
 import { Logo } from '@/components/Logo'
+import { BrandLink } from '@/components/BrandLink'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { CheckCircleIcon } from '@/components/icons'
 
@@ -26,10 +27,10 @@ export function AuthLayout({
         <div aria-hidden className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:48px_48px]" />
 
         <div className="relative">
-          <div className="flex items-center gap-2.5">
+          <BrandLink className="gap-2.5">
             <Logo className="w-8 h-8" />
             <span className="font-bold text-lg tracking-tight text-white">Prophandld</span>
-          </div>
+          </BrandLink>
           <p className="text-white/50 text-xs mt-1 tracking-wide">Your Property. Handled.</p>
         </div>
 
@@ -59,10 +60,10 @@ export function AuthLayout({
 
         <ScrollReveal className="w-full max-w-sm">
           <div className="lg:hidden flex flex-col items-center mb-8">
-            <div className="flex items-center gap-2.5">
+            <BrandLink className="gap-2.5">
               <Logo className="w-8 h-8" />
               <span className="font-bold text-lg tracking-tight text-white">Prophandld</span>
-            </div>
+            </BrandLink>
             <p className="text-white/50 text-xs mt-1 tracking-wide">Your Property. Handled.</p>
           </div>
           {children}

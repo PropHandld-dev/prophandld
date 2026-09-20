@@ -9,6 +9,7 @@ import { AlertsList, type AlertItem } from '@/components/AlertsList'
 import { Skeleton } from '@/components/Skeleton'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { MagneticLink } from '@/components/MagneticLink'
+import { Logo } from '@/components/Logo'
 import { CalendarIcon, DollarSignIcon, CheckCircleIcon, FileTextIcon, MessageCircleIcon } from '@/components/icons'
 import { RENTER_TABS } from '@/lib/navTabs'
 import { EnableNotificationsCard } from '@/components/EnableNotificationsCard'
@@ -177,7 +178,10 @@ export default function RenterDashboard() {
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Link href="/renter" className="text-white font-semibold hover:opacity-80 transition">Prophandld</Link>
+          <Link href="/renter" aria-label="Prophandld home" className="flex items-center gap-2 text-white font-semibold transition hover:opacity-80 active:scale-[0.97] motion-reduce:active:scale-100">
+            <Logo className="w-[26px] h-[26px]" />
+            Prophandld
+          </Link>
           <span className="text-xs bg-[#0A7B7E]/20 text-[#12A5A9] border border-[#12A5A9]/30 rounded-full px-2 py-0.5">Renter</span>
         </div>
         <span className="text-white/50 text-sm">{user?.user_metadata?.full_name}</span>
