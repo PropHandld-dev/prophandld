@@ -65,6 +65,7 @@ export default function ContractorDashboard() {
   const [pastJobs, setPastJobs] = useState<any[]>([])
   const [unreadJobIds, setUnreadJobIds] = useState<Set<string>>(new Set())
   const [totalEarnings, setTotalEarnings] = useState(0)
+  const [awaitingPayment, setAwaitingPayment] = useState(0)
   const [connectStatus, setConnectStatus] = useState<'not_started' | 'onboarding' | 'active'>('not_started')
   const [verificationStatus, setVerificationStatus] = useState<'pending' | 'verified' | 'rejected' | 'unlicensed' | null>(null)
   const [pastFilter, setPastFilter] = useState('all')
@@ -93,9 +94,19 @@ export default function ContractorDashboard() {
 
       setConnectStatus((profileData.stripe_connect_status as any) || 'not_started')
 
-      const [{ data: credentialRows }, { data: verificationData }] = await Promise.all([
+      // All four lookups are independent, so they run together instead of
+      // one after another (the available-jobs route in particular is slow).
+      const [{ data: credentialRows }, { data: verificationData }, jobsResult, { data: bidsData, error: bidsError }] = await Promise.all([
         supabase.from('contractor_credentials').select('status').eq('contractor_user_id', user.id),
         supabase.from('contractor_verifications').select('status').eq('contractor_user_id', user.id).maybeSingle(),
+        fetch('/api/contractor/available-jobs')
+          .then(async (res) => ({ ok: res.ok, body: await res.json() }))
+          .catch((err) => ({ ok: false, body: err })),
+        supabase
+          .from('bids')
+          .select('*, jobs(id, category, description, status, unit_id, proposed_date, proposed_window, proposed_by, schedule_confirmed, clarification_note, clarification_response, units(unit_number, properties(address, city)))')
+          .eq('contractor_user_id', user.id)
+          .order('created_at', { ascending: false }),
       ])
       const credentialStatuses = (credentialRows || []).map((c) => c.status)
       setVerificationStatus(
@@ -105,23 +116,11 @@ export default function ContractorDashboard() {
           : verificationData?.status ?? null
       )
 
-      try {
-        const jobsRes = await fetch('/api/contractor/available-jobs')
-        const jobsData = await jobsRes.json()
-        if (!jobsRes.ok) {
-          console.error('Error loading available jobs:', jobsData)
-        } else {
-          setAvailableJobs(jobsData.jobs || [])
-        }
-      } catch (err) {
-        console.error('Error loading available jobs:', err)
+      if (!jobsResult.ok) {
+        console.error('Error loading available jobs:', jobsResult.body)
+      } else {
+        setAvailableJobs(jobsResult.body.jobs || [])
       }
-
-      const { data: bidsData, error: bidsError } = await supabase
-        .from('bids')
-        .select('*, jobs(id, category, description, status, unit_id, proposed_date, proposed_window, proposed_by, schedule_confirmed, clarification_note, clarification_response, units(unit_number, properties(address, city)))')
-        .eq('contractor_user_id', user.id)
-        .order('created_at', { ascending: false })
 
       if (bidsError) {
         console.error('Error loading bids:', bidsError)
@@ -135,6 +134,11 @@ export default function ContractorDashboard() {
         setTotalEarnings(
           bids
             .filter((b) => b.payment_status === 'paid')
+            .reduce((sum, b) => sum + Number(b.proposed_amount ?? b.amount ?? 0), 0)
+        )
+        setAwaitingPayment(
+          bids
+            .filter((b) => b.status === 'accepted' && b.jobs?.status === 'completed' && b.payment_status !== 'paid')
             .reduce((sum, b) => sum + Number(b.proposed_amount ?? b.amount ?? 0), 0)
         )
 
@@ -314,6 +318,9 @@ export default function ContractorDashboard() {
                     <DollarSignIcon className="w-5 h-5 text-[#12A5A9] mx-auto mb-1" />
                     <div className="text-2xl font-bold text-white">${totalEarnings.toLocaleString()}</div>
                     <div className="text-white/60 text-xs mt-1">Earnings</div>
+                    {awaitingPayment > 0 && (
+                      <div className="text-yellow-400/90 text-[11px] mt-1">${awaitingPayment.toLocaleString()} awaiting payment</div>
+                    )}
                   </Link>
                 </ScrollReveal>
 

@@ -58,11 +58,26 @@ export default function ContractorJobDetailPage() {
     setUserId(user.id)
     getUnreadJobIds([jobId], user.id).then((unread) => setHasUnread(unread.has(jobId)))
 
-    const { data: jobData, error: jobError } = await supabase
-      .from('jobs')
-      .select('*, units(unit_number, properties(address, city, state)), maintenance_items(name, item_type, brand, model, install_date)')
-      .eq('id', jobId)
-      .maybeSingle()
+    // Job, this contractor's bid and the photo list don't depend on each
+    // other, so they load together instead of one after another.
+    const [{ data: jobData, error: jobError }, { data: bidData }, { data: photosData }] = await Promise.all([
+      supabase
+        .from('jobs')
+        .select('*, units(unit_number, properties(address, city, state)), maintenance_items(name, item_type, brand, model, install_date)')
+        .eq('id', jobId)
+        .maybeSingle(),
+      supabase
+        .from('bids')
+        .select('*')
+        .eq('job_id', jobId)
+        .eq('contractor_user_id', user.id)
+        .maybeSingle(),
+      supabase
+        .from('job_photos')
+        .select('*')
+        .eq('job_id', jobId)
+        .order('created_at', { ascending: false }),
+    ])
 
     if (jobError || !jobData) {
       console.error('Error loading job:', jobError)
@@ -86,31 +101,15 @@ export default function ContractorJobDetailPage() {
     setJob(jobData)
     setResponseText(jobData.clarification_response || '')
 
-    const { data: bidData } = await supabase
-      .from('bids')
-      .select('*')
-      .eq('job_id', jobId)
-      .eq('contractor_user_id', user.id)
-      .maybeSingle()
-
     setMyBid(bidData)
 
-    const { data: photosData } = await supabase
-      .from('job_photos')
-      .select('*')
-      .eq('job_id', jobId)
-      .order('created_at', { ascending: false })
-
     if (photosData && photosData.length > 0) {
-      const enriched = await Promise.all(
-        photosData.map(async (photo) => {
-          const { data: signedUrlData } = await supabase.storage
-            .from('job-photos')
-            .createSignedUrl(photo.photo_url, 3600)
-          return { ...photo, displayUrl: signedUrlData?.signedUrl }
-        })
-      )
-      setPhotos(enriched)
+      // One batched request for every photo link instead of one per photo.
+      const { data: signed } = await supabase.storage
+        .from('job-photos')
+        .createSignedUrls(photosData.map((p) => p.photo_url), 3600)
+      const urlByPath = new Map((signed || []).map((s) => [s.path, s.signedUrl]))
+      setPhotos(photosData.map((photo) => ({ ...photo, displayUrl: urlByPath.get(photo.photo_url) })))
     } else {
       setPhotos([])
     }
