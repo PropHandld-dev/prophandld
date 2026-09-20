@@ -115,7 +115,7 @@ export default function UnitDetailPage() {
     }
 
     const { data: renterId, error: lookupError } = await supabase
-      .rpc('get_user_id_by_email', { email_input: coRenterEmail.trim() })
+      .rpc('get_user_id_by_email', { email_input: coRenterEmail.trim().toLowerCase() })
 
     if (lookupError || !renterId) {
       setCoRenterError('No Prophandld account found with that email. They need to sign up first.')
