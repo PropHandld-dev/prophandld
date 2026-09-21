@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { cronAuthorized } from '@/lib/cronAuth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { requirementById } from '@/lib/credentialRequirements'
 import { sendCredentialExpiryEmail, type CredentialExpiryItem } from '@/lib/email'
@@ -15,8 +16,7 @@ const CHUNK = 100
 // or missed run is harmless, and it resets to 0 when the contractor uploads
 // a renewal. A contractor with several credentials due gets one email.
 export async function GET(request: NextRequest) {
-  const authHeader = request.headers.get('authorization')
-  if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!cronAuthorized(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

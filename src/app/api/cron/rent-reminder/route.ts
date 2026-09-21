@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { cronAuthorized } from '@/lib/cronAuth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { rentMonthBounds } from '@/lib/rentAutomation'
 import { sendRentDueEmail, sendRentDueRenterEmail, sendRentLateRenterEmail, sendRentLateLandlordEmail } from '@/lib/email'
@@ -44,8 +45,7 @@ async function runInBatches<T>(items: T[], task: (item: T) => Promise<void>) {
 // created in bulk instead of per tenancy, and notifications go out a few at
 // a time rather than one after another.
 export async function GET(request: NextRequest) {
-  const authHeader = request.headers.get('authorization')
-  if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!cronAuthorized(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
