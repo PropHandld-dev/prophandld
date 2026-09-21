@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { SubscribeToAdd } from '@/components/BillingReminder'
+import { useBillingStatus, BILLING_ENFORCED } from '@/lib/useBillingStatus'
 import { supabase } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
@@ -14,6 +16,8 @@ export default function NewUnitPage() {
   const params = useParams()
   const propertyId = params.id as string
 
+  const billing = useBillingStatus()
+  const billingBlocked = BILLING_ENFORCED && billing.needsPayment
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [form, setForm] = useState({
@@ -90,6 +94,9 @@ export default function NewUnitPage() {
         <p className="text-white/50 text-sm mb-8">Enter the new unit's details below.</p>
 
         <ScrollReveal>
+        {billingBlocked ? (
+          <SubscribeToAdd what="units" />
+        ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
 
           <div>
@@ -145,6 +152,7 @@ export default function NewUnitPage() {
           </RippleButton>
 
         </form>
+        )}
         </ScrollReveal>
       </main>
 

@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, Suspense } from 'react'
+import { SubscribeToAdd } from '@/components/BillingReminder'
+import { useBillingStatus, BILLING_ENFORCED } from '@/lib/useBillingStatus'
 import { supabase } from '@/lib/supabase'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -16,6 +18,8 @@ function NewPropertyForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const isOnboarding = searchParams.get('onboarding') === '1'
+  const billing = useBillingStatus()
+  const billingBlocked = BILLING_ENFORCED && billing.needsPayment
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [form, setForm] = useState({
@@ -178,6 +182,9 @@ function NewPropertyForm() {
         </p>
 
         <ScrollReveal>
+        {billingBlocked ? (
+          <SubscribeToAdd what="properties" />
+        ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
 
           <div>
@@ -277,6 +284,7 @@ function NewPropertyForm() {
           </RippleButton>
 
         </form>
+        )}
         </ScrollReveal>
       </main>
 

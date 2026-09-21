@@ -9,6 +9,7 @@ import { AlertsList, type AlertItem } from '@/components/AlertsList'
 import { Skeleton } from '@/components/Skeleton'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { EnableNotificationsCard } from '@/components/EnableNotificationsCard'
+import { BillingReminder } from '@/components/BillingReminder'
 import { MagneticLink } from '@/components/MagneticLink'
 import { ProfileButton } from '@/components/ProfileButton'
 import { MessagesButton } from '@/components/MessagesButton'
@@ -559,6 +560,7 @@ export default function LandlordDashboard() {
               </div>
             )}
             <EnableNotificationsCard />
+            <BillingReminder />
 
             <ScrollReveal className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6" data-tour="stats">
               <Link
