@@ -80,9 +80,20 @@ export function ChatPanel({
       if (!user) return
       setUserId(user.id)
 
-      const participantsQuery = jobId
-        ? supabase.rpc('get_job_participants', { target_job_id: jobId })
-        : supabase.rpc('get_dm_thread_participants', { target_thread_id: threadId })
+      // Names come from the server (it knows who is in the conversation);
+      // the old database function is only a fallback if that call fails.
+      const participantsQuery = fetch(`/api/chat/participants?${jobId ? `jobId=${jobId}` : `threadId=${threadId}`}`)
+        .then(async (res) => {
+          if (!res.ok) throw new Error('participants request failed')
+          const body = await res.json()
+          return { data: (body.participants || []) as Participant[] }
+        })
+        .catch(async () => {
+          const fallback = jobId
+            ? await supabase.rpc('get_job_participants', { target_job_id: jobId })
+            : await supabase.rpc('get_dm_thread_participants', { target_thread_id: threadId })
+          return { data: (fallback.data || []) as Participant[] }
+        })
       const messagesQuery = jobId
         ? supabase.from('messages').select('id, job_id, thread_id, sender_user_id, body, created_at').eq('job_id', jobId).order('created_at', { ascending: true })
         : supabase.from('messages').select('id, job_id, thread_id, sender_user_id, body, created_at').eq('thread_id', threadId).order('created_at', { ascending: true })

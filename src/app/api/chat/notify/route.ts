@@ -3,6 +3,7 @@ import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { sendChatMessageEmail } from '@/lib/email'
 import { sendPush } from '@/lib/push'
+import { loadChatParticipants } from '@/lib/chatParticipants'
 
 type Role = 'landlord' | 'renter' | 'contractor'
 
@@ -37,60 +38,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Message not found' }, { status: 404 })
   }
 
-  const participants: { userId: string; role: Role }[] = []
-  let context = ''
-  const linkFor = (role: Role) => `${SITE}/${role}/messages`
-  let buildLink: (role: Role) => string = linkFor
-
-  if (message.job_id) {
-    const { data: job } = await admin
-      .from('jobs')
-      .select('id, category, unit_id, units(properties(address, owner_user_id))')
-      .eq('id', message.job_id)
-      .maybeSingle()
-    if (!job) return NextResponse.json({ error: 'Message not found' }, { status: 404 })
-
-    const property = (job.units as any)?.properties
-    if (property?.owner_user_id) participants.push({ userId: property.owner_user_id, role: 'landlord' })
-
-    const { data: tenancies } = await admin.from('tenancies').select('id, renter_user_id').eq('unit_id', job.unit_id).eq('ended', false)
-    for (const t of tenancies || []) participants.push({ userId: t.renter_user_id, role: 'renter' })
-    if ((tenancies || []).length > 0) {
-      const { data: occupants } = await admin
-        .from('tenancy_occupants')
-        .select('renter_user_id')
-        .in('tenancy_id', (tenancies || []).map((t: any) => t.id))
-      for (const o of occupants || []) participants.push({ userId: o.renter_user_id, role: 'renter' })
-    }
-
-    const { data: bid } = await admin.from('bids').select('contractor_user_id').eq('job_id', job.id).eq('status', 'accepted').maybeSingle()
-    if (bid?.contractor_user_id) participants.push({ userId: bid.contractor_user_id, role: 'contractor' })
-
-    context = `About the ${job.category} job${property?.address ? ` at ${property.address}` : ''}`
-    buildLink = (role) => `${SITE}/${role}/jobs/${job.id}#chat`
-  } else if (message.thread_id) {
-    const { data: thread } = await admin
-      .from('dm_threads')
-      .select('landlord_user_id, other_user_id, other_role')
-      .eq('id', message.thread_id)
-      .maybeSingle()
-    if (!thread) return NextResponse.json({ error: 'Message not found' }, { status: 404 })
-
-    participants.push({ userId: thread.landlord_user_id, role: 'landlord' })
-    participants.push({ userId: thread.other_user_id, role: thread.other_role as Role })
-    context = 'A direct message'
-    buildLink = (role) => `${SITE}/${role}/messages/${message.thread_id}`
-  } else {
-    return NextResponse.json({ error: 'Message not found' }, { status: 404 })
-  }
+  const loaded = await loadChatParticipants(admin, { jobId: message.job_id, threadId: message.thread_id })
+  if (!loaded) return NextResponse.json({ error: 'Message not found' }, { status: 404 })
 
   // Only people in the conversation may trigger alerts about it.
-  if (!participants.some((p) => p.userId === user.id)) {
+  if (!loaded.participants.some((p) => p.userId === user.id)) {
     return NextResponse.json({ error: 'Message not found' }, { status: 404 })
   }
 
-  const seen = new Set<string>([user.id])
-  const recipients = participants.filter((p) => (seen.has(p.userId) ? false : (seen.add(p.userId), true)))
+  const context = loaded.context
+  const buildLink = (role: Role) => `${SITE}${loaded.path(role)}`
+  const recipients = loaded.participants.filter((p) => p.userId !== user.id)
 
   const { data: sender } = await admin.from('users').select('full_name').eq('id', user.id).maybeSingle()
   const senderName = sender?.full_name || 'Someone'
