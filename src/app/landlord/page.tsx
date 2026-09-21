@@ -58,6 +58,35 @@ export default function LandlordDashboard() {
   const [complianceAlerts, setComplianceAlerts] = useState<any[]>([])
   const [rentAlerts, setRentAlerts] = useState<any[]>([])
   const [rentActivity, setRentActivity] = useState<any[]>([])
+  // Rent activity already opened (or cleared) on this device, so it stops
+  // reappearing on the dashboard. Keyed by month + state, so a bank payment
+  // that was "Processing" shows up again once it turns "Received".
+  const [seenRent, setSeenRent] = useState<Set<string>>(new Set())
+
+  const seenRentKey = user?.id ? `ph_rent_seen_${user.id}` : null
+  useEffect(() => {
+    if (!seenRentKey) return
+    try {
+      const stored = JSON.parse(localStorage.getItem(seenRentKey) || '[]')
+      if (Array.isArray(stored)) setSeenRent(new Set(stored))
+    } catch {}
+  }, [seenRentKey])
+
+  const markRentSeen = (keys: string[]) => {
+    setSeenRent((prev) => {
+      const next = new Set(prev)
+      keys.forEach((k) => next.add(k))
+      if (seenRentKey) {
+        try {
+          // Keep the list small: only the most recent entries matter.
+          localStorage.setItem(seenRentKey, JSON.stringify(Array.from(next).slice(-200)))
+        } catch {}
+      }
+      return next
+    })
+  }
+  const rentKey = (rp: any) => `${rp.id}:${rp.processing ? 'processing' : 'received'}`
+  const visibleRentActivity = rentActivity.filter((rp) => !seenRent.has(rentKey(rp)))
 
   useEffect(() => {
     const getUser = async () => {
@@ -478,14 +507,23 @@ export default function LandlordDashboard() {
 
             <AlertsList items={alertItems} />
 
-            {rentActivity.length > 0 && (
+            {visibleRentActivity.length > 0 && (
               <div className="bg-white/3 border border-white/8 rounded-2xl p-5 mb-6">
-                <h3 className="text-white font-semibold text-sm mb-3">Rent activity</h3>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-white font-semibold text-sm">Rent activity</h3>
+                  <button
+                    onClick={() => markRentSeen(visibleRentActivity.map(rentKey))}
+                    className="text-white/40 hover:text-white text-xs transition"
+                  >
+                    Clear
+                  </button>
+                </div>
                 <div className="space-y-1.5">
-                  {rentActivity.map((rp) => (
+                  {visibleRentActivity.map((rp) => (
                     <Link
                       key={rp.id}
                       href={`/landlord/properties/${rp.property?.id}/units/${rp.unit?.id}/rent`}
+                      onClick={() => markRentSeen([rentKey(rp)])}
                       className="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-white/5 transition"
                     >
                       <span className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${rp.processing ? 'bg-yellow-500/15 text-yellow-400' : 'bg-[#12A5A9]/15 text-[#12A5A9]'}`}>
