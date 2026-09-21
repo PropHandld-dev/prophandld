@@ -23,6 +23,7 @@ const ROLE_LABELS: Record<string, string> = {
   landlord: 'Landlord',
   renter: 'Renter',
   contractor: 'Contractor',
+  admin: 'Prophandld team',
 }
 
 function formatTimestamp(iso: string) {
@@ -260,7 +261,7 @@ export function ChatPanel({
           {others.map((p) => (
             <span key={p.user_id} className="inline-flex items-center gap-1 text-xs bg-white/5 border border-white/10 rounded-full px-2.5 py-1">
               <span className="text-white font-medium">{p.full_name || 'Unknown'}</span>
-              <span className="text-white/60">· {ROLE_LABELS[p.role] || p.role}</span>
+              {ROLE_LABELS[p.role] && <span className="text-white/60">· {ROLE_LABELS[p.role]}</span>}
             </span>
           ))}
         </div>
@@ -291,7 +292,7 @@ export function ChatPanel({
                 <div className={`flex ${isMine ? 'justify-end' : 'justify-start'} mb-3`}>
                   <div className="max-w-[78%]">
                     <p className={`text-[11px] font-medium mb-1 ${isMine ? 'text-right text-white/60' : 'text-left text-white/50'}`}>
-                      {isMine ? 'You' : `${sender?.full_name || 'Someone'} · ${ROLE_LABELS[sender?.role || ''] || 'Unknown'}`}
+                      {isMine ? 'You' : [sender?.full_name || 'Someone', ROLE_LABELS[sender?.role || '']].filter(Boolean).join(' · ')}
                     </p>
                     <div
                       className={
