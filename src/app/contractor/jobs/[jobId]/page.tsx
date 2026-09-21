@@ -201,34 +201,21 @@ export default function ContractorJobDetailPage() {
     setActioning(true)
     setError(null)
 
-    const { error: bidError } = await supabase
-      .from('bids')
-      .update({ status: 'declined' })
-      .eq('id', myBid.id)
-
-    if (bidError) {
-      console.error('Error cancelling bid:', bidError)
-      setError('Could not cancel: ' + bidError.message)
-      setActioning(false)
-      return
-    }
-
-    const { error: jobUpdateError } = await supabase
-      .from('jobs')
-      .update({
-        status: 'bidding',
-        proposed_date: null,
-        proposed_window: null,
-        proposed_time: null,
-        proposed_by: null,
-        schedule_confirmed: false,
-        schedule_ask_tenant: false,
+    // Done on the server so the job reopens and the bid is declined together.
+    try {
+      const res = await fetch('/api/contractor/cancel-job', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId }),
       })
-      .eq('id', jobId)
-
-    if (jobUpdateError) {
-      console.error('Error reopening job:', jobUpdateError)
-      setError('Could not reopen the job: ' + jobUpdateError.message)
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || 'Could not cancel. Please try again.')
+        setActioning(false)
+        return
+      }
+    } catch {
+      setError('Could not cancel. Please try again.')
       setActioning(false)
       return
     }

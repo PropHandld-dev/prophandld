@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/Skeleton'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { MagneticLink } from '@/components/MagneticLink'
 import { Logo } from '@/components/Logo'
+import { ProfileButton } from '@/components/ProfileButton'
 import { CalendarIcon, DollarSignIcon, CheckCircleIcon, FileTextIcon, MessageCircleIcon } from '@/components/icons'
 import { RENTER_TABS } from '@/lib/navTabs'
 import { EnableNotificationsCard } from '@/components/EnableNotificationsCard'
@@ -184,7 +185,7 @@ export default function RenterDashboard() {
           </Link>
           <span className="text-xs bg-[#0A7B7E]/20 text-[#12A5A9] border border-[#12A5A9]/30 rounded-full px-2 py-0.5">Renter</span>
         </div>
-        <span className="text-white/50 text-sm">{user?.user_metadata?.full_name}</span>
+        <ProfileButton name={user?.user_metadata?.full_name} />
       </nav>
 
       <main className="max-w-2xl mx-auto px-6 py-10 pb-28">

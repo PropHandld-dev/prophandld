@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/Skeleton'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { EnableNotificationsCard } from '@/components/EnableNotificationsCard'
 import { MagneticLink } from '@/components/MagneticLink'
+import { ProfileButton } from '@/components/ProfileButton'
 import { CountUp } from '@/components/CountUp'
 import {
   BuildingIcon, WrenchIcon, CalendarIcon, ClipboardListIcon,
@@ -476,7 +477,7 @@ export default function LandlordDashboard() {
             Landlord
           </span>
         </div>
-        <span className="text-white/50 text-sm hidden sm:block">{user?.user_metadata?.full_name}</span>
+        <ProfileButton name={user?.user_metadata?.full_name} />
       </nav>
 
       <main className="max-w-6xl mx-auto px-6 py-10 pb-28">
