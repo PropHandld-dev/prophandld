@@ -13,6 +13,14 @@ export function getStripe() {
   return stripeClient
 }
 
+// When a payment actually went through: the charge's time when the intent
+// was fetched with expand: ['latest_charge'], otherwise when it was created.
+export function paymentPaidAt(paymentIntent: Stripe.PaymentIntent): string {
+  const charge =
+    paymentIntent.latest_charge && typeof paymentIntent.latest_charge !== 'string' ? paymentIntent.latest_charge : null
+  return new Date((charge?.created ?? paymentIntent.created) * 1000).toISOString()
+}
+
 // Payout accounts only request the `transfers` capability (no
 // card_payments), so charges_enabled never turns true for them. Setup is
 // complete once transfers are active and payouts are enabled — this also

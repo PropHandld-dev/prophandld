@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
-import { getStripe } from '@/lib/stripe'
+import { getStripe, paymentPaidAt } from '@/lib/stripe'
 
 export async function POST(request: NextRequest) {
   const authClient = await createClient()
@@ -63,12 +63,12 @@ export async function POST(request: NextRequest) {
   // pay twice nor be stuck after cancelling.
   if (bid.stripe_payment_intent_id) {
     try {
-      const existing = await stripe.paymentIntents.retrieve(bid.stripe_payment_intent_id)
+      const existing = await stripe.paymentIntents.retrieve(bid.stripe_payment_intent_id, { expand: ['latest_charge'] })
 
       if (existing.status === 'succeeded') {
         await supabaseAdmin
           .from('bids')
-          .update({ payment_status: 'paid', paid_at: new Date().toISOString() })
+          .update({ payment_status: 'paid', paid_at: paymentPaidAt(existing) })
           .eq('id', bid.id)
           .neq('payment_status', 'paid')
         return NextResponse.json({ error: 'This job has already been paid.', alreadyPaid: true }, { status: 409 })

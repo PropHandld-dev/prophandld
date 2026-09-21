@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
-import { getStripe } from '@/lib/stripe'
+import { getStripe, paymentPaidAt } from '@/lib/stripe'
 
 // Asks Stripe directly whether a job payment went through, and records it.
 // The payment_intent.succeeded webhook does the same job, but it can arrive
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const paymentIntent = await getStripe().paymentIntents.retrieve(bid.stripe_payment_intent_id)
+    const paymentIntent = await getStripe().paymentIntents.retrieve(bid.stripe_payment_intent_id, { expand: ['latest_charge'] })
 
     // Never trust an intent that doesn't belong to this bid.
     if (paymentIntent.metadata?.prophandld_bid_id !== bid.id) {
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     if (paymentIntent.status === 'succeeded') {
       const { error } = await supabaseAdmin
         .from('bids')
-        .update({ payment_status: 'paid', paid_at: new Date().toISOString() })
+        .update({ payment_status: 'paid', paid_at: paymentPaidAt(paymentIntent) })
         .eq('id', bid.id)
         .neq('payment_status', 'paid')
       if (error) {
