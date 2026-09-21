@@ -7,17 +7,23 @@ import { DollarSignIcon, AlertTriangleIcon, FileTextIcon, WrenchIcon, CalendarIc
 import { Logo } from '@/components/Logo'
 import { BrandLink } from '@/components/BrandLink'
 import { RoleShowcase } from '@/components/RoleShowcase'
+import { HowItWorksTracker, NotificationPreview } from '@/components/LandingTracker'
+import { BellIcon, ReceiptIcon } from '@/components/icons'
 import { LandingHelpWidget } from '@/components/LandingHelpWidget'
 
 const OPERATIONS_FEATURES = [
-  { icon: DollarSignIcon, title: 'Online rent', desc: 'Rent tracks itself every month. Renters pay by debit card or bank transfer, no checks or cash to chase down.' },
-  { icon: AlertTriangleIcon, title: 'Compliance alerts', desc: "Licenses, certificates, and detectors. Get warned before something expires, not after." },
+  { icon: DollarSignIcon, title: 'Online rent', desc: 'Rent tracks itself every month. Renters pay by bank transfer or debit card. Edit any month, add a credit, or refund an overpayment in a tap.' },
+  { icon: BellIcon, title: 'Instant alerts', desc: "The right person hears at the right moment: a new bid, a proposed time, work ready for review. By email, and on your phone's Home Screen." },
+  { icon: ReceiptIcon, title: 'Receipts & records', desc: 'Every rent and repair payment gets a receipt, emailed to you and saved on the record.' },
+  { icon: MessageCircleIcon, title: 'Job chat', desc: 'Every job has one thread for the landlord, renter and contractor, with updates and history in one place.' },
+  { icon: MessageCircleIcon, title: 'Direct messages', desc: "Message your tenants, or a contractor you've worked with before, job or no job. No phone numbers exchanged." },
+  { icon: CalendarIcon, title: 'Schedule calendar', desc: 'Every confirmed visit, across every property, in one month view. Past jobs stay as history.' },
+  { icon: AlertTriangleIcon, title: 'Compliance alerts', desc: 'Licenses, certificates, and detectors. Get warned before something expires, not after.' },
   { icon: FileTextIcon, title: 'Documents vault', desc: 'Leases, deeds, insurance, inspection reports, all in one place per property, not scattered across email threads.' },
   { icon: WrenchIcon, title: 'Systems & appliances', desc: 'Track HVAC, water heaters, roofs, and panels with install dates and service history.' },
-  { icon: CalendarIcon, title: 'Schedule calendar', desc: 'Every confirmed job, across every property, in one month view.' },
   { icon: CheckCircleIcon, title: 'Verified contractors', desc: "Contractors can submit license and insurance for review, so you can see who's verified before you pick a bid." },
-  { icon: MessageCircleIcon, title: 'In-app messaging', desc: 'Message your tenants or a contractor you\'ve worked with before, job or no job, with no phone numbers exchanged.' },
-  { icon: LockIcon, title: 'Dispute protection', desc: "If something's not right after a job wraps up, any side can flag it and Prophandld steps in to sort it out." },
+  { icon: AlertTriangleIcon, title: 'Emergency priority', desc: 'Flag something that cannot wait and matching contractors are alerted with an emergency label.' },
+  { icon: LockIcon, title: 'Dispute protection', desc: "After a landlord approves, any side has 48 hours to flag a problem and Prophandld steps in to sort it out." },
 ]
 
 export default function LandingPage() {
@@ -170,33 +176,22 @@ export default function LandingPage() {
         className="border-y border-white/8 py-20 bg-[linear-gradient(to_right,rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:56px_56px]"
       >
         <ScrollReveal className="max-w-5xl mx-auto px-6">
-          <h2 className="text-3xl font-bold text-center mb-12 text-white">How it works</h2>
-          <div className="grid sm:grid-cols-3 gap-10">
-            <div>
-              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-bold flex items-center justify-center mb-4">1</div>
-              <h3 className="text-white font-semibold text-lg mb-2">Report the issue</h3>
-              <p className="text-white/50 text-sm leading-relaxed">
-                A renter flags a problem, or a landlord starts a job directly.
-                Photos and details included.
-              </p>
-            </div>
-            <div>
-              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-bold flex items-center justify-center mb-4">2</div>
-              <h3 className="text-white font-semibold text-lg mb-2">Compare sealed bids</h3>
-              <p className="text-white/50 text-sm leading-relaxed">
-                Contractors submit private bids. The landlord picks the best
-                one, with no bias and no bidding wars.
-              </p>
-            </div>
-            <div>
-              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-bold flex items-center justify-center mb-4">3</div>
-              <h3 className="text-white font-semibold text-lg mb-2">Job done, you confirm</h3>
-              <p className="text-white/50 text-sm leading-relaxed">
-                The contractor uploads before-and-after photos when the work&apos;s
-                done. You review and sign off, or flag it for a closer look.
-              </p>
-            </div>
+          <h2 className="text-3xl font-bold text-center mb-3 text-white">How it works</h2>
+          <p className="text-white/50 text-center max-w-2xl mx-auto mb-12">From a report to a receipt, everyone sees the same job and the same status.</p>
+          <HowItWorksTracker />
+        </ScrollReveal>
+      </section>
+
+      {/* Notifications */}
+      <section className="max-w-5xl mx-auto px-6 py-16">
+        <ScrollReveal>
+          <div className="text-center mb-10">
+            <h2 className="text-3xl font-bold text-white mb-3">Always in the loop, never buried</h2>
+            <p className="text-white/50 max-w-2xl mx-auto">
+              Every step of a job sends one clear update: what changed and what to do next. Contractors hear about new jobs only when a landlord opens bidding, and only for their trade and area.
+            </p>
           </div>
+          <NotificationPreview />
         </ScrollReveal>
       </section>
 
@@ -253,18 +248,25 @@ export default function LandingPage() {
       >
         <ScrollReveal className="max-w-3xl mx-auto px-6">
           <h2 className="text-3xl font-bold text-center mb-12 text-white">Common questions</h2>
-          <div className="space-y-4">
+          <div className="space-y-3">
             {[
-              { q: 'Is this just for finding contractors?', a: "No. Prophandld is built to replace the spreadsheet. Track every property, unit, and tenant, handle maintenance end-to-end with sealed bidding, and collect rent, all in one dashboard." },
-              { q: 'How does sealed bidding actually work?', a: "Contractors submit their price privately, and never see what anyone else bid. This keeps quotes honest instead of inflated by guesswork." },
-              { q: "What if the contractor's price changes?", a: 'If a contractor needs to adjust their price once work has started, they have to show you the new labor and parts breakdown, and you approve it before they move forward.' },
-              { q: 'How do rent and contractor payments actually work?', a: "Rent is paid by debit card or bank transfer, not credit cards, so nobody's going into credit card debt to make rent. Contractor payouts are just as flexible. Money goes straight from payer to recipient through Stripe; Prophandld never holds it." },
+              { q: 'Is this just for finding contractors?', a: "No. Prophandld is built to replace the spreadsheet. Track every property, unit, and tenant, handle maintenance end to end with sealed bidding, and collect rent, all in one dashboard." },
+              { q: 'How does sealed bidding actually work?', a: "Contractors near the property are alerted when you open a job for bids. They submit their price privately and never see what anyone else bid. You choose who you trust, not just the lowest number." },
+              { q: "What if the contractor's price changes?", a: 'If a contractor needs to adjust their price once work has started, they show you the new labor and parts breakdown, and you approve it before they move forward.' },
+              { q: 'How do rent and contractor payments work?', a: "Renters pay rent by bank transfer or debit card, not credit cards, so nobody goes into card debt to make rent. Landlords pay contractors when they approve a finished job. Payments are processed by Stripe and go straight to the person being paid." },
+              { q: 'How will I know when something happens?', a: "You get an email for each step: a bid arrives, a time is proposed or confirmed, work is ready for review. Add Prophandld to your phone's Home Screen and you get instant alerts too." },
+              { q: 'Do I get receipts and records?', a: 'Yes. Every rent payment and every contractor payment gets a receipt, emailed to you and saved on the job or rent record, so finding one later is a lookup, not a hunt.' },
+              { q: 'What if a contractor cancels?', a: "The job reopens for sealed bids, nearby contractors are alerted again, and the landlord and renter are told. Photos, notes, and other bids stay put." },
+              { q: "What if something isn't right after the job?", a: 'After the landlord approves, any side has 48 hours to raise a dispute. The job pauses while the Prophandld team reviews it. If nobody responds, finished work is approved automatically after 3 days so contractors are not left waiting.' },
               { q: 'Is Prophandld available in my area?', a: "We're currently onboarding beta landlords in the Philadelphia area, with more markets opening soon." },
             ].map((item) => (
-              <div key={item.q} className="bg-white/3 border border-white/8 rounded-xl p-5">
-                <h3 className="text-white font-semibold mb-1.5">{item.q}</h3>
-                <p className="text-white/50 text-sm leading-relaxed">{item.a}</p>
-              </div>
+              <details key={item.q} className="group bg-white/3 border border-white/8 rounded-2xl px-5 py-4 open:border-[#12A5A9]/30 open:bg-white/5 transition-colors">
+                <summary className="flex items-center justify-between gap-4 cursor-pointer list-none text-white font-semibold [&::-webkit-details-marker]:hidden">
+                  {item.q}
+                  <span aria-hidden className="text-[#12A5A9] text-xl leading-none shrink-0 transition-transform duration-200 group-open:rotate-45">+</span>
+                </summary>
+                <p className="text-white/60 text-sm leading-relaxed mt-3">{item.a}</p>
+              </details>
             ))}
           </div>
         </ScrollReveal>

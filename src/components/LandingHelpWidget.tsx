@@ -19,12 +19,20 @@ const FAQS: Record<Role, { q: string; a: string }[]> = {
       a: 'Mini property management for landlords who own a few units, not a few hundred, plus the tenants and contractors connected to those properties. One place to track properties, handle maintenance through sealed bidding, and collect rent.',
     },
     {
+      q: 'How will I know when something happens?',
+      a: 'You get an email for each step of a job (a new bid, a proposed or confirmed time, work ready for review). Add Prophandld to your phone’s Home Screen to get instant alerts too.',
+    },
+    {
+      q: 'Do I get receipts?',
+      a: 'Yes. Every rent payment and every contractor payment gets a receipt, emailed to you and saved on the job or rent record.',
+    },
+    {
       q: 'Where is Prophandld available?',
       a: 'We’re currently onboarding landlords in the Philadelphia area, with more areas planned as we grow.',
     },
     {
       q: 'What happens if a job goes wrong?',
-      a: 'Any party can raise a dispute within 48 hours of the job being marked done, and Prophandld’s team reviews it and resolves it. The job is paused until it’s sorted out.',
+      a: 'After the landlord approves a job, any party can raise a dispute within 48 hours. Prophandld’s team reviews it and resolves it, and the job is paused until it’s sorted out.',
     },
   ],
   landlord: [
