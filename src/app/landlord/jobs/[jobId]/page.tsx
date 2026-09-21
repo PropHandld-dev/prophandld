@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
@@ -217,6 +217,26 @@ export default function JobDetailPage() {
   }, [jobId, router])
 
   useJobRealtime(jobId, fetchJob)
+
+  // A payment can be left showing "processing" if Stripe's confirmation was
+  // late or never arrived. Check Stripe once per job when the page opens, so
+  // the card corrects itself instead of offering a second payment.
+  const syncedBidRef = useRef<string | null>(null)
+  useEffect(() => {
+    const bid = bids.find((b) => b.status === 'accepted')
+    if (!bid || bid.payment_status !== 'processing' || syncedBidRef.current === bid.id || paymentModal) return
+    syncedBidRef.current = bid.id
+    fetch('/api/stripe/job-payment/confirm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bidId: bid.id }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.status === 'paid') fetchJob()
+      })
+      .catch(() => {})
+  }, [bids, paymentModal])
 
   const handleDeletePhoto = async (photo: any) => {
     const { error: storageError } = await supabase.storage.from('job-photos').remove([photo.photo_url])
@@ -605,7 +625,10 @@ export default function JobDetailPage() {
         body: JSON.stringify({ bidId: acceptedBid.id }),
       })
       const data = await res.json()
-      if (!res.ok || !data.clientSecret) {
+      if (data.alreadyPaid) {
+        // Stripe already has this payment; the page was just behind.
+        await fetchJob()
+      } else if (!res.ok || !data.clientSecret) {
         setPaymentError(data.error || 'Could not start payment.')
       } else {
         setPaymentModal({ clientSecret: data.clientSecret, amount: data.amount })

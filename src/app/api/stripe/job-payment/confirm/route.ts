@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
 
   const { data: bid, error: bidError } = await supabaseAdmin
     .from('bids')
-    .select('id, status, payment_status, stripe_payment_intent_id, jobs(units(properties(owner_user_id)))')
+    .select('id, status, payment_status, stripe_payment_intent_id, contractor_user_id, jobs(units(properties(owner_user_id)))')
     .eq('id', bidId)
     .maybeSingle()
 
@@ -33,7 +33,9 @@ export async function POST(request: NextRequest) {
   }
 
   const landlordUserId = (bid?.jobs as any)?.units?.properties?.owner_user_id
-  if (!bid || landlordUserId !== user.id) {
+  // Either side of the payment may ask: the landlord who paid, or the
+  // contractor waiting to see it as earned.
+  if (!bid || (landlordUserId !== user.id && bid.contractor_user_id !== user.id)) {
     return NextResponse.json({ error: 'Job not found' }, { status: 404 })
   }
 

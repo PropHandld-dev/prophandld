@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -70,6 +70,38 @@ export default function ContractorDashboard() {
   const [connectStatus, setConnectStatus] = useState<'not_started' | 'onboarding' | 'active'>('not_started')
   const [verificationStatus, setVerificationStatus] = useState<'pending' | 'verified' | 'rejected' | 'unlicensed' | null>(null)
   const [pastFilter, setPastFilter] = useState('all')
+
+  // A payment can be left showing "processing" if Stripe's confirmation was
+  // late or never arrived. Check Stripe once per job, so earnings catch up.
+  const syncedBidIds = useRef<Set<string>>(new Set())
+  useEffect(() => {
+    const stuck = myBids
+      .filter((b) => b.status === 'accepted' && b.payment_status === 'processing' && !syncedBidIds.current.has(b.id))
+      .slice(0, 5)
+    if (stuck.length === 0) return
+    stuck.forEach((b) => syncedBidIds.current.add(b.id))
+
+    Promise.all(
+      stuck.map((b) =>
+        fetch('/api/stripe/job-payment/confirm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bidId: b.id }),
+        })
+          .then((res) => res.json())
+          .catch(() => null)
+      )
+    ).then((results) => {
+      const nowPaid = stuck.filter((_, i) => results[i]?.status === 'paid')
+      if (nowPaid.length === 0) return
+      const amountOf = (b: any) => Number(b.proposed_amount ?? b.amount ?? 0)
+      const total = nowPaid.reduce((sum, b) => sum + amountOf(b), 0)
+      const paidIds = new Set(nowPaid.map((b) => b.id))
+      setMyBids((prev) => prev.map((b) => (paidIds.has(b.id) ? { ...b, payment_status: 'paid' } : b)))
+      setTotalEarnings((t) => t + total)
+      setAwaitingPayment((a) => Math.max(0, a - nowPaid.filter((b) => b.jobs?.status === 'completed').reduce((s, b) => s + amountOf(b), 0)))
+    })
+  }, [myBids])
 
   useEffect(() => {
     const init = async () => {

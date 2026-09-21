@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (bid.payment_status === 'paid') {
-    return NextResponse.json({ error: 'This job has already been paid.' }, { status: 400 })
+    return NextResponse.json({ error: 'This job has already been paid.', alreadyPaid: true }, { status: 409 })
   }
 
   const { data: contractorRow } = await supabaseAdmin
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
           .update({ payment_status: 'paid', paid_at: new Date().toISOString() })
           .eq('id', bid.id)
           .neq('payment_status', 'paid')
-        return NextResponse.json({ error: 'This job has already been paid.' }, { status: 400 })
+        return NextResponse.json({ error: 'This job has already been paid.', alreadyPaid: true }, { status: 409 })
       }
 
       if (existing.status === 'processing') {
