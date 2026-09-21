@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ScheduleCalendar, type CalendarEvent } from '@/components/ScheduleCalendar'
+import { ScheduleCalendar, eventState, CALENDAR_JOB_STATUSES, calendarHistoryStart, type CalendarEvent } from '@/components/ScheduleCalendar'
 import { ScrollReveal } from '@/components/ScrollReveal'
 
 export default function LandlordCalendarPage() {
@@ -43,12 +43,16 @@ export default function LandlordCalendarPage() {
         return
       }
 
+      // Confirmed times, times still waiting for confirmation (which is also
+      // what a reschedule looks like until it is accepted), and finished jobs
+      // from the last year as a history.
       const { data: confirmedJobs } = await supabase
         .from('jobs')
         .select('*, units(unit_number, properties(address, city))')
         .in('unit_id', unitIds)
-        .eq('status', 'scheduled')
-        .eq('schedule_confirmed', true)
+        .in('status', CALENDAR_JOB_STATUSES)
+        .not('proposed_date', 'is', null)
+        .gte('proposed_date', calendarHistoryStart())
 
       setEvents(
         (confirmedJobs || [])
@@ -60,6 +64,7 @@ export default function LandlordCalendarPage() {
             title: job.category,
             subtitle: [job.units?.properties?.address, job.units?.unit_number].filter(Boolean).join(' · '),
             href: `/landlord/jobs/${job.id}`,
+            state: eventState(job.status, job.schedule_confirmed === true),
           }))
       )
       setLoading(false)
@@ -86,7 +91,7 @@ export default function LandlordCalendarPage() {
       <main className="max-w-3xl mx-auto px-6 py-10">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-white">Calendar</h1>
-          <p className="text-white/50 text-sm mt-1">Confirmed job schedules across your portfolio.</p>
+          <p className="text-white/50 text-sm mt-1">Confirmed times, times waiting for a reply, and finished jobs across your portfolio.</p>
         </div>
 
         <ScrollReveal>

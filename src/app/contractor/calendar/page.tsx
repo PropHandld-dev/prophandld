@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ScheduleCalendar, type CalendarEvent } from '@/components/ScheduleCalendar'
+import { ScheduleCalendar, eventState, CALENDAR_JOB_STATUSES, calendarHistoryStart, type CalendarEvent } from '@/components/ScheduleCalendar'
 import { ScrollReveal } from '@/components/ScrollReveal'
 
 export default function ContractorCalendarPage() {
@@ -25,8 +25,15 @@ export default function ContractorCalendarPage() {
         .select('*, jobs(id, category, status, proposed_date, proposed_window, schedule_confirmed, units(unit_number, properties(address, city)))')
         .eq('contractor_user_id', user.id)
 
+      // Only jobs this contractor was actually selected for. (A bid that was
+      // not selected used to put the winner's schedule on this calendar.)
+      const since = calendarHistoryStart()
       const confirmed = (bidsData || []).filter(
-        (b) => b.jobs?.status === 'scheduled' && b.jobs?.schedule_confirmed && b.jobs?.proposed_date
+        (b) =>
+          b.status === 'accepted' &&
+          b.jobs?.proposed_date &&
+          b.jobs.proposed_date >= since &&
+          CALENDAR_JOB_STATUSES.includes(b.jobs.status)
       )
 
       setEvents(
@@ -37,6 +44,7 @@ export default function ContractorCalendarPage() {
           title: b.jobs.category,
           subtitle: [b.jobs.units?.properties?.address, b.jobs.units?.unit_number].filter(Boolean).join(' · '),
           href: `/contractor/jobs/${b.jobs.id}`,
+          state: eventState(b.jobs.status, b.jobs.schedule_confirmed === true),
         }))
       )
       setLoading(false)
@@ -63,7 +71,7 @@ export default function ContractorCalendarPage() {
       <main className="max-w-3xl mx-auto px-6 py-10">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-white">Calendar</h1>
-          <p className="text-white/50 text-sm mt-1">Your confirmed job schedules.</p>
+          <p className="text-white/50 text-sm mt-1">Confirmed times, times waiting for a reply, and the jobs you've finished.</p>
         </div>
 
         <ScrollReveal>

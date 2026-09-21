@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ScheduleCalendar, type CalendarEvent } from '@/components/ScheduleCalendar'
+import { ScheduleCalendar, eventState, CALENDAR_JOB_STATUSES, calendarHistoryStart, type CalendarEvent } from '@/components/ScheduleCalendar'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { timeWindowLabel } from '@/lib/constants'
 
@@ -21,14 +21,12 @@ export default function RenterCalendarPage() {
         return
       }
 
-      const { data: tenancyData } = await supabase
-        .from('tenancies')
-        .select('unit_id')
-        .eq('renter_user_id', user.id)
-        .eq('ended', false)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
+      // Resolves to the household lease for the primary tenant and for a
+      // co-renter alike (the co-renter's calendar used to be empty).
+      const { data: tenancyId } = await supabase.rpc('get_my_active_tenancy_id')
+      const { data: tenancyData } = tenancyId
+        ? await supabase.from('tenancies').select('unit_id').eq('id', tenancyId).maybeSingle()
+        : { data: null }
 
       if (!tenancyData) {
         setLoading(false)
@@ -39,8 +37,9 @@ export default function RenterCalendarPage() {
         .from('jobs')
         .select('*')
         .eq('unit_id', tenancyData.unit_id)
-        .eq('status', 'scheduled')
-        .eq('schedule_confirmed', true)
+        .in('status', CALENDAR_JOB_STATUSES)
+        .not('proposed_date', 'is', null)
+        .gte('proposed_date', calendarHistoryStart())
 
       setEvents(
         (confirmedJobs || [])
@@ -52,6 +51,7 @@ export default function RenterCalendarPage() {
             title: job.category,
             subtitle: job.proposed_window ? timeWindowLabel(job.proposed_window) : undefined,
             href: `/renter/jobs/${job.id}`,
+            state: eventState(job.status, job.schedule_confirmed === true),
           }))
       )
       setLoading(false)

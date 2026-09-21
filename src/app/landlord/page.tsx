@@ -75,6 +75,13 @@ export default function LandlordDashboard() {
   }, [seenRentKey])
 
   const markRentSeen = (keys: string[]) => {
+    // Also saved on the rent month itself, so it is remembered on every
+    // device and browser, not just this one. (Ignored quietly if the column
+    // has not been added yet; this browser still remembers.)
+    for (const key of keys) {
+      const [id, state] = key.split(':')
+      if (id && state) void supabase.from('rent_payments').update({ landlord_seen_state: state }).eq('id', id).then(() => {})
+    }
     setSeenRent((prev) => {
       const next = new Set(prev)
       keys.forEach((k) => next.add(k))
@@ -88,7 +95,9 @@ export default function LandlordDashboard() {
     })
   }
   const rentKey = (rp: any) => `${rp.id}:${rp.processing ? 'processing' : 'received'}`
-  const visibleRentActivity = rentActivity.filter((rp) => !seenRent.has(rentKey(rp)))
+  const visibleRentActivity = rentActivity.filter(
+    (rp) => !seenRent.has(rentKey(rp)) && rp.landlord_seen_state !== (rp.processing ? 'processing' : 'received')
+  )
 
   useEffect(() => {
     const getUser = async () => {
@@ -197,7 +206,7 @@ export default function LandlordDashboard() {
         tenancyIds.length > 0
           ? supabase
               .from('rent_payments')
-              .select('id, tenancy_id, month, expected_amount, actual_amount, paid_date, stripe_status')
+              .select('*')
               .in('tenancy_id', tenancyIds)
               .gte('month', rentWindowKey)
           : none,
