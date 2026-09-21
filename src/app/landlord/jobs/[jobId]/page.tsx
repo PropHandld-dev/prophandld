@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { expectRow } from '@/lib/expectRow'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { PhotoGrid } from '@/components/PhotoGrid'
@@ -88,7 +89,7 @@ export default function JobDetailPage() {
       const threeDaysMs = 3 * 24 * 60 * 60 * 1000
       if (Date.now() - completedAt > threeDaysMs) {
         const approvedAt = new Date().toISOString()
-        await supabase.from('jobs').update({ status: 'completed', landlord_approved_at: approvedAt }).eq('id', jobId)
+        await expectRow(supabase.from('jobs').update({ status: 'completed', landlord_approved_at: approvedAt }).eq('id', jobId))
         jobData.status = 'completed'
         jobData.landlord_approved_at = approvedAt
         notify('job_completed', jobId)
@@ -256,10 +257,10 @@ export default function JobDetailPage() {
 
   const handleApproveClick = async () => {
     setActioning(true)
-    const { error: updateError } = await supabase
+    const { error: updateError } = await expectRow(supabase
       .from('jobs')
       .update({ status: 'approved' })
-      .eq('id', jobId)
+      .eq('id', jobId))
 
     if (updateError) {
       console.error('Error acknowledging job:', updateError)
@@ -274,14 +275,16 @@ export default function JobDetailPage() {
 
   const confirmStartBidding = async () => {
     setActioning(true)
-    const { error: biddingError } = await supabase
+    const { error: biddingError } = await expectRow(supabase
       .from('jobs')
       .update({ status: 'bidding' })
-      .eq('id', jobId)
+      .eq('id', jobId))
 
     if (biddingError) {
       console.error('Error starting bidding:', biddingError)
       setError('Acknowledged, but could not start bidding.')
+    } else {
+      notify('job_open', jobId)
     }
 
     setShowBiddingModal(false)
@@ -302,10 +305,10 @@ export default function JobDetailPage() {
   const confirmDecline = async () => {
     setActioning(true)
 
-    const { error: updateError } = await supabase
+    const { error: updateError } = await expectRow(supabase
       .from('jobs')
       .update({ status: 'declined', landlord_notes: declineNote || null })
-      .eq('id', jobId)
+      .eq('id', jobId))
 
     if (updateError) {
       console.error('Error declining job:', updateError)
@@ -321,14 +324,16 @@ export default function JobDetailPage() {
 
   const handleStartBidding = async () => {
     setActioning(true)
-    const { error: updateError } = await supabase
+    const { error: updateError } = await expectRow(supabase
       .from('jobs')
       .update({ status: 'bidding' })
-      .eq('id', jobId)
+      .eq('id', jobId))
 
     if (updateError) {
       console.error('Error starting bidding:', updateError)
       setError('Could not start bidding.')
+    } else {
+      notify('job_open', jobId)
     }
 
     await fetchJob()
@@ -346,10 +351,10 @@ export default function JobDetailPage() {
     setActioning(true)
     setError(null)
 
-    const { error: selectError } = await supabase
+    const { error: selectError } = await expectRow(supabase
       .from('bids')
       .update({ status: 'accepted', selected_at: new Date().toISOString() })
-      .eq('id', selectedBidId)
+      .eq('id', selectedBidId))
 
     if (selectError) {
       console.error('Error selecting bid:', selectError)
@@ -359,20 +364,20 @@ export default function JobDetailPage() {
       return
     }
 
-    const { error: declineOthersError } = await supabase
+    const { error: declineOthersError } = await expectRow(supabase
       .from('bids')
       .update({ status: 'declined' })
       .eq('job_id', jobId)
-      .neq('id', selectedBidId)
+      .neq('id', selectedBidId))
 
     if (declineOthersError) {
       console.error('Error declining other bids:', declineOthersError)
     }
 
-    const { error: jobUpdateError } = await supabase
+    const { error: jobUpdateError } = await expectRow(supabase
       .from('jobs')
       .update({ status: 'bid_selected' })
-      .eq('id', jobId)
+      .eq('id', jobId))
 
     if (jobUpdateError) {
       console.error('Error updating job status:', jobUpdateError)
@@ -421,7 +426,7 @@ export default function JobDetailPage() {
     setActioning(true)
     setError(null)
 
-    const { error: updateError } = await supabase
+    const { error: updateError } = await expectRow(supabase
       .from('jobs')
       .update({
         proposed_date: scheduleDate,
@@ -431,7 +436,7 @@ export default function JobDetailPage() {
         schedule_confirmed: false,
         schedule_ask_tenant: false,
       })
-      .eq('id', jobId)
+      .eq('id', jobId))
 
     if (updateError) {
       console.error('Error proposing schedule:', updateError)
@@ -448,10 +453,10 @@ export default function JobDetailPage() {
 
   const askTenantToPropose = async () => {
     setActioning(true)
-    const { error: updateError } = await supabase
+    const { error: updateError } = await expectRow(supabase
       .from('jobs')
       .update({ schedule_ask_tenant: true })
-      .eq('id', jobId)
+      .eq('id', jobId))
 
     if (updateError) {
       console.error('Error asking tenant to propose:', updateError)
@@ -464,10 +469,10 @@ export default function JobDetailPage() {
 
   const confirmSchedule = async () => {
     setActioning(true)
-    const { error: updateError } = await supabase
+    const { error: updateError } = await expectRow(supabase
       .from('jobs')
       .update({ schedule_confirmed: true, status: 'scheduled' })
-      .eq('id', jobId)
+      .eq('id', jobId))
 
     if (updateError) {
       console.error('Error confirming schedule:', updateError)
@@ -482,10 +487,10 @@ export default function JobDetailPage() {
 
   const handleArchive = async () => {
     setActioning(true)
-    const { error: updateError } = await supabase
+    const { error: updateError } = await expectRow(supabase
       .from('jobs')
       .update({ status: 'archived' })
-      .eq('id', jobId)
+      .eq('id', jobId))
 
     if (updateError) {
       console.error('Error archiving job:', updateError)
@@ -499,10 +504,10 @@ export default function JobDetailPage() {
 
   const confirmApproveCompletion = async () => {
     setActioning(true)
-    const { error: updateError } = await supabase
+    const { error: updateError } = await expectRow(supabase
       .from('jobs')
       .update({ status: 'completed', landlord_approved_at: new Date().toISOString() })
-      .eq('id', jobId)
+      .eq('id', jobId))
 
     if (updateError) {
       console.error('Error approving completion:', updateError)
@@ -543,10 +548,10 @@ export default function JobDetailPage() {
     setActioning(true)
     setError(null)
 
-    const { error: updateError } = await supabase
+    const { error: updateError } = await expectRow(supabase
       .from('jobs')
       .update({ clarification_note: clarifyNote, clarification_response: null })
-      .eq('id', jobId)
+      .eq('id', jobId))
 
     if (updateError) {
       console.error('Error sending clarification request:', updateError)
@@ -574,13 +579,13 @@ export default function JobDetailPage() {
     setError(null)
 
     if (priceAction === 'approve') {
-      const { error: updateError } = await supabase
+      const { error: updateError } = await expectRow(supabase
         .from('bids')
         .update({
           amount: acceptedBid.proposed_amount,
           price_change_status: 'approved',
         })
-        .eq('id', acceptedBid.id)
+        .eq('id', acceptedBid.id))
 
       if (updateError) {
         console.error('Error approving price change:', updateError)
@@ -589,10 +594,10 @@ export default function JobDetailPage() {
         return
       }
     } else {
-      const { error: updateError } = await supabase
+      const { error: updateError } = await expectRow(supabase
         .from('bids')
         .update({ price_change_status: 'rejected' })
-        .eq('id', acceptedBid.id)
+        .eq('id', acceptedBid.id))
 
       if (updateError) {
         console.error('Error rejecting price change:', updateError)

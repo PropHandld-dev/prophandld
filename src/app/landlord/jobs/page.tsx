@@ -2,6 +2,8 @@
 
 import { useEffect, useState, Suspense } from 'react'
 import { supabase } from '@/lib/supabase'
+import { notify } from '@/lib/notify'
+import { expectRow } from '@/lib/expectRow'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
@@ -81,10 +83,10 @@ function LandlordJobsList() {
 
   const handleApproveClick = async (jobId: string) => {
     setActioningId(jobId)
-    const { error: updateError } = await supabase
+    const { error: updateError } = await expectRow(supabase
       .from('jobs')
       .update({ status: 'approved' })
-      .eq('id', jobId)
+      .eq('id', jobId))
 
     if (updateError) {
       console.error('Error acknowledging job:', updateError)
@@ -102,14 +104,16 @@ function LandlordJobsList() {
     if (!biddingJobId) return
     setActioningId(biddingJobId)
 
-    const { error: biddingError } = await supabase
+    const { error: biddingError } = await expectRow(supabase
       .from('jobs')
       .update({ status: 'bidding' })
-      .eq('id', biddingJobId)
+      .eq('id', biddingJobId))
 
     if (biddingError) {
       console.error('Error starting bidding:', biddingError)
       setError('Acknowledged, but could not start bidding.')
+    } else {
+      notify('job_open', biddingJobId)
     }
 
     setShowBiddingModal(false)
@@ -134,10 +138,10 @@ function LandlordJobsList() {
     if (!declineJobId) return
     setActioningId(declineJobId)
 
-    const { error: updateError } = await supabase
+    const { error: updateError } = await expectRow(supabase
       .from('jobs')
       .update({ status: 'declined', landlord_notes: declineNote || null })
-      .eq('id', declineJobId)
+      .eq('id', declineJobId))
 
     if (updateError) {
       console.error('Error declining job:', updateError)

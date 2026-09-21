@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { expectRow } from '@/lib/expectRow'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { PhotoGrid } from '@/components/PhotoGrid'
@@ -137,7 +138,7 @@ export default function RenterJobDetailPage() {
     setActioning(true)
     setError(null)
 
-    const { error: updateError } = await supabase
+    const { error: updateError } = await expectRow(supabase
       .from('jobs')
       .update({
         proposed_date: scheduleDate,
@@ -147,7 +148,7 @@ export default function RenterJobDetailPage() {
         schedule_confirmed: false,
         schedule_ask_tenant: false,
       })
-      .eq('id', jobId)
+      .eq('id', jobId))
 
     if (updateError) {
       console.error('Error proposing schedule:', updateError)
@@ -165,10 +166,10 @@ export default function RenterJobDetailPage() {
 
   const confirmSchedule = async () => {
     setActioning(true)
-    const { error: updateError } = await supabase
+    const { error: updateError } = await expectRow(supabase
       .from('jobs')
       .update({ schedule_confirmed: true, status: 'scheduled' })
-      .eq('id', jobId)
+      .eq('id', jobId))
 
     if (updateError) {
       console.error('Error confirming schedule:', updateError)

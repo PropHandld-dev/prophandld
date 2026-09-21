@@ -209,6 +209,7 @@ export type NotifyType =
   | 'clarification_requested'
   | 'clarification_responded'
   | 'contractor_cancelled'
+  | 'job_open'
 
 export interface NotifyJobInfo {
   jobId: string
@@ -237,13 +238,14 @@ const PUSH_TITLES: Record<NotifyType, string> = {
   clarification_requested: 'The landlord has a question',
   clarification_responded: 'The contractor responded',
   contractor_cancelled: 'Contractor cancelled, job reopened',
+  job_open: 'New job near you',
 }
 
 export function buildPushMessage(type: NotifyType, role: 'landlord' | 'renter' | 'contractor', info: NotifyJobInfo) {
   return {
     title: PUSH_TITLES[type],
     body: `${info.category} at ${jobLocation(info)}`,
-    url: `${SITE_URL}/${role}/jobs/${info.jobId}`,
+    url: type === 'job_open' ? `${SITE_URL}/contractor/jobs/${info.jobId}/bid` : `${SITE_URL}/${role}/jobs/${info.jobId}`,
   }
 }
 
@@ -252,6 +254,7 @@ export function buildPushMessage(type: NotifyType, role: 'landlord' | 'renter' |
 // else stays email/push-only.
 export const SMS_ENABLED_TYPES: NotifyType[] = [
   'job_reported',
+  'job_open',
   'schedule_proposed',
   'schedule_confirmed',
   'job_pending_review',
@@ -266,6 +269,17 @@ export function buildNotificationEmail(type: NotifyType, role: 'landlord' | 'ren
   const at = jobLocation(info)
 
   switch (type) {
+    case 'job_open':
+      return {
+        subject: `New job near you: ${info.category}`,
+        html: baseTemplate({
+          eyebrow: 'New job',
+          heading: 'A job near you is open for bids',
+          bodyHtml: `A <strong>${escapeHtml(info.category)}</strong> job at ${escapeHtml(at)} just opened for bidding${info.isEmergency ? ' and is marked as an <strong>emergency</strong>' : ''}. Bids are sealed: no other contractor can see yours.`,
+          ctaLabel: 'View and bid',
+          ctaUrl: `${SITE_URL}/contractor/jobs/${info.jobId}/bid`,
+        }),
+      }
     case 'job_reported':
       return {
         subject: `New issue reported: ${info.category}`,

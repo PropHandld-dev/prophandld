@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { buildNotificationEmail, buildPushMessage, buildSmsMessage, SMS_ENABLED_TYPES, sendEmail, type NotifyType, type NotifyJobInfo } from '@/lib/email'
 import { sendPush } from '@/lib/push'
 import { sendSms } from '@/lib/sms'
+import { notifyMatchingContractors } from '@/lib/openJobAlerts'
 
 type Role = 'landlord' | 'renter' | 'contractor'
 
@@ -22,6 +23,8 @@ const RECIPIENTS: Record<NotifyType, Role[]> = {
   clarification_requested: ['contractor'],
   clarification_responded: ['landlord'],
   contractor_cancelled: ['landlord', 'renter'],
+  // Handled separately: goes to matching contractors, not to people on the job.
+  job_open: ['contractor'],
 }
 
 export async function POST(request: NextRequest) {
@@ -40,7 +43,7 @@ export async function POST(request: NextRequest) {
 
   const { data: job, error: jobError } = await supabaseAdmin
     .from('jobs')
-    .select('id, category, unit_id, is_emergency, units(property_id, properties(address, city, owner_user_id))')
+    .select('id, status, category, unit_id, is_emergency, units(property_id, properties(address, city, owner_user_id))')
     .eq('id', jobId)
     .maybeSingle()
 
@@ -54,6 +57,48 @@ export async function POST(request: NextRequest) {
   }
 
   const property = (job.units as any)?.properties
+
+  // Only people who are part of this job may trigger notifications about it:
+  // the landlord, the tenant (or a co-renter), or a contractor who bid on it.
+  const isLandlord = property?.owner_user_id === user.id
+  let allowed = isLandlord
+  if (!allowed) {
+    const { data: tenancies } = await supabaseAdmin.from('tenancies').select('id, renter_user_id').eq('unit_id', job.unit_id)
+    const rows = tenancies || []
+    allowed = rows.some((t: any) => t.renter_user_id === user.id)
+    if (!allowed && rows.length > 0) {
+      const { data: occupant } = await supabaseAdmin
+        .from('tenancy_occupants')
+        .select('id')
+        .eq('renter_user_id', user.id)
+        .in('tenancy_id', rows.map((t: any) => t.id))
+        .limit(1)
+        .maybeSingle()
+      allowed = !!occupant
+    }
+  }
+  if (!allowed) {
+    const { data: ownBid } = await supabaseAdmin
+      .from('bids')
+      .select('id')
+      .eq('job_id', jobId)
+      .eq('contractor_user_id', user.id)
+      .limit(1)
+      .maybeSingle()
+    allowed = !!ownBid
+  }
+  if (!allowed) {
+    return NextResponse.json({ error: 'Job not found' }, { status: 404 })
+  }
+
+  // "New job near you" goes to matching contractors, and only once the
+  // landlord has opened the job for bidding.
+  if (type === 'job_open') {
+    if (!isLandlord) return NextResponse.json({ error: 'Not allowed' }, { status: 403 })
+    const result = await notifyMatchingContractors(supabaseAdmin, jobId)
+    return NextResponse.json({ ok: true, ...result })
+  }
+
   const jobInfo: NotifyJobInfo = {
     jobId: job.id,
     category: job.category,

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { expectRow } from '@/lib/expectRow'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { notify } from '@/lib/notify'
@@ -166,10 +167,10 @@ export default function SubmitBidPage() {
       .maybeSingle()
 
     const { error: submitError } = existingBid
-      ? await supabase
+      ? await expectRow(supabase
           .from('bids')
           .update({ ...bidFields, selected_at: null, price_change_status: null })
-          .eq('id', existingBid.id)
+          .eq('id', existingBid.id))
       : await supabase.from('bids').insert({ job_id: jobId, contractor_user_id: user.id, ...bidFields })
 
     if (submitError) {

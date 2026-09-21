@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { expectRow } from '@/lib/expectRow'
 import { compressImage } from '@/lib/imageCompress'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
@@ -91,7 +92,7 @@ export default function ContractorJobDetailPage() {
       const threeDaysMs = 3 * 24 * 60 * 60 * 1000
       if (Date.now() - completedAt > threeDaysMs) {
         const approvedAt = new Date().toISOString()
-        await supabase.from('jobs').update({ status: 'completed', landlord_approved_at: approvedAt }).eq('id', jobId)
+        await expectRow(supabase.from('jobs').update({ status: 'completed', landlord_approved_at: approvedAt }).eq('id', jobId))
         jobData.status = 'completed'
         jobData.landlord_approved_at = approvedAt
         notify('job_completed', jobId)
@@ -150,7 +151,7 @@ export default function ContractorJobDetailPage() {
     setActioning(true)
     setError(null)
 
-    const { error: updateError } = await supabase
+    const { error: updateError } = await expectRow(supabase
       .from('jobs')
       .update({
         proposed_date: scheduleDate,
@@ -160,7 +161,7 @@ export default function ContractorJobDetailPage() {
         schedule_confirmed: false,
         schedule_ask_tenant: false,
       })
-      .eq('id', jobId)
+      .eq('id', jobId))
 
     if (updateError) {
       console.error('Error proposing schedule:', updateError)
@@ -177,10 +178,10 @@ export default function ContractorJobDetailPage() {
 
   const confirmSchedule = async () => {
     setActioning(true)
-    const { error: updateError } = await supabase
+    const { error: updateError } = await expectRow(supabase
       .from('jobs')
       .update({ schedule_confirmed: true, status: 'scheduled' })
-      .eq('id', jobId)
+      .eq('id', jobId))
 
     if (updateError) {
       console.error('Error confirming schedule:', updateError)
@@ -228,10 +229,10 @@ export default function ContractorJobDetailPage() {
   const handleStartJob = async () => {
     setActioning(true)
     setError(null)
-    const { error: updateError } = await supabase
+    const { error: updateError } = await expectRow(supabase
       .from('jobs')
       .update({ status: 'in_progress' })
-      .eq('id', jobId)
+      .eq('id', jobId))
 
     if (updateError) {
       console.error('Error starting job:', updateError)
@@ -342,10 +343,10 @@ export default function ContractorJobDetailPage() {
 
   const confirmMarkComplete = async () => {
     setActioning(true)
-    const { error: updateError } = await supabase
+    const { error: updateError } = await expectRow(supabase
       .from('jobs')
       .update({ status: 'pending_review', contractor_completed_at: new Date().toISOString() })
-      .eq('id', jobId)
+      .eq('id', jobId))
 
     if (updateError) {
       console.error('Error marking job complete:', updateError)
@@ -363,10 +364,10 @@ export default function ContractorJobDetailPage() {
 
   const submitResponse = async () => {
     setActioning(true)
-    const { error: updateError } = await supabase
+    const { error: updateError } = await expectRow(supabase
       .from('jobs')
       .update({ clarification_response: responseText })
-      .eq('id', jobId)
+      .eq('id', jobId))
 
     if (updateError) {
       console.error('Error sending response:', updateError)
@@ -405,7 +406,7 @@ export default function ContractorJobDetailPage() {
     setActioning(true)
     setError(null)
 
-    const { error: updateError } = await supabase
+    const { error: updateError } = await expectRow(supabase
       .from('bids')
       .update({
         proposed_amount: newTotal,
@@ -414,7 +415,7 @@ export default function ContractorJobDetailPage() {
         price_change_reason: priceChangeReason,
         price_change_status: 'pending',
       })
-      .eq('id', myBid.id)
+      .eq('id', myBid.id))
 
     if (updateError) {
       console.error('Error requesting price change:', updateError)

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { expectRow } from '@/lib/expectRow'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
@@ -314,10 +315,10 @@ export default function UnitDetailPage() {
     setSavingMoveOut(true)
     setMoveOutError(null)
 
-    const { error: updateError } = await supabase
+    const { error: updateError } = await expectRow(supabase
       .from('tenancies')
       .update({ move_out_date: moveOutDate })
-      .eq('id', tenancy.id)
+      .eq('id', tenancy.id))
 
     if (updateError) {
       console.error('Error setting move-out date:', updateError)
@@ -343,10 +344,10 @@ export default function UnitDetailPage() {
     )
     if (!confirmed) return
 
-    const { error: updateError } = await supabase
+    const { error: updateError } = await expectRow(supabase
       .from('tenancies')
       .update({ ended: true })
-      .eq('id', tenancy.id)
+      .eq('id', tenancy.id))
 
     if (updateError) {
       console.error('Error ending tenancy:', updateError)
@@ -382,7 +383,7 @@ export default function UnitDetailPage() {
     setSavingTenancy(true)
     setTenancyEditError(null)
 
-    const { error: updateError } = await supabase
+    const { error: updateError } = await expectRow(supabase
       .from('tenancies')
       .update({
         rent_amount: editForm.rent_amount ? parseFloat(editForm.rent_amount) : null,
@@ -395,7 +396,7 @@ export default function UnitDetailPage() {
         late_fee_amount: editForm.late_fee_amount ? parseFloat(editForm.late_fee_amount) : null,
         grace_period_days: editForm.grace_period_days ? parseInt(editForm.grace_period_days) : 5,
       })
-      .eq('id', tenancy.id)
+      .eq('id', tenancy.id))
 
     if (updateError) {
       console.error('Error updating tenancy:', updateError)

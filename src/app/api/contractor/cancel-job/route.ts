@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
+import { notifyMatchingContractors } from '@/lib/openJobAlerts'
 
 // A contractor backs out of a job they were selected for. The job goes back
 // to open bidding and their bid is declined, together.
@@ -88,6 +89,10 @@ export async function POST(request: NextRequest) {
       .eq('id', jobId)
     return NextResponse.json({ error: 'Could not cancel. Please try again.' }, { status: 500 })
   }
+
+  // The job is open again, so contractors who could take it hear about it
+  // (except the one who just backed out). Never blocks the cancellation.
+  await notifyMatchingContractors(admin, jobId, user.id).catch((err) => console.error('contractor/cancel-job: alerts failed', err))
 
   return NextResponse.json({ ok: true })
 }
