@@ -22,7 +22,7 @@ export async function POST() {
   }
 
   const stripe = getStripe()
-  const origin = process.env.NEXT_PUBLIC_SITE_URL || 'https://prophandld.com'
+  const origin = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'
 
   try {
     const session = await stripe.billingPortal.sessions.create({

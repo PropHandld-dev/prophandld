@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
                 await sendPush(renterUserId, {
                   title: 'Payment refunded',
                   body: "Credit cards aren't accepted for rent. Use a debit card or bank account instead.",
-                  url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://prophandld.com'}/renter/rent`,
+                  url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/renter/rent`,
                 }).catch((err) => console.error('stripe webhook: sendPush (credit rejected) failed', err))
               }
               break
@@ -159,7 +159,7 @@ export async function POST(request: NextRequest) {
               await sendPush(landlordUserId, {
                 title: 'Rent payment received',
                 body: `$${(paymentIntent.amount / 100).toFixed(2)} for ${unitLabel}`,
-                url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://prophandld.com'}/landlord`,
+                url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/landlord`,
               }).catch((err) => console.error('stripe webhook: sendPush (rent) failed', err))
 
               const renterUserId = (rentPayment?.tenancies as any)?.renter_user_id
@@ -239,7 +239,7 @@ export async function POST(request: NextRequest) {
               await sendPush(bid.contractor_user_id, {
                 title: "You've been paid",
                 body: `$${(paymentIntent.amount / 100).toFixed(2)} for ${job?.category || 'your job'}`,
-                url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://prophandld.com'}/contractor`,
+                url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/contractor`,
               }).catch((err) => console.error('stripe webhook: sendPush (job payment) failed', err))
             }
           }

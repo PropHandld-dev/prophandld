@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
 
   const unitLabelOf = (t: any) =>
     `${t.units?.properties?.address || 'a property'}${t.units?.unit_number ? `, Unit ${t.units.unit_number}` : ''}`
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://prophandld.com'
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'
 
   // Newly created rows: notify the renter now, and collect units per landlord
   // for a single digest.

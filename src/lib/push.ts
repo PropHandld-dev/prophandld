@@ -15,7 +15,7 @@ function ensureConfigured() {
   configured = true
 }
 
-export async function sendPush(userId: string, { title, body, url }: { title: string; body: string; url?: string }) {
+export async function sendPush(userId: string, { title, body, url, tag }: { title: string; body: string; url?: string; tag?: string }) {
   if (isPreviewDeployment()) return
   if (!process.env.VAPID_PRIVATE_KEY || !process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) return
   ensureConfigured()
@@ -40,7 +40,7 @@ export async function sendPush(userId: string, { title, body, url }: { title: st
             endpoint: sub.endpoint,
             keys: { p256dh: sub.p256dh, auth: sub.auth_key },
           },
-          JSON.stringify({ title, body, url: url || '/' })
+          JSON.stringify({ title, body, url: url || '/', tag })
         )
       } catch (err: any) {
         if (err?.statusCode === 404 || err?.statusCode === 410) {

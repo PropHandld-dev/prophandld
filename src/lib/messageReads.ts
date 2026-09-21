@@ -99,6 +99,10 @@ export async function mergedLastRead(
   return merged
 }
 
+// Only the most recent messages matter for "anything new?", so the scan is capped
+// to keep dashboards fast for people with many chatty jobs.
+const UNREAD_SCAN_LIMIT = 1000
+
 // Given a set of jobs a user is involved in, returns the ids of the ones
 // with at least one message from someone else sent after that user's
 // last read timestamp for that job (or any message at all if never read).
@@ -106,7 +110,7 @@ export async function getUnreadJobIds(jobIds: string[], userId: string): Promise
   if (jobIds.length === 0) return new Set()
 
   const [{ data: messages, error }, lastReadByJob] = await Promise.all([
-    supabase.from('messages').select('job_id, sender_user_id, created_at').in('job_id', jobIds).neq('sender_user_id', userId),
+    supabase.from('messages').select('job_id, sender_user_id, created_at').in('job_id', jobIds).neq('sender_user_id', userId).order('created_at', { ascending: false }).limit(UNREAD_SCAN_LIMIT),
     mergedLastRead(userId, 'job', jobIds),
   ])
 
@@ -130,7 +134,7 @@ export async function getUnreadThreadIds(threadIds: string[], userId: string): P
   if (threadIds.length === 0) return new Set()
 
   const [{ data: messages, error }, lastReadByThread] = await Promise.all([
-    supabase.from('messages').select('thread_id, sender_user_id, created_at').in('thread_id', threadIds).neq('sender_user_id', userId),
+    supabase.from('messages').select('thread_id, sender_user_id, created_at').in('thread_id', threadIds).neq('sender_user_id', userId).order('created_at', { ascending: false }).limit(UNREAD_SCAN_LIMIT),
     mergedLastRead(userId, 'thread', threadIds),
   ])
 

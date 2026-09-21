@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
   await sendPush(contractorUserId, {
     title: approved ? "You're verified ✓" : 'Verification update',
     body: approved ? 'Landlords will now see a Verified badge on your bids.' : "Your verification wasn't approved. Check the details.",
-    url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://prophandld.com'}/contractor/settings`,
+    url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/contractor/settings`,
   }).catch((err) => console.error('notify-verification-decision: sendPush failed', err))
 
   return NextResponse.json({ ok: true })

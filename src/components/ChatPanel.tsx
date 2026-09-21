@@ -69,6 +69,10 @@ export function ChatPanel({
   const [scheduleDate, setScheduleDate] = useState('')
   const [scheduleTime, setScheduleTime] = useState('')
   const listRef = useRef<HTMLDivElement>(null)
+  const messagesRef = useRef<Message[]>([])
+  useEffect(() => {
+    messagesRef.current = messages
+  }, [messages])
 
   const markRead = async (uid: string) => {
     await (jobId ? markJobRead(jobId, uid) : threadId ? markThreadRead(threadId, uid) : Promise.resolve())
@@ -146,15 +150,14 @@ export function ChatPanel({
       if (document.visibilityState !== 'visible' || !currentUserId) return
       const { data } = await buildMessagesQuery()
       if (!data) return
-      let gotNew = false
+      const known = new Set(messagesRef.current.map((m) => m.id))
+      if (!data.some((m) => !known.has(m.id))) return
       setMessages((prev) => {
         const seen = new Set(prev.map((m) => m.id))
         const fresh = data.filter((m) => !seen.has(m.id))
-        if (fresh.length === 0) return prev
-        gotNew = true
-        return [...prev, ...fresh].sort((a, b) => a.created_at.localeCompare(b.created_at))
+        return fresh.length === 0 ? prev : [...prev, ...fresh].sort((a, b) => a.created_at.localeCompare(b.created_at))
       })
-      if (gotNew) markRead(currentUserId)
+      markRead(currentUserId)
     }
     const timer = setInterval(refetch, 10000)
     document.addEventListener('visibilitychange', refetch)

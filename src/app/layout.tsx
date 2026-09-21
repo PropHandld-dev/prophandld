@@ -42,7 +42,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
-    url: "https://prophandld.com",
+    url: "https://www.prophandld.com",
     siteName: "Prophandld",
     images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "Prophandld — Your Property. Handled." }],
     locale: "en_US",

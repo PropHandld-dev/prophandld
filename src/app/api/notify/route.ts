@@ -5,6 +5,7 @@ import { buildNotificationEmail, buildPushMessage, buildSmsMessage, SMS_ENABLED_
 import { sendPush } from '@/lib/push'
 import { sendSms } from '@/lib/sms'
 import { notifyMatchingContractors } from '@/lib/openJobAlerts'
+import { loadNotifyExtras } from '@/lib/notifyExtras'
 
 type Role = 'landlord' | 'renter' | 'contractor'
 
@@ -105,6 +106,7 @@ export async function POST(request: NextRequest) {
     address: property?.address ?? null,
     city: property?.city ?? null,
     isEmergency: job.is_emergency ?? false,
+    ...(await loadNotifyExtras(supabaseAdmin, jobId)),
   }
 
   console.log('notify: resolved job/property', { jobId, type, units: job.units, property })

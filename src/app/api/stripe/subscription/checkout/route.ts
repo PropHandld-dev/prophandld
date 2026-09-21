@@ -65,7 +65,7 @@ export async function POST() {
         .eq('id', user.id)
     }
 
-    const origin = process.env.NEXT_PUBLIC_SITE_URL || 'https://prophandld.com'
+    const origin = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',

@@ -6,6 +6,10 @@ self.addEventListener('push', (event) => {
       body: data.body,
       icon: '/icon-192.png',
       badge: '/icon-192.png',
+      // Same tag = the newer update replaces the older banner for that job
+      // instead of stacking; renotify still buzzes so it isn't missed.
+      tag: data.tag || undefined,
+      renotify: !!data.tag,
       data: { url: data.url || '/' },
     })
   )

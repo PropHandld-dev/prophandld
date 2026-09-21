@@ -41,7 +41,7 @@ export async function POST() {
 
     const businessProfile = {
       mcc: role === 'landlord' ? '6513' : '1799',
-      url: process.env.NEXT_PUBLIC_SITE_URL || 'https://prophandld.com',
+      url: process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com',
       product_description: role === 'landlord'
         ? 'Rental property owner receiving rent payments through Prophandld'
         : 'Home repair and maintenance contractor paid for jobs through Prophandld',
@@ -89,7 +89,7 @@ export async function POST() {
       }
     }
 
-    const origin = process.env.NEXT_PUBLIC_SITE_URL || 'https://prophandld.com'
+    const origin = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'
     const returnPath = role === 'landlord' ? '/profile' : '/contractor/settings'
 
     const account = await stripe.accounts.retrieve(accountId)

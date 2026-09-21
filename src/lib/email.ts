@@ -1,7 +1,7 @@
 import { Resend } from 'resend'
 import { isPreviewDeployment } from '@/lib/env'
 
-const SITE_URL = 'https://prophandld.com'
+const SITE_URL = 'https://www.prophandld.com'
 
 let resendClient: Resend | null = null
 
@@ -36,16 +36,53 @@ export async function sendEmail({ to, subject, html }: { to: string; subject: st
   }
 }
 
-// Transactional email shell — one eyebrow label, one headline, one action.
-// Deliberately plain (no hero art, no multi-column layout, no forced
-// exclamation-point copy) so it reads like a real product notification
-// rather than a marketing template.
+// Transactional email shell. One status pill, one headline, the facts that
+// matter (what, where, when, how much), a progress tracker for job updates,
+// and a single obvious action. `preheader` is the line Gmail and iPhone show
+// beside the subject: without it they read out the first words of the email
+// body, which is how "Job closed out Prophandld Job closed Job closed out"
+// ended up in people's notification shade.
+type EmailFact = { label: string; value: string }
+
+const TRACKER_STEPS = ['Reported', 'Bidding', 'Scheduled', 'In progress', 'Review', 'Closed']
+
+function trackerHtml(stage: number) {
+  const cells = TRACKER_STEPS.map((label, i) => {
+    const done = i < stage
+    const active = i === stage
+    const bar = active ? '#2DD4D9' : done ? '#0A7B7E' : '#22374F'
+    const color = active ? '#FFFFFF' : done ? '#7FD4D6' : '#5E7189'
+    return `<td width="16%" valign="top" style="padding:0 2px;">
+        <div style="height:4px;border-radius:4px;background:${bar};font-size:0;line-height:0;">&nbsp;</div>
+        <div style="font-size:10px;line-height:1.3;margin-top:7px;color:${color};font-weight:${active ? 700 : 500};">${label}</div>
+      </td>`
+  }).join('')
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;"><tr>${cells}</tr></table>`
+}
+
+function factsHtml(facts: EmailFact[]) {
+  const rows = facts
+    .map((f, i) => {
+      const line = i > 0 ? 'border-top:1px solid #1E3450;' : ''
+      return `<tr>
+          <td valign="top" style="padding:10px 0;${line}color:#8496AC;font-size:12px;width:36%;">${escapeHtml(f.label)}</td>
+          <td valign="top" align="right" style="padding:10px 0;${line}color:#FFFFFF;font-size:14px;font-weight:600;">${escapeHtml(f.value)}</td>
+        </tr>`
+    })
+    .join('')
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#132A45;border-radius:14px;margin:0 0 26px;"><tr><td style="padding:4px 18px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table></td></tr></table>`
+}
+
 function baseTemplate({
   eyebrow,
   heading,
   bodyHtml,
   ctaLabel,
   ctaUrl,
+  preheader,
+  facts,
+  stage,
+  note,
   footerText = 'Sent because you have an active Prophandld account.',
 }: {
   eyebrow: string
@@ -53,33 +90,62 @@ function baseTemplate({
   bodyHtml: string
   ctaLabel: string
   ctaUrl: string
+  preheader?: string
+  facts?: EmailFact[]
+  stage?: number
+  note?: string
   footerText?: string
 }) {
+  const preview = preheader !== undefined ? escapeHtml(preheader) : heading.replace(/<[^>]+>/g, '')
+  // Pad the hidden preview so mail apps don't pull the start of the body into it.
+  const padding = '&zwnj;&nbsp;'.repeat(70)
   return `<!doctype html>
-<html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="supported-color-schemes" content="dark light" />
+    <style>
+      @media (max-width: 520px) {
+        .pad { padding: 28px 22px !important; }
+        .outer { padding: 24px 12px !important; }
+      }
+    </style>
+  </head>
   <body style="margin:0;padding:0;background:#0C1A2E;">
-    <div style="display:none;max-height:0;overflow:hidden;opacity:0;">${heading}</div>
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">${preview}${padding}</div>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0C1A2E;">
       <tr>
-        <td align="center" style="padding:40px 20px;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+        <td align="center" class="outer" style="padding:40px 20px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
             <tr>
               <td style="padding:0 4px 20px;">
-                <span style="color:#ffffff;font-weight:700;font-size:15px;letter-spacing:-0.01em;">Prophandld</span>
+                <img src="${SITE_URL}/apple-touch-icon.png" width="28" height="28" alt="" style="vertical-align:middle;border-radius:8px;margin-right:9px;" />
+                <span style="color:#ffffff;font-weight:700;font-size:15px;letter-spacing:-0.01em;vertical-align:middle;">Prophandld</span>
               </td>
             </tr>
             <tr>
-              <td style="background:#0F2138;border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:36px 32px;">
-                <span style="display:inline-block;background:linear-gradient(90deg,#0A7B7E,#12A5A9);color:#ffffff;font-size:11px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;padding:4px 11px;border-radius:999px;margin-bottom:18px;">${eyebrow}</span>
-                <div style="color:#ffffff;font-size:21px;font-weight:700;line-height:1.3;margin:0 0 12px;">${heading}</div>
-                <div style="color:rgba(255,255,255,0.55);font-size:14px;line-height:1.65;margin:0 0 28px;">${bodyHtml}</div>
-                <a href="${escapeHtml(ctaUrl)}" style="display:inline-block;background:linear-gradient(90deg,#0A7B7E,#12A5A9);color:#ffffff;font-weight:600;font-size:14px;padding:13px 26px;border-radius:999px;text-decoration:none;">${ctaLabel} →</a>
+              <td class="pad" style="background:#0F2138;border:1px solid #1B2F48;border-radius:22px;padding:34px 32px;">
+                <span style="display:inline-block;background:#0F8C90;background:linear-gradient(90deg,#0A7B7E,#12A5A9);color:#ffffff;font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;padding:5px 12px;border-radius:999px;margin-bottom:18px;">${eyebrow}</span>
+                <div style="color:#ffffff;font-size:23px;font-weight:700;line-height:1.28;margin:0 0 12px;letter-spacing:-0.015em;">${heading}</div>
+                <div style="color:#A9B7C8;font-size:15px;line-height:1.65;margin:0 0 24px;">${bodyHtml}</div>
+                ${stage !== undefined ? trackerHtml(stage) : ''}
+                ${facts && facts.length > 0 ? factsHtml(facts) : ''}
+                <table role="presentation" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td align="center" bgcolor="#0F8C90" style="border-radius:999px;background:linear-gradient(90deg,#0A7B7E,#12A5A9);">
+                      <a href="${escapeHtml(ctaUrl)}" style="display:inline-block;color:#ffffff;font-weight:600;font-size:15px;padding:14px 30px;border-radius:999px;text-decoration:none;">${ctaLabel} →</a>
+                    </td>
+                  </tr>
+                </table>
+                ${note ? `<div style="color:#7C8EA5;font-size:12px;line-height:1.5;margin-top:14px;">${escapeHtml(note)}</div>` : ''}
               </td>
             </tr>
             <tr>
-              <td style="padding:22px 4px 0;color:rgba(255,255,255,0.5);font-size:12px;line-height:1.6;">
+              <td style="padding:22px 4px 0;color:#6F819A;font-size:12px;line-height:1.7;">
                 ${footerText}<br />
-                <a href="${SITE_URL}" style="color:rgba(255,255,255,0.5);text-decoration:none;">prophandld.com</a> · Your Property. Handled.
+                <a href="${SITE_URL}/profile" style="color:#8FA2BA;text-decoration:underline;">Notification settings</a> · <a href="${SITE_URL}" style="color:#8FA2BA;text-decoration:none;">prophandld.com</a> · Your Property. Handled.
               </td>
             </tr>
           </table>
@@ -211,41 +277,109 @@ export type NotifyType =
   | 'contractor_cancelled'
   | 'job_open'
 
+type NotifyRole = 'landlord' | 'renter' | 'contractor'
+
 export interface NotifyJobInfo {
   jobId: string
   category: string
   address: string | null
   city: string | null
   isEmergency?: boolean
+  // Optional details. When the server can look them up they make the message
+  // say what actually happened (which time, how much, who) instead of only
+  // "something changed". Every field is safe to leave out.
+  unit?: string | null
+  when?: string | null
+  amount?: number | null
+  requestedAmount?: number | null
+  contractorName?: string | null
 }
 
 function jobLocation(info: NotifyJobInfo) {
   return [info.address, info.city].filter(Boolean).join(', ') || 'your property'
 }
 
-const PUSH_TITLES: Record<NotifyType, string> = {
-  job_reported: 'New issue reported',
-  bid_received: 'New bid received',
-  contractor_selected: "You've been selected",
-  schedule_proposed: 'New time proposed',
-  schedule_confirmed: 'Schedule confirmed',
-  job_pending_review: 'Ready for your review',
-  job_completed: 'Job closed out',
-  job_declined: 'Issue declined',
-  price_change_requested: 'Price change requested',
-  price_change_approved: 'Price change approved',
-  price_change_rejected: 'Price change declined',
-  clarification_requested: 'The landlord has a question',
-  clarification_responded: 'The contractor responded',
-  contractor_cancelled: 'Contractor cancelled, job reopened',
-  job_open: 'New job near you',
+function money(value: number) {
+  return `$${Number.isInteger(value) ? value : value.toFixed(2)}`
 }
 
-export function buildPushMessage(type: NotifyType, role: 'landlord' | 'renter' | 'contractor', info: NotifyJobInfo) {
+// What a person sees on their lock screen. Title says what happened, body says
+// where and what to do next. Prices only go to people who already see them.
+// Renters never see what a job costs, so a price can't slip into their message
+// even if a template forgets to leave it out.
+function forRole(role: NotifyRole, info: NotifyJobInfo): NotifyJobInfo {
+  return role === 'renter' ? { ...info, amount: null, requestedAmount: null } : info
+}
+
+function pushCopy(type: NotifyType, role: NotifyRole, rawInfo: NotifyJobInfo): { title: string; body: string } {
+  const info = forRole(role, rawInfo)
+  const cat = info.category
+  const where = jobLocation(info)
+  const who = info.contractorName || 'The contractor'
+  switch (type) {
+    case 'job_open':
+      return {
+        title: `${info.isEmergency ? 'Emergency: ' : ''}New ${cat} job near you`,
+        body: `${info.city || where}. Bids are sealed. Tap to view and bid.`,
+      }
+    case 'job_reported':
+      return { title: `${info.isEmergency ? 'Emergency: ' : ''}New ${cat} issue reported`, body: `${where}. Tap to acknowledge.` }
+    case 'bid_received':
+      return {
+        title: info.amount != null ? `New bid: ${money(info.amount)} for ${cat}` : `New bid on your ${cat} job`,
+        body: `${info.contractorName ? `${info.contractorName} · ` : ''}${where}`,
+      }
+    case 'contractor_selected':
+      return { title: `You got the ${cat} job`, body: `${where}. Tap to set a time.` }
+    case 'schedule_proposed':
+      return {
+        title: info.when ? `Time proposed: ${info.when}` : 'New time proposed',
+        body: `${cat} · ${where}. Tap to confirm or suggest another.`,
+      }
+    case 'schedule_confirmed':
+      return { title: info.when ? `Confirmed: ${info.when}` : 'Visit confirmed', body: `${cat} · ${where}` }
+    case 'job_pending_review':
+      return { title: `${who} finished the ${cat} work`, body: `${where}. Review and approve. It auto-approves in 3 days.` }
+    case 'job_completed':
+      return {
+        title: role === 'contractor' ? `Work approved: ${cat}` : `${cat} repair closed`,
+        body: role === 'contractor' ? `${where}. Check Earnings for payment.` : `${where}. All done.`,
+      }
+    case 'job_declined':
+      return { title: `Report declined: ${cat}`, body: `${where}. Tap to see why.` }
+    case 'price_change_requested':
+      return {
+        title:
+          info.amount != null && info.requestedAmount != null
+            ? `Price change: ${money(info.amount)} to ${money(info.requestedAmount)}`
+            : 'Price change requested',
+        body: `${cat} · ${where}. Tap to approve or decline.`,
+      }
+    case 'price_change_approved':
+      return { title: 'Price change approved', body: `${cat} · ${where}. You can carry on.` }
+    case 'price_change_rejected':
+      return { title: 'Price change declined', body: `${cat} · ${where}. The original price stands.` }
+    case 'clarification_requested':
+      return { title: 'The landlord has a question', body: `${cat} · ${where}. Tap to reply.` }
+    case 'clarification_responded':
+      return { title: `${who} replied`, body: `${cat} · ${where}` }
+    case 'contractor_cancelled':
+      return {
+        title: 'Contractor cancelled',
+        body: role === 'landlord' ? `${cat} · ${where}. Back open for bids.` : `${cat} · ${where}. The landlord is finding a replacement.`,
+      }
+  }
+}
+
+export function buildPushMessage(type: NotifyType, role: NotifyRole, info: NotifyJobInfo) {
+  const { title, body } = pushCopy(type, role, info)
   return {
-    title: PUSH_TITLES[type],
-    body: `${info.category} at ${jobLocation(info)}`,
+    title,
+    body,
     url: type === 'job_open' ? `${SITE_URL}/contractor/jobs/${info.jobId}/bid` : `${SITE_URL}/${role}/jobs/${info.jobId}`,
+    // One live notification per job: a newer update replaces the older one
+    // instead of stacking five near-identical banners.
+    tag: `job-${info.jobId}`,
   }
 }
 
@@ -261,89 +395,132 @@ export const SMS_ENABLED_TYPES: NotifyType[] = [
 ]
 
 export function buildSmsMessage(type: NotifyType, info: NotifyJobInfo) {
-  return `Prophandld: ${PUSH_TITLES[type]}. ${info.category} at ${jobLocation(info)}.`
+  const { title } = pushCopy(type, 'landlord', info)
+  return `Prophandld: ${title}. ${info.category} at ${jobLocation(info)}.`
 }
 
-export function buildNotificationEmail(type: NotifyType, role: 'landlord' | 'renter' | 'contractor', info: NotifyJobInfo) {
+export function buildNotificationEmail(type: NotifyType, role: NotifyRole, rawInfo: NotifyJobInfo) {
+  const info = forRole(role, rawInfo)
   const ctaUrl = `${SITE_URL}/${role}/jobs/${info.jobId}`
-  const at = jobLocation(info)
+  const cat = escapeHtml(info.category)
+  const at = escapeHtml(jobLocation(info))
+  const who = info.contractorName ? escapeHtml(info.contractorName) : 'The contractor'
+  const jobFact: EmailFact = { label: 'Job', value: info.category }
+  const whereFact: EmailFact = { label: 'Where', value: jobLocation(info) }
+  const unitFact: EmailFact | null = info.unit ? { label: 'Unit', value: info.unit } : null
+  const whenFact: EmailFact | null = info.when ? { label: 'When', value: info.when } : null
+  const compact = (list: Array<EmailFact | null | false | undefined>) => list.filter((f): f is EmailFact => !!f)
 
   switch (type) {
     case 'job_open':
       return {
-        subject: `New job near you: ${info.category}`,
+        subject: `${info.isEmergency ? 'Emergency: ' : ''}New ${info.category} job near you`,
         html: baseTemplate({
-          eyebrow: 'New job',
-          heading: 'A job near you is open for bids',
-          bodyHtml: `A <strong>${escapeHtml(info.category)}</strong> job at ${escapeHtml(at)} just opened for bidding${info.isEmergency ? ' and is marked as an <strong>emergency</strong>' : ''}. Bids are sealed: no other contractor can see yours.`,
-          ctaLabel: 'View and bid',
+          eyebrow: info.isEmergency ? 'Emergency job' : 'New job near you',
+          heading: `${cat} job open for bids`,
+          bodyHtml: `A landlord near you just opened this job for bidding${info.isEmergency ? ' and marked it as an <strong>emergency</strong>' : ''}. Your bid is sealed: other contractors can't see it.`,
+          preheader: `${info.city || jobLocation(info)}. Sealed bidding, only the landlord sees your price.`,
+          stage: 1,
+          facts: compact([jobFact, whereFact, unitFact, info.isEmergency ? { label: 'Urgency', value: 'Emergency' } : null]),
+          ctaLabel: 'View job and bid',
           ctaUrl: `${SITE_URL}/contractor/jobs/${info.jobId}/bid`,
         }),
       }
     case 'job_reported':
       return {
-        subject: `New issue reported: ${info.category}`,
+        subject: `${info.isEmergency ? 'Emergency: ' : ''}New ${info.category} issue at ${info.address || 'your property'}`,
         html: baseTemplate({
-          eyebrow: 'Maintenance',
-          heading: 'A new issue was reported',
-          bodyHtml: `A tenant reported a <strong>${escapeHtml(info.category)}</strong> issue at ${escapeHtml(at)}. Take a look and acknowledge it.`,
-          ctaLabel: 'View issue',
+          eyebrow: info.isEmergency ? 'Emergency' : 'New issue',
+          heading: 'A tenant reported an issue',
+          bodyHtml: `Your tenant reported a <strong>${cat}</strong> issue. Acknowledge it to open the job for bids, or decline it if it isn't needed.`,
+          preheader: `${jobLocation(info)}. Acknowledge it to start getting bids.`,
+          stage: 0,
+          facts: compact([jobFact, whereFact, unitFact, info.isEmergency ? { label: 'Urgency', value: 'Emergency' } : null]),
+          ctaLabel: 'Review the issue',
           ctaUrl,
         }),
       }
     case 'bid_received':
       return {
-        subject: `New bid on your ${info.category} job`,
+        subject: info.amount != null ? `New bid: ${money(info.amount)} on your ${info.category} job` : `New bid on your ${info.category} job`,
         html: baseTemplate({
-          eyebrow: 'Bidding',
-          heading: 'You received a new bid',
-          bodyHtml: `A contractor submitted a sealed bid on your <strong>${escapeHtml(info.category)}</strong> job at ${escapeHtml(at)}.`,
-          ctaLabel: 'Review bids',
+          eyebrow: 'New bid',
+          heading: info.amount != null ? `New bid: ${money(info.amount)}` : 'You received a new bid',
+          bodyHtml: `${info.contractorName ? `<strong>${who}</strong> submitted` : 'A contractor submitted'} a sealed bid on your <strong>${cat}</strong> job. Compare all bids side by side and pick who you want.`,
+          preheader: `${info.contractorName ? `${info.contractorName} · ` : ''}${jobLocation(info)}`,
+          stage: 1,
+          facts: compact([
+            info.amount != null && { label: 'Bid', value: money(info.amount) },
+            info.contractorName ? { label: 'From', value: info.contractorName } : null,
+            jobFact,
+            whereFact, unitFact,
+          ]),
+          ctaLabel: 'Compare bids',
           ctaUrl,
+          note: 'Bids are sealed: contractors can\'t see each other\'s prices.',
         }),
       }
     case 'contractor_selected':
       return {
-        subject: `You've been selected for a job`,
+        subject: `You got the ${info.category} job`,
         html: baseTemplate({
-          eyebrow: 'Job update',
-          heading: "You've been selected",
-          bodyHtml: `A landlord selected your bid for a <strong>${escapeHtml(info.category)}</strong> job at ${escapeHtml(at)}. Next step: schedule a time.`,
-          ctaLabel: 'View job',
+          eyebrow: 'You were selected',
+          heading: 'You got the job',
+          bodyHtml: `The landlord chose your bid for a <strong>${cat}</strong> job. Next step: agree on a time that works for the tenant.`,
+          preheader: `${jobLocation(info)}. Tap to set a time.`,
+          stage: 2,
+          facts: compact([jobFact, whereFact, unitFact, info.amount != null && { label: 'Your price', value: money(info.amount) }]),
+          ctaLabel: 'Set a time',
           ctaUrl,
         }),
       }
     case 'schedule_proposed':
       return {
-        subject: `New time proposed: ${info.category}`,
+        subject: info.when ? `Time proposed: ${info.when}` : `New time proposed: ${info.category}`,
         html: baseTemplate({
           eyebrow: 'Scheduling',
-          heading: 'A new time was proposed',
-          bodyHtml: `A time was proposed for the <strong>${escapeHtml(info.category)}</strong> job at ${escapeHtml(at)}. Confirm it or propose a different time.`,
-          ctaLabel: 'Review time',
+          heading: info.when ? `Visit proposed for ${escapeHtml(info.when)}` : 'A new time was proposed',
+          bodyHtml: `A visit for the <strong>${cat}</strong> job was proposed. Confirm it, or suggest a time that suits you better.`,
+          preheader: `${info.when ? `${info.when}. ` : ''}Confirm it or suggest another time.`,
+          stage: 2,
+          facts: compact([whenFact, jobFact, whereFact, unitFact]),
+          ctaLabel: 'Confirm or change',
           ctaUrl,
         }),
       }
     case 'schedule_confirmed':
       return {
-        subject: `Schedule confirmed: ${info.category}`,
+        subject: info.when ? `Confirmed: ${info.when}` : `Visit confirmed: ${info.category}`,
         html: baseTemplate({
-          eyebrow: 'Scheduling',
-          heading: 'Schedule confirmed',
-          bodyHtml: `The schedule for the <strong>${escapeHtml(info.category)}</strong> job at ${escapeHtml(at)} is confirmed.`,
+          eyebrow: 'Confirmed',
+          heading: info.when ? `Visit confirmed for ${escapeHtml(info.when)}` : 'Visit confirmed',
+          bodyHtml: `Everyone agreed on a time for the <strong>${cat}</strong> job. It's on the calendar.`,
+          preheader: `${info.when ? `${info.when}. ` : ''}${jobLocation(info)}`,
+          stage: 3,
+          facts: compact([whenFact, jobFact, whereFact, unitFact]),
           ctaLabel: 'View job',
           ctaUrl,
+          note: 'Need to change it? Open the job and propose a new time.',
         }),
       }
     case 'job_pending_review':
       return {
-        subject: `Contractor marked a job complete`,
+        subject: `${info.contractorName || 'Your contractor'} finished the ${info.category} work`,
         html: baseTemplate({
-          eyebrow: 'Review needed',
-          heading: 'Ready for your review',
-          bodyHtml: `The contractor marked the <strong>${escapeHtml(info.category)}</strong> job at ${escapeHtml(at)} as complete. Review the before/after photos and approve, or ask for verification.`,
-          ctaLabel: 'Review job',
+          eyebrow: 'Your review needed',
+          heading: 'The work is finished',
+          bodyHtml: `${info.contractorName ? `<strong>${who}</strong> marked` : 'The contractor marked'} the <strong>${cat}</strong> job as complete. Check the before and after photos, then approve.`,
+          preheader: `Review the photos and approve. It auto-approves in 3 days.`,
+          stage: 4,
+          facts: compact([
+            info.contractorName ? { label: 'Contractor', value: info.contractorName } : null,
+            info.amount != null && { label: 'Price', value: money(info.amount) },
+            jobFact,
+            whereFact, unitFact,
+          ]),
+          ctaLabel: 'Review and approve',
           ctaUrl,
+          note: "If you don't respond within 3 days, the job is approved automatically.",
         }),
       }
     case 'job_completed':
@@ -351,31 +528,56 @@ export function buildNotificationEmail(type: NotifyType, role: 'landlord' | 'ren
         subject: `Job closed: ${info.category}`,
         html: baseTemplate({
           eyebrow: 'Job closed',
-          heading: 'Job closed out',
-          bodyHtml: `The <strong>${escapeHtml(info.category)}</strong> job at ${escapeHtml(at)} has been approved and closed.`,
-          ctaLabel: 'View job',
-          ctaUrl,
+          heading: role === 'contractor' ? 'Your work was approved' : 'The repair is finished',
+          bodyHtml:
+            role === 'contractor'
+              ? `The landlord approved your work on the <strong>${cat}</strong> job at ${at}. Check Earnings for the payment.`
+              : `The <strong>${cat}</strong> repair at ${at} is finished and closed. Thanks for reporting it.`,
+          preheader: role === 'contractor' ? 'Approved. Check Earnings for your payment.' : `${jobLocation(info)}. All done.`,
+          stage: 5,
+          facts: compact([jobFact, whereFact, unitFact, role === 'contractor' && info.amount != null && { label: 'Price', value: money(info.amount) }]),
+          ctaLabel: role === 'contractor' ? 'View earnings' : 'View job',
+          ctaUrl: role === 'contractor' ? `${SITE_URL}/contractor` : ctaUrl,
         }),
       }
     case 'job_declined':
       return {
         subject: `Update on your ${info.category} report`,
         html: baseTemplate({
-          eyebrow: 'Job update',
-          heading: 'Your reported issue was declined',
-          bodyHtml: `Your landlord declined the <strong>${escapeHtml(info.category)}</strong> report at ${escapeHtml(at)}. Check the job for any notes they left.`,
-          ctaLabel: 'View details',
+          eyebrow: 'Report update',
+          heading: 'Your landlord declined this report',
+          bodyHtml: `Your landlord declined the <strong>${cat}</strong> report at ${at}. Open the job to see any note they left. You can message them from there.`,
+          preheader: `${jobLocation(info)}. Open the job to see why.`,
+          facts: compact([jobFact, whereFact, unitFact]),
+          ctaLabel: 'See the details',
           ctaUrl,
         }),
       }
     case 'price_change_requested':
       return {
-        subject: `Price change requested: ${info.category}`,
+        subject:
+          info.amount != null && info.requestedAmount != null
+            ? `Price change: ${money(info.amount)} to ${money(info.requestedAmount)}`
+            : `Price change requested: ${info.category}`,
         html: baseTemplate({
-          eyebrow: 'Price change',
-          heading: 'A contractor requested a price change',
-          bodyHtml: `The contractor on your <strong>${escapeHtml(info.category)}</strong> job at ${escapeHtml(at)} is requesting a new price, with a labor/parts breakdown. Review it before they continue.`,
-          ctaLabel: 'Review request',
+          eyebrow: 'Needs your decision',
+          heading: 'A price change was requested',
+          bodyHtml: `${info.contractorName ? `<strong>${who}</strong> is asking` : 'The contractor is asking'} to change the price on your <strong>${cat}</strong> job, with a labor and parts breakdown. Approve or decline it.`,
+          preheader:
+            info.amount != null && info.requestedAmount != null
+              ? `From ${money(info.amount)} to ${money(info.requestedAmount)}. Tap to review the breakdown.`
+              : 'Tap to review the breakdown.',
+          stage: 3,
+          facts: compact([
+            info.amount != null && { label: 'Current price', value: money(info.amount) },
+            info.requestedAmount != null && { label: 'Requested price', value: money(info.requestedAmount) },
+            info.amount != null && info.requestedAmount != null && {
+              label: 'Difference',
+              value: `${info.requestedAmount >= info.amount ? '+' : '-'}${money(Math.abs(info.requestedAmount - info.amount))}`,
+            },
+            jobFact,
+          ]),
+          ctaLabel: 'Review the request',
           ctaUrl,
         }),
       }
@@ -383,9 +585,12 @@ export function buildNotificationEmail(type: NotifyType, role: 'landlord' | 'ren
       return {
         subject: `Price change approved: ${info.category}`,
         html: baseTemplate({
-          eyebrow: 'Price change',
-          heading: 'Your price change was approved',
-          bodyHtml: `The landlord approved your new price for the <strong>${escapeHtml(info.category)}</strong> job at ${escapeHtml(at)}. You're clear to continue.`,
+          eyebrow: 'Approved',
+          heading: 'Your new price was approved',
+          bodyHtml: `The landlord approved your new price for the <strong>${cat}</strong> job at ${at}. You're clear to continue.`,
+          preheader: info.amount != null ? `New price: ${money(info.amount)}. You can carry on.` : 'You can carry on.',
+          stage: 3,
+          facts: compact([info.amount != null && { label: 'New price', value: money(info.amount) }, jobFact, whereFact, unitFact]),
           ctaLabel: 'View job',
           ctaUrl,
         }),
@@ -394,32 +599,41 @@ export function buildNotificationEmail(type: NotifyType, role: 'landlord' | 'ren
       return {
         subject: `Price change declined: ${info.category}`,
         html: baseTemplate({
-          eyebrow: 'Price change',
+          eyebrow: 'Declined',
           heading: 'Your price change was declined',
-          bodyHtml: `The landlord declined your requested price for the <strong>${escapeHtml(info.category)}</strong> job at ${escapeHtml(at)}. The original price stays in effect.`,
+          bodyHtml: `The landlord declined the new price for the <strong>${cat}</strong> job at ${at}. The original price stays in effect.`,
+          preheader: info.amount != null ? `The original price of ${money(info.amount)} stands.` : 'The original price stands.',
+          stage: 3,
+          facts: compact([info.amount != null && { label: 'Price', value: money(info.amount) }, jobFact, whereFact, unitFact]),
           ctaLabel: 'View job',
           ctaUrl,
         }),
       }
     case 'clarification_requested':
       return {
-        subject: `Verification requested: ${info.category}`,
+        subject: `The landlord has a question: ${info.category}`,
         html: baseTemplate({
-          eyebrow: 'Verification',
+          eyebrow: 'Question',
           heading: 'The landlord has a question',
-          bodyHtml: `Before approving the <strong>${escapeHtml(info.category)}</strong> job at ${escapeHtml(at)}, the landlord asked for more detail. Take a look and respond.`,
-          ctaLabel: 'Respond now',
+          bodyHtml: `Before approving the <strong>${cat}</strong> job at ${at}, the landlord asked for more detail. Reply in the job chat.`,
+          preheader: 'Reply in the job chat so they can approve.',
+          stage: 4,
+          facts: compact([jobFact, whereFact, unitFact]),
+          ctaLabel: 'Reply now',
           ctaUrl,
         }),
       }
     case 'clarification_responded':
       return {
-        subject: `Contractor responded: ${info.category}`,
+        subject: `${info.contractorName || 'The contractor'} replied: ${info.category}`,
         html: baseTemplate({
-          eyebrow: 'Verification',
-          heading: 'The contractor responded',
-          bodyHtml: `The contractor replied to your question on the <strong>${escapeHtml(info.category)}</strong> job at ${escapeHtml(at)}.`,
-          ctaLabel: 'View response',
+          eyebrow: 'Reply',
+          heading: 'The contractor replied',
+          bodyHtml: `${info.contractorName ? `<strong>${who}</strong> replied` : 'The contractor replied'} to your question on the <strong>${cat}</strong> job at ${at}.`,
+          preheader: 'Read the reply and approve when you are ready.',
+          stage: 4,
+          facts: compact([jobFact, whereFact, unitFact]),
+          ctaLabel: 'View reply',
           ctaUrl,
         }),
       }
@@ -429,7 +643,13 @@ export function buildNotificationEmail(type: NotifyType, role: 'landlord' | 'ren
         html: baseTemplate({
           eyebrow: 'Job update',
           heading: 'The contractor had to cancel',
-          bodyHtml: `The contractor selected for your <strong>${escapeHtml(info.category)}</strong> job at ${escapeHtml(at)} isn't able to do it anymore. The job is back open for sealed bidding, including your other existing bids.`,
+          bodyHtml:
+            role === 'landlord'
+              ? `The contractor for your <strong>${cat}</strong> job at ${at} can't do it anymore. The job is open for sealed bids again, and nearby contractors were alerted.`
+              : `The contractor for the <strong>${cat}</strong> job at ${at} can't do it anymore. The landlord is finding a replacement. Nothing is needed from you.`,
+          preheader: role === 'landlord' ? 'Back open for bids. Nearby contractors were alerted.' : 'The landlord is finding a replacement.',
+          stage: 1,
+          facts: compact([jobFact, whereFact, unitFact]),
           ctaLabel: 'View job',
           ctaUrl,
         }),
@@ -454,10 +674,17 @@ export async function sendRentPaymentReceivedEmail({
     eyebrow: 'Payment',
     heading: 'Rent payment received',
     bodyHtml: `Hi ${escapeHtml(landlordName)}, a rent payment of <strong>$${amount.toFixed(2)}</strong> for ${escapeHtml(monthLabel)} came in for <strong>${escapeHtml(unitLabel)}</strong>. It's already on its way to your bank account.`,
+    preheader: `${monthLabel} · ${unitLabel}. On its way to your bank account.`,
+    facts: [
+      { label: 'Amount', value: `$${amount.toFixed(2)}` },
+      { label: 'For', value: monthLabel },
+      { label: 'Unit', value: unitLabel },
+    ],
     ctaLabel: 'View rent history',
     ctaUrl: `${SITE_URL}/landlord`,
+    note: 'Your bank sets the final arrival time.',
   })
-  return sendEmail({ to, subject: `Rent payment received: ${unitLabel}`, html })
+  return sendEmail({ to, subject: `Rent received: $${amount.toFixed(2)} for ${unitLabel}`, html })
 }
 
 export async function sendChatMessageEmail({
@@ -477,10 +704,12 @@ export async function sendChatMessageEmail({
     eyebrow: 'Message',
     heading: `${escapeHtml(senderName)} sent you a message`,
     bodyHtml: `${escapeHtml(context)}<br /><br />"${escapeHtml(preview)}"`,
+    preheader: preview,
     ctaLabel: 'Open chat',
     ctaUrl,
+    note: 'You will only get one email for a run of messages. New ones keep arriving in the app.',
   })
-  return sendEmail({ to, subject: `New message from ${senderName}`, html })
+  return sendEmail({ to, subject: `${senderName}: ${preview.length > 60 ? `${preview.slice(0, 57)}...` : preview}`, html })
 }
 
 export async function sendJobPaymentReceiptEmail({
@@ -504,6 +733,13 @@ export async function sendJobPaymentReceiptEmail({
     eyebrow: 'Receipt',
     heading: 'Payment receipt',
     bodyHtml: `Hi ${escapeHtml(landlordName)}, your payment of <strong>$${amount.toFixed(2)}</strong> to <strong>${escapeHtml(contractorName)}</strong> for the <strong>${escapeHtml(category)}</strong> job at ${escapeHtml(propertyLabel)} went through. Your receipt is saved on the job for your records.`,
+    preheader: `$${amount.toFixed(2)} to ${contractorName} for ${category}.`,
+    facts: [
+      { label: 'Amount', value: `$${amount.toFixed(2)}` },
+      { label: 'Paid to', value: contractorName },
+      { label: 'Job', value: category },
+      { label: 'Where', value: propertyLabel },
+    ],
     ctaLabel: 'View receipt',
     ctaUrl: `${SITE_URL}/receipts/job/${bidId}`,
   })
@@ -527,10 +763,17 @@ export async function sendJobPaymentSentEmail({
     eyebrow: 'Payment',
     heading: "You've been paid",
     bodyHtml: `Hi ${escapeHtml(contractorName)}, you were paid <strong>$${amount.toFixed(2)}</strong> for the <strong>${escapeHtml(category)}</strong> job at ${escapeHtml(propertyLabel)}. It's on its way to your bank account.`,
-    ctaLabel: 'View job',
+    preheader: `$${amount.toFixed(2)} for ${category}. On its way to your bank account.`,
+    facts: [
+      { label: 'Amount', value: `$${amount.toFixed(2)}` },
+      { label: 'Job', value: category },
+      { label: 'Where', value: propertyLabel },
+    ],
+    ctaLabel: 'View earnings',
     ctaUrl: `${SITE_URL}/contractor`,
+    note: 'Your bank sets the final arrival time.',
   })
-  return sendEmail({ to, subject: `You've been paid: ${category}`, html })
+  return sendEmail({ to, subject: `You've been paid $${amount.toFixed(2)}: ${category}`, html })
 }
 
 export async function sendContractorVerificationDecisionEmail({
