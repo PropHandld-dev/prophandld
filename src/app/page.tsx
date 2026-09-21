@@ -18,12 +18,12 @@ const OPERATIONS_FEATURES = [
   { icon: MessageCircleIcon, title: 'Job chat', desc: 'Every job has one thread for the landlord, renter and contractor, with updates and history in one place.' },
   { icon: MessageCircleIcon, title: 'Direct messages', desc: "Message your tenants, or a contractor you've worked with before, job or no job. No phone numbers exchanged." },
   { icon: CalendarIcon, title: 'Schedule calendar', desc: 'Every confirmed visit, across every property, in one month view. Past jobs stay as history.' },
-  { icon: AlertTriangleIcon, title: 'Compliance alerts', desc: 'Licenses, certificates, and detectors. Get warned before something expires, not after.' },
-  { icon: FileTextIcon, title: 'Documents vault', desc: 'Leases, deeds, insurance, inspection reports, all in one place per property, not scattered across email threads.' },
+  { icon: AlertTriangleIcon, title: 'Compliance alerts', desc: 'Licenses, certificates, and detectors. Get warned before something expires, not after the inspector shows up.' },
+  { icon: FileTextIcon, title: 'Documents vault', desc: 'Leases, deeds, insurance, inspection reports, all in one place per property. Not a shoebox, not an email from 2019.' },
   { icon: WrenchIcon, title: 'Systems & appliances', desc: 'Track HVAC, water heaters, roofs, and panels with install dates and service history.' },
   { icon: CheckCircleIcon, title: 'Verified contractors', desc: "Contractors can submit license and insurance for review, so you can see who's verified before you pick a bid." },
   { icon: AlertTriangleIcon, title: 'Emergency priority', desc: 'Flag something that cannot wait and matching contractors are alerted with an emergency label.' },
-  { icon: LockIcon, title: 'Dispute protection', desc: "After a landlord approves, any side has 48 hours to flag a problem and Prophandld steps in to sort it out." },
+  { icon: LockIcon, title: 'Dispute protection', desc: "Hopefully you never need it. After a landlord approves, any side has 48 hours to flag a problem and Prophandld steps in." },
 ]
 
 export default function LandingPage() {
@@ -188,7 +188,7 @@ export default function LandingPage() {
           <div className="text-center mb-10">
             <h2 className="text-3xl font-bold text-white mb-3">Always in the loop, never buried</h2>
             <p className="text-white/50 max-w-2xl mx-auto">
-              Every step of a job sends one clear update: what changed and what to do next. Contractors hear about new jobs only when a landlord opens bidding, and only for their trade and area.
+              Every step of a job sends one clear update: what changed and what to do next. No 9 p.m. “any update?” texts. Contractors hear about new jobs only when a landlord opens bidding, and only for their trade and area.
             </p>
           </div>
           <NotificationPreview />
@@ -250,9 +250,9 @@ export default function LandingPage() {
           <h2 className="text-3xl font-bold text-center mb-12 text-white">Common questions</h2>
           <div className="space-y-3">
             {[
-              { q: 'Is this just for finding contractors?', a: "No. Prophandld is built to replace the spreadsheet. Track every property, unit, and tenant, handle maintenance end to end with sealed bidding, and collect rent, all in one dashboard." },
-              { q: 'How does sealed bidding actually work?', a: "Contractors near the property are alerted when you open a job for bids. They submit their price privately and never see what anyone else bid. You choose who you trust, not just the lowest number." },
-              { q: "What if the contractor's price changes?", a: 'If a contractor needs to adjust their price once work has started, they show you the new labor and parts breakdown, and you approve it before they move forward.' },
+              { q: 'Is this just for finding contractors?', a: "No. Prophandld is built to replace the spreadsheet. Track every property, unit, and tenant, handle maintenance end to end with sealed bidding, and collect rent, all in one dashboard. Your spreadsheet can finally retire." },
+              { q: 'How does sealed bidding actually work?', a: "Contractors near the property are alerted when you open a job for bids. They submit their price privately and never see what anyone else bid. You choose who you trust, not just the lowest number. No bidding wars, no “my cousin quoted less”." },
+              { q: "What if the contractor's price changes?", a: 'If a contractor needs to adjust their price once work has started, they show you the new labor and parts breakdown, and you approve it before they move forward. No surprise invoices.' },
               { q: 'How do rent and contractor payments work?', a: "Renters pay rent by bank transfer or debit card, not credit cards, so nobody goes into card debt to make rent. Landlords pay contractors when they approve a finished job. Payments are processed by Stripe and go straight to the person being paid." },
               { q: 'How will I know when something happens?', a: "You get an email for each step: a bid arrives, a time is proposed or confirmed, work is ready for review. Add Prophandld to your phone's Home Screen and you get instant alerts too." },
               { q: 'Do I get receipts and records?', a: 'Yes. Every rent payment and every contractor payment gets a receipt, emailed to you and saved on the job or rent record, so finding one later is a lookup, not a hunt.' },
@@ -276,7 +276,7 @@ export default function LandingPage() {
       <section className="max-w-3xl mx-auto px-6 py-20 text-center">
         <ScrollReveal>
         <h2 className="text-3xl font-bold mb-4 text-white">Ready to get started?</h2>
-        <p className="text-white/50 mb-8">It takes about two minutes to set up your first property.</p>
+        <p className="text-white/50 mb-8">It takes about two minutes to set up your first property. That’s less time than the average group text about a leaky faucet.</p>
         <MagneticLink
           href="/signup"
           className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-8 py-4 rounded-full hover:opacity-90"

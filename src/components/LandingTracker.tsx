@@ -5,7 +5,7 @@ import { BellIcon } from '@/components/icons'
 // The same six-stage progress bar the job emails use, so the landing page
 // shows people what they will actually see in their inbox.
 const STEPS = [
-  { label: 'Report', title: 'Report the issue', body: 'A renter flags a problem with photos, or you start a job yourself.' },
+  { label: 'Report', title: 'Report the issue', body: 'A renter flags a problem with photos, so nobody has to decode "it’s making a noise". Or you start a job yourself.' },
   { label: 'Bids', title: 'Compare sealed bids', body: 'Nearby contractors are alerted and bid privately. You pick on trust and value, not just price.' },
   { label: 'Schedule', title: 'Agree a time', body: 'Propose a time, confirm it, and it lands on everyone’s calendar.' },
   { label: 'Work', title: 'The work gets done', body: 'Need to change the price? You see the labor and parts breakdown and approve it first.' },
@@ -64,11 +64,11 @@ export function NotificationPreview() {
           <BellIcon className="w-4 h-4" /> On your phone
         </div>
         <div className="space-y-3">
-          <PushBanner title="New bid: $45 for Plumbing" body="Lebron J. · 8055 Walker St, Philadelphia" time="now" />
-          <PushBanner title="Confirmed: Tue, Sep 22 · Morning" body="Plumbing · 8055 Walker St, Philadelphia" time="2m ago" />
-          <PushBanner title="Lebron J. finished the Plumbing work" body="Review and approve. It auto-approves in 3 days." time="1h ago" />
+          <PushBanner title="New bid: $45 for Plumbing" body="Jordan L. · 123 Maple St, Philadelphia" time="now" />
+          <PushBanner title="Confirmed: Tue, Sep 22 · Morning" body="Plumbing · 123 Maple St, Philadelphia" time="2m ago" />
+          <PushBanner title="Jordan L. finished the Plumbing work" body="Review and approve. It auto-approves in 3 days." time="1h ago" />
         </div>
-        <p className="text-white/40 text-xs mt-4">Example alerts. Add Prophandld to your Home Screen to get them.</p>
+        <p className="text-white/40 text-xs mt-4">Example alerts. Add Prophandld to your Home Screen to get them, and retire the "any update?" texts.</p>
       </div>
 
       {/* Email */}
@@ -80,7 +80,7 @@ export function NotificationPreview() {
           <span className="inline-block bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full mb-3">Your review needed</span>
           <p className="text-white font-bold text-lg leading-snug mb-1">The work is finished</p>
           <p className="text-[#A9B7C8] text-sm leading-relaxed mb-4">
-            <strong className="text-white">Lebron James</strong> marked the <strong className="text-white">Plumbing</strong> job as complete. Check the before and after photos, then approve.
+            <strong className="text-white">Jordan Lee</strong> marked the <strong className="text-white">Plumbing</strong> job as complete. Check the before and after photos, then approve.
           </p>
           <div className="grid grid-cols-6 gap-1 mb-4" aria-hidden>
             {TRACKER.map((label, i) => (
@@ -92,9 +92,9 @@ export function NotificationPreview() {
           </div>
           <div className="rounded-xl bg-[#132A45] px-4 py-1 mb-4 text-sm">
             {[
-              ['Contractor', 'Lebron James'],
+              ['Contractor', 'Jordan Lee'],
               ['Price', '$45'],
-              ['Where', '8055 Walker St, Philadelphia'],
+              ['Where', '123 Maple St, Philadelphia'],
             ].map(([k, v], i) => (
               <div key={k} className={`flex justify-between gap-3 py-2 ${i > 0 ? 'border-t border-[#1E3450]' : ''}`}>
                 <span className="text-[#8496AC] text-xs">{k}</span>
