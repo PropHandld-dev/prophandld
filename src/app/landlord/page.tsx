@@ -11,6 +11,7 @@ import { ScrollReveal } from '@/components/ScrollReveal'
 import { EnableNotificationsCard } from '@/components/EnableNotificationsCard'
 import { MagneticLink } from '@/components/MagneticLink'
 import { ProfileButton } from '@/components/ProfileButton'
+import { MessagesButton } from '@/components/MessagesButton'
 import { CountUp } from '@/components/CountUp'
 import {
   BuildingIcon, WrenchIcon, CalendarIcon, ClipboardListIcon,
@@ -477,7 +478,10 @@ export default function LandlordDashboard() {
             Landlord
           </span>
         </div>
-        <ProfileButton name={user?.user_metadata?.full_name} />
+        <div className="flex items-center gap-1.5">
+          <MessagesButton role="landlord" userId={user?.id ?? null} />
+          <ProfileButton name={user?.user_metadata?.full_name} />
+        </div>
       </nav>
 
       <main className="max-w-6xl mx-auto px-6 py-10 pb-28">

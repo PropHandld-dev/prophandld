@@ -460,6 +460,29 @@ export async function sendRentPaymentReceivedEmail({
   return sendEmail({ to, subject: `Rent payment received: ${unitLabel}`, html })
 }
 
+export async function sendChatMessageEmail({
+  to,
+  senderName,
+  context,
+  preview,
+  ctaUrl,
+}: {
+  to: string
+  senderName: string
+  context: string
+  preview: string
+  ctaUrl: string
+}) {
+  const html = baseTemplate({
+    eyebrow: 'Message',
+    heading: `${escapeHtml(senderName)} sent you a message`,
+    bodyHtml: `${escapeHtml(context)}<br /><br />"${escapeHtml(preview)}"`,
+    ctaLabel: 'Open chat',
+    ctaUrl,
+  })
+  return sendEmail({ to, subject: `New message from ${senderName}`, html })
+}
+
 export async function sendJobPaymentReceiptEmail({
   to,
   landlordName,

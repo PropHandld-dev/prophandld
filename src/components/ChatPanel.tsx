@@ -143,7 +143,7 @@ export function ChatPanel({
   const contractorInThread = threadId ? others.find((p) => p.role === 'contractor') : undefined
   const showStartJob = !!contractorInThread && myRole === 'landlord'
 
-  const sendMessage = async (body: string) => {
+  const sendMessage = async (body: string, options?: { silent?: boolean }) => {
     if (!body.trim() || !userId) return false
 
     setSending(true)
@@ -171,6 +171,16 @@ export function ChatPanel({
     // arrives that way.
     if (inserted) {
       setMessages((prev) => (prev.some((m) => m.id === inserted.id) ? prev : [...prev, inserted]))
+      // Tell the other people in the chat (push, and an email for the first
+      // message of a burst). Fire-and-forget: a failed alert never blocks the chat.
+      // Scheduling shortcuts have their own email, so they skip this one.
+      if (!options?.silent) {
+        fetch('/api/chat/notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messageId: inserted.id }),
+        }).catch((err) => console.error('Failed to send chat notification:', err))
+      }
     }
 
     setSending(false)
@@ -182,8 +192,7 @@ export function ChatPanel({
     if (await sendMessage(draft)) setDraft('')
   }
 
-  // DM threads only — job-scoped chat has its own notification pipeline.
-  // Fire-and-forget: a failed email shouldn't block the chat itself.
+  // DM threads only. Fire-and-forget: a failed email shouldn't block the chat itself.
   const notifySchedule = (text: string, kind: 'proposed' | 'confirmed') => {
     if (!threadId) return
     fetch('/api/dm-schedule-notify', {
@@ -205,7 +214,7 @@ export function ChatPanel({
       minute: '2-digit',
     })
     const text = `📅 Proposed time: ${formatted}${scheduleTime ? '' : ' (time TBD)'}`
-    if (await sendMessage(text)) {
+    if (await sendMessage(text, { silent: true })) {
       setShowSchedule(false)
       setScheduleDate('')
       setScheduleTime('')
@@ -216,7 +225,7 @@ export function ChatPanel({
   const handleConfirmSchedule = async (proposalBody: string) => {
     const timePart = proposalBody.replace('📅 Proposed time: ', '')
     const text = `✅ Confirmed: ${timePart}`
-    if (await sendMessage(text)) notifySchedule(text, 'confirmed')
+    if (await sendMessage(text, { silent: true })) notifySchedule(text, 'confirmed')
   }
 
   if (loading) {
@@ -284,6 +293,7 @@ export function ChatPanel({
                     </div>
                     <p className={`text-[10px] text-white/50 mt-1 ${isMine ? 'text-right' : 'text-left'}`}>
                       {formatTimestamp(m.created_at)}
+                      {isMine && ' · ✓ Sent'}
                     </p>
                     {canConfirm && (
                       <button

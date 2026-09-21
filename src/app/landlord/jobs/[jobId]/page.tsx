@@ -17,6 +17,7 @@ import { LANDLORD_TABS } from '@/lib/navTabs'
 import { ReviewForm } from '@/components/ReviewForm'
 import { StripePaymentModal, type PaymentOutcome } from '@/components/StripePaymentModal'
 import { RaiseDisputeButton } from '@/components/RaiseDisputeButton'
+import { JobChatCard, scrollToChat } from '@/components/JobChatCard'
 import { UnreadDot } from '@/components/UnreadDot'
 import { getUnreadJobIds } from '@/lib/messageReads'
 import { useJobRealtime } from '@/lib/useJobRealtime'
@@ -52,8 +53,6 @@ export default function JobDetailPage() {
   const [paidBanner, setPaidBanner] = useState<PaymentOutcome | null>(null)
   const [paymentModal, setPaymentModal] = useState<{ clientSecret: string; amount: number } | null>(null)
   const [paymentError, setPaymentError] = useState<string | null>(null)
-  const [showClarifyModal, setShowClarifyModal] = useState(false)
-  const [clarifyNote, setClarifyNote] = useState('')
   const [showPriceModal, setShowPriceModal] = useState(false)
   const [priceAction, setPriceAction] = useState<'approve' | 'reject' | null>(null)
 
@@ -534,38 +533,6 @@ export default function JobDetailPage() {
     }
   }
 
-  const openClarifyModal = () => {
-    setClarifyNote(job.clarification_note || '')
-    setShowClarifyModal(true)
-  }
-
-  const submitClarifyRequest = async () => {
-    if (!clarifyNote.trim()) {
-      setError('Please enter what you need clarified.')
-      return
-    }
-
-    setActioning(true)
-    setError(null)
-
-    const { error: updateError } = await expectRow(supabase
-      .from('jobs')
-      .update({ clarification_note: clarifyNote, clarification_response: null })
-      .eq('id', jobId))
-
-    if (updateError) {
-      console.error('Error sending clarification request:', updateError)
-      setError('Could not send request.')
-      setActioning(false)
-      return
-    }
-
-    notify('clarification_requested', jobId)
-    setShowClarifyModal(false)
-    await fetchJob()
-    setActioning(false)
-  }
-
   const openPriceModal = (action: 'approve' | 'reject') => {
     setPriceAction(action)
     setShowPriceModal(true)
@@ -754,10 +721,10 @@ export default function JobDetailPage() {
           ← Jobs
         </Link>
         <Link href="/landlord" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
-        <Link href={`/landlord/jobs/${jobId}/chat`} className="relative text-white/50 hover:text-white transition">
+        <a href="#chat" onClick={scrollToChat} aria-label="Go to the chat" className="relative text-white/50 hover:text-white transition">
           <MessageCircleIcon className="w-5 h-5" />
           {hasUnread && <UnreadDot className="absolute -top-0.5 -right-0.5" />}
-        </Link>
+        </a>
       </nav>
 
       <main className="max-w-2xl mx-auto px-6 py-10 pb-28">
@@ -838,11 +805,10 @@ export default function JobDetailPage() {
                   Approve
                 </button>
                 <button
-                  onClick={openClarifyModal}
-                  disabled={actioning}
+                  onClick={() => scrollToChat()}
                   className="text-white/50 hover:text-white text-xs transition"
                 >
-                  Ask for verification
+                  Chat with contractor
                 </button>
               </div>
             )}
@@ -1241,6 +1207,19 @@ export default function JobDetailPage() {
             />
           )}
         </div>
+
+        {userId && (
+          <JobChatCard
+            jobId={jobId}
+            title={acceptedBid ? 'Chat with contractor' : 'Job chat'}
+            subtitle={
+              acceptedBid
+                ? `${acceptedBid.contractor?.full_name || 'Your contractor'} · messages, updates and history in one place`
+                : 'Messages and updates for this job, in one place'
+            }
+            onRead={() => setHasUnread(false)}
+          />
+        )}
       </main>
 
       {showBiddingModal && (
@@ -1442,45 +1421,6 @@ export default function JobDetailPage() {
                 className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
               >
                 {actioning ? 'Approving...' : payOnApprove ? 'Approve & pay' : 'Approve'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showClarifyModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
-          <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
-            <h3 className="text-white font-semibold mb-2">Ask contractor for verification</h3>
-            <p className="text-white/50 text-sm mb-3">
-              What would you like clarified about the completed work?
-            </p>
-            <textarea
-              value={clarifyNote}
-              onChange={(e) => setClarifyNote(e.target.value)}
-              rows={3}
-              placeholder="e.g. Can you confirm the leak under the sink was fully sealed?"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition resize-none mb-5"
-            />
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm mb-4">
-                {error}
-              </div>
-            )}
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowClarifyModal(false)}
-                disabled={actioning}
-                className="flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-white/12 transition disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={submitClarifyRequest}
-                disabled={actioning}
-                className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
-              >
-                {actioning ? 'Sending...' : 'Send request'}
               </button>
             </div>
           </div>

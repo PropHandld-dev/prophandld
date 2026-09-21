@@ -15,6 +15,7 @@ import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { WrenchIcon, CheckCircleIcon, MessageCircleIcon } from '@/components/icons'
 import { RaiseDisputeButton } from '@/components/RaiseDisputeButton'
+import { JobChatCard, scrollToChat } from '@/components/JobChatCard'
 import { UnreadDot } from '@/components/UnreadDot'
 import { getUnreadJobIds } from '@/lib/messageReads'
 import { useJobRealtime } from '@/lib/useJobRealtime'
@@ -495,10 +496,10 @@ export default function ContractorJobDetailPage() {
           ← Dashboard
         </Link>
         <Link href="/contractor" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
-        <Link href={`/contractor/jobs/${jobId}/chat`} className="relative text-white/50 hover:text-white transition">
+        <a href="#chat" onClick={scrollToChat} aria-label="Go to the chat" className="relative text-white/50 hover:text-white transition">
           <MessageCircleIcon className="w-5 h-5" />
           {hasUnread && <UnreadDot className="absolute -top-0.5 -right-0.5" />}
-        </Link>
+        </a>
       </nav>
 
       <main className="max-w-2xl mx-auto px-6 py-10 pb-28">
@@ -622,10 +623,11 @@ export default function ContractorJobDetailPage() {
           </div>
         )}
 
-        {myBid?.status === 'accepted' && job.status === 'pending_review' && job.clarification_note && (
+        {myBid?.status === 'accepted' && job.status === 'pending_review' && job.clarification_note && !job.clarification_response && (
           <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl p-6 mb-4">
             <h3 className="text-yellow-400 font-semibold mb-2">Landlord asked for verification</h3>
-            <p className="text-white/70 text-sm mb-4">{job.clarification_note}</p>
+            <p className="text-white/70 text-sm mb-1">{job.clarification_note}</p>
+            <p className="text-white/50 text-xs mb-4">You can also reply in the chat below.</p>
             <label className="text-white/70 text-sm block mb-1">Your response</label>
             <textarea
               value={responseText}
@@ -794,6 +796,15 @@ export default function ContractorJobDetailPage() {
               </div>
             )}
           </ScrollReveal>
+        )}
+
+        {userId && myBid?.status === 'accepted' && (
+          <JobChatCard
+            jobId={jobId}
+            title="Chat with landlord"
+            subtitle="Messages, updates and history in one place"
+            onRead={() => setHasUnread(false)}
+          />
         )}
       </main>
 

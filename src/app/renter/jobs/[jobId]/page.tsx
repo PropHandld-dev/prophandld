@@ -15,6 +15,7 @@ import { RippleButton } from '@/components/RippleButton'
 import { CheckCircleIcon, MessageCircleIcon } from '@/components/icons'
 import { RaiseDisputeButton } from '@/components/RaiseDisputeButton'
 import { UnreadDot } from '@/components/UnreadDot'
+import { JobChatCard, scrollToChat } from '@/components/JobChatCard'
 import { getUnreadJobIds } from '@/lib/messageReads'
 import { useJobRealtime } from '@/lib/useJobRealtime'
 import { RENTER_TABS } from '@/lib/navTabs'
@@ -252,10 +253,10 @@ export default function RenterJobDetailPage() {
           ← Dashboard
         </Link>
         <Link href="/renter" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
-        <Link href={`/renter/jobs/${jobId}/chat`} className="relative text-white/50 hover:text-white transition">
+        <a href="#chat" onClick={scrollToChat} aria-label="Go to the chat" className="relative text-white/50 hover:text-white transition">
           <MessageCircleIcon className="w-5 h-5" />
           {hasUnread && <UnreadDot className="absolute -top-0.5 -right-0.5" />}
-        </Link>
+        </a>
       </nav>
 
       <main className="max-w-2xl mx-auto px-6 py-10 pb-28">
@@ -403,6 +404,15 @@ export default function RenterJobDetailPage() {
               onDelete={!['completed', 'archived'].includes(job.status) ? handleDeletePhoto : undefined}
             />
           </div>
+        )}
+
+        {userId && (
+          <JobChatCard
+            jobId={jobId}
+            title="Job chat"
+            subtitle="Messages and updates about this job, in one place"
+            onRead={() => setHasUnread(false)}
+          />
         )}
       </main>
 
