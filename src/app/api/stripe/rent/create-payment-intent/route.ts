@@ -30,7 +30,23 @@ export async function POST(request: NextRequest) {
   }
 
   const tenancy = rentPayment?.tenancies as any
-  if (!rentPayment || !tenancy || tenancy.renter_user_id !== user.id) {
+  if (!rentPayment || !tenancy) {
+    return NextResponse.json({ error: 'Rent payment not found' }, { status: 404 })
+  }
+
+  // The primary tenant or a co-renter on the tenancy may pay: rent is one
+  // shared amount for the household, and both see the Pay button.
+  let mayPay = tenancy.renter_user_id === user.id
+  if (!mayPay) {
+    const { data: occupant } = await supabaseAdmin
+      .from('tenancy_occupants')
+      .select('id')
+      .eq('tenancy_id', rentPayment.tenancy_id)
+      .eq('renter_user_id', user.id)
+      .maybeSingle()
+    mayPay = !!occupant
+  }
+  if (!mayPay) {
     return NextResponse.json({ error: 'Rent payment not found' }, { status: 404 })
   }
 

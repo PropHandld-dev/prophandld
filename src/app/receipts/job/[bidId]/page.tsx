@@ -65,7 +65,7 @@ export default function JobPaymentReceiptPage() {
   const job = receipt.jobs as any
   const unit = job?.units
   const property = unit?.properties
-  const amount = Number(receipt.proposed_amount ?? receipt.amount)
+  const amount = Number(receipt.amount)
   const propertyLabel = property?.address
     ? `${property.address}${unit?.unit_number ? `, Unit ${unit.unit_number}` : ''}`
     : 'Property'

@@ -53,7 +53,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "This contractor hasn't set up payouts yet." }, { status: 400 })
   }
 
-  const amount = Number(bid.proposed_amount ?? bid.amount)
+  // `amount` is the agreed price: approving a price change copies the new
+  // number into it. `proposed_amount` is only a request, and keeps its value
+  // after a rejection, so it must never be charged.
+  const amount = Number(bid.amount)
   const stripe = getStripe()
   const amountCents = Math.round(amount * 100)
 

@@ -179,7 +179,13 @@ export async function POST(request: NextRequest) {
 
   const ok = await lowerThisMonth(`Refunded ${money(amount)} to the tenant through Stripe`)
   if (!ok) {
-    // The refund went through at Stripe; the page just needs to catch up.
+    // Most likely a double click: the first request already recorded this
+    // refund (Stripe returned the same refund for both, so nothing was
+    // refunded twice). Check before showing an alarming message.
+    const { data: latest } = await admin.from('rent_payments').select('actual_amount').eq('id', rent.id).maybeSingle()
+    if (latest && Number(latest.actual_amount) !== actual) {
+      return NextResponse.json({ ok: true })
+    }
     console.error('resolve-overpayment: refund created but rent row not updated', { rentPaymentId: rent.id, amount })
     return NextResponse.json({ error: 'The refund was sent, but the page could not update. Refresh to see it.' }, { status: 500 })
   }

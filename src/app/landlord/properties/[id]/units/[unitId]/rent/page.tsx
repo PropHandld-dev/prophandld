@@ -222,7 +222,7 @@ export default function UnitRentPage() {
 
   const lateFeeOf = (payment: any) => (payment.late_fee_applied ? Number(tenancy?.late_fee_amount || 0) : 0)
   const rentPortionOf = (payment: any) =>
-    Number(payment.expected_amount) - Number(payment.water_amount || 0) - lateFeeOf(payment)
+    Math.round((Number(payment.expected_amount) - Number(payment.water_amount || 0) - lateFeeOf(payment)) * 100) / 100
 
   // Saves the rent, water bill and water period for a month (paid or not) and
   // writes a dated line to its history describing what changed.

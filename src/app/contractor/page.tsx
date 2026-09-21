@@ -94,7 +94,7 @@ export default function ContractorDashboard() {
     ).then((results) => {
       const nowPaid = stuck.filter((_, i) => results[i]?.status === 'paid')
       if (nowPaid.length === 0) return
-      const amountOf = (b: any) => Number(b.proposed_amount ?? b.amount ?? 0)
+      const amountOf = (b: any) => Number(b.amount ?? 0)
       const total = nowPaid.reduce((sum, b) => sum + amountOf(b), 0)
       const paidIds = new Set(nowPaid.map((b) => b.id))
       setMyBids((prev) => prev.map((b) => (paidIds.has(b.id) ? { ...b, payment_status: 'paid' } : b)))
@@ -167,12 +167,12 @@ export default function ContractorDashboard() {
         setTotalEarnings(
           bids
             .filter((b) => b.payment_status === 'paid')
-            .reduce((sum, b) => sum + Number(b.proposed_amount ?? b.amount ?? 0), 0)
+            .reduce((sum, b) => sum + Number(b.amount ?? 0), 0)
         )
         setAwaitingPayment(
           bids
             .filter((b) => b.status === 'accepted' && b.jobs?.status === 'completed' && b.payment_status !== 'paid')
-            .reduce((sum, b) => sum + Number(b.proposed_amount ?? b.amount ?? 0), 0)
+            .reduce((sum, b) => sum + Number(b.amount ?? 0), 0)
         )
 
         setPickTimeAlerts(

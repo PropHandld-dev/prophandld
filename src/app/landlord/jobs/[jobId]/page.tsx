@@ -730,7 +730,7 @@ export default function JobDetailPage() {
     !!acceptedBid &&
     acceptedBid.payment_status !== 'paid' &&
     acceptedBid.price_change_status !== 'pending'
-  const payOnApproveAmount = acceptedBid ? Number(acceptedBid.proposed_amount ?? acceptedBid.amount ?? 0) : 0
+  const payOnApproveAmount = acceptedBid ? Number(acceptedBid.amount ?? 0) : 0
   // Excludes 'declined' bids from a prior round — a job that reopened
   // after the selected contractor cancelled otherwise showed every
   // losing (and the cancelling contractor's own) bid with a live
@@ -1074,7 +1074,7 @@ export default function JobDetailPage() {
               <div>
                 <h3 className="text-white font-semibold">Pay contractor</h3>
                 <p className="text-white/60 text-sm mt-1">
-                  ${acceptedBid.proposed_amount ?? acceptedBid.amount} to {acceptedBid.contractor?.full_name}
+                  ${acceptedBid.amount} to {acceptedBid.contractor?.full_name}
                 </p>
               </div>
               {paidBanner === 'processing' && acceptedBid.payment_status !== 'paid' ? (

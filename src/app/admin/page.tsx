@@ -59,7 +59,7 @@ export default function AdminOverviewPage() {
         .filter((p) => p.month?.startsWith(currentMonth))
         .reduce((sum, p) => sum + Number(p.actual_amount || 0), 0)
 
-      const jobPaymentsAllTime = (paidBids || []).reduce((sum, b) => sum + Number(b.proposed_amount ?? b.amount ?? 0), 0)
+      const jobPaymentsAllTime = (paidBids || []).reduce((sum, b) => sum + Number(b.amount ?? 0), 0)
 
       setStats({ userCounts, tierCounts, mrr, rentThisMonth, jobPaymentsAllTime, openDisputes: disputes?.length || 0 })
       setLoading(false)

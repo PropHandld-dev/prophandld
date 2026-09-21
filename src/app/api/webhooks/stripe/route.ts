@@ -190,6 +190,7 @@ export async function POST(request: NextRequest) {
               .from('bids')
               .update({ payment_status: 'paid', paid_at: new Date().toISOString() })
               .eq('id', bidId)
+              .neq('payment_status', 'paid')
             if (error) console.error('stripe webhook: job payment_intent.succeeded failed', error)
 
             const { data: bid } = await supabaseAdmin

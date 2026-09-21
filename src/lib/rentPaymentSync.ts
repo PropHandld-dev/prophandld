@@ -49,9 +49,17 @@ export async function syncRentPayment(
   if (method?.card?.funding === 'credit') {
     // reverse_transfer takes the money back from the landlord's connected account;
     // without it the platform would refund the renter out of its own balance.
-    await stripe.refunds.create({ payment_intent: paymentIntent.id, reverse_transfer: true }).catch((err) => {
+    try {
+      await stripe.refunds.create(
+        { payment_intent: paymentIntent.id, reverse_transfer: true },
+        { idempotencyKey: `rent-credit-card-refund-${paymentIntent.id}` }
+      )
+    } catch (err) {
+      // Not refunded (for example the landlord's balance can't cover it).
+      // Don't record it as refunded or as paid; the next check tries again.
       console.error('rent sync: credit card refund failed', err)
-    })
+      return 'unpaid'
+    }
     await admin.from('rent_payments').update({ stripe_status: 'refunded_credit_card' }).eq('id', rent.id)
     return 'refunded_credit_card'
   }
