@@ -47,7 +47,9 @@ export async function syncRentPayment(
   // Rent takes debit cards and bank transfers only. Stripe reports credit and
   // debit both as 'card', so credit cards are caught here and refunded.
   if (method?.card?.funding === 'credit') {
-    await stripe.refunds.create({ payment_intent: paymentIntent.id }).catch((err) => {
+    // reverse_transfer takes the money back from the landlord's connected account;
+    // without it the platform would refund the renter out of its own balance.
+    await stripe.refunds.create({ payment_intent: paymentIntent.id, reverse_transfer: true }).catch((err) => {
       console.error('rent sync: credit card refund failed', err)
     })
     await admin.from('rent_payments').update({ stripe_status: 'refunded_credit_card' }).eq('id', rent.id)

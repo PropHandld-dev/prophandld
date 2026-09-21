@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/Skeleton'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
+import { RentMonthEditor, type RentEditValues } from '@/components/RentMonthEditor'
 import { ensureCurrentMonthRentPayment } from '@/lib/rentAutomation'
 import { FileTextIcon } from '@/components/icons'
 
@@ -27,8 +28,9 @@ export default function UnitRentPage() {
   const [error, setError] = useState<string | null>(null)
   const [adjustingId, setAdjustingId] = useState<string | null>(null)
   const [adjustAmount, setAdjustAmount] = useState('')
-  const [waterEditId, setWaterEditId] = useState<string | null>(null)
-  const [waterAmount, setWaterAmount] = useState('')
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editError, setEditError] = useState<string | null>(null)
+  const [resolvingId, setResolvingId] = useState<string | null>(null)
   const [uploadingWaterBillId, setUploadingWaterBillId] = useState<string | null>(null)
   const [showAddMonth, setShowAddMonth] = useState(false)
   const [addForm, setAddForm] = useState({ month: '', expected_amount: '' })
@@ -215,38 +217,93 @@ export default function UnitRentPage() {
     setSavingId(null)
   }
 
-  const handleSetWaterAmount = async (payment: any, newWaterAmount: number) => {
+  const money = (n: number) =>
+    n.toLocaleString(undefined, { style: 'currency', currency: 'USD', minimumFractionDigits: n % 1 === 0 ? 0 : 2, maximumFractionDigits: 2 })
+
+  const lateFeeOf = (payment: any) => (payment.late_fee_applied ? Number(tenancy?.late_fee_amount || 0) : 0)
+  const rentPortionOf = (payment: any) =>
+    Number(payment.expected_amount) - Number(payment.water_amount || 0) - lateFeeOf(payment)
+
+  // Saves the rent, water bill and water period for a month (paid or not) and
+  // writes a dated line to its history describing what changed.
+  const handleSaveEdit = async (payment: any, values: RentEditValues) => {
     setSavingId(payment.id)
-    setError(null)
+    setEditError(null)
 
-    // expected_amount is the combined rent+water total actually charged —
-    // recompute it from the rent portion (whatever it was before this
-    // month's water amount was factored in) rather than adding on top,
-    // so re-editing the water amount doesn't double-count.
-    const rentPortion = Number(payment.expected_amount) - Number(payment.water_amount || 0)
-    const newExpected = rentPortion + newWaterAmount
+    const oldRent = rentPortionOf(payment)
+    const oldWater = Number(payment.water_amount || 0)
+    const total = Math.round((values.rent + values.water + lateFeeOf(payment)) * 100) / 100
 
-    const { error: updateError } = await supabase
-      .from('rent_payments')
-      .update({ water_amount: newWaterAmount, expected_amount: newExpected })
-      .eq('id', payment.id)
+    const changes: string[] = []
+    if (values.rent !== oldRent) changes.push(`Rent ${money(oldRent)} → ${money(values.rent)}`)
+    if (values.water !== oldWater) changes.push(`Water ${money(oldWater)} → ${money(values.water)}`)
+    if ((values.periodStart || '') !== (payment.water_period_start || '') || (values.periodEnd || '') !== (payment.water_period_end || '')) {
+      changes.push('Water bill period updated')
+    }
+    if (values.note) changes.push(values.note)
+    const stamp = new Date().toISOString().slice(0, 10)
+    const notes = [payment.notes, `${stamp}: ${changes.join(' · ')}`].filter(Boolean).join('\n')
+
+    const update: Record<string, any> = {
+      expected_amount: total,
+      water_amount: values.water,
+      notes,
+    }
+    // Only sent when set (or being cleared), so saving still works for
+    // anyone who never uses the period fields.
+    if (values.periodStart || payment.water_period_start) update.water_period_start = values.periodStart || null
+    if (values.periodEnd || payment.water_period_end) update.water_period_end = values.periodEnd || null
+
+    const { error: updateError } = await supabase.from('rent_payments').update(update).eq('id', payment.id)
 
     if (updateError) {
-      console.error('Error setting water amount:', updateError)
-      setError('Could not save water bill: ' + updateError.message)
+      console.error('Error saving rent month:', updateError)
+      setEditError('Could not save: ' + updateError.message)
       setSavingId(null)
       return
     }
 
-    setWaterEditId(null)
-    setWaterAmount('')
+    setEditingId(null)
     await loadPayments(payment.tenancy_id)
     setSavingId(null)
+  }
+
+  // Settles an overpayment: refund it through Stripe, record a refund made
+  // another way, or apply it as credit to next month's rent.
+  const handleResolve = async (payment: any, mode: 'stripe_refund' | 'external_refund' | 'apply_to_next', overpaid: number) => {
+    const question =
+      mode === 'stripe_refund'
+        ? `Refund ${money(overpaid)} to the tenant's original payment method through Stripe? It is taken back from your Stripe balance.`
+        : mode === 'apply_to_next'
+          ? `Apply ${money(overpaid)} as credit toward next month's rent?`
+          : `Record that you already refunded ${money(overpaid)} to the tenant outside the app?`
+    if (!window.confirm(question)) return
+
+    setResolvingId(payment.id)
+    setError(null)
+    try {
+      const res = await fetch('/api/rent-payment/resolve-overpayment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rentPaymentId: payment.id, mode, amount: overpaid }),
+      })
+      const data = await res.json()
+      if (!res.ok) setError(data.error || 'Could not settle the overpayment.')
+    } catch {
+      setError('Could not settle the overpayment.')
+    }
+    await loadPayments(payment.tenancy_id)
+    setResolvingId(null)
   }
 
   const handleAddMonth = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!addForm.month || !addForm.expected_amount || !tenancy) return
+
+    if (payments.some((p) => p.month.slice(0, 7) === addForm.month)) {
+      setError('That month already exists. Tap Edit on it to change the amount instead.')
+      return
+    }
 
     setSavingId('add')
     setError(null)
@@ -259,7 +316,7 @@ export default function UnitRentPage() {
 
     if (insertError) {
       console.error('Error adding rent entry:', insertError)
-      setError('Could not add entry. Please try again.')
+      setError(insertError.code === '23505' ? 'That month already exists. Tap Edit on it to change the amount instead.' : 'Could not add entry. Please try again.')
       setSavingId(null)
       return
     }
@@ -271,7 +328,16 @@ export default function UnitRentPage() {
   }
 
   const handleDelete = async (paymentId: string) => {
-    if (!window.confirm('Remove this entry?')) return
+    const target = payments.find((p) => p.id === paymentId)
+    if (target?.stripe_status === 'succeeded') {
+      setError('This month was paid online, so it can’t be deleted. Use Edit to correct it instead.')
+      return
+    }
+    const recorded = Number(target?.actual_amount || 0)
+    const message = recorded > 0
+      ? `This month has ${money(recorded)} recorded as paid. Removing it also removes its receipt. Continue?`
+      : 'Remove this entry?'
+    if (!window.confirm(message)) return
 
     const { error: deleteError } = await supabase.from('rent_payments').delete().eq('id', paymentId)
     if (deleteError) {
@@ -360,6 +426,13 @@ export default function UnitRentPage() {
                   const status = getStatus(payment)
                   const isPaid = status.label === 'Paid'
                   const isAdjusting = adjustingId === payment.id
+                  const overpaid = Math.round((Number(payment.actual_amount || 0) - Number(payment.expected_amount || 0)) * 100) / 100
+                  const paidOnline = payment.stripe_status === 'succeeded' && !!payment.stripe_payment_intent_id
+                  const noteLines: string[] = payment.notes ? String(payment.notes).split('\n').filter(Boolean) : []
+                  const shortDate = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+                  const period = payment.water_period_start && payment.water_period_end
+                    ? ` · ${shortDate(payment.water_period_start)} – ${shortDate(payment.water_period_end)}`
+                    : ''
                   return (
                     <div key={payment.id} className="bg-white/3 border border-white/8 rounded-2xl p-5">
                       <div className="flex items-start justify-between gap-4">
@@ -376,7 +449,7 @@ export default function UnitRentPage() {
                             )}
                             <span className="text-xs bg-white/8 text-white/50 rounded-full px-2.5 py-0.5">
                               ${payment.actual_amount ?? 0} of ${payment.expected_amount}
-                              {payment.water_amount ? ` (incl. $${payment.water_amount} water)` : ''}
+                              {payment.water_amount ? ` (incl. $${payment.water_amount} water${period})` : ''}
                             </span>
                             {payment.late_fee_applied && (
                               <span className="text-xs bg-yellow-500/15 text-yellow-400 rounded-full px-2.5 py-0.5">
@@ -399,77 +472,55 @@ export default function UnitRentPage() {
                               {savingId === payment.id ? 'Saving...' : 'Mark received'}
                             </RippleButton>
                           )}
-                          <button
-                            onClick={() => handleDelete(payment.id)}
-                            className="text-red-400/50 text-[11px] hover:text-red-400 transition"
-                          >
-                            Delete
-                          </button>
+                          <div className="flex items-center gap-3">
+                            <button
+                              onClick={() => { setEditError(null); setEditingId(payment.id) }}
+                              className="text-white/60 text-[11px] font-semibold hover:text-white transition"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDelete(payment.id)}
+                              className="text-red-400/50 text-[11px] hover:text-red-400 transition"
+                            >
+                              Delete
+                            </button>
+                          </div>
                         </div>
                       </div>
 
-                      {!isPaid && (
-                        waterEditId === payment.id ? (
-                          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/8">
-                            <input
-                              type="number"
-                              value={waterAmount}
-                              onChange={(e) => setWaterAmount(e.target.value)}
-                              placeholder="Water bill this month"
-                              min={0}
-                              step="0.01"
-                              className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
-                            />
-                            <RippleButton
-                              onClick={() => handleSetWaterAmount(payment, parseFloat(waterAmount) || 0)}
-                              disabled={savingId === payment.id}
-                              className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-3 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
-                            >
-                              Save
-                            </RippleButton>
-                            <button
-                              onClick={() => { setWaterEditId(null); setWaterAmount('') }}
-                              className="text-white/60 hover:text-white text-xs transition"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-3 flex-wrap mt-2">
-                            <button
-                              onClick={() => { setWaterEditId(payment.id); setWaterAmount(payment.water_amount ? String(payment.water_amount) : '') }}
-                              className="text-white/50 hover:text-white/60 text-[11px] transition"
-                            >
-                              {payment.water_amount ? 'Edit water bill' : '+ Add water bill'}
-                            </button>
-                            <label className="text-white/50 hover:text-white/60 text-[11px] transition cursor-pointer flex items-center gap-1">
-                              <FileTextIcon className="w-3 h-3" />
-                              {uploadingWaterBillId === payment.id ? 'Uploading…' : payment.waterBillViewUrl ? 'Replace water bill file' : 'Attach water bill file'}
-                              <input
-                                type="file"
-                                accept=".pdf,.jpg,.jpeg,.png"
-                                className="hidden"
-                                disabled={uploadingWaterBillId === payment.id}
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0]
-                                  if (file) handleAttachWaterBill(payment, file)
-                                  e.target.value = ''
-                                }}
-                              />
-                            </label>
-                            {payment.waterBillViewUrl && (
-                              <a
-                                href={payment.waterBillViewUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-[#12A5A9] text-[11px] hover:underline"
+                      {overpaid > 0.004 && (
+                        <div className="mt-3 pt-3 border-t border-white/8">
+                          <p className="text-[#12A5A9] text-sm font-semibold">Overpaid by {money(overpaid)}</p>
+                          <p className="text-white/50 text-xs mt-0.5">This month was paid more than it now costs. Choose what happens to the difference:</p>
+                          <div className="flex items-center gap-2 flex-wrap mt-2.5">
+                            {paidOnline && (
+                              <button
+                                onClick={() => handleResolve(payment, 'stripe_refund', overpaid)}
+                                disabled={resolvingId === payment.id}
+                                className="text-xs font-semibold bg-[#12A5A9]/15 text-[#12A5A9] rounded-lg px-3 py-2 hover:bg-[#12A5A9]/25 transition disabled:opacity-50"
                               >
-                                View →
-                              </a>
+                                {resolvingId === payment.id ? 'Working…' : `Refund ${money(overpaid)} to tenant`}
+                              </button>
                             )}
+                            <button
+                              onClick={() => handleResolve(payment, 'apply_to_next', overpaid)}
+                              disabled={resolvingId === payment.id}
+                              className="text-xs font-semibold bg-white/8 text-white rounded-lg px-3 py-2 hover:bg-white/12 transition disabled:opacity-50"
+                            >
+                              Credit to next month
+                            </button>
+                            <button
+                              onClick={() => handleResolve(payment, 'external_refund', overpaid)}
+                              disabled={resolvingId === payment.id}
+                              className="text-xs text-white/50 hover:text-white transition disabled:opacity-50"
+                            >
+                              Refunded another way
+                            </button>
                           </div>
-                        )
+                        </div>
                       )}
+
                       {!isPaid && (
                         isAdjusting ? (
                           <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/8">
@@ -503,6 +554,15 @@ export default function UnitRentPage() {
                             Received a different amount?
                           </button>
                         )
+                      )}
+
+                      {noteLines.length > 0 && (
+                        <ul className="mt-3 pt-3 border-t border-white/8 space-y-1">
+                          {noteLines.slice(-3).map((line, i) => (
+                            <li key={i} className="text-white/40 text-[11px] leading-snug">{line}</li>
+                          ))}
+                          {noteLines.length > 3 && <li className="text-white/30 text-[11px]">+ {noteLines.length - 3} earlier</li>}
+                        </ul>
                       )}
                     </div>
                   )
@@ -567,6 +627,31 @@ export default function UnitRentPage() {
         </>
         )}
       </main>
+
+      {editingId && (() => {
+        const payment = payments.find((p) => p.id === editingId)
+        if (!payment) return null
+        return (
+          <RentMonthEditor
+            key={payment.id}
+            monthLabel={formatMonth(payment.month)}
+            rent={rentPortionOf(payment)}
+            water={Number(payment.water_amount || 0)}
+            lateFee={lateFeeOf(payment)}
+            paidSoFar={Number(payment.actual_amount || 0)}
+            periodStart={payment.water_period_start || ''}
+            periodEnd={payment.water_period_end || ''}
+            hasBillFile={!!payment.waterBillViewUrl}
+            billFileUrl={payment.waterBillViewUrl}
+            uploading={uploadingWaterBillId === payment.id}
+            saving={savingId === payment.id}
+            error={editError}
+            onSave={(values) => handleSaveEdit(payment, values)}
+            onAttach={(file) => handleAttachWaterBill(payment, file)}
+            onClose={() => setEditingId(null)}
+          />
+        )
+      })()}
 
       <BottomTabBar tabs={LANDLORD_TABS} />
     </div>

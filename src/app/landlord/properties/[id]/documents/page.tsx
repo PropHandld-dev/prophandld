@@ -90,9 +90,9 @@ export default function PropertyDocumentsPage() {
     // say which month a bill belongs to instead of just "IMG_2515.jpeg".
     const { data: waterLinks } = await supabase
       .from('rent_payments')
-      .select('water_bill_document_id, month')
+      .select('*')
       .in('water_bill_document_id', documentsData.map((d) => d.id))
-    const monthByDocument = new Map((waterLinks || []).map((r: any) => [r.water_bill_document_id, r.month as string]))
+    const waterByDocument = new Map((waterLinks || []).map((r: any) => [r.water_bill_document_id, r]))
 
     const enriched = await Promise.all(
       documentsData.map(async (doc) => {
@@ -100,7 +100,7 @@ export default function PropertyDocumentsPage() {
           .from('documents')
           .createSignedUrl(doc.file_url, 3600)
 
-        return { ...doc, viewUrl: signedUrlData?.signedUrl, rentMonth: monthByDocument.get(doc.id) || null }
+        return { ...doc, viewUrl: signedUrlData?.signedUrl, rentMonth: waterByDocument.get(doc.id)?.month || null, waterPeriodStart: waterByDocument.get(doc.id)?.water_period_start || null, waterPeriodEnd: waterByDocument.get(doc.id)?.water_period_end || null }
       })
     )
 
@@ -352,7 +352,9 @@ export default function PropertyDocumentsPage() {
                     <div className="min-w-0">
                       <h3 className="text-white font-semibold truncate">
                         {doc.rentMonth
-                          ? `Water bill · ${new Date(doc.rentMonth + 'T00:00:00').toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}`
+                          ? doc.waterPeriodStart && doc.waterPeriodEnd
+                            ? `Water bill · ${new Date(doc.waterPeriodStart + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – ${new Date(doc.waterPeriodEnd + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`
+                            : `Water bill · ${new Date(doc.rentMonth + 'T00:00:00').toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}`
                           : doc.filename}
                       </h3>
                       <div className="flex items-center gap-2 flex-wrap mt-2">
@@ -371,6 +373,7 @@ export default function PropertyDocumentsPage() {
                         )}
                       </div>
                       <p className="text-white/50 text-xs mt-2">
+                        {doc.rentMonth && doc.waterPeriodStart ? `Billed with ${new Date(doc.rentMonth + 'T00:00:00').toLocaleDateString(undefined, { month: 'long', year: 'numeric' })} rent · ` : ''}
                         {doc.rentMonth ? `${doc.filename} · ` : ''}{new Date(doc.created_at).toLocaleDateString()}
                       </p>
                     </div>

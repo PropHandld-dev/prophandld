@@ -265,8 +265,13 @@ export default function RenterRentPage() {
           </div>
           {water > 0 && (
             <div className="flex justify-between text-white/70">
-              <span className="flex items-center gap-2">
+              <span className="flex items-center gap-2 flex-wrap">
                 Water
+                {payment.water_period_start && payment.water_period_end && (
+                  <span className="text-white/40 text-xs">
+                    ({new Date(payment.water_period_start + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – {new Date(payment.water_period_end + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })})
+                  </span>
+                )}
                 {payment.waterBillViewUrl && (
                   <a
                     href={payment.waterBillViewUrl}
