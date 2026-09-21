@@ -68,7 +68,7 @@ export function ChatPanel({
   const [showSchedule, setShowSchedule] = useState(false)
   const [scheduleDate, setScheduleDate] = useState('')
   const [scheduleTime, setScheduleTime] = useState('')
-  const bottomRef = useRef<HTMLDivElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
 
   const markRead = async (uid: string) => {
     await (jobId ? markJobRead(jobId, uid) : threadId ? markThreadRead(threadId, uid) : Promise.resolve())
@@ -76,9 +76,16 @@ export function ChatPanel({
   }
 
   useEffect(() => {
+    const buildMessagesQuery = () =>
+      jobId
+        ? supabase.from('messages').select('id, job_id, thread_id, sender_user_id, body, created_at').eq('job_id', jobId).order('created_at', { ascending: true })
+        : supabase.from('messages').select('id, job_id, thread_id, sender_user_id, body, created_at').eq('thread_id', threadId).order('created_at', { ascending: true })
+    let currentUserId: string | null = null
+
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
+      currentUserId = user.id
       setUserId(user.id)
 
       // Names come from the server (it knows who is in the conversation);
@@ -95,9 +102,7 @@ export function ChatPanel({
             : await supabase.rpc('get_dm_thread_participants', { target_thread_id: threadId })
           return { data: (fallback.data || []) as Participant[] }
         })
-      const messagesQuery = jobId
-        ? supabase.from('messages').select('id, job_id, thread_id, sender_user_id, body, created_at').eq('job_id', jobId).order('created_at', { ascending: true })
-        : supabase.from('messages').select('id, job_id, thread_id, sender_user_id, body, created_at').eq('thread_id', threadId).order('created_at', { ascending: true })
+      const messagesQuery = buildMessagesQuery()
 
       const [{ data: participantsData }, { data: messagesData, error: loadError }] = await Promise.all([
         participantsQuery,
@@ -135,14 +140,38 @@ export function ChatPanel({
       )
       .subscribe()
 
+    // Live updates can miss a message (a dropped connection, a phone that was
+    // asleep), so quietly re-check the conversation while it is on screen.
+    const refetch = async () => {
+      if (document.visibilityState !== 'visible' || !currentUserId) return
+      const { data } = await buildMessagesQuery()
+      if (!data) return
+      let gotNew = false
+      setMessages((prev) => {
+        const seen = new Set(prev.map((m) => m.id))
+        const fresh = data.filter((m) => !seen.has(m.id))
+        if (fresh.length === 0) return prev
+        gotNew = true
+        return [...prev, ...fresh].sort((a, b) => a.created_at.localeCompare(b.created_at))
+      })
+      if (gotNew) markRead(currentUserId)
+    }
+    const timer = setInterval(refetch, 10000)
+    document.addEventListener('visibilitychange', refetch)
+
     return () => {
+      clearInterval(timer)
+      document.removeEventListener('visibilitychange', refetch)
       supabase.removeChannel(channel)
     }
   }, [jobId, threadId])
 
+  // Keep the newest message in view by scrolling the chat itself, not the
+  // whole page (scrollIntoView also dragged the page down to the chat).
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages.length])
+    const el = listRef.current
+    if (el) el.scrollTop = el.scrollHeight
+  }, [messages.length, loading])
 
   const participantByUserId = new Map(participants.map((p) => [p.user_id, p]))
   const others = participants.filter((p) => p.user_id !== userId)
@@ -267,7 +296,7 @@ export function ChatPanel({
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto space-y-1 pb-4">
+      <div ref={listRef} className="flex-1 overflow-y-auto space-y-1 pb-4 pr-3">
         {messages.length === 0 ? (
           <p className="text-white/50 text-sm text-center py-10">No messages yet. Say hello.</p>
         ) : (
@@ -322,7 +351,6 @@ export function ChatPanel({
             )
           })
         )}
-        <div ref={bottomRef} />
       </div>
 
       {error && (
