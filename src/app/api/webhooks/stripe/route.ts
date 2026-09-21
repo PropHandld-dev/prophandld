@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { getStripe, isPayoutReady } from '@/lib/stripe'
+import { syncRentPayment } from '@/lib/rentPaymentSync'
 import { sendRentPaymentReceivedEmail, sendJobPaymentSentEmail, sendJobPaymentReceiptEmail, sendCreditCardRejectedEmail } from '@/lib/email'
 import { sendPush } from '@/lib/push'
 
@@ -97,23 +98,11 @@ export async function POST(request: NextRequest) {
         if (type === 'rent_payment') {
           const rentPaymentId = paymentIntent.metadata?.prophandld_rent_payment_id
           if (rentPaymentId) {
-            // Rent only accepts debit cards or bank transfers — Stripe has no
-            // "debit only" payment_method_type (credit and debit both come
-            // through as 'card'), so credit cards are caught here, refunded,
-            // and never marked as paid.
-            let isCreditCard = false
-            if (typeof paymentIntent.payment_method === 'string') {
-              const paymentMethod = await stripe.paymentMethods.retrieve(paymentIntent.payment_method)
-              isCreditCard = paymentMethod.card?.funding === 'credit'
-            }
+            // One shared, idempotent step: credit cards are refunded, bank and
+            // debit payments are applied once even if this event is retried.
+            const synced = await syncRentPayment(supabaseAdmin, stripe, rentPaymentId)
 
-            if (isCreditCard) {
-              await stripe.refunds.create({ payment_intent: paymentIntent.id })
-              await supabaseAdmin
-                .from('rent_payments')
-                .update({ stripe_status: 'refunded_credit_card' })
-                .eq('id', rentPaymentId)
-
+            if (synced === 'refunded_credit_card') {
               const { data: rentPaymentForRefund } = await supabaseAdmin
                 .from('rent_payments')
                 .select('tenancies(renter_user_id, units(unit_number, properties(address)))')
@@ -135,25 +124,13 @@ export async function POST(request: NextRequest) {
               break
             }
 
+            if (synced !== 'paid') break
+
             const { data: rentPayment } = await supabaseAdmin
               .from('rent_payments')
               .select('expected_amount, actual_amount, month, tenancies(unit_id, renter_user_id, units(unit_number, properties(address, owner_user_id)))')
               .eq('id', rentPaymentId)
               .maybeSingle()
-
-            const paidSoFar = Number(rentPayment?.actual_amount || 0)
-            const newActual = paidSoFar + paymentIntent.amount / 100
-
-            const { error } = await supabaseAdmin
-              .from('rent_payments')
-              .update({
-                actual_amount: newActual,
-                paid_date: new Date().toISOString().slice(0, 10),
-                payment_method: paymentIntent.payment_method_types?.includes('us_bank_account') ? 'bank' : 'card',
-                stripe_status: 'succeeded',
-              })
-              .eq('id', rentPaymentId)
-            if (error) console.error('stripe webhook: rent payment_intent.succeeded failed', error)
 
             const unit = (rentPayment?.tenancies as any)?.units
             const landlordUserId = unit?.properties?.owner_user_id

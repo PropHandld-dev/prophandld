@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -106,6 +106,42 @@ export default function RenterRentPage() {
     init()
   }, [router])
 
+  // A bank payment can take days to clear, and Stripe's confirmation can be
+  // late. Check any month with an open payment once, so it shows as
+  // processing or paid instead of offering another Pay button.
+  const syncedRentIds = useRef<Set<string>>(new Set())
+  useEffect(() => {
+    if (!tenancy) return
+    const open = payments
+      .filter(
+        (p) =>
+          p.stripe_payment_intent_id &&
+          ['requires_payment', 'processing'].includes(p.stripe_status || '') &&
+          !syncedRentIds.current.has(p.id)
+      )
+      .slice(0, 3)
+    if (open.length === 0) return
+    open.forEach((p) => syncedRentIds.current.add(p.id))
+
+    Promise.all(
+      open.map((p) =>
+        fetch('/api/stripe/rent-payment/confirm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rentPaymentId: p.id }),
+        })
+          .then((res) => res.json())
+          .catch(() => null)
+      )
+    ).then((results) => {
+      const changed = open.some((p, i) => {
+        const status = results[i]?.status
+        return status === 'paid' || status === 'refunded_credit_card' || (status === 'processing' && p.stripe_status !== 'processing')
+      })
+      if (changed) loadPayments(tenancy.id)
+    })
+  }, [payments, tenancy])
+
   const handlePayNow = async (payment: any) => {
     setPayingId(payment.id)
     setError(null)
@@ -117,8 +153,15 @@ export default function RenterRentPage() {
         body: JSON.stringify({ rentPaymentId: payment.id }),
       })
       const data = await res.json()
+      if (data.alreadyPaid) {
+        // Stripe already has this payment; the page was just behind.
+        if (tenancy) await loadPayments(tenancy.id)
+        setPayingId(null)
+        return
+      }
       if (!res.ok || !data.clientSecret) {
         setError(data.error || 'Could not start payment.')
+        if (tenancy) await loadPayments(tenancy.id)
         setPayingId(null)
         return
       }
@@ -138,6 +181,9 @@ export default function RenterRentPage() {
     const expected = Number(payment.expected_amount) || 0
     return expected > 0 && Number(payment.actual_amount || 0) >= expected
   }
+
+  // A bank payment that has started but not cleared yet.
+  const isProcessing = (payment: any) => payment.stripe_status === 'processing' && !isPaid(payment)
 
   const getDueDate = (payment: any) => {
     const monthDate = new Date(payment.month + 'T00:00:00')
@@ -253,14 +299,23 @@ export default function RenterRentPage() {
           </div>
         </div>
 
-        <RippleButton
-          onClick={() => handlePayNow(payment)}
-          disabled={payingId === payment.id}
-          className="w-full mt-6 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3.5 rounded-2xl hover:opacity-90 transition disabled:opacity-50"
-        >
-          {payingId === payment.id ? 'Loading...' : `Pay ${money(amountDue)}`}
-        </RippleButton>
-        <p className="text-white/50 text-xs text-center mt-3">Debit card or bank account, straight to your landlord.</p>
+        {isProcessing(payment) ? (
+          <div className="mt-6 rounded-2xl border border-yellow-500/25 bg-yellow-500/10 px-4 py-4 text-center">
+            <p className="text-yellow-400 font-semibold text-sm">Bank payment processing</p>
+            <p className="text-white/60 text-xs mt-1">Your payment has started and usually clears in 1 to 3 business days. You don’t need to do anything.</p>
+          </div>
+        ) : (
+          <>
+            <RippleButton
+              onClick={() => handlePayNow(payment)}
+              disabled={payingId === payment.id}
+              className="w-full mt-6 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3.5 rounded-2xl hover:opacity-90 transition disabled:opacity-50"
+            >
+              {payingId === payment.id ? 'Loading...' : `Pay ${money(amountDue)}`}
+            </RippleButton>
+            <p className="text-white/50 text-xs text-center mt-3">Debit card or bank account, straight to your landlord.</p>
+          </>
+        )}
       </div>
     )
   }
@@ -287,17 +342,23 @@ export default function RenterRentPage() {
             </a>
           )}
         </div>
-        <RippleButton
-          onClick={() => handlePayNow(payment)}
-          disabled={payingId === payment.id}
-          className={`shrink-0 text-xs font-semibold px-4 py-2.5 rounded-xl transition disabled:opacity-50 ${
-            primary
-              ? 'bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white hover:opacity-90'
-              : 'bg-white/8 text-white hover:bg-white/12'
-          }`}
-        >
-          {payingId === payment.id ? 'Loading...' : upcoming ? `Pay early ${money(amountDue)}` : `Pay ${money(amountDue)}`}
-        </RippleButton>
+        {isProcessing(payment) ? (
+          <span className="shrink-0 text-xs font-semibold px-3 py-2 rounded-xl bg-yellow-500/15 text-yellow-400 text-center leading-tight">
+            Bank payment<br />processing
+          </span>
+        ) : (
+          <RippleButton
+            onClick={() => handlePayNow(payment)}
+            disabled={payingId === payment.id}
+            className={`shrink-0 text-xs font-semibold px-4 py-2.5 rounded-xl transition disabled:opacity-50 ${
+              primary
+                ? 'bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white hover:opacity-90'
+                : 'bg-white/8 text-white hover:bg-white/12'
+            }`}
+          >
+            {payingId === payment.id ? 'Loading...' : upcoming ? `Pay early ${money(amountDue)}` : `Pay ${money(amountDue)}`}
+          </RippleButton>
+        )}
       </div>
     )
   }
@@ -413,6 +474,15 @@ export default function RenterRentPage() {
           title="Pay rent"
           note="Debit card or bank account only. Credit cards aren't accepted for rent and will be refunded. Bank payments may take a few business days to clear."
           onClose={() => setModal(null)}
+          onPaid={async () => {
+            // Record it now (processing or paid) so the list is right behind the confirmation screen.
+            await fetch('/api/stripe/rent-payment/confirm', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ rentPaymentId: modal.rentPaymentId }),
+            }).catch(() => null)
+            if (tenancy) await loadPayments(tenancy.id)
+          }}
           onSuccess={handlePaymentSuccess}
         />
       )}

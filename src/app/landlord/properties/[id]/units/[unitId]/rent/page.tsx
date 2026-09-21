@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
@@ -76,6 +76,42 @@ export default function UnitRentPage() {
     }
     init()
   }, [unitId, propertyId, router])
+
+  // A bank payment can take days to clear, and Stripe's confirmation can be
+  // late. Check any month with an open payment once, so it shows as
+  // processing or paid without the landlord having to mark it by hand.
+  const syncedRentIds = useRef<Set<string>>(new Set())
+  useEffect(() => {
+    if (!tenancy) return
+    const open = payments
+      .filter(
+        (p) =>
+          p.stripe_payment_intent_id &&
+          ['requires_payment', 'processing'].includes(p.stripe_status || '') &&
+          !syncedRentIds.current.has(p.id)
+      )
+      .slice(0, 3)
+    if (open.length === 0) return
+    open.forEach((p) => syncedRentIds.current.add(p.id))
+
+    Promise.all(
+      open.map((p) =>
+        fetch('/api/stripe/rent-payment/confirm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rentPaymentId: p.id }),
+        })
+          .then((res) => res.json())
+          .catch(() => null)
+      )
+    ).then((results) => {
+      const changed = open.some((p, i) => {
+        const status = results[i]?.status
+        return status === 'paid' || status === 'refunded_credit_card' || (status === 'processing' && p.stripe_status !== 'processing')
+      })
+      if (changed) loadPayments(tenancy.id)
+    })
+  }, [payments, tenancy])
 
   const loadPayments = async (tenancyId: string) => {
     const { data: paymentsData, error: paymentsError } = await supabase
@@ -333,6 +369,11 @@ export default function UnitRentPage() {
                             <span className={`text-xs rounded-full px-2.5 py-0.5 ${status.color}`}>
                               {status.label}
                             </span>
+                            {!isPaid && payment.stripe_status === 'processing' && (
+                              <span className="text-xs bg-yellow-500/15 text-yellow-400 rounded-full px-2.5 py-0.5">
+                                Bank payment processing
+                              </span>
+                            )}
                             <span className="text-xs bg-white/8 text-white/50 rounded-full px-2.5 py-0.5">
                               ${payment.actual_amount ?? 0} of ${payment.expected_amount}
                               {payment.water_amount ? ` (incl. $${payment.water_amount} water)` : ''}

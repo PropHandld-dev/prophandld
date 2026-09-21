@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { getStripe } from '@/lib/stripe'
+import { syncRentPayment } from '@/lib/rentPaymentSync'
 
 export async function POST(request: NextRequest) {
   const authClient = await createClient()
@@ -19,7 +20,7 @@ export async function POST(request: NextRequest) {
 
   const { data: rentPayment, error: rentPaymentError } = await supabaseAdmin
     .from('rent_payments')
-    .select('id, expected_amount, actual_amount, tenancy_id, stripe_payment_intent_id, tenancies(renter_user_id, unit_id, units(property_id, properties(owner_user_id)))')
+    .select('id, expected_amount, actual_amount, tenancy_id, stripe_payment_intent_id, stripe_status, tenancies(renter_user_id, unit_id, units(property_id, properties(owner_user_id)))')
     .eq('id', rentPaymentId)
     .maybeSingle()
 
@@ -55,6 +56,41 @@ export async function POST(request: NextRequest) {
 
   const stripe = getStripe()
   const amountCents = Math.round(amountDue * 100)
+
+  // An earlier attempt may still be open, or a bank payment may be clearing.
+  // Ask Stripe first so the renter can neither pay twice nor get stuck
+  // behind an attempt they walked away from.
+  if (rentPayment.stripe_payment_intent_id && ['requires_payment', 'processing'].includes(rentPayment.stripe_status || '')) {
+    try {
+      const synced = await syncRentPayment(supabaseAdmin, stripe, rentPayment.id)
+      if (synced === 'paid') {
+        return NextResponse.json({ error: 'This month is already paid.', alreadyPaid: true }, { status: 409 })
+      }
+      if (synced === 'processing') {
+        return NextResponse.json(
+          { error: 'A bank payment for this month is already clearing. It usually takes 1 to 3 business days.' },
+          { status: 400 }
+        )
+      }
+
+      const existing = await stripe.paymentIntents.retrieve(rentPayment.stripe_payment_intent_id)
+      if (existing.status !== 'canceled' && existing.status !== 'succeeded') {
+        const reusable =
+          ['requires_payment_method', 'requires_confirmation', 'requires_action'].includes(existing.status) &&
+          existing.amount === amountCents &&
+          existing.client_secret &&
+          existing.transfer_data?.destination === landlordRow.stripe_connect_account_id
+        if (reusable) {
+          return NextResponse.json({ clientSecret: existing.client_secret, amount: amountDue })
+        }
+        await stripe.paymentIntents.cancel(existing.id).catch((err) => {
+          console.error('rent/create-payment-intent: could not cancel old intent', err)
+        })
+      }
+    } catch (err) {
+      console.error('rent/create-payment-intent: could not check existing intent', err)
+    }
+  }
 
   try {
     const paymentIntent = await stripe.paymentIntents.create({
