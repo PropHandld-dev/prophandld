@@ -330,11 +330,13 @@ export default function ContractorJobDetailPage() {
   }
 
   const openCompleteModal = () => {
-    const beforeCount = photos.filter((p) => p.stage === 'before').length
+    // Proof of work: at least one "after" photo. Before photos are optional
+    // (an emergency job may start before anyone takes a picture). The server
+    // checks this again, so it cannot be skipped.
     const afterCount = photos.filter((p) => p.stage === 'after').length
 
-    if (beforeCount === 0 || afterCount === 0) {
-      setError('Please upload at least one before photo and one after photo before marking complete.')
+    if (afterCount === 0) {
+      setError('Add at least one “After” photo before marking the job complete.')
       return
     }
 
@@ -344,14 +346,21 @@ export default function ContractorJobDetailPage() {
 
   const confirmMarkComplete = async () => {
     setActioning(true)
-    const { error: updateError } = await expectRow(supabase
-      .from('jobs')
-      .update({ status: 'pending_review', contractor_completed_at: new Date().toISOString() })
-      .eq('id', jobId))
+    let failure: string | null = null
+    try {
+      const res = await fetch('/api/contractor/complete-job', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId }),
+      })
+      if (!res.ok) failure = (await res.json()).error || 'Could not mark job as complete.'
+    } catch {
+      failure = 'Could not mark job as complete.'
+    }
 
-    if (updateError) {
-      console.error('Error marking job complete:', updateError)
-      setError('Could not mark job as complete.')
+    if (failure) {
+      console.error('Error marking job complete:', failure)
+      setError(failure)
       setActioning(false)
       setShowCompleteModal(false)
       return
@@ -759,7 +768,11 @@ export default function ContractorJobDetailPage() {
                 )}
               </div>
               {afterPhotos.length === 0 ? (
-                <p className="text-white/50 text-xs">No after photos yet.</p>
+                <p className={`text-xs ${job.status === 'in_progress' ? 'text-yellow-400' : 'text-white/50'}`}>
+                  {job.status === 'in_progress'
+                    ? 'Add at least one after photo. It is required before you can mark the job complete.'
+                    : 'No after photos yet.'}
+                </p>
               ) : (
                 <PhotoGrid
                   photos={afterPhotos}
@@ -871,7 +884,7 @@ export default function ContractorJobDetailPage() {
           <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
             <h3 className="text-white font-semibold mb-2">Mark this job complete?</h3>
             <p className="text-white/50 text-sm mb-6">
-              This sends it to the landlord for review. They have 3 days to review before it's automatically approved. Once approved, your payment is released.
+              This sends your work and photos to the landlord for review. They have 3 days to review before it's automatically approved. Once approved, your payment is released.
             </p>
             <div className="flex gap-3">
               <button

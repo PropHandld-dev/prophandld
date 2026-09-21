@@ -1181,7 +1181,13 @@ export default function JobDetailPage() {
             <div>
               <p className="text-white/70 text-sm font-medium mb-2">After ({afterPhotos.length})</p>
               {afterPhotos.length === 0 ? (
-                <p className="text-white/50 text-xs">No after photos yet.</p>
+                job.status === 'pending_review' ? (
+                  <p className="text-yellow-400 text-xs">
+                    No after photos were added, so there is no proof of the finished work. You can ask the contractor in the chat below before approving.
+                  </p>
+                ) : (
+                  <p className="text-white/50 text-xs">No after photos yet.</p>
+                )
               ) : (
                 <PhotoGrid photos={afterPhotos} columns={3} />
               )}
