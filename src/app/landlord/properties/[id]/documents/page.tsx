@@ -86,13 +86,21 @@ export default function PropertyDocumentsPage() {
       return
     }
 
+    // Water bills are attached to a rent month; look that up so the list can
+    // say which month a bill belongs to instead of just "IMG_2515.jpeg".
+    const { data: waterLinks } = await supabase
+      .from('rent_payments')
+      .select('water_bill_document_id, month')
+      .in('water_bill_document_id', documentsData.map((d) => d.id))
+    const monthByDocument = new Map((waterLinks || []).map((r: any) => [r.water_bill_document_id, r.month as string]))
+
     const enriched = await Promise.all(
       documentsData.map(async (doc) => {
         const { data: signedUrlData } = await supabase.storage
           .from('documents')
           .createSignedUrl(doc.file_url, 3600)
 
-        return { ...doc, viewUrl: signedUrlData?.signedUrl }
+        return { ...doc, viewUrl: signedUrlData?.signedUrl, rentMonth: monthByDocument.get(doc.id) || null }
       })
     )
 
@@ -342,7 +350,11 @@ export default function PropertyDocumentsPage() {
                   <div className="min-w-0 flex items-start gap-3">
                     <FileTextIcon className="w-4 h-4 text-white/60 shrink-0 mt-1" />
                     <div className="min-w-0">
-                      <h3 className="text-white font-semibold truncate">{doc.filename}</h3>
+                      <h3 className="text-white font-semibold truncate">
+                        {doc.rentMonth
+                          ? `Water bill · ${new Date(doc.rentMonth + 'T00:00:00').toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}`
+                          : doc.filename}
+                      </h3>
                       <div className="flex items-center gap-2 flex-wrap mt-2">
                         {doc.document_type && (
                           <span className="text-xs bg-[#12A5A9]/15 text-[#12A5A9] rounded-full px-2.5 py-0.5">
@@ -359,7 +371,7 @@ export default function PropertyDocumentsPage() {
                         )}
                       </div>
                       <p className="text-white/50 text-xs mt-2">
-                        {new Date(doc.created_at).toLocaleDateString()}
+                        {doc.rentMonth ? `${doc.filename} · ` : ''}{new Date(doc.created_at).toLocaleDateString()}
                       </p>
                     </div>
                   </div>

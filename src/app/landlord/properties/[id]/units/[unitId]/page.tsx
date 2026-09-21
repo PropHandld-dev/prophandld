@@ -22,6 +22,7 @@ export default function UnitDetailPage() {
   const unitId = params.unitId as string
   const [unit, setUnit] = useState<any>(null)
   const [tenancy, setTenancy] = useState<any>(null)
+  const [rentRows, setRentRows] = useState<any[]>([])
   const [pendingInvite, setPendingInvite] = useState<any>(null)
   const [invitingBusy, setInvitingBusy] = useState(false)
   const [inviteResendError, setInviteResendError] = useState<string | null>(null)
@@ -186,9 +187,19 @@ export default function UnitDetailPage() {
 
       setTenancy({ ...tenancyData, users: renterData })
       setPendingInvite(null)
-      await loadCoOccupants(tenancyData.id)
-      await loadTenantBackupContacts(tenancyData)
+      const [, , rentResult] = await Promise.all([
+        loadCoOccupants(tenancyData.id),
+        loadTenantBackupContacts(tenancyData),
+        supabase
+          .from('rent_payments')
+          .select('id, month, expected_amount, actual_amount, paid_date, stripe_status')
+          .eq('tenancy_id', tenancyData.id)
+          .order('month', { ascending: false })
+          .limit(6),
+      ])
+      setRentRows(rentResult.data || [])
     } else {
+      setRentRows([])
       setCoOccupants([])
       setTenantBackupContacts([])
       setTenancy(null)
@@ -878,7 +889,43 @@ export default function UnitDetailPage() {
                 Manage
               </Link>
             </div>
-            <p className="text-white/50 text-sm">Track expected vs. actual rent payments each month.</p>
+            {(() => {
+              // The month that needs attention: the oldest unpaid one, else the latest paid.
+              const rows = [...rentRows].sort((a, b) => a.month.localeCompare(b.month))
+              const isPaidRow = (r: any) => Number(r.expected_amount) > 0 && Number(r.actual_amount || 0) >= Number(r.expected_amount)
+              const focus = rows.find((r) => !isPaidRow(r)) ?? rows[rows.length - 1]
+              if (!focus) {
+                return <p className="text-white/50 text-sm">Rent months appear here once the tenancy is active.</p>
+              }
+              const paid = isPaidRow(focus)
+              const processing = !paid && focus.stripe_status === 'processing'
+              const monthDate = new Date(focus.month + 'T00:00:00')
+              const dueDate = new Date(monthDate.getFullYear(), monthDate.getMonth(), tenancy.rent_due_day || 1)
+              const today = new Date()
+              today.setHours(0, 0, 0, 0)
+              const daysLate = Math.round((today.getTime() - dueDate.getTime()) / 86400000)
+              const monthLabel = monthDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+              const dueLabel = dueDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+              const pill = paid
+                ? { text: 'Paid', style: 'bg-[#0A7B7E]/20 text-[#12A5A9]' }
+                : processing
+                  ? { text: 'Bank payment processing', style: 'bg-yellow-500/15 text-yellow-400' }
+                  : daysLate > 0
+                    ? { text: `${daysLate} day${daysLate === 1 ? '' : 's'} late`, style: 'bg-red-500/15 text-red-400' }
+                    : { text: `Due ${dueLabel}`, style: 'bg-white/8 text-white/60' }
+              const detail = paid
+                ? `$${Number(focus.actual_amount).toLocaleString()} received${focus.paid_date ? ` on ${new Date(focus.paid_date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : ''}`
+                : `$${Number(focus.actual_amount || 0).toLocaleString()} of $${Number(focus.expected_amount).toLocaleString()}`
+              return (
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="min-w-0">
+                    <p className="text-white text-sm font-medium">{monthLabel}</p>
+                    <p className="text-white/50 text-xs mt-0.5">{detail}</p>
+                  </div>
+                  <span className={`text-xs font-semibold rounded-full px-2.5 py-1 ${pill.style}`}>{pill.text}</span>
+                </div>
+              )
+            })()}
           </div>
           </ScrollReveal>
         )}

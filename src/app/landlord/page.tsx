@@ -57,6 +57,7 @@ export default function LandlordDashboard() {
   const [pendingInvites, setPendingInvites] = useState<any[]>([])
   const [complianceAlerts, setComplianceAlerts] = useState<any[]>([])
   const [rentAlerts, setRentAlerts] = useState<any[]>([])
+  const [rentActivity, setRentActivity] = useState<any[]>([])
 
   useEffect(() => {
     const getUser = async () => {
@@ -165,7 +166,7 @@ export default function LandlordDashboard() {
         tenancyIds.length > 0
           ? supabase
               .from('rent_payments')
-              .select('id, tenancy_id, month, expected_amount, actual_amount')
+              .select('id, tenancy_id, month, expected_amount, actual_amount, paid_date, stripe_status')
               .in('tenancy_id', tenancyIds)
               .gte('month', rentWindowKey)
           : none,
@@ -190,6 +191,26 @@ export default function LandlordDashboard() {
           const actual = rp.actual_amount || 0
           return monthDate <= thisMonthStart && actual < (rp.expected_amount || 0)
         })
+        .map((rp) => {
+          const tenancyForPayment = tenancyList.find((t) => t.id === rp.tenancy_id)
+          const unitForPayment = unitList.find((u) => u.id === tenancyForPayment?.unit_id)
+          const propertyForPayment = propertyList.find((p) => p.id === unitForPayment?.property_id)
+          return { ...rp, unit: unitForPayment, property: propertyForPayment }
+        })
+
+      // Good news worth seeing without hunting: rent that came in over the
+      // last two weeks, and bank payments that have started but not cleared.
+      const activityCutoff = new Date()
+      activityCutoff.setDate(activityCutoff.getDate() - 14)
+      const activityCutoffKey = `${activityCutoff.getFullYear()}-${String(activityCutoff.getMonth() + 1).padStart(2, '0')}-${String(activityCutoff.getDate()).padStart(2, '0')}`
+      const rentActivityList = ((rentRes.data as any[]) || [])
+        .map((rp) => {
+          const paid = Number(rp.expected_amount) > 0 && Number(rp.actual_amount || 0) >= Number(rp.expected_amount)
+          return { ...rp, paid, processing: !paid && rp.stripe_status === 'processing' }
+        })
+        .filter((rp) => rp.processing || (rp.paid && rp.paid_date && rp.paid_date >= activityCutoffKey))
+        .sort((a, b) => (b.paid_date || '9999').localeCompare(a.paid_date || '9999'))
+        .slice(0, 4)
         .map((rp) => {
           const tenancyForPayment = tenancyList.find((t) => t.id === rp.tenancy_id)
           const unitForPayment = unitList.find((u) => u.id === tenancyForPayment?.unit_id)
@@ -272,6 +293,7 @@ export default function LandlordDashboard() {
       setPriceChangeRequests(priceChangeRequestsList)
       setComplianceAlerts(complianceAlertsList)
       setRentAlerts(rentAlertsList)
+      setRentActivity(rentActivityList)
       setNeedsReview(biddingJobsWithBids)
       setScheduleProposals(scheduleProposalsList)
       setConfirmedSchedules(confirmedSchedulesList)
@@ -455,6 +477,35 @@ export default function LandlordDashboard() {
             </div>
 
             <AlertsList items={alertItems} />
+
+            {rentActivity.length > 0 && (
+              <div className="bg-white/3 border border-white/8 rounded-2xl p-5 mb-6">
+                <h3 className="text-white font-semibold text-sm mb-3">Rent activity</h3>
+                <div className="space-y-1.5">
+                  {rentActivity.map((rp) => (
+                    <Link
+                      key={rp.id}
+                      href={`/landlord/properties/${rp.property?.id}/units/${rp.unit?.id}/rent`}
+                      className="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-white/5 transition"
+                    >
+                      <span className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${rp.processing ? 'bg-yellow-500/15 text-yellow-400' : 'bg-[#12A5A9]/15 text-[#12A5A9]'}`}>
+                        <DollarSignIcon className="w-4 h-4" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-white text-sm truncate">{rp.property?.address} · Unit {rp.unit?.unit_number}</span>
+                        <span className="block text-white/50 text-xs truncate">
+                          {new Date(rp.month + 'T00:00:00').toLocaleDateString(undefined, { month: 'long', year: 'numeric' })} · ${Number(rp.processing ? rp.expected_amount : rp.actual_amount).toLocaleString()}
+                          {rp.paid && rp.paid_date ? ` · ${new Date(rp.paid_date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : ''}
+                        </span>
+                      </span>
+                      <span className={`text-xs font-semibold rounded-full px-2.5 py-1 shrink-0 ${rp.processing ? 'bg-yellow-500/20 text-yellow-400' : 'bg-[#12A5A9]/20 text-[#12A5A9]'}`}>
+                        {rp.processing ? 'Processing' : 'Received'}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
             <EnableNotificationsCard />
 
             <ScrollReveal className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6" data-tour="stats">
