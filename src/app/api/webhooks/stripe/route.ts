@@ -234,12 +234,13 @@ export async function POST(request: NextRequest) {
                   amount: paymentIntent.amount / 100,
                   category: job?.category || 'your job',
                   propertyLabel: job?.units?.properties?.address || 'the property',
+                  bidId,
                 })
               }
               await sendPush(bid.contractor_user_id, {
                 title: "You've been paid",
                 body: `$${(paymentIntent.amount / 100).toFixed(2)} for ${job?.category || 'your job'}`,
-                url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/contractor`,
+                url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/receipts/job/${bidId}`,
               }).catch((err) => console.error('stripe webhook: sendPush (job payment) failed', err))
             }
           }

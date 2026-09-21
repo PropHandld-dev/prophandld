@@ -159,7 +159,7 @@ export function ChatPanel({
       })
       markRead(currentUserId)
     }
-    const timer = setInterval(refetch, 10000)
+    const timer = setInterval(refetch, 30000)
     document.addEventListener('visibilitychange', refetch)
 
     return () => {

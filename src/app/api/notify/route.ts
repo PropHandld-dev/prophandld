@@ -109,8 +109,6 @@ export async function POST(request: NextRequest) {
     ...(await loadNotifyExtras(supabaseAdmin, jobId)),
   }
 
-  console.log('notify: resolved job/property', { jobId, type, units: job.units, property })
-
   const roles = RECIPIENTS[type].filter((r) => r !== excludeRole)
   const roleUserIds: Partial<Record<Role, string>> = {}
 
@@ -140,8 +138,6 @@ export async function POST(request: NextRequest) {
     if (bid?.contractor_user_id) roleUserIds.contractor = bid.contractor_user_id
   }
 
-  console.log('notify: recipients to notify', { jobId, type, roleUserIds })
-
   const sends = await Promise.allSettled(
     (Object.entries(roleUserIds) as [Role, string][]).map(async ([role, userId]) => {
       const { data: recipient, error: recipientError } = await supabaseAdmin
@@ -161,7 +157,7 @@ export async function POST(request: NextRequest) {
 
       const { subject, html } = buildNotificationEmail(type, role, jobInfo)
       const result = await sendEmail({ to: recipient.email, subject, html })
-      console.log('notify: sendEmail result', { jobId, role, to: recipient.email, result })
+      if (!result.ok) console.error('notify: sendEmail failed', { jobId, role, type })
 
       const push = buildPushMessage(type, role, jobInfo)
       await sendPush(userId, push).catch((err) => console.error('notify: sendPush failed', { jobId, role, err }))

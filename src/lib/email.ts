@@ -752,12 +752,14 @@ export async function sendJobPaymentSentEmail({
   amount,
   category,
   propertyLabel,
+  bidId,
 }: {
   to: string
   contractorName: string
   amount: number
   category: string
   propertyLabel: string
+  bidId: string
 }) {
   const html = baseTemplate({
     eyebrow: 'Payment',
@@ -769,9 +771,9 @@ export async function sendJobPaymentSentEmail({
       { label: 'Job', value: category },
       { label: 'Where', value: propertyLabel },
     ],
-    ctaLabel: 'View earnings',
-    ctaUrl: `${SITE_URL}/contractor`,
-    note: 'Your bank sets the final arrival time.',
+    ctaLabel: 'View payment receipt',
+    ctaUrl: `${SITE_URL}/receipts/job/${bidId}`,
+    note: 'Your bank sets the final arrival time. All your payments are under Earnings.',
   })
   return sendEmail({ to, subject: `You've been paid $${amount.toFixed(2)}: ${category}`, html })
 }
