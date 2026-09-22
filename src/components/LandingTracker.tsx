@@ -86,7 +86,10 @@ export function NotificationPreview() {
             {TRACKER.map((label, i) => (
               <div key={label}>
                 <div className={`h-1 rounded-full ${i < 4 ? 'bg-[#0A7B7E]' : i === 4 ? 'bg-[#2DD4D9]' : 'bg-[#22374F]'}`} />
-                <p className={`text-[9px] mt-1.5 leading-tight ${i === 4 ? 'text-white font-bold' : i < 4 ? 'text-[#7FD4D6]' : 'text-[#5E7189]'}`}>{label}</p>
+                {/* Six labels in six narrow columns wrap into each other below
+                    about 420px, so they're hidden at the very narrowest widths;
+                    the bar colors alone still show which step is active. */}
+                <p className={`hidden min-[420px]:block text-[9px] mt-1.5 leading-tight ${i === 4 ? 'text-white font-bold' : i < 4 ? 'text-[#7FD4D6]' : 'text-[#5E7189]'}`}>{label}</p>
               </div>
             ))}
           </div>
