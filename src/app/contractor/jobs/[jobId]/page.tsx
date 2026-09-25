@@ -14,6 +14,8 @@ import { Skeleton } from '@/components/Skeleton'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { WrenchIcon, CheckCircleIcon, MessageCircleIcon } from '@/components/icons'
+import { AddressLink } from '@/components/AddressLink'
+import { StreetView } from '@/components/StreetView'
 import { RaiseDisputeButton } from '@/components/RaiseDisputeButton'
 import { JobChatCard, scrollToChat } from '@/components/JobChatCard'
 import { UnreadDot } from '@/components/UnreadDot'
@@ -522,8 +524,18 @@ export default function ContractorJobDetailPage() {
             )}
           </div>
           <p className="text-white/60 text-sm">
-            {job.units?.properties?.address}, {job.units?.properties?.city} · Unit {job.units?.unit_number}
+            {myBid?.status === 'accepted' ? (
+              <AddressLink address={job.units?.properties?.address} city={job.units?.properties?.city} />
+            ) : (
+              `${job.units?.properties?.address}, ${job.units?.properties?.city}`
+            )}
+            {' '}· Unit {job.units?.unit_number}
           </p>
+          {myBid?.status === 'accepted' && job.units?.properties?.address && (
+            <div className="mt-3">
+              <StreetView address={job.units.properties.address} city={job.units.properties.city} />
+            </div>
+          )}
           {job.maintenance_items && (
             <p className="text-[#12A5A9] text-xs mt-1 flex items-center gap-1">
               <WrenchIcon className="w-3 h-3" />
