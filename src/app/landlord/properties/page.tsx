@@ -11,12 +11,28 @@ import { LANDLORD_TABS } from '@/lib/navTabs'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { MagneticLink } from '@/components/MagneticLink'
 import { CountUp } from '@/components/CountUp'
+import { PropertiesMap } from '@/components/PropertiesMap'
 
 export default function PropertiesPage() {
   const router = useRouter()
   const [properties, setProperties] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showArchived, setShowArchived] = useState(false)
+  // Remembered per-device only — a light convenience, not something that
+  // needs to sync across a landlord's phone and laptop.
+  const [view, setView] = useState<'list' | 'map'>('list')
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('propertiesView')
+      if (saved === 'map' || saved === 'list') setView(saved)
+    } catch {}
+  }, [])
+  const setViewPersisted = (v: 'list' | 'map') => {
+    setView(v)
+    try {
+      localStorage.setItem('propertiesView', v)
+    } catch {}
+  }
 
   const fetchProperties = async (includeArchived: boolean) => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -94,14 +110,36 @@ export default function PropertiesPage() {
           </div>
         ) : (
           <>
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center justify-between mb-8 flex-wrap gap-3">
               <h1 className="text-2xl font-bold text-white">Your properties</h1>
-              <button
-                onClick={() => setShowArchived(!showArchived)}
-                className="text-white/60 hover:text-white text-sm transition"
-              >
-                {showArchived ? 'Hide archived' : 'Show archived'}
-              </button>
+              <div className="flex items-center gap-4">
+                {properties.length > 0 && (
+                  <div className="flex items-center bg-white/5 border border-white/10 rounded-full p-0.5">
+                    <button
+                      onClick={() => setViewPersisted('list')}
+                      className={`text-xs font-semibold px-3 py-1.5 rounded-full transition ${
+                        view === 'list' ? 'bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white' : 'text-white/50 hover:text-white'
+                      }`}
+                    >
+                      List
+                    </button>
+                    <button
+                      onClick={() => setViewPersisted('map')}
+                      className={`text-xs font-semibold px-3 py-1.5 rounded-full transition ${
+                        view === 'map' ? 'bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white' : 'text-white/50 hover:text-white'
+                      }`}
+                    >
+                      Map
+                    </button>
+                  </div>
+                )}
+                <button
+                  onClick={() => setShowArchived(!showArchived)}
+                  className="text-white/60 hover:text-white text-sm transition"
+                >
+                  {showArchived ? 'Hide archived' : 'Show archived'}
+                </button>
+              </div>
             </div>
 
             {properties.length > 0 && (
@@ -125,7 +163,21 @@ export default function PropertiesPage() {
               </ScrollReveal>
             )}
 
-            {properties.length === 0 ? (
+            {properties.length > 0 && view === 'map' ? (
+              <ScrollReveal>
+                <PropertiesMap
+                  properties={properties.map((p) => ({
+                    id: p.id,
+                    address: p.address,
+                    city: p.city,
+                    state: p.state,
+                    lat: p.lat ?? null,
+                    lng: p.lng ?? null,
+                    propertyType: p.property_type ?? null,
+                  }))}
+                />
+              </ScrollReveal>
+            ) : properties.length === 0 ? (
               <div className="bg-white/3 border border-white/8 rounded-2xl p-12 text-center">
                 <BuildingIcon className="w-10 h-10 text-white/50 mx-auto mb-4" />
                 <h3 className="text-white font-semibold mb-2">

@@ -1,28 +1,12 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import { loadGoogleMapsScript } from '@/lib/googleMaps'
 
 declare global {
   interface Window {
     google?: any
   }
-}
-
-let scriptLoadingPromise: Promise<void> | null = null
-
-function loadGoogleMapsScript(apiKey: string): Promise<void> {
-  if (window.google?.maps?.places) return Promise.resolve()
-  if (scriptLoadingPromise) return scriptLoadingPromise
-
-  scriptLoadingPromise = new Promise((resolve, reject) => {
-    const script = document.createElement('script')
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`
-    script.async = true
-    script.onload = () => resolve()
-    script.onerror = () => reject(new Error('Failed to load Google Maps script'))
-    document.head.appendChild(script)
-  })
-  return scriptLoadingPromise
 }
 
 export type AutocompletePlace = {

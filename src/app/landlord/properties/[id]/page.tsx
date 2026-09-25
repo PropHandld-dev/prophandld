@@ -13,6 +13,8 @@ import { MagneticLink } from '@/components/MagneticLink'
 import { CountUp } from '@/components/CountUp'
 import { ProductTour, type TourStep } from '@/components/ProductTour'
 import { usePropertyTourVisibility } from '@/lib/usePropertyTourVisibility'
+import { AddressLink } from '@/components/AddressLink'
+import { StreetView } from '@/components/StreetView'
 
 const TOUR_STEPS: TourStep[] = [
   { target: '[data-tour="addunit"]', title: 'Add a unit', body: "Every property starts with at least one unit. Add more here if this property has several, like a duplex or an apartment building." },
@@ -260,7 +262,9 @@ export default function PropertyDetailPage() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white">{property.address}</h1>
-              <p className="text-white/50 mt-1">{property.city}, {property.state} {property.zip}</p>
+              <p className="text-white/50 mt-1">
+                <AddressLink address={property.address} city={`${property.city}, ${property.state} ${property.zip}`} />
+              </p>
               <span className="text-xs bg-white/8 text-white/60 rounded-full px-3 py-1 capitalize inline-block mt-2">
                 {property.property_type}
               </span>
@@ -272,6 +276,10 @@ export default function PropertyDetailPage() {
           >
             Edit
           </Link>
+        </div>
+
+        <div className="mb-8">
+          <StreetView address={property.address} city={property.city} />
         </div>
 
         {/* Stats */}
