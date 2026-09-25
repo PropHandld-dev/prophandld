@@ -233,6 +233,8 @@ export default function LandingPage() {
             <p className="text-white/50 text-sm leading-relaxed mb-5">
               See real jobs near you, submit a sealed bid, get picked on the
               merits, and get paid directly the moment the job&apos;s done.
+              Once you&apos;re confirmed, one tap pulls up directions and a
+              street view of the property.
             </p>
             <Link href="/signup?role=contractor" className="text-[#12A5A9] text-sm font-semibold hover:underline">
               Sign up as a contractor →
