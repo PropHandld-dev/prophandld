@@ -7,6 +7,10 @@
     {
       "path": "/api/cron/credential-expiry",
       "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron/job-auto-approve",
+      "schedule": "0 15 * * *"
     }
   ]
 }

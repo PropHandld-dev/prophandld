@@ -36,7 +36,7 @@ export function HowItWorksTracker() {
   )
 }
 
-const TRACKER = ['Reported', 'Bidding', 'Scheduled', 'In progress', 'Review', 'Closed']
+const TRACKER = ['Reported', 'Bidding', 'Scheduled', 'In progress', 'Review', 'Paid']
 
 function PushBanner({ title, body, time }: { title: string; body: string; time: string }) {
   return (

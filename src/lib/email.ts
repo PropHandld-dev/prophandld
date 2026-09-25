@@ -44,7 +44,7 @@ export async function sendEmail({ to, subject, html }: { to: string; subject: st
 // ended up in people's notification shade.
 type EmailFact = { label: string; value: string }
 
-const TRACKER_STEPS = ['Reported', 'Bidding', 'Scheduled', 'In progress', 'Review', 'Closed']
+const TRACKER_STEPS = ['Reported', 'Bidding', 'Scheduled', 'In progress', 'Review', 'Paid']
 
 function trackerHtml(stage: number) {
   const cells = TRACKER_STEPS.map((label, i) => {
@@ -293,6 +293,10 @@ export interface NotifyJobInfo {
   amount?: number | null
   requestedAmount?: number | null
   contractorName?: string | null
+  // Only meaningful on the accepted bid: whether the landlord has actually
+  // paid yet. Undefined means "don't know" (most events never load it) —
+  // never treated the same as 'unpaid', which is an asserted fact.
+  paymentStatus?: 'paid' | 'processing' | 'unpaid' | null
 }
 
 function jobLocation(info: NotifyJobInfo) {
@@ -340,11 +344,18 @@ function pushCopy(type: NotifyType, role: NotifyRole, rawInfo: NotifyJobInfo): {
       return { title: info.when ? `Confirmed: ${info.when}` : 'Visit confirmed', body: `${cat} · ${where}` }
     case 'job_pending_review':
       return { title: `${who} finished the ${cat} work`, body: `${where}. Review and approve. It auto-approves in 3 days.` }
-    case 'job_completed':
+    case 'job_completed': {
+      const paidPush = info.paymentStatus === 'paid'
       return {
         title: role === 'contractor' ? `Work approved: ${cat}` : `${cat} repair closed`,
-        body: role === 'contractor' ? `${where}. Check Earnings for payment.` : `${where}. All done.`,
+        body:
+          role === 'contractor'
+            ? paidPush
+              ? `${where}. Paid — check Earnings for your receipt.`
+              : `${where}. Payment is on its way.`
+            : `${where}. All done.`,
       }
+    }
     case 'job_declined':
       return { title: `Report declined: ${cat}`, body: `${where}. Tap to see why.` }
     case 'price_change_requested':
@@ -380,6 +391,10 @@ export function buildPushMessage(type: NotifyType, role: NotifyRole, info: Notif
     // One live notification per job: a newer update replaces the older one
     // instead of stacking five near-identical banners.
     tag: `job-${info.jobId}`,
+    // "High" urgency asks the phone to wake up and deliver right away rather
+    // than batch for battery savings — reserved for the two events that are
+    // actually urgent, and only when the job itself is flagged emergency.
+    urgent: (type === 'job_reported' || type === 'job_open') && !!info.isEmergency,
   }
 }
 
@@ -523,23 +538,41 @@ export function buildNotificationEmail(type: NotifyType, role: NotifyRole, rawIn
           note: "If you don't respond within 3 days, the job is approved automatically.",
         }),
       }
-    case 'job_completed':
+    case 'job_completed': {
+      // A contractor's own payment can lag the approval itself — a bank
+      // transfer clears over a few days, and a job the 3-day auto-approval
+      // moved along has no payment started at all yet. Never say "Paid"
+      // unless it's actually true.
+      const paid = info.paymentStatus === 'paid'
+      const processing = info.paymentStatus === 'processing'
+      const contractorHeading = paid ? 'Your work was approved and paid' : 'Your work was approved'
+      const contractorBody = paid
+        ? `The landlord approved your work on the <strong>${cat}</strong> job at ${at}, and payment is on its way. Check Earnings for the receipt.`
+        : processing
+          ? `The landlord approved your work on the <strong>${cat}</strong> job at ${at}. Payment has started and is clearing — that usually takes 1 to 3 business days.`
+          : `The landlord approved your work on the <strong>${cat}</strong> job at ${at}. Payment is next — we'll email you the moment it's sent.`
       return {
         subject: `Job closed: ${info.category}`,
         html: baseTemplate({
           eyebrow: 'Job closed',
-          heading: role === 'contractor' ? 'Your work was approved' : 'The repair is finished',
-          bodyHtml:
+          heading: role === 'contractor' ? contractorHeading : 'The repair is finished',
+          bodyHtml: role === 'contractor' ? contractorBody : `The <strong>${cat}</strong> repair at ${at} is finished and closed. Thanks for reporting it.`,
+          preheader:
             role === 'contractor'
-              ? `The landlord approved your work on the <strong>${cat}</strong> job at ${at}. Check Earnings for the payment.`
-              : `The <strong>${cat}</strong> repair at ${at} is finished and closed. Thanks for reporting it.`,
-          preheader: role === 'contractor' ? 'Approved. Check Earnings for your payment.' : `${jobLocation(info)}. All done.`,
-          stage: 5,
+              ? paid
+                ? 'Approved and paid. Check Earnings for your receipt.'
+                : 'Approved. Payment is on its way — check Earnings for updates.'
+              : `${jobLocation(info)}. All done.`,
+          // The tracker's last step is "Paid" — only light it up as reached
+          // once payment genuinely succeeded, otherwise stop one step short
+          // at "Review" so the bar never claims something that hasn't happened.
+          stage: role === 'contractor' && !paid ? 4 : 5,
           facts: compact([jobFact, whereFact, unitFact, role === 'contractor' && info.amount != null && { label: 'Price', value: money(info.amount) }]),
           ctaLabel: role === 'contractor' ? 'View earnings' : 'View job',
           ctaUrl: role === 'contractor' ? `${SITE_URL}/contractor` : ctaUrl,
         }),
       }
+    }
     case 'job_declined':
       return {
         subject: `Update on your ${info.category} report`,
@@ -744,6 +777,64 @@ export async function sendJobPaymentReceiptEmail({
     ctaUrl: `${SITE_URL}/receipts/job/${bidId}`,
   })
   return sendEmail({ to, subject: `Receipt: $${amount.toFixed(2)} paid for ${category}`, html })
+}
+
+export async function sendJobAutoApprovedPayNowEmail({
+  to,
+  landlordName,
+  contractorName,
+  amount,
+  category,
+  propertyLabel,
+  jobId,
+}: {
+  to: string
+  landlordName: string
+  contractorName: string
+  amount: number
+  category: string
+  propertyLabel: string
+  jobId: string
+}) {
+  const html = baseTemplate({
+    eyebrow: 'Action needed',
+    heading: 'We approved this job for you',
+    bodyHtml: `Hi ${escapeHtml(landlordName)}, nobody reviewed the <strong>${escapeHtml(category)}</strong> job at ${escapeHtml(propertyLabel)} within 3 days of <strong>${escapeHtml(contractorName)}</strong> finishing it, so it was approved automatically so they aren't left waiting. ${escapeHtml(contractorName)} still hasn't been paid — that part is never automatic.`,
+    preheader: `${escapeHtml(contractorName)} is waiting on $${amount.toFixed(2)}. Pay now to release it.`,
+    facts: [
+      { label: 'Amount due', value: `$${amount.toFixed(2)}` },
+      { label: 'Contractor', value: contractorName },
+      { label: 'Job', value: category },
+      { label: 'Where', value: propertyLabel },
+    ],
+    ctaLabel: 'Pay now',
+    ctaUrl: `${SITE_URL}/landlord/jobs/${jobId}`,
+    note: 'This approved itself because nobody responded in 3 days. Paying the contractor still takes one tap from you.',
+  })
+  return sendEmail({ to, subject: `Action needed: pay ${contractorName} $${amount.toFixed(2)} for ${category}`, html })
+}
+
+// One digest to the Prophandld inbox whenever the daily check auto-approves
+// anything, so a person sees it the same day rather than a contractor
+// discovering days later that nobody ever paid them.
+export async function sendAutoApprovalDigestAdminEmail({
+  jobs,
+}: {
+  jobs: { category: string; propertyLabel: string; contractorName: string; amount: number; jobId: string }[]
+}) {
+  if (jobs.length === 0) return
+  const rows = jobs
+    .map((j) => `<li style="margin-bottom:6px;">${escapeHtml(j.category)} at ${escapeHtml(j.propertyLabel)} — ${escapeHtml(j.contractorName)} is owed $${j.amount.toFixed(2)}</li>`)
+    .join('')
+  const html = baseTemplate({
+    eyebrow: 'Auto-approved',
+    heading: `${jobs.length} job${jobs.length === 1 ? '' : 's'} auto-approved today`,
+    bodyHtml: `No landlord response within 3 days, so ${jobs.length === 1 ? 'this job was' : 'these were'} approved automatically and the landlord was emailed to pay. Nothing forces them to — worth a manual check if any stay unpaid.<ul style="margin:14px 0 0;padding-left:20px;color:#A9B7C8;font-size:14px;line-height:1.6;">${rows}</ul>`,
+    preheader: `${jobs.length} landlord${jobs.length === 1 ? '' : 's'} emailed to pay. Nothing is guaranteed until they do.`,
+    ctaLabel: 'Open admin jobs',
+    ctaUrl: `${SITE_URL}/admin/jobs`,
+  })
+  return sendEmail({ to: 'admin@prophandld.com', subject: `${jobs.length} job(s) auto-approved — payment not guaranteed`, html })
 }
 
 export async function sendJobPaymentSentEmail({

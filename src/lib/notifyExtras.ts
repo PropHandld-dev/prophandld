@@ -49,7 +49,7 @@ export async function loadNotifyExtras(admin: SupabaseClient, jobId: string): Pr
   try {
     const { data: accepted } = await admin
       .from('bids')
-      .select('contractor_user_id, amount, proposed_amount')
+      .select('contractor_user_id, amount, proposed_amount, payment_status')
       .eq('job_id', jobId)
       .eq('status', 'accepted')
       .maybeSingle()
@@ -59,7 +59,7 @@ export async function loadNotifyExtras(admin: SupabaseClient, jobId: string): Pr
     if (!bid) {
       const { data: newest } = await admin
         .from('bids')
-        .select('contractor_user_id, amount, proposed_amount')
+        .select('contractor_user_id, amount, proposed_amount, payment_status')
         .eq('job_id', jobId)
         .order('created_at', { ascending: false })
         .limit(1)
@@ -72,6 +72,9 @@ export async function loadNotifyExtras(admin: SupabaseClient, jobId: string): Pr
       if (bid.proposed_amount != null && Number(bid.proposed_amount) !== Number(bid.amount)) {
         extras.requestedAmount = Number(bid.proposed_amount)
       }
+      // Only meaningful for the accepted bid — an unaccepted one has no
+      // payment of its own to report on.
+      if (accepted) extras.paymentStatus = (accepted.payment_status as any) ?? 'unpaid'
       if (bid.contractor_user_id) {
         const { data: person } = await admin.from('users').select('full_name').eq('id', bid.contractor_user_id).maybeSingle()
         if (person?.full_name) extras.contractorName = person.full_name

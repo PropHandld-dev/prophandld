@@ -15,7 +15,10 @@ function ensureConfigured() {
   configured = true
 }
 
-export async function sendPush(userId: string, { title, body, url, tag }: { title: string; body: string; url?: string; tag?: string }) {
+export async function sendPush(
+  userId: string,
+  { title, body, url, tag, urgent }: { title: string; body: string; url?: string; tag?: string; urgent?: boolean }
+) {
   if (isPreviewDeployment()) return
   if (!process.env.VAPID_PRIVATE_KEY || !process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) return
   ensureConfigured()
@@ -40,7 +43,15 @@ export async function sendPush(userId: string, { title, body, url, tag }: { titl
             endpoint: sub.endpoint,
             keys: { p256dh: sub.p256dh, auth: sub.auth_key },
           },
-          JSON.stringify({ title, body, url: url || '/', tag })
+          JSON.stringify({ title, body, url: url || '/', tag }),
+          // iOS's "Time Sensitive" level (the one that breaks through Focus/Do
+          // Not Disturb) is only available to native apps — there's no web-push
+          // equivalent. "high" urgency is the real lever the web push standard
+          // gives us: it tells the phone's push service to wake the device and
+          // deliver right away instead of batching for battery savings. Reserve
+          // it for genuine emergencies; marking everything urgent trains people
+          // to ignore it.
+          urgent ? { urgency: 'high' } : undefined
         )
       } catch (err: any) {
         if (err?.statusCode === 404 || err?.statusCode === 410) {

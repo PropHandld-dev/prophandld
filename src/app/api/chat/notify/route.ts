@@ -69,7 +69,11 @@ export async function POST(request: NextRequest) {
   await Promise.allSettled(
     recipients.map(async ({ userId, role }) => {
       const url = buildLink(role)
-      await sendPush(userId, { title: `Message from ${senderName}`, body: preview, url }).catch((err) =>
+      // Just the name: the phone's own notification chrome already stamps
+      // "from Prophandld" onto every banner on its own (it can't be
+      // suppressed, by design), so a title of "Message from X" reads back
+      // as "Message from X from Prophandld" — doubled and awkward.
+      await sendPush(userId, { title: senderName, body: preview, url }).catch((err) =>
         console.error('chat/notify: push failed', { userId, err })
       )
       if (!sendEmailToo) return
