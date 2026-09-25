@@ -20,6 +20,7 @@ const SITE_TITLE = "Prophandld | Property Management Without the Spreadsheet";
 const SITE_DESCRIPTION = "Prophandld is mini property management for small landlords. Track every property and tenant, get honest contractor bids through sealed bidding, and collect rent, all in one place.";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://www.prophandld.com"),
   title: SITE_TITLE,
   description: SITE_DESCRIPTION,
   manifest: "/manifest.json",
