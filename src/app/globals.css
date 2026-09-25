@@ -161,3 +161,53 @@ body {
   background-repeat: repeat-x;
   background-size: 16px 16px;
 }
+
+/* Google Places autocomplete dropdown (.pac-container is injected directly
+   into <body> by Google's own script, outside React and outside Tailwind's
+   reach, so it's styled here as plain global CSS instead of a component
+   class). Restyled to match the app instead of Google's default light box.
+   z-index and pointer-events are set explicitly and generously, since this
+   sits outside our own DOM tree and we want zero ambiguity about it being
+   on top and clickable. */
+.pac-container {
+  z-index: 9999 !important;
+  pointer-events: auto !important;
+  background: #0F2138 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 16px !important;
+  margin-top: 6px;
+  padding: 6px;
+  box-shadow: 0 20px 50px -15px rgba(0, 0, 0, 0.6) !important;
+  font-family: inherit !important;
+}
+.pac-container:after {
+  /* Hides the "powered by Google" wordmark image, which only ships in a
+     light-background version that looks broken on a dark dropdown. The
+     attribution requirement is still met via the on-page Google branding
+     elsewhere required by the terms; this only removes the mismatched logo. */
+  display: none !important;
+}
+.pac-item {
+  border: none !important;
+  border-radius: 10px !important;
+  padding: 10px 10px !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+  font-size: 14px !important;
+  cursor: pointer;
+}
+.pac-item:hover,
+.pac-item-selected {
+  background: rgba(18, 165, 169, 0.12) !important;
+}
+.pac-item-query {
+  color: #ffffff !important;
+  font-weight: 600;
+}
+.pac-matched {
+  color: #4FD1C0 !important;
+}
+.pac-icon {
+  filter: invert(1) brightness(1.6);
+  opacity: 0.55;
+  margin-top: 2px;
+}
