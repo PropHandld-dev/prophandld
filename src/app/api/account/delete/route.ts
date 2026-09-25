@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
+import { getStripe } from '@/lib/stripe'
 
 // Self-service account deletion. Cascades follow the same per-role
 // pattern used for the manual test-account cleanups run against this
@@ -60,6 +61,23 @@ export async function POST() {
           await supabaseAdmin.from('units').delete().in('property_id', propertyIds)
         }
         await supabaseAdmin.from('properties').delete().in('id', propertyIds)
+      }
+      // Cancel the real Stripe subscription before dropping our own record
+      // of it — deleting only the local row would leave it billing forever
+      // with nothing left anywhere that shows it exists.
+      const { data: subscription } = await supabaseAdmin
+        .from('landlord_subscriptions')
+        .select('stripe_subscription_id')
+        .eq('landlord_user_id', userId)
+        .maybeSingle()
+      if (subscription?.stripe_subscription_id) {
+        try {
+          await getStripe().subscriptions.cancel(subscription.stripe_subscription_id)
+        } catch (err) {
+          // Already canceled, or Stripe hiccuped — don't let that block the
+          // rest of account deletion; log it so it can be checked by hand.
+          console.error('account delete: could not cancel Stripe subscription', { userId, err })
+        }
       }
       await supabaseAdmin.from('landlord_subscriptions').delete().eq('landlord_user_id', userId)
     }
