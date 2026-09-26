@@ -11,7 +11,6 @@ import { LANDLORD_TABS } from '@/lib/navTabs'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { AddressAutocomplete, type AutocompletePlace } from '@/components/AddressAutocomplete'
-import { normalizeAddress } from '@/lib/address'
 
 export default function EditPropertyPage() {
   const router = useRouter()
@@ -103,26 +102,27 @@ export default function EditPropertyPage() {
       return
     }
 
-    const { data: ownedProperties } = await supabase
-      .from('properties')
-      .select('id, address, city, state')
-      .eq('owner_user_id', user.id)
-      .neq('id', propertyId)
+    const dupRes = await fetch('/api/landlord/properties/check-duplicate-address', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ address: form.address, city: form.city, state: form.state, excludePropertyId: propertyId }),
+    })
+    const dup = await dupRes.json().catch(() => ({}))
 
-    const normalizedNew = normalizeAddress(form.address)
-    const normalizedCity = form.city.trim().toLowerCase()
-    const normalizedState = form.state.trim().toLowerCase()
-    const duplicate = (ownedProperties || []).find(
-      (p) =>
-        normalizeAddress(p.address || '') === normalizedNew &&
-        (p.city || '').trim().toLowerCase() === normalizedCity &&
-        (p.state || '').trim().toLowerCase() === normalizedState
-    )
-
-    if (duplicate) {
+    if (dup.ownedByMe) {
       setError('You already have another property with this address.')
       setSaving(false)
       return
+    }
+
+    if (dup.ownedByOther) {
+      const proceed = window.confirm(
+        'This address is already registered by another Prophandld account. If you\'re taking over management of this property, that\'s fine to ignore — otherwise, double-check the address before continuing.\n\nSave anyway?'
+      )
+      if (!proceed) {
+        setSaving(false)
+        return
+      }
     }
 
     // Prefer the precise coordinates from Places autocomplete if the address

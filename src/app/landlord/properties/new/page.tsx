@@ -12,7 +12,6 @@ import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { AddressAutocomplete, type AutocompletePlace } from '@/components/AddressAutocomplete'
 import { LANDLORD_TABS } from '@/lib/navTabs'
-import { normalizeAddress } from '@/lib/address'
 
 function NewPropertyForm() {
   const router = useRouter()
@@ -74,25 +73,31 @@ function NewPropertyForm() {
       return
     }
 
-    const { data: ownedProperties } = await supabase
-      .from('properties')
-      .select('id, address, city, state')
-      .eq('owner_user_id', user.id)
+    // Checked server-side (not just against this landlord's own rows) since
+    // a client can only ever see its own properties under RLS — catching
+    // the same address already registered under a *different* landlord
+    // needs a service-role check. See check-duplicate-address/route.ts.
+    const dupRes = await fetch('/api/landlord/properties/check-duplicate-address', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ address: form.address, city: form.city, state: form.state }),
+    })
+    const dup = await dupRes.json().catch(() => ({}))
 
-    const normalizedNew = normalizeAddress(form.address)
-    const normalizedCity = form.city.trim().toLowerCase()
-    const normalizedState = form.state.trim().toLowerCase()
-    const duplicate = (ownedProperties || []).find(
-      (p) =>
-        normalizeAddress(p.address || '') === normalizedNew &&
-        (p.city || '').trim().toLowerCase() === normalizedCity &&
-        (p.state || '').trim().toLowerCase() === normalizedState
-    )
-
-    if (duplicate) {
+    if (dup.ownedByMe) {
       setError('You already have a property at this address.')
       setLoading(false)
       return
+    }
+
+    if (dup.ownedByOther) {
+      const proceed = window.confirm(
+        'This address is already registered by another Prophandld account. If you\'re taking over management of this property, that\'s fine to ignore — otherwise, double-check the address before continuing.\n\nAdd it anyway?'
+      )
+      if (!proceed) {
+        setLoading(false)
+        return
+      }
     }
 
     // Prefer the precise coordinates from Places autocomplete; fall back to
