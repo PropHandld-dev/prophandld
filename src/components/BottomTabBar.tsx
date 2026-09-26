@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useLanguage } from '@/lib/i18n'
 
 export interface TabItem {
   href: string
@@ -12,6 +13,7 @@ export interface TabItem {
 
 export function BottomTabBar({ tabs }: { tabs: TabItem[] }) {
   const pathname = usePathname()
+  const lang = useLanguage()
 
   // A tab "matches" on an exact hit or a path prefix. Since every
   // section shares the role root (e.g. /landlord/jobs also starts
@@ -36,8 +38,7 @@ export function BottomTabBar({ tabs }: { tabs: TabItem[] }) {
             }`}
           >
             <Icon className="w-5 h-5" />
-            <span className="text-[10px] font-medium">{tab.label}</span>
-            {tab.labelEs && <span className="text-[8px] text-white/60 leading-none">{tab.labelEs}</span>}
+            <span className="text-[10px] font-medium">{lang === 'es' && tab.labelEs ? tab.labelEs : tab.label}</span>
           </Link>
         )
       })}

@@ -336,7 +336,7 @@ export default function ProfilePage() {
             </div>
 
             <div>
-              <label className="text-white/70 text-sm block mb-1">Preferred language</label>
+              <label className="text-white/70 text-sm block mb-1">Language / Idioma</label>
               <select
                 name="preferred_language"
                 value={form.preferred_language}
@@ -344,8 +344,9 @@ export default function ProfilePage() {
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
               >
                 <option value="en" className="bg-[#0C1A2E]">English</option>
-                <option value="es" className="bg-[#0C1A2E]">Spanish</option>
+                <option value="es" className="bg-[#0C1A2E]">Español</option>
               </select>
+              <p className="text-white/40 text-xs mt-1">Switches the app's language after you save. Save cambia el idioma de la app.</p>
             </div>
 
             <RippleButton
