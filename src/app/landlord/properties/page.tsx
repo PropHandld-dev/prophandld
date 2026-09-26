@@ -12,9 +12,11 @@ import { ScrollReveal } from '@/components/ScrollReveal'
 import { MagneticLink } from '@/components/MagneticLink'
 import { CountUp } from '@/components/CountUp'
 import { PropertiesMap } from '@/components/PropertiesMap'
+import { useLanguage, t } from '@/lib/i18n'
 
 export default function PropertiesPage() {
   const router = useRouter()
+  const lang = useLanguage()
   const [properties, setProperties] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showArchived, setShowArchived] = useState(false)
@@ -81,14 +83,14 @@ export default function PropertiesPage() {
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
         <Link href="/landlord" className="text-white/50 hover:text-white text-sm transition">
-          ← Dashboard
+          {t('dashboard', lang)}
         </Link>
         <Link href="/landlord" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
         <MagneticLink
           href="/landlord/properties/new"
           className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-4 py-2 rounded-xl hover:opacity-90 transition"
         >
-          + Add property
+          {t('addPropertyBtn', lang)}
         </MagneticLink>
       </nav>
 
@@ -111,7 +113,7 @@ export default function PropertiesPage() {
         ) : (
           <>
             <div className="flex items-center justify-between mb-8 flex-wrap gap-3">
-              <h1 className="text-2xl font-bold text-white">Your properties</h1>
+              <h1 className="text-2xl font-bold text-white">{t('yourPropertiesTitle', lang)}</h1>
               <div className="flex items-center gap-4">
                 {properties.length > 0 && (
                   <div className="flex items-center bg-white/5 border border-white/10 rounded-full p-0.5">
@@ -121,7 +123,7 @@ export default function PropertiesPage() {
                         view === 'list' ? 'bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white' : 'text-white/50 hover:text-white'
                       }`}
                     >
-                      List
+                      {t('listView', lang)}
                     </button>
                     <button
                       onClick={() => setViewPersisted('map')}
@@ -129,7 +131,7 @@ export default function PropertiesPage() {
                         view === 'map' ? 'bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white' : 'text-white/50 hover:text-white'
                       }`}
                     >
-                      Map
+                      {t('mapView', lang)}
                     </button>
                   </div>
                 )}
@@ -137,7 +139,7 @@ export default function PropertiesPage() {
                   onClick={() => setShowArchived(!showArchived)}
                   className="text-white/60 hover:text-white text-sm transition"
                 >
-                  {showArchived ? 'Hide archived' : 'Show archived'}
+                  {showArchived ? t('hideArchived', lang) : t('showArchived', lang)}
                 </button>
               </div>
             </div>
@@ -150,14 +152,14 @@ export default function PropertiesPage() {
                     <BuildingIcon className="w-5 h-5 text-[#12A5A9]" />
                   </div>
                   <CountUp value={activeCount} className="text-2xl font-bold text-white" />
-                  <div className="text-white/60 text-sm mt-1">Active properties</div>
+                  <div className="text-white/60 text-sm mt-1">{t('activeProperties', lang)}</div>
                 </div>
                 <div className="bg-white/3 border border-white/8 rounded-2xl p-5 hover:border-[#12A5A9]/30 hover:-translate-y-0.5 transition-all">
                   <div className="flex items-center justify-between mb-2">
                     <BuildingIcon className="w-5 h-5 text-white/60" />
                   </div>
                   <CountUp value={archivedCount} className="text-2xl font-bold text-white" />
-                  <div className="text-white/60 text-sm mt-1">Archived</div>
+                  <div className="text-white/60 text-sm mt-1">{t('archived', lang)}</div>
                 </div>
               </div>
               </ScrollReveal>
@@ -181,16 +183,16 @@ export default function PropertiesPage() {
               <div className="bg-white/3 border border-white/8 rounded-2xl p-12 text-center">
                 <BuildingIcon className="w-10 h-10 text-white/50 mx-auto mb-4" />
                 <h3 className="text-white font-semibold mb-2">
-                  {showArchived ? 'No archived properties' : 'No properties yet'}
+                  {showArchived ? t('noArchivedProperties', lang) : t('noPropertiesYet', lang)}
                 </h3>
                 {!showArchived && (
                   <>
-                    <p className="text-white/60 text-sm mb-6">Add your first property to get started.</p>
+                    <p className="text-white/60 text-sm mb-6">{t('addFirstPropertyShort', lang)}</p>
                     <MagneticLink
                       href="/landlord/properties/new"
                       className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-6 py-3 rounded-xl hover:opacity-90 transition inline-block"
                     >
-                      Add property
+                      {t('addProperty', lang)}
                     </MagneticLink>
                   </>
                 )}
@@ -211,7 +213,7 @@ export default function PropertiesPage() {
                           <span className="text-xs bg-white/8 text-white/60 rounded-full px-3 py-1 capitalize">{property.property_type}</span>
                           {property.archived && (
                             <span className="text-xs bg-yellow-500/10 text-yellow-400/70 border border-yellow-500/20 rounded-full px-3 py-1">
-                              Archived
+                              {t('archivedBadge', lang)}
                             </span>
                           )}
                         </div>
@@ -225,7 +227,7 @@ export default function PropertiesPage() {
                             }}
                             className="text-white/60 hover:text-white text-xs transition"
                           >
-                            Unarchive
+                            {t('unarchive', lang)}
                           </button>
                         )}
                         <Link href={`/landlord/properties/${property.id}`} className="text-white/50 text-xl">→</Link>

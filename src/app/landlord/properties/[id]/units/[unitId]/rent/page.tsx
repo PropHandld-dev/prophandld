@@ -12,10 +12,12 @@ import { RippleButton } from '@/components/RippleButton'
 import { RentMonthEditor, type RentEditValues } from '@/components/RentMonthEditor'
 import { ensureCurrentMonthRentPayment } from '@/lib/rentAutomation'
 import { FileTextIcon } from '@/components/icons'
+import { useLanguage, t } from '@/lib/i18n'
 
 export default function UnitRentPage() {
   const router = useRouter()
   const params = useParams()
+  const lang = useLanguage()
   const propertyId = params.id as string
   const unitId = params.unitId as string
 
@@ -354,7 +356,7 @@ export default function UnitRentPage() {
     const actual = payment.actual_amount || 0
 
     if (actual >= expected && expected > 0) {
-      return { label: 'Paid', color: 'bg-[#12A5A9]/15 text-[#12A5A9]' }
+      return { key: 'paid' as const, label: t('paidStatus', lang), color: 'bg-[#12A5A9]/15 text-[#12A5A9]' }
     }
 
     const today = new Date()
@@ -363,9 +365,9 @@ export default function UnitRentPage() {
     const monthDate = new Date(payment.month + 'T00:00:00')
 
     if (monthDate < today) {
-      return { label: 'Late', color: 'bg-red-500/15 text-red-400' }
+      return { key: 'late' as const, label: t('lateStatus', lang), color: 'bg-red-500/15 text-red-400' }
     }
-    return { label: 'Due', color: 'bg-yellow-500/15 text-yellow-400' }
+    return { key: 'due' as const, label: t('dueStatus', lang), color: 'bg-yellow-500/15 text-yellow-400' }
   }
 
   const formatMonth = (month: string) =>
@@ -378,7 +380,7 @@ export default function UnitRentPage() {
           href={`/landlord/properties/${propertyId}/units/${unitId}`}
           className="text-white/50 hover:text-white text-sm transition"
         >
-          ← Unit
+          {t('unitBack', lang)}
         </Link>
         <Link href="/landlord" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
         <div className="w-20" />
@@ -399,13 +401,13 @@ export default function UnitRentPage() {
         ) : !unit ? null : (
         <>
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-white">Rent</h1>
+          <h1 className="text-2xl font-bold text-white">{t('rentTitle', lang)}</h1>
           <p className="text-white/50 text-sm mt-1">Unit {unit.unit_number}</p>
         </div>
 
         {!tenancy ? (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
-            <p className="text-white/50 text-sm">No active tenant on this unit. Link a renter first to track rent.</p>
+            <p className="text-white/50 text-sm">{t('noActiveTenantRent', lang)}</p>
           </div>
         ) : (
           <>
@@ -417,14 +419,14 @@ export default function UnitRentPage() {
 
             {payments.length === 0 ? (
               <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center mb-6">
-                <p className="text-white/50 text-sm">No rent months yet. This fills in automatically once the tenancy is active.</p>
+                <p className="text-white/50 text-sm">{t('noRentMonthsYet', lang)}</p>
               </div>
             ) : (
               <ScrollReveal>
               <div className="space-y-3 mb-6">
                 {payments.map((payment) => {
                   const status = getStatus(payment)
-                  const isPaid = status.label === 'Paid'
+                  const isPaid = status.key === 'paid'
                   const isAdjusting = adjustingId === payment.id
                   const overpaid = Math.round((Number(payment.actual_amount || 0) - Number(payment.expected_amount || 0)) * 100) / 100
                   const paidOnline = payment.stripe_status === 'succeeded' && !!payment.stripe_payment_intent_id
@@ -444,7 +446,7 @@ export default function UnitRentPage() {
                             </span>
                             {!isPaid && payment.stripe_status === 'processing' && (
                               <span className="text-xs bg-yellow-500/15 text-yellow-400 rounded-full px-2.5 py-0.5">
-                                Bank payment processing
+                                {t('bankPaymentProcessing', lang)}
                               </span>
                             )}
                             <span className="text-xs bg-white/8 text-white/50 rounded-full px-2.5 py-0.5">
@@ -453,7 +455,7 @@ export default function UnitRentPage() {
                             </span>
                             {payment.late_fee_applied && (
                               <span className="text-xs bg-yellow-500/15 text-yellow-400 rounded-full px-2.5 py-0.5">
-                                Includes late fee
+                                {t('includesLateFee', lang)}
                               </span>
                             )}
                           </div>
@@ -461,7 +463,7 @@ export default function UnitRentPage() {
                         <div className="flex flex-col items-end gap-2 shrink-0">
                           {isPaid ? (
                             <Link href={`/receipts/rent/${payment.id}`} className="text-[#12A5A9] text-xs hover:underline">
-                              Receipt
+                              {t('receipt', lang)}
                             </Link>
                           ) : (
                             <RippleButton
@@ -469,7 +471,7 @@ export default function UnitRentPage() {
                               disabled={savingId === payment.id}
                               className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-3.5 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
                             >
-                              {savingId === payment.id ? 'Saving...' : 'Mark received'}
+                              {savingId === payment.id ? t('markingReceived', lang) : t('markReceived', lang)}
                             </RippleButton>
                           )}
                           <div className="flex items-center gap-3">
@@ -477,13 +479,13 @@ export default function UnitRentPage() {
                               onClick={() => { setEditError(null); setEditingId(payment.id) }}
                               className="text-white/60 text-[11px] font-semibold hover:text-white transition"
                             >
-                              Edit
+                              {t('edit', lang)}
                             </button>
                             <button
                               onClick={() => handleDelete(payment.id)}
                               className="text-red-400/50 text-[11px] hover:text-red-400 transition"
                             >
-                              Delete
+                              {t('delete', lang)}
                             </button>
                           </div>
                         </div>
@@ -500,7 +502,7 @@ export default function UnitRentPage() {
                                 disabled={resolvingId === payment.id}
                                 className="text-xs font-semibold bg-[#12A5A9]/15 text-[#12A5A9] rounded-lg px-3 py-2 hover:bg-[#12A5A9]/25 transition disabled:opacity-50"
                               >
-                                {resolvingId === payment.id ? 'Working…' : `Refund ${money(overpaid)} to tenant`}
+                                {resolvingId === payment.id ? t('working', lang) : `Refund ${money(overpaid)} to tenant`}
                               </button>
                             )}
                             <button
@@ -508,14 +510,14 @@ export default function UnitRentPage() {
                               disabled={resolvingId === payment.id}
                               className="text-xs font-semibold bg-white/8 text-white rounded-lg px-3 py-2 hover:bg-white/12 transition disabled:opacity-50"
                             >
-                              Credit to next month
+                              {t('creditToNextMonth', lang)}
                             </button>
                             <button
                               onClick={() => handleResolve(payment, 'external_refund', overpaid)}
                               disabled={resolvingId === payment.id}
                               className="text-xs text-white/50 hover:text-white transition disabled:opacity-50"
                             >
-                              Refunded another way
+                              {t('refundedAnotherWay', lang)}
                             </button>
                           </div>
                         </div>
@@ -537,13 +539,13 @@ export default function UnitRentPage() {
                               disabled={savingId === payment.id}
                               className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-3 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
                             >
-                              Save
+                              {t('save', lang)}
                             </RippleButton>
                             <button
                               onClick={() => { setAdjustingId(null); setAdjustAmount('') }}
                               className="text-white/60 hover:text-white text-xs transition"
                             >
-                              Cancel
+                              {t('cancel', lang)}
                             </button>
                           </div>
                         ) : (
@@ -551,7 +553,7 @@ export default function UnitRentPage() {
                             onClick={() => { setAdjustingId(payment.id); setAdjustAmount(String(payment.expected_amount)) }}
                             className="text-white/50 hover:text-white/60 text-[11px] mt-2 transition"
                           >
-                            Received a different amount?
+                            {t('receivedDifferentAmount', lang)}
                           </button>
                         )
                       )}
@@ -574,10 +576,10 @@ export default function UnitRentPage() {
             {showAddMonth ? (
               <ScrollReveal>
                 <form onSubmit={handleAddMonth} className="bg-white/3 border border-white/8 rounded-2xl p-6 space-y-4">
-                  <h2 className="text-white font-semibold text-sm">Log a different month</h2>
+                  <h2 className="text-white font-semibold text-sm">{t('logDifferentMonth', lang)}</h2>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-white/70 text-sm block mb-1">Month</label>
+                      <label className="text-white/70 text-sm block mb-1">{t('month', lang)}</label>
                       <input
                         type="month"
                         value={addForm.month}
@@ -586,7 +588,7 @@ export default function UnitRentPage() {
                       />
                     </div>
                     <div>
-                      <label className="text-white/70 text-sm block mb-1">Expected amount</label>
+                      <label className="text-white/70 text-sm block mb-1">{t('expectedAmount', lang)}</label>
                       <input
                         type="number"
                         value={addForm.expected_amount}
@@ -602,14 +604,14 @@ export default function UnitRentPage() {
                       disabled={savingId === 'add'}
                       className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
                     >
-                      {savingId === 'add' ? 'Adding...' : 'Add month'}
+                      {savingId === 'add' ? t('adding2', lang) : t('addMonth', lang)}
                     </RippleButton>
                     <button
                       type="button"
                       onClick={() => setShowAddMonth(false)}
                       className="text-white/50 hover:text-white text-sm transition"
                     >
-                      Cancel
+                      {t('cancel', lang)}
                     </button>
                   </div>
                 </form>
@@ -619,7 +621,7 @@ export default function UnitRentPage() {
                 onClick={() => setShowAddMonth(true)}
                 className="text-white/50 hover:text-white/60 text-xs transition"
               >
-                + Log a different month
+                + {t('logDifferentMonth', lang)}
               </button>
             )}
           </>

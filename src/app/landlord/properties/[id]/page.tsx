@@ -15,6 +15,7 @@ import { ProductTour, type TourStep } from '@/components/ProductTour'
 import { usePropertyTourVisibility } from '@/lib/usePropertyTourVisibility'
 import { AddressLink } from '@/components/AddressLink'
 import { StreetView } from '@/components/StreetView'
+import { useLanguage, t } from '@/lib/i18n'
 
 const TOUR_STEPS: TourStep[] = [
   { target: '[data-tour="addunit"]', title: 'Add a unit', body: "Every property starts with at least one unit. Add more here if this property has several, like a duplex or an apartment building." },
@@ -26,6 +27,7 @@ const TOUR_STEPS: TourStep[] = [
 export default function PropertyDetailPage() {
   const router = useRouter()
   const params = useParams()
+  const lang = useLanguage()
   const propertyId = params.id as string
   const [userId, setUserId] = useState<string | null>(null)
   const tour = usePropertyTourVisibility(userId)
@@ -205,23 +207,23 @@ export default function PropertyDetailPage() {
   const vacantCount = units.length - occupiedCount
 
   const getComplianceStatus = (item: any) => {
-    if (!item.expiry_date) return { label: 'No expiry set', color: 'bg-white/8 text-white/50' }
+    if (!item.expiry_date) return { label: t('noExpirySet', lang), color: 'bg-white/8 text-white/50' }
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     const expiry = new Date(item.expiry_date + 'T00:00:00')
     const daysUntil = Math.round((expiry.getTime() - today.getTime()) / (24 * 60 * 60 * 1000))
     const reminderDays = item.reminder_days ?? 30
 
-    if (daysUntil < 0) return { label: 'Expired', color: 'bg-red-500/15 text-red-400' }
-    if (daysUntil <= reminderDays) return { label: 'Expiring soon', color: 'bg-yellow-500/15 text-yellow-400' }
-    return { label: 'Current', color: 'bg-[#12A5A9]/15 text-[#12A5A9]' }
+    if (daysUntil < 0) return { label: t('expiredStatus', lang), color: 'bg-red-500/15 text-red-400' }
+    if (daysUntil <= reminderDays) return { label: t('expiringSoonStatus', lang), color: 'bg-yellow-500/15 text-yellow-400' }
+    return { label: t('currentStatus', lang), color: 'bg-[#12A5A9]/15 text-[#12A5A9]' }
   }
 
   return (
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
         <Link href="/landlord/properties" className="text-white/50 hover:text-white text-sm transition">
-          ← Properties
+          {t('propertiesBack', lang)}
         </Link>
         <Link href="/landlord" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
         <div data-tour="addunit">
@@ -229,7 +231,7 @@ export default function PropertyDetailPage() {
             href={`/landlord/properties/${propertyId}/units/new`}
             className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-4 py-2 rounded-xl hover:opacity-90 transition"
           >
-            + Add unit
+            {t('addUnitBtn', lang)}
           </MagneticLink>
         </div>
       </nav>
@@ -274,7 +276,7 @@ export default function PropertyDetailPage() {
             href={`/landlord/properties/${propertyId}/edit`}
             className="text-[#12A5A9] text-sm hover:underline"
           >
-            Edit
+            {t('edit', lang)}
           </Link>
         </div>
 
@@ -287,24 +289,24 @@ export default function PropertyDetailPage() {
         <div className="grid grid-cols-3 gap-4 mb-8">
           <div className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center hover:border-[#12A5A9]/30 hover:-translate-y-0.5 transition-all">
             <CountUp value={units.length} className="text-2xl font-bold text-white" />
-            <div className="text-white/60 text-xs mt-1">Total units</div>
+            <div className="text-white/60 text-xs mt-1">{t('totalUnitsShort', lang)}</div>
           </div>
           <div className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center hover:border-[#12A5A9]/30 hover:-translate-y-0.5 transition-all">
             <CountUp value={occupiedCount} className="text-2xl font-bold text-white" />
-            <div className="text-white/60 text-xs mt-1">Occupied</div>
+            <div className="text-white/60 text-xs mt-1">{t('occupiedShort', lang)}</div>
           </div>
           <div className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center hover:border-[#12A5A9]/30 hover:-translate-y-0.5 transition-all">
             <CountUp value={vacantCount} className="text-2xl font-bold text-white" />
-            <div className="text-white/60 text-xs mt-1">Vacant</div>
+            <div className="text-white/60 text-xs mt-1">{t('vacantShort', lang)}</div>
           </div>
         </div>
         </ScrollReveal>
 
         {/* Units */}
 <div className="mb-4" data-tour="units">
-  <h2 className="text-white font-semibold">Units</h2>
+  <h2 className="text-white font-semibold">{t('unitsHeading', lang)}</h2>
   <p className="text-white/60 text-sm mt-1">
-    Click a unit to add a tenant, start an inspection, or view details. Use "Rename" just to change the unit's label.
+    {t('unitsHelp', lang)}
   </p>
 </div>
 
@@ -316,12 +318,12 @@ export default function PropertyDetailPage() {
 
         {units.length === 0 ? (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
-            <p className="text-white/60 text-sm">No units yet.</p>
+            <p className="text-white/60 text-sm">{t('noUnitsYet', lang)}</p>
             <Link
               href={`/landlord/properties/${propertyId}/units/new`}
               className="text-[#12A5A9] text-sm hover:underline block mt-2"
             >
-              Add a unit
+              {t('addAUnit', lang)}
             </Link>
           </div>
         ) : (
@@ -355,13 +357,13 @@ export default function PropertyDetailPage() {
                           disabled={savingUnit}
                           className="text-[#12A5A9] text-xs font-semibold hover:underline disabled:opacity-50"
                         >
-                          Save
+                          {t('save', lang)}
                         </button>
                         <button
                           onClick={cancelEditing}
                           className="text-white/60 text-xs hover:text-white transition"
                         >
-                          Cancel
+                          {t('cancel', lang)}
                         </button>
                       </div>
                     ) : (
@@ -370,7 +372,7 @@ export default function PropertyDetailPage() {
                         className="flex-1"
                       >
                         <h3 className="text-white font-semibold">{unit.unit_number}</h3>
-                        <p className="text-white/50 text-sm mt-1">{isOccupied ? 'Occupied' : 'Vacant'}</p>
+                        <p className="text-white/50 text-sm mt-1">{isOccupied ? t('occupiedShort', lang) : t('vacantShort', lang)}</p>
                         {unit.sqft && <p className="text-white/50 text-xs mt-1">{unit.sqft} sqft</p>}
                       </Link>
                     )}
@@ -384,19 +386,19 @@ export default function PropertyDetailPage() {
                               : 'text-xs bg-white/5 text-white/50 border border-white/10 rounded-full px-2 py-0.5'
                           }
                         >
-                          {isOccupied ? 'Occupied' : 'Vacant'}
+                          {isOccupied ? t('occupiedShort', lang) : t('vacantShort', lang)}
                         </span>
                         <button
   onClick={() => startEditing(unit)}
   className="text-white/60 hover:text-white text-xs transition"
 >
-  Rename
+  {t('rename', lang)}
 </button>
                         <button
                           onClick={() => removeUnit(unit.id, isOccupied)}
                           className="text-red-400/70 hover:text-red-400 text-xs transition"
                         >
-                          Remove
+                          {t('remove', lang)}
                         </button>
                       </div>
                     )}
@@ -414,18 +416,18 @@ export default function PropertyDetailPage() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-white font-semibold flex items-center gap-2">
               <UserIcon className="w-4 h-4 text-white/60" />
-              Emergency contacts
+              {t('emergencyContactsHeading', lang)}
             </h2>
             <Link
               href={`/landlord/properties/${propertyId}/contacts`}
               className="text-[#12A5A9] text-sm hover:underline"
             >
-              Manage
+              {t('manage', lang)}
             </Link>
           </div>
           {contacts.length === 0 ? (
             <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
-              <p className="text-white/50 text-sm">No emergency contacts added yet.</p>
+              <p className="text-white/50 text-sm">{t('noEmergencyContactsYet', lang)}</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -438,7 +440,7 @@ export default function PropertyDetailPage() {
                 </div>
               ))}
               {contacts.length > 3 && (
-                <p className="text-white/50 text-xs px-1">+{contacts.length - 3} more</p>
+                <p className="text-white/50 text-xs px-1">+{contacts.length - 3} {t('more', lang)}</p>
               )}
             </div>
           )}
@@ -451,18 +453,18 @@ export default function PropertyDetailPage() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-white font-semibold flex items-center gap-2">
               <FileTextIcon className="w-4 h-4 text-white/60" />
-              Documents
+              {t('documentsTitle', lang)}
             </h2>
             <Link
               href={`/landlord/properties/${propertyId}/documents`}
               className="text-[#12A5A9] text-sm hover:underline"
             >
-              Manage
+              {t('manage', lang)}
             </Link>
           </div>
           {documents.length === 0 ? (
             <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
-              <p className="text-white/50 text-sm">Leases, deeds, insurance, and inspection reports for this property.</p>
+              <p className="text-white/50 text-sm">{t('documentsLeaseDesc', lang)}</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -477,7 +479,7 @@ export default function PropertyDetailPage() {
                 </div>
               ))}
               {documents.length > 3 && (
-                <p className="text-white/50 text-xs px-1">+{documents.length - 3} more</p>
+                <p className="text-white/50 text-xs px-1">+{documents.length - 3} {t('more', lang)}</p>
               )}
             </div>
           )}
@@ -490,18 +492,18 @@ export default function PropertyDetailPage() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-white font-semibold flex items-center gap-2">
               <ClipboardListIcon className="w-4 h-4 text-white/60" />
-              Compliance
+              {t('complianceHeading', lang)}
             </h2>
             <Link
               href={`/landlord/properties/${propertyId}/compliance`}
               className="text-[#12A5A9] text-sm hover:underline"
             >
-              Manage
+              {t('manage', lang)}
             </Link>
           </div>
           {complianceItems.length === 0 ? (
             <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
-              <p className="text-white/50 text-sm">Rental license, lead certification, and inspection expiry tracking.</p>
+              <p className="text-white/50 text-sm">{t('complianceDesc', lang)}</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -517,7 +519,7 @@ export default function PropertyDetailPage() {
                 )
               })}
               {complianceItems.length > 3 && (
-                <p className="text-white/50 text-xs px-1">+{complianceItems.length - 3} more</p>
+                <p className="text-white/50 text-xs px-1">+{complianceItems.length - 3} {t('more', lang)}</p>
               )}
             </div>
           )}
