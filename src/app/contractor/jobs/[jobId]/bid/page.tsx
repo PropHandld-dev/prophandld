@@ -11,12 +11,17 @@ import { Skeleton } from '@/components/Skeleton'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { WrenchIcon } from '@/components/icons'
-import { FieldLabel } from '@/components/FieldLabel'
 import { CONTRACTOR_TABS } from '@/lib/navTabs'
+import { useLanguage, t } from '@/lib/i18n'
+
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return <label className="text-white/70 text-sm block mb-1">{children}</label>
+}
 
 export default function SubmitBidPage() {
   const router = useRouter()
   const params = useParams()
+  const lang = useLanguage()
   const jobId = params.jobId as string
 
   const [loading, setLoading] = useState(true)
@@ -89,7 +94,7 @@ export default function SubmitBidPage() {
         if (existingBid) {
           setAlreadyBid(true)
         } else {
-          setError('This job is no longer available to bid on.')
+          setError(t('jobNoLongerAvailable', lang))
         }
         setLoading(false)
         return
@@ -145,7 +150,7 @@ export default function SubmitBidPage() {
       .insert({ job_id: jobId, contractor_user_id: userId, question: questionText.trim() })
     if (askError) {
       console.error('Error asking question:', askError)
-      setError('Could not send your question.')
+      setError(t('couldNotSendQuestion', lang))
     } else {
       setQuestionText('')
       await loadQuestions()
@@ -161,7 +166,7 @@ export default function SubmitBidPage() {
     e.preventDefault()
 
     if (!form.amount || parseFloat(form.amount) <= 0) {
-      setError('Enter a valid bid amount.')
+      setError(t('enterValidBidAmount', lang))
       return
     }
 
@@ -170,7 +175,7 @@ export default function SubmitBidPage() {
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      setError('Not authenticated.')
+      setError(t('notAuthenticated', lang))
       setSubmitting(false)
       return
     }
@@ -206,7 +211,7 @@ export default function SubmitBidPage() {
 
     if (submitError) {
       console.error('Error submitting bid:', submitError)
-      setError('Could not submit bid: ' + submitError.message)
+      setError(`${t('couldNotSubmitBid', lang)} ${submitError.message}`)
       setSubmitting(false)
       return
     }
@@ -220,7 +225,7 @@ export default function SubmitBidPage() {
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
         <Link href="/contractor" className="text-white/50 hover:text-white text-sm transition">
-          ← Dashboard
+          {t('dashboard', lang)}
         </Link>
         <Link href="/contractor" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
         <div className="w-20" />
@@ -244,7 +249,7 @@ export default function SubmitBidPage() {
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
         <Link href="/contractor" className="text-white/50 hover:text-white text-sm transition">
-          ← Dashboard
+          {t('dashboard', lang)}
         </Link>
         <Link href="/contractor" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
         <div className="w-20" />
@@ -253,7 +258,7 @@ export default function SubmitBidPage() {
       <main className="max-w-xl mx-auto px-6 py-10 pb-28">
         {alreadyBid ? (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
-            <p className="text-white/50 text-sm">You've already submitted a bid on this job.</p>
+            <p className="text-white/50 text-sm">{t('alreadyBidOnJob', lang)}</p>
           </div>
         ) : error && !job ? (
           <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">
@@ -261,13 +266,13 @@ export default function SubmitBidPage() {
           </div>
         ) : job ? (
           <ScrollReveal>
-            <h1 className="text-2xl font-bold text-white mb-2">Submit a bid</h1>
+            <h1 className="text-2xl font-bold text-white mb-2">{t('submitABid', lang)}</h1>
             <div className="bg-white/3 border border-white/8 rounded-2xl p-5 mb-4">
               <div className="flex items-center gap-2 flex-wrap mb-1">
                 <h3 className="text-white font-semibold">{job.category}</h3>
                 {job.is_emergency && (
                   <span className="text-xs bg-red-500/20 text-red-400 border border-red-500/30 rounded-full px-2 py-0.5 font-semibold">
-                    Emergency
+                    {t('emergency', lang)}
                   </span>
                 )}
               </div>
@@ -287,7 +292,7 @@ export default function SubmitBidPage() {
 
             {photos.length > 0 && (
               <div className="bg-white/3 border border-white/8 rounded-2xl p-5 mb-6">
-                <h3 className="text-white font-semibold text-sm mb-3">Photos from tenant's report</h3>
+                <h3 className="text-white font-semibold text-sm mb-3">{t('photosFromReport', lang)}</h3>
                 <div className="grid grid-cols-3 gap-2">
                   {photos.map((p) => (
                     <button
@@ -308,21 +313,21 @@ export default function SubmitBidPage() {
             )}
 
             <div className="bg-white/3 border border-white/8 rounded-2xl p-5 mb-6">
-              <h3 className="text-white font-semibold text-sm mb-1">Questions</h3>
-              <p className="text-white/50 text-xs mb-3">Visible to every contractor bidding, and to the landlord — same as sealed bidding, no one gets private information others don't.</p>
+              <h3 className="text-white font-semibold text-sm mb-1">{t('questionsHeading', lang)}</h3>
+              <p className="text-white/50 text-xs mb-3">{t('questionsVisibleDesc', lang)}</p>
               {questions.length > 0 && (
                 <div className="space-y-3 mb-4">
                   {questions.map((q) => (
                     <div key={q.id} className="bg-white/5 rounded-xl p-3">
                       <p className="text-white/80 text-sm">
-                        <span className="text-white/40">Q:</span> {q.question}
+                        <span className="text-white/40">{t('qLabel', lang)}</span> {q.question}
                       </p>
                       {q.answer ? (
                         <p className="text-[#12A5A9] text-sm mt-1.5">
-                          <span className="text-[#12A5A9]/60">A:</span> {q.answer}
+                          <span className="text-[#12A5A9]/60">{t('aLabel', lang)}</span> {q.answer}
                         </p>
                       ) : (
-                        <p className="text-white/40 text-xs mt-1.5 italic">Waiting on the landlord to answer.</p>
+                        <p className="text-white/40 text-xs mt-1.5 italic">{t('waitingOnLandlordAnswer', lang)}</p>
                       )}
                     </div>
                   ))}
@@ -333,7 +338,7 @@ export default function SubmitBidPage() {
                   type="text"
                   value={questionText}
                   onChange={(e) => setQuestionText(e.target.value)}
-                  placeholder="Ask something before you bid..."
+                  placeholder={t('askBeforeYouBid', lang)}
                   className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm placeholder-white/40 focus:outline-none focus:border-[#12A5A9] transition"
                 />
                 <button
@@ -342,19 +347,18 @@ export default function SubmitBidPage() {
                   disabled={askingQuestion || !questionText.trim()}
                   className="bg-white/8 text-white text-sm font-semibold px-4 rounded-xl hover:bg-white/12 transition disabled:opacity-40 shrink-0"
                 >
-                  {askingQuestion ? '...' : 'Ask'}
+                  {askingQuestion ? '...' : t('ask', lang)}
                 </button>
               </div>
             </div>
 
             <p className="text-white/50 text-xs mb-4">
-              🔒 Your bid is sealed. Other contractors can't see your price, and you can't see theirs.
-              <span className="block mt-0.5">Su oferta es sellada. Otros contratistas no pueden ver su precio, y usted no puede ver el de ellos.</span>
+              {t('sealedBidNotice', lang)}
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <FieldLabel es="Precio">Pricing</FieldLabel>
+                <FieldLabel>{t('pricingLabel', lang)}</FieldLabel>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
@@ -365,8 +369,7 @@ export default function SubmitBidPage() {
                         : 'bg-white/5 border border-white/10 text-white/60 hover:bg-white/8'
                     }`}
                   >
-                    Fixed price
-                    <span className="block text-[10px] font-normal opacity-70">Precio fijo</span>
+                    {t('fixedPrice', lang)}
                   </button>
                   <button
                     type="button"
@@ -377,15 +380,14 @@ export default function SubmitBidPage() {
                         : 'bg-white/5 border border-white/10 text-white/60 hover:bg-white/8'
                     }`}
                   >
-                    Hourly rate
-                    <span className="block text-[10px] font-normal opacity-70">Tarifa por hora</span>
+                    {t('hourlyRate', lang)}
                   </button>
                 </div>
               </div>
 
               {form.pricing_type === 'hourly' && (
                 <div>
-                  <FieldLabel es="Tarifa de mano de obra ($/hora)">Labor rate ($/hour)</FieldLabel>
+                  <FieldLabel>{t('laborRateLabel', lang)}</FieldLabel>
                   <input
                     type="number"
                     name="labor_rate"
@@ -401,7 +403,7 @@ export default function SubmitBidPage() {
               )}
 
               <div>
-                <FieldLabel es="Horas estimadas">Estimated hours</FieldLabel>
+                <FieldLabel>{t('estimatedHoursLabel', lang)}</FieldLabel>
                 <input
                   type="number"
                   name="estimated_hours"
@@ -415,8 +417,8 @@ export default function SubmitBidPage() {
               </div>
 
               <div>
-                <FieldLabel es={form.pricing_type === 'hourly' ? 'Monto total de la oferta ($)' : 'Monto de su oferta ($)'}>
-                  {form.pricing_type === 'hourly' ? 'Total bid amount ($)' : 'Your bid amount ($)'}
+                <FieldLabel>
+                  {form.pricing_type === 'hourly' ? t('totalBidAmountLabel', lang) : t('yourBidAmountLabel', lang)}
                 </FieldLabel>
                 <input
                   type="number"
@@ -440,46 +442,46 @@ export default function SubmitBidPage() {
                     }
                     className="text-[#12A5A9] text-xs font-medium mt-1.5 hover:underline"
                   >
-                    Use ${(parseFloat(form.labor_rate) * parseFloat(form.estimated_hours)).toFixed(2)} (rate × hours)
+                    {t('useRateHours', lang)} ${(parseFloat(form.labor_rate) * parseFloat(form.estimated_hours)).toFixed(2)} {t('rateHoursSuffix', lang)}
                   </button>
                 )}
               </div>
 
               <div>
-                <FieldLabel es="Disponibilidad">Availability</FieldLabel>
+                <FieldLabel>{t('availabilityLabel', lang)}</FieldLabel>
                 <input
                   type="text"
                   name="availability"
                   value={form.availability}
                   onChange={handleChange}
-                  placeholder="Can start tomorrow, mornings work best"
+                  placeholder={t('availabilityPlaceholder', lang)}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
                 />
               </div>
 
               <div>
-                <FieldLabel es="Notas (opcional)">Notes (optional)</FieldLabel>
+                <FieldLabel>{t('notesOptionalLabel', lang)}</FieldLabel>
                 <textarea
                   name="notes"
                   value={form.notes}
                   onChange={handleChange}
                   rows={3}
-                  placeholder="Anything the landlord should know"
+                  placeholder={t('notesPlaceholder', lang)}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition resize-none"
                 />
               </div>
 
               <div>
-                <FieldLabel es="Qué no está incluido (opcional)">What's not included (optional)</FieldLabel>
+                <FieldLabel>{t('notIncludedLabel', lang)}</FieldLabel>
                 <textarea
                   name="not_included"
                   value={form.not_included}
                   onChange={handleChange}
                   rows={2}
-                  placeholder="e.g. Doesn't cover replacement parts if the issue turns out bigger than expected"
+                  placeholder={t('notIncludedPlaceholder', lang)}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition resize-none"
                 />
-                <p className="text-white/40 text-xs mt-1">Sets expectations up front if this estimate could grow once you're on site.</p>
+                <p className="text-white/40 text-xs mt-1">{t('notIncludedHelp', lang)}</p>
               </div>
 
               {error && (
@@ -493,8 +495,7 @@ export default function SubmitBidPage() {
                 disabled={submitting}
                 className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
               >
-                {submitting ? 'Submitting...' : 'Submit sealed bid'}
-                {!submitting && <span className="block text-xs font-normal opacity-80">Enviar oferta sellada</span>}
+                {submitting ? t('submitting', lang) : t('submitSealedBid', lang)}
               </RippleButton>
             </form>
           </ScrollReveal>
