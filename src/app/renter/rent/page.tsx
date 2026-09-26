@@ -12,6 +12,7 @@ import { StripePaymentModal } from '@/components/StripePaymentModal'
 import { CheckCircleIcon, CalendarIcon, FileTextIcon } from '@/components/icons'
 import { RENTER_TABS } from '@/lib/navTabs'
 import { ensureCurrentMonthRentPayment, ensureNextMonthRentPayment } from '@/lib/rentAutomation'
+import { useLanguage, t, type Lang } from '@/lib/i18n'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -24,8 +25,16 @@ const ordinal = (day: number) => {
   return `${day}th`
 }
 
+// "due the 1st" in English reads naturally as "vence el día 1" in Spanish —
+// a translated ordinal suffix ("1ro", "2do") isn't how Spanish actually
+// phrases a due date, so this branches per language instead of forcing the
+// English ordinal pattern through translated words.
+const dueDayPhrase = (day: number, lang: Lang) =>
+  lang === 'es' ? `vence el día ${day}` : `due the ${ordinal(day)}`
+
 export default function RenterRentPage() {
   const router = useRouter()
+  const lang = useLanguage()
   const [loading, setLoading] = useState(true)
   const [tenancy, setTenancy] = useState<any>(null)
   const [unitLabel, setUnitLabel] = useState<string | null>(null)
@@ -211,6 +220,11 @@ export default function RenterRentPage() {
 
   const dueText = (payment: any) => {
     const days = getDaysUntilDue(payment)
+    if (lang === 'es') {
+      if (days < 0) return `${Math.abs(days)} día${Math.abs(days) === 1 ? '' : 's'} de atraso`
+      if (days === 0) return 'Vence hoy'
+      return `Vence en ${days} día${days === 1 ? '' : 's'}`
+    }
     if (days < 0) return `${Math.abs(days)} day${Math.abs(days) === 1 ? '' : 's'} late`
     if (days === 0) return 'Due today'
     return `Due in ${days} day${days === 1 ? '' : 's'}`
@@ -244,14 +258,14 @@ export default function RenterRentPage() {
     return (
       <div className={`bg-gradient-to-br from-white/6 to-white/2 border ${tone.ring} rounded-3xl p-6 mb-6`}>
         <div className="flex items-center justify-between gap-3">
-          <p className="text-white/60 text-sm">{formatMonth(payment.month)} rent</p>
+          <p className="text-white/60 text-sm">{lang === 'es' ? `Renta de ${formatMonth(payment.month)}` : `${formatMonth(payment.month)} rent`}</p>
           <span className={`text-xs font-semibold rounded-full px-3 py-1 ${tone.pill}`}>{dueText(payment)}</span>
         </div>
 
         <p className="text-white text-4xl font-bold tracking-tight mt-3 tabular-nums">{money(amountDue)}</p>
         <p className="text-white/50 text-sm mt-1 flex items-center gap-1.5">
           <CalendarIcon className="w-3.5 h-3.5" />
-          Due {formatDue(payment)}
+          {lang === 'es' ? `Vence ${formatDue(payment)}` : `Due ${formatDue(payment)}`}
         </p>
 
         <div className="h-1.5 bg-white/8 rounded-full overflow-hidden mt-5" aria-hidden="true">
@@ -260,13 +274,13 @@ export default function RenterRentPage() {
 
         <div className="mt-5 space-y-2 text-sm">
           <div className="flex justify-between text-white/70">
-            <span>Rent</span>
+            <span>{t('rentLabel', lang)}</span>
             <span className="tabular-nums">{money(rent)}</span>
           </div>
           {water > 0 && (
             <div className="flex justify-between text-white/70">
               <span className="flex items-center gap-2 flex-wrap">
-                Water
+                {t('waterLabel', lang)}
                 {payment.water_period_start && payment.water_period_end && (
                   <span className="text-white/40 text-xs">
                     ({new Date(payment.water_period_start + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – {new Date(payment.water_period_end + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })})
@@ -279,7 +293,7 @@ export default function RenterRentPage() {
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 text-[#12A5A9] text-xs hover:underline"
                   >
-                    <FileTextIcon className="w-3 h-3" /> View bill
+                    <FileTextIcon className="w-3 h-3" /> {t('viewBill', lang)}
                   </a>
                 )}
               </span>
@@ -288,26 +302,26 @@ export default function RenterRentPage() {
           )}
           {lateFee > 0 && (
             <div className="flex justify-between text-yellow-400">
-              <span>Late fee</span>
+              <span>{t('lateFeeLabel', lang)}</span>
               <span className="tabular-nums">{money(lateFee)}</span>
             </div>
           )}
           {paidSoFar > 0 && (
             <div className="flex justify-between text-[#12A5A9]">
-              <span>Already paid</span>
+              <span>{t('alreadyPaidLabel', lang)}</span>
               <span className="tabular-nums">−{money(paidSoFar)}</span>
             </div>
           )}
           <div className="flex justify-between text-white font-semibold pt-2 border-t border-white/10">
-            <span>Total due</span>
+            <span>{t('totalDueLabel', lang)}</span>
             <span className="tabular-nums">{money(amountDue)}</span>
           </div>
         </div>
 
         {isProcessing(payment) ? (
           <div className="mt-6 rounded-2xl border border-yellow-500/25 bg-yellow-500/10 px-4 py-4 text-center">
-            <p className="text-yellow-400 font-semibold text-sm">Bank payment processing</p>
-            <p className="text-white/60 text-xs mt-1">Your payment has started and usually clears in 1 to 3 business days. You don’t need to do anything.</p>
+            <p className="text-yellow-400 font-semibold text-sm">{t('bankPaymentProcessing', lang)}</p>
+            <p className="text-white/60 text-xs mt-1">{t('bankPaymentProcessingDesc', lang)}</p>
           </div>
         ) : (
           <>
@@ -316,9 +330,9 @@ export default function RenterRentPage() {
               disabled={payingId === payment.id}
               className="w-full mt-6 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3.5 rounded-2xl hover:opacity-90 transition disabled:opacity-50"
             >
-              {payingId === payment.id ? 'Loading...' : `Pay ${money(amountDue)}`}
+              {payingId === payment.id ? t('loadingShort', lang) : `${lang === 'es' ? 'Pagar' : 'Pay'} ${money(amountDue)}`}
             </RippleButton>
-            <p className="text-white/50 text-xs text-center mt-3">Debit card or bank account, straight to your landlord.</p>
+            <p className="text-white/50 text-xs text-center mt-3">{t('payStraightToLandlord', lang)}</p>
           </>
         )}
       </div>
@@ -333,8 +347,8 @@ export default function RenterRentPage() {
         <div className="min-w-0">
           <p className="text-white font-semibold">{formatMonth(payment.month)}</p>
           <p className="text-white/50 text-xs mt-0.5">
-            {upcoming ? `Due ${formatDue(payment)}` : dueText(payment)}
-            {payment.water_amount ? ` · incl. ${money(Number(payment.water_amount))} water` : ''}
+            {upcoming ? (lang === 'es' ? `Vence ${formatDue(payment)}` : `Due ${formatDue(payment)}`) : dueText(payment)}
+            {payment.water_amount ? ` · ${lang === 'es' ? `incl. ${money(Number(payment.water_amount))} de agua` : `incl. ${money(Number(payment.water_amount))} water`}` : ''}
           </p>
           {payment.waterBillViewUrl && (
             <a
@@ -343,13 +357,13 @@ export default function RenterRentPage() {
               rel="noopener noreferrer"
               className="text-[#12A5A9] text-xs hover:underline mt-1 inline-block"
             >
-              View water bill →
+              {t('viewWaterBill', lang)}
             </a>
           )}
         </div>
         {isProcessing(payment) ? (
           <span className="shrink-0 text-xs font-semibold px-3 py-2 rounded-xl bg-yellow-500/15 text-yellow-400 text-center leading-tight">
-            Bank payment<br />processing
+            {lang === 'es' ? <>Pago bancario<br />en proceso</> : <>Bank payment<br />processing</>}
           </span>
         ) : (
           <RippleButton
@@ -361,7 +375,11 @@ export default function RenterRentPage() {
                 : 'bg-white/8 text-white hover:bg-white/12'
             }`}
           >
-            {payingId === payment.id ? 'Loading...' : upcoming ? `Pay early ${money(amountDue)}` : `Pay ${money(amountDue)}`}
+            {payingId === payment.id
+              ? t('loadingShort', lang)
+              : upcoming
+                ? (lang === 'es' ? `Pagar antes ${money(amountDue)}` : `Pay early ${money(amountDue)}`)
+                : `${lang === 'es' ? 'Pagar' : 'Pay'} ${money(amountDue)}`}
           </RippleButton>
         )}
       </div>
@@ -372,7 +390,7 @@ export default function RenterRentPage() {
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
         <Link href="/renter" className="text-white/50 hover:text-white text-sm transition">
-          ← Back
+          {t('backArrow', lang)}
         </Link>
         <Link href="/renter" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
         <div className="w-12" />
@@ -387,15 +405,15 @@ export default function RenterRentPage() {
           </div>
         ) : !tenancy ? (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
-            <p className="text-white/50 text-sm">No active lease linked to your account yet.</p>
+            <p className="text-white/50 text-sm">{t('noActiveLease', lang)}</p>
           </div>
         ) : (
           <>
             <div className="mb-6">
-              <h1 className="text-2xl font-bold text-white">Rent</h1>
+              <h1 className="text-2xl font-bold text-white">{t('rentTitle', lang)}</h1>
               <p className="text-white/50 text-sm mt-1">
                 {unitLabel ? `${unitLabel} · ` : ''}
-                {tenancy.rent_amount ? `${money(Number(tenancy.rent_amount))}/month, due the ${ordinal(tenancy.rent_due_day || 1)}` : ''}
+                {tenancy.rent_amount ? `${money(Number(tenancy.rent_amount))}/${lang === 'es' ? 'mes' : 'month'}, ${dueDayPhrase(tenancy.rent_due_day || 1, lang)}` : ''}
               </p>
             </div>
 
@@ -407,7 +425,7 @@ export default function RenterRentPage() {
 
             {payments.length === 0 ? (
               <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
-                <p className="text-white/50 text-sm">Nothing to pay yet. Check back once your lease&apos;s rent amount is set up.</p>
+                <p className="text-white/50 text-sm">{t('nothingToPayYet', lang)}</p>
               </div>
             ) : (
               <>
@@ -416,12 +434,14 @@ export default function RenterRentPage() {
                 ) : (
                   <div className="bg-[#0A7B7E]/12 border border-[#12A5A9]/30 rounded-3xl p-6 mb-6">
                     <p className="text-[#12A5A9] font-semibold flex items-center gap-2">
-                      <CheckCircleIcon className="w-5 h-5" /> You&apos;re all paid up
+                      <CheckCircleIcon className="w-5 h-5" /> {t('allPaidUp', lang)}
                     </p>
                     <p className="text-white/60 text-sm mt-1">
                       {nextUp
-                        ? `Next up: ${formatMonth(nextUp.month)}, due ${formatDue(nextUp)}.`
-                        : 'Nothing due right now.'}
+                        ? (lang === 'es'
+                            ? `Próximo: ${formatMonth(nextUp.month)}, vence ${formatDue(nextUp)}.`
+                            : `Next up: ${formatMonth(nextUp.month)}, due ${formatDue(nextUp)}.`)
+                        : t('nothingDueRightNow', lang)}
                     </p>
                   </div>
                 )}
@@ -429,7 +449,7 @@ export default function RenterRentPage() {
                 {(nextUp || otherUnpaid.length > 0) && (
                   <section className="mb-8">
                     <h2 className="text-white/60 text-xs font-semibold uppercase tracking-wide mb-3">
-                      {heroPayment ? 'Coming up' : 'Pay ahead if you like'}
+                      {heroPayment ? t('comingUp', lang) : t('payAheadIfYouLike', lang)}
                     </h2>
                     <ScrollReveal className="space-y-3">
                       {nextUp && renderUpcomingRow(nextUp, true)}
@@ -440,21 +460,23 @@ export default function RenterRentPage() {
 
                 {paid.length > 0 && (
                   <section>
-                    <h2 className="text-white/60 text-xs font-semibold uppercase tracking-wide mb-3">Payment history</h2>
+                    <h2 className="text-white/60 text-xs font-semibold uppercase tracking-wide mb-3">{t('paymentHistory', lang)}</h2>
                     <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl divide-y divide-white/8">
                       {paid.map((payment) => (
                         <div key={payment.id} className="flex items-center justify-between gap-4 px-4 py-3.5">
                           <div className="min-w-0">
                             <p className="text-white text-sm font-medium">{formatMonth(payment.month)}</p>
                             <p className="text-white/50 text-xs mt-0.5">
-                              {payment.paid_date ? `Paid ${new Date(payment.paid_date + 'T00:00:00').toLocaleDateString()}` : 'Paid'}
-                              {payment.water_amount ? ` · incl. ${money(Number(payment.water_amount))} water` : ''}
+                              {payment.paid_date
+                                ? `${t('paidLabel', lang)} ${new Date(payment.paid_date + 'T00:00:00').toLocaleDateString()}`
+                                : t('paidLabel', lang)}
+                              {payment.water_amount ? ` · ${lang === 'es' ? `incl. ${money(Number(payment.water_amount))} de agua` : `incl. ${money(Number(payment.water_amount))} water`}` : ''}
                             </p>
                           </div>
                           <div className="flex items-center gap-4 shrink-0">
                             <span className="text-white text-sm tabular-nums">{money(Number(payment.actual_amount))}</span>
                             <Link href={`/receipts/rent/${payment.id}`} className="text-[#12A5A9] text-xs font-semibold hover:underline">
-                              Receipt
+                              {t('receipt', lang)}
                             </Link>
                           </div>
                         </div>
@@ -464,7 +486,7 @@ export default function RenterRentPage() {
                 )}
 
                 <p className="text-white/50 text-xs mt-8">
-                  Credit cards aren&apos;t accepted for rent. Bank payments (ACH) can take a few business days to clear; debit card payments are instant.
+                  {t('rentDisclaimer', lang)}
                 </p>
               </>
             )}
@@ -476,8 +498,8 @@ export default function RenterRentPage() {
         <StripePaymentModal
           clientSecret={modal.clientSecret}
           amount={modal.amount}
-          title="Pay rent"
-          note="Debit card or bank account only. Credit cards aren't accepted for rent and will be refunded. Bank payments may take a few business days to clear."
+          title={t('payRentModalTitle', lang)}
+          note={t('payRentModalNote', lang)}
           onClose={() => setModal(null)}
           onPaid={async () => {
             // Record it now (processing or paid) so the list is right behind the confirmation screen.
