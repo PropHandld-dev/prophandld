@@ -60,12 +60,21 @@ function LoginForm() {
   // Everything that needs to happen once we know who's signed in, whether
   // they got here by typing a password or by Supabase silently starting a
   // session from an email-confirmation link's URL. Shared so both paths
-  // behave identically.
-  const completeSignIn = async (user: User) => {
+  // behave identically. `isFirstActivation` is only ever true from the
+  // auto-detected-session path below — that's the one moment that reliably
+  // means "this account just went from confirmed to actually signed in,"
+  // as opposed to any other ordinary login, so it's the only place the
+  // welcome email fires from.
+  const completeSignIn = async (user: User, isFirstActivation = false) => {
     try {
       sessionStorage.setItem('ph_just_signed_in', '1')
     } catch {}
     const accountRole = user.user_metadata?.role
+    if (isFirstActivation && (accountRole === 'landlord' || accountRole === 'renter' || accountRole === 'contractor')) {
+      fetch('/api/auth/welcome', { method: 'POST' }).catch((err) =>
+        console.error('Error sending welcome email:', err)
+      )
+    }
     if (accountRole === 'renter') {
       // A renter's real first entry into the app now happens here, not on
       // the signup page — since email confirmation was turned on, signup
@@ -129,7 +138,7 @@ function LoginForm() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (cancelled) return
       if (session?.user) {
-        completeSignIn(session.user)
+        completeSignIn(session.user, true)
       } else {
         setCheckingSession(false)
       }

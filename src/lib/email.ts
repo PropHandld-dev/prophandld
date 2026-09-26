@@ -200,6 +200,52 @@ function escapeHtml(value: string) {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 
+const WELCOME_CONTENT: Record<'landlord' | 'renter' | 'contractor', { heading: string; bodyHtml: string; ctaLabel: string; ctaPath: string }> = {
+  landlord: {
+    heading: 'Welcome to Prophandld',
+    bodyHtml: "You're set up. Add a property, invite your tenants, and the next time something breaks, post it once — contractors bid sealed, so you're never guessing what a fair price looks like.",
+    ctaLabel: 'Go to your dashboard',
+    ctaPath: '/landlord',
+  },
+  renter: {
+    heading: "You're in",
+    bodyHtml: "Something broken? Report it in a few taps, no digging through old texts for your landlord's number. You can also see your lease documents and pay rent right from here.",
+    ctaLabel: 'Go to your dashboard',
+    ctaPath: '/renter',
+  },
+  contractor: {
+    heading: 'Welcome to Prophandld',
+    bodyHtml: "Real jobs near you, sealed bids so you're never guessing what to quote, and payment the moment a landlord confirms the work's done.",
+    ctaLabel: 'Go to your dashboard',
+    ctaPath: '/contractor',
+  },
+}
+
+// Sent once, right when an account first goes from "confirmed" to actually
+// signed in — not on every login. See the auto-detected-session branch in
+// /login, the one place this fires from.
+export async function sendWelcomeEmail({
+  to,
+  name,
+  role,
+}: {
+  to: string
+  name?: string | null
+  role: 'landlord' | 'renter' | 'contractor'
+}) {
+  const content = WELCOME_CONTENT[role]
+  const firstName = name?.trim().split(' ')[0]
+  const html = baseTemplate({
+    eyebrow: 'Welcome',
+    heading: firstName ? `Welcome, ${escapeHtml(firstName)}` : content.heading,
+    bodyHtml: content.bodyHtml,
+    ctaLabel: content.ctaLabel,
+    ctaUrl: `${SITE_URL}${content.ctaPath}`,
+    footerText: 'Sent once, the first time you signed in.',
+  })
+  return sendEmail({ to, subject: content.heading, html })
+}
+
 export async function sendCredentialSubmittedAdminEmail({
   contractorName,
   contractorEmail,
