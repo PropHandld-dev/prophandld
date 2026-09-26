@@ -21,6 +21,13 @@ async function loadReminders(propertyIds: string[], unitIds: string[]): Promise<
   const today = new Date()
   const windowEnd = new Date()
   windowEnd.setDate(windowEnd.getDate() + 180) // shows up to 6 months out, plus anything already overdue
+  // A flat row limit ordered across the whole portfolio would silently
+  // drop real reminders once a landlord has enough units × months to
+  // exceed it — exactly the large-portfolio case the new Enterprise tier
+  // is for. A real date range scales correctly regardless of portfolio
+  // size instead. 3 months back is generous for "still shows as overdue."
+  const rentWindowStart = new Date()
+  rentWindowStart.setMonth(rentWindowStart.getMonth() - 3)
 
   const [complianceRes, rentRes, tenanciesRes, insuranceRes] = await Promise.all([
     propertyIds.length
@@ -34,9 +41,10 @@ async function loadReminders(propertyIds: string[], unitIds: string[]): Promise<
     unitIds.length
       ? supabase
           .from('rent_payments')
-          .select('id, month, expected_amount, actual_amount, tenancy_id, tenancies(rent_due_day, unit_id, units(unit_number, property_id, properties(address)))')
-          .order('month', { ascending: false })
-          .limit(300)
+          .select('id, month, expected_amount, actual_amount, tenancy_id, tenancies!inner(rent_due_day, unit_id, ended, units(unit_number, property_id, properties(address)))')
+          .eq('tenancies.ended', false)
+          .gte('month', dateStr(rentWindowStart))
+          .lte('month', dateStr(windowEnd))
       : Promise.resolve({ data: [] as any[] }),
     unitIds.length
       ? supabase
