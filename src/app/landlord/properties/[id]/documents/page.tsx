@@ -10,6 +10,7 @@ import { FileTextIcon } from '@/components/icons'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
+import { useLanguage, t } from '@/lib/i18n'
 
 const DOCUMENT_TYPES = ['Lease', 'Rental Agreement', 'Deed', 'Insurance', 'Inspection Report', 'Other']
 
@@ -23,6 +24,7 @@ function safeZipName(name: string) {
 export default function PropertyDocumentsPage() {
   const router = useRouter()
   const params = useParams()
+  const lang = useLanguage()
   const propertyId = params.id as string
 
   const [loading, setLoading] = useState(true)
@@ -265,9 +267,9 @@ export default function PropertyDocumentsPage() {
   }
 
   const getUnitLabel = (unitId: string | null) => {
-    if (!unitId) return 'Property-wide'
+    if (!unitId) return t('propertyWide', lang)
     const unit = units.find((u) => u.id === unitId)
-    return unit ? unit.unit_number : 'Unknown unit'
+    return unit ? unit.unit_number : t('unknownUnit', lang)
   }
 
   return (
@@ -277,7 +279,7 @@ export default function PropertyDocumentsPage() {
           href={`/landlord/properties/${propertyId}`}
           className="text-white/50 hover:text-white text-sm transition"
         >
-          ← Property
+          {t('propertyBack', lang)}
         </Link>
         <Link href="/landlord" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
         <div className="w-20" />
@@ -298,23 +300,23 @@ export default function PropertyDocumentsPage() {
         ) : !property ? null : (
         <>
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-white">Documents</h1>
+          <h1 className="text-2xl font-bold text-white">{t('documentsTitle', lang)}</h1>
           <p className="text-white/50 text-sm mt-1">{property.address}</p>
         </div>
 
         <ScrollReveal>
         <form onSubmit={handleSubmit} className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6 space-y-4">
-          <h2 className="text-white font-semibold mb-2">Upload a document</h2>
+          <h2 className="text-white font-semibold mb-2">{t('uploadADocument', lang)}</h2>
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">Type</label>
+            <label className="text-white/70 text-sm block mb-1">{t('typeLabel', lang)}</label>
             <select
               name="document_type"
               value={form.document_type}
               onChange={handleChange}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
             >
-              <option value="" className="bg-[#0C1A2E]">Select a type</option>
+              <option value="" className="bg-[#0C1A2E]">{t('selectAType', lang)}</option>
               {DOCUMENT_TYPES.map((type) => (
                 <option key={type} value={type} className="bg-[#0C1A2E]">{type}</option>
               ))}
@@ -325,44 +327,44 @@ export default function PropertyDocumentsPage() {
                 name="custom_document_type"
                 value={form.custom_document_type}
                 onChange={handleChange}
-                placeholder="Enter a document type"
+                placeholder={t('enterDocumentType', lang)}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition mt-2"
               />
             )}
           </div>
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">Applies to</label>
+            <label className="text-white/70 text-sm block mb-1">{t('appliesTo', lang)}</label>
             <select
               name="unit_id"
               value={form.unit_id}
               onChange={handleChange}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
             >
-              <option value="" className="bg-[#0C1A2E]">Property-wide</option>
+              <option value="" className="bg-[#0C1A2E]">{t('propertyWide', lang)}</option>
               {units.map((unit) => (
                 <option key={unit.id} value={unit.id} className="bg-[#0C1A2E]">
-                  {unit.unit_number} only
+                  {unit.unit_number} {t('unitOnly', lang)}
                 </option>
               ))}
             </select>
           </div>
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">Who can see this</label>
+            <label className="text-white/70 text-sm block mb-1">{t('whoCanSeeThis', lang)}</label>
             <select
               name="visibility"
               value={form.visibility}
               onChange={handleChange}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
             >
-              <option value="shared" className="bg-[#0C1A2E]">Landlord and tenant</option>
-              <option value="landlord_only" className="bg-[#0C1A2E]">Landlord only</option>
+              <option value="shared" className="bg-[#0C1A2E]">{t('landlordAndTenant', lang)}</option>
+              <option value="landlord_only" className="bg-[#0C1A2E]">{t('landlordOnlyOption', lang)}</option>
             </select>
           </div>
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">Files</label>
+            <label className="text-white/70 text-sm block mb-1">{t('filesLabel', lang)}</label>
             <label className="block">
               <input
                 type="file"
@@ -372,7 +374,7 @@ export default function PropertyDocumentsPage() {
                 className="hidden"
               />
               <span className="inline-block bg-white/8 text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-white/12 transition cursor-pointer">
-                {files.length > 0 ? '+ Add more files' : '+ Choose files'}
+                {files.length > 0 ? t('addMoreFiles', lang) : t('chooseFiles', lang)}
               </span>
             </label>
             {files.length > 0 && (
@@ -385,7 +387,7 @@ export default function PropertyDocumentsPage() {
                       onClick={() => removeFile(i)}
                       className="text-red-400/70 text-xs hover:text-red-400 transition shrink-0 ml-3"
                     >
-                      Remove
+                      {t('remove', lang)}
                     </button>
                   </div>
                 ))}
@@ -404,14 +406,14 @@ export default function PropertyDocumentsPage() {
             disabled={uploading}
             className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
           >
-            {uploading ? 'Uploading...' : 'Upload'}
+            {uploading ? t('uploading', lang) : t('upload', lang)}
           </RippleButton>
         </form>
         </ScrollReveal>
 
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-white font-semibold">
-            All documents {documents.length > 0 && `(${documents.length})`}
+            {t('allDocuments', lang)} {documents.length > 0 && `(${documents.length})`}
           </h2>
           {documents.length > 0 && (
             <button
@@ -419,14 +421,14 @@ export default function PropertyDocumentsPage() {
               disabled={downloadingAll}
               className="text-[#12A5A9] text-sm font-semibold hover:underline disabled:opacity-50"
             >
-              {downloadingAll ? 'Building download...' : 'Download all'}
+              {downloadingAll ? t('buildingDownload', lang) : t('downloadAll', lang)}
             </button>
           )}
         </div>
 
         {documents.length === 0 ? (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
-            <p className="text-white/50 text-sm">No documents uploaded yet.</p>
+            <p className="text-white/50 text-sm">{t('noDocumentsYet', lang)}</p>
           </div>
         ) : (
           <ScrollReveal>
@@ -440,8 +442,8 @@ export default function PropertyDocumentsPage() {
                       <h3 className="text-white font-semibold truncate">
                         {doc.rentMonth
                           ? doc.waterPeriodStart && doc.waterPeriodEnd
-                            ? `Water bill · ${new Date(doc.waterPeriodStart + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – ${new Date(doc.waterPeriodEnd + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`
-                            : `Water bill · ${new Date(doc.rentMonth + 'T00:00:00').toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}`
+                            ? `${t('waterBillLabel', lang)} · ${new Date(doc.waterPeriodStart + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – ${new Date(doc.waterPeriodEnd + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`
+                            : `${t('waterBillLabel', lang)} · ${new Date(doc.rentMonth + 'T00:00:00').toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}`
                           : doc.filename}
                       </h3>
                       <div className="flex items-center gap-2 flex-wrap mt-2">
@@ -455,25 +457,29 @@ export default function PropertyDocumentsPage() {
                         </span>
                         {doc.compliance_item_id && (
                           <span className="text-xs bg-yellow-500/15 text-yellow-400 rounded-full px-2.5 py-0.5">
-                            Compliance
+                            {t('complianceBadge', lang)}
                           </span>
                         )}
                         {doc.uploaded_by_role === 'renter' && (
                           <span className="text-xs bg-white/8 text-white/50 rounded-full px-2.5 py-0.5">
-                            From tenant
+                            {t('fromTenant', lang)}
                           </span>
                         )}
                         <span className={`text-xs rounded-full px-2.5 py-0.5 ${doc.visibility === 'landlord_only' ? 'bg-white/8 text-white/50' : 'bg-[#0A7B7E]/15 text-[#12A5A9]'}`}>
-                          {doc.visibility === 'landlord_only' ? 'Landlord only' : 'Shared with tenant'}
+                          {doc.visibility === 'landlord_only' ? t('landlordOnlyOption', lang) : t('sharedWithTenant', lang)}
                         </span>
                         {doc.expiry_date && (
                           <span className={`text-xs rounded-full px-2.5 py-0.5 ${new Date(doc.expiry_date + 'T00:00:00') < new Date() ? 'bg-red-500/15 text-red-400' : 'bg-yellow-500/15 text-yellow-400'}`}>
-                            Expires {new Date(doc.expiry_date + 'T00:00:00').toLocaleDateString()}
+                            {t('expiresLabel', lang)} {new Date(doc.expiry_date + 'T00:00:00').toLocaleDateString()}
                           </span>
                         )}
                       </div>
                       <p className="text-white/50 text-xs mt-2">
-                        {doc.rentMonth && doc.waterPeriodStart ? `Billed with ${new Date(doc.rentMonth + 'T00:00:00').toLocaleDateString(undefined, { month: 'long', year: 'numeric' })} rent · ` : ''}
+                        {doc.rentMonth && doc.waterPeriodStart
+                          ? lang === 'es'
+                            ? `Facturado con la renta de ${new Date(doc.rentMonth + 'T00:00:00').toLocaleDateString(undefined, { month: 'long', year: 'numeric' })} · `
+                            : `Billed with ${new Date(doc.rentMonth + 'T00:00:00').toLocaleDateString(undefined, { month: 'long', year: 'numeric' })} rent · `
+                          : ''}
                         {doc.rentMonth ? `${doc.filename} · ` : ''}{new Date(doc.created_at).toLocaleDateString()}
                       </p>
                     </div>
@@ -486,14 +492,14 @@ export default function PropertyDocumentsPage() {
                         rel="noopener noreferrer"
                         className="text-[#12A5A9] text-xs font-semibold hover:underline"
                       >
-                        View →
+                        {t('viewArrow', lang)}
                       </a>
                     )}
                     <button
                       onClick={() => handleDelete(doc)}
                       className="text-red-400/70 text-xs hover:text-red-400 transition"
                     >
-                      Delete
+                      {t('delete', lang)}
                     </button>
                   </div>
                 </div>

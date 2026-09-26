@@ -10,11 +10,13 @@ import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { FileTextIcon } from '@/components/icons'
 import { RENTER_TABS } from '@/lib/navTabs'
+import { useLanguage, t } from '@/lib/i18n'
 
 const TENANT_DOCUMENT_TYPES = ['Renters Insurance', 'Utility Proof — Electric', 'Utility Proof — Gas', 'Utility Proof — Water', 'Other']
 
 export default function RenterDocumentsPage() {
   const router = useRouter()
+  const lang = useLanguage()
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
@@ -205,7 +207,7 @@ export default function RenterDocumentsPage() {
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
         <Link href="/renter" className="text-white/50 hover:text-white text-sm transition">
-          ← Dashboard
+          {t('dashboard', lang)}
         </Link>
         <Link href="/renter" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
         <div className="w-20" />
@@ -224,30 +226,30 @@ export default function RenterDocumentsPage() {
         ) : (
         <>
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-white">Documents</h1>
-          <p className="text-white/50 text-sm mt-1">Your lease and related paperwork — plus anything you've shared, like proof of insurance.</p>
+          <h1 className="text-2xl font-bold text-white">{t('documentsTitle', lang)}</h1>
+          <p className="text-white/50 text-sm mt-1">{t('renterDocumentsSubtitle', lang)}</p>
         </div>
 
         {!unitId ? (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
-            <p className="text-white/50 text-sm">No unit linked to your account yet.</p>
+            <p className="text-white/50 text-sm">{t('noUnitLinked', lang)}</p>
           </div>
         ) : (
         <>
         <ScrollReveal>
         <form onSubmit={handleSubmit} className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6 space-y-4">
-          <h2 className="text-white font-semibold mb-2">Upload a document</h2>
-          <p className="text-white/50 text-xs -mt-2 mb-2">Renters insurance, a utility bill in your name — anything your landlord might need proof of.</p>
+          <h2 className="text-white font-semibold mb-2">{t('uploadADocument', lang)}</h2>
+          <p className="text-white/50 text-xs -mt-2 mb-2">{t('uploadADocumentRenterDesc', lang)}</p>
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">Type</label>
+            <label className="text-white/70 text-sm block mb-1">{t('typeLabel', lang)}</label>
             <select
               name="document_type"
               value={form.document_type}
               onChange={handleChange}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
             >
-              <option value="" className="bg-[#0C1A2E]">Select a type</option>
+              <option value="" className="bg-[#0C1A2E]">{t('selectAType', lang)}</option>
               {TENANT_DOCUMENT_TYPES.map((type) => (
                 <option key={type} value={type} className="bg-[#0C1A2E]">{type}</option>
               ))}
@@ -258,7 +260,7 @@ export default function RenterDocumentsPage() {
                 name="custom_document_type"
                 value={form.custom_document_type}
                 onChange={(e) => setForm({ ...form, custom_document_type: e.target.value })}
-                placeholder="Enter a document type"
+                placeholder={t('enterDocumentType', lang)}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition mt-2"
               />
             )}
@@ -266,7 +268,7 @@ export default function RenterDocumentsPage() {
 
           {form.document_type === 'Renters Insurance' && (
             <div>
-              <label className="text-white/70 text-sm block mb-1">Policy expires (optional)</label>
+              <label className="text-white/70 text-sm block mb-1">{t('policyExpiresOptional', lang)}</label>
               <input
                 type="date"
                 name="expiry_date"
@@ -274,25 +276,25 @@ export default function RenterDocumentsPage() {
                 onChange={handleChange}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
               />
-              <p className="text-white/40 text-xs mt-1">Lets your landlord know before it lapses.</p>
+              <p className="text-white/40 text-xs mt-1">{t('policyExpiresHelp', lang)}</p>
             </div>
           )}
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">Who can see this</label>
+            <label className="text-white/70 text-sm block mb-1">{t('whoCanSeeThis', lang)}</label>
             <select
               name="visibility"
               value={form.visibility}
               onChange={handleChange}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
             >
-              <option value="landlord_only" className="bg-[#0C1A2E]">Just my landlord and me</option>
-              <option value="shared" className="bg-[#0C1A2E]">My landlord and anyone else on my unit</option>
+              <option value="landlord_only" className="bg-[#0C1A2E]">{t('justMyLandlordAndMe', lang)}</option>
+              <option value="shared" className="bg-[#0C1A2E]">{t('myLandlordAndOthers', lang)}</option>
             </select>
           </div>
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">Files</label>
+            <label className="text-white/70 text-sm block mb-1">{t('filesLabel', lang)}</label>
             <label className="block">
               <input
                 type="file"
@@ -302,7 +304,7 @@ export default function RenterDocumentsPage() {
                 className="hidden"
               />
               <span className="inline-block bg-white/8 text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-white/12 transition cursor-pointer">
-                {files.length > 0 ? '+ Add more files' : '+ Choose files'}
+                {files.length > 0 ? t('addMoreFiles', lang) : t('chooseFiles', lang)}
               </span>
             </label>
             {files.length > 0 && (
@@ -315,7 +317,7 @@ export default function RenterDocumentsPage() {
                       onClick={() => removeFile(i)}
                       className="text-red-400/70 text-xs hover:text-red-400 transition shrink-0 ml-3"
                     >
-                      Remove
+                      {t('remove', lang)}
                     </button>
                   </div>
                 ))}
@@ -334,18 +336,18 @@ export default function RenterDocumentsPage() {
             disabled={uploading}
             className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
           >
-            {uploading ? 'Uploading...' : 'Upload'}
+            {uploading ? t('uploading', lang) : t('upload', lang)}
           </RippleButton>
         </form>
         </ScrollReveal>
 
         <h2 className="text-white font-semibold mb-4">
-          All documents {documents.length > 0 && `(${documents.length})`}
+          {t('allDocuments', lang)} {documents.length > 0 && `(${documents.length})`}
         </h2>
 
         {documents.length === 0 ? (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
-            <p className="text-white/50 text-sm">No documents available yet.</p>
+            <p className="text-white/50 text-sm">{t('noDocumentsAvailableYet', lang)}</p>
           </div>
         ) : (
           <ScrollReveal className="space-y-3">
@@ -364,12 +366,12 @@ export default function RenterDocumentsPage() {
                         )}
                         {doc.uploaded_by === userId && (
                           <span className="text-xs bg-white/8 text-white/50 rounded-full px-2.5 py-0.5">
-                            Uploaded by you
+                            {t('uploadedByYou', lang)}
                           </span>
                         )}
                         {doc.expiry_date && (
                           <span className={`text-xs rounded-full px-2.5 py-0.5 ${new Date(doc.expiry_date + 'T00:00:00') < new Date() ? 'bg-red-500/15 text-red-400' : 'bg-yellow-500/15 text-yellow-400'}`}>
-                            Expires {new Date(doc.expiry_date + 'T00:00:00').toLocaleDateString()}
+                            {t('expiresLabel', lang)} {new Date(doc.expiry_date + 'T00:00:00').toLocaleDateString()}
                           </span>
                         )}
                       </div>
@@ -386,7 +388,7 @@ export default function RenterDocumentsPage() {
                         rel="noopener noreferrer"
                         className="text-[#12A5A9] text-xs font-semibold hover:underline"
                       >
-                        View →
+                        {t('viewArrow', lang)}
                       </a>
                     )}
                     {doc.uploaded_by === userId && (
@@ -394,7 +396,7 @@ export default function RenterDocumentsPage() {
                         onClick={() => handleDelete(doc)}
                         className="text-red-400/70 text-xs hover:text-red-400 transition"
                       >
-                        Delete
+                        {t('delete', lang)}
                       </button>
                     )}
                   </div>
