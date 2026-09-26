@@ -7,6 +7,7 @@ import { RippleButton } from '@/components/RippleButton'
 import { AuthLayout } from '@/components/AuthLayout'
 import { AuthInput } from '@/components/AuthInput'
 import { MailIcon, CheckCircleIcon } from '@/components/icons'
+import { SITE_URL } from '@/lib/site'
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
@@ -19,8 +20,9 @@ export default function ForgotPasswordPage() {
     setError(null)
     setLoading(true)
 
+    // Always the real domain, never window.location.origin — see SITE_URL.
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: `${SITE_URL}/reset-password`,
     })
 
     if (resetError) {

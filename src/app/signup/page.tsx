@@ -10,6 +10,7 @@ import { AuthInput } from '@/components/AuthInput'
 import { MailIcon, LockIcon } from '@/components/icons'
 import { RolePicker, type Role } from '@/components/RolePicker'
 import { AddressAutocomplete, type AutocompletePlace } from '@/components/AddressAutocomplete'
+import { SITE_URL } from '@/lib/site'
 
 const ROLE_CONTENT: Record<Role, { headline: string; subtext: string; checklist: string[] }> = {
   landlord: {
@@ -91,7 +92,10 @@ function SignupForm() {
             onboarding_lng: firstPropertyPlace.lng,
           } : {}),
         },
-        emailRedirectTo: `${window.location.origin}/login`,
+        // Always the real domain, never window.location.origin — a
+        // confirmation link built from a raw Vercel deployment URL lands
+        // behind Vercel's own login wall instead of the app. See SITE_URL.
+        emailRedirectTo: `${SITE_URL}/login`,
       },
     })
 
@@ -156,7 +160,7 @@ function SignupForm() {
     const { error: resendError } = await supabase.auth.resend({
       type: 'signup',
       email: confirmationEmail,
-      options: { emailRedirectTo: `${window.location.origin}/login` },
+      options: { emailRedirectTo: `${SITE_URL}/login` },
     })
     if (resendError) {
       setError('Could not resend: ' + resendError.message)

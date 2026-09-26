@@ -1,7 +1,6 @@
 import { Resend } from 'resend'
 import { isPreviewDeployment } from '@/lib/env'
-
-const SITE_URL = 'https://www.prophandld.com'
+import { SITE_URL } from '@/lib/site'
 
 let resendClient: Resend | null = null
 
