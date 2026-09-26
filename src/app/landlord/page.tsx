@@ -702,10 +702,10 @@ export default function LandlordDashboard() {
                 <h3 className="text-white font-semibold mb-1">View jobs</h3>
                 <p className="text-white/60 text-sm">See all maintenance requests</p>
               </Link>
-              <Link href="/landlord/properties" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
+              <Link href="/landlord/rent" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
                 <DollarSignIcon className="w-5 h-5 text-[#12A5A9] mb-2" />
-                <h3 className="text-white font-semibold mb-1">Rent collection</h3>
-                <p className="text-white/60 text-sm">Open a unit to track and collect rent</p>
+                <h3 className="text-white font-semibold mb-1">Rent roll</h3>
+                <p className="text-white/60 text-sm">Every unit, every month, at a glance</p>
               </Link>
               <Link href="/landlord/properties" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
                 <FileTextIcon className="w-5 h-5 text-[#12A5A9] mb-2" />

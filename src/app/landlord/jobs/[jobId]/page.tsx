@@ -23,6 +23,7 @@ import { getUnreadJobIds } from '@/lib/messageReads'
 import { useJobRealtime } from '@/lib/useJobRealtime'
 import { requirementById } from '@/lib/credentialRequirements'
 import { TIME_WINDOWS, validateScheduleTime, rescheduleLockError } from '@/lib/scheduleWindows'
+import { AddressLink } from '@/components/AddressLink'
 
 export default function JobDetailPage() {
   const router = useRouter()
@@ -772,7 +773,8 @@ export default function JobDetailPage() {
                 )}
               </div>
               <p className="text-white/60 text-sm">
-                {job.units?.properties?.address}, {job.units?.properties?.city} · Unit {job.units?.unit_number}
+                <AddressLink address={job.units?.properties?.address} city={job.units?.properties?.city} />
+                {' '}· Unit {job.units?.unit_number}
               </p>
               {job.maintenance_items && (
                 <p className="text-[#12A5A9] text-xs mt-1 flex items-center gap-1">
