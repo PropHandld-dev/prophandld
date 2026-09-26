@@ -27,6 +27,10 @@ export default function SubmitBidPage() {
   const [error, setError] = useState<string | null>(null)
   const [alreadyBid, setAlreadyBid] = useState(false)
   const [zoomedPhoto, setZoomedPhotoState] = useState<string | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
+  const [questions, setQuestions] = useState<any[]>([])
+  const [questionText, setQuestionText] = useState('')
+  const [askingQuestion, setAskingQuestion] = useState(false)
 
   // Zooming pushes a throwaway history entry so the browser's own Back
   // button/gesture closes the zoom instead of navigating off the page
@@ -63,6 +67,7 @@ export default function SubmitBidPage() {
         router.replace('/login')
         return
       }
+      setUserId(user.id)
 
       // Must match the same zip+radius logic the dashboard job list uses
       // (/api/contractor/available-jobs) — this used to call the old
@@ -117,10 +122,36 @@ export default function SubmitBidPage() {
         setPhotos(enriched)
       }
 
+      await loadQuestions()
       setLoading(false)
     }
     init()
   }, [jobId, router])
+
+  const loadQuestions = async () => {
+    const { data } = await supabase
+      .from('job_questions')
+      .select('*')
+      .eq('job_id', jobId)
+      .order('created_at', { ascending: true })
+    setQuestions(data || [])
+  }
+
+  const submitQuestion = async () => {
+    if (!questionText.trim() || !userId) return
+    setAskingQuestion(true)
+    const { error: askError } = await supabase
+      .from('job_questions')
+      .insert({ job_id: jobId, contractor_user_id: userId, question: questionText.trim() })
+    if (askError) {
+      console.error('Error asking question:', askError)
+      setError('Could not send your question.')
+    } else {
+      setQuestionText('')
+      await loadQuestions()
+    }
+    setAskingQuestion(false)
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -275,6 +306,46 @@ export default function SubmitBidPage() {
                 </div>
               </div>
             )}
+
+            <div className="bg-white/3 border border-white/8 rounded-2xl p-5 mb-6">
+              <h3 className="text-white font-semibold text-sm mb-1">Questions</h3>
+              <p className="text-white/50 text-xs mb-3">Visible to every contractor bidding, and to the landlord — same as sealed bidding, no one gets private information others don't.</p>
+              {questions.length > 0 && (
+                <div className="space-y-3 mb-4">
+                  {questions.map((q) => (
+                    <div key={q.id} className="bg-white/5 rounded-xl p-3">
+                      <p className="text-white/80 text-sm">
+                        <span className="text-white/40">Q:</span> {q.question}
+                      </p>
+                      {q.answer ? (
+                        <p className="text-[#12A5A9] text-sm mt-1.5">
+                          <span className="text-[#12A5A9]/60">A:</span> {q.answer}
+                        </p>
+                      ) : (
+                        <p className="text-white/40 text-xs mt-1.5 italic">Waiting on the landlord to answer.</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={questionText}
+                  onChange={(e) => setQuestionText(e.target.value)}
+                  placeholder="Ask something before you bid..."
+                  className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm placeholder-white/40 focus:outline-none focus:border-[#12A5A9] transition"
+                />
+                <button
+                  type="button"
+                  onClick={submitQuestion}
+                  disabled={askingQuestion || !questionText.trim()}
+                  className="bg-white/8 text-white text-sm font-semibold px-4 rounded-xl hover:bg-white/12 transition disabled:opacity-40 shrink-0"
+                >
+                  {askingQuestion ? '...' : 'Ask'}
+                </button>
+              </div>
+            </div>
 
             <p className="text-white/50 text-xs mb-4">
               🔒 Your bid is sealed. Other contractors can't see your price, and you can't see theirs.

@@ -41,6 +41,9 @@ export default function JobDetailPage() {
   const [ratingSummaries, setRatingSummaries] = useState<Record<string, { avg_rating: number; review_count: number }>>({})
   const [error, setError] = useState<string | null>(null)
   const [actioning, setActioning] = useState(false)
+  const [questions, setQuestions] = useState<any[]>([])
+  const [answerDrafts, setAnswerDrafts] = useState<Record<string, string>>({})
+  const [answeringId, setAnsweringId] = useState<string | null>(null)
 
   const [showBiddingModal, setShowBiddingModal] = useState(false)
   const [showDeclineModal, setShowDeclineModal] = useState(false)
@@ -207,7 +210,16 @@ export default function JobDetailPage() {
       setRatingSummaries(summaryMap)
     }
 
-    await Promise.all([loadReporter(), loadPhotos(), loadBids()])
+    const loadQuestions = async () => {
+      const { data } = await supabase
+        .from('job_questions')
+        .select('*')
+        .eq('job_id', jobId)
+        .order('created_at', { ascending: true })
+      setQuestions(data || [])
+    }
+
+    await Promise.all([loadReporter(), loadPhotos(), loadBids(), loadQuestions()])
 
     setLoading(false)
   }
@@ -342,6 +354,24 @@ export default function JobDetailPage() {
   const handleSelectBidClick = (bidId: string) => {
     setSelectedBidId(bidId)
     setShowSelectModal(true)
+  }
+
+  const submitAnswer = async (questionId: string) => {
+    const answer = (answerDrafts[questionId] || '').trim()
+    if (!answer) return
+    setAnsweringId(questionId)
+    const { error: answerError } = await supabase
+      .from('job_questions')
+      .update({ answer, answered_by: userId, answered_at: new Date().toISOString() })
+      .eq('id', questionId)
+    if (answerError) {
+      console.error('Error answering question:', answerError)
+      setError('Could not send your answer.')
+    } else {
+      setAnswerDrafts((prev) => ({ ...prev, [questionId]: '' }))
+      setQuestions((prev) => prev.map((q) => q.id === questionId ? { ...q, answer, answered_at: new Date().toISOString() } : q))
+    }
+    setAnsweringId(null)
   }
 
   const confirmSelectBid = async () => {
@@ -881,6 +911,42 @@ export default function JobDetailPage() {
           <div className="mb-4">
             <RaiseDisputeButton jobId={jobId} onRaised={fetchJob} />
           </div>
+        )}
+
+        {job.status === 'bidding' && questions.length > 0 && (
+          <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
+            <h3 className="text-white font-semibold mb-1">Questions from contractors</h3>
+            <p className="text-white/50 text-xs mb-4">Your answer is visible to everyone bidding, not just whoever asked.</p>
+            <div className="space-y-3">
+              {questions.map((q) => (
+                <div key={q.id} className="bg-white/5 border border-white/10 rounded-xl p-4">
+                  <p className="text-white/80 text-sm mb-2">{q.question}</p>
+                  {q.answer ? (
+                    <p className="text-[#12A5A9] text-sm">
+                      <span className="text-[#12A5A9]/60">Your answer:</span> {q.answer}
+                    </p>
+                  ) : (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={answerDrafts[q.id] || ''}
+                        onChange={(e) => setAnswerDrafts((prev) => ({ ...prev, [q.id]: e.target.value }))}
+                        placeholder="Type your answer..."
+                        className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-white/40 focus:outline-none focus:border-[#12A5A9] transition"
+                      />
+                      <button
+                        onClick={() => submitAnswer(q.id)}
+                        disabled={answeringId === q.id || !(answerDrafts[q.id] || '').trim()}
+                        className="bg-white/8 text-white text-sm font-semibold px-4 rounded-lg hover:bg-white/12 transition disabled:opacity-40 shrink-0"
+                      >
+                        {answeringId === q.id ? '...' : 'Answer'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </ScrollReveal>
         )}
 
         {job.status === 'bidding' && (
