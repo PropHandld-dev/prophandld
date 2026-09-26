@@ -27,7 +27,7 @@ const TOUR_STEPS: TourStep[] = [
   { target: '[data-tour="report"]', title: 'Something broken?', body: 'A category, a photo, a short description. Your landlord is notified right away.' },
   { target: '[data-tour="issues"]', title: 'Your issues', body: 'See the status of everything you\'ve reported, at a glance.' },
   { target: '[data-tour="documents"]', title: 'Your documents', body: 'Your lease and any other paperwork your landlord has shared, all in one place.' },
-  { target: '[aria-label="Messages"]', title: 'Message your landlord anytime', body: "No need to wait for an open issue. Reach out directly whenever you need to." },
+  { target: '[data-tour="messages"]', title: 'Message your landlord anytime', body: "No need to wait for an open issue. Reach out directly whenever you need to." },
   { target: '[data-tour="bottomtabs"]', title: "You're all set", body: 'Home, Report, Calendar, and your Profile are always one tap away down here.' },
 ]
 

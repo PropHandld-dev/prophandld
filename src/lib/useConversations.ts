@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { mergedLastRead } from '@/lib/messageReads'
+import { useLanguage, t } from '@/lib/i18n'
 
 export type Conversation = {
   kind: 'job' | 'dm'
@@ -29,10 +30,11 @@ function fresh<T>(entry: Cached<T> | undefined): entry is Cached<T> {
   return !!entry && Date.now() - entry.at < CACHE_TTL_MS
 }
 
-const ROLE_LABELS: Record<string, string> = {
-  landlord: 'Landlord',
-  renter: 'Renter',
-  contractor: 'Contractor',
+const roleLabel = (role: string, lang: 'en' | 'es'): string => {
+  if (role === 'landlord') return t('landlordLabel', lang)
+  if (role === 'renter') return t('renterLabel', lang)
+  if (role === 'contractor') return t('contractorLabel', lang)
+  return role
 }
 
 // Shared by the full-page inbox and the floating widget. Deliberately
@@ -49,6 +51,7 @@ const ROLE_LABELS: Record<string, string> = {
 // RLS has already filtered the rows to conversations this user is
 // legitimately part of.
 export function useConversations(userId: string | null) {
+  const lang = useLanguage()
   const [loading, setLoading] = useState(true)
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [unreadIds, setUnreadIds] = useState<Set<string>>(new Set())
@@ -156,9 +159,9 @@ export function useConversations(userId: string | null) {
         // can't resolve another participant — e.g. a job with no accepted
         // contractor yet, or the SQL grant for this RPC hasn't been run.
         const otherLabel = others.length > 0
-          ? others.map((p) => p.full_name || 'Unknown').join(', ')
-          : (job?.category || 'This job')
-        const otherRole = others[0]?.role ? ROLE_LABELS[others[0].role] || others[0].role : ''
+          ? others.map((p) => p.full_name || t('unknownName', lang)).join(', ')
+          : (job?.category || t('thisJobLabel', lang))
+        const otherRole = others[0]?.role ? roleLabel(others[0].role, lang) : ''
 
         return {
           kind: 'job' as const,
@@ -166,7 +169,7 @@ export function useConversations(userId: string | null) {
           lastMessage: e.body,
           lastMessageAt: e.created_at,
           lastSenderId: e.sender_user_id,
-          category: job?.category || 'Job',
+          category: job?.category || t('jobLabel', lang),
           propertyLabel: property?.address
             ? `${property.address}${unit?.unit_number ? `, Unit ${unit.unit_number}` : ''}`
             : '',
@@ -181,8 +184,8 @@ export function useConversations(userId: string | null) {
       }
       const participants = (result?.data || []) as { role: string; user_id: string; full_name: string | null }[]
       const others = participants.filter((p) => p.user_id !== userId)
-      const otherLabel = others.length > 0 ? others.map((p) => p.full_name || 'Unknown').join(', ') : 'Direct message'
-      const otherRole = others[0]?.role ? ROLE_LABELS[others[0].role] || others[0].role : ''
+      const otherLabel = others.length > 0 ? others.map((p) => p.full_name || t('unknownName', lang)).join(', ') : t('directMessageLabel', lang)
+      const otherRole = others[0]?.role ? roleLabel(others[0].role, lang) : ''
 
       return {
         kind: 'dm' as const,
@@ -199,7 +202,7 @@ export function useConversations(userId: string | null) {
 
     setConversations(list)
     setLoading(false)
-  }, [userId])
+  }, [userId, lang])
 
   useEffect(() => {
     load()

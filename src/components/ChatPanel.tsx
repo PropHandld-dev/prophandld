@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/Skeleton'
 import { RippleButton } from '@/components/RippleButton'
 import { markJobRead, markThreadRead } from '@/lib/messageReads'
 import { CalendarIcon, WrenchIcon } from '@/components/icons'
+import { useLanguage, t, type Lang } from '@/lib/i18n'
 
 type Message = {
   id: string
@@ -19,11 +20,12 @@ type Message = {
 
 type Participant = { role: string; user_id: string; full_name: string | null }
 
-const ROLE_LABELS: Record<string, string> = {
-  landlord: 'Landlord',
-  renter: 'Renter',
-  contractor: 'Contractor',
-  admin: 'Prophandld team',
+const roleLabel = (role: string, lang: Lang): string => {
+  if (role === 'landlord') return t('landlordLabel', lang)
+  if (role === 'renter') return t('renterLabel', lang)
+  if (role === 'contractor') return t('contractorLabel', lang)
+  if (role === 'admin') return t('prophandldTeam', lang)
+  return role
 }
 
 function formatTimestamp(iso: string) {
@@ -34,15 +36,26 @@ function formatTimestamp(iso: string) {
   return `${date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} · ${time}`
 }
 
-function dayLabel(iso: string) {
+function dayLabel(iso: string, lang: Lang) {
   const date = new Date(iso)
   const today = new Date()
   const yesterday = new Date()
   yesterday.setDate(today.getDate() - 1)
-  if (date.toDateString() === today.toDateString()) return 'Today'
-  if (date.toDateString() === yesterday.toDateString()) return 'Yesterday'
+  if (date.toDateString() === today.toDateString()) return t('todayLabel', lang)
+  if (date.toDateString() === yesterday.toDateString()) return t('yesterdayLabel', lang)
   return date.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })
 }
+
+// The schedule-proposal shortcut writes its time directly into the message
+// body (there's no separate structured column for it), and other logic
+// pattern-matches that body to detect a proposal/confirmation and to offer
+// "Confirm this time". Anchoring on the emoji rather than the English words
+// after it means that detection keeps working regardless of which language
+// wrote the message — translating the visible words can never silently
+// break the button a past or future message depends on.
+const isProposalBody = (body: string) => body.startsWith('📅 ')
+const isConfirmedBody = (body: string) => body.startsWith('✅ ')
+const proposalTimePart = (body: string) => body.replace(/^📅[^:]*:\s*/, '')
 
 export function ChatPanel({
   jobId,
@@ -58,6 +71,7 @@ export function ChatPanel({
   onRead?: () => void
 }) {
   const router = useRouter()
+  const lang = useLanguage()
   const [userId, setUserId] = useState<string | null>(null)
   const [participants, setParticipants] = useState<Participant[]>([])
   const [messages, setMessages] = useState<Message[]>([])
@@ -117,7 +131,7 @@ export function ChatPanel({
 
       if (loadError) {
         console.error('Error loading messages:', loadError)
-        setError('Could not load messages.')
+        setError(t('couldNotLoadMessages', lang))
         setLoading(false)
         return
       }
@@ -205,7 +219,7 @@ export function ChatPanel({
 
     if (insertError) {
       console.error('Error sending message:', insertError)
-      setError('Could not send message.')
+      setError(t('couldNotSendMessage', lang))
       setSending(false)
       return false
     }
@@ -257,7 +271,7 @@ export function ChatPanel({
       hour: 'numeric',
       minute: '2-digit',
     })
-    const text = `📅 Proposed time: ${formatted}${scheduleTime ? '' : ' (time TBD)'}`
+    const text = `📅 ${t('proposedTimePrefix', lang)} ${formatted}${scheduleTime ? '' : ` ${t('timeTbd', lang)}`}`
     if (await sendMessage(text, { silent: true })) {
       setShowSchedule(false)
       setScheduleDate('')
@@ -267,8 +281,8 @@ export function ChatPanel({
   }
 
   const handleConfirmSchedule = async (proposalBody: string) => {
-    const timePart = proposalBody.replace('📅 Proposed time: ', '')
-    const text = `✅ Confirmed: ${timePart}`
+    const timePart = proposalTimePart(proposalBody)
+    const text = `✅ ${t('confirmedPrefix', lang)} ${timePart}`
     if (await sendMessage(text, { silent: true })) notifySchedule(text, 'confirmed')
   }
 
@@ -289,11 +303,11 @@ export function ChatPanel({
     <div className={`flex flex-col ${heightClassName}`}>
       {others.length > 0 && (
         <div className="flex items-center gap-2 flex-wrap pb-3 mb-3 border-b border-white/8">
-          <span className="text-white/60 text-xs">With</span>
+          <span className="text-white/60 text-xs">{t('withLabel', lang)}</span>
           {others.map((p) => (
             <span key={p.user_id} className="inline-flex items-center gap-1 text-xs bg-white/5 border border-white/10 rounded-full px-2.5 py-1">
-              <span className="text-white font-medium">{p.full_name || 'Unknown'}</span>
-              {ROLE_LABELS[p.role] && <span className="text-white/60">· {ROLE_LABELS[p.role]}</span>}
+              <span className="text-white font-medium">{p.full_name || t('unknownPerson', lang)}</span>
+              {p.role && <span className="text-white/60">· {roleLabel(p.role, lang)}</span>}
             </span>
           ))}
         </div>
@@ -301,17 +315,17 @@ export function ChatPanel({
 
       <div ref={listRef} className="flex-1 overflow-y-auto space-y-1 pb-4 pr-3">
         {messages.length === 0 ? (
-          <p className="text-white/50 text-sm text-center py-10">No messages yet. Say hello.</p>
+          <p className="text-white/50 text-sm text-center py-10">{t('noMessagesYet', lang)}</p>
         ) : (
           messages.map((m, i) => {
             const isMine = m.sender_user_id === userId
             const sender = participantByUserId.get(m.sender_user_id)
-            const thisDay = dayLabel(m.created_at)
+            const thisDay = dayLabel(m.created_at, lang)
             const showDayDivider = thisDay !== lastDay
             lastDay = thisDay
 
-            const isProposal = threadId && m.body.startsWith('📅 Proposed time: ')
-            const alreadyConfirmed = isProposal && messages.slice(i + 1).some((later) => later.sender_user_id === userId && later.body.startsWith('✅ Confirmed:'))
+            const isProposal = threadId && isProposalBody(m.body)
+            const alreadyConfirmed = isProposal && messages.slice(i + 1).some((later) => later.sender_user_id === userId && isConfirmedBody(later.body))
             const canConfirm = isProposal && !isMine && !alreadyConfirmed
 
             return (
@@ -324,7 +338,7 @@ export function ChatPanel({
                 <div className={`flex ${isMine ? 'justify-end' : 'justify-start'} mb-3`}>
                   <div className="max-w-[78%]">
                     <p className={`text-[11px] font-medium mb-1 ${isMine ? 'text-right text-white/60' : 'text-left text-white/50'}`}>
-                      {isMine ? 'You' : [sender?.full_name || 'Someone', ROLE_LABELS[sender?.role || '']].filter(Boolean).join(' · ')}
+                      {isMine ? t('youLabel', lang) : [sender?.full_name || t('someoneLabel', lang), sender?.role ? roleLabel(sender.role, lang) : ''].filter(Boolean).join(' · ')}
                     </p>
                     <div
                       className={
@@ -337,7 +351,7 @@ export function ChatPanel({
                     </div>
                     <p className={`text-[10px] text-white/50 mt-1 ${isMine ? 'text-right' : 'text-left'}`}>
                       {formatTimestamp(m.created_at)}
-                      {isMine && ' · ✓ Sent'}
+                      {isMine && ` · ✓ ${t('sentLabel', lang)}`}
                     </p>
                     {canConfirm && (
                       <button
@@ -345,7 +359,7 @@ export function ChatPanel({
                         disabled={sending}
                         className="mt-1.5 text-[#12A5A9] text-xs font-semibold bg-[#12A5A9]/10 hover:bg-[#12A5A9]/15 rounded-full px-3 py-1.5 transition disabled:opacity-50"
                       >
-                        ✓ Confirm this time
+                        ✓ {t('confirmThisTime', lang)}
                       </button>
                     )}
                   </div>
@@ -364,7 +378,7 @@ export function ChatPanel({
 
       {threadId && !showStartJob && showSchedule && (
         <form onSubmit={handleSendSchedule} className="bg-white/5 border border-white/10 rounded-xl p-3 mb-3 space-y-2">
-          <p className="text-white/50 text-xs font-medium">Propose a time</p>
+          <p className="text-white/50 text-xs font-medium">{t('proposeATimeChat', lang)}</p>
           <div className="flex items-center gap-2">
             <input
               type="date"
@@ -387,10 +401,10 @@ export function ChatPanel({
               disabled={sending || !scheduleDate}
               className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold rounded-lg px-3.5 py-2 disabled:opacity-50 transition"
             >
-              Send proposal
+              {t('sendProposal', lang)}
             </button>
             <button type="button" onClick={() => setShowSchedule(false)} className="text-white/60 hover:text-white text-xs transition">
-              Cancel
+              {t('cancel', lang)}
             </button>
           </div>
         </form>
@@ -401,8 +415,8 @@ export function ChatPanel({
           <button
             type="button"
             onClick={() => router.push(`/landlord/messages/${threadId}/new-job`)}
-            aria-label="Start a job"
-            title="Start a job"
+            aria-label={t('startAJob', lang)}
+            title={t('startAJob', lang)}
             className="shrink-0 w-11 h-11 rounded-xl border bg-white/5 border-white/10 text-white/50 hover:text-white hover:border-[#12A5A9]/40 flex items-center justify-center transition"
           >
             <WrenchIcon className="w-4.5 h-4.5" />
@@ -412,7 +426,7 @@ export function ChatPanel({
           <button
             type="button"
             onClick={() => setShowSchedule((v) => !v)}
-            aria-label="Propose a time"
+            aria-label={t('proposeATimeChat', lang)}
             className={`shrink-0 w-11 h-11 rounded-xl border flex items-center justify-center transition ${
               showSchedule ? 'bg-[#12A5A9]/20 border-[#12A5A9]/40 text-[#12A5A9]' : 'bg-white/5 border-white/10 text-white/50 hover:text-white'
             }`}
@@ -424,7 +438,7 @@ export function ChatPanel({
           type="text"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder="Message..."
+          placeholder={t('messagePlaceholder', lang)}
           className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
         />
         <RippleButton
@@ -432,7 +446,7 @@ export function ChatPanel({
           disabled={sending || !draft.trim()}
           className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-5 py-3 rounded-xl hover:opacity-90 transition disabled:opacity-50 shrink-0"
         >
-          Send
+          {t('send', lang)}
         </RippleButton>
       </form>
     </div>

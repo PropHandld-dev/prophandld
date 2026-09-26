@@ -9,6 +9,7 @@ import { ChatPanel } from '@/components/ChatPanel'
 import { NewConversationPicker, type StartedConversation } from '@/components/NewConversationPicker'
 import { DmContactsStrip } from '@/components/DmContactsStrip'
 import { MessageCircleIcon } from '@/components/icons'
+import { useLanguage, t } from '@/lib/i18n'
 
 function formatTimestamp(iso: string) {
   const date = new Date(iso)
@@ -23,6 +24,7 @@ type ActivePanel =
 
 export function FloatingChatWidget() {
   const pathname = usePathname()
+  const lang = useLanguage()
   const [userId, setUserId] = useState<string | null>(null)
   const [role, setRole] = useState<'landlord' | 'renter' | 'contractor' | null>(null)
   const [open, setOpen] = useState(false)
@@ -140,14 +142,14 @@ export function FloatingChatWidget() {
                   </div>
                 </>
               ) : showPicker ? (
-                <p className="text-white text-sm font-semibold flex-1">New message</p>
+                <p className="text-white text-sm font-semibold flex-1">{t('newMessage', lang)}</p>
               ) : (
                 <>
-                  <p className="text-white text-sm font-semibold flex-1">Messages</p>
+                  <p className="text-white text-sm font-semibold flex-1">{t('messagesLabel', lang)}</p>
                   <button
                     onClick={() => setShowPicker(true)}
                     className="text-white/50 hover:text-white text-lg leading-none transition shrink-0 w-6 h-6 flex items-center justify-center"
-                    aria-label="New message"
+                    aria-label={t('newMessage', lang)}
                   >
                     +
                   </button>
@@ -178,7 +180,7 @@ export function FloatingChatWidget() {
                       <div className="h-16 bg-white/5 rounded-xl animate-pulse" />
                     </div>
                   ) : conversations.length === 0 ? (
-                    <p className="text-white/50 text-sm text-center py-10">No conversations yet.</p>
+                    <p className="text-white/50 text-sm text-center py-10">{t('noConversationsShort', lang)}</p>
                   ) : (
                     <div className="space-y-2">
                       {conversations.map((c) => {
@@ -200,7 +202,7 @@ export function FloatingChatWidget() {
                                   {isUnread && <span className="w-1.5 h-1.5 rounded-full bg-[#12A5A9] shrink-0" />}
                                 </div>
                                 <p className="text-white/50 text-xs truncate mt-0.5">
-                                  {isMine ? 'You: ' : ''}{c.lastMessage}
+                                  {isMine ? `${t('youLabel', lang)}: ` : ''}{c.lastMessage}
                                 </p>
                               </div>
                               <span className="text-white/50 text-[10px] shrink-0">{formatTimestamp(c.lastMessageAt)}</span>
@@ -220,7 +222,7 @@ export function FloatingChatWidget() {
                 onClick={handleClose}
                 className="block text-center text-[#12A5A9] text-xs font-semibold py-2.5 border-t border-white/8 hover:bg-white/5 transition shrink-0"
               >
-                View full inbox
+                {t('viewFullInbox', lang)}
               </Link>
             )}
           </div>
@@ -231,7 +233,7 @@ export function FloatingChatWidget() {
         <button
           onClick={handleToggleOpen}
           className="fixed bottom-24 right-5 z-50 w-14 h-14 rounded-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] shadow-[0_10px_30px_-8px_rgba(18,165,169,0.6)] flex items-center justify-center text-white hover:scale-105 active:scale-95 transition-transform motion-safe:animate-[floatUp_0.3s_ease-out]"
-          aria-label="Messages"
+          aria-label={t('messagesLabel', lang)}
         >
           <MessageCircleIcon className="w-6 h-6" />
           {totalUnread > 0 && (

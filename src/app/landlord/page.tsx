@@ -29,7 +29,7 @@ const TOUR_STEPS: TourStep[] = [
   { target: '[data-tour="pipeline"]', title: 'What needs you', body: 'Jobs waiting on your approval, currently in progress, and bids ready for you to review: the three things worth checking daily.' },
   { target: '[data-tour="properties"]', title: 'Your properties', body: 'Add a property to get started, or open one to manage units and tenants.' },
   { target: '[data-tour="quicklinks"]', title: 'Rent, documents & compliance', body: 'Rent collection, your document vault (leases, deeds, inspections), and compliance tracking (licenses, certs, detectors) all live inside each property. Open one to get to them.' },
-  { target: '[aria-label="Messages"]', title: 'Message anyone, anytime', body: "Tap here to message an active tenant or a contractor you've worked with before. No open job required." },
+  { target: '[data-tour="messages"]', title: 'Message anyone, anytime', body: "Tap here to message an active tenant or a contractor you've worked with before. No open job required." },
   { target: '[data-tour="bottomtabs"]', title: "You're all set", body: 'Home, Properties, Jobs, Calendar, and your Profile are always one tap away down here.' },
 ]
 

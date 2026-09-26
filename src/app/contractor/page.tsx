@@ -33,7 +33,7 @@ const TOUR_STEPS: TourStep[] = [
   { target: '[data-tour="stats"]', title: 'Your work at a glance', body: 'New jobs matching your service area, active jobs you\'ve won, and your total earnings, all live.' },
   { target: '[data-tour="pastjobs"]', title: 'Past jobs', body: 'Everything you\'ve completed, filterable by status. Your Earnings page has the full breakdown with receipts, by year.' },
   { target: '[data-tour="settings"]', title: 'Payouts & verification', body: 'Connect a payout account to get paid, and optionally upload your license and insurance for a "Verified" badge landlords can see.' },
-  { target: '[aria-label="Messages"]', title: 'Message anyone, anytime', body: 'Reach a landlord you\'ve worked with before directly, no open job required. Handy for asking about new work.' },
+  { target: '[data-tour="messages"]', title: 'Message anyone, anytime', body: 'Reach a landlord you\'ve worked with before directly, no open job required. Handy for asking about new work.' },
   { target: '[data-tour="bottomtabs"]', title: "You're all set", body: 'Home, Calendar, Settings, and your Profile are always one tap away down here.' },
 ]
 
