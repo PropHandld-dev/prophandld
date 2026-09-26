@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import type { User } from '@supabase/supabase-js'
-import { supabase, consumeFreshSignIn } from '@/lib/supabase'
+import { supabase, consumeFreshSignIn, consumeAuthError } from '@/lib/supabase'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { RippleButton } from '@/components/RippleButton'
@@ -55,6 +55,11 @@ function LoginForm() {
   // redirect straight through with no interruption.
   const [justVerifiedUser, setJustVerifiedUser] = useState<User | null>(null)
   const [continuing, setContinuing] = useState(false)
+  // A rejected confirmation/reset link (expired, or already used once)
+  // lands here with nothing to show for it otherwise — same blank sign-in
+  // screen as a plain visit, with zero indication a link even existed,
+  // let alone that it failed.
+  const [linkError, setLinkError] = useState<{ code: string | null; description: string | null } | null>(null)
   const [form, setForm] = useState({
     email: '',
     password: '',
@@ -155,6 +160,7 @@ function LoginForm() {
       } else if (session?.user) {
         completeSignIn(session.user, true)
       } else {
+        setLinkError(consumeAuthError())
         setCheckingSession(false)
       }
     })
@@ -244,6 +250,14 @@ function LoginForm() {
           <h1 className="text-2xl font-bold text-white">Sign in</h1>
           <p className="text-white/50 text-sm mt-1">Good to see you again.</p>
         </div>
+
+        {linkError && (
+          <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm mb-6">
+            {linkError.code === 'otp_expired'
+              ? "That link has expired or was already used. If you signed up, try signing up again with the same email — we'll send a fresh one."
+              : linkError.description?.replace(/\+/g, ' ') || 'That link is no longer valid. Try again from where it was sent.'}
+          </div>
+        )}
 
         <RolePicker onSelect={setRole} />
 

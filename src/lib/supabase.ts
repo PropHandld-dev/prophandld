@@ -1,6 +1,28 @@
 import { createBrowserClient } from '@supabase/ssr'
 import type { User } from '@supabase/supabase-js'
 
+// Captured before the client below is constructed — a rejected
+// confirmation/reset link (expired, or already used once) redirects back
+// with "error"/"error_code"/"error_description" in the URL hash instead of
+// session tokens, and nothing was reading that. Whoever hit it just saw a
+// blank, ordinary sign-in screen with zero indication anything had gone
+// wrong, which is exactly what made this so hard to diagnose from the
+// outside — indistinguishable from a plain visit to /login.
+let capturedAuthError: { code: string | null; description: string | null } | null = null
+if (typeof window !== 'undefined' && window.location.hash.includes('error=')) {
+  const params = new URLSearchParams(window.location.hash.slice(1))
+  capturedAuthError = {
+    code: params.get('error_code'),
+    description: params.get('error_description'),
+  }
+}
+
+export function consumeAuthError() {
+  const err = capturedAuthError
+  capturedAuthError = null
+  return err
+}
+
 export const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
