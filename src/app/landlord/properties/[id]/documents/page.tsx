@@ -398,6 +398,11 @@ export default function PropertyDocumentsPage() {
                         <span className={`text-xs rounded-full px-2.5 py-0.5 ${doc.visibility === 'landlord_only' ? 'bg-white/8 text-white/50' : 'bg-[#0A7B7E]/15 text-[#12A5A9]'}`}>
                           {doc.visibility === 'landlord_only' ? 'Landlord only' : 'Shared with tenant'}
                         </span>
+                        {doc.expiry_date && (
+                          <span className={`text-xs rounded-full px-2.5 py-0.5 ${new Date(doc.expiry_date + 'T00:00:00') < new Date() ? 'bg-red-500/15 text-red-400' : 'bg-yellow-500/15 text-yellow-400'}`}>
+                            Expires {new Date(doc.expiry_date + 'T00:00:00').toLocaleDateString()}
+                          </span>
+                        )}
                       </div>
                       <p className="text-white/50 text-xs mt-2">
                         {doc.rentMonth && doc.waterPeriodStart ? `Billed with ${new Date(doc.rentMonth + 'T00:00:00').toLocaleDateString(undefined, { month: 'long', year: 'numeric' })} rent · ` : ''}

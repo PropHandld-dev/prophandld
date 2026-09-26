@@ -31,6 +31,7 @@ export default function RenterDocumentsPage() {
     // "just the landlord and me," not automatically visible to a roommate
     // on the same unit. Still their choice to widen it.
     visibility: 'landlord_only',
+    expiry_date: '',
   })
   const [files, setFiles] = useState<File[]>([])
 
@@ -103,7 +104,7 @@ export default function RenterDocumentsPage() {
     init()
   }, [router])
 
-  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })
   }
 
@@ -167,6 +168,7 @@ export default function RenterDocumentsPage() {
           filename: file.name,
           file_url: filePath,
           visibility: form.visibility,
+          expiry_date: form.document_type === 'Renters Insurance' && form.expiry_date ? form.expiry_date : null,
         })
 
       if (insertError) {
@@ -176,7 +178,7 @@ export default function RenterDocumentsPage() {
     }
 
     setFiles([])
-    setForm({ document_type: '', custom_document_type: '', visibility: 'landlord_only' })
+    setForm({ document_type: '', custom_document_type: '', visibility: 'landlord_only', expiry_date: '' })
     await loadDocuments(propertyId)
     setUploading(false)
   }
@@ -261,6 +263,20 @@ export default function RenterDocumentsPage() {
               />
             )}
           </div>
+
+          {form.document_type === 'Renters Insurance' && (
+            <div>
+              <label className="text-white/70 text-sm block mb-1">Policy expires (optional)</label>
+              <input
+                type="date"
+                name="expiry_date"
+                value={form.expiry_date}
+                onChange={handleChange}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
+              />
+              <p className="text-white/40 text-xs mt-1">Lets your landlord know before it lapses.</p>
+            </div>
+          )}
 
           <div>
             <label className="text-white/70 text-sm block mb-1">Who can see this</label>
@@ -349,6 +365,11 @@ export default function RenterDocumentsPage() {
                         {doc.uploaded_by === userId && (
                           <span className="text-xs bg-white/8 text-white/50 rounded-full px-2.5 py-0.5">
                             Uploaded by you
+                          </span>
+                        )}
+                        {doc.expiry_date && (
+                          <span className={`text-xs rounded-full px-2.5 py-0.5 ${new Date(doc.expiry_date + 'T00:00:00') < new Date() ? 'bg-red-500/15 text-red-400' : 'bg-yellow-500/15 text-yellow-400'}`}>
+                            Expires {new Date(doc.expiry_date + 'T00:00:00').toLocaleDateString()}
                           </span>
                         )}
                       </div>

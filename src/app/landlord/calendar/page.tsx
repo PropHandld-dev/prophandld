@@ -22,7 +22,7 @@ async function loadReminders(propertyIds: string[], unitIds: string[]): Promise<
   const windowEnd = new Date()
   windowEnd.setDate(windowEnd.getDate() + 180) // shows up to 6 months out, plus anything already overdue
 
-  const [complianceRes, rentRes, tenanciesRes] = await Promise.all([
+  const [complianceRes, rentRes, tenanciesRes, insuranceRes] = await Promise.all([
     propertyIds.length
       ? supabase
           .from('compliance_items')
@@ -46,6 +46,15 @@ async function loadReminders(propertyIds: string[], unitIds: string[]): Promise<
           .eq('ended', false)
           .not('lease_end', 'is', null)
           .lte('lease_end', dateStr(windowEnd))
+      : Promise.resolve({ data: [] as any[] }),
+    propertyIds.length
+      ? supabase
+          .from('documents')
+          .select('id, property_id, unit_id, expiry_date, properties(address), units(unit_number)')
+          .in('property_id', propertyIds)
+          .eq('document_type', 'Renters Insurance')
+          .not('expiry_date', 'is', null)
+          .lte('expiry_date', dateStr(windowEnd))
       : Promise.resolve({ data: [] as any[] }),
   ])
 
@@ -89,6 +98,19 @@ async function loadReminders(propertyIds: string[], unitIds: string[]): Promise<
       title: 'Lease ends',
       subtitle: [unit?.properties?.address, unit?.unit_number].filter(Boolean).join(' · '),
       href: `/landlord/properties/${unit?.property_id}/units/${tenancy.unit_id}`,
+      state: 'reminder',
+    })
+  }
+
+  for (const doc of insuranceRes.data || []) {
+    const property = doc.properties as any
+    const unit = doc.units as any
+    events.push({
+      id: `insurance-${doc.id}`,
+      date: doc.expiry_date,
+      title: "Renters insurance expires",
+      subtitle: [property?.address, unit?.unit_number].filter(Boolean).join(' · '),
+      href: `/landlord/properties/${doc.property_id}/documents`,
       state: 'reminder',
     })
   }
