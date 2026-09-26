@@ -14,6 +14,9 @@ import { RippleButton } from '@/components/RippleButton'
 import { AlertTriangleIcon } from '@/components/icons'
 import { RENTER_TABS } from '@/lib/navTabs'
 import { useCategoryOptions, saveCustomCategory } from '@/lib/categories'
+import { TIME_WINDOWS } from '@/lib/scheduleWindows'
+
+const MAX_AVAILABILITY_SLOTS = 3
 
 const EMERGENCY_EXAMPLES = [
   'Active water leak or flooding',
@@ -34,6 +37,10 @@ export default function ReportIssuePage() {
   const [showEmergencyInfo, setShowEmergencyInfo] = useState(false)
   const [files, setFiles] = useState<File[]>([])
   const [systems, setSystems] = useState<any[]>([])
+  // Optional — picking a few windows here up front is what lets a
+  // contractor propose a time by just tapping one of these instead of a
+  // separate back-and-forth after they're selected.
+  const [availabilitySlots, setAvailabilitySlots] = useState<{ date: string; window: string }[]>([])
 
   const [form, setForm] = useState({
     category: '',
@@ -117,6 +124,19 @@ export default function ReportIssuePage() {
     setFiles(files.filter((_, i) => i !== index))
   }
 
+  const addAvailabilitySlot = () => {
+    if (availabilitySlots.length >= MAX_AVAILABILITY_SLOTS) return
+    setAvailabilitySlots([...availabilitySlots, { date: '', window: 'morning' }])
+  }
+
+  const updateAvailabilitySlot = (index: number, field: 'date' | 'window', value: string) => {
+    setAvailabilitySlots(availabilitySlots.map((s, i) => i === index ? { ...s, [field]: value } : s))
+  }
+
+  const removeAvailabilitySlot = (index: number) => {
+    setAvailabilitySlots(availabilitySlots.filter((_, i) => i !== index))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -155,6 +175,7 @@ export default function ReportIssuePage() {
         is_emergency: form.is_emergency,
         status: 'pending_approval',
         maintenance_item_id: form.maintenance_item_id || null,
+        tenant_availability: availabilitySlots.filter((s) => s.date),
       })
       .select()
       .single()
@@ -363,6 +384,47 @@ export default function ReportIssuePage() {
                     </div>
                   ))}
                 </div>
+              )}
+            </div>
+
+            <div>
+              <label className="text-white/70 text-sm block mb-1">When are you around? (optional)</label>
+              <p className="text-white/40 text-xs mb-2">Give a few windows that work, and the contractor can pick one directly instead of going back and forth with you.</p>
+              {availabilitySlots.map((slot, i) => (
+                <div key={i} className="flex gap-2 mb-2">
+                  <input
+                    type="date"
+                    value={slot.date}
+                    min={new Date().toISOString().split('T')[0]}
+                    onChange={(e) => updateAvailabilitySlot(i, 'date', e.target.value)}
+                    className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#12A5A9] transition"
+                  />
+                  <select
+                    value={slot.window}
+                    onChange={(e) => updateAvailabilitySlot(i, 'window', e.target.value)}
+                    className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#12A5A9] transition"
+                  >
+                    {TIME_WINDOWS.map((w) => (
+                      <option key={w.value} value={w.value} className="bg-[#0C1A2E]">{w.label}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => removeAvailabilitySlot(i)}
+                    className="text-red-400/70 hover:text-red-400 text-xs px-2 transition shrink-0"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+              {availabilitySlots.length < MAX_AVAILABILITY_SLOTS && (
+                <button
+                  type="button"
+                  onClick={addAvailabilitySlot}
+                  className="text-[#12A5A9] text-xs font-semibold hover:underline"
+                >
+                  + Add a time you're free
+                </button>
               )}
             </div>
 

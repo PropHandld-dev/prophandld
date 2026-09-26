@@ -1397,6 +1397,32 @@ export default function JobDetailPage() {
           <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
             <h3 className="text-white font-semibold mb-4">Propose a time</h3>
 
+            {job.tenant_availability && job.tenant_availability.length > 0 && (
+              <div className="mb-4">
+                <p className="text-white/50 text-xs mb-2">The tenant said they're free:</p>
+                <div className="flex flex-wrap gap-2">
+                  {job.tenant_availability.map((slot: { date: string; window: string }, i: number) => {
+                    const label = TIME_WINDOWS.find((w) => w.value === slot.window)?.label || slot.window
+                    const active = scheduleDate === slot.date && scheduleWindow === slot.window
+                    return (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => { setScheduleDate(slot.date); setScheduleWindow(slot.window) }}
+                        className={`text-xs font-medium px-3 py-1.5 rounded-full border transition ${
+                          active
+                            ? 'bg-[#12A5A9]/20 border-[#12A5A9] text-[#12A5A9]'
+                            : 'bg-white/5 border-white/10 text-white/70 hover:border-[#12A5A9]/40'
+                        }`}
+                      >
+                        {new Date(slot.date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })} · {label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
             <label className="text-white/70 text-sm block mb-1">Date</label>
             <input
               type="date"
