@@ -24,10 +24,12 @@ import { getUnreadJobIds } from '@/lib/messageReads'
 import { useJobRealtime } from '@/lib/useJobRealtime'
 import { CONTRACTOR_TABS } from '@/lib/navTabs'
 import { TIME_WINDOWS, validateScheduleTime, rescheduleLockError } from '@/lib/scheduleWindows'
+import { useLanguage, t, windowLabel } from '@/lib/i18n'
 
 export default function ContractorJobDetailPage() {
   const router = useRouter()
   const params = useParams()
+  const lang = useLanguage()
   const jobId = params.jobId as string
 
   const [loading, setLoading] = useState(true)
@@ -86,7 +88,7 @@ export default function ContractorJobDetailPage() {
 
     if (jobError || !jobData) {
       console.error('Error loading job:', jobError)
-      setError('Job not found or not accessible.')
+      setError(t('jobNotFoundAccessible', lang))
       setLoading(false)
       return
     }
@@ -137,7 +139,7 @@ export default function ContractorJobDetailPage() {
 
   const submitProposal = async () => {
     if (!scheduleDate) {
-      setError('Please pick a date.')
+      setError(t('pleasePickADate', lang))
       return
     }
     const timeError = validateScheduleTime(scheduleWindow, scheduleTime)
@@ -169,7 +171,7 @@ export default function ContractorJobDetailPage() {
 
     if (updateError) {
       console.error('Error proposing schedule:', updateError)
-      setError('Could not propose a schedule.')
+      setError(t('couldNotProposeSchedule', lang))
       setActioning(false)
       return
     }
@@ -189,7 +191,7 @@ export default function ContractorJobDetailPage() {
 
     if (updateError) {
       console.error('Error confirming schedule:', updateError)
-      setError('Could not confirm the schedule.')
+      setError(t('couldNotConfirmSchedule', lang))
     } else {
       notify('schedule_confirmed', jobId)
       if (userId) postJobStatusMessage(jobId, userId, '✓ Schedule confirmed')
@@ -201,7 +203,7 @@ export default function ContractorJobDetailPage() {
 
   const handleCancelJob = async () => {
     if (!myBid) return
-    if (!window.confirm("Cancel this job? The landlord will be notified and will need to pick a different contractor. This can't be undone.")) return
+    if (!window.confirm(t('cancelJobConfirm', lang))) return
 
     setActioning(true)
     setError(null)
@@ -215,12 +217,12 @@ export default function ContractorJobDetailPage() {
       })
       const data = await res.json()
       if (!res.ok) {
-        setError(data.error || 'Could not cancel. Please try again.')
+        setError(data.error || t('couldNotCancelRetry', lang))
         setActioning(false)
         return
       }
     } catch {
-      setError('Could not cancel. Please try again.')
+      setError(t('couldNotCancelRetry', lang))
       setActioning(false)
       return
     }
@@ -240,7 +242,7 @@ export default function ContractorJobDetailPage() {
 
     if (updateError) {
       console.error('Error starting job:', updateError)
-      setError('Could not start job.')
+      setError(t('couldNotStartJob', lang))
       setActioning(false)
       return
     }
@@ -281,7 +283,7 @@ export default function ContractorJobDetailPage() {
 
       if (uploadError) {
         console.error('Error uploading photo:', uploadError)
-        setError('One or more photos failed to upload.')
+        setError(t('onePhotoFailedUpload', lang))
         continue
       }
 
@@ -316,7 +318,7 @@ export default function ContractorJobDetailPage() {
 
       if (insertError) {
         console.error('Error saving photo record:', insertError)
-        setError('Photo uploaded but could not be saved: ' + insertError.message)
+        setError(`${t('photoUploadedNotSaved', lang)} ${insertError.message}`)
       }
     }
 
@@ -334,7 +336,7 @@ export default function ContractorJobDetailPage() {
     const { error: deleteError } = await supabase.from('job_photos').delete().eq('id', photo.id)
     if (deleteError) {
       console.error('Error deleting photo record:', deleteError)
-      setError('Could not remove photo.')
+      setError(t('couldNotRemovePhoto', lang))
       return
     }
 
@@ -348,7 +350,7 @@ export default function ContractorJobDetailPage() {
     const afterCount = photos.filter((p) => p.stage === 'after').length
 
     if (afterCount === 0) {
-      setError('Add at least one “After” photo before marking the job complete.')
+      setError(t('addAfterPhotoBeforeComplete', lang))
       return
     }
 
@@ -365,9 +367,9 @@ export default function ContractorJobDetailPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ jobId }),
       })
-      if (!res.ok) failure = (await res.json()).error || 'Could not mark job as complete.'
+      if (!res.ok) failure = (await res.json()).error || t('couldNotMarkComplete', lang)
     } catch {
-      failure = 'Could not mark job as complete.'
+      failure = t('couldNotMarkComplete', lang)
     }
 
     if (failure) {
@@ -393,7 +395,7 @@ export default function ContractorJobDetailPage() {
 
     if (updateError) {
       console.error('Error sending response:', updateError)
-      setError('Could not send your response.')
+      setError(t('couldNotSendResponse', lang))
       setActioning(false)
       return
     }
@@ -417,11 +419,11 @@ export default function ContractorJobDetailPage() {
     const newTotal = labor + parts
 
     if (newTotal <= 0) {
-      setError('Enter a labor cost (and parts, if any).')
+      setError(t('enterLaborCost', lang))
       return
     }
     if (!priceChangeReason.trim()) {
-      setError('Please explain the reason for the price change.')
+      setError(t('explainPriceChangeReason', lang))
       return
     }
 
@@ -441,7 +443,7 @@ export default function ContractorJobDetailPage() {
 
     if (updateError) {
       console.error('Error requesting price change:', updateError)
-      setError('Could not submit price change request: ' + updateError.message)
+      setError(`${t('couldNotSubmitPriceChange', lang)} ${updateError.message}`)
       setActioning(false)
       return
     }
@@ -454,13 +456,13 @@ export default function ContractorJobDetailPage() {
 
   const statusLabel = (status: string) => {
     const labels: Record<string, string> = {
-      bid_selected: "You've been selected!",
-      scheduled: 'Scheduled',
-      in_progress: 'In progress',
-      pending_review: 'Awaiting landlord review',
-      completed: 'Completed',
-      archived: 'Archived',
-      disputed: 'Under dispute review',
+      bid_selected: t('statusSelected', lang),
+      scheduled: t('statusScheduledFull', lang),
+      in_progress: t('statusInProgressFull', lang),
+      pending_review: t('statusAwaitingLandlordReview', lang),
+      completed: t('statusCompleted', lang),
+      archived: t('statusArchived', lang),
+      disputed: t('statusDisputedFull', lang),
     }
     return labels[status] || status
   }
@@ -471,13 +473,11 @@ export default function ContractorJobDetailPage() {
       job?.landlord_approved_at &&
       Date.now() - new Date(job.landlord_approved_at).getTime() < 48 * 60 * 60 * 1000)
 
-  const windowLabel = (w: string) => TIME_WINDOWS.find((t) => t.value === w)?.label || w
-
   if (loading) return (
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
         <Link href="/contractor" className="text-white/50 hover:text-white text-sm transition">
-          ← Dashboard
+          {t('dashboard', lang)}
         </Link>
         <Link href="/contractor" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
         <div className="w-20" />
@@ -515,10 +515,10 @@ export default function ContractorJobDetailPage() {
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
         <Link href="/contractor" className="text-white/50 hover:text-white text-sm transition">
-          ← Dashboard
+          {t('dashboard', lang)}
         </Link>
         <Link href="/contractor" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
-        <a href="#chat" onClick={scrollToChat} aria-label="Go to the chat" className="relative text-white/50 hover:text-white transition">
+        <a href="#chat" onClick={scrollToChat} aria-label={t('goToChat', lang)} className="relative text-white/50 hover:text-white transition">
           <MessageCircleIcon className="w-5 h-5" />
           {hasUnread && <UnreadDot className="absolute -top-0.5 -right-0.5" />}
         </a>
@@ -530,7 +530,7 @@ export default function ContractorJobDetailPage() {
             <h1 className="text-2xl font-bold text-white">{job.category}</h1>
             {job.is_emergency && (
               <span className="text-xs bg-red-500/20 text-red-400 border border-red-500/30 rounded-full px-2.5 py-1 font-semibold">
-                Emergency
+                {t('emergency', lang)}
               </span>
             )}
           </div>
@@ -560,8 +560,8 @@ export default function ContractorJobDetailPage() {
         <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-white font-semibold">
-              Status: <span className="text-[#12A5A9]">
-                {myBid?.status === 'declined' ? (myBid.selected_at ? 'Cancelled' : 'Not selected') : statusLabel(job.status)}
+              {t('statusPrefix', lang)} <span className="text-[#12A5A9]">
+                {myBid?.status === 'declined' ? (myBid.selected_at ? t('statusCancelledByYou', lang) : t('statusNotSelected', lang)) : statusLabel(job.status)}
               </span>
             </h2>
             {job.status === 'scheduled' && job.schedule_confirmed && myBid?.status === 'accepted' && (
@@ -570,31 +570,31 @@ export default function ContractorJobDetailPage() {
                 disabled={actioning}
                 className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
               >
-                Start job
+                {t('startJobBtn', lang)}
               </RippleButton>
             )}
           </div>
           {myBid?.status === 'declined' && (
             <p className="text-white/40 text-xs -mt-1 mb-3">
               {myBid.selected_at
-                ? "You cancelled this job — it's back to sealed bidding for the landlord to pick someone else."
-                : 'The landlord went with another contractor for this job.'}
+                ? t('youCancelledReopened', lang)
+                : t('landlordWentWithAnother', lang)}
             </p>
           )}
           {myBid?.status === 'accepted' && job.status === 'pending_review' && (
             <p className="text-white/40 text-xs -mt-1 mb-3">
-              Once the landlord reviews and approves, your payment is released.
+              {t('paymentReleasedOnApproval', lang)}
             </p>
           )}
           <p className="text-white/70 text-sm leading-relaxed">{job.description}</p>
 
           {myBid && (
             <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 mt-4">
-              <p className="text-white/50 text-xs">Your accepted bid</p>
+              <p className="text-white/50 text-xs">{t('yourAcceptedBid', lang)}</p>
               {myBid.price_change_status === 'pending' ? (
                 <div>
                   <p className="text-white/60 text-sm line-through">${myBid.amount}</p>
-                  <p className="text-yellow-400 font-bold">${myBid.proposed_amount} <span className="text-xs font-normal">(pending landlord approval)</span></p>
+                  <p className="text-yellow-400 font-bold">${myBid.proposed_amount} <span className="text-xs font-normal">{t('pendingLandlordApproval', lang)}</span></p>
                 </div>
               ) : (
                 <p className="text-[#12A5A9] font-bold">
@@ -605,18 +605,18 @@ export default function ContractorJobDetailPage() {
                 </p>
               )}
               {myBid.selected_at && (
-                <p className="text-white/50 text-xs mt-1">Selected {new Date(myBid.selected_at).toLocaleString()}</p>
+                <p className="text-white/50 text-xs mt-1">{t('selectedAt', lang)} {new Date(myBid.selected_at).toLocaleString()}</p>
               )}
               {myBid.price_change_status === 'rejected' && (
-                <p className="text-red-400/70 text-xs mt-2">Your last price change request was declined.</p>
+                <p className="text-red-400/70 text-xs mt-2">{t('priceChangeRequestDeclined', lang)}</p>
               )}
               {myBid.payment_status === 'paid' && (
                 <div className="flex items-center gap-2 mt-2">
                   <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-[#0A7B7E]/20 text-[#12A5A9]">
-                    <CheckCircleIcon className="w-3 h-3" /> Paid
+                    <CheckCircleIcon className="w-3 h-3" /> {t('paidLabel', lang)}
                   </span>
                   <Link href={`/receipts/job/${myBid.id}`} className="text-[#12A5A9] text-xs font-semibold hover:underline">
-                    Receipt
+                    {t('receipt', lang)}
                   </Link>
                 </div>
               )}
@@ -629,7 +629,7 @@ export default function ContractorJobDetailPage() {
               disabled={actioning}
               className="text-red-400/70 hover:text-red-400 text-xs transition mt-3 disabled:opacity-50"
             >
-              Can&apos;t do this job? Cancel and reopen bidding
+              {t('cantDoJobCancel', lang)}
             </button>
           )}
 
@@ -642,9 +642,9 @@ export default function ContractorJobDetailPage() {
 
         {myBid?.status === 'accepted' && job.status === 'disputed' && (
           <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl p-6 mb-4">
-            <h3 className="text-yellow-400 font-semibold mb-1">Under dispute review</h3>
+            <h3 className="text-yellow-400 font-semibold mb-1">{t('statusDisputedFull', lang)}</h3>
             <p className="text-white/60 text-sm">
-              Prophandld is reviewing a dispute on this job. Everyone involved will be notified once it&apos;s resolved.
+              {t('disputeReviewDesc', lang)}
             </p>
           </div>
         )}
@@ -657,15 +657,15 @@ export default function ContractorJobDetailPage() {
 
         {myBid?.status === 'accepted' && job.status === 'pending_review' && job.clarification_note && !job.clarification_response && (
           <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl p-6 mb-4">
-            <h3 className="text-yellow-400 font-semibold mb-2">Landlord asked for verification</h3>
+            <h3 className="text-yellow-400 font-semibold mb-2">{t('landlordAskedVerificationHeading', lang)}</h3>
             <p className="text-white/70 text-sm mb-1">{job.clarification_note}</p>
-            <p className="text-white/50 text-xs mb-4">You can also reply in the chat below.</p>
-            <label className="text-white/70 text-sm block mb-1">Your response</label>
+            <p className="text-white/50 text-xs mb-4">{t('replyInChatBelow', lang)}</p>
+            <label className="text-white/70 text-sm block mb-1">{t('yourResponseLabel', lang)}</label>
             <textarea
               value={responseText}
               onChange={(e) => setResponseText(e.target.value)}
               rows={3}
-              placeholder="Add any details or context for the landlord"
+              placeholder={t('responsePlaceholder', lang)}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition resize-none mb-3"
             />
             <button
@@ -673,39 +673,39 @@ export default function ContractorJobDetailPage() {
               disabled={actioning}
               className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
             >
-              {actioning ? 'Sending...' : 'Send response'}
+              {actioning ? t('sendingDots', lang) : t('sendResponseBtn', lang)}
             </button>
           </div>
         )}
 
         {reportedPhotos.length > 0 && (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
-            <h3 className="text-white font-semibold mb-4">Photos from tenant's report</h3>
+            <h3 className="text-white font-semibold mb-4">{t('photosFromReport', lang)}</h3>
             <PhotoGrid photos={reportedPhotos} columns={3} />
           </div>
         )}
 
         {showSchedulingSection && (
           <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
-            <h3 className="text-white font-semibold mb-4">Schedule</h3>
+            <h3 className="text-white font-semibold mb-4">{t('scheduleHeading', lang)}</h3>
 
             {!job.proposed_date ? (
               <div className="text-center py-4">
-                <p className="text-white/50 text-sm mb-4">No appointment proposed yet.</p>
+                <p className="text-white/50 text-sm mb-4">{t('noAppointmentProposedYet', lang)}</p>
                 <button
                   onClick={openScheduleModal}
                   className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition"
                 >
-                  Propose a time
+                  {t('proposeATimeBtn', lang)}
                 </button>
               </div>
             ) : job.schedule_confirmed ? (
               <div className="bg-[#0A7B7E]/15 border border-[#12A5A9]/30 rounded-xl px-4 py-3">
                 <p className="text-[#12A5A9] text-sm font-medium flex items-center gap-1.5">
-                  <CheckCircleIcon className="w-4 h-4" /> Confirmed
+                  <CheckCircleIcon className="w-4 h-4" /> {t('confirmedState', lang)}
                 </p>
                 <p className="text-white text-sm mt-1">
-                  {new Date(job.proposed_date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })} · {windowLabel(job.proposed_window)}
+                  {new Date(job.proposed_date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })} · {windowLabel(job.proposed_window, lang)}
                   {job.proposed_time && ` · ${job.proposed_time}`}
                 </p>
                 {rescheduleLockError(job.proposed_date) ? (
@@ -716,17 +716,17 @@ export default function ContractorJobDetailPage() {
                     disabled={actioning}
                     className="text-white/50 text-xs hover:text-white transition mt-2"
                   >
-                    Reschedule
+                    {t('rescheduleBtn', lang)}
                   </button>
                 )}
               </div>
             ) : (
               <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
                 <p className="text-yellow-400/80 text-xs mb-1">
-                  Proposed by {job.proposed_by === 'contractor' ? 'you' : job.proposed_by}
+                  {t('proposedByLabel', lang)} {job.proposed_by === 'contractor' ? t('you', lang) : job.proposed_by}
                 </p>
                 <p className="text-white text-sm">
-                  {new Date(job.proposed_date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })} · {windowLabel(job.proposed_window)}
+                  {new Date(job.proposed_date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })} · {windowLabel(job.proposed_window, lang)}
                   {job.proposed_time && ` · ${job.proposed_time}`}
                 </p>
                 {isMyTurnToRespond ? (
@@ -736,18 +736,18 @@ export default function ContractorJobDetailPage() {
                       disabled={actioning}
                       className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
                     >
-                      Confirm this time
+                      {t('confirmThisTime', lang)}
                     </RippleButton>
                     <button
                       onClick={openScheduleModal}
                       disabled={actioning}
                       className="text-white/50 text-xs hover:text-white transition"
                     >
-                      Propose different time
+                      {t('proposeDifferentTime', lang)}
                     </button>
                   </div>
                 ) : (
-                  <p className="text-white/60 text-xs mt-3">Waiting on the landlord or tenant to confirm.</p>
+                  <p className="text-white/60 text-xs mt-3">{t('waitingOnLandlordOrTenant', lang)}</p>
                 )}
               </div>
             )}
@@ -756,20 +756,20 @@ export default function ContractorJobDetailPage() {
 
         {myBid?.status === 'accepted' && ['in_progress', 'pending_review', 'completed', 'archived'].includes(job.status) && (
           <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
-            <h3 className="text-white font-semibold mb-4">Proof of work</h3>
+            <h3 className="text-white font-semibold mb-4">{t('proofOfWorkHeading', lang)}</h3>
 
             <div className="mb-5">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-white/70 text-sm font-medium">Before ({beforePhotos.length})</p>
+                <p className="text-white/70 text-sm font-medium">{t('beforeLabel', lang)} ({beforePhotos.length})</p>
                 {job.status === 'in_progress' && (
                   <label>
                     <input type="file" accept="image/*,video/*" multiple onChange={(e) => handlePhotoUpload(e, 'before')} className="hidden" />
-                    <span className="text-[#12A5A9] text-xs hover:underline cursor-pointer">+ Add photos</span>
+                    <span className="text-[#12A5A9] text-xs hover:underline cursor-pointer">{t('addPhotosLink', lang)}</span>
                   </label>
                 )}
               </div>
               {beforePhotos.length === 0 ? (
-                <p className="text-white/50 text-xs">No before photos yet.</p>
+                <p className="text-white/50 text-xs">{t('noBeforePhotosYet', lang)}</p>
               ) : (
                 <PhotoGrid
                   photos={beforePhotos}
@@ -782,19 +782,19 @@ export default function ContractorJobDetailPage() {
 
             <div className="mb-5">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-white/70 text-sm font-medium">After ({afterPhotos.length})</p>
+                <p className="text-white/70 text-sm font-medium">{t('afterLabel', lang)} ({afterPhotos.length})</p>
                 {job.status === 'in_progress' && (
                   <label>
                     <input type="file" accept="image/*,video/*" multiple onChange={(e) => handlePhotoUpload(e, 'after')} className="hidden" />
-                    <span className="text-[#12A5A9] text-xs hover:underline cursor-pointer">+ Add photos</span>
+                    <span className="text-[#12A5A9] text-xs hover:underline cursor-pointer">{t('addPhotosLink', lang)}</span>
                   </label>
                 )}
               </div>
               {afterPhotos.length === 0 ? (
                 <p className={`text-xs ${job.status === 'in_progress' ? 'text-yellow-400' : 'text-white/50'}`}>
                   {job.status === 'in_progress'
-                    ? 'Add at least one after photo. It is required before you can mark the job complete.'
-                    : 'No after photos yet.'}
+                    ? t('addAfterPhotoRequired', lang)
+                    : t('noAfterPhotosYet', lang)}
                 </p>
               ) : (
                 <PhotoGrid
@@ -809,17 +809,17 @@ export default function ContractorJobDetailPage() {
             {(job.status === 'in_progress' || receiptPhotos.length > 0) && (
               <div className="mb-5">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-white/70 text-sm font-medium">Material receipts ({receiptPhotos.length})</p>
+                  <p className="text-white/70 text-sm font-medium">{t('materialReceiptsLabel', lang)} ({receiptPhotos.length})</p>
                   {job.status === 'in_progress' && (
                     <label>
                       <input type="file" accept="image/*,video/*" multiple onChange={(e) => handlePhotoUpload(e, 'receipt')} className="hidden" />
-                      <span className="text-[#12A5A9] text-xs hover:underline cursor-pointer">+ Add receipt</span>
+                      <span className="text-[#12A5A9] text-xs hover:underline cursor-pointer">{t('addReceiptLink', lang)}</span>
                     </label>
                   )}
                 </div>
                 {receiptPhotos.length === 0 ? (
                   <p className="text-white/50 text-xs">
-                    If you buy parts for this job, snap a photo of the receipt here — it backs up any parts cost in a price change request below.
+                    {t('receiptHelpText', lang)}
                   </p>
                 ) : (
                   <PhotoGrid
@@ -839,7 +839,7 @@ export default function ContractorJobDetailPage() {
                     onClick={openPriceChangeModal}
                     className="w-full bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-white/12 transition mb-3"
                   >
-                    Request price change
+                    {t('requestPriceChangeBtn', lang)}
                   </button>
                 )}
                 <RippleButton
@@ -847,14 +847,14 @@ export default function ContractorJobDetailPage() {
                   disabled={actioning || uploading}
                   className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
                 >
-                  {uploading ? 'Uploading...' : 'Mark job complete'}
+                  {uploading ? t('uploading', lang) : t('markJobCompleteBtn', lang)}
                 </RippleButton>
               </>
             )}
 
             {job.status === 'pending_review' && (
               <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-center">
-                <p className="text-white/50 text-sm">Waiting on landlord review. Auto-approves within 3 days if no response.</p>
+                <p className="text-white/50 text-sm">{t('waitingLandlordReviewAutoApprove', lang)}</p>
               </div>
             )}
           </ScrollReveal>
@@ -863,8 +863,8 @@ export default function ContractorJobDetailPage() {
         {userId && myBid?.status === 'accepted' && (
           <JobChatCard
             jobId={jobId}
-            title="Chat with landlord"
-            subtitle="Messages, updates and history in one place"
+            title={t('chatWithLandlordTitle', lang)}
+            subtitle={t('chatSubtitleGeneric', lang)}
             onRead={() => setHasUnread(false)}
           />
         )}
@@ -873,14 +873,14 @@ export default function ContractorJobDetailPage() {
       {showScheduleModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
           <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
-            <h3 className="text-white font-semibold mb-4">Propose a time</h3>
+            <h3 className="text-white font-semibold mb-4">{t('proposeATimeHeading', lang)}</h3>
 
             {job.tenant_availability && job.tenant_availability.length > 0 && (
               <div className="mb-4">
-                <p className="text-white/50 text-xs mb-2">The tenant said they're free:</p>
+                <p className="text-white/50 text-xs mb-2">{t('tenantSaidFree', lang)}</p>
                 <div className="flex flex-wrap gap-2">
                   {job.tenant_availability.map((slot: { date: string; window: string }, i: number) => {
-                    const label = TIME_WINDOWS.find((w) => w.value === slot.window)?.label || slot.window
+                    const label = windowLabel(slot.window, lang)
                     const active = scheduleDate === slot.date && scheduleWindow === slot.window
                     return (
                       <button
@@ -901,7 +901,7 @@ export default function ContractorJobDetailPage() {
               </div>
             )}
 
-            <label className="text-white/70 text-sm block mb-1">Date</label>
+            <label className="text-white/70 text-sm block mb-1">{t('dateLabel', lang)}</label>
             <input
               type="date"
               value={scheduleDate}
@@ -909,18 +909,18 @@ export default function ContractorJobDetailPage() {
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition mb-4"
             />
 
-            <label className="text-white/70 text-sm block mb-1">Time window</label>
+            <label className="text-white/70 text-sm block mb-1">{t('timeWindowLabel', lang)}</label>
             <select
               value={scheduleWindow}
               onChange={(e) => setScheduleWindow(e.target.value)}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition mb-4"
             >
               {TIME_WINDOWS.map((w) => (
-                <option key={w.value} value={w.value} className="bg-[#0C1A2E]">{w.label}</option>
+                <option key={w.value} value={w.value} className="bg-[#0C1A2E]">{windowLabel(w.value, lang)}</option>
               ))}
             </select>
 
-            <label className="text-white/70 text-sm block mb-1">Specific time (optional)</label>
+            <label className="text-white/70 text-sm block mb-1">{t('specificTimeOptional', lang)}</label>
             <input
               type="time"
               value={scheduleTime}
@@ -940,14 +940,14 @@ export default function ContractorJobDetailPage() {
                 disabled={actioning}
                 className="flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-white/12 transition disabled:opacity-50"
               >
-                Cancel
+                {t('cancel', lang)}
               </button>
               <button
                 onClick={submitProposal}
                 disabled={actioning}
                 className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
               >
-                {actioning ? 'Proposing...' : 'Propose'}
+                {actioning ? t('proposing', lang) : t('proposeBtn', lang)}
               </button>
             </div>
           </div>
@@ -957,9 +957,9 @@ export default function ContractorJobDetailPage() {
       {showCompleteModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
           <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
-            <h3 className="text-white font-semibold mb-2">Mark this job complete?</h3>
+            <h3 className="text-white font-semibold mb-2">{t('markJobCompleteQ', lang)}</h3>
             <p className="text-white/50 text-sm mb-6">
-              This sends your work and photos to the landlord for review. They have 3 days to review before it's automatically approved. Once approved, your payment is released.
+              {t('markCompleteDesc', lang)}
             </p>
             <div className="flex gap-3">
               <button
@@ -967,14 +967,14 @@ export default function ContractorJobDetailPage() {
                 disabled={actioning}
                 className="flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-white/12 transition disabled:opacity-50"
               >
-                Cancel
+                {t('cancel', lang)}
               </button>
               <button
                 onClick={confirmMarkComplete}
                 disabled={actioning}
                 className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
               >
-                {actioning ? 'Submitting...' : 'Mark complete'}
+                {actioning ? t('submittingDots', lang) : t('markCompleteBtn', lang)}
               </button>
             </div>
           </div>
@@ -985,14 +985,14 @@ export default function ContractorJobDetailPage() {
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
           <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full text-center">
             <h3 className="text-white font-semibold mb-2 flex items-center justify-center gap-1.5">
-              <CheckCircleIcon className="w-4 h-4 text-[#12A5A9]" /> Message sent
+              <CheckCircleIcon className="w-4 h-4 text-[#12A5A9]" /> {t('messageSentHeading', lang)}
             </h3>
-            <p className="text-white/50 text-sm mb-5">The landlord can now see your response.</p>
+            <p className="text-white/50 text-sm mb-5">{t('landlordCanSeeResponse', lang)}</p>
             <button
               onClick={() => setShowResponseSentModal(false)}
               className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-6 py-2.5 rounded-xl hover:opacity-90 transition"
             >
-              Got it
+              {t('gotIt', lang)}
             </button>
           </div>
         </div>
@@ -1001,9 +1001,9 @@ export default function ContractorJobDetailPage() {
       {showPriceChangeModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
           <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
-            <h3 className="text-white font-semibold mb-4">Request a price change</h3>
+            <h3 className="text-white font-semibold mb-4">{t('requestPriceChangeHeading', lang)}</h3>
 
-            <label className="text-white/70 text-sm block mb-1">Labor ($)</label>
+            <label className="text-white/70 text-sm block mb-1">{t('laborDollarLabel', lang)}</label>
             <input
               type="number"
               value={laborAmount}
@@ -1014,7 +1014,7 @@ export default function ContractorJobDetailPage() {
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition mb-4"
             />
 
-            <label className="text-white/70 text-sm block mb-1">Parts (optional, $)</label>
+            <label className="text-white/70 text-sm block mb-1">{t('partsOptionalDollarLabel', lang)}</label>
             <input
               type="number"
               value={partsAmount}
@@ -1026,15 +1026,15 @@ export default function ContractorJobDetailPage() {
             />
 
             <p className="text-white/50 text-sm mb-4">
-              New total: <span className="text-white font-semibold">${((parseFloat(laborAmount) || 0) + (parseFloat(partsAmount) || 0)).toFixed(2)}</span>
+              {t('newTotalLabel', lang)} <span className="text-white font-semibold">${((parseFloat(laborAmount) || 0) + (parseFloat(partsAmount) || 0)).toFixed(2)}</span>
             </p>
 
-            <label className="text-white/70 text-sm block mb-1">Reason</label>
+            <label className="text-white/70 text-sm block mb-1">{t('reasonLabel', lang)}</label>
             <textarea
               value={priceChangeReason}
               onChange={(e) => setPriceChangeReason(e.target.value)}
               rows={3}
-              placeholder="e.g. Found additional pipe damage behind the wall"
+              placeholder={t('priceChangeReasonPlaceholder', lang)}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition resize-none mb-5"
             />
 
@@ -1050,14 +1050,14 @@ export default function ContractorJobDetailPage() {
                 disabled={actioning}
                 className="flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-white/12 transition disabled:opacity-50"
               >
-                Cancel
+                {t('cancel', lang)}
               </button>
               <button
                 onClick={submitPriceChange}
                 disabled={actioning}
                 className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
               >
-                {actioning ? 'Sending...' : 'Send request'}
+                {actioning ? t('sendingDots', lang) : t('sendRequestBtn', lang)}
               </button>
             </div>
           </div>
