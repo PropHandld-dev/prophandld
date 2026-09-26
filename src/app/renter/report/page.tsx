@@ -258,7 +258,8 @@ export default function ReportIssuePage() {
       </nav>
 
       <main className="max-w-xl mx-auto px-6 py-10 pb-28">
-        <h1 className="text-2xl font-bold text-white mb-2">Report an issue</h1>
+        <h1 className="text-2xl font-bold text-white mb-1">Report an issue</h1>
+        <p className="text-white/40 text-sm mb-2">Reportar un problema</p>
         <p className="text-white/50 text-sm mb-8">
           Let your landlord know what's going on. Add photos or a short video if you can, it helps get the right contractor.
         </p>
@@ -268,7 +269,7 @@ export default function ReportIssuePage() {
           <form onSubmit={handleSubmit} className="space-y-4">
 
             <div>
-              <label className="text-white/70 text-sm block mb-1">Category</label>
+              <label className="text-white/70 text-sm block mb-1">Category <span className="text-white/40 font-normal">· Categoría</span></label>
               <select
                 name="category"
                 value={form.category}
@@ -318,14 +319,14 @@ export default function ReportIssuePage() {
             )}
 
             <div>
-              <label className="text-white/70 text-sm block mb-1">Description</label>
+              <label className="text-white/70 text-sm block mb-1">Description <span className="text-white/40 font-normal">· Descripción</span></label>
               <textarea
                 name="description"
                 value={form.description}
                 onChange={handleChange}
                 required
                 rows={4}
-                placeholder="What's going on? Be as specific as you can."
+                placeholder="What's going on? Be as specific as you can. / ¿Qué está pasando? Sea lo más específico posible."
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition resize-none"
               />
             </div>
@@ -439,10 +440,11 @@ export default function ReportIssuePage() {
             >
               <div>
                 <p className={form.is_emergency ? 'text-red-400 font-semibold text-sm flex items-center gap-1.5' : 'text-white font-semibold text-sm flex items-center gap-1.5'}>
-                  <AlertTriangleIcon className="w-4 h-4" /> This is an emergency
+                  <AlertTriangleIcon className="w-4 h-4" /> This is an emergency <span className="font-normal opacity-70">· Es una emergencia</span>
                 </p>
                 <p className="text-white/60 text-xs mt-1">
                   Only use this for issues that need attention right away: active leaks, gas smells, no heat, broken locks.
+                  <span className="block text-white/40 mt-0.5">Use esto solo para problemas urgentes: fugas de agua, olor a gas, sin calefacción, cerraduras rotas.</span>
                 </p>
               </div>
               <span
@@ -467,7 +469,7 @@ export default function ReportIssuePage() {
               disabled={submitting}
               className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
             >
-              {submitting ? 'Submitting...' : 'Submit report'}
+              {submitting ? 'Submitting...' : 'Submit report · Enviar reporte'}
             </RippleButton>
           </form>
           </ScrollReveal>

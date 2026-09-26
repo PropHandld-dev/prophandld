@@ -2,18 +2,18 @@ import type { TabItem } from '@/components/BottomTabBar'
 import { HomeIcon, BuildingIcon, WrenchIcon, CalendarIcon, UserIcon, ClipboardListIcon, SettingsIcon } from '@/components/icons'
 
 export const LANDLORD_TABS: TabItem[] = [
-  { href: '/landlord', label: 'Home', icon: HomeIcon },
-  { href: '/landlord/properties', label: 'Properties', icon: BuildingIcon },
-  { href: '/landlord/jobs', label: 'Jobs', icon: WrenchIcon },
-  { href: '/landlord/calendar', label: 'Calendar', icon: CalendarIcon },
-  { href: '/profile', label: 'Profile', icon: UserIcon },
+  { href: '/landlord', label: 'Home', labelEs: 'Inicio', icon: HomeIcon },
+  { href: '/landlord/properties', label: 'Properties', labelEs: 'Propiedades', icon: BuildingIcon },
+  { href: '/landlord/jobs', label: 'Jobs', labelEs: 'Trabajos', icon: WrenchIcon },
+  { href: '/landlord/calendar', label: 'Calendar', labelEs: 'Calendario', icon: CalendarIcon },
+  { href: '/profile', label: 'Profile', labelEs: 'Perfil', icon: UserIcon },
 ]
 
 export const RENTER_TABS: TabItem[] = [
-  { href: '/renter', label: 'Home', icon: HomeIcon },
-  { href: '/renter/report', label: 'Report', icon: ClipboardListIcon },
-  { href: '/renter/calendar', label: 'Calendar', icon: CalendarIcon },
-  { href: '/profile', label: 'Profile', icon: UserIcon },
+  { href: '/renter', label: 'Home', labelEs: 'Inicio', icon: HomeIcon },
+  { href: '/renter/report', label: 'Report', labelEs: 'Reportar', icon: ClipboardListIcon },
+  { href: '/renter/calendar', label: 'Calendar', labelEs: 'Calendario', icon: CalendarIcon },
+  { href: '/profile', label: 'Profile', labelEs: 'Perfil', icon: UserIcon },
 ]
 
 export const CONTRACTOR_TABS: TabItem[] = [
