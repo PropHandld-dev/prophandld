@@ -24,10 +24,12 @@ import { useJobRealtime } from '@/lib/useJobRealtime'
 import { requirementById } from '@/lib/credentialRequirements'
 import { TIME_WINDOWS, validateScheduleTime, rescheduleLockError } from '@/lib/scheduleWindows'
 import { AddressLink } from '@/components/AddressLink'
+import { useLanguage, t } from '@/lib/i18n'
 
 export default function JobDetailPage() {
   const router = useRouter()
   const params = useParams()
+  const lang = useLanguage()
   const jobId = params.jobId as string
 
   const [loading, setLoading] = useState(true)
@@ -82,7 +84,7 @@ export default function JobDetailPage() {
 
     if (jobError || !jobData) {
       console.error('Error loading job:', jobError)
-      setError('Job not found.')
+      setError(t('jobNotFound', lang))
       setLoading(false)
       return
     }
@@ -260,7 +262,7 @@ export default function JobDetailPage() {
     const { error: deleteError } = await supabase.from('job_photos').delete().eq('id', photo.id)
     if (deleteError) {
       console.error('Error deleting photo record:', deleteError)
-      setError('Could not remove photo.')
+      setError(t('couldNotRemovePhoto', lang))
       return
     }
 
@@ -276,7 +278,7 @@ export default function JobDetailPage() {
 
     if (updateError) {
       console.error('Error acknowledging job:', updateError)
-      setError('Could not acknowledge job.')
+      setError(t('couldNotAcknowledgeJob', lang))
       setActioning(false)
       return
     }
@@ -294,7 +296,7 @@ export default function JobDetailPage() {
 
     if (biddingError) {
       console.error('Error starting bidding:', biddingError)
-      setError('Acknowledged, but could not start bidding.')
+      setError(t('acknowledgedButNoBidding', lang))
     } else {
       notify('job_open', jobId)
     }
@@ -324,7 +326,7 @@ export default function JobDetailPage() {
 
     if (updateError) {
       console.error('Error declining job:', updateError)
-      setError('Could not decline job.')
+      setError(`${t('couldNotDeclineJob', lang)} ${updateError.message}`)
     } else {
       notify('job_declined', jobId)
       // Cancelling out of bidding: any still-open sealed bids need to be
@@ -355,7 +357,7 @@ export default function JobDetailPage() {
 
     if (updateError) {
       console.error('Error starting bidding:', updateError)
-      setError('Could not start bidding.')
+      setError(t('couldNotStartBidding', lang))
     } else {
       notify('job_open', jobId)
     }
@@ -379,7 +381,7 @@ export default function JobDetailPage() {
       .eq('id', questionId)
     if (answerError) {
       console.error('Error answering question:', answerError)
-      setError('Could not send your answer.')
+      setError(t('couldNotSendAnswer', lang))
     } else {
       setAnswerDrafts((prev) => ({ ...prev, [questionId]: '' }))
       setQuestions((prev) => prev.map((q) => q.id === questionId ? { ...q, answer, answered_at: new Date().toISOString() } : q))
@@ -400,7 +402,7 @@ export default function JobDetailPage() {
 
     if (selectError) {
       console.error('Error selecting bid:', selectError)
-      setError('Could not select this bid.')
+      setError(t('couldNotSelectBid', lang))
       setActioning(false)
       setShowSelectModal(false)
       return
@@ -423,7 +425,7 @@ export default function JobDetailPage() {
 
     if (jobUpdateError) {
       console.error('Error updating job status:', jobUpdateError)
-      setError('Bid selected, but job status failed to update.')
+      setError(t('bidSelectedStatusFailed', lang))
     } else {
       notify('contractor_selected', jobId)
       if (userId) {
@@ -447,7 +449,7 @@ export default function JobDetailPage() {
 
   const submitProposal = async () => {
     if (!scheduleDate) {
-      setError('Please pick a date.')
+      setError(t('pleasePickADate', lang))
       return
     }
 
@@ -482,7 +484,7 @@ export default function JobDetailPage() {
 
     if (updateError) {
       console.error('Error proposing schedule:', updateError)
-      setError('Could not propose a schedule.')
+      setError(t('couldNotProposeSchedule', lang))
       setActioning(false)
       return
     }
@@ -502,7 +504,7 @@ export default function JobDetailPage() {
 
     if (updateError) {
       console.error('Error asking tenant to propose:', updateError)
-      setError('Could not send request.')
+      setError(t('couldNotSendRequest', lang))
     }
 
     await fetchJob()
@@ -518,7 +520,7 @@ export default function JobDetailPage() {
 
     if (updateError) {
       console.error('Error confirming schedule:', updateError)
-      setError('Could not confirm the schedule.')
+      setError(t('couldNotConfirmSchedule', lang))
     } else {
       notify('schedule_confirmed', jobId)
     }
@@ -536,7 +538,7 @@ export default function JobDetailPage() {
 
     if (updateError) {
       console.error('Error archiving job:', updateError)
-      setError('Could not archive job.')
+      setError(t('couldNotArchiveJob', lang))
     }
 
     setShowArchiveModal(false)
@@ -553,7 +555,7 @@ export default function JobDetailPage() {
 
     if (updateError) {
       console.error('Error approving completion:', updateError)
-      setError('Could not approve completion: ' + updateError.message)
+      setError(`${t('couldNotApproveCompletion', lang)} ${updateError.message}`)
     } else {
       notify('job_completed', jobId)
       if (userId) postJobStatusMessage(jobId, userId, '✓ Job approved, payment released')
@@ -599,7 +601,7 @@ export default function JobDetailPage() {
 
       if (updateError) {
         console.error('Error approving price change:', updateError)
-        setError('Could not approve price change.')
+        setError(t('couldNotApprovePriceChange', lang))
         setActioning(false)
         return
       }
@@ -611,7 +613,7 @@ export default function JobDetailPage() {
 
       if (updateError) {
         console.error('Error rejecting price change:', updateError)
-        setError('Could not reject price change.')
+        setError(t('couldNotRejectPriceChange', lang))
         setActioning(false)
         return
       }
@@ -683,17 +685,17 @@ export default function JobDetailPage() {
 
   const statusLabel = (status: string) => {
     const labels: Record<string, string> = {
-      pending_approval: 'Needs approval',
-      approved: 'Acknowledged',
-      bidding: 'Getting bids',
-      bid_selected: 'Contractor selected',
-      scheduled: 'Scheduled',
-      in_progress: 'In progress',
-      pending_review: 'Pending your review',
-      completed: 'Completed',
-      archived: 'Archived',
-      declined: 'Declined',
-      disputed: 'Under dispute review',
+      pending_approval: t('statusNeedsApproval', lang),
+      approved: t('statusAcknowledged', lang),
+      bidding: t('statusBidding', lang),
+      bid_selected: t('statusBidSelected', lang),
+      scheduled: t('statusScheduledFull', lang),
+      in_progress: t('statusInProgressFull', lang),
+      pending_review: t('statusPendingYourReview', lang),
+      completed: t('statusCompleted', lang),
+      archived: t('statusArchived', lang),
+      declined: t('statusDeclined', lang),
+      disputed: t('statusDisputedFull', lang),
     }
     return labels[status] || status
   }
