@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
+import { graduatedMonthlyAmount } from '@/lib/pricingTiers'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const CHUNK = 100
-const TIER_PRICES: Record<string, number> = { tier_20: 20, tier_50: 50, tier_80: 80 }
 
 function chunk<T>(items: T[], size: number): T[][] {
   const out: T[][] = []
@@ -41,7 +41,7 @@ export async function GET() {
       .select('id, job_id, contractor_user_id, amount, payment_status, paid_at, stripe_payment_intent_id, jobs(category, units(unit_number, properties(address, city, owner_user_id)))')
       .not('payment_status', 'is', null)
       .limit(500),
-    admin.from('landlord_subscriptions').select('landlord_user_id, tier, status, updated_at, stripe_subscription_id'),
+    admin.from('landlord_subscriptions').select('landlord_user_id, tier, unit_count, status, updated_at, stripe_subscription_id'),
     admin.from('users').select('stripe_connect_status').not('stripe_connect_account_id', 'is', null),
   ])
 
@@ -157,16 +157,17 @@ export async function GET() {
 
   const activeSubs = subs.filter((s: any) => s.tier !== 'free' && s.status === 'active')
   for (const s of activeSubs as any[]) {
+    const amount = graduatedMonthlyAmount(s.unit_count || 0)
     txs.push({
       id: `sub-${s.landlord_user_id}`,
       kind: 'subscription',
       date: s.updated_at,
-      amount: TIER_PRICES[s.tier] || 0,
+      amount,
       status: 'succeeded',
       method: 'card',
       from: nameOf(s.landlord_user_id),
       to: 'Prophandld',
-      description: `${s.tier.replace('tier_', '$')}/month plan`,
+      description: `${s.tier} plan · ${s.unit_count || 0} units · $${amount.toFixed(2)}/month`,
       place: '',
       stripeUrl: s.stripe_subscription_id ? `${stripeBase}/subscriptions/${s.stripe_subscription_id}` : null,
       flags: [],
@@ -209,7 +210,7 @@ export async function GET() {
       rentAllTime: sum('rent'),
       jobsThisMonth: sum('job', monthStart.getTime()),
       jobsAllTime: sum('job'),
-      mrr: activeSubs.reduce((total: number, s: any) => total + (TIER_PRICES[s.tier] || 0), 0),
+      mrr: activeSubs.reduce((total: number, s: any) => total + graduatedMonthlyAmount(s.unit_count || 0), 0),
       paidSubscribers: activeSubs.length,
       inFlight: txs.filter((t) => t.status === 'processing').reduce((total, t) => total + t.amount, 0),
       inFlightCount: txs.filter((t) => t.status === 'processing').length,

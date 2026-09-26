@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
-import { getStripe, tierForUnitCount, priceIdForTier } from '@/lib/stripe'
+import { getStripe, tierForUnitCount, graduatedPriceId } from '@/lib/stripe'
 
 export async function POST() {
   const authClient = await createClient()
@@ -20,6 +20,7 @@ export async function POST() {
       .from('properties')
       .select('id')
       .eq('owner_user_id', user.id)
+      .eq('archived', false)
 
     const propertyIds = (properties || []).map((p) => p.id)
     let unitCount = 0
@@ -32,7 +33,7 @@ export async function POST() {
     }
 
     const tier = tierForUnitCount(unitCount)
-    const priceId = priceIdForTier(tier)
+    const priceId = graduatedPriceId()
 
     if (tier === 'free' || !priceId) {
       return NextResponse.json({ error: 'No paid plan needed at your current unit count.' }, { status: 400 })
@@ -70,7 +71,9 @@ export async function POST() {
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       customer: customerId,
-      line_items: [{ price: priceId, quantity: 1 }],
+      // quantity is the real unit count — the one graduated Price handles
+      // computing the actual total from it, not a different price per tier.
+      line_items: [{ price: priceId, quantity: unitCount }],
       success_url: `${origin}/profile?billing=success`,
       cancel_url: `${origin}/profile?billing=cancelled`,
       metadata: { prophandld_landlord_user_id: user.id, prophandld_tier: tier },

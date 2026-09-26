@@ -4,8 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { AdminLayout } from '@/components/AdminLayout'
 import { ScrollReveal } from '@/components/ScrollReveal'
-
-const TIER_PRICES: Record<string, number> = { tier_20: 20, tier_50: 50, tier_80: 80 }
+import { graduatedMonthlyAmount, TIER_RANGE_LABELS, type LandlordTier } from '@/lib/pricingTiers'
 
 export default function AdminOverviewPage() {
   const [loading, setLoading] = useState(true)
@@ -28,7 +27,7 @@ export default function AdminOverviewPage() {
         { data: disputes, error: disputesError },
       ] = await Promise.all([
         fetch('/api/admin/users').then((r) => r.json()).catch(() => ({ users: [] })),
-        supabase.from('landlord_subscriptions').select('tier'),
+        supabase.from('landlord_subscriptions').select('tier, unit_count, status'),
         supabase.from('rent_payments').select('actual_amount, month'),
         supabase.from('bids').select('amount, proposed_amount').eq('payment_status', 'paid'),
         supabase.from('disputes').select('id').eq('status', 'open'),
@@ -52,7 +51,13 @@ export default function AdminOverviewPage() {
       const tierCounts: Record<string, number> = {}
       ;(subs || []).forEach((s) => { tierCounts[s.tier] = (tierCounts[s.tier] || 0) + 1 })
 
-      const mrr = Object.entries(tierCounts).reduce((sum, [tier, count]) => sum + (TIER_PRICES[tier] || 0) * count, 0)
+      // The graduated model has no single price per tier, so MRR is summed
+      // from each active landlord's real unit count rather than a flat
+      // per-tier lookup — a tier name alone can no longer say the dollar
+      // amount.
+      const mrr = (subs || [])
+        .filter((s: any) => s.status === 'active' && s.tier !== 'free')
+        .reduce((sum: number, s: any) => sum + graduatedMonthlyAmount(s.unit_count || 0), 0)
 
       const currentMonth = new Date().toISOString().slice(0, 7)
       const rentThisMonth = (rentPayments || [])
@@ -87,9 +92,9 @@ export default function AdminOverviewPage() {
           <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
             <h2 className="text-white font-semibold mb-4">Landlord subscription tiers</h2>
             <div className="space-y-2">
-              {[['free', 'Free'], ['tier_20', '$20/mo'], ['tier_50', '$50/mo'], ['tier_80', '$80/mo']].map(([key, label]) => (
+              {(['free', 'starter', 'growth', 'portfolio', 'enterprise'] as LandlordTier[]).map((key) => (
                 <div key={key} className="flex items-center justify-between">
-                  <span className="text-white/60 text-sm">{label}</span>
+                  <span className="text-white/60 text-sm capitalize">{key} <span className="text-white/30">· {TIER_RANGE_LABELS[key]}</span></span>
                   <span className="text-white text-sm font-medium">{stats.tierCounts[key] || 0}</span>
                 </div>
               ))}

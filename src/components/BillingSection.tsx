@@ -4,34 +4,22 @@ import { useEffect, useState } from 'react'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { openPendingTab, goToTab, abandonTab } from '@/lib/externalTab'
+import { TIER_LABELS, TIER_RANGE_LABELS, type LandlordTier } from '@/lib/pricingTiers'
 
 type Status = {
   unitCount: number
-  computedTier: 'free' | 'tier_20' | 'tier_50' | 'tier_80'
-  tier: 'free' | 'tier_20' | 'tier_50' | 'tier_80'
+  computedTier: LandlordTier
+  tier: LandlordTier
   hasActiveSubscription: boolean
   hasStripeCustomer: boolean
 }
 
-const TIER_PRICE_LABELS: Record<Status['tier'], string> = {
+const TIER_PRICE_LABELS: Record<LandlordTier, string> = {
   free: 'Free plan',
-  tier_20: '$20/month plan',
-  tier_50: '$50/month plan',
-  tier_80: '$80/month plan',
-}
-
-const TIER_LABELS: Record<Status['tier'], string> = {
-  free: 'Free',
-  tier_20: '$20/month',
-  tier_50: '$50/month',
-  tier_80: '$80/month',
-}
-
-const TIER_RANGE_LABELS: Record<Status['tier'], string> = {
-  free: '0–2 units',
-  tier_20: '3–5 units',
-  tier_50: '6–10 units',
-  tier_80: '11+ units',
+  starter: '$79/month plan',
+  growth: 'Growth plan',
+  portfolio: 'Portfolio plan',
+  enterprise: 'Enterprise plan',
 }
 
 export function BillingSection() {
@@ -188,7 +176,7 @@ export function BillingSection() {
           {redirecting ? 'Redirecting...' : 'Manage billing'}
         </RippleButton>
       ) : (
-        <p className="text-white/50 text-xs">0–2 units stay free, no card needed.</p>
+        <p className="text-white/50 text-xs">1 unit stays free, no card needed.</p>
       )}
     </ScrollReveal>
   )

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
-import { getStripe, tierForUnitCount, priceIdForTier } from '@/lib/stripe'
+import { getStripe, tierForUnitCount } from '@/lib/stripe'
 
 export async function POST() {
   const authClient = await createClient()
@@ -16,10 +16,14 @@ export async function POST() {
   const supabaseAdmin = getSupabaseAdmin()
 
   try {
+    // Archived properties don't count — this used to be missed everywhere
+    // in this file, so archiving a property never actually lowered what a
+    // landlord was billed for.
     const { data: properties, error: propertiesError } = await supabaseAdmin
       .from('properties')
       .select('id')
       .eq('owner_user_id', user.id)
+      .eq('archived', false)
 
     if (propertiesError) {
       console.error('subscription/sync: error fetching properties', propertiesError)
@@ -56,35 +60,42 @@ export async function POST() {
 
     const hasActiveStripeSub = existing?.stripe_subscription_id && existing.status === 'active'
 
-    if (hasActiveStripeSub && existing.tier !== desiredTier) {
+    if (hasActiveStripeSub) {
       const stripe = getStripe()
 
-      if (desiredTier === 'free') {
+      if (unitCount === 0) {
+        // Portfolio shrank to nothing billable — cancel rather than leave
+        // an active subscription charging for zero real units.
         await stripe.subscriptions.cancel(existing.stripe_subscription_id)
         const { error } = await supabaseAdmin
           .from('landlord_subscriptions')
-          .update({ tier: 'free', stripe_subscription_id: null, status: 'active', updated_at: new Date().toISOString() })
+          .update({ tier: 'free', unit_count: 0, stripe_subscription_id: null, status: 'active', updated_at: new Date().toISOString() })
           .eq('landlord_user_id', user.id)
         if (error) {
           console.error('subscription/sync: error clearing subscription after cancel', error)
           return NextResponse.json({ error: 'Could not update subscription' }, { status: 500 })
         }
       } else {
+        // Every paid tier is the same one graduated Price — the bill only
+        // ever changes because `quantity` changes, never because the price
+        // id does. This runs the same way whether the portfolio grew or
+        // shrank, which is what actually fixes a portfolio that lost units
+        // never lowering its bill: there's no separate "downgrade" branch
+        // to have forgotten to wire up.
         const subscription = await stripe.subscriptions.retrieve(existing.stripe_subscription_id)
-        const itemId = subscription.items.data[0]?.id
-        const newPriceId = priceIdForTier(desiredTier)
-        if (newPriceId && itemId) {
+        const item = subscription.items.data[0]
+        if (item && item.quantity !== unitCount) {
           await stripe.subscriptions.update(existing.stripe_subscription_id, {
-            items: [{ id: itemId, price: newPriceId }],
+            items: [{ id: item.id, quantity: unitCount }],
             proration_behavior: 'create_prorations',
           })
         }
         const { error } = await supabaseAdmin
           .from('landlord_subscriptions')
-          .update({ tier: desiredTier, updated_at: new Date().toISOString() })
+          .update({ tier: desiredTier, unit_count: unitCount, updated_at: new Date().toISOString() })
           .eq('landlord_user_id', user.id)
         if (error) {
-          console.error('subscription/sync: error updating tier after Stripe swap', error)
+          console.error('subscription/sync: error updating tier after Stripe quantity sync', error)
           return NextResponse.json({ error: 'Could not update subscription' }, { status: 500 })
         }
       }
@@ -95,7 +106,7 @@ export async function POST() {
       const { error } = await supabaseAdmin
         .from('landlord_subscriptions')
         .upsert(
-          { landlord_user_id: user.id, tier: desiredTier, status: existing?.status || 'active', updated_at: new Date().toISOString() },
+          { landlord_user_id: user.id, tier: desiredTier, unit_count: unitCount, status: existing?.status || 'active', updated_at: new Date().toISOString() },
           { onConflict: 'landlord_user_id' }
         )
       if (error) {

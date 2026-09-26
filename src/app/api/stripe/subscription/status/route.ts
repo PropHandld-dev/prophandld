@@ -20,6 +20,7 @@ export async function GET() {
       .from('properties')
       .select('id')
       .eq('owner_user_id', user.id)
+      .eq('archived', false)
 
     if (propertiesError) {
       console.error('subscription/status: error fetching properties', propertiesError)
