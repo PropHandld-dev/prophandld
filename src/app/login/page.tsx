@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import type { User } from '@supabase/supabase-js'
-import { supabase } from '@/lib/supabase'
+import { supabase, HAD_SIGNUP_HASH_ON_LOAD } from '@/lib/supabase'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { RippleButton } from '@/components/RippleButton'
@@ -142,16 +142,9 @@ function LoginForm() {
   // the job automatically, the same way a manual sign-in would.
   useEffect(() => {
     let cancelled = false
-    // Read this synchronously, before anything else runs — Supabase's
-    // client strips its auth tokens out of the URL hash right after
-    // parsing it, so this is the one chance to see whether "type=signup"
-    // was in there (present only when this page load came from an actual
-    // confirmation-link click, not any other reason a session might
-    // already exist here).
-    const justVerified = typeof window !== 'undefined' && window.location.hash.includes('type=signup')
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (cancelled) return
-      if (session?.user && justVerified) {
+      if (session?.user && HAD_SIGNUP_HASH_ON_LOAD) {
         setJustVerifiedUser(session.user)
         setCheckingSession(false)
       } else if (session?.user) {
