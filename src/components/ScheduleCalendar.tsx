@@ -7,8 +7,10 @@ import { TIME_WINDOWS } from '@/lib/scheduleWindows'
 // confirmed = a time everyone has agreed on (or work that has started),
 // proposed = a time waiting for the other side to confirm (also what a
 // reschedule looks like until it is accepted), done = finished work, kept as
-// a history.
-export type CalendarEventState = 'confirmed' | 'proposed' | 'done'
+// a history. reminder = not a job at all — something else worth knowing on
+// this date (rent due, a compliance item expiring, a lease renewal coming
+// up) — visually distinct so it never reads as a job that needs scheduling.
+export type CalendarEventState = 'confirmed' | 'proposed' | 'done' | 'reminder'
 
 export interface CalendarEvent {
   id: string
@@ -42,16 +44,18 @@ const MONTH_LABELS = [
   'July', 'August', 'September', 'October', 'November', 'December',
 ]
 
-const STATE_LABEL: Record<CalendarEventState, string> = { confirmed: 'Confirmed', proposed: 'Waiting for confirmation', done: 'Done' }
+const STATE_LABEL: Record<CalendarEventState, string> = { confirmed: 'Confirmed', proposed: 'Waiting for confirmation', done: 'Done', reminder: 'Reminder' }
 const CHIP_STYLE: Record<CalendarEventState, string> = {
   confirmed: 'bg-gradient-to-r from-[#0A7B7E]/25 to-[#12A5A9]/25 text-[#12A5A9]',
   proposed: 'border border-dashed border-yellow-500/50 bg-yellow-500/10 text-yellow-400',
   done: 'bg-white/5 text-white/40',
+  reminder: 'border border-dashed border-orange-400/50 bg-orange-400/10 text-orange-300',
 }
 const BADGE_STYLE: Record<CalendarEventState, string> = {
   confirmed: 'bg-[#12A5A9]/15 text-[#12A5A9]',
   proposed: 'bg-yellow-500/15 text-yellow-400',
   done: 'bg-white/8 text-white/50',
+  reminder: 'bg-orange-400/15 text-orange-300',
 }
 
 const dateKey = (year: number, month: number, day: number) =>
@@ -65,6 +69,7 @@ export function ScheduleCalendar({ events }: { events: CalendarEvent[] }) {
 
   const stateOf = (e: CalendarEvent): CalendarEventState => e.state ?? 'confirmed'
   const hasDone = events.some((e) => stateOf(e) === 'done')
+  const hasReminders = events.some((e) => stateOf(e) === 'reminder')
   const visible = showDone ? events : events.filter((e) => stateOf(e) !== 'done')
 
   const eventsByDate = new Map<string, CalendarEvent[]>()
@@ -178,7 +183,7 @@ export function ScheduleCalendar({ events }: { events: CalendarEvent[] }) {
                       className={`block text-[10px] leading-tight rounded px-1.5 py-1 truncate hover:opacity-80 transition ${CHIP_STYLE[state]}`}
                       title={`${STATE_LABEL[state]}: ${event.subtitle ? `${event.title}, ${event.subtitle}` : event.title}`}
                     >
-                      {state === 'done' ? '✓ ' : state === 'proposed' ? '? ' : ''}
+                      {state === 'done' ? '✓ ' : state === 'proposed' ? '? ' : state === 'reminder' ? '⏰ ' : ''}
                       {event.title}
                     </Link>
                   )
@@ -196,6 +201,7 @@ export function ScheduleCalendar({ events }: { events: CalendarEvent[] }) {
         <div className="flex items-center gap-4 text-[11px] text-white/50 flex-wrap">
           <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-[#12A5A9]/60" /> Confirmed</span>
           <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm border border-dashed border-yellow-500/60" /> Waiting for confirmation</span>
+          {hasReminders && <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm border border-dashed border-orange-400/60" /> Reminder</span>}
           {hasDone && <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-white/20" /> Done</span>}
         </div>
         {hasDone && (
@@ -234,7 +240,7 @@ export function ScheduleCalendar({ events }: { events: CalendarEvent[] }) {
                     </p>
                   </div>
                   <span className={`text-[11px] font-semibold rounded-full px-2.5 py-1 shrink-0 ${BADGE_STYLE[state]}`}>
-                    {state === 'done' ? 'Done' : state === 'proposed' ? 'Waiting' : 'Confirmed'}
+                    {state === 'done' ? 'Done' : state === 'proposed' ? 'Waiting' : state === 'reminder' ? 'Reminder' : 'Confirmed'}
                   </span>
                 </Link>
               )
