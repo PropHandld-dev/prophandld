@@ -327,6 +327,18 @@ export default function JobDetailPage() {
       setError('Could not decline job.')
     } else {
       notify('job_declined', jobId)
+      // Cancelling out of bidding: any still-open sealed bids need to be
+      // closed out too, so a contractor's "Your bids" doesn't show a
+      // "Pending" bid on a job that's actually dead. (No email to bidders
+      // yet — see the note by the button; this only cleans up the data.)
+      if (openBids.length > 0) {
+        const { error: bidsError } = await supabase
+          .from('bids')
+          .update({ status: 'declined' })
+          .eq('job_id', jobId)
+          .eq('status', 'pending')
+        if (bidsError) console.error('Error declining open bids on cancel:', bidsError)
+      }
     }
 
     setShowDeclineModal(false)
@@ -791,6 +803,15 @@ export default function JobDetailPage() {
                 className="text-white/60 hover:text-white text-xs transition shrink-0"
               >
                 Archive
+              </button>
+            )}
+            {['approved', 'bidding'].includes(job.status) && (
+              <button
+                onClick={handleDeclineClick}
+                disabled={actioning}
+                className="text-red-400/70 hover:text-red-400 text-xs transition shrink-0 disabled:opacity-50"
+              >
+                Cancel this job
               </button>
             )}
           </div>
@@ -1335,10 +1356,17 @@ export default function JobDetailPage() {
       {showDeclineModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
           <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
-            <h3 className="text-white font-semibold mb-2">Decline this job?</h3>
+            <h3 className="text-white font-semibold mb-2">
+              {job.status === 'pending_approval' ? 'Decline this job?' : 'Cancel this job?'}
+            </h3>
             <p className="text-white/50 text-sm mb-3">
               Optionally let the renter know why.
             </p>
+            {openBids.length > 0 && (
+              <p className="text-yellow-400/90 text-xs bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2 mb-3">
+                {openBids.length} contractor{openBids.length > 1 ? 's have' : ' has'} already placed a sealed bid. Cancelling closes those bids out, but doesn't email the bidders — message them directly from the job chat if they should know why.
+              </p>
+            )}
             <textarea
               value={declineNote}
               onChange={(e) => setDeclineNote(e.target.value)}
@@ -1352,14 +1380,14 @@ export default function JobDetailPage() {
                 disabled={actioning}
                 className="flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-white/12 transition disabled:opacity-50"
               >
-                Cancel
+                Never mind
               </button>
               <button
                 onClick={confirmDecline}
                 disabled={actioning}
                 className="flex-1 bg-red-500/20 text-red-400 text-sm font-semibold py-2.5 rounded-xl hover:bg-red-500/30 transition disabled:opacity-50"
               >
-                {actioning ? 'Declining...' : 'Decline'}
+                {actioning ? 'Cancelling...' : job.status === 'pending_approval' ? 'Decline' : 'Cancel job'}
               </button>
             </div>
           </div>
