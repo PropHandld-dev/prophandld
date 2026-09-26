@@ -10,13 +10,25 @@ export type Lang = 'en' | 'es'
 // dual-display fallback used before there was a real preference to read.
 // Starts 'en' and updates once the account loads, same tradeoff every
 // other per-viewer personalization in this app already makes.
+//
+// Uses getSession(), not getUser(): this now runs in dozens of components
+// on every page (every dashboard, the alerts list, the messages button,
+// chat, and more), and getUser() makes a real network round-trip to
+// Supabase's Auth server every time it's called, to revalidate the JWT —
+// unnecessary just to read a UI preference that's already embedded in the
+// locally cached session. getSession() reads that same session from local
+// storage with no network call (it only hits the network to silently
+// refresh an actually-expired token), so this scales to however many
+// components use it without adding real request load or delay. Anything
+// that needs a server-verified identity (an actual auth guard, a write)
+// still calls getUser() itself, unaffected by this.
 export function useLanguage(): Lang {
   const [lang, setLang] = useState<Lang>('en')
   useEffect(() => {
     let cancelled = false
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
       if (cancelled) return
-      if (user?.user_metadata?.preferred_language === 'es') setLang('es')
+      if (session?.user?.user_metadata?.preferred_language === 'es') setLang('es')
     })
     return () => {
       cancelled = true
