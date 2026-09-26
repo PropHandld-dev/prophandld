@@ -71,6 +71,24 @@ function LoginForm() {
         sessionStorage.setItem('ph_just_signed_in', '1')
       } catch {}
       const accountRole = data.user.user_metadata?.role
+      if (accountRole === 'renter') {
+        // A renter's real first entry into the app now happens here, not on
+        // the signup page — since email confirmation was turned on, signup
+        // diverts to "check your email" and this sign-in, after clicking
+        // that link, is the first time they're actually authenticated. A
+        // pending tenancy invite used to only ever get linked right after
+        // signup, so it was silently stuck for anyone who had to confirm
+        // first. Safe to call every login: a no-op once already linked.
+        try {
+          const res = await fetch('/api/tenancy/link-invite', { method: 'POST' })
+          if (!res.ok) {
+            const body = await res.json().catch(() => ({}))
+            console.error('Error auto-linking invited tenancy on login:', body.error)
+          }
+        } catch (err) {
+          console.error('Error checking pending invite on login:', err)
+        }
+      }
       if (accountRole === 'landlord') router.replace('/landlord')
       else if (accountRole === 'renter') router.replace('/renter')
       else if (accountRole === 'contractor') router.replace('/contractor')
