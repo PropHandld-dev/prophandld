@@ -346,13 +346,18 @@ export default function UnitDetailPage() {
     // A typed deposit amount with nothing tracking what actually happened
     // to it at move-out used to be the whole story — this is the one real
     // moment to record it, right where the tenancy actually ends, tied to
-    // the same move-out inspection photos already taken.
+    // the same move-out inspection photos already taken. The deposit modal
+    // itself is the confirmation step here (Cancel/Confirm) — but when
+    // there's no deposit to resolve, this used to skip straight to ending
+    // the tenancy with no confirmation at all. Restoring the same plain
+    // confirm the no-deposit path always had.
     if (tenancy?.security_deposit) {
       setDepositRefunded(tenancy.security_deposit.toString())
       setDepositReason('')
       setShowDepositModal(true)
       return
     }
+    if (!window.confirm('Confirm this tenant has fully moved out? This will mark the unit as vacant.')) return
     finalizeMoveOut({})
   }
 

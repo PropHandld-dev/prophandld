@@ -63,9 +63,12 @@ export async function POST() {
     if (hasActiveStripeSub) {
       const stripe = getStripe()
 
-      if (unitCount === 0) {
-        // Portfolio shrank to nothing billable — cancel rather than leave
-        // an active subscription charging for zero real units.
+      if (desiredTier === 'free') {
+        // Portfolio shrank to the free tier (0 or 1 unit) — cancel rather
+        // than leave an active $0 subscription behind. Checking the tier,
+        // not unitCount === 0 directly, matters here: tierForUnitCount
+        // treats exactly 1 unit as free too, and that case needs the same
+        // clean cancellation, not a subscription synced to a $0 quantity.
         await stripe.subscriptions.cancel(existing.stripe_subscription_id)
         const { error } = await supabaseAdmin
           .from('landlord_subscriptions')
