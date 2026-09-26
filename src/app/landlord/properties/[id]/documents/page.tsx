@@ -30,6 +30,10 @@ export default function PropertyDocumentsPage() {
     document_type: '',
     custom_document_type: '',
     unit_id: '',
+    // Matches how every existing document already behaves — tenants can
+    // see it. Switch to landlord-only for anything more private (a deed,
+    // an inspection report you don't want a tenant seeing).
+    visibility: 'shared',
   })
   const [files, setFiles] = useState<File[]>([])
 
@@ -166,9 +170,11 @@ export default function PropertyDocumentsPage() {
           property_id: propertyId,
           unit_id: form.unit_id || null,
           uploaded_by: userId,
+          uploaded_by_role: 'landlord',
           document_type: documentType,
           filename: file.name,
           file_url: filePath,
+          visibility: form.visibility,
         })
 
       if (insertError) {
@@ -178,7 +184,7 @@ export default function PropertyDocumentsPage() {
     }
 
     setFiles([])
-    setForm({ document_type: '', custom_document_type: '', unit_id: '' })
+    setForm({ document_type: '', custom_document_type: '', unit_id: '', visibility: 'shared' })
     await loadDocuments()
     setUploading(false)
   }
@@ -286,6 +292,19 @@ export default function PropertyDocumentsPage() {
           </div>
 
           <div>
+            <label className="text-white/70 text-sm block mb-1">Who can see this</label>
+            <select
+              name="visibility"
+              value={form.visibility}
+              onChange={handleChange}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
+            >
+              <option value="shared" className="bg-[#0C1A2E]">Landlord and tenant</option>
+              <option value="landlord_only" className="bg-[#0C1A2E]">Landlord only</option>
+            </select>
+          </div>
+
+          <div>
             <label className="text-white/70 text-sm block mb-1">Files</label>
             <label className="block">
               <input
@@ -371,6 +390,14 @@ export default function PropertyDocumentsPage() {
                             Compliance
                           </span>
                         )}
+                        {doc.uploaded_by_role === 'renter' && (
+                          <span className="text-xs bg-white/8 text-white/50 rounded-full px-2.5 py-0.5">
+                            From tenant
+                          </span>
+                        )}
+                        <span className={`text-xs rounded-full px-2.5 py-0.5 ${doc.visibility === 'landlord_only' ? 'bg-white/8 text-white/50' : 'bg-[#0A7B7E]/15 text-[#12A5A9]'}`}>
+                          {doc.visibility === 'landlord_only' ? 'Landlord only' : 'Shared with tenant'}
+                        </span>
                       </div>
                       <p className="text-white/50 text-xs mt-2">
                         {doc.rentMonth && doc.waterPeriodStart ? `Billed with ${new Date(doc.rentMonth + 'T00:00:00').toLocaleDateString(undefined, { month: 'long', year: 'numeric' })} rent · ` : ''}
