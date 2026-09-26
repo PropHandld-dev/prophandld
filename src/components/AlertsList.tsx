@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
+import { useLanguage, t } from '@/lib/i18n'
 
 export interface AlertItem {
   id: string
@@ -22,6 +23,7 @@ const TONE_STYLES: Record<AlertItem['tone'], { icon: string; badge: string }> = 
 const INITIAL_COUNT = 5
 
 export function AlertsList({ items }: { items: AlertItem[] }) {
+  const lang = useLanguage()
   const [expanded, setExpanded] = useState(false)
   if (items.length === 0) return null
 
@@ -30,7 +32,7 @@ export function AlertsList({ items }: { items: AlertItem[] }) {
   return (
     <div className="bg-white/3 border border-white/8 rounded-2xl p-5 mb-6">
       <h3 className="text-white font-semibold text-sm mb-3">
-        Needs your attention ({items.length})
+        {t('needsYourAttention', lang)} ({items.length})
       </h3>
       <div className="space-y-1.5">
         {visible.map((item) => {
@@ -61,7 +63,7 @@ export function AlertsList({ items }: { items: AlertItem[] }) {
           onClick={() => setExpanded((v) => !v)}
           className="w-full text-center text-[#12A5A9] text-xs font-semibold pt-3 mt-1 hover:underline"
         >
-          {expanded ? 'Show less' : `Show all ${items.length}`}
+          {expanded ? t('showLess', lang) : `${t('showAll', lang)} ${items.length}`}
         </button>
       )}
     </div>

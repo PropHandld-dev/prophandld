@@ -13,9 +13,11 @@ import { LogOutIcon } from '@/components/icons'
 import { TABS_BY_ROLE } from '@/lib/navTabs'
 import { StripeConnectCard } from '@/components/StripeConnectCard'
 import { BillingSection } from '@/components/BillingSection'
+import { useLanguage, t } from '@/lib/i18n'
 
 export default function ProfilePage() {
   const router = useRouter()
+  const lang = useLanguage()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -278,7 +280,7 @@ export default function ProfilePage() {
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link href={getDashboardLink()} className="text-white/50 hover:text-white text-sm transition">
-            ← Back to dashboard
+            {t('backToDashboard', lang)}
           </Link>
         </div>
         <Link href={getDashboardLink()} className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
@@ -294,14 +296,14 @@ export default function ProfilePage() {
           </div>
         ) : (
         <>
-        <h1 className="text-2xl font-bold text-white mb-8">Profile settings</h1>
+        <h1 className="text-2xl font-bold text-white mb-8">{t('profileSettings', lang)}</h1>
 
         {/* Profile form */}
         <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
-          <h2 className="text-white font-semibold mb-6">Personal information</h2>
+          <h2 className="text-white font-semibold mb-6">{t('personalInformation', lang)}</h2>
           <form onSubmit={handleSaveProfile} className="space-y-4">
             <div>
-              <label className="text-white/70 text-sm block mb-1">Full name</label>
+              <label className="text-white/70 text-sm block mb-1">{t('fullName', lang)}</label>
               <input
                 type="text"
                 name="full_name"
@@ -312,7 +314,7 @@ export default function ProfilePage() {
             </div>
 
             <div>
-              <label className="text-white/70 text-sm block mb-1">Email</label>
+              <label className="text-white/70 text-sm block mb-1">{t('email', lang)}</label>
               <input
                 type="email"
                 name="email"
@@ -320,11 +322,11 @@ export default function ProfilePage() {
                 disabled
                 className="w-full bg-white/3 border border-white/5 rounded-xl px-4 py-3 text-white/60 cursor-not-allowed"
               />
-              <p className="text-white/50 text-xs mt-1">Email cannot be changed</p>
+              <p className="text-white/50 text-xs mt-1">{t('emailCannotChange', lang)}</p>
             </div>
 
             <div>
-              <label className="text-white/70 text-sm block mb-1">Phone</label>
+              <label className="text-white/70 text-sm block mb-1">{t('phone', lang)}</label>
               <input
                 type="tel"
                 name="phone"
@@ -336,7 +338,7 @@ export default function ProfilePage() {
             </div>
 
             <div>
-              <label className="text-white/70 text-sm block mb-1">Language / Idioma</label>
+              <label className="text-white/70 text-sm block mb-1">{t('language', lang)}</label>
               <select
                 name="preferred_language"
                 value={form.preferred_language}
@@ -346,7 +348,7 @@ export default function ProfilePage() {
                 <option value="en" className="bg-[#0C1A2E]">English</option>
                 <option value="es" className="bg-[#0C1A2E]">Español</option>
               </select>
-              <p className="text-white/40 text-xs mt-1">Switches the app's language after you save. Save cambia el idioma de la app.</p>
+              <p className="text-white/40 text-xs mt-1">{t('languageHelp', lang)}</p>
             </div>
 
             <RippleButton
@@ -354,7 +356,7 @@ export default function ProfilePage() {
               disabled={saving}
               className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-6 py-2.5 rounded-xl transition hover:opacity-90 disabled:opacity-50 text-sm"
             >
-              {saving ? 'Saving...' : 'Save changes'}
+              {saving ? t('saving', lang) : t('saveChanges', lang)}
             </RippleButton>
           </form>
         </ScrollReveal>
@@ -362,36 +364,36 @@ export default function ProfilePage() {
         {/* Change password */}
         <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-white font-semibold">Change password</h2>
+            <h2 className="text-white font-semibold">{t('changePassword', lang)}</h2>
             <Link href="/forgot-password" className="text-[#12A5A9] text-xs font-medium hover:underline">
-              Forgot your password?
+              {t('forgotYourPassword', lang)}
             </Link>
           </div>
           <form onSubmit={handleChangePassword} className="space-y-4">
             <div>
-              <label className="text-white/70 text-sm block mb-1">Current password</label>
+              <label className="text-white/70 text-sm block mb-1">{t('currentPassword', lang)}</label>
               <PasswordInput
                 value={passwordForm.current_password}
                 onChange={(e) => setPasswordForm({ ...passwordForm, current_password: e.target.value })}
-                placeholder="Your current password"
+                placeholder={t('currentPasswordPlaceholder', lang)}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
               />
             </div>
             <div>
-              <label className="text-white/70 text-sm block mb-1">New password</label>
+              <label className="text-white/70 text-sm block mb-1">{t('newPassword', lang)}</label>
               <PasswordInput
                 value={passwordForm.new_password}
                 onChange={(e) => setPasswordForm({ ...passwordForm, new_password: e.target.value })}
-                placeholder="Min. 8 characters"
+                placeholder={t('newPasswordPlaceholder', lang)}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
               />
             </div>
             <div>
-              <label className="text-white/70 text-sm block mb-1">Confirm new password</label>
+              <label className="text-white/70 text-sm block mb-1">{t('confirmNewPassword', lang)}</label>
               <PasswordInput
                 value={passwordForm.confirm_password}
                 onChange={(e) => setPasswordForm({ ...passwordForm, confirm_password: e.target.value })}
-                placeholder="Re-enter new password"
+                placeholder={t('confirmNewPasswordPlaceholder', lang)}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
               />
             </div>
@@ -400,7 +402,7 @@ export default function ProfilePage() {
               disabled={saving}
               className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-6 py-2.5 rounded-xl transition hover:opacity-90 disabled:opacity-50 text-sm"
             >
-              {saving ? 'Updating...' : 'Update password'}
+              {saving ? t('updating', lang) : t('updatePassword', lang)}
             </RippleButton>
           </form>
         </ScrollReveal>
@@ -429,26 +431,26 @@ export default function ProfilePage() {
 
         {/* Notification preferences */}
         <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
-          <h2 className="text-white font-semibold mb-2">Notification preferences</h2>
-          <p className="text-white/60 text-sm mb-6">Choose how you want to be notified</p>
+          <h2 className="text-white font-semibold mb-2">{t('notificationPreferences', lang)}</h2>
+          <p className="text-white/60 text-sm mb-6">{t('notifPrefDesc', lang)}</p>
           <div className="space-y-4">
             <div className="flex items-center justify-between py-1">
               <div>
-                <p className="text-white text-sm font-medium">Email notifications</p>
-                <p className="text-white/60 text-xs">Job updates and status changes</p>
+                <p className="text-white text-sm font-medium">{t('emailNotifications', lang)}</p>
+                <p className="text-white/60 text-xs">{t('emailNotifDesc', lang)}</p>
               </div>
-              <span className="text-[#12A5A9] text-xs font-semibold bg-[#12A5A9]/10 border border-[#12A5A9]/20 rounded-full px-2.5 py-1">Always on</span>
+              <span className="text-[#12A5A9] text-xs font-semibold bg-[#12A5A9]/10 border border-[#12A5A9]/20 rounded-full px-2.5 py-1">{t('alwaysOn', lang)}</span>
             </div>
             <div className="flex items-center justify-between py-1">
               <div>
-                <p className="text-white text-sm font-medium">Push notifications</p>
-                <p className="text-white/60 text-xs">Enable from the banner on your dashboard</p>
+                <p className="text-white text-sm font-medium">{t('pushNotifications', lang)}</p>
+                <p className="text-white/60 text-xs">{t('pushNotifDesc', lang)}</p>
               </div>
             </div>
             <div className="flex items-center justify-between py-1">
               <div>
-                <p className="text-white text-sm font-medium">Text alerts</p>
-                <p className="text-white/60 text-xs">Urgent updates only: emergencies, scheduling, review needed</p>
+                <p className="text-white text-sm font-medium">{t('textAlerts', lang)}</p>
+                <p className="text-white/60 text-xs">{t('textAlertsDesc', lang)}</p>
               </div>
               <button
                 onClick={handleToggleSms}
@@ -464,11 +466,9 @@ export default function ProfilePage() {
         {/* Personal backup contact */}
         {(role === 'landlord' || role === 'renter') && (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
-            <h2 className="text-white font-semibold mb-1">Backup contact</h2>
+            <h2 className="text-white font-semibold mb-1">{t('backupContact', lang)}</h2>
             <p className="text-white/40 text-sm mb-6">
-              {role === 'landlord'
-                ? "A family member or friend your tenant can reach if you don't answer."
-                : "A family member or friend your landlord can reach if you don't answer."}
+              {role === 'landlord' ? t('backupContactDescLandlord', lang) : t('backupContactDescRenter', lang)}
             </p>
 
             {backupContacts.length > 0 && (
@@ -483,7 +483,7 @@ export default function ProfilePage() {
                       onClick={() => handleRemoveBackupContact(c.id)}
                       className="text-red-400/70 hover:text-red-400 text-xs transition"
                     >
-                      Remove
+                      {t('remove', lang)}
                     </button>
                   </div>
                 ))}
@@ -496,14 +496,14 @@ export default function ProfilePage() {
                   type="text"
                   value={backupForm.name}
                   onChange={(e) => setBackupForm({ ...backupForm, name: e.target.value })}
-                  placeholder="Name"
+                  placeholder={t('name', lang)}
                   className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
                 />
                 <input
                   type="text"
                   value={backupForm.relationship}
                   onChange={(e) => setBackupForm({ ...backupForm, relationship: e.target.value })}
-                  placeholder="Relationship (e.g. spouse)"
+                  placeholder={t('relationshipPlaceholder', lang)}
                   className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
                 />
               </div>
@@ -511,7 +511,7 @@ export default function ProfilePage() {
                 type="tel"
                 value={backupForm.phone}
                 onChange={(e) => setBackupForm({ ...backupForm, phone: e.target.value })}
-                placeholder="Phone number"
+                placeholder={t('phoneNumberPlaceholder', lang)}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
               />
               {backupError && <p className="text-red-400 text-xs">{backupError}</p>}
@@ -520,7 +520,7 @@ export default function ProfilePage() {
                 disabled={savingBackupContact || !backupForm.name.trim() || !backupForm.phone.trim()}
                 className="bg-white/8 text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-white/12 transition disabled:opacity-50"
               >
-                {savingBackupContact ? 'Adding…' : 'Add backup contact'}
+                {savingBackupContact ? t('adding', lang) : t('addBackupContact', lang)}
               </RippleButton>
             </form>
           </div>
@@ -531,24 +531,24 @@ export default function ProfilePage() {
           href={`${getDashboardLink()}?tour=replay`}
           className="block bg-white/3 border border-white/8 rounded-2xl p-6 mb-6 hover:border-[#12A5A9]/30 hover:bg-white/5 transition-all"
         >
-          <h2 className="text-white font-semibold mb-1">Take the tour</h2>
-          <p className="text-white/60 text-sm">Replay the quick walkthrough of your dashboard.</p>
+          <h2 className="text-white font-semibold mb-1">{t('takeTheTour', lang)}</h2>
+          <p className="text-white/60 text-sm">{t('takeTheTourDesc', lang)}</p>
         </Link>
 
         {/* Delete account */}
         <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-6 mb-6">
-          <h2 className="text-white font-semibold mb-2">Delete account</h2>
-          <p className="text-white/60 text-sm mb-4">Permanently delete your account and all associated data. This cannot be undone.</p>
+          <h2 className="text-white font-semibold mb-2">{t('deleteAccount', lang)}</h2>
+          <p className="text-white/60 text-sm mb-4">{t('deleteAccountDesc', lang)}</p>
           {!showDeleteConfirm ? (
             <button
               onClick={() => setShowDeleteConfirm(true)}
               className="bg-red-500/10 border border-red-500/30 text-red-400 font-semibold px-6 py-2.5 rounded-xl text-sm hover:bg-red-500/20 transition"
             >
-              Delete account
+              {t('deleteAccount', lang)}
             </button>
           ) : (
             <div className="space-y-3">
-              <p className="text-white/70 text-sm">Type <span className="text-white font-medium">DELETE</span> to confirm.</p>
+              <p className="text-white/70 text-sm">{t('typeToConfirmPrefix', lang)} <span className="text-white font-medium">DELETE</span> {t('typeToConfirmSuffix', lang)}</p>
               <input
                 type="text"
                 value={deleteConfirmText}
@@ -562,14 +562,14 @@ export default function ProfilePage() {
                   disabled={deletingAccount || deleteConfirmText.trim().toUpperCase() !== 'DELETE'}
                   className="bg-red-500 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition hover:opacity-90 disabled:opacity-40"
                 >
-                  {deletingAccount ? 'Deleting…' : 'Permanently delete my account'}
+                  {deletingAccount ? t('deleting', lang) : t('permanentlyDeleteMyAccount', lang)}
                 </button>
                 <button
                   onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText('') }}
                   disabled={deletingAccount}
                   className="text-white/50 hover:text-white text-sm transition"
                 >
-                  Cancel
+                  {t('cancel', lang)}
                 </button>
               </div>
             </div>
@@ -582,7 +582,7 @@ export default function ProfilePage() {
           className="w-full flex items-center justify-center gap-2 bg-white/3 border border-white/8 text-white/70 hover:text-white hover:bg-white/5 font-semibold px-6 py-3 rounded-2xl text-sm transition"
         >
           <LogOutIcon className="w-4 h-4" />
-          Sign out
+          {t('signOut', lang)}
         </button>
         </>
         )}
@@ -594,7 +594,7 @@ export default function ProfilePage() {
       {showPasswordToast && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-[#0F2138] border border-[#12A5A9]/30 rounded-xl px-5 py-3 shadow-lg flex items-center gap-2 z-50 motion-safe:animate-[floatUp_0.25s_ease-out]">
           <span className="text-[#12A5A9]">✓</span>
-          <span className="text-white text-sm font-medium">Password updated</span>
+          <span className="text-white text-sm font-medium">{t('passwordUpdatedToast', lang)}</span>
         </div>
       )}
     </div>

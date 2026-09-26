@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { RippleButton } from '@/components/RippleButton'
 import { BellIcon } from '@/components/icons'
+import { useLanguage, t } from '@/lib/i18n'
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -22,6 +23,7 @@ function urlBase64ToUint8Array(base64String: string) {
 }
 
 export function EnableNotificationsCard() {
+  const lang = useLanguage()
   const [supported, setSupported] = useState(false)
   const [subscribed, setSubscribed] = useState(false)
   const [dismissed, setDismissed] = useState(false)
@@ -126,13 +128,13 @@ export function EnableNotificationsCard() {
           <BellIcon className="w-4 h-4 text-[#12A5A9]" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-white text-sm font-medium">Turn on notifications</p>
+          <p className="text-white text-sm font-medium">{t('turnOnNotifications', lang)}</p>
           <p className="text-white/60 text-xs mt-0.5">
-            iPhone/iPad only support notifications for apps added to your Home Screen. Tap Share → &quot;Add to Home Screen&quot;, then open Prophandld from there to turn them on.
+            {t('iosNotificationsDesc', lang)}
           </p>
         </div>
         <button onClick={handleDismiss} className="text-white/50 hover:text-white/60 text-xs transition shrink-0">
-          Not now
+          {t('notNow', lang)}
         </button>
       </div>
     )
@@ -144,8 +146,8 @@ export function EnableNotificationsCard() {
         <BellIcon className="w-4 h-4 text-[#12A5A9]" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-white text-sm font-medium">Turn on notifications</p>
-        <p className="text-white/60 text-xs mt-0.5">Get alerted the moment something needs your attention.</p>
+        <p className="text-white text-sm font-medium">{t('turnOnNotifications', lang)}</p>
+        <p className="text-white/60 text-xs mt-0.5">{t('turnOnNotificationsDesc', lang)}</p>
         {error && <p className="text-red-400 text-xs mt-1">{error}</p>}
       </div>
       <RippleButton
@@ -153,10 +155,10 @@ export function EnableNotificationsCard() {
         disabled={loading}
         className="text-xs font-semibold bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white px-3.5 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50 shrink-0"
       >
-        {loading ? 'Enabling...' : 'Enable'}
+        {loading ? t('enabling', lang) : t('enable', lang)}
       </RippleButton>
       <button onClick={handleDismiss} className="text-white/50 hover:text-white/60 text-xs transition shrink-0">
-        Not now
+        {t('notNow', lang)}
       </button>
     </div>
   )

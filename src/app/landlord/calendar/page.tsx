@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ScheduleCalendar, eventState, CALENDAR_JOB_STATUSES, calendarHistoryStart, type CalendarEvent } from '@/components/ScheduleCalendar'
 import { ScrollReveal } from '@/components/ScrollReveal'
+import { useLanguage, t } from '@/lib/i18n'
 
 const dateStr = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 
@@ -128,6 +129,7 @@ async function loadReminders(propertyIds: string[], unitIds: string[]): Promise<
 
 export default function LandlordCalendarPage() {
   const router = useRouter()
+  const lang = useLanguage()
   const [loading, setLoading] = useState(true)
   const [events, setEvents] = useState<CalendarEvent[]>([])
 
@@ -195,7 +197,7 @@ export default function LandlordCalendarPage() {
 
   if (loading) return (
     <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center">
-      <div className="text-white/50">Loading...</div>
+      <div className="text-white/50">{t('loading', lang)}</div>
     </div>
   )
 
@@ -203,7 +205,7 @@ export default function LandlordCalendarPage() {
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
         <Link href="/landlord" className="text-white/50 hover:text-white text-sm transition">
-          ← Dashboard
+          {t('dashboard', lang)}
         </Link>
         <Link href="/landlord" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
         <div className="w-20" />
@@ -211,8 +213,8 @@ export default function LandlordCalendarPage() {
 
       <main className="max-w-3xl mx-auto px-6 py-10">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-white">Calendar</h1>
-          <p className="text-white/50 text-sm mt-1">Confirmed times, times waiting for a reply, finished jobs, and reminders — rent due, compliance items expiring, leases ending — across your portfolio.</p>
+          <h1 className="text-2xl font-bold text-white">{t('calendarTitle', lang)}</h1>
+          <p className="text-white/50 text-sm mt-1">{t('landlordCalendarSubtitle', lang)}</p>
         </div>
 
         <ScrollReveal>

@@ -21,6 +21,7 @@ import {
 import { LANDLORD_TABS } from '@/lib/navTabs'
 import { ProductTour, type TourStep } from '@/components/ProductTour'
 import { useTourVisibility } from '@/lib/useTourVisibility'
+import { useLanguage, t } from '@/lib/i18n'
 
 const TOUR_STEPS: TourStep[] = [
   { target: '[data-tour="welcome"]', title: 'Welcome to your Landlord Dashboard', body: "Everything about your properties, tenants, and maintenance lives here. Let's take a quick look around." },
@@ -34,6 +35,7 @@ const TOUR_STEPS: TourStep[] = [
 
 export default function LandlordDashboard() {
   const router = useRouter()
+  const lang = useLanguage()
   const [user, setUser] = useState<any>(null)
   const [now] = useState(() => Date.now())
   const [loading, setLoading] = useState(true)
@@ -361,7 +363,7 @@ export default function LandlordDashboard() {
       title: job.category,
       subtitle: `${job.units?.properties?.address}, ${job.units?.properties?.city} · Unit ${job.units?.unit_number}`,
       href: `/landlord/jobs/${job.id}`,
-      badge: 'New',
+      badge: t('badgeNew', lang),
     })),
     ...readyToBid.map((job) => ({
       id: `bid-ready-${job.id}`,
@@ -370,7 +372,7 @@ export default function LandlordDashboard() {
       title: job.category,
       subtitle: `${job.units?.properties?.address}, ${job.units?.properties?.city} · Unit ${job.units?.unit_number}`,
       href: `/landlord/jobs/${job.id}`,
-      badge: 'Start bidding',
+      badge: t('badgeStartBidding', lang),
     })),
     ...priceChangeRequests.map((job) => ({
       id: `price-${job.id}`,
@@ -379,7 +381,7 @@ export default function LandlordDashboard() {
       title: job.category,
       subtitle: `${job.units?.properties?.address}, ${job.units?.properties?.city} · Unit ${job.units?.unit_number}`,
       href: `/landlord/jobs/${job.id}`,
-      badge: 'Price change',
+      badge: t('badgePriceChange', lang),
     })),
     ...scheduleProposals.map((job) => ({
       id: `sched-${job.id}`,
@@ -388,7 +390,7 @@ export default function LandlordDashboard() {
       title: job.category,
       subtitle: `${job.units?.properties?.address} · New time from ${job.proposed_by}`,
       href: `/landlord/jobs/${job.id}`,
-      badge: 'Review time',
+      badge: t('badgeReviewTime', lang),
     })),
     ...confirmedSchedules.map((job) => ({
       id: `confirmed-${job.id}`,
@@ -397,7 +399,7 @@ export default function LandlordDashboard() {
       title: job.category,
       subtitle: `${job.units?.properties?.address}, ${job.units?.properties?.city}`,
       href: `/landlord/jobs/${job.id}`,
-      badge: 'Confirmed',
+      badge: t('badgeConfirmed', lang),
     })),
     ...pendingReviewJobs.map((job) => ({
       id: `pending-review-${job.id}`,
@@ -406,7 +408,7 @@ export default function LandlordDashboard() {
       title: `${job.category} · Unit ${job.units?.unit_number}`,
       subtitle: `${job.units?.properties?.address}: ${job.contractorName} notified work complete`,
       href: `/landlord/jobs/${job.id}`,
-      badge: 'Review',
+      badge: t('badgeReview', lang),
     })),
     ...complianceAlerts.map((item) => {
       const expiry = new Date(item.expiry_date + 'T00:00:00')
@@ -418,7 +420,7 @@ export default function LandlordDashboard() {
         title: item.item_type,
         subtitle: `${item.properties?.address}, ${item.properties?.city}`,
         href: `/landlord/properties/${item.property_id}/compliance`,
-        badge: isExpired ? 'Expired' : 'Expiring soon',
+        badge: isExpired ? t('badgeExpired', lang) : t('badgeExpiringSoon', lang),
       }
     }),
     ...rentAlerts.map((rp) => ({
@@ -428,7 +430,7 @@ export default function LandlordDashboard() {
       title: `${rp.property?.address} · Unit ${rp.unit?.unit_number}`,
       subtitle: `${new Date(rp.month + 'T00:00:00').toLocaleDateString(undefined, { month: 'long', year: 'numeric' })} · $${rp.actual_amount || 0} of $${rp.expected_amount}`,
       href: `/landlord/properties/${rp.property?.id}/units/${rp.unit?.id}/rent`,
-      badge: 'Behind',
+      badge: t('badgeBehind', lang),
     })),
     ...needsReview.map((job) => ({
       id: `bids-${job.id}`,
@@ -446,7 +448,7 @@ export default function LandlordDashboard() {
       title: job.category,
       subtitle: `${job.units?.properties?.address}, ${job.units?.properties?.city} · Unit ${job.units?.unit_number}`,
       href: `/landlord/jobs/${job.id}`,
-      badge: 'Rate contractor',
+      badge: t('badgeRateContractor', lang),
     })),
     ...pendingInvites.map((invite) => ({
       id: `invite-${invite.id}`,
@@ -455,7 +457,7 @@ export default function LandlordDashboard() {
       title: invite.renter_email,
       subtitle: `${invite.units?.properties?.address}, ${invite.units?.properties?.city} · Unit ${invite.units?.unit_number}`,
       href: `/landlord/properties/${invite.units?.property_id ?? ''}/units/${invite.unit_id}`,
-      badge: 'Invite pending',
+      badge: t('badgeInvitePending', lang),
     })),
   ]
 
@@ -510,14 +512,14 @@ export default function LandlordDashboard() {
         ) : (
           <>
             <div className="mb-8" data-tour="welcome">
-              <p className="text-[#12A5A9] text-xs font-semibold uppercase tracking-wide mb-1.5">Landlord Dashboard</p>
+              <p className="text-[#12A5A9] text-xs font-semibold uppercase tracking-wide mb-1.5">{t('landlordDashboardLabel', lang)}</p>
               <h1 className="text-3xl font-bold text-white tracking-tight">
-                Welcome back,{' '}
+                {t('welcomeBack', lang)}{' '}
                 <Link href="/profile" className="hover:text-[#12A5A9] transition">
                   {user?.user_metadata?.full_name?.split(' ')[0]}
                 </Link>
               </h1>
-              <p className="text-white/50 mt-2">Here&apos;s the state of your portfolio right now.</p>
+              <p className="text-white/50 mt-2">{t('portfolioStateNow', lang)}</p>
             </div>
 
             <AlertsList items={alertItems} />
@@ -525,12 +527,12 @@ export default function LandlordDashboard() {
             {visibleRentActivity.length > 0 && (
               <div className="bg-white/3 border border-white/8 rounded-2xl p-5 mb-6">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-white font-semibold text-sm">Rent activity</h3>
+                  <h3 className="text-white font-semibold text-sm">{t('rentActivity', lang)}</h3>
                   <button
                     onClick={() => markRentSeen(visibleRentActivity.map(rentKey))}
                     className="text-white/40 hover:text-white text-xs transition"
                   >
-                    Clear
+                    {t('clear', lang)}
                   </button>
                 </div>
                 <div className="space-y-1.5">
@@ -552,7 +554,7 @@ export default function LandlordDashboard() {
                         </span>
                       </span>
                       <span className={`text-xs font-semibold rounded-full px-2.5 py-1 shrink-0 ${rp.processing ? 'bg-yellow-500/20 text-yellow-400' : 'bg-[#12A5A9]/20 text-[#12A5A9]'}`}>
-                        {rp.processing ? 'Processing' : 'Received'}
+                        {rp.processing ? t('processing', lang) : t('received', lang)}
                       </span>
                     </Link>
                   ))}
@@ -572,7 +574,7 @@ export default function LandlordDashboard() {
                   <span className="text-white/20 group-hover:text-[#12A5A9]/60 transition text-sm">→</span>
                 </div>
                 <CountUp value={stats.properties} className="text-3xl font-bold text-white block" />
-                <div className="text-white/60 text-sm mt-1">Properties</div>
+                <div className="text-white/60 text-sm mt-1">{t('properties', lang)}</div>
               </Link>
 
               <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
@@ -580,7 +582,7 @@ export default function LandlordDashboard() {
                   <BuildingIcon className="w-5 h-5 text-white/60" />
                 </div>
                 <CountUp value={stats.totalUnits} className="text-3xl font-bold text-white block" />
-                <div className="text-white/60 text-sm mt-1">Total units</div>
+                <div className="text-white/60 text-sm mt-1">{t('totalUnits', lang)}</div>
               </div>
 
               <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
@@ -589,7 +591,7 @@ export default function LandlordDashboard() {
                   <span className="text-[#12A5A9] text-xs font-semibold">{occupancyRate}%</span>
                 </div>
                 <CountUp value={stats.occupiedUnits} className="text-3xl font-bold text-white block" />
-                <div className="text-white/60 text-sm mt-1">Occupied · {stats.vacantUnits} vacant</div>
+                <div className="text-white/60 text-sm mt-1">{t('occupiedVacant', lang)} {stats.vacantUnits} {t('vacant', lang)}</div>
               </div>
 
               <div className="bg-gradient-to-br from-[#0A7B7E]/15 to-[#12A5A9]/5 border border-[#12A5A9]/20 rounded-2xl p-5">
@@ -597,7 +599,7 @@ export default function LandlordDashboard() {
                   <DollarSignIcon className="w-5 h-5 text-[#12A5A9]" />
                 </div>
                 <div className="text-3xl font-bold text-white">{formatCurrency(stats.monthlyRentRoll)}</div>
-                <div className="text-white/60 text-sm mt-1">Monthly rent roll</div>
+                <div className="text-white/60 text-sm mt-1">{t('monthlyRentRoll', lang)}</div>
               </div>
             </ScrollReveal>
 
@@ -606,14 +608,14 @@ export default function LandlordDashboard() {
                 <ClipboardListIcon className="w-6 h-6 text-white/50 shrink-0" />
                 <div>
                   <div className="text-xl font-bold text-white">{stats.needsApproval}</div>
-                  <div className="text-white/60 text-xs">Needs action</div>
+                  <div className="text-white/60 text-xs">{t('needsAction', lang)}</div>
                 </div>
               </Link>
               <Link href="/landlord/jobs?filter=in_progress" className="bg-white/3 border border-white/8 rounded-2xl p-5 flex items-center gap-4 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all">
                 <WrenchIcon className="w-6 h-6 text-white/50 shrink-0" />
                 <div>
                   <div className="text-xl font-bold text-white">{stats.inProgress}</div>
-                  <div className="text-white/60 text-xs">In progress</div>
+                  <div className="text-white/60 text-xs">{t('inProgress', lang)}</div>
                 </div>
               </Link>
               <Link
@@ -623,28 +625,28 @@ export default function LandlordDashboard() {
                 <ClipboardListIcon className="w-6 h-6 text-white/50 shrink-0" />
                 <div>
                   <div className="text-xl font-bold text-white">{stats.pendingBids}</div>
-                  <div className="text-white/60 text-xs">Bids to review</div>
+                  <div className="text-white/60 text-xs">{t('bidsToReview', lang)}</div>
                 </div>
               </Link>
             </div>
 
             <div className="flex items-center justify-between mb-4" data-tour="properties">
-              <h2 className="text-white font-semibold text-lg">Your properties</h2>
+              <h2 className="text-white font-semibold text-lg">{t('yourProperties', lang)}</h2>
               <Link href="/landlord/properties" className="text-[#12A5A9] text-sm hover:underline">
-                View all
+                {t('viewAll', lang)}
               </Link>
             </div>
 
             {properties.length === 0 ? (
               <div className="bg-white/3 border border-white/8 rounded-2xl p-10 text-center mb-10">
                 <BuildingIcon className="w-10 h-10 text-white/50 mx-auto mb-3" />
-                <h3 className="text-white font-semibold mb-1">No properties yet</h3>
-                <p className="text-white/60 text-sm mb-5">Add your first property to start building your portfolio.</p>
+                <h3 className="text-white font-semibold mb-1">{t('noPropertiesYet', lang)}</h3>
+                <p className="text-white/60 text-sm mb-5">{t('addFirstPropertyDesc', lang)}</p>
                 <MagneticLink
                   href="/landlord/properties/new"
                   className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-6 py-3 rounded-xl hover:opacity-90 transition inline-block"
                 >
-                  Add property
+                  {t('addProperty', lang)}
                 </MagneticLink>
               </div>
             ) : (
@@ -667,7 +669,7 @@ export default function LandlordDashboard() {
                         <div className="flex items-center gap-6 shrink-0">
                           <div className="text-right">
                             <div className="text-white text-sm font-medium">
-                              {property.occupiedUnits}/{property.totalUnits} occupied
+                              {property.occupiedUnits}/{property.totalUnits} {t('occupied', lang)}
                             </div>
                             <div className="w-24 h-1.5 bg-white/10 rounded-full mt-1.5 overflow-hidden">
                               <div
@@ -685,37 +687,37 @@ export default function LandlordDashboard() {
               </ScrollReveal>
             )}
 
-            <h2 className="text-white font-semibold text-lg mb-4">Quick actions</h2>
+            <h2 className="text-white font-semibold text-lg mb-4">{t('quickActions', lang)}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4" data-tour="quicklinks">
               <Link href="/landlord/properties" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
                 <BuildingIcon className="w-5 h-5 text-[#12A5A9] mb-2" />
-                <h3 className="text-white font-semibold mb-1">Properties</h3>
-                <p className="text-white/60 text-sm">Manage your properties and units</p>
+                <h3 className="text-white font-semibold mb-1">{t('properties', lang)}</h3>
+                <p className="text-white/60 text-sm">{t('propertiesCardDesc', lang)}</p>
               </Link>
               <Link href="/landlord/properties/new" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
                 <BuildingIcon className="w-5 h-5 text-[#12A5A9] mb-2" />
-                <h3 className="text-white font-semibold mb-1">Add a property</h3>
-                <p className="text-white/60 text-sm">Start tracking a new address</p>
+                <h3 className="text-white font-semibold mb-1">{t('addPropertyCardTitle', lang)}</h3>
+                <p className="text-white/60 text-sm">{t('addPropertyCardDesc', lang)}</p>
               </Link>
               <Link href="/landlord/jobs" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
                 <WrenchIcon className="w-5 h-5 text-[#12A5A9] mb-2" />
-                <h3 className="text-white font-semibold mb-1">View jobs</h3>
-                <p className="text-white/60 text-sm">See all maintenance requests</p>
+                <h3 className="text-white font-semibold mb-1">{t('viewJobsCardTitle', lang)}</h3>
+                <p className="text-white/60 text-sm">{t('viewJobsCardDesc', lang)}</p>
               </Link>
               <Link href="/landlord/rent" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
                 <DollarSignIcon className="w-5 h-5 text-[#12A5A9] mb-2" />
-                <h3 className="text-white font-semibold mb-1">Rent roll</h3>
-                <p className="text-white/60 text-sm">Every unit, every month, at a glance</p>
+                <h3 className="text-white font-semibold mb-1">{t('rentRollCardTitle', lang)}</h3>
+                <p className="text-white/60 text-sm">{t('rentRollCardDesc', lang)}</p>
               </Link>
               <Link href="/landlord/properties" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
                 <FileTextIcon className="w-5 h-5 text-[#12A5A9] mb-2" />
-                <h3 className="text-white font-semibold mb-1">Documents</h3>
-                <p className="text-white/60 text-sm">Open a property to upload and manage its documents</p>
+                <h3 className="text-white font-semibold mb-1">{t('documentsCardTitle', lang)}</h3>
+                <p className="text-white/60 text-sm">{t('documentsCardDesc', lang)}</p>
               </Link>
               <Link href="/landlord/properties" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
                 <ClipboardListIcon className="w-5 h-5 text-[#12A5A9] mb-2" />
-                <h3 className="text-white font-semibold mb-1">Compliance tracking</h3>
-                <p className="text-white/60 text-sm">Open a property to manage compliance items</p>
+                <h3 className="text-white font-semibold mb-1">{t('complianceCardTitle', lang)}</h3>
+                <p className="text-white/60 text-sm">{t('complianceCardDesc', lang)}</p>
               </Link>
             </div>
           </>

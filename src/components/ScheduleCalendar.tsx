@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { TIME_WINDOWS } from '@/lib/scheduleWindows'
+import { useLanguage, t, windowLabel, WEEKDAY_LABELS_ES, MONTH_LABELS_ES, type Lang } from '@/lib/i18n'
 
 // confirmed = a time everyone has agreed on (or work that has started),
 // proposed = a time waiting for the other side to confirm (also what a
@@ -38,13 +38,18 @@ export function calendarHistoryStart() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-const MONTH_LABELS = [
+const WEEKDAY_LABELS_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const MONTH_LABELS_EN = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
 ]
 
-const STATE_LABEL: Record<CalendarEventState, string> = { confirmed: 'Confirmed', proposed: 'Waiting for confirmation', done: 'Done', reminder: 'Reminder' }
+const stateLabel = (state: CalendarEventState, lang: Lang): string => {
+  if (state === 'confirmed') return t('confirmedState', lang)
+  if (state === 'proposed') return t('waitingForConfirmation', lang)
+  if (state === 'done') return t('doneState', lang)
+  return t('reminderState', lang)
+}
 const CHIP_STYLE: Record<CalendarEventState, string> = {
   confirmed: 'bg-gradient-to-r from-[#0A7B7E]/25 to-[#12A5A9]/25 text-[#12A5A9]',
   proposed: 'border border-dashed border-yellow-500/50 bg-yellow-500/10 text-yellow-400',
@@ -62,6 +67,9 @@ const dateKey = (year: number, month: number, day: number) =>
   `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 
 export function ScheduleCalendar({ events }: { events: CalendarEvent[] }) {
+  const lang = useLanguage()
+  const WEEKDAY_LABELS = lang === 'es' ? WEEKDAY_LABELS_ES : WEEKDAY_LABELS_EN
+  const MONTH_LABELS = lang === 'es' ? MONTH_LABELS_ES : MONTH_LABELS_EN
   const today = new Date()
   const [year, setYear] = useState(today.getFullYear())
   const [month, setMonth] = useState(today.getMonth())
@@ -120,7 +128,6 @@ export function ScheduleCalendar({ events }: { events: CalendarEvent[] }) {
   }
 
   const todayKey = dateKey(today.getFullYear(), today.getMonth(), today.getDate())
-  const windowLabel = (w?: string) => (w ? TIME_WINDOWS.find((t) => t.value === w)?.label || w : '')
 
   return (
     <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
@@ -131,7 +138,7 @@ export function ScheduleCalendar({ events }: { events: CalendarEvent[] }) {
             onClick={goToToday}
             className="text-white/50 hover:text-white text-xs font-medium px-2.5 py-1.5 rounded-lg hover:bg-white/8 transition"
           >
-            Today
+            {t('today', lang)}
           </button>
           <button
             onClick={goToPrevMonth}
@@ -181,7 +188,7 @@ export function ScheduleCalendar({ events }: { events: CalendarEvent[] }) {
                       key={event.id}
                       href={event.href}
                       className={`block text-[10px] leading-tight rounded px-1.5 py-1 truncate hover:opacity-80 transition ${CHIP_STYLE[state]}`}
-                      title={`${STATE_LABEL[state]}: ${event.subtitle ? `${event.title}, ${event.subtitle}` : event.title}`}
+                      title={`${stateLabel(state, lang)}: ${event.subtitle ? `${event.title}, ${event.subtitle}` : event.title}`}
                     >
                       {state === 'done' ? '✓ ' : state === 'proposed' ? '? ' : state === 'reminder' ? '⏰ ' : ''}
                       {event.title}
@@ -189,7 +196,7 @@ export function ScheduleCalendar({ events }: { events: CalendarEvent[] }) {
                   )
                 })}
                 {dayEvents.length > 2 && (
-                  <p className="text-white/50 text-[10px] px-1.5">+{dayEvents.length - 2} more</p>
+                  <p className="text-white/50 text-[10px] px-1.5">+{dayEvents.length - 2} {t('more', lang)}</p>
                 )}
               </div>
             </div>
@@ -199,25 +206,25 @@ export function ScheduleCalendar({ events }: { events: CalendarEvent[] }) {
 
       <div className="flex items-center justify-between flex-wrap gap-3 mt-4 pt-4 border-t border-white/8">
         <div className="flex items-center gap-4 text-[11px] text-white/50 flex-wrap">
-          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-[#12A5A9]/60" /> Confirmed</span>
-          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm border border-dashed border-yellow-500/60" /> Waiting for confirmation</span>
-          {hasReminders && <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm border border-dashed border-orange-400/60" /> Reminder</span>}
-          {hasDone && <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-white/20" /> Done</span>}
+          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-[#12A5A9]/60" /> {t('confirmedState', lang)}</span>
+          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm border border-dashed border-yellow-500/60" /> {t('waitingForConfirmation', lang)}</span>
+          {hasReminders && <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm border border-dashed border-orange-400/60" /> {t('reminderState', lang)}</span>}
+          {hasDone && <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-white/20" /> {t('doneState', lang)}</span>}
         </div>
         {hasDone && (
           <button
             onClick={() => setShowDone((v) => !v)}
             className="text-white/50 hover:text-white text-xs font-medium transition"
           >
-            {showDone ? 'Hide completed' : 'Show completed'}
+            {showDone ? t('hideCompleted', lang) : t('showCompleted', lang)}
           </button>
         )}
       </div>
 
       <div className="mt-5">
-        <h3 className="text-white/60 text-xs font-semibold uppercase tracking-wide mb-2">{MONTH_LABELS[month]} at a glance</h3>
+        <h3 className="text-white/60 text-xs font-semibold uppercase tracking-wide mb-2">{MONTH_LABELS[month]} {t('monthAtAGlance', lang)}</h3>
         {monthEvents.length === 0 ? (
-          <p className="text-white/50 text-sm">Nothing scheduled this month.</p>
+          <p className="text-white/50 text-sm">{t('nothingScheduledMonth', lang)}</p>
         ) : (
           <div className="space-y-1.5">
             {monthEvents.map((event) => {
@@ -236,11 +243,11 @@ export function ScheduleCalendar({ events }: { events: CalendarEvent[] }) {
                   <div className="min-w-0 flex-1">
                     <p className={`text-sm truncate ${state === 'done' ? 'text-white/60' : 'text-white'}`}>{event.title}</p>
                     <p className="text-white/50 text-xs truncate">
-                      {[windowLabel(event.window), event.subtitle].filter(Boolean).join(' · ')}
+                      {[windowLabel(event.window, lang), event.subtitle].filter(Boolean).join(' · ')}
                     </p>
                   </div>
                   <span className={`text-[11px] font-semibold rounded-full px-2.5 py-1 shrink-0 ${BADGE_STYLE[state]}`}>
-                    {state === 'done' ? 'Done' : state === 'proposed' ? 'Waiting' : state === 'reminder' ? 'Reminder' : 'Confirmed'}
+                    {state === 'done' ? t('doneState', lang) : state === 'proposed' ? t('waitingBadge', lang) : state === 'reminder' ? t('reminderState', lang) : t('confirmedState', lang)}
                   </span>
                 </Link>
               )
@@ -250,7 +257,7 @@ export function ScheduleCalendar({ events }: { events: CalendarEvent[] }) {
       </div>
 
       {events.length === 0 && (
-        <p className="text-white/50 text-sm text-center mt-6">Nothing scheduled yet.</p>
+        <p className="text-white/50 text-sm text-center mt-6">{t('nothingScheduledYet', lang)}</p>
       )}
     </div>
   )

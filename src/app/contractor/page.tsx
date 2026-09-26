@@ -26,6 +26,7 @@ import {
 import { CONTRACTOR_TABS } from '@/lib/navTabs'
 import { ProductTour, type TourStep } from '@/components/ProductTour'
 import { useTourVisibility } from '@/lib/useTourVisibility'
+import { useLanguage, t, windowLabel } from '@/lib/i18n'
 
 const TOUR_STEPS: TourStep[] = [
   { target: '[data-tour="welcome"]', title: 'Welcome to your Contractor Dashboard', body: "This is where you'll find jobs, track your bids, and manage everything you've worked on. Quick look around?" },
@@ -36,20 +37,14 @@ const TOUR_STEPS: TourStep[] = [
   { target: '[data-tour="bottomtabs"]', title: "You're all set", body: 'Home, Calendar, Settings, and your Profile are always one tap away down here.' },
 ]
 
-const TIME_WINDOWS: Record<string, string> = {
-  morning: 'Morning (8am–12pm)',
-  afternoon: 'Afternoon (12pm–5pm)',
-  evening: 'Evening (5pm–8pm)',
-}
-
-const PAST_FILTERS = [
-  { key: 'all', label: 'All' },
-  { key: 'completed', label: 'Completed' },
-  { key: 'archived', label: 'Archived' },
-]
-
 export default function ContractorDashboard() {
   const router = useRouter()
+  const lang = useLanguage()
+  const PAST_FILTERS = [
+    { key: 'all', label: t('filterAll', lang) },
+    { key: 'completed', label: t('filterCompleted', lang) },
+    { key: 'archived', label: t('filterArchived', lang) },
+  ]
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [hasProfile, setHasProfile] = useState<boolean | null>(null)
@@ -251,9 +246,9 @@ export default function ContractorDashboard() {
       icon: AlertTriangleIcon,
       tone: 'yellow' as const,
       title: bid.jobs?.category,
-      subtitle: 'Landlord asked for verification',
+      subtitle: t('landlordAskedVerification', lang),
       href: `/contractor/jobs/${bid.job_id}`,
-      badge: 'Respond',
+      badge: t('badgeRespond', lang),
     })),
     ...pickTimeAlerts.map((bid) => ({
       id: `pick-${bid.id}`,
@@ -262,7 +257,7 @@ export default function ContractorDashboard() {
       title: bid.jobs?.category,
       subtitle: jobLocation(bid),
       href: `/contractor/jobs/${bid.job_id}`,
-      badge: 'Propose a time',
+      badge: t('badgeProposeATime', lang),
     })),
     ...scheduleAlerts.map((bid) => ({
       id: `sched-${bid.id}`,
@@ -271,7 +266,7 @@ export default function ContractorDashboard() {
       title: bid.jobs?.category,
       subtitle: jobLocation(bid),
       href: `/contractor/jobs/${bid.job_id}`,
-      badge: 'Review',
+      badge: t('badgeReview', lang),
     })),
     ...confirmedAlerts.map((bid) => ({
       id: `confirmed-${bid.id}`,
@@ -280,7 +275,7 @@ export default function ContractorDashboard() {
       title: bid.jobs?.category,
       subtitle: jobLocation(bid),
       href: `/contractor/jobs/${bid.job_id}`,
-      badge: 'Start job',
+      badge: t('badgeStartJob', lang),
     })),
   ]
 
@@ -313,30 +308,25 @@ export default function ContractorDashboard() {
         ) : (
           <>
             <div className="mb-8" data-tour="welcome">
-              <p className="text-[#12A5A9] text-xs font-semibold uppercase tracking-wide mb-1.5">Contractor Dashboard</p>
+              <p className="text-[#12A5A9] text-xs font-semibold uppercase tracking-wide mb-1.5">{t('contractorDashboardLabel', lang)}</p>
               <h1 className="text-2xl font-bold text-white">
-                Welcome,{' '}
+                {t('welcomeComma', lang)}{' '}
                 <Link href="/profile" className="hover:text-[#12A5A9] transition">
                   {user?.user_metadata?.full_name?.split(' ')[0]}
                 </Link>
               </h1>
-              <p className="text-white/50 mt-1">Find jobs and manage your bids.</p>
+              <p className="text-white/50 mt-1">{t('contractorDashboardSubtitle', lang)}</p>
             </div>
 
             {!hasProfile ? (
               <div className="bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/10 border border-[#12A5A9]/30 rounded-2xl p-6 mb-6">
-                <h3 className="text-white font-semibold mb-1">
-                  Set up your service profile
-                  <span className="block text-xs font-normal text-white/60 mt-0.5">Configure su perfil de servicio</span>
-                </h3>
-                <p className="text-white/50 text-sm mb-4">
-                  Tell us what you do and where, so we can start matching you to jobs.
-                </p>
+                <h3 className="text-white font-semibold mb-1">{t('setUpServiceProfile', lang)}</h3>
+                <p className="text-white/50 text-sm mb-4">{t('setUpServiceProfileDesc', lang)}</p>
                 <MagneticLink
                   href="/contractor/settings"
                   className="inline-block bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-6 py-2.5 rounded-xl text-sm hover:opacity-90 transition"
                 >
-                  Set up now
+                  {t('setUpNow', lang)}
                 </MagneticLink>
               </div>
             ) : (
@@ -348,19 +338,19 @@ export default function ContractorDashboard() {
                   <a href="#available-jobs" className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
                     <ClipboardListIcon className="w-5 h-5 text-[#12A5A9] mx-auto mb-1" />
                     <CountUp value={availableJobs.length} className="text-2xl font-bold text-white block" />
-                    <div className="text-white/60 text-xs mt-1">New Jobs</div>
+                    <div className="text-white/60 text-xs mt-1">{t('newJobs', lang)}</div>
                   </a>
                   <a href="#your-bids" className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
                     <WrenchIcon className="w-5 h-5 text-[#12A5A9] mx-auto mb-1" />
                     <CountUp value={activeJobsCount} className="text-2xl font-bold text-white block" />
-                    <div className="text-white/60 text-xs mt-1">Active</div>
+                    <div className="text-white/60 text-xs mt-1">{t('active', lang)}</div>
                   </a>
                   <Link href="/contractor/earnings" className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
                     <DollarSignIcon className="w-5 h-5 text-[#12A5A9] mx-auto mb-1" />
                     <div className="text-2xl font-bold text-white">${totalEarnings.toLocaleString()}</div>
-                    <div className="text-white/60 text-xs mt-1">Earnings</div>
+                    <div className="text-white/60 text-xs mt-1">{t('earnings', lang)}</div>
                     {awaitingPayment > 0 && (
-                      <div className="text-yellow-400/90 text-[11px] mt-1">${awaitingPayment.toLocaleString()} awaiting payment</div>
+                      <div className="text-yellow-400/90 text-[11px] mt-1">${awaitingPayment.toLocaleString()} {t('awaitingPayment', lang)}</div>
                     )}
                   </Link>
                 </ScrollReveal>
@@ -371,9 +361,9 @@ export default function ContractorDashboard() {
                     className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block"
                   >
                     <DollarSignIcon className={`w-5 h-5 mx-auto mb-1 ${connectStatus === 'active' ? 'text-[#12A5A9]' : 'text-white/60'}`} />
-                    <h3 className="text-white text-sm font-semibold">Payouts</h3>
+                    <h3 className="text-white text-sm font-semibold">{t('payouts', lang)}</h3>
                     <p className={`text-xs mt-0.5 ${connectStatus === 'active' ? 'text-[#12A5A9]' : 'text-white/60'}`}>
-                      {connectStatus === 'active' ? 'Active' : connectStatus === 'onboarding' ? 'Finish setup' : 'Set up payouts'}
+                      {connectStatus === 'active' ? t('payoutsActiveStatus', lang) : connectStatus === 'onboarding' ? t('finishSetup', lang) : t('setUpPayouts', lang)}
                     </p>
                   </Link>
                   <Link
@@ -381,16 +371,16 @@ export default function ContractorDashboard() {
                     className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block"
                   >
                     <CheckCircleIcon className={`w-5 h-5 mx-auto mb-1 ${verificationStatus === 'verified' ? 'text-[#12A5A9]' : 'text-white/60'}`} />
-                    <h3 className="text-white text-sm font-semibold">Verification</h3>
+                    <h3 className="text-white text-sm font-semibold">{t('verification', lang)}</h3>
                     <p className={`text-xs mt-0.5 ${verificationStatus === 'verified' ? 'text-[#12A5A9]' : 'text-white/60'}`}>
-                      {verificationStatus === 'verified' ? 'Verified ✓' : verificationStatus === 'pending' ? 'Under review' : verificationStatus === 'unlicensed' ? 'Unlicensed' : 'Get verified'}
+                      {verificationStatus === 'verified' ? t('verifiedStatus', lang) : verificationStatus === 'pending' ? t('underReview', lang) : verificationStatus === 'unlicensed' ? t('unlicensedStatus', lang) : t('getVerified', lang)}
                     </p>
                   </Link>
                 </div>
 
                 {upcoming.length > 0 && (
                   <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
-                    <h3 className="text-white font-semibold mb-4">Upcoming</h3>
+                    <h3 className="text-white font-semibold mb-4">{t('upcoming', lang)}</h3>
                     <div className="space-y-3">
                       {upcoming.map((bid) => (
                         <Link
@@ -400,7 +390,7 @@ export default function ContractorDashboard() {
                         >
                           <p className="text-white font-medium text-sm">{bid.jobs?.category}</p>
                           <p className="text-[#12A5A9] text-xs mt-1">
-                            {new Date(bid.jobs.proposed_date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })} · {TIME_WINDOWS[bid.jobs.proposed_window] || bid.jobs.proposed_window}
+                            {new Date(bid.jobs.proposed_date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })} · {windowLabel(bid.jobs.proposed_window, lang)}
                           </p>
                           <p className="text-white/50 text-xs mt-0.5">{jobLocation(bid)}</p>
                         </Link>
@@ -410,12 +400,11 @@ export default function ContractorDashboard() {
                 )}
 
                 <div id="available-jobs" className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6 scroll-mt-6">
-                  <h3 className="text-white font-semibold">Available jobs near you</h3>
-                  <p className="text-white/50 text-xs mb-4">Trabajos disponibles cerca de usted</p>
+                  <h3 className="text-white font-semibold">{t('availableJobsNearYou', lang)}</h3>
                   {availableJobs.length === 0 ? (
-                    <p className="text-white/50 text-sm">No jobs available right now. Check back soon.</p>
+                    <p className="text-white/50 text-sm mt-4">{t('noJobsAvailable', lang)}</p>
                   ) : (
-                    <div className="space-y-3">
+                    <div className="space-y-3 mt-4">
                       {availableJobs.map((job) => (
                         <Link
                           key={job.id}
@@ -427,7 +416,7 @@ export default function ContractorDashboard() {
                               <p className="text-white font-medium text-sm">{job.category}</p>
                               {job.is_emergency && (
                                 <span className="text-xs bg-red-500/20 text-red-400 border border-red-500/30 rounded-full px-2 py-0.5 font-semibold">
-                                  Emergency
+                                  {t('emergency', lang)}
                                 </span>
                               )}
                             </div>
@@ -444,9 +433,9 @@ export default function ContractorDashboard() {
                 </div>
 
                 <div id="your-bids" className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6 scroll-mt-6">
-                  <h3 className="text-white font-semibold mb-4">Your bids</h3>
+                  <h3 className="text-white font-semibold mb-4">{t('yourBids', lang)}</h3>
                   {myBids.length === 0 ? (
-                    <p className="text-white/50 text-sm">You haven&apos;t submitted any bids yet.</p>
+                    <p className="text-white/50 text-sm">{t('noBidsYet', lang)}</p>
                   ) : (
                     <div className="space-y-3">
                       <ShowMoreList
@@ -472,22 +461,22 @@ export default function ContractorDashboard() {
                                   ? 'text-xs bg-white/5 text-white/50 border border-white/10 rounded-full px-2 py-0.5'
                                   : 'text-xs bg-yellow-500/15 text-yellow-400 border border-yellow-500/25 rounded-full px-2 py-0.5'
                               }>
-                                {bid.status === 'accepted' ? 'Selected' : bid.status === 'declined' ? 'Not selected' : 'Pending'}
+                                {bid.status === 'accepted' ? t('badgeSelected', lang) : bid.status === 'declined' ? t('badgeNotSelected', lang) : t('badgePending', lang)}
                               </span>
                             </div>
                             <p className="text-white/50 text-xs mt-1">{jobLocation(bid)}</p>
-                            <p className="text-white/50 text-xs mt-1">Your bid: ${bid.amount}</p>
+                            <p className="text-white/50 text-xs mt-1">{t('yourBidAmount', lang)} ${bid.amount}</p>
                             {bid.status === 'accepted' && bid.selected_at && (
                               <p className="text-white/50 text-xs mt-0.5">
-                                Selected {new Date(bid.selected_at).toLocaleString()}
+                                {t('selectedAt', lang)} {new Date(bid.selected_at).toLocaleString()}
                               </p>
                             )}
                             {scheduleConfirmed && (
-                              <p className="text-[#12A5A9] text-xs mt-1 font-medium">✓ Schedule confirmed</p>
+                              <p className="text-[#12A5A9] text-xs mt-1 font-medium">{t('scheduleConfirmedShort', lang)}</p>
                             )}
                             {hasPendingSchedule && !scheduleConfirmed && (
                               <p className="text-yellow-400 text-xs mt-1 font-medium">
-                                New time proposed{bid.jobs?.proposed_by !== 'contractor' ? ', awaiting your response' : ''}
+                                {t('newTimeProposedShort', lang)}{bid.jobs?.proposed_by !== 'contractor' ? t('awaitingYourResponse', lang) : ''}
                               </p>
                             )}
                           </Link>
@@ -500,7 +489,7 @@ export default function ContractorDashboard() {
 
                 <div className="bg-white/3 border border-white/8 rounded-2xl p-6" data-tour="pastjobs">
                   <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
-                    <h3 className="text-white font-semibold">Past jobs</h3>
+                    <h3 className="text-white font-semibold">{t('pastJobs', lang)}</h3>
                     <div className="flex gap-1.5">
                       {PAST_FILTERS.map((f) => (
                         <button
@@ -518,7 +507,7 @@ export default function ContractorDashboard() {
                     </div>
                   </div>
                   {filteredPastJobs.length === 0 ? (
-                    <p className="text-white/50 text-sm">No past jobs in this view.</p>
+                    <p className="text-white/50 text-sm">{t('noPastJobsView', lang)}</p>
                   ) : (
                     <div className="space-y-3">
                       <ShowMoreList
@@ -544,7 +533,7 @@ export default function ContractorDashboard() {
                     href="/contractor/earnings"
                     className="w-full text-center text-[#12A5A9] text-xs font-semibold pt-4 mt-1 border-t border-white/8 block hover:underline"
                   >
-                    View earnings, receipts & tax history →
+                    {t('viewEarningsLink', lang)}
                   </Link>
                 </div>
               </>

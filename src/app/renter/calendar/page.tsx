@@ -7,9 +7,11 @@ import Link from 'next/link'
 import { ScheduleCalendar, eventState, CALENDAR_JOB_STATUSES, calendarHistoryStart, type CalendarEvent } from '@/components/ScheduleCalendar'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { timeWindowLabel } from '@/lib/constants'
+import { useLanguage, t } from '@/lib/i18n'
 
 export default function RenterCalendarPage() {
   const router = useRouter()
+  const lang = useLanguage()
   const [loading, setLoading] = useState(true)
   const [events, setEvents] = useState<CalendarEvent[]>([])
 
@@ -61,7 +63,7 @@ export default function RenterCalendarPage() {
 
   if (loading) return (
     <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center">
-      <div className="text-white/50">Loading...</div>
+      <div className="text-white/50">{t('loading', lang)}</div>
     </div>
   )
 
@@ -69,7 +71,7 @@ export default function RenterCalendarPage() {
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
         <Link href="/renter" className="text-white/50 hover:text-white text-sm transition">
-          ← Dashboard
+          {t('dashboard', lang)}
         </Link>
         <Link href="/renter" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
         <div className="w-20" />
@@ -77,8 +79,8 @@ export default function RenterCalendarPage() {
 
       <main className="max-w-3xl mx-auto px-6 py-10">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-white">Calendar</h1>
-          <p className="text-white/50 text-sm mt-1">Confirmed appointments for your home.</p>
+          <h1 className="text-2xl font-bold text-white">{t('calendarTitle', lang)}</h1>
+          <p className="text-white/50 text-sm mt-1">{t('renterCalendarSubtitle', lang)}</p>
         </div>
 
         <ScrollReveal>

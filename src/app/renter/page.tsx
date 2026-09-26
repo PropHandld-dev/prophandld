@@ -20,6 +20,7 @@ import { getUnreadJobIds } from '@/lib/messageReads'
 import { ShowMoreList } from '@/components/ShowMoreList'
 import { ProductTour, type TourStep } from '@/components/ProductTour'
 import { useTourVisibility } from '@/lib/useTourVisibility'
+import { useLanguage, t } from '@/lib/i18n'
 
 const TOUR_STEPS: TourStep[] = [
   { target: '[data-tour="welcome"]', title: 'Welcome to your Renter Dashboard', body: "This is where you'll report issues, message your landlord, and pay rent. Quick look around?" },
@@ -32,6 +33,7 @@ const TOUR_STEPS: TourStep[] = [
 
 export default function RenterDashboard() {
   const router = useRouter()
+  const lang = useLanguage()
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const tour = useTourVisibility(user?.id ?? null)
@@ -137,20 +139,19 @@ export default function RenterDashboard() {
   // A pending proposal takes priority over the underlying status,
   // regardless of whether we're still at bid_selected or already scheduled.
   if (job.proposed_date && !job.schedule_confirmed) {
-    const proposer = job.proposed_by === 'renter' ? 'you' : 'the other side'
-    return `New time proposed by ${proposer}`
+    return job.proposed_by === 'renter' ? t('newTimeProposedByYou', lang) : t('newTimeProposedByOther', lang)
   }
   if (['pending_approval', 'approved', 'bidding', 'bid_selected'].includes(job.status)) {
-    return 'Landlord is finding a contractor'
+    return t('statusLandlordFinding', lang)
   }
   if (job.status === 'scheduled') {
-    return 'Scheduled'
+    return t('statusScheduled', lang)
   }
   if (job.status === 'in_progress') {
-    return 'Work in progress'
+    return t('statusWorkInProgress', lang)
   }
   if (job.status === 'pending_review') {
-    return 'Work complete, waiting on landlord'
+    return t('statusWorkCompleteWaiting', lang)
   }
   return job.status
 }
@@ -161,18 +162,18 @@ export default function RenterDashboard() {
       icon: CalendarIcon,
       tone: 'yellow' as const,
       title: job.category,
-      subtitle: 'Your landlord wants you to pick a time',
+      subtitle: t('pickATimeAlert', lang),
       href: `/renter/jobs/${job.id}`,
-      badge: 'Pick a time',
+      badge: t('badgePickATime', lang),
     })),
     ...scheduleAlerts.map((job) => ({
       id: `sched-${job.id}`,
       icon: CalendarIcon,
       tone: 'yellow' as const,
       title: job.category,
-      subtitle: 'New time proposed',
+      subtitle: t('newTimeProposedAlert', lang),
       href: `/renter/jobs/${job.id}`,
-      badge: 'Review',
+      badge: t('badgeReview', lang),
     })),
   ]
 
@@ -203,14 +204,14 @@ export default function RenterDashboard() {
         ) : (
           <>
             <div className="mb-8" data-tour="welcome">
-              <p className="text-[#12A5A9] text-xs font-semibold uppercase tracking-wide mb-1.5">Renter Dashboard</p>
+              <p className="text-[#12A5A9] text-xs font-semibold uppercase tracking-wide mb-1.5">{t('renterDashboardLabel', lang)}</p>
               <h1 className="text-2xl font-bold text-white">
-                Hi,{' '}
+                {t('hi', lang)}{' '}
                 <Link href="/profile" className="hover:text-[#12A5A9] transition">
                   {user?.user_metadata?.full_name?.split(' ')[0]}
                 </Link>
               </h1>
-              <p className="text-white/50 mt-1">Report issues, pay rent, and reach your landlord directly, all in one place.</p>
+              <p className="text-white/50 mt-1">{t('renterDashboardSubtitle', lang)}</p>
             </div>
 
             <AlertsList items={alertItems} />
@@ -218,7 +219,7 @@ export default function RenterDashboard() {
 
             {unit && property && (
               <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
-                <h3 className="text-white font-semibold mb-1">Your home</h3>
+                <h3 className="text-white font-semibold mb-1">{t('yourHome', lang)}</h3>
                 <p className="text-white/70 text-sm mt-2">{property.address}</p>
                 <p className="text-white/50 text-sm">
                   {property.city}, {property.state} {property.zip} · Unit {unit.unit_number}
@@ -234,9 +235,9 @@ export default function RenterDashboard() {
               >
                 <div className="flex items-center gap-2">
                   <FileTextIcon className="w-4 h-4 text-white/60" />
-                  <h3 className="text-white font-semibold">Documents</h3>
+                  <h3 className="text-white font-semibold">{t('documentsTitle', lang)}</h3>
                 </div>
-                <p className="text-white/60 text-sm mt-1">Your lease and related paperwork</p>
+                <p className="text-white/60 text-sm mt-1">{t('documentsDescRenter', lang)}</p>
               </Link>
             )}
 
@@ -247,25 +248,25 @@ export default function RenterDashboard() {
               >
                 <div className="flex items-center gap-2 mb-1">
                   <DollarSignIcon className="w-4 h-4 text-white/60" />
-                  <h3 className="text-white font-semibold">Pay rent</h3>
+                  <h3 className="text-white font-semibold">{t('payRent', lang)}</h3>
                 </div>
-                <p className="text-white/60 text-sm mt-1">Secure online rent payments, right from your dashboard. No more checks or cash.</p>
+                <p className="text-white/60 text-sm mt-1">{t('payRentDesc', lang)}</p>
               </Link>
             )}
 
             <ScrollReveal className="bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/10 border border-[#12A5A9]/30 rounded-2xl p-6 mb-6" data-tour="report">
-              <h3 className="text-white font-semibold mb-1">Report an issue</h3>
-              <p className="text-white/50 text-sm mb-4">Something broken? Let your landlord know.</p>
+              <h3 className="text-white font-semibold mb-1">{t('reportTitle', lang)}</h3>
+              <p className="text-white/50 text-sm mb-4">{t('reportAnIssueDesc', lang)}</p>
               <MagneticLink
                 href="/renter/report"
                 className="inline-block bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-6 py-2.5 rounded-xl text-sm hover:opacity-90 transition"
               >
-                Report now
+                {t('reportNow', lang)}
               </MagneticLink>
             </ScrollReveal>
 
             <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6" data-tour="issues">
-              <h3 className="text-white font-semibold mb-4">Your issues</h3>
+              <h3 className="text-white font-semibold mb-4">{t('yourIssues', lang)}</h3>
 
               {jobsLoading ? (
                 <div className="space-y-2">
@@ -275,7 +276,7 @@ export default function RenterDashboard() {
               ) : jobs.length === 0 ? (
                 <div className="flex items-center gap-2 text-white/50 text-sm">
                   <CheckCircleIcon className="w-4 h-4" />
-                  No open issues. You&apos;re all good!
+                  {t('noOpenIssues', lang)}
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -291,7 +292,7 @@ export default function RenterDashboard() {
                           <p className="text-white font-medium">{job.category}</p>
                           {job.is_emergency && (
                             <span className="text-xs bg-red-500/20 text-red-400 border border-red-500/30 rounded-full px-2 py-0.5 font-semibold">
-                              Emergency
+                              {t('emergency', lang)}
                             </span>
                           )}
                           {unreadJobIds.has(job.id) && (
@@ -311,7 +312,7 @@ export default function RenterDashboard() {
             </div>
 
             <div className="bg-white/3 border border-white/8 rounded-2xl p-6">
-              <h3 className="text-white font-semibold mb-4">Emergency contacts</h3>
+              <h3 className="text-white font-semibold mb-4">{t('emergencyContacts', lang)}</h3>
 
               {contactsLoading ? (
                 <div className="space-y-2">
@@ -319,9 +320,9 @@ export default function RenterDashboard() {
                   <Skeleton className="h-4 w-1/2" />
                 </div>
               ) : !unit ? (
-                <p className="text-white/50 text-sm">No unit linked to your account yet.</p>
+                <p className="text-white/50 text-sm">{t('noUnitLinked', lang)}</p>
               ) : contacts.length === 0 ? (
-                <p className="text-white/50 text-sm">No emergency contacts added for your unit yet.</p>
+                <p className="text-white/50 text-sm">{t('noContactsAdded', lang)}</p>
               ) : (
                 <div className="space-y-3">
                   {contacts.map((contact) => (
@@ -346,8 +347,8 @@ export default function RenterDashboard() {
 
             {landlordBackupContacts.length > 0 && (
               <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mt-4">
-                <h3 className="text-white font-semibold mb-1">If your landlord doesn&apos;t answer</h3>
-                <p className="text-white/40 text-xs mb-4">Their backup contact</p>
+                <h3 className="text-white font-semibold mb-1">{t('ifLandlordDoesntAnswer', lang)}</h3>
+                <p className="text-white/40 text-xs mb-4">{t('theirBackupContact', lang)}</p>
                 <div className="space-y-3">
                   {landlordBackupContacts.map((c) => (
                     <div key={c.id} className="border-b border-white/5 last:border-0 pb-3 last:pb-0">
