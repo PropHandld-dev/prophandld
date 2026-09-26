@@ -29,10 +29,6 @@ function fresh<T>(entry: Cached<T> | undefined): entry is Cached<T> {
   return !!entry && Date.now() - entry.at < CACHE_TTL_MS
 }
 
-// Only the most recent messages are needed to build the conversation list
-// and unread badges — loading every message ever sent didn't scale.
-const RECENT_MESSAGE_LIMIT = 400
-
 const ROLE_LABELS: Record<string, string> = {
   landlord: 'Landlord',
   renter: 'Renter',
@@ -66,11 +62,10 @@ export function useConversations(userId: string | null) {
   const load = useCallback(async () => {
     if (!userId) return
 
-    const { data: messages, error } = await supabase
-      .from('messages')
-      .select('job_id, thread_id, body, created_at, sender_user_id')
-      .order('created_at', { ascending: false })
-      .limit(RECENT_MESSAGE_LIMIT)
+    // One row per conversation (the latest message in it), computed in the
+    // database rather than a JS-side cap on the N most recent messages
+    // globally — see get_recent_conversation_previews for why that matters.
+    const { data: previews, error } = await supabase.rpc('get_recent_conversation_previews')
 
     if (error) {
       console.error('Error loading messages:', error)
@@ -78,15 +73,8 @@ export function useConversations(userId: string | null) {
       return
     }
 
-    const latestByKey = new Map<string, { kind: 'job' | 'dm'; id: string; body: string; created_at: string; sender_user_id: string }>()
-    for (const m of messages || []) {
-      const kind: 'job' | 'dm' = m.job_id ? 'job' : 'dm'
-      const id = m.job_id || m.thread_id!
-      const key = `${kind}:${id}`
-      if (!latestByKey.has(key)) latestByKey.set(key, { kind, id, body: m.body, created_at: m.created_at, sender_user_id: m.sender_user_id })
-    }
-
-    const entries = Array.from(latestByKey.values())
+    const entries = ((previews || []) as { kind: 'job' | 'dm'; conv_id: string; body: string; created_at: string; sender_user_id: string }[])
+      .map((m) => ({ kind: m.kind, id: m.conv_id, body: m.body, created_at: m.created_at, sender_user_id: m.sender_user_id }))
     if (entries.length === 0) {
       setConversations([])
       setUnreadIds(new Set())
@@ -131,15 +119,19 @@ export function useConversations(userId: string | null) {
       if (data.length > 0) participantsCache.set(`${k.kind}:${k.id}`, { at: Date.now(), value: data })
     })
 
-    // Unread is worked out from the messages already loaded above, instead
-    // of two more queries that pulled every message from other people.
+    // Unread is worked out from the one-per-conversation previews already
+    // loaded above, instead of two more queries that pulled every message
+    // from other people. A conversation's latest message is enough to know
+    // whether it's unread: if it's from someone else and after the last
+    // time this conversation was read, it's unread regardless of what came
+    // before it, since reading a conversation always covers everything in
+    // it up to that point.
     const unread = new Set<string>()
-    for (const m of messages || []) {
-      if (m.sender_user_id === userId) continue
-      const isJob = !!m.job_id
-      const id = (m.job_id || m.thread_id) as string
-      const lastRead = (isJob ? jobReads : threadReads).get(id)
-      if (!lastRead || new Date(m.created_at) > new Date(lastRead)) unread.add(`${isJob ? 'job' : 'thread'}:${id}`)
+    for (const e of entries) {
+      if (e.sender_user_id === userId) continue
+      const isJob = e.kind === 'job'
+      const lastRead = (isJob ? jobReads : threadReads).get(e.id)
+      if (!lastRead || new Date(e.created_at) > new Date(lastRead)) unread.add(`${isJob ? 'job' : 'thread'}:${e.id}`)
     }
     setUnreadIds(unread)
 

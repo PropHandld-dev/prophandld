@@ -99,20 +99,32 @@ export async function mergedLastRead(
   return merged
 }
 
-// Only the most recent messages matter for "anything new?", so the scan is capped
-// to keep dashboards fast for people with many chatty jobs.
-const UNREAD_SCAN_LIMIT = 1000
+// A cap on rows ordered by recency across ALL given jobs/threads used to sit
+// here — for someone with many chatty conversations, a genuinely unread
+// message in a quieter job could rank outside the top of that global slice
+// and silently never show as unread. Instead of an arbitrary cap, the query
+// below is bounded by a real value: the oldest last-read timestamp among the
+// given conversations (treated as "the beginning of time" for one that's
+// never been read at all). That's a filter that can only ever include every
+// message that could possibly flip any conversation to "unread" — never
+// fewer — so it scales correctly with actual unread volume instead of
+// degrading silently the busier an account gets.
+const NEVER_READ = new Date(0).toISOString()
 
-// Given a set of jobs a user is involved in, returns the ids of the ones
-// with at least one message from someone else sent after that user's
-// last read timestamp for that job (or any message at all if never read).
 export async function getUnreadJobIds(jobIds: string[], userId: string): Promise<Set<string>> {
   if (jobIds.length === 0) return new Set()
 
-  const [{ data: messages, error }, lastReadByJob] = await Promise.all([
-    supabase.from('messages').select('job_id, sender_user_id, created_at').in('job_id', jobIds).neq('sender_user_id', userId).order('created_at', { ascending: false }).limit(UNREAD_SCAN_LIMIT),
-    mergedLastRead(userId, 'job', jobIds),
-  ])
+  const lastReadByJob = await mergedLastRead(userId, 'job', jobIds)
+  const cutoff = jobIds.some((id) => !lastReadByJob.has(id))
+    ? NEVER_READ
+    : [...lastReadByJob.values()].reduce((oldest, iso) => (iso < oldest ? iso : oldest))
+
+  const { data: messages, error } = await supabase
+    .from('messages')
+    .select('job_id, sender_user_id, created_at')
+    .in('job_id', jobIds)
+    .neq('sender_user_id', userId)
+    .gt('created_at', cutoff)
 
   if (error) {
     console.error('getUnreadJobIds: could not load messages', error)
@@ -133,10 +145,17 @@ export async function getUnreadJobIds(jobIds: string[], userId: string): Promise
 export async function getUnreadThreadIds(threadIds: string[], userId: string): Promise<Set<string>> {
   if (threadIds.length === 0) return new Set()
 
-  const [{ data: messages, error }, lastReadByThread] = await Promise.all([
-    supabase.from('messages').select('thread_id, sender_user_id, created_at').in('thread_id', threadIds).neq('sender_user_id', userId).order('created_at', { ascending: false }).limit(UNREAD_SCAN_LIMIT),
-    mergedLastRead(userId, 'thread', threadIds),
-  ])
+  const lastReadByThread = await mergedLastRead(userId, 'thread', threadIds)
+  const cutoff = threadIds.some((id) => !lastReadByThread.has(id))
+    ? NEVER_READ
+    : [...lastReadByThread.values()].reduce((oldest, iso) => (iso < oldest ? iso : oldest))
+
+  const { data: messages, error } = await supabase
+    .from('messages')
+    .select('thread_id, sender_user_id, created_at')
+    .in('thread_id', threadIds)
+    .neq('sender_user_id', userId)
+    .gt('created_at', cutoff)
 
   if (error) {
     console.error('getUnreadThreadIds: could not load messages', error)
