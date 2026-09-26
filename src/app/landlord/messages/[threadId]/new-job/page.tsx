@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { Skeleton } from '@/components/Skeleton'
 import { BuildingIcon } from '@/components/icons'
+import { useLanguage, t } from '@/lib/i18n'
 
 type Property = {
   id: string
@@ -16,10 +17,11 @@ type Property = {
 export default function NewJobFromThreadPage() {
   const params = useParams()
   const router = useRouter()
+  const lang = useLanguage()
   const threadId = params.threadId as string
 
   const [loading, setLoading] = useState(true)
-  const [contractorName, setContractorName] = useState<string>('this contractor')
+  const [contractorName, setContractorName] = useState<string>(t('thisContractor', lang))
   const [properties, setProperties] = useState<Property[]>([])
 
   useEffect(() => {
@@ -53,16 +55,16 @@ export default function NewJobFromThreadPage() {
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
         <Link href={`/landlord/messages/${threadId}`} className="text-white/50 hover:text-white text-sm transition">
-          ← Back
+          {t('backArrowShort', lang)}
         </Link>
         <Link href="/landlord" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
         <div className="w-14" />
       </nav>
 
       <main className="max-w-2xl mx-auto px-6 py-10 pb-16">
-        <h1 className="text-2xl font-bold text-white mb-1">Start a job for {contractorName}</h1>
+        <h1 className="text-2xl font-bold text-white mb-1">{t('startAJobFor', lang)} {contractorName}</h1>
         <p className="text-white/60 text-sm mb-8">
-          Pick which property and unit this is for. {contractorName} will be notified to bid, and the job stays open to other contractors too.
+          {t('pickPropertyUnit', lang)} {contractorName} {t('startJobForDesc', lang)}
         </p>
 
         {loading ? (
@@ -72,7 +74,7 @@ export default function NewJobFromThreadPage() {
           </div>
         ) : properties.length === 0 ? (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
-            <p className="text-white/50 text-sm">Add a property first before posting a job.</p>
+            <p className="text-white/50 text-sm">{t('addPropertyFirst', lang)}</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -83,7 +85,7 @@ export default function NewJobFromThreadPage() {
                   <p className="text-white font-medium text-sm">{property.address}</p>
                 </div>
                 {property.units.length === 0 ? (
-                  <p className="text-white/50 text-xs">No units added yet.</p>
+                  <p className="text-white/50 text-xs">{t('noUnitsAddedYet', lang)}</p>
                 ) : (
                   <div className="flex flex-wrap gap-2">
                     {property.units.map((unit) => (

@@ -3,9 +3,11 @@
 import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { MessagesInbox } from '@/components/MessagesInbox'
+import { useLanguage, t } from '@/lib/i18n'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 
 export default function LandlordMessagesPage() {
+  const lang = useLanguage()
   return (
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
@@ -14,12 +16,12 @@ export default function LandlordMessagesPage() {
 
       <main className="max-w-2xl mx-auto px-6 py-10 pb-28">
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-2xl font-bold text-white">Messages</h1>
+          <h1 className="text-2xl font-bold text-white">{t('messagesLabel', lang)}</h1>
           <Link
             href="/landlord/messages/new"
             className="text-xs font-semibold bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white px-3.5 py-2 rounded-full hover:opacity-90 transition"
           >
-            New message
+            {t('newMessage', lang)}
           </Link>
         </div>
         <MessagesInbox basePath="/landlord" />
