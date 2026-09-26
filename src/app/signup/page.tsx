@@ -39,6 +39,12 @@ function SignupForm() {
   )
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Set once signUp() comes back with no session — Supabase's signal that
+  // this project requires clicking a confirmation link before the account
+  // is real, rather than the account being usable the instant someone
+  // types an email address (theirs or not) into the form.
+  const [confirmationEmail, setConfirmationEmail] = useState<string | null>(null)
+  const [resendState, setResendState] = useState<'idle' | 'sending' | 'sent'>('idle')
   const [form, setForm] = useState({
     full_name: '',
     email: '',
@@ -67,6 +73,7 @@ function SignupForm() {
           role,
           preferred_language: form.preferred_language,
         },
+        emailRedirectTo: `${window.location.origin}/login`,
       },
     })
 
@@ -78,6 +85,17 @@ function SignupForm() {
 
     if (!data.user) {
       setError('No user returned from signup')
+      setLoading(false)
+      return
+    }
+
+    // No session back means this project requires confirming the email
+    // address before the account is usable — the account row exists, but
+    // nobody is signed in yet. Show that instead of walking straight into
+    // onboarding, which is what let someone in on a typo'd or unowned
+    // email today.
+    if (!data.session) {
+      setConfirmationEmail(form.email)
       setLoading(false)
       return
     }
@@ -112,6 +130,64 @@ function SignupForm() {
     } catch (err) {
       console.error('Error checking pending invite:', err)
     }
+  }
+
+  const handleResend = async () => {
+    if (!confirmationEmail || resendState === 'sending') return
+    setResendState('sending')
+    const { error: resendError } = await supabase.auth.resend({
+      type: 'signup',
+      email: confirmationEmail,
+      options: { emailRedirectTo: `${window.location.origin}/login` },
+    })
+    if (resendError) {
+      setError('Could not resend: ' + resendError.message)
+      setResendState('idle')
+      return
+    }
+    setResendState('sent')
+  }
+
+  if (confirmationEmail) {
+    return (
+      <AuthLayout headline="Almost there." subtext="One more step and your account is ready.">
+        <div className="text-center py-6">
+          <div className="w-14 h-14 rounded-full bg-[#0A7B7E]/20 flex items-center justify-center mx-auto mb-5">
+            <MailIcon className="w-6 h-6 text-[#12A5A9]" />
+          </div>
+          <h2 className="text-white text-xl font-bold mb-2">Check your email</h2>
+          <p className="text-white/60 text-sm mb-1">
+            We sent a confirmation link to
+          </p>
+          <p className="text-white font-semibold mb-5">{confirmationEmail}</p>
+          <p className="text-white/50 text-sm mb-6">
+            Click the link to activate your account. If this wasn&apos;t your email, no account was created for you — nothing to do.
+          </p>
+          <RippleButton
+            type="button"
+            onClick={handleResend}
+            disabled={resendState === 'sending'}
+            className="text-[#12A5A9] text-sm font-semibold hover:underline disabled:opacity-50"
+          >
+            {resendState === 'sent' ? '✓ Sent again' : resendState === 'sending' ? 'Sending...' : "Didn't get it? Resend"}
+          </RippleButton>
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm mt-4">
+              {error}
+            </div>
+          )}
+          <div className="mt-8">
+            <button
+              type="button"
+              onClick={() => setConfirmationEmail(null)}
+              className="text-white/50 text-xs hover:text-white transition"
+            >
+              Wrong email? Go back
+            </button>
+          </div>
+        </div>
+      </AuthLayout>
+    )
   }
 
   if (!role) {
