@@ -24,7 +24,7 @@ import { useJobRealtime } from '@/lib/useJobRealtime'
 import { requirementById } from '@/lib/credentialRequirements'
 import { TIME_WINDOWS, validateScheduleTime, rescheduleLockError } from '@/lib/scheduleWindows'
 import { AddressLink } from '@/components/AddressLink'
-import { useLanguage, t } from '@/lib/i18n'
+import { useLanguage, t, windowLabel } from '@/lib/i18n'
 
 export default function JobDetailPage() {
   const router = useRouter()
@@ -706,13 +706,11 @@ export default function JobDetailPage() {
       job?.landlord_approved_at &&
       Date.now() - new Date(job.landlord_approved_at).getTime() < 48 * 60 * 60 * 1000)
 
-  const windowLabel = (w: string) => TIME_WINDOWS.find((t) => t.value === w)?.label || w
-
   if (loading) return (
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
         <Link href="/landlord/jobs" className="text-white/50 hover:text-white text-sm transition">
-          ← Jobs
+          {t('jobsBack', lang)}
         </Link>
         <Link href="/landlord" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
         <div className="w-20" />
@@ -764,10 +762,10 @@ export default function JobDetailPage() {
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
         <Link href="/landlord/jobs" className="text-white/50 hover:text-white text-sm transition">
-          ← Jobs
+          {t('jobsBack', lang)}
         </Link>
         <Link href="/landlord" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
-        <a href="#chat" onClick={scrollToChat} aria-label="Go to the chat" className="relative text-white/50 hover:text-white transition">
+        <a href="#chat" onClick={scrollToChat} aria-label={t('goToChat', lang)} className="relative text-white/50 hover:text-white transition">
           <MessageCircleIcon className="w-5 h-5" />
           {hasUnread && <UnreadDot className="absolute -top-0.5 -right-0.5" />}
         </a>
@@ -782,7 +780,7 @@ export default function JobDetailPage() {
                 <h1 className="text-2xl font-bold text-white">{job.category}</h1>
                 {job.is_emergency && (
                   <span className="text-xs bg-red-500/20 text-red-400 border border-red-500/30 rounded-full px-2.5 py-1 font-semibold">
-                    Emergency
+                    {t('emergency', lang)}
                   </span>
                 )}
               </div>
@@ -804,7 +802,7 @@ export default function JobDetailPage() {
                 onClick={() => setShowArchiveModal(true)}
                 className="text-white/60 hover:text-white text-xs transition shrink-0"
               >
-                Archive
+                {t('archiveBtn', lang)}
               </button>
             )}
             {['approved', 'bidding'].includes(job.status) && (
@@ -813,7 +811,7 @@ export default function JobDetailPage() {
                 disabled={actioning}
                 className="text-red-400/70 hover:text-red-400 text-xs transition shrink-0 disabled:opacity-50"
               >
-                Cancel this job
+                {t('cancelThisJobBtn', lang)}
               </button>
             )}
           </div>
@@ -822,7 +820,7 @@ export default function JobDetailPage() {
         <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-white font-semibold">
-              Status: <span className="text-[#12A5A9]">{statusLabel(job.status)}</span>
+              {t('statusPrefix', lang)} <span className="text-[#12A5A9]">{statusLabel(job.status)}</span>
             </h2>
             {job.status === 'pending_approval' && (
               <div className="flex items-center gap-3">
@@ -831,14 +829,14 @@ export default function JobDetailPage() {
                   disabled={actioning}
                   className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
                 >
-                  Acknowledge
+                  {t('acknowledge', lang)}
                 </button>
                 <button
                   onClick={handleDeclineClick}
                   disabled={actioning}
                   className="text-red-400/70 hover:text-red-400 text-xs transition"
                 >
-                  Decline
+                  {t('decline', lang)}
                 </button>
               </div>
             )}
@@ -848,7 +846,7 @@ export default function JobDetailPage() {
                 disabled={actioning}
                 className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
               >
-                Start bidding
+                {t('startBidding', lang)}
               </button>
             )}
             {job.status === 'pending_review' && (
@@ -858,13 +856,13 @@ export default function JobDetailPage() {
                   disabled={actioning}
                   className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
                 >
-                  Approve
+                  {t('approveLabel', lang)}
                 </button>
                 <button
                   onClick={() => scrollToChat()}
                   className="text-white/50 hover:text-white text-xs transition"
                 >
-                  Chat with contractor
+                  {t('chatWithContractorLabel', lang)}
                 </button>
               </div>
             )}
@@ -874,17 +872,17 @@ export default function JobDetailPage() {
 
           <div className="flex items-center gap-4 mt-4 pt-4 border-t border-white/5">
             <span className="text-xs bg-white/8 text-white/50 rounded-full px-2.5 py-1 capitalize">
-              {job.urgency} urgency
+              {job.urgency} {t('urgencySuffix', lang)}
             </span>
           </div>
 
           <p className="text-white/50 text-xs mt-3">
-            Reported by {job.reporter?.full_name || 'Unknown'} · {new Date(job.created_at).toLocaleString()}
+            {t('reportedBy', lang)} {job.reporter?.full_name || t('unknownName', lang)} · {new Date(job.created_at).toLocaleString()}
           </p>
 
           {job.landlord_notes && (
             <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 mt-3">
-              <p className="text-white/50 text-xs">Note: {job.landlord_notes}</p>
+              <p className="text-white/50 text-xs">{t('noteLabel', lang)} {job.landlord_notes}</p>
             </div>
           )}
 
@@ -897,20 +895,20 @@ export default function JobDetailPage() {
 
         {job.status === 'pending_review' && (job.clarification_note || job.clarification_response) && (
           <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl p-6 mb-4">
-            <h3 className="text-yellow-400 font-semibold mb-2">Verification requested</h3>
+            <h3 className="text-yellow-400 font-semibold mb-2">{t('verificationRequestedHeading', lang)}</h3>
             {job.clarification_note && (
               <div className="mb-3">
-                <p className="text-white/60 text-xs mb-1">You asked:</p>
+                <p className="text-white/60 text-xs mb-1">{t('youAskedLabel', lang)}</p>
                 <p className="text-white/70 text-sm">{job.clarification_note}</p>
               </div>
             )}
             {job.clarification_response ? (
               <div>
-                <p className="text-white/60 text-xs mb-1">Contractor responded:</p>
+                <p className="text-white/60 text-xs mb-1">{t('contractorRespondedLabel', lang)}</p>
                 <p className="text-white/70 text-sm">{job.clarification_response}</p>
               </div>
             ) : (
-              <p className="text-white/60 text-xs italic">Waiting on contractor's response.</p>
+              <p className="text-white/60 text-xs italic">{t('waitingOnContractorResponse', lang)}</p>
             )}
           </div>
         )}
@@ -918,16 +916,16 @@ export default function JobDetailPage() {
         {job.status === 'pending_review' && (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-4 mb-4">
             <p className="text-white/60 text-xs">
-              ⏳ This will auto-approve within 3 days of the contractor marking it complete if you don&apos;t take action.
+              ⏳ {t('autoApproveNotice', lang)}
             </p>
           </div>
         )}
 
         {job.status === 'disputed' && (
           <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl p-6 mb-4">
-            <h3 className="text-yellow-400 font-semibold mb-1">Under dispute review</h3>
+            <h3 className="text-yellow-400 font-semibold mb-1">{t('statusDisputedFull', lang)}</h3>
             <p className="text-white/60 text-sm">
-              Prophandld is reviewing a dispute on this job. Everyone involved will be notified once it&apos;s resolved.
+              {t('disputeReviewDesc', lang)}
             </p>
           </div>
         )}
@@ -940,15 +938,15 @@ export default function JobDetailPage() {
 
         {job.status === 'bidding' && questions.length > 0 && (
           <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
-            <h3 className="text-white font-semibold mb-1">Questions from contractors</h3>
-            <p className="text-white/50 text-xs mb-4">Your answer is visible to everyone bidding, not just whoever asked.</p>
+            <h3 className="text-white font-semibold mb-1">{t('questionsFromContractors', lang)}</h3>
+            <p className="text-white/50 text-xs mb-4">{t('answerVisibleToAll', lang)}</p>
             <div className="space-y-3">
               {questions.map((q) => (
                 <div key={q.id} className="bg-white/5 border border-white/10 rounded-xl p-4">
                   <p className="text-white/80 text-sm mb-2">{q.question}</p>
                   {q.answer ? (
                     <p className="text-[#12A5A9] text-sm">
-                      <span className="text-[#12A5A9]/60">Your answer:</span> {q.answer}
+                      <span className="text-[#12A5A9]/60">{t('yourAnswerLabel', lang)}</span> {q.answer}
                     </p>
                   ) : (
                     <div className="flex gap-2">
@@ -956,7 +954,7 @@ export default function JobDetailPage() {
                         type="text"
                         value={answerDrafts[q.id] || ''}
                         onChange={(e) => setAnswerDrafts((prev) => ({ ...prev, [q.id]: e.target.value }))}
-                        placeholder="Type your answer..."
+                        placeholder={t('typeYourAnswer', lang)}
                         className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-white/40 focus:outline-none focus:border-[#12A5A9] transition"
                       />
                       <button
@@ -964,7 +962,7 @@ export default function JobDetailPage() {
                         disabled={answeringId === q.id || !(answerDrafts[q.id] || '').trim()}
                         className="bg-white/8 text-white text-sm font-semibold px-4 rounded-lg hover:bg-white/12 transition disabled:opacity-40 shrink-0"
                       >
-                        {answeringId === q.id ? '...' : 'Answer'}
+                        {answeringId === q.id ? '...' : t('answerBtn', lang)}
                       </button>
                     </div>
                   )}
@@ -977,17 +975,17 @@ export default function JobDetailPage() {
         {job.status === 'bidding' && (
           <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
             <h3 className="text-white font-semibold mb-4">
-              Sealed bids {openBids.length > 0 && `(${openBids.length})`}
+              {t('sealedBidsHeading', lang)} {openBids.length > 0 && `(${openBids.length})`}
             </h3>
             {openBids.length === 0 ? (
-              <p className="text-white/50 text-sm">No bids yet. Contractors in range have been notified.</p>
+              <p className="text-white/50 text-sm">{t('noBidsYetNotified', lang)}</p>
             ) : (
               <div className="space-y-3">
                 {openBids.map((bid) => (
                   <div key={bid.id} className="bg-white/5 border border-white/10 rounded-xl p-4">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <p className="text-white font-semibold">{bid.contractor?.full_name || 'Unknown contractor'}</p>
+                        <p className="text-white font-semibold">{bid.contractor?.full_name || t('unknownContractor', lang)}</p>
                         {(credentialBadges[bid.contractor_user_id] || []).map((label) => (
                           <span key={label} className="text-xs bg-[#0A7B7E]/20 text-[#12A5A9] rounded-full px-2 py-0.5 font-semibold">
                             {label} ✓
@@ -995,12 +993,12 @@ export default function JobDetailPage() {
                         ))}
                         {verifiedContractorIds.has(bid.contractor_user_id) && !credentialBadges[bid.contractor_user_id]?.length && (
                           <span className="text-xs bg-[#0A7B7E]/20 text-[#12A5A9] rounded-full px-2 py-0.5 font-semibold">
-                            Verified ✓
+                            {t('verifiedStatus', lang)}
                           </span>
                         )}
                         {unlicensedContractorIds.has(bid.contractor_user_id) && !credentialBadges[bid.contractor_user_id]?.length && (
                           <span className="text-xs bg-yellow-500/15 text-yellow-400 border border-yellow-500/30 rounded-full px-2 py-0.5 font-semibold">
-                            No license on file
+                            {t('noLicenseOnFile', lang)}
                           </span>
                         )}
                         {ratingSummaries[bid.contractor_user_id] && (
@@ -1016,18 +1014,18 @@ export default function JobDetailPage() {
                         )}
                       </div>
                     </div>
-                    {bid.availability && <p className="text-white/50 text-xs">Availability: {bid.availability}</p>}
-                    {bid.estimated_hours && <p className="text-white/50 text-xs">Est. hours: {bid.estimated_hours}</p>}
+                    {bid.availability && <p className="text-white/50 text-xs">{t('availabilityColonLabel', lang)} {bid.availability}</p>}
+                    {bid.estimated_hours && <p className="text-white/50 text-xs">{t('estHoursColonLabel', lang)} {bid.estimated_hours}</p>}
                     {bid.notes && <p className="text-white/60 text-xs mt-1 italic">{bid.notes}</p>}
                     {bid.not_included && (
-                      <p className="text-yellow-400/80 text-xs mt-1">Not included: {bid.not_included}</p>
+                      <p className="text-yellow-400/80 text-xs mt-1">{t('notIncludedColonLabel', lang)} {bid.not_included}</p>
                     )}
                     <RippleButton
                       onClick={() => handleSelectBidClick(bid.id)}
                       disabled={actioning}
                       className="mt-3 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
                     >
-                      Select this contractor
+                      {t('selectThisContractorBtn', lang)}
                     </RippleButton>
                   </div>
                 ))}
@@ -1038,7 +1036,7 @@ export default function JobDetailPage() {
 
         {['bid_selected', 'scheduled', 'in_progress', 'pending_review', 'completed', 'archived'].includes(job.status) && (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
-            <h3 className="text-white font-semibold mb-3">Selected contractor</h3>
+            <h3 className="text-white font-semibold mb-3">{t('selectedContractorHeading', lang)}</h3>
             {acceptedBid && (
               <div>
                 <div className="flex items-center gap-2">
@@ -1050,12 +1048,12 @@ export default function JobDetailPage() {
                   ))}
                   {verifiedContractorIds.has(acceptedBid.contractor_user_id) && !credentialBadges[acceptedBid.contractor_user_id]?.length && (
                     <span className="text-xs bg-[#0A7B7E]/20 text-[#12A5A9] rounded-full px-2 py-0.5 font-semibold">
-                      Verified ✓
+                      {t('verifiedStatus', lang)}
                     </span>
                   )}
                   {unlicensedContractorIds.has(acceptedBid.contractor_user_id) && !credentialBadges[acceptedBid.contractor_user_id]?.length && (
                     <span className="text-xs bg-yellow-500/15 text-yellow-400 border border-yellow-500/30 rounded-full px-2 py-0.5 font-semibold">
-                      No license on file
+                      {t('noLicenseOnFile', lang)}
                     </span>
                   )}
                   {ratingSummaries[acceptedBid.contractor_user_id] && (
@@ -1066,13 +1064,13 @@ export default function JobDetailPage() {
                 </div>
                 {acceptedBid.price_change_status === 'pending' ? (
   <div className="mt-2 bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
-    <p className="text-yellow-400 text-xs font-semibold mb-1">Price change requested</p>
+    <p className="text-yellow-400 text-xs font-semibold mb-1">{t('priceChangeRequestedLabel', lang)}</p>
     <p className="text-white/60 text-sm line-through">${acceptedBid.amount}</p>
     <p className="text-white font-bold text-lg">${acceptedBid.proposed_amount}</p>
     {(acceptedBid.price_change_labor || acceptedBid.price_change_parts) && (
       <div className="text-white/50 text-xs mt-2 space-y-0.5">
-        {acceptedBid.price_change_labor && <p>Labor: ${acceptedBid.price_change_labor}</p>}
-        {acceptedBid.price_change_parts && <p>Parts: ${acceptedBid.price_change_parts}</p>}
+        {acceptedBid.price_change_labor && <p>{t('laborColonLabel', lang)} ${acceptedBid.price_change_labor}</p>}
+        {acceptedBid.price_change_parts && <p>{t('partsColonLabel', lang)} ${acceptedBid.price_change_parts}</p>}
       </div>
     )}
     {acceptedBid.price_change_reason && (
@@ -1084,14 +1082,14 @@ export default function JobDetailPage() {
                         disabled={actioning}
                         className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
                       >
-                        Approve new price
+                        {t('approveNewPriceBtn', lang)}
                       </button>
                       <button
                         onClick={() => openPriceModal('reject')}
                         disabled={actioning}
                         className="text-red-400/70 hover:text-red-400 text-xs transition"
                       >
-                        Reject
+                        {t('rejectBtn', lang)}
                       </button>
                     </div>
                   </div>
@@ -1103,7 +1101,7 @@ export default function JobDetailPage() {
                     )}
                   </p>
                 )}
-                {acceptedBid.availability && <p className="text-white/50 text-xs mt-1">Availability: {acceptedBid.availability}</p>}
+                {acceptedBid.availability && <p className="text-white/50 text-xs mt-1">{t('availabilityColonLabel', lang)} {acceptedBid.availability}</p>}
               </div>
             )}
           </div>
@@ -1123,34 +1121,34 @@ export default function JobDetailPage() {
                 <CheckCircleIcon className={`w-5 h-5 shrink-0 mt-0.5 ${paidBanner === 'succeeded' ? 'text-[#12A5A9]' : 'text-yellow-400'}`} />
                 <div className="min-w-0">
                   <p className="text-white text-sm font-semibold">
-                    {paidBanner === 'succeeded' ? 'Payment complete' : 'Payment on its way'}
+                    {paidBanner === 'succeeded' ? t('paymentCompleteLabel', lang) : t('paymentOnWayLabel', lang)}
                   </p>
                   <p className="text-white/60 text-xs mt-0.5">
                     {paidBanner === 'succeeded'
-                      ? `$${payOnApproveAmount} sent to ${acceptedBid.contractor?.full_name || 'the contractor'}. Your receipt is ready below.`
-                      : 'Your bank payment has started and usually clears in 1 to 3 business days. We’ll email you when it’s done.'}
+                      ? `$${payOnApproveAmount} ${t('sentTo', lang).toLowerCase()} ${acceptedBid.contractor?.full_name || t('toContractorFallback', lang)}. ${t('receiptReadyBelow', lang)}`
+                      : t('bankPaymentStartedDesc', lang)}
                   </p>
                 </div>
               </div>
             )}
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-white font-semibold">Pay contractor</h3>
+                <h3 className="text-white font-semibold">{t('payContractorHeading', lang)}</h3>
                 <p className="text-white/60 text-sm mt-1">
-                  ${acceptedBid.amount} to {acceptedBid.contractor?.full_name}
+                  ${acceptedBid.amount} {t('sentTo', lang).toLowerCase()} {acceptedBid.contractor?.full_name}
                 </p>
               </div>
               {paidBanner === 'processing' && acceptedBid.payment_status !== 'paid' ? (
                 <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-yellow-500/15 text-yellow-400">
-                  Processing
+                  {t('processing', lang)}
                 </span>
               ) : acceptedBid.payment_status === 'paid' || paidBanner === 'succeeded' ? (
                 <div className="flex items-center gap-3">
                   <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-[#0A7B7E]/20 text-[#12A5A9]">
-                    <CheckCircleIcon className="w-3 h-3" /> Paid
+                    <CheckCircleIcon className="w-3 h-3" /> {t('paidLabel', lang)}
                   </span>
                   <Link href={`/receipts/job/${acceptedBid.id}`} className="text-[#12A5A9] text-xs font-semibold hover:underline">
-                    Receipt
+                    {t('receipt', lang)}
                   </Link>
                 </div>
               ) : (
@@ -1159,7 +1157,7 @@ export default function JobDetailPage() {
                   disabled={payingContractor}
                   className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50 shrink-0"
                 >
-                  {payingContractor ? 'Loading...' : 'Pay now'}
+                  {payingContractor ? t('loadingShort', lang) : t('payNowBtn', lang)}
                 </RippleButton>
               )}
             </div>
@@ -1183,34 +1181,34 @@ export default function JobDetailPage() {
 
         {showSchedulingSection && (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
-            <h3 className="text-white font-semibold mb-4">Schedule</h3>
+            <h3 className="text-white font-semibold mb-4">{t('scheduleHeading', lang)}</h3>
 
             {!job.proposed_date ? (
               <div className="text-center py-4">
-                <p className="text-white/50 text-sm mb-4">No appointment proposed yet.</p>
+                <p className="text-white/50 text-sm mb-4">{t('noAppointmentProposedYet', lang)}</p>
                 <div className="flex items-center justify-center gap-3">
                   <button
                     onClick={openScheduleModal}
                     className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition"
                   >
-                    Propose a time myself
+                    {t('proposeATimeMyself', lang)}
                   </button>
                   <button
                     onClick={askTenantToPropose}
                     disabled={actioning || job.schedule_ask_tenant}
                     className="bg-white/8 text-white text-xs font-semibold px-4 py-2 rounded-lg hover:bg-white/12 transition disabled:opacity-50"
                   >
-                    {job.schedule_ask_tenant ? 'Waiting on tenant...' : 'Let tenant pick a time'}
+                    {job.schedule_ask_tenant ? t('waitingOnTenantDots', lang) : t('letTenantPickTime', lang)}
                   </button>
                 </div>
               </div>
             ) : job.schedule_confirmed ? (
               <div className="bg-[#0A7B7E]/15 border border-[#12A5A9]/30 rounded-xl px-4 py-3">
                 <p className="text-[#12A5A9] text-sm font-medium flex items-center gap-1.5">
-                  <CheckCircleIcon className="w-4 h-4" /> Confirmed
+                  <CheckCircleIcon className="w-4 h-4" /> {t('confirmedState', lang)}
                 </p>
                 <p className="text-white text-sm mt-1">
-                  {new Date(job.proposed_date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })} · {windowLabel(job.proposed_window)}
+                  {new Date(job.proposed_date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })} · {windowLabel(job.proposed_window, lang)}
                   {job.proposed_time && ` · ${job.proposed_time}`}
                 </p>
                 {rescheduleLockError(job.proposed_date) ? (
@@ -1221,17 +1219,17 @@ export default function JobDetailPage() {
                     disabled={actioning}
                     className="text-white/50 text-xs hover:text-white transition mt-2"
                   >
-                    Reschedule
+                    {t('rescheduleBtn', lang)}
                   </button>
                 )}
               </div>
             ) : (
               <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
                 <p className="text-yellow-400/80 text-xs mb-1">
-                  Proposed by {job.proposed_by === 'landlord' ? 'you' : job.proposed_by}
+                  {t('proposedByLabel', lang)} {job.proposed_by === 'landlord' ? t('you', lang) : job.proposed_by}
                 </p>
                 <p className="text-white text-sm">
-                  {new Date(job.proposed_date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })} · {windowLabel(job.proposed_window)}
+                  {new Date(job.proposed_date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })} · {windowLabel(job.proposed_window, lang)}
                   {job.proposed_time && ` · ${job.proposed_time}`}
                 </p>
                 {isMyTurnToRespond ? (
@@ -1241,18 +1239,18 @@ export default function JobDetailPage() {
                       disabled={actioning}
                       className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
                     >
-                      Confirm this time
+                      {t('confirmThisTime', lang)}
                     </button>
                     <button
                       onClick={openScheduleModal}
                       disabled={actioning}
                       className="text-white/50 text-xs hover:text-white transition"
                     >
-                      Propose different time
+                      {t('proposeDifferentTime', lang)}
                     </button>
                   </div>
                 ) : (
-                  <p className="text-white/60 text-xs mt-3">Waiting on the contractor or tenant to confirm.</p>
+                  <p className="text-white/60 text-xs mt-3">{t('waitingOnContractorOrTenant', lang)}</p>
                 )}
               </div>
             )}
@@ -1261,24 +1259,24 @@ export default function JobDetailPage() {
 
         {['in_progress', 'pending_review', 'completed', 'archived'].includes(job.status) && (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
-            <h3 className="text-white font-semibold mb-4">Proof of work</h3>
+            <h3 className="text-white font-semibold mb-4">{t('proofOfWorkHeading', lang)}</h3>
             <div className="mb-5">
-              <p className="text-white/70 text-sm font-medium mb-2">Before ({beforePhotos.length})</p>
+              <p className="text-white/70 text-sm font-medium mb-2">{t('beforeLabel', lang)} ({beforePhotos.length})</p>
               {beforePhotos.length === 0 ? (
-                <p className="text-white/50 text-xs">No before photos yet.</p>
+                <p className="text-white/50 text-xs">{t('noBeforePhotosYet', lang)}</p>
               ) : (
                 <PhotoGrid photos={beforePhotos} columns={3} />
               )}
             </div>
             <div>
-              <p className="text-white/70 text-sm font-medium mb-2">After ({afterPhotos.length})</p>
+              <p className="text-white/70 text-sm font-medium mb-2">{t('afterLabel', lang)} ({afterPhotos.length})</p>
               {afterPhotos.length === 0 ? (
                 job.status === 'pending_review' ? (
                   <p className="text-yellow-400 text-xs">
-                    No after photos were added, so there is no proof of the finished work. You can ask the contractor in the chat below before approving.
+                    {t('noAfterPhotosPendingReview', lang)}
                   </p>
                 ) : (
-                  <p className="text-white/50 text-xs">No after photos yet.</p>
+                  <p className="text-white/50 text-xs">{t('noAfterPhotosYet', lang)}</p>
                 )
               ) : (
                 <PhotoGrid photos={afterPhotos} columns={3} />
@@ -1286,7 +1284,7 @@ export default function JobDetailPage() {
             </div>
             {receiptPhotos.length > 0 && (
               <div className="mt-5">
-                <p className="text-white/70 text-sm font-medium mb-2">Material receipts ({receiptPhotos.length})</p>
+                <p className="text-white/70 text-sm font-medium mb-2">{t('materialReceiptsLabel', lang)} ({receiptPhotos.length})</p>
                 <PhotoGrid photos={receiptPhotos} columns={3} />
               </div>
             )}
@@ -1295,11 +1293,11 @@ export default function JobDetailPage() {
 
         <div>
           <h3 className="text-white font-semibold mb-3">
-            Reported photos {generalPhotos.length > 0 && `(${generalPhotos.length})`}
+            {t('reportedPhotosHeading', lang)} {generalPhotos.length > 0 && `(${generalPhotos.length})`}
           </h3>
           {generalPhotos.length === 0 ? (
             <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
-              <p className="text-white/50 text-sm">No photos attached.</p>
+              <p className="text-white/50 text-sm">{t('noPhotosAttached', lang)}</p>
             </div>
           ) : (
             <PhotoGrid
@@ -1315,11 +1313,11 @@ export default function JobDetailPage() {
         {userId && (
           <JobChatCard
             jobId={jobId}
-            title={acceptedBid ? 'Chat with contractor' : 'Job chat'}
+            title={acceptedBid ? t('chatWithContractorLabel', lang) : t('jobChatTitle', lang)}
             subtitle={
               acceptedBid
-                ? `${acceptedBid.contractor?.full_name || 'Your contractor'} · messages, updates and history in one place`
-                : 'Messages and updates for this job, in one place'
+                ? `${acceptedBid.contractor?.full_name || t('yourContractorFallback', lang)} · ${t('jobChatSubtitleWithContractor', lang)}`
+                : t('jobChatSubtitleGeneric', lang)
             }
             onRead={() => setHasUnread(false)}
           />
@@ -1330,10 +1328,10 @@ export default function JobDetailPage() {
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
           <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
             <h3 className="text-white font-semibold mb-2 flex items-center gap-1.5">
-              <CheckCircleIcon className="w-4 h-4 text-[#12A5A9]" /> Job acknowledged
+              <CheckCircleIcon className="w-4 h-4 text-[#12A5A9]" /> {t('jobAcknowledged', lang)}
             </h3>
             <p className="text-white/50 text-sm mb-6">
-              Let contractors within range start submitting sealed bids on this job?
+              {t('letContractorsBid', lang)}
             </p>
             <div className="flex gap-3">
               <button
@@ -1341,14 +1339,14 @@ export default function JobDetailPage() {
                 disabled={actioning}
                 className="flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-white/12 transition disabled:opacity-50"
               >
-                Not yet
+                {t('notYet', lang)}
               </button>
               <button
                 onClick={confirmStartBidding}
                 disabled={actioning}
                 className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
               >
-                {actioning ? 'Starting...' : 'Start bidding'}
+                {actioning ? t('starting', lang) : t('startBidding', lang)}
               </button>
             </div>
           </div>
@@ -1359,21 +1357,21 @@ export default function JobDetailPage() {
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
           <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
             <h3 className="text-white font-semibold mb-2">
-              {job.status === 'pending_approval' ? 'Decline this job?' : 'Cancel this job?'}
+              {job.status === 'pending_approval' ? t('declineThisJob', lang) : t('cancelThisJobQ', lang)}
             </h3>
             <p className="text-white/50 text-sm mb-3">
-              Optionally let the renter know why.
+              {t('optionallyLetRenterKnow', lang)}
             </p>
             {openBids.length > 0 && (
               <p className="text-yellow-400/90 text-xs bg-yellow-500/10 border border-yellow-500/20 rounded-lg px-3 py-2 mb-3">
-                {openBids.length} contractor{openBids.length > 1 ? 's have' : ' has'} already placed a sealed bid. Cancelling closes those bids out, but doesn't email the bidders — message them directly from the job chat if they should know why.
+                {openBids.length === 1 ? t('bidderWarningOne', lang) : `${openBids.length} ${t('bidderWarningMany', lang)}`} {t('bidderWarningRest', lang)}
               </p>
             )}
             <textarea
               value={declineNote}
               onChange={(e) => setDeclineNote(e.target.value)}
               rows={3}
-              placeholder="e.g. Already scheduled with our regular contractor"
+              placeholder={t('declineNotePlaceholder', lang)}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition resize-none mb-5"
             />
             <div className="flex gap-3">
@@ -1382,14 +1380,14 @@ export default function JobDetailPage() {
                 disabled={actioning}
                 className="flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-white/12 transition disabled:opacity-50"
               >
-                Never mind
+                {t('neverMind', lang)}
               </button>
               <button
                 onClick={confirmDecline}
                 disabled={actioning}
                 className="flex-1 bg-red-500/20 text-red-400 text-sm font-semibold py-2.5 rounded-xl hover:bg-red-500/30 transition disabled:opacity-50"
               >
-                {actioning ? 'Cancelling...' : job.status === 'pending_approval' ? 'Decline' : 'Cancel job'}
+                {actioning ? t('cancellingDots', lang) : job.status === 'pending_approval' ? t('decline', lang) : t('cancelJobBtn', lang)}
               </button>
             </div>
           </div>
@@ -1399,10 +1397,10 @@ export default function JobDetailPage() {
       {showSelectModal && selectedBid && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
           <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
-            <h3 className="text-white font-semibold mb-2">Select this contractor?</h3>
+            <h3 className="text-white font-semibold mb-2">{t('selectThisContractorQ', lang)}</h3>
             <p className="text-white/50 text-sm mb-4">
-              <span className="text-white font-medium">{selectedBid.contractor?.full_name}</span> for{' '}
-              <span className="text-[#12A5A9] font-semibold">${selectedBid.amount}</span>. All other bids will be marked as not selected.
+              <span className="text-white font-medium">{selectedBid.contractor?.full_name}</span> {t('forLabel', lang)}{' '}
+              <span className="text-[#12A5A9] font-semibold">${selectedBid.amount}</span>. {t('allOtherBidsNotSelected', lang)}
             </p>
             <div className="flex gap-3">
               <button
@@ -1410,14 +1408,14 @@ export default function JobDetailPage() {
                 disabled={actioning}
                 className="flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-white/12 transition disabled:opacity-50"
               >
-                Cancel
+                {t('cancel', lang)}
               </button>
               <RippleButton
                 onClick={confirmSelectBid}
                 disabled={actioning}
                 className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
               >
-                {actioning ? 'Selecting...' : 'Confirm'}
+                {actioning ? t('selecting', lang) : t('confirmBtn', lang)}
               </RippleButton>
             </div>
           </div>
@@ -1427,14 +1425,14 @@ export default function JobDetailPage() {
       {showScheduleModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
           <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
-            <h3 className="text-white font-semibold mb-4">Propose a time</h3>
+            <h3 className="text-white font-semibold mb-4">{t('proposeATimeHeading', lang)}</h3>
 
             {job.tenant_availability && job.tenant_availability.length > 0 && (
               <div className="mb-4">
-                <p className="text-white/50 text-xs mb-2">The tenant said they're free:</p>
+                <p className="text-white/50 text-xs mb-2">{t('tenantSaidFree', lang)}</p>
                 <div className="flex flex-wrap gap-2">
                   {job.tenant_availability.map((slot: { date: string; window: string }, i: number) => {
-                    const label = TIME_WINDOWS.find((w) => w.value === slot.window)?.label || slot.window
+                    const label = windowLabel(slot.window, lang)
                     const active = scheduleDate === slot.date && scheduleWindow === slot.window
                     return (
                       <button
@@ -1455,7 +1453,7 @@ export default function JobDetailPage() {
               </div>
             )}
 
-            <label className="text-white/70 text-sm block mb-1">Date</label>
+            <label className="text-white/70 text-sm block mb-1">{t('dateLabel', lang)}</label>
             <input
               type="date"
               value={scheduleDate}
@@ -1463,18 +1461,18 @@ export default function JobDetailPage() {
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition mb-4"
             />
 
-            <label className="text-white/70 text-sm block mb-1">Time window</label>
+            <label className="text-white/70 text-sm block mb-1">{t('timeWindowLabel', lang)}</label>
             <select
               value={scheduleWindow}
               onChange={(e) => setScheduleWindow(e.target.value)}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition mb-4"
             >
               {TIME_WINDOWS.map((w) => (
-                <option key={w.value} value={w.value} className="bg-[#0C1A2E]">{w.label}</option>
+                <option key={w.value} value={w.value} className="bg-[#0C1A2E]">{windowLabel(w.value, lang)}</option>
               ))}
             </select>
 
-            <label className="text-white/70 text-sm block mb-1">Specific time (optional)</label>
+            <label className="text-white/70 text-sm block mb-1">{t('specificTimeOptional', lang)}</label>
             <input
               type="time"
               value={scheduleTime}
@@ -1494,14 +1492,14 @@ export default function JobDetailPage() {
                 disabled={actioning}
                 className="flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-white/12 transition disabled:opacity-50"
               >
-                Cancel
+                {t('cancel', lang)}
               </button>
               <button
                 onClick={submitProposal}
                 disabled={actioning}
                 className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
               >
-                {actioning ? 'Proposing...' : 'Propose'}
+                {actioning ? t('proposing', lang) : t('proposeBtn', lang)}
               </button>
             </div>
           </div>
@@ -1511,9 +1509,9 @@ export default function JobDetailPage() {
       {showArchiveModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
           <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
-            <h3 className="text-white font-semibold mb-2">Archive this job?</h3>
+            <h3 className="text-white font-semibold mb-2">{t('archiveThisJobQ', lang)}</h3>
             <p className="text-white/50 text-sm mb-6">
-              This moves it out of active jobs into your completed history. You can still view it anytime.
+              {t('archiveJobDesc', lang)}
             </p>
             <div className="flex gap-3">
               <button
@@ -1521,14 +1519,14 @@ export default function JobDetailPage() {
                 disabled={actioning}
                 className="flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-white/12 transition disabled:opacity-50"
               >
-                Cancel
+                {t('cancel', lang)}
               </button>
               <button
                 onClick={handleArchive}
                 disabled={actioning}
                 className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
               >
-                {actioning ? 'Archiving...' : 'Archive'}
+                {actioning ? t('archiving', lang) : t('archiveBtn', lang)}
               </button>
             </div>
           </div>
@@ -1538,11 +1536,11 @@ export default function JobDetailPage() {
       {showApproveModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
           <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
-            <h3 className="text-white font-semibold mb-2">Approve this completed job?</h3>
+            <h3 className="text-white font-semibold mb-2">{t('approveCompletedJobQ', lang)}</h3>
             <p className="text-white/50 text-sm mb-6">
               {payOnApprove
-                ? `This confirms the work is done to your satisfaction, then takes you straight to payment: $${payOnApproveAmount} to ${acceptedBid?.contractor?.full_name || 'the contractor'}.`
-                : 'This confirms the work is done to your satisfaction and marks the job as completed.'}
+                ? `${t('approveDescPay', lang)} $${payOnApproveAmount} ${t('sentTo', lang).toLowerCase()} ${acceptedBid?.contractor?.full_name || t('toContractorFallback', lang)}.`
+                : t('approveDescPlain', lang)}
             </p>
             <div className="flex gap-3">
               <button
@@ -1550,14 +1548,14 @@ export default function JobDetailPage() {
                 disabled={actioning}
                 className="flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-white/12 transition disabled:opacity-50"
               >
-                Cancel
+                {t('cancel', lang)}
               </button>
               <button
                 onClick={confirmApproveCompletion}
                 disabled={actioning}
                 className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
               >
-                {actioning ? 'Approving...' : payOnApprove ? 'Approve & pay' : 'Approve'}
+                {actioning ? t('approving', lang) : payOnApprove ? t('approveAndPayBtn', lang) : t('approveLabel', lang)}
               </button>
             </div>
           </div>
@@ -1568,12 +1566,12 @@ export default function JobDetailPage() {
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
           <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
             <h3 className="text-white font-semibold mb-2">
-              {priceAction === 'approve' ? 'Approve new price?' : 'Reject price change?'}
+              {priceAction === 'approve' ? t('approveNewPriceQ', lang) : t('rejectPriceChangeQ', lang)}
             </h3>
             <p className="text-white/50 text-sm mb-6">
               {priceAction === 'approve'
-                ? 'The job total will be updated to the new amount.'
-                : 'The contractor will be notified their request was declined. The original price stays in effect.'}
+                ? t('priceApproveDesc', lang)
+                : t('priceRejectDesc', lang)}
             </p>
             <div className="flex gap-3">
               <button
@@ -1581,7 +1579,7 @@ export default function JobDetailPage() {
                 disabled={actioning}
                 className="flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-white/12 transition disabled:opacity-50"
               >
-                Cancel
+                {t('cancel', lang)}
               </button>
               <button
                 onClick={confirmPriceAction}
@@ -1592,7 +1590,7 @@ export default function JobDetailPage() {
                     : 'flex-1 bg-red-500/20 text-red-400 text-sm font-semibold py-2.5 rounded-xl hover:bg-red-500/30 transition disabled:opacity-50'
                 }
               >
-                {actioning ? 'Saving...' : priceAction === 'approve' ? 'Approve' : 'Reject'}
+                {actioning ? t('saving', lang) : priceAction === 'approve' ? t('approveLabel', lang) : t('rejectBtn', lang)}
               </button>
             </div>
           </div>
@@ -1603,10 +1601,10 @@ export default function JobDetailPage() {
         <StripePaymentModal
           clientSecret={paymentModal.clientSecret}
           amount={paymentModal.amount}
-          title="Pay contractor"
+          title={t('payContractorHeading', lang)}
           successMessage={
             acceptedBid?.contractor?.full_name
-              ? `Sent to ${acceptedBid.contractor.full_name}. A receipt is saved on this job.`
+              ? `${t('sentTo', lang)} ${acceptedBid.contractor.full_name}. ${t('receiptSavedOnJob', lang)}`
               : undefined
           }
           onClose={() => setPaymentModal(null)}
