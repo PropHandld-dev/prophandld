@@ -1,28 +1,5 @@
 import { createBrowserClient } from '@supabase/ssr'
-
-// Captured before anything else in this module runs — specifically before
-// createBrowserClient() below, which is what actually processes and clears
-// the URL's auth hash as part of constructing the client. Reading the hash
-// from a React effect on the page turned out to be too late: by the time
-// any component mounts, this module has already been imported and the
-// client already built, hash already gone. This is the one place early
-// enough to still see it, which is how /login tells "just clicked an
-// email-confirmation link" apart from any other reason a session might
-// already exist there.
-let hadSignupHashOnLoad =
-  typeof window !== 'undefined' && window.location.hash.includes('type=signup')
-
-// A function rather than the plain boolean it wraps: self-consuming, so it
-// only ever answers "yes" once per real page load. A plain constant would
-// stay true for the life of this module — harmless today, since every
-// redirect away from the verified screen uses router.replace (which drops
-// /login from history), but not something worth leaving as a landmine for
-// whatever this page grows into later.
-export function consumeSignupHashFlag() {
-  const value = hadSignupHashOnLoad
-  hadSignupHashOnLoad = false
-  return value
-}
+import type { User } from '@supabase/supabase-js'
 
 export const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -36,6 +13,34 @@ export const supabase = createBrowserClient(
     },
   }
 )
+
+// Subscribed the instant this module loads — before any page's own code
+// runs — specifically to catch Supabase's own SIGNED_IN event the moment
+// it establishes a session from URL tokens (an email-confirmation link).
+// This replaced an earlier attempt that parsed "type=signup" out of the
+// URL hash by hand: that depended on guessing the exact format Supabase
+// puts there and on winning a timing race against the client's own
+// internal hash processing, and evidently didn't hold up. SIGNED_IN vs.
+// INITIAL_SESSION is Supabase's own documented way to tell "a session was
+// just established this page load" apart from "one already existed before
+// this page ever loaded" — authoritative regardless of URL format details.
+// A manual password sign-in can't reach this before a human has had time
+// to type into a form, so by the time /login's mount effect checks this
+// (within the same tick the page loads), a true value can only mean the
+// confirmation-link case.
+let freshSignInUser: User | null = null
+supabase.auth.onAuthStateChange((event, session) => {
+  if (event === 'SIGNED_IN') {
+    freshSignInUser = session?.user ?? null
+  }
+})
+
+// Self-consuming — only ever answers with a user once per real page load.
+export function consumeFreshSignIn() {
+  const user = freshSignInUser
+  freshSignInUser = null
+  return user
+}
 
 // auth.getUser() makes a network round trip to Supabase Auth on every call,
 // and pages call it several times each (plus the chat widget on every
