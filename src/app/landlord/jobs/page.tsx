@@ -14,19 +14,20 @@ import { CheckCircleIcon, ClipboardListIcon, MessageCircleIcon } from '@/compone
 import { LANDLORD_TABS } from '@/lib/navTabs'
 import { UnreadDot } from '@/components/UnreadDot'
 import { getUnreadJobIds } from '@/lib/messageReads'
-
-const FILTERS = [
-  { key: 'needs_approval', label: 'Needs Action' },
-  { key: 'in_progress', label: 'In Progress' },
-  { key: 'completed', label: 'Completed' },
-  { key: 'emergency', label: 'Emergency' },
-  { key: 'all', label: 'All' },
-]
+import { useLanguage, t } from '@/lib/i18n'
 
 const IN_PROGRESS_STATUSES = ['approved', 'bidding', 'bid_selected', 'scheduled', 'in_progress']
 
 function LandlordJobsList() {
   const router = useRouter()
+  const lang = useLanguage()
+  const FILTERS = [
+    { key: 'needs_approval', label: t('filterNeedsAction', lang) },
+    { key: 'in_progress', label: t('filterInProgress', lang) },
+    { key: 'completed', label: t('filterCompleted', lang) },
+    { key: 'emergency', label: t('filterEmergency', lang) },
+    { key: 'all', label: t('filterAll', lang) },
+  ]
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(true)
   const [jobs, setJobs] = useState<any[]>([])
@@ -165,7 +166,7 @@ function LandlordJobsList() {
 
   const urgencyBadge = (job: any) => {
     if (job.is_emergency) {
-      return <span className="text-xs bg-red-500/20 text-red-400 border border-red-500/30 rounded-full px-2.5 py-1 font-semibold">Emergency</span>
+      return <span className="text-xs bg-red-500/20 text-red-400 border border-red-500/30 rounded-full px-2.5 py-1 font-semibold">{t('emergency', lang)}</span>
     }
     const colors: Record<string, string> = {
       high: 'bg-orange-500/15 text-orange-400 border-orange-500/25',
@@ -181,22 +182,22 @@ function LandlordJobsList() {
 
   const statusLabel = (job: any) => {
     const labels: Record<string, string> = {
-  pending_approval: 'Needs approval',
-  approved: 'Acknowledged',
-  bidding: 'Bidding',
-  bid_selected: 'Bid selected',
-  scheduled: 'Scheduled',
-  in_progress: 'In progress',
-  pending_review: 'Pending your review',
-  completed: 'Completed',
-  archived: 'Archived',
-  declined: 'Declined',
+  pending_approval: t('statusNeedsApproval', lang),
+  approved: t('statusAcknowledged', lang),
+  bidding: t('statusBidding', lang),
+  bid_selected: t('statusBidSelected', lang),
+  scheduled: t('statusScheduledFull', lang),
+  in_progress: t('statusInProgressFull', lang),
+  pending_review: t('statusPendingYourReview', lang),
+  completed: t('statusCompleted', lang),
+  archived: t('statusArchived', lang),
+  declined: t('statusDeclined', lang),
 }
     const base = labels[job.status] || job.status
 
     if (job.proposed_date && !job.schedule_confirmed) {
-      const proposer = job.proposed_by === 'landlord' ? 'you' : job.proposed_by
-      return `${base} · New time proposed by ${proposer}`
+      const proposer = job.proposed_by === 'landlord' ? t('you', lang) : job.proposed_by
+      return `${base} · ${lang === 'es' ? `Nuevo horario propuesto por ${proposer}` : `New time proposed by ${proposer}`}`
     }
 
     return base
@@ -206,7 +207,7 @@ function LandlordJobsList() {
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
         <Link href="/landlord" className="text-white/50 hover:text-white text-sm transition">
-          ← Dashboard
+          {t('dashboard', lang)}
         </Link>
         <Link href="/landlord" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
         <div className="w-24" />
@@ -228,14 +229,14 @@ function LandlordJobsList() {
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
         <Link href="/landlord" className="text-white/50 hover:text-white text-sm transition">
-          ← Dashboard
+          {t('dashboard', lang)}
         </Link>
         <Link href="/landlord" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
         <div className="w-24" />
       </nav>
 
       <main className="max-w-4xl mx-auto px-6 py-10 pb-28">
-        <h1 className="text-2xl font-bold text-white mb-6">Jobs</h1>
+        <h1 className="text-2xl font-bold text-white mb-6">{t('jobsTitle', lang)}</h1>
 
         <div className="flex flex-wrap gap-2 mb-8">
           {FILTERS.map((f) => (
@@ -262,7 +263,7 @@ function LandlordJobsList() {
         {filteredJobs.length === 0 ? (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-12 text-center">
             <ClipboardListIcon className="w-8 h-8 text-white/50 mx-auto mb-3" />
-            <p className="text-white/60 text-sm">No jobs in this view.</p>
+            <p className="text-white/60 text-sm">{t('noJobsInView', lang)}</p>
           </div>
         ) : (
           <ScrollReveal className="grid gap-3">
@@ -286,10 +287,10 @@ function LandlordJobsList() {
                       {job.units?.properties?.address}, {job.units?.properties?.city} · Unit {job.units?.unit_number}
                     </p>
                     <p className="text-white/50 text-xs mt-0.5">
-                      Reported by {job.reporter?.full_name || 'Unknown'} · {new Date(job.created_at).toLocaleString()}
+                      {t('reportedBy', lang)} {job.reporter?.full_name || t('unknownName', lang)} · {new Date(job.created_at).toLocaleString()}
                     </p>
                     {job.landlord_notes && (
-                      <p className="text-white/60 text-xs mt-2 italic">Note: {job.landlord_notes}</p>
+                      <p className="text-white/60 text-xs mt-2 italic">{t('noteLabel', lang)} {job.landlord_notes}</p>
                     )}
                   </Link>
 
@@ -300,14 +301,14 @@ function LandlordJobsList() {
                         disabled={actioningId === job.id}
                         className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
                       >
-                        Acknowledge
+                        {t('acknowledge', lang)}
                       </RippleButton>
                       <button
                         onClick={() => handleDeclineClick(job.id)}
                         disabled={actioningId === job.id}
                         className="text-red-400/70 hover:text-red-400 text-xs transition"
                       >
-                        Decline
+                        {t('decline', lang)}
                       </button>
                     </div>
                   )}
@@ -322,10 +323,10 @@ function LandlordJobsList() {
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
           <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
             <h3 className="text-white font-semibold mb-2 flex items-center gap-1.5">
-              <CheckCircleIcon className="w-4 h-4 text-[#12A5A9]" /> Job acknowledged
+              <CheckCircleIcon className="w-4 h-4 text-[#12A5A9]" /> {t('jobAcknowledged', lang)}
             </h3>
             <p className="text-white/50 text-sm mb-6">
-              Let contractors within range start submitting sealed bids on this job?
+              {t('letContractorsBid', lang)}
             </p>
             <div className="flex gap-3">
               <button
@@ -333,14 +334,14 @@ function LandlordJobsList() {
                 disabled={actioningId !== null}
                 className="flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-white/12 transition disabled:opacity-50"
               >
-                Not yet
+                {t('notYet', lang)}
               </button>
               <button
                 onClick={confirmStartBidding}
                 disabled={actioningId !== null}
                 className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
               >
-                {actioningId ? 'Starting...' : 'Start bidding'}
+                {actioningId ? t('starting', lang) : t('startBidding', lang)}
               </button>
             </div>
           </div>
@@ -350,15 +351,15 @@ function LandlordJobsList() {
       {showDeclineModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
           <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
-            <h3 className="text-white font-semibold mb-2">Decline this job?</h3>
+            <h3 className="text-white font-semibold mb-2">{t('declineThisJob', lang)}</h3>
             <p className="text-white/50 text-sm mb-3">
-              Optionally let the renter know why.
+              {t('optionallyLetRenterKnow', lang)}
             </p>
             <textarea
               value={declineNote}
               onChange={(e) => setDeclineNote(e.target.value)}
               rows={3}
-              placeholder="e.g. Already scheduled with our regular contractor"
+              placeholder={t('declineNotePlaceholder', lang)}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition resize-none mb-5"
             />
             <div className="flex gap-3">
@@ -367,14 +368,14 @@ function LandlordJobsList() {
                 disabled={actioningId !== null}
                 className="flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-white/12 transition disabled:opacity-50"
               >
-                Cancel
+                {t('cancel', lang)}
               </button>
               <button
                 onClick={confirmDecline}
                 disabled={actioningId !== null}
                 className="flex-1 bg-red-500/20 text-red-400 text-sm font-semibold py-2.5 rounded-xl hover:bg-red-500/30 transition disabled:opacity-50"
               >
-                {actioningId ? 'Declining...' : 'Decline'}
+                {actioningId ? t('declining', lang) : t('decline', lang)}
               </button>
             </div>
           </div>
