@@ -89,6 +89,13 @@ function LoginForm() {
           console.error('Error checking pending invite on login:', err)
         }
       }
+      if (accountRole === 'contractor') {
+        // Same bug, same fix, for a contractor a landlord invited: closing
+        // out the invite used to only happen right after signup too.
+        fetch('/api/contractor/accept-invite', { method: 'POST' }).catch((err) =>
+          console.error('Error closing out contractor invite on login:', err)
+        )
+      }
       if (accountRole === 'landlord') router.replace('/landlord')
       else if (accountRole === 'renter') router.replace('/renter')
       else if (accountRole === 'contractor') router.replace('/contractor')
