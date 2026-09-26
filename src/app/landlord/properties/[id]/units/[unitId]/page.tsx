@@ -41,6 +41,10 @@ export default function UnitDetailPage() {
   const [savingMoveOut, setSavingMoveOut] = useState(false)
   const [moveOutError, setMoveOutError] = useState<string | null>(null)
   const [moveOutSuccess, setMoveOutSuccess] = useState(false)
+  const [showDepositModal, setShowDepositModal] = useState(false)
+  const [depositRefunded, setDepositRefunded] = useState('')
+  const [depositReason, setDepositReason] = useState('')
+  const [savingDeposit, setSavingDeposit] = useState(false)
   const [openJobs, setOpenJobs] = useState<any[]>([])
   const [jobHistory, setJobHistory] = useState<any[]>([])
 
@@ -338,15 +342,24 @@ export default function UnitDetailPage() {
     router.push(`/landlord/properties/${propertyId}/units/${unitId}/inspection?type=move_out`)
   }
 
-  const handleConfirmMoveOutComplete = async () => {
-    const confirmed = window.confirm(
-      'Confirm this tenant has fully moved out? This will mark the unit as vacant.'
-    )
-    if (!confirmed) return
+  const handleConfirmMoveOutComplete = () => {
+    // A typed deposit amount with nothing tracking what actually happened
+    // to it at move-out used to be the whole story — this is the one real
+    // moment to record it, right where the tenancy actually ends, tied to
+    // the same move-out inspection photos already taken.
+    if (tenancy?.security_deposit) {
+      setDepositRefunded(tenancy.security_deposit.toString())
+      setDepositReason('')
+      setShowDepositModal(true)
+      return
+    }
+    finalizeMoveOut({})
+  }
 
+  const finalizeMoveOut = async (depositFields: Record<string, any>) => {
     const { error: updateError } = await expectRow(supabase
       .from('tenancies')
-      .update({ ended: true })
+      .update({ ended: true, ...depositFields })
       .eq('id', tenancy.id))
 
     if (updateError) {
@@ -355,8 +368,34 @@ export default function UnitDetailPage() {
       return
     }
 
+    setShowDepositModal(false)
     setMoveOutSuccess(true)
     await fetchUnit()
+  }
+
+  const submitDepositResolution = async () => {
+    const deposit = Number(tenancy.security_deposit) || 0
+    const refunded = Number(depositRefunded) || 0
+    const kept = Math.max(0, deposit - refunded)
+
+    if (refunded > deposit) {
+      setMoveOutError('Refunded amount can\'t be more than the deposit collected.')
+      return
+    }
+    if (kept > 0 && !depositReason.trim()) {
+      setMoveOutError('Add a reason for the amount kept.')
+      return
+    }
+
+    setSavingDeposit(true)
+    setMoveOutError(null)
+    await finalizeMoveOut({
+      security_deposit_refunded: refunded,
+      security_deposit_kept: kept,
+      security_deposit_kept_reason: kept > 0 ? depositReason.trim() : null,
+      security_deposit_resolved_at: new Date().toISOString(),
+    })
+    setSavingDeposit(false)
   }
 
   const openTenancyEdit = () => {
@@ -876,6 +915,67 @@ export default function UnitDetailPage() {
           )}
         </div>
         </ScrollReveal>
+
+        {showDepositModal && tenancy && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
+            <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
+              <h3 className="text-white font-semibold mb-1">Security deposit</h3>
+              <p className="text-white/50 text-xs mb-4">
+                ${Number(tenancy.security_deposit).toFixed(2)} was collected. What's happening to it?
+              </p>
+
+              <label className="text-white/70 text-sm block mb-1">Amount refunded to tenant ($)</label>
+              <input
+                type="number"
+                min="0"
+                max={tenancy.security_deposit}
+                step="0.01"
+                value={depositRefunded}
+                onChange={(e) => setDepositRefunded(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition mb-3"
+              />
+
+              {Number(tenancy.security_deposit) - (Number(depositRefunded) || 0) > 0 && (
+                <>
+                  <p className="text-yellow-400 text-xs mb-2">
+                    Keeping ${(Number(tenancy.security_deposit) - (Number(depositRefunded) || 0)).toFixed(2)} — a reason is required.
+                  </p>
+                  <label className="text-white/70 text-sm block mb-1">Reason</label>
+                  <textarea
+                    value={depositReason}
+                    onChange={(e) => setDepositReason(e.target.value)}
+                    rows={3}
+                    placeholder="e.g. Carpet damage beyond normal wear, per the move-out inspection photos"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition resize-none mb-3"
+                  />
+                </>
+              )}
+
+              {moveOutError && (
+                <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm mb-4">
+                  {moveOutError}
+                </div>
+              )}
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDepositModal(false)}
+                  disabled={savingDeposit}
+                  className="flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-white/12 transition disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={submitDepositResolution}
+                  disabled={savingDeposit}
+                  className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
+                >
+                  {savingDeposit ? 'Saving...' : 'Confirm & end tenancy'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Rent */}
         {tenancy && (
