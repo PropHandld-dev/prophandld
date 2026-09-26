@@ -14,9 +14,11 @@ import { StripeConnectCard } from '@/components/StripeConnectCard'
 import { ContractorCredentials } from '@/components/ContractorCredentials'
 import { Switch } from '@/components/Switch'
 import { useCategoryOptions, saveCustomCategory } from '@/lib/categories'
+import { useLanguage, t } from '@/lib/i18n'
 
 export default function ContractorSettingsPage() {
   const router = useRouter()
+  const lang = useLanguage()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -79,24 +81,24 @@ export default function ContractorSettingsPage() {
     setSuccess(null)
 
     if (selectedCategories.length === 0) {
-      setError('Select at least one category you service.')
+      setError(t('selectAtLeastOneCategory', lang))
       setSaving(false)
       return
     }
     if (selectedCategories.includes('Other') && !otherCategoryText.trim()) {
-      setError('Tell us what "Other" service you offer.')
+      setError(t('tellUsOtherService', lang))
       setSaving(false)
       return
     }
     if (!zip.trim()) {
-      setError('Enter the ZIP code you service.')
+      setError(t('enterZipYouService', lang))
       setSaving(false)
       return
     }
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      setError('Not authenticated.')
+      setError(t('notAuthenticated', lang))
       setSaving(false)
       return
     }
@@ -122,12 +124,12 @@ export default function ContractorSettingsPage() {
 
     if (updateError) {
       console.error('Error saving contractor profile:', updateError)
-      setError('Could not save your profile.')
+      setError(t('couldNotSaveProfile', lang))
       setSaving(false)
       return
     }
 
-    setSuccess('Profile saved. You\'ll now see matching jobs on your dashboard.')
+    setSuccess(t('profileSavedSuccess', lang))
     setCredentialsKey((k) => k + 1)
     setSaving(false)
   }
@@ -136,7 +138,7 @@ export default function ContractorSettingsPage() {
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
         <Link href="/contractor" className="text-white/50 hover:text-white text-sm transition">
-          ← Dashboard
+          {t('dashboard', lang)}
         </Link>
         <Link href="/contractor" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
         <div className="w-24" />
@@ -155,15 +157,15 @@ export default function ContractorSettingsPage() {
           </div>
         ) : (
         <>
-        <h1 className="text-2xl font-bold text-white mb-2">Service settings</h1>
+        <h1 className="text-2xl font-bold text-white mb-2">{t('serviceSettings', lang)}</h1>
         <p className="text-white/50 text-sm mb-8">
-          Tell us what you do and where, so we can match you to the right jobs.
+          {t('serviceSettingsDesc', lang)}
         </p>
 
         <ScrollReveal>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="text-white/70 text-sm block mb-2">Categories you service</label>
+            <label className="text-white/70 text-sm block mb-2">{t('categoriesYouService', lang)}</label>
             <div className="flex flex-wrap gap-2">
               {[...categoryOptions, 'Other'].map((cat) => {
                 const selected = selectedCategories.includes(cat)
@@ -190,7 +192,7 @@ export default function ContractorSettingsPage() {
                 type="text"
                 value={otherCategoryText}
                 onChange={(e) => setOtherCategoryText(e.target.value)}
-                placeholder="What service do you offer? e.g. Landscaping"
+                placeholder={t('whatServiceOffer', lang)}
                 className="w-full mt-2 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
               />
             )}
@@ -198,7 +200,7 @@ export default function ContractorSettingsPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-white/70 text-sm block mb-1">Home ZIP code</label>
+              <label className="text-white/70 text-sm block mb-1">{t('homeZip', lang)}</label>
               <input
                 type="text"
                 value={zip}
@@ -208,24 +210,24 @@ export default function ContractorSettingsPage() {
               />
             </div>
             <div>
-              <label className="text-white/70 text-sm block mb-1">Travel radius</label>
+              <label className="text-white/70 text-sm block mb-1">{t('travelRadius', lang)}</label>
               <select
                 value={radiusMiles}
                 onChange={(e) => setRadiusMiles(parseInt(e.target.value))}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
               >
                 {[10, 25, 50, 100].map((mi) => (
-                  <option key={mi} value={mi} className="bg-[#0C1A2E]">{mi} miles</option>
+                  <option key={mi} value={mi} className="bg-[#0C1A2E]">{mi} {t('milesUnit', lang)}</option>
                 ))}
               </select>
             </div>
           </div>
           <p className="text-white/50 text-xs -mt-2">
-            You&apos;ll see jobs within your travel radius of this ZIP code, not just an exact match.
+            {t('travelRadiusHelp', lang)}
           </p>
 
           <div className="flex items-center justify-between gap-3 bg-white/3 border border-white/8 rounded-xl p-4">
-            <span className="text-white text-sm">I am a licensed contractor</span>
+            <span className="text-white text-sm">{t('iAmLicensed', lang)}</span>
             <Switch checked={licensed} onChange={setLicensed} />
           </div>
 
@@ -245,7 +247,7 @@ export default function ContractorSettingsPage() {
             disabled={saving}
             className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
           >
-            {saving ? 'Saving...' : 'Save settings'}
+            {saving ? t('saving', lang) : t('saveSettings', lang)}
           </RippleButton>
         </form>
         </ScrollReveal>
@@ -253,13 +255,13 @@ export default function ContractorSettingsPage() {
         {ratingSummary && (
           <ScrollReveal className="mt-10 pt-8 border-t border-white/8">
             <div className="flex items-center justify-between">
-              <h2 className="text-white font-semibold">Your rating</h2>
+              <h2 className="text-white font-semibold">{t('yourRating', lang)}</h2>
               <span className="text-xs bg-white/8 text-white/60 rounded-full px-2.5 py-1 font-semibold">
-                ★ {ratingSummary.avg_rating.toFixed(1)} ({ratingSummary.review_count} review{ratingSummary.review_count === 1 ? '' : 's'})
+                ★ {ratingSummary.avg_rating.toFixed(1)} ({ratingSummary.review_count} {ratingSummary.review_count === 1 ? t('reviewWord', lang) : t('reviewsWord', lang)})
               </span>
             </div>
             <p className="text-white/50 text-sm mt-2">
-              Based on ratings from landlords and renters after completed jobs.
+              {t('ratingBasedOn', lang)}
             </p>
           </ScrollReveal>
         )}

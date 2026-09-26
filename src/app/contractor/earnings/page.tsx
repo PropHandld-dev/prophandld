@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Skeleton } from '@/components/Skeleton'
 import { ReceiptIcon, DollarSignIcon } from '@/components/icons'
+import { useLanguage, t } from '@/lib/i18n'
 
 type Bid = {
   id: string
@@ -21,15 +22,16 @@ type Bid = {
   } | null
 }
 
-function jobLocation(bid: Bid) {
+function jobLocation(bid: Bid, lang: import('@/lib/i18n').Lang) {
   const address = bid.jobs?.units?.properties?.address
   const city = bid.jobs?.units?.properties?.city
-  if (!address && !city) return 'Address not set for this property'
+  if (!address && !city) return t('addressNotSet', lang)
   return [address, city].filter(Boolean).join(', ')
 }
 
 export default function ContractorEarningsPage() {
   const router = useRouter()
+  const lang = useLanguage()
   const [loading, setLoading] = useState(true)
   const [bids, setBids] = useState<Bid[]>([])
 
@@ -78,15 +80,15 @@ export default function ContractorEarningsPage() {
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
         <Link href="/contractor" className="text-white/50 hover:text-white text-sm transition">
-          ← Home
+          {t('homeBack', lang)}
         </Link>
         <Link href="/contractor" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
         <div className="w-14" />
       </nav>
 
       <main className="max-w-2xl mx-auto px-6 py-10 pb-16">
-        <h1 className="text-2xl font-bold text-white mb-1">Past jobs & earnings</h1>
-        <p className="text-white/60 text-sm mb-8">Every completed job, with a receipt for each paid one, handy at tax time.</p>
+        <h1 className="text-2xl font-bold text-white mb-1">{t('pastJobsEarnings', lang)}</h1>
+        <p className="text-white/60 text-sm mb-8">{t('pastJobsEarningsDesc', lang)}</p>
 
         {loading ? (
           <div className="space-y-3">
@@ -99,14 +101,14 @@ export default function ContractorEarningsPage() {
               <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
                 <div className="flex items-center gap-2 mb-1.5">
                   <DollarSignIcon className="w-4 h-4 text-[#12A5A9]" />
-                  <span className="text-white/60 text-xs font-medium">This year ({thisYear})</span>
+                  <span className="text-white/60 text-xs font-medium">{t('thisYear', lang)} ({thisYear})</span>
                 </div>
                 <p className="text-white text-2xl font-bold">${thisYearTotal.toFixed(2)}</p>
               </div>
               <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
                 <div className="flex items-center gap-2 mb-1.5">
                   <DollarSignIcon className="w-4 h-4 text-[#12A5A9]" />
-                  <span className="text-white/60 text-xs font-medium">All time</span>
+                  <span className="text-white/60 text-xs font-medium">{t('allTime', lang)}</span>
                 </div>
                 <p className="text-white text-2xl font-bold">${allTimeTotal.toFixed(2)}</p>
               </div>
@@ -114,7 +116,7 @@ export default function ContractorEarningsPage() {
 
             {years.length === 0 && unpaid.length === 0 && (
               <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
-                <p className="text-white/50 text-sm">No completed jobs yet.</p>
+                <p className="text-white/50 text-sm">{t('noCompletedJobsYet', lang)}</p>
               </div>
             )}
 
@@ -126,9 +128,9 @@ export default function ContractorEarningsPage() {
                     <div key={b.id} className="flex items-center justify-between gap-3 px-5 py-4">
                       <div className="min-w-0 flex-1">
                         <p className="text-white font-medium text-sm truncate">{b.jobs?.category}</p>
-                        <p className="text-white/60 text-xs truncate">{jobLocation(b)}</p>
+                        <p className="text-white/60 text-xs truncate">{jobLocation(b, lang)}</p>
                         <p className="text-white/50 text-xs mt-0.5">
-                          Paid {new Date(b.paid_at || b.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                          {t('paidOn', lang)} {new Date(b.paid_at || b.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                         </p>
                       </div>
                       <div className="text-right shrink-0">
@@ -138,7 +140,7 @@ export default function ContractorEarningsPage() {
                           className="inline-flex items-center gap-1 text-[#12A5A9] text-xs font-semibold hover:underline"
                         >
                           <ReceiptIcon className="w-3.5 h-3.5" />
-                          Receipt
+                          {t('receipt', lang)}
                         </Link>
                       </div>
                     </div>
@@ -149,7 +151,7 @@ export default function ContractorEarningsPage() {
 
             {unpaid.length > 0 && (
               <div>
-                <h2 className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-3">Awaiting payment</h2>
+                <h2 className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-3">{t('awaitingPaymentHeading', lang)}</h2>
                 <div className="bg-white/3 border border-white/8 rounded-2xl divide-y divide-white/5">
                   {unpaid.map((b) => (
                     <Link
@@ -159,11 +161,11 @@ export default function ContractorEarningsPage() {
                     >
                       <div className="min-w-0 flex-1">
                         <p className="text-white font-medium text-sm truncate">{b.jobs?.category}</p>
-                        <p className="text-white/60 text-xs truncate">{jobLocation(b)}</p>
+                        <p className="text-white/60 text-xs truncate">{jobLocation(b, lang)}</p>
                       </div>
                       <div className="text-right shrink-0">
                         <p className="text-white font-semibold text-sm">${b.amount}</p>
-                        <p className="text-yellow-400/70 text-xs">Pending</p>
+                        <p className="text-yellow-400/70 text-xs">{t('pendingStatus', lang)}</p>
                       </div>
                     </Link>
                   ))}
