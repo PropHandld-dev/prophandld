@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { openPendingTab, goToTab, abandonTab } from '@/lib/externalTab'
-import { TIER_LABELS, TIER_RANGE_LABELS, type LandlordTier } from '@/lib/pricingTiers'
+import { TIER_RANGE_LABELS, formatTierPrice, type LandlordTier } from '@/lib/pricingTiers'
 
 type Status = {
   unitCount: number
@@ -12,14 +12,6 @@ type Status = {
   tier: LandlordTier
   hasActiveSubscription: boolean
   hasStripeCustomer: boolean
-}
-
-const TIER_PRICE_LABELS: Record<LandlordTier, string> = {
-  free: 'Free plan',
-  starter: '$79/month plan',
-  growth: 'Growth plan',
-  portfolio: 'Portfolio plan',
-  enterprise: 'Enterprise plan',
 }
 
 export function BillingSection() {
@@ -130,14 +122,14 @@ export function BillingSection() {
     <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
       <h2 className="text-white font-semibold mb-2">Billing</h2>
       <p className="text-white/50 text-sm mb-1">
-        You have <span className="text-white font-semibold">{status.unitCount} unit{status.unitCount === 1 ? '' : 's'}</span>, so your plan is the{' '}
-        <span className="text-white font-semibold">{TIER_PRICE_LABELS[status.tier]}</span>.
+        You have <span className="text-white font-semibold">{status.unitCount} unit{status.unitCount === 1 ? '' : 's'}</span>, so your plan is{' '}
+        <span className="text-white font-semibold">{formatTierPrice(status.unitCount)}</span>.
       </p>
       <p className="text-white/60 text-sm mb-6">Your Prophandld platform fee, based on how many units you manage.</p>
 
       <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-xl px-5 py-4 mb-4">
         <div>
-          <p className="text-white font-semibold">{TIER_LABELS[status.tier]}</p>
+          <p className="text-white font-semibold">{formatTierPrice(status.unitCount)}</p>
           <p className="text-white/60 text-xs mt-0.5">
             {status.unitCount} unit{status.unitCount === 1 ? '' : 's'} · {TIER_RANGE_LABELS[status.tier]} tier
           </p>
@@ -165,7 +157,7 @@ export function BillingSection() {
           disabled={redirecting}
           className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
         >
-          {redirecting ? 'Redirecting...' : `Subscribe: ${TIER_LABELS[status.tier]}`}
+          {redirecting ? 'Redirecting...' : `Subscribe: ${formatTierPrice(status.unitCount)}`}
         </RippleButton>
       ) : status.hasStripeCustomer ? (
         <RippleButton

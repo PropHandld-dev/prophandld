@@ -1,10 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { TIER_LABELS, type LandlordTier } from '@/lib/pricingTiers'
+import { type LandlordTier } from '@/lib/pricingTiers'
 
 export type BillingTier = LandlordTier
-export const TIER_PRICE = TIER_LABELS
 
 // Turning this on (NEXT_PUBLIC_BILLING_ENFORCE=on in Vercel) makes "add a
 // property" and "add a unit" wait for the subscription. It is off by default,
