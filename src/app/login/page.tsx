@@ -9,7 +9,7 @@ import { RippleButton } from '@/components/RippleButton'
 import { AuthLayout } from '@/components/AuthLayout'
 import { Logo } from '@/components/Logo'
 import { AuthInput } from '@/components/AuthInput'
-import { MailIcon, LockIcon } from '@/components/icons'
+import { MailIcon, LockIcon, CheckCircleIcon } from '@/components/icons'
 import { RolePicker, type Role } from '@/components/RolePicker'
 
 // Purely cosmetic — sets which flavor of copy shows on the brand panel.
@@ -49,6 +49,12 @@ function LoginForm() {
   // role picker never flashes for someone about to be redirected straight
   // through.
   const [checkingSession, setCheckingSession] = useState(true)
+  // Set only when the session on this page load came from actually
+  // clicking an email-confirmation link (see the hash check below) — not
+  // for an ordinary already-signed-in visit to /login, which should still
+  // redirect straight through with no interruption.
+  const [justVerifiedUser, setJustVerifiedUser] = useState<User | null>(null)
+  const [continuing, setContinuing] = useState(false)
   const [form, setForm] = useState({
     email: '',
     password: '',
@@ -136,9 +142,19 @@ function LoginForm() {
   // the job automatically, the same way a manual sign-in would.
   useEffect(() => {
     let cancelled = false
+    // Read this synchronously, before anything else runs — Supabase's
+    // client strips its auth tokens out of the URL hash right after
+    // parsing it, so this is the one chance to see whether "type=signup"
+    // was in there (present only when this page load came from an actual
+    // confirmation-link click, not any other reason a session might
+    // already exist here).
+    const justVerified = typeof window !== 'undefined' && window.location.hash.includes('type=signup')
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (cancelled) return
-      if (session?.user) {
+      if (session?.user && justVerified) {
+        setJustVerifiedUser(session.user)
+        setCheckingSession(false)
+      } else if (session?.user) {
         completeSignIn(session.user, true)
       } else {
         setCheckingSession(false)
@@ -173,6 +189,12 @@ function LoginForm() {
     setLoading(false)
   }
 
+  const handleContinue = async () => {
+    if (!justVerifiedUser || continuing) return
+    setContinuing(true)
+    await completeSignIn(justVerifiedUser, true)
+  }
+
   if (checkingSession) {
     // The literal first thing a real person sees right after clicking a
     // confirmation link — worth it being a branded moment, not a bare
@@ -184,6 +206,33 @@ function LoginForm() {
         <Logo className="w-10 h-10 motion-safe:animate-pulse" />
         <div className="text-white/50 text-sm">Confirming your account...</div>
       </div>
+    )
+  }
+
+  if (justVerifiedUser) {
+    // The actual "you're in" moment — deliberately its own click rather
+    // than an instant auto-redirect, so clicking the email link visibly
+    // *does something* instead of quietly dropping someone on a dashboard
+    // with no acknowledgment anything just happened. Same screen for
+    // every role — nothing here depends on which one signed up.
+    return (
+      <AuthLayout headline="You're verified." subtext="One click and you're in.">
+        <div className="text-center py-6">
+          <div className="w-16 h-16 rounded-full bg-[#0A7B7E]/20 flex items-center justify-center mx-auto mb-5 motion-safe:animate-[popIn_0.5s_ease-out]">
+            <CheckCircleIcon className="w-8 h-8 text-[#12A5A9]" />
+          </div>
+          <h2 className="text-white text-xl font-bold mb-2">Email verified!</h2>
+          <p className="text-white/50 text-sm mb-8">Your Prophandld account is ready to go.</p>
+          <RippleButton
+            type="button"
+            onClick={handleContinue}
+            disabled={continuing}
+            className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
+          >
+            {continuing ? 'Taking you in...' : 'Continue to your dashboard →'}
+          </RippleButton>
+        </div>
+      </AuthLayout>
     )
   }
 

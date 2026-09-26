@@ -41,6 +41,7 @@ function SignupForm() {
   )
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [alreadyRegistered, setAlreadyRegistered] = useState(false)
   // Set once signUp() comes back with no session — Supabase's signal that
   // this project requires clicking a confirmation link before the account
   // is real, rather than the account being usable the instant someone
@@ -72,6 +73,7 @@ function SignupForm() {
     if (!role) return
     setLoading(true)
     setError(null)
+    setAlreadyRegistered(false)
 
     const { data, error: signupError } = await supabase.auth.signUp({
       email: form.email,
@@ -107,6 +109,21 @@ function SignupForm() {
 
     if (!data.user) {
       setError('No user returned from signup')
+      setLoading(false)
+      return
+    }
+
+    // Supabase deliberately returns a fake success here rather than an
+    // error, for an email that already belongs to a confirmed account —
+    // so a stranger can't use signup to probe which emails are registered.
+    // The one documented tell is an empty identities array. Without this
+    // check, whoever hit it would land on "check your email" and just wait
+    // forever, since nothing was actually sent — same dead end for a
+    // landlord, renter, or contractor, so this check runs before the
+    // role-specific branches below, not inside any of them.
+    if (data.user.identities && data.user.identities.length === 0) {
+      setAlreadyRegistered(true)
+      setError('This email is already registered.')
       setLoading(false)
       return
     }
@@ -371,6 +388,14 @@ function SignupForm() {
         {error && (
           <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">
             {error}
+            {alreadyRegistered && (
+              <>
+                {' '}
+                <Link href={`/login${role ? `?role=${role}` : ''}`} className="underline font-medium hover:text-red-300">
+                  Log in instead →
+                </Link>
+              </>
+            )}
           </div>
         )}
 
