@@ -7,7 +7,7 @@ import { Skeleton } from '@/components/Skeleton'
 import { RippleButton } from '@/components/RippleButton'
 import { markJobRead, markThreadRead } from '@/lib/messageReads'
 import { CalendarIcon, WrenchIcon } from '@/components/icons'
-import { useLanguage, t, type Lang } from '@/lib/i18n'
+import { useLanguage, t, roleLabel, type Lang } from '@/lib/i18n'
 
 type Message = {
   id: string
@@ -19,14 +19,6 @@ type Message = {
 }
 
 type Participant = { role: string; user_id: string; full_name: string | null }
-
-const roleLabel = (role: string, lang: Lang): string => {
-  if (role === 'landlord') return t('landlordLabel', lang)
-  if (role === 'renter') return t('renterLabel', lang)
-  if (role === 'contractor') return t('contractorLabel', lang)
-  if (role === 'admin') return t('prophandldTeam', lang)
-  return role
-}
 
 function formatTimestamp(iso: string) {
   const date = new Date(iso)

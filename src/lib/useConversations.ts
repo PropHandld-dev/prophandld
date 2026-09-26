@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { mergedLastRead } from '@/lib/messageReads'
-import { useLanguage, t } from '@/lib/i18n'
+import { useLanguage, t, roleLabel } from '@/lib/i18n'
 
 export type Conversation = {
   kind: 'job' | 'dm'
@@ -28,13 +28,6 @@ const jobLabelCache = new Map<string, Cached<any>>()
 
 function fresh<T>(entry: Cached<T> | undefined): entry is Cached<T> {
   return !!entry && Date.now() - entry.at < CACHE_TTL_MS
-}
-
-const roleLabel = (role: string, lang: 'en' | 'es'): string => {
-  if (role === 'landlord') return t('landlordLabel', lang)
-  if (role === 'renter') return t('renterLabel', lang)
-  if (role === 'contractor') return t('contractorLabel', lang)
-  return role
 }
 
 // Shared by the full-page inbox and the floating widget. Deliberately

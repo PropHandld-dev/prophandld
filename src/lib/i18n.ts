@@ -509,6 +509,15 @@ const STRINGS = {
   newMessage: { en: 'New message', es: 'Nuevo mensaje' },
   messagesLabel: { en: 'Messages', es: 'Mensajes' },
   viewFullInbox: { en: 'View full inbox', es: 'Ver bandeja completa' },
+  couldNotLoadContacts: { en: 'Could not load contacts.', es: 'No se pudieron cargar los contactos.' },
+  couldNotStartConversation: { en: 'Could not start that conversation.', es: 'No se pudo iniciar esa conversación.' },
+  noOneToMessageYet: { en: 'No one to message yet.', es: 'Aún no hay nadie a quien escribir.' },
+  inviteContractorLink: { en: "Invite a contractor who isn't on Prophandld yet →", es: 'Invita a un contratista que aún no esté en Prophandld →' },
+  workedWithThemBefore: { en: 'You worked with them before on', es: 'Ya trabajaste con ellos antes en' },
+  messageAgain: { en: 'Message again?', es: '¿Enviarle un mensaje de nuevo?' },
+  messageThemAgain: { en: 'Message them again?', es: '¿Enviarles un mensaje de nuevo?' },
+  messageSomeone: { en: 'Message someone', es: 'Enviar mensaje a alguien' },
+  seeAll: { en: 'See all', es: 'Ver todo' },
   showLess: { en: 'Show less', es: 'Mostrar menos' },
   showAll: { en: 'Show all', es: 'Mostrar todo' },
   turnOnNotifications: { en: 'Turn on notifications', es: 'Activar notificaciones' },
@@ -534,6 +543,20 @@ export function windowLabel(value: string | undefined, lang: Lang): string {
   if (value === 'afternoon') return t('windowAfternoon', lang)
   if (value === 'evening') return t('windowEvening', lang)
   return value || ''
+}
+
+// One source for "landlord"/"renter"/"contractor"/"admin" → display label,
+// used by chat, the inbox, and the DM contact picker. These used to be three
+// separate hardcoded maps — one of them said "Tenant" where the other two
+// said "Renter" for the exact same role, a mismatch a viewer would notice
+// switching between the inbox and a conversation. Call this instead of
+// writing a fourth copy.
+export function roleLabel(role: string, lang: Lang): string {
+  if (role === 'landlord') return t('landlordLabel', lang)
+  if (role === 'renter') return t('renterLabel', lang)
+  if (role === 'contractor') return t('contractorLabel', lang)
+  if (role === 'admin') return t('prophandldTeam', lang)
+  return role
 }
 
 export function t(key: keyof typeof STRINGS, lang: Lang): string {

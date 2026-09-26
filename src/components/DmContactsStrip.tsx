@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { startDmThread, type DmContact, type StartedConversation } from '@/lib/dmThreads'
+import { useLanguage, t } from '@/lib/i18n'
 
 export function DmContactsStrip({
   myRole,
@@ -13,6 +14,7 @@ export function DmContactsStrip({
   onStart: (c: StartedConversation) => void
   onSeeAll: () => void
 }) {
+  const lang = useLanguage()
   const [contacts, setContacts] = useState<DmContact[]>([])
   const [startingId, setStartingId] = useState<string | null>(null)
 
@@ -42,16 +44,16 @@ export function DmContactsStrip({
   return (
     <div className="pb-3 mb-3 border-b border-white/8">
       <div className="flex items-center justify-between px-1 mb-2">
-        <p className="text-white/60 text-xs font-medium">Message someone</p>
+        <p className="text-white/60 text-xs font-medium">{t('messageSomeone', lang)}</p>
         {contacts.length > 6 && (
           <button onClick={onSeeAll} className="text-[#12A5A9] text-xs font-semibold hover:underline">
-            See all
+            {t('seeAll', lang)}
           </button>
         )}
       </div>
       <div className="flex gap-3 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {contacts.slice(0, 8).map((c) => {
-          const name = c.full_name || 'Unknown'
+          const name = c.full_name || t('unknownName', lang)
           return (
             <button
               key={c.other_user_id}

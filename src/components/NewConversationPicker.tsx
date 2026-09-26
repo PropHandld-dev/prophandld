@@ -4,12 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { startDmThread, type DmContact, type StartedConversation } from '@/lib/dmThreads'
-
-const ROLE_LABELS: Record<string, string> = {
-  renter: 'Tenant',
-  contractor: 'Contractor',
-  landlord: 'Landlord',
-}
+import { useLanguage, t, roleLabel } from '@/lib/i18n'
 
 export type { StartedConversation }
 
@@ -22,6 +17,7 @@ export function NewConversationPicker({
   onStart: (c: StartedConversation) => void
   onCancel: () => void
 }) {
+  const lang = useLanguage()
   const [loading, setLoading] = useState(true)
   const [contacts, setContacts] = useState<DmContact[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -31,7 +27,7 @@ export function NewConversationPicker({
     supabase.rpc('get_dm_contacts').then(({ data, error: rpcError }) => {
       if (rpcError) {
         console.error('get_dm_contacts failed', rpcError)
-        setError('Could not load contacts.')
+        setError(t('couldNotLoadContacts', lang))
       } else {
         setContacts(data || [])
       }
@@ -46,7 +42,7 @@ export function NewConversationPicker({
       onStart(await startDmThread(myRole, contact))
     } catch (err) {
       console.error('Error starting conversation:', err)
-      setError('Could not start that conversation.')
+      setError(t('couldNotStartConversation', lang))
     } finally {
       setStartingId(null)
     }
@@ -58,7 +54,7 @@ export function NewConversationPicker({
         <button onClick={onCancel} className="text-white/50 hover:text-white transition shrink-0">
           ←
         </button>
-        <p className="text-white text-sm font-semibold">New message</p>
+        <p className="text-white text-sm font-semibold">{t('newMessage', lang)}</p>
       </div>
 
       {error && (
@@ -72,10 +68,10 @@ export function NewConversationPicker({
         </div>
       ) : contacts.length === 0 ? (
         <>
-          <p className="text-white/50 text-sm text-center py-10">No one to message yet.</p>
+          <p className="text-white/50 text-sm text-center py-10">{t('noOneToMessageYet', lang)}</p>
           {myRole === 'landlord' && (
             <Link href="/landlord/contractors/invite" className="block text-center text-[#12A5A9] text-xs hover:underline">
-              Invite a contractor who isn&apos;t on Prophandld yet →
+              {t('inviteContractorLink', lang)}
             </Link>
           )}
         </>
@@ -89,13 +85,13 @@ export function NewConversationPicker({
               className="w-full text-left bg-white/5 hover:bg-white/8 rounded-xl p-3 transition disabled:opacity-50"
             >
               <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                <p className="text-white text-sm font-medium truncate">{c.full_name || 'Unknown'}</p>
-                <span className="text-[10px] bg-white/8 text-white/50 rounded-full px-1.5 py-0.5 shrink-0">{ROLE_LABELS[c.other_role] || c.other_role}</span>
+                <p className="text-white text-sm font-medium truncate">{c.full_name || t('unknownName', lang)}</p>
+                <span className="text-[10px] bg-white/8 text-white/50 rounded-full px-1.5 py-0.5 shrink-0">{roleLabel(c.other_role, lang)}</span>
               </div>
               {c.context_label && <p className="text-white/60 text-xs truncate">{c.context_label}</p>}
               {c.last_job_category && (
                 <p className="text-[#12A5A9] text-xs mt-1">
-                  You worked with them before on {c.last_job_category}. Message {c.thread_id ? 'again' : 'them again'}?
+                  {t('workedWithThemBefore', lang)} {c.last_job_category}. {c.thread_id ? t('messageAgain', lang) : t('messageThemAgain', lang)}
                 </p>
               )}
             </button>
@@ -105,7 +101,7 @@ export function NewConversationPicker({
 
       {!loading && contacts.length > 0 && myRole === 'landlord' && (
         <Link href="/landlord/contractors/invite" className="block text-center text-[#12A5A9] text-xs hover:underline mt-3 pt-3 border-t border-white/8">
-          Invite a contractor who isn&apos;t on Prophandld yet →
+          {t('inviteContractorLink', lang)}
         </Link>
       )}
     </div>
