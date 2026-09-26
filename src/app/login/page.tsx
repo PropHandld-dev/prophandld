@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { RippleButton } from '@/components/RippleButton'
 import { AuthLayout } from '@/components/AuthLayout'
+import { Logo } from '@/components/Logo'
 import { AuthInput } from '@/components/AuthInput'
 import { MailIcon, LockIcon } from '@/components/icons'
 import { RolePicker, type Role } from '@/components/RolePicker'
@@ -173,9 +174,15 @@ function LoginForm() {
   }
 
   if (checkingSession) {
+    // The literal first thing a real person sees right after clicking a
+    // confirmation link — worth it being a branded moment, not a bare
+    // "Loading...". Usually invisible in practice (this resolves fast),
+    // but on a slow connection it's the difference between "this is
+    // working" and "did that link just not work."
     return (
-      <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center">
-        <div className="text-white/50">Loading...</div>
+      <div className="min-h-screen bg-[#0C1A2E] flex flex-col items-center justify-center gap-4">
+        <Logo className="w-10 h-10 motion-safe:animate-pulse" />
+        <div className="text-white/50 text-sm">Confirming your account...</div>
       </div>
     )
   }
