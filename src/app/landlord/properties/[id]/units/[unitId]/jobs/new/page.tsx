@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { compressImage } from '@/lib/imageCompress'
+import { validateMediaFile, isVideoFile } from '@/lib/mediaValidation'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
@@ -43,7 +44,16 @@ export default function NewLandlordJobPage() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setFiles([...files, ...Array.from(e.target.files)])
+      const incoming = Array.from(e.target.files)
+      for (const file of incoming) {
+        const problem = validateMediaFile(file)
+        if (problem) {
+          setError(problem)
+          return
+        }
+      }
+      setError(null)
+      setFiles([...files, ...incoming])
     }
     e.target.value = ''
   }
@@ -231,28 +241,32 @@ export default function NewLandlordJobPage() {
           </div>
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">Photos (optional)</label>
+            <label className="text-white/70 text-sm block mb-1">Photos or videos (optional)</label>
             <label className="block">
               <input
                 type="file"
-                accept="image/*"
+                accept="image/*,video/*"
                 multiple
                 onChange={handleFileChange}
                 className="hidden"
               />
               <span className="inline-block bg-white/8 text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-white/12 transition cursor-pointer">
-                {files.length > 0 ? `+ Add more photos` : '+ Add photos'}
+                {files.length > 0 ? `+ Add more` : '+ Add photos or videos'}
               </span>
             </label>
             {files.length > 0 && (
               <div className="grid grid-cols-4 gap-2 mt-3">
                 {files.map((file, i) => (
                   <div key={i} className="relative aspect-square rounded-lg overflow-hidden bg-white/5">
+                    {isVideoFile(file) ? (
+                      <video src={URL.createObjectURL(file)} className="w-full h-full object-cover" muted playsInline />
+                    ) : (
                     <img
                       src={URL.createObjectURL(file)}
                       alt={`Selected ${i + 1}`}
                       className="w-full h-full object-cover"
                     />
+                    )}
                     <button
                       type="button"
                       onClick={() => removeFile(i)}

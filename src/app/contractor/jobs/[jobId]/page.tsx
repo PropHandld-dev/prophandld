@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { expectRow } from '@/lib/expectRow'
 import { compressImage } from '@/lib/imageCompress'
+import { validateMediaFile } from '@/lib/mediaValidation'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { PhotoGrid } from '@/components/PhotoGrid'
@@ -256,6 +257,15 @@ export default function ContractorJobDetailPage() {
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>, stage: 'before' | 'after') => {
     const files = e.target.files
     if (!files || files.length === 0 || !userId) return
+
+    for (const file of Array.from(files)) {
+      const problem = validateMediaFile(file)
+      if (problem) {
+        setError(problem)
+        e.target.value = ''
+        return
+      }
+    }
 
     setUploading(true)
     setError(null)
@@ -752,7 +762,7 @@ export default function ContractorJobDetailPage() {
                 <p className="text-white/70 text-sm font-medium">Before ({beforePhotos.length})</p>
                 {job.status === 'in_progress' && (
                   <label>
-                    <input type="file" accept="image/*" multiple onChange={(e) => handlePhotoUpload(e, 'before')} className="hidden" />
+                    <input type="file" accept="image/*,video/*" multiple onChange={(e) => handlePhotoUpload(e, 'before')} className="hidden" />
                     <span className="text-[#12A5A9] text-xs hover:underline cursor-pointer">+ Add photos</span>
                   </label>
                 )}
@@ -774,7 +784,7 @@ export default function ContractorJobDetailPage() {
                 <p className="text-white/70 text-sm font-medium">After ({afterPhotos.length})</p>
                 {job.status === 'in_progress' && (
                   <label>
-                    <input type="file" accept="image/*" multiple onChange={(e) => handlePhotoUpload(e, 'after')} className="hidden" />
+                    <input type="file" accept="image/*,video/*" multiple onChange={(e) => handlePhotoUpload(e, 'after')} className="hidden" />
                     <span className="text-[#12A5A9] text-xs hover:underline cursor-pointer">+ Add photos</span>
                   </label>
                 )}

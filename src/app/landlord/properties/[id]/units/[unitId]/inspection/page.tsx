@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { compressImage } from '@/lib/imageCompress'
+import { validateMediaFile, isVideoPath } from '@/lib/mediaValidation'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
@@ -151,6 +152,15 @@ export default function InspectionPage() {
     const files = e.target.files
     if (!files || files.length === 0 || !inspection || !currentUserId || !userRole) return
 
+    for (const file of Array.from(files)) {
+      const problem = validateMediaFile(file)
+      if (problem) {
+        setError(problem)
+        if (fileInputRef.current) fileInputRef.current.value = ''
+        return
+      }
+    }
+
     setUploading(true)
     setError(null)
 
@@ -294,14 +304,14 @@ export default function InspectionPage() {
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept="image/*"
+                    accept="image/*,video/*"
                     multiple
                     onChange={handleFileChange}
                     disabled={uploading}
                     className="hidden"
                   />
                   <span className="inline-block bg-white/8 text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-white/12 transition cursor-pointer">
-                    {uploading ? 'Uploading...' : '+ Add photos'}
+                    {uploading ? 'Uploading...' : '+ Add photos or videos'}
                   </span>
                 </label>
               )}
@@ -320,11 +330,15 @@ export default function InspectionPage() {
                 <div className="grid grid-cols-2 gap-3">
                   {photos.map((photo) => (
                     <div key={photo.id} className="bg-white/3 border border-white/8 rounded-xl overflow-hidden hover:border-[#12A5A9]/30 transition-all">
-                      <img
-                        src={photo.displayUrl}
-                        alt="Inspection photo"
-                        className="w-full h-40 object-cover"
-                      />
+                      {isVideoPath(photo.photo_url) ? (
+                        <video src={photo.displayUrl} className="w-full h-40 object-cover bg-black" controls playsInline />
+                      ) : (
+                        <img
+                          src={photo.displayUrl}
+                          alt="Inspection photo"
+                          className="w-full h-40 object-cover"
+                        />
+                      )}
                       <div className="p-3">
                         <p className="text-white/60 text-xs">
                           {photo.uploader?.full_name || 'Unknown'} · {photo.uploaded_by_role}

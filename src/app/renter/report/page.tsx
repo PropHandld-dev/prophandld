@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { notify } from '@/lib/notify'
 import { compressImage } from '@/lib/imageCompress'
+import { validateMediaFile, isVideoFile } from '@/lib/mediaValidation'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { Skeleton } from '@/components/Skeleton'
 import { ScrollReveal } from '@/components/ScrollReveal'
@@ -98,7 +99,16 @@ export default function ReportIssuePage() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setFiles([...files, ...Array.from(e.target.files)])
+      const incoming = Array.from(e.target.files)
+      for (const file of incoming) {
+        const problem = validateMediaFile(file)
+        if (problem) {
+          setError(problem)
+          return
+        }
+      }
+      setError(null)
+      setFiles([...files, ...incoming])
     }
     e.target.value = ''
   }
@@ -229,7 +239,7 @@ export default function ReportIssuePage() {
       <main className="max-w-xl mx-auto px-6 py-10 pb-28">
         <h1 className="text-2xl font-bold text-white mb-2">Report an issue</h1>
         <p className="text-white/50 text-sm mb-8">
-          Let your landlord know what's going on. Add photos if you can, it helps get the right contractor.
+          Let your landlord know what's going on. Add photos or a short video if you can, it helps get the right contractor.
         </p>
 
         {unitId && (
@@ -316,28 +326,33 @@ export default function ReportIssuePage() {
             )}
 
             <div>
-              <label className="text-white/70 text-sm block mb-1">Photos (optional)</label>
+              <label className="text-white/70 text-sm block mb-1">Photos or videos (optional)</label>
+              <p className="text-white/40 text-xs mb-2">A short video helps a lot for things a photo can't show — a strange sound, a slow drip, a flickering light.</p>
               <label className="block mb-3">
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/*,video/*"
                   multiple
                   onChange={handleFileChange}
                   className="hidden"
                 />
                 <span className="inline-block bg-white/8 text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-white/12 transition cursor-pointer">
-                  {files.length > 0 ? `+ Add more photos` : '+ Add photos'}
+                  {files.length > 0 ? `+ Add more` : '+ Add photos or videos'}
                 </span>
               </label>
               {files.length > 0 && (
                 <div className="grid grid-cols-4 gap-2">
                   {files.map((file, i) => (
                     <div key={i} className="relative aspect-square rounded-lg overflow-hidden bg-white/5">
-                      <img
-                        src={URL.createObjectURL(file)}
-                        alt={`Selected ${i + 1}`}
-                        className="w-full h-full object-cover"
-                      />
+                      {isVideoFile(file) ? (
+                        <video src={URL.createObjectURL(file)} className="w-full h-full object-cover" muted playsInline />
+                      ) : (
+                        <img
+                          src={URL.createObjectURL(file)}
+                          alt={`Selected ${i + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
                       <button
                         type="button"
                         onClick={() => removeFile(i)}
