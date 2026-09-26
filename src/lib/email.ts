@@ -187,7 +187,7 @@ export async function sendContractorInviteEmail({
   const html = baseTemplate({
     eyebrow: 'Invite',
     heading: `${escapeHtml(landlordName)} invited you to Prophandld`,
-    bodyHtml: `${escapeHtml(landlordName)} wants to work with you through Prophandld: sealed bidding, no platform fee, and you get paid directly the moment a job's done.${note ? `<br /><br />Their note: "${escapeHtml(note)}"` : ''} Sign up as a contractor with this same email address to get started.`,
+    bodyHtml: `${escapeHtml(landlordName)} wants to work with you through Prophandld: sealed bidding, completely free to use — no platform fee, ever — and you get paid directly the moment a job's done.${note ? `<br /><br />Their note: "${escapeHtml(note)}"` : ''} Sign up as a contractor with this same email address to get started.`,
     ctaLabel: 'Create your account',
     ctaUrl: `${SITE_URL}/signup?role=contractor`,
     footerText: `You're receiving this because ${escapeHtml(landlordName)} invited you to Prophandld.`,
