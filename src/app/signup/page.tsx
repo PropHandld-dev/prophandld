@@ -9,6 +9,7 @@ import { AuthLayout } from '@/components/AuthLayout'
 import { AuthInput } from '@/components/AuthInput'
 import { MailIcon, LockIcon } from '@/components/icons'
 import { RolePicker, type Role } from '@/components/RolePicker'
+import { AddressAutocomplete, type AutocompletePlace } from '@/components/AddressAutocomplete'
 
 const ROLE_CONTENT: Record<Role, { headline: string; subtext: string; checklist: string[] }> = {
   landlord: {
@@ -51,7 +52,15 @@ function SignupForm() {
     password: '',
     phone: '',
     preferred_language: 'en',
+    property_count: '',
+    first_property_address: '',
   })
+  // Captured alongside the typed address, same as the real property form —
+  // not inserted anywhere yet (nothing can be, before the account exists),
+  // just carried in signup metadata so /landlord/properties/new can prefill
+  // itself once the account is confirmed, instead of asking for the same
+  // address twice.
+  const [firstPropertyPlace, setFirstPropertyPlace] = useState<AutocompletePlace | null>(null)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -72,6 +81,15 @@ function SignupForm() {
           phone: form.phone,
           role,
           preferred_language: form.preferred_language,
+          ...(role === 'landlord' && form.property_count ? { property_count: form.property_count } : {}),
+          ...(role === 'landlord' && firstPropertyPlace ? {
+            onboarding_address: firstPropertyPlace.address,
+            onboarding_city: firstPropertyPlace.city,
+            onboarding_state: firstPropertyPlace.state,
+            onboarding_zip: firstPropertyPlace.zip,
+            onboarding_lat: firstPropertyPlace.lat,
+            onboarding_lng: firstPropertyPlace.lng,
+          } : {}),
         },
         emailRedirectTo: `${window.location.origin}/login`,
       },
@@ -279,6 +297,46 @@ function SignupForm() {
             placeholder="+1 (555) 000-0000"
           />
         </div>
+
+        {role === 'landlord' && (
+          <div>
+            <label className="text-white/70 text-sm block mb-1">How many rental properties do you have?</label>
+            <select
+              name="property_count"
+              value={form.property_count}
+              onChange={handleChange}
+              className="w-full bg-white/[0.06] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] focus:ring-2 focus:ring-[#12A5A9]/15 transition"
+            >
+              <option value="" className="bg-[#0C1A2E]">Prefer not to say</option>
+              <option value="1" className="bg-[#0C1A2E]">Just 1</option>
+              <option value="2-5" className="bg-[#0C1A2E]">2–5</option>
+              <option value="6-10" className="bg-[#0C1A2E]">6–10</option>
+              <option value="11-25" className="bg-[#0C1A2E]">11–25</option>
+              <option value="26+" className="bg-[#0C1A2E]">26 or more</option>
+            </select>
+            <p className="text-white/40 text-xs mt-1">Helps us set you up right — never shown to anyone else.</p>
+          </div>
+        )}
+
+        {role === 'landlord' && (
+          <div>
+            <label className="text-white/70 text-sm block mb-1">Address of your first property (optional)</label>
+            <AddressAutocomplete
+              value={form.first_property_address}
+              onChange={(value) => {
+                setForm({ ...form, first_property_address: value })
+                setFirstPropertyPlace(null)
+              }}
+              onPlaceSelected={(place) => {
+                setForm({ ...form, first_property_address: place.address })
+                setFirstPropertyPlace(place)
+              }}
+              placeholder="Start typing an address..."
+              className="w-full bg-white/[0.06] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:border-[#12A5A9] focus:ring-2 focus:ring-[#12A5A9]/15 transition"
+            />
+            <p className="text-white/40 text-xs mt-1">Skip this if you'd rather add it after confirming your email — either way works.</p>
+          </div>
+        )}
 
         <div>
           <label className="text-white/70 text-sm block mb-1">Password</label>

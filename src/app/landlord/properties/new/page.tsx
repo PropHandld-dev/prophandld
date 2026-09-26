@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { SubscribeToAdd } from '@/components/BillingReminder'
 import { useBillingStatus, BILLING_ENFORCED } from '@/lib/useBillingStatus'
 import { supabase } from '@/lib/supabase'
@@ -30,6 +30,29 @@ function NewPropertyForm() {
     num_units: '1',
   })
   const [placeGeo, setPlaceGeo] = useState<{ lat: number; lng: number } | null>(null)
+
+  // If they gave an address on the signup form (before there was an
+  // authenticated session to actually save it), pick it up here instead of
+  // asking again — only on first arrival at onboarding, and only if they
+  // haven't already started typing something else in the meantime.
+  useEffect(() => {
+    if (!isOnboarding) return
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      const meta = user?.user_metadata
+      if (!meta?.onboarding_address) return
+      setForm((f) => f.address ? f : {
+        ...f,
+        address: meta.onboarding_address || '',
+        city: meta.onboarding_city || '',
+        state: meta.onboarding_state || '',
+        zip: meta.onboarding_zip || '',
+      })
+      if (meta.onboarding_lat != null && meta.onboarding_lng != null) {
+        setPlaceGeo({ lat: meta.onboarding_lat, lng: meta.onboarding_lng })
+      }
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOnboarding])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })

@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import { useState, useEffect, Suspense } from 'react'
+import type { User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -41,6 +42,12 @@ function LoginForm() {
   )
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // True until the initial "is there already a session?" check finishes —
+  // covers a tenant/contractor who clicked an email-confirmation link
+  // rather than typing their password in on this page. Starts true so the
+  // role picker never flashes for someone about to be redirected straight
+  // through.
+  const [checkingSession, setCheckingSession] = useState(true)
   const [form, setForm] = useState({
     email: '',
     password: '',
@@ -49,6 +56,89 @@ function LoginForm() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })
   }
+
+  // Everything that needs to happen once we know who's signed in, whether
+  // they got here by typing a password or by Supabase silently starting a
+  // session from an email-confirmation link's URL. Shared so both paths
+  // behave identically.
+  const completeSignIn = async (user: User) => {
+    try {
+      sessionStorage.setItem('ph_just_signed_in', '1')
+    } catch {}
+    const accountRole = user.user_metadata?.role
+    if (accountRole === 'renter') {
+      // A renter's real first entry into the app now happens here, not on
+      // the signup page — since email confirmation was turned on, signup
+      // diverts to "check your email" and this sign-in, after clicking
+      // that link, is the first time they're actually authenticated. A
+      // pending tenancy invite used to only ever get linked right after
+      // signup, so it was silently stuck for anyone who had to confirm
+      // first. Safe to call every login: a no-op once already linked.
+      try {
+        const res = await fetch('/api/tenancy/link-invite', { method: 'POST' })
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}))
+          console.error('Error auto-linking invited tenancy on login:', body.error)
+        }
+      } catch (err) {
+        console.error('Error checking pending invite on login:', err)
+      }
+    }
+    if (accountRole === 'contractor') {
+      // Same bug, same fix, for a contractor a landlord invited: closing
+      // out the invite used to only happen right after signup too.
+      fetch('/api/contractor/accept-invite', { method: 'POST' }).catch((err) =>
+        console.error('Error closing out contractor invite on login:', err)
+      )
+    }
+    if (accountRole === 'landlord') {
+      // A brand-new landlord used to land straight on "add your first
+      // property" right after signup. Email confirmation now means that
+      // redirect (in signup/page.tsx) never actually fires — Supabase
+      // never hands back a session synchronously anymore, so signup always
+      // diverts to "check your email" first, and this login flow is the
+      // real first entry. Without this check they'd land on an empty
+      // dashboard with nothing on it and no obvious next step. Checking
+      // property count instead of a one-time flag also self-heals a
+      // landlord who backs out of onboarding without adding one — they get
+      // sent right back to it next time, instead of staying stuck on an
+      // empty dashboard.
+      const { count } = await supabase
+        .from('properties')
+        .select('id', { count: 'exact', head: true })
+        .eq('owner_user_id', user.id)
+      if (!count) router.replace('/landlord/properties/new?onboarding=1')
+      else router.replace('/landlord')
+    }
+    else if (accountRole === 'renter') router.replace('/renter')
+    else if (accountRole === 'contractor') router.replace('/contractor')
+    else router.replace('/')
+  }
+
+  // The confirmation link a tenant/contractor clicks in their email lands
+  // them right back on this page — and Supabase's client silently starts a
+  // real session from the link's own URL the moment it loads, with no code
+  // of ours involved. The "check your email" screen never tells anyone to
+  // come back and log in afterward, so most people just close the tab at
+  // that point, believing "click the link" was the whole job. Without this
+  // check they'd sit here already signed in, invite still stuck on
+  // "pending," having done nothing wrong. Catch that on mount and finish
+  // the job automatically, the same way a manual sign-in would.
+  useEffect(() => {
+    let cancelled = false
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (cancelled) return
+      if (session?.user) {
+        completeSignIn(session.user)
+      } else {
+        setCheckingSession(false)
+      }
+    })
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -67,42 +157,18 @@ function LoginForm() {
     }
 
     if (data.user) {
-      try {
-        sessionStorage.setItem('ph_just_signed_in', '1')
-      } catch {}
-      const accountRole = data.user.user_metadata?.role
-      if (accountRole === 'renter') {
-        // A renter's real first entry into the app now happens here, not on
-        // the signup page — since email confirmation was turned on, signup
-        // diverts to "check your email" and this sign-in, after clicking
-        // that link, is the first time they're actually authenticated. A
-        // pending tenancy invite used to only ever get linked right after
-        // signup, so it was silently stuck for anyone who had to confirm
-        // first. Safe to call every login: a no-op once already linked.
-        try {
-          const res = await fetch('/api/tenancy/link-invite', { method: 'POST' })
-          if (!res.ok) {
-            const body = await res.json().catch(() => ({}))
-            console.error('Error auto-linking invited tenancy on login:', body.error)
-          }
-        } catch (err) {
-          console.error('Error checking pending invite on login:', err)
-        }
-      }
-      if (accountRole === 'contractor') {
-        // Same bug, same fix, for a contractor a landlord invited: closing
-        // out the invite used to only happen right after signup too.
-        fetch('/api/contractor/accept-invite', { method: 'POST' }).catch((err) =>
-          console.error('Error closing out contractor invite on login:', err)
-        )
-      }
-      if (accountRole === 'landlord') router.replace('/landlord')
-      else if (accountRole === 'renter') router.replace('/renter')
-      else if (accountRole === 'contractor') router.replace('/contractor')
-      else router.replace('/')
+      await completeSignIn(data.user)
     }
 
     setLoading(false)
+  }
+
+  if (checkingSession) {
+    return (
+      <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center">
+        <div className="text-white/50">Loading...</div>
+      </div>
+    )
   }
 
   if (!role) {
