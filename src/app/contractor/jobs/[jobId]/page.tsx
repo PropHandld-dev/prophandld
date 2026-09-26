@@ -254,7 +254,7 @@ export default function ContractorJobDetailPage() {
     setActioning(false)
   }
 
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>, stage: 'before' | 'after') => {
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>, stage: 'before' | 'after' | 'receipt') => {
     const files = e.target.files
     if (!files || files.length === 0 || !userId) return
 
@@ -507,6 +507,7 @@ export default function ContractorJobDetailPage() {
   const isMyTurnToRespond = job.proposed_by && job.proposed_by !== 'contractor' && !job.schedule_confirmed
   const beforePhotos = photos.filter((p) => p.stage === 'before')
   const afterPhotos = photos.filter((p) => p.stage === 'after')
+  const receiptPhotos = photos.filter((p) => p.stage === 'receipt')
   const reportedPhotos = photos.filter((p) => p.stage === 'general' || !p.stage)
   const canRequestPriceChange = myBid?.status === 'accepted' && ['bid_selected', 'scheduled', 'in_progress'].includes(job.status)
 
@@ -804,6 +805,32 @@ export default function ContractorJobDetailPage() {
                 />
               )}
             </div>
+
+            {(job.status === 'in_progress' || receiptPhotos.length > 0) && (
+              <div className="mb-5">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-white/70 text-sm font-medium">Material receipts ({receiptPhotos.length})</p>
+                  {job.status === 'in_progress' && (
+                    <label>
+                      <input type="file" accept="image/*,video/*" multiple onChange={(e) => handlePhotoUpload(e, 'receipt')} className="hidden" />
+                      <span className="text-[#12A5A9] text-xs hover:underline cursor-pointer">+ Add receipt</span>
+                    </label>
+                  )}
+                </div>
+                {receiptPhotos.length === 0 ? (
+                  <p className="text-white/50 text-xs">
+                    If you buy parts for this job, snap a photo of the receipt here — it backs up any parts cost in a price change request below.
+                  </p>
+                ) : (
+                  <PhotoGrid
+                    photos={receiptPhotos}
+                    columns={3}
+                    currentUserId={userId ?? undefined}
+                    onDelete={job.status === 'in_progress' ? handleDeletePhoto : undefined}
+                  />
+                )}
+              </div>
+            )}
 
             {job.status === 'in_progress' && (
               <>

@@ -712,6 +712,7 @@ export default function JobDetailPage() {
   const isMyTurnToRespond = job.proposed_by && job.proposed_by !== 'landlord' && !job.schedule_confirmed
   const beforePhotos = photos.filter((p) => p.stage === 'before')
   const afterPhotos = photos.filter((p) => p.stage === 'after')
+  const receiptPhotos = photos.filter((p) => p.stage === 'receipt')
   const generalPhotos = photos.filter((p) => p.stage === 'general' || !p.stage)
 
   return (
@@ -1192,6 +1193,12 @@ export default function JobDetailPage() {
                 <PhotoGrid photos={afterPhotos} columns={3} />
               )}
             </div>
+            {receiptPhotos.length > 0 && (
+              <div className="mt-5">
+                <p className="text-white/70 text-sm font-medium mb-2">Material receipts ({receiptPhotos.length})</p>
+                <PhotoGrid photos={receiptPhotos} columns={3} />
+              </div>
+            )}
           </div>
         )}
 
