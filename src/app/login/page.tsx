@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import type { User } from '@supabase/supabase-js'
-import { supabase, HAD_SIGNUP_HASH_ON_LOAD } from '@/lib/supabase'
+import { supabase, consumeSignupHashFlag } from '@/lib/supabase'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { RippleButton } from '@/components/RippleButton'
@@ -144,7 +144,12 @@ function LoginForm() {
     let cancelled = false
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (cancelled) return
-      if (session?.user && HAD_SIGNUP_HASH_ON_LOAD) {
+      // Always consume, regardless of session state — leaving it
+      // unconsumed on a session-less check would carry it forward to
+      // whatever effect run does have a session, which is exactly the
+      // stale-flag problem this was built to avoid.
+      const justVerified = consumeSignupHashFlag()
+      if (session?.user && justVerified) {
         setJustVerifiedUser(session.user)
         setCheckingSession(false)
       } else if (session?.user) {

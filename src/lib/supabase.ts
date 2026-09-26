@@ -9,8 +9,20 @@ import { createBrowserClient } from '@supabase/ssr'
 // enough to still see it, which is how /login tells "just clicked an
 // email-confirmation link" apart from any other reason a session might
 // already exist there.
-export const HAD_SIGNUP_HASH_ON_LOAD =
+let hadSignupHashOnLoad =
   typeof window !== 'undefined' && window.location.hash.includes('type=signup')
+
+// A function rather than the plain boolean it wraps: self-consuming, so it
+// only ever answers "yes" once per real page load. A plain constant would
+// stay true for the life of this module — harmless today, since every
+// redirect away from the verified screen uses router.replace (which drops
+// /login from history), but not something worth leaving as a landmine for
+// whatever this page grows into later.
+export function consumeSignupHashFlag() {
+  const value = hadSignupHashOnLoad
+  hadSignupHashOnLoad = false
+  return value
+}
 
 export const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
