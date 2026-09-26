@@ -13,6 +13,13 @@ import { RippleButton } from '@/components/RippleButton'
 
 const DOCUMENT_TYPES = ['Lease', 'Rental Agreement', 'Deed', 'Insurance', 'Inspection Report', 'Other']
 
+// Sanitizes a name for use inside a zip archive — nothing more than
+// collapsing whatever would otherwise produce a nested "folder" or an
+// invalid character most zip tools choke on.
+function safeZipName(name: string) {
+  return name.replace(/[\\/:*?"<>|]/g, '-')
+}
+
 export default function PropertyDocumentsPage() {
   const router = useRouter()
   const params = useParams()
@@ -25,6 +32,7 @@ export default function PropertyDocumentsPage() {
   const [units, setUnits] = useState<any[]>([])
   const [documents, setDocuments] = useState<any[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [downloadingAll, setDownloadingAll] = useState(false)
 
   const [form, setForm] = useState({
     document_type: '',
@@ -207,6 +215,55 @@ export default function PropertyDocumentsPage() {
     setDocuments((prev) => prev.filter((d) => d.id !== doc.id))
   }
 
+  const handleDownloadAll = async () => {
+    if (documents.length === 0) return
+    setDownloadingAll(true)
+    setError(null)
+    try {
+      const { default: JSZip } = await import('jszip')
+      const zip = new JSZip()
+      const usedNames = new Set<string>()
+
+      await Promise.all(
+        documents.map(async (doc) => {
+          if (!doc.viewUrl) return
+          try {
+            const res = await fetch(doc.viewUrl)
+            const blob = await res.blob()
+            let name = safeZipName(doc.filename || `document-${doc.id}`)
+            // Two documents can share a filename — number the second one
+            // rather than silently overwrite it inside the zip.
+            let attempt = name
+            let n = 2
+            while (usedNames.has(attempt)) {
+              const dot = name.lastIndexOf('.')
+              attempt = dot > 0 ? `${name.slice(0, dot)} (${n})${name.slice(dot)}` : `${name} (${n})`
+              n++
+            }
+            usedNames.add(attempt)
+            zip.file(attempt, blob)
+          } catch (err) {
+            console.error('Error fetching document for zip:', doc.filename, err)
+          }
+        })
+      )
+
+      const zipBlob = await zip.generateAsync({ type: 'blob' })
+      const url = URL.createObjectURL(zipBlob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${property?.address || 'documents'} — documents.zip`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('Error building document archive:', err)
+      setError('Could not build the download. Try again.')
+    }
+    setDownloadingAll(false)
+  }
+
   const getUnitLabel = (unitId: string | null) => {
     if (!unitId) return 'Property-wide'
     const unit = units.find((u) => u.id === unitId)
@@ -352,9 +409,20 @@ export default function PropertyDocumentsPage() {
         </form>
         </ScrollReveal>
 
-        <h2 className="text-white font-semibold mb-4">
-          All documents {documents.length > 0 && `(${documents.length})`}
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-white font-semibold">
+            All documents {documents.length > 0 && `(${documents.length})`}
+          </h2>
+          {documents.length > 0 && (
+            <button
+              onClick={handleDownloadAll}
+              disabled={downloadingAll}
+              className="text-[#12A5A9] text-sm font-semibold hover:underline disabled:opacity-50"
+            >
+              {downloadingAll ? 'Building download...' : 'Download all'}
+            </button>
+          )}
+        </div>
 
         {documents.length === 0 ? (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
