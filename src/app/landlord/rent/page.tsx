@@ -363,7 +363,14 @@ export default function RentRollPage() {
                         {!row.hasTenancy && <span className="text-white/30 text-xs">{t('noTenantLabel', lang)}</span>}
                       </td>
                       {months.map((m) => {
-                        const cell = row.cells[m]
+                        // row.cells was built for whichever range was
+                        // selected when this row last loaded — for the one
+                        // render between picking a new range and the
+                        // refetch actually landing, `months` has already
+                        // moved on to the new range's keys but this row
+                        // hasn't yet, so a lookup here can genuinely come
+                        // back undefined. Never trust it blindly.
+                        const cell = row.cells[m] ?? { status: 'no-tenant' as const }
                         return (
                           <td key={m} className="px-2 py-3 text-center">
                             <Link
