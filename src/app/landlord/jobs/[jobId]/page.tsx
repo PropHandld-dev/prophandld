@@ -18,6 +18,7 @@ import { ReviewForm } from '@/components/ReviewForm'
 import { StripePaymentModal, type PaymentOutcome } from '@/components/StripePaymentModal'
 import { RaiseDisputeButton } from '@/components/RaiseDisputeButton'
 import { JobChatCard, scrollToChat } from '@/components/JobChatCard'
+import { ContractorReviewsList } from '@/components/ContractorReviewsList'
 import { UnreadDot } from '@/components/UnreadDot'
 import { getUnreadJobIds } from '@/lib/messageReads'
 import { useJobRealtime } from '@/lib/useJobRealtime'
@@ -42,6 +43,7 @@ export default function JobDetailPage() {
   const [unlicensedContractorIds, setUnlicensedContractorIds] = useState<Set<string>>(new Set())
   const [credentialBadges, setCredentialBadges] = useState<Record<string, string[]>>({})
   const [ratingSummaries, setRatingSummaries] = useState<Record<string, { avg_rating: number; review_count: number }>>({})
+  const [expandedReviewsFor, setExpandedReviewsFor] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [actioning, setActioning] = useState(false)
   const [questions, setQuestions] = useState<any[]>([])
@@ -1058,9 +1060,13 @@ export default function JobDetailPage() {
                           </span>
                         )}
                         {ratingSummaries[bid.contractor_user_id] && (
-                          <span className="text-xs bg-white/8 text-white/60 rounded-full px-2 py-0.5 font-semibold">
+                          <button
+                            type="button"
+                            onClick={() => setExpandedReviewsFor(expandedReviewsFor === bid.contractor_user_id ? null : bid.contractor_user_id)}
+                            className="text-xs bg-white/8 text-white/60 rounded-full px-2 py-0.5 font-semibold hover:bg-white/12 transition"
+                          >
                             ★ {ratingSummaries[bid.contractor_user_id].avg_rating.toFixed(1)} ({ratingSummaries[bid.contractor_user_id].review_count})
-                          </span>
+                          </button>
                         )}
                       </div>
                       <div className="text-right">
@@ -1075,6 +1081,11 @@ export default function JobDetailPage() {
                     {bid.notes && <p className="text-white/60 text-xs mt-1 italic">{bid.notes}</p>}
                     {bid.not_included && (
                       <p className="text-yellow-400/80 text-xs mt-1">{t('notIncludedColonLabel', lang)} {bid.not_included}</p>
+                    )}
+                    {expandedReviewsFor === bid.contractor_user_id && (
+                      <div className="mt-3">
+                        <ContractorReviewsList contractorUserId={bid.contractor_user_id} />
+                      </div>
                     )}
                     <RippleButton
                       onClick={() => handleSelectBidClick(bid.id)}
@@ -1113,11 +1124,20 @@ export default function JobDetailPage() {
                     </span>
                   )}
                   {ratingSummaries[acceptedBid.contractor_user_id] && (
-                    <span className="text-xs bg-white/8 text-white/60 rounded-full px-2 py-0.5 font-semibold">
+                    <button
+                      type="button"
+                      onClick={() => setExpandedReviewsFor(expandedReviewsFor === acceptedBid.contractor_user_id ? null : acceptedBid.contractor_user_id)}
+                      className="text-xs bg-white/8 text-white/60 rounded-full px-2 py-0.5 font-semibold hover:bg-white/12 transition"
+                    >
                       ★ {ratingSummaries[acceptedBid.contractor_user_id].avg_rating.toFixed(1)} ({ratingSummaries[acceptedBid.contractor_user_id].review_count})
-                    </span>
+                    </button>
                   )}
                 </div>
+                {expandedReviewsFor === acceptedBid.contractor_user_id && (
+                  <div className="mt-3">
+                    <ContractorReviewsList contractorUserId={acceptedBid.contractor_user_id} />
+                  </div>
+                )}
                 {acceptedBid.price_change_status === 'pending' ? (
   <div className="mt-2 bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
     <p className="text-yellow-400 text-xs font-semibold mb-1">{t('priceChangeRequestedLabel', lang)}</p>

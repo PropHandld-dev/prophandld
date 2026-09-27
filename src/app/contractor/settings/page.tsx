@@ -12,6 +12,7 @@ import { CheckCircleIcon } from '@/components/icons'
 import { CONTRACTOR_TABS } from '@/lib/navTabs'
 import { StripeConnectCard } from '@/components/StripeConnectCard'
 import { ContractorCredentials } from '@/components/ContractorCredentials'
+import { ContractorReviewsList } from '@/components/ContractorReviewsList'
 import { Switch } from '@/components/Switch'
 import { useCategoryOptions, saveCustomCategory } from '@/lib/categories'
 import { useLanguage, t } from '@/lib/i18n'
@@ -263,6 +264,8 @@ export default function ContractorSettingsPage() {
             <p className="text-white/50 text-sm mt-2">
               {t('ratingBasedOn', lang)}
             </p>
+            <h3 className="text-white/70 text-sm font-semibold mt-6 mb-3">{t('whatPeopleAreSayingHeading', lang)}</h3>
+            {userId && <ContractorReviewsList contractorUserId={userId} />}
           </ScrollReveal>
         )}
 

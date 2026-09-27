@@ -1026,7 +1026,10 @@ export default function ContractorJobDetailPage() {
       {showPriceChangeModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
           <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
-            <h3 className="text-white font-semibold mb-4">{t('requestPriceChangeHeading', lang)}</h3>
+            <h3 className="text-white font-semibold mb-1">{t('requestPriceChangeHeading', lang)}</h3>
+            <p className="text-white/50 text-sm mb-4">
+              {t('currentPriceLabel', lang)} <span className="text-white/70 font-semibold">${Number(myBid?.amount || 0).toFixed(2)}</span>
+            </p>
 
             <label className="text-white/70 text-sm block mb-1">{t('laborDollarLabel', lang)}</label>
             <input
@@ -1052,6 +1055,17 @@ export default function ContractorJobDetailPage() {
 
             <p className="text-white/50 text-sm mb-4">
               {t('newTotalLabel', lang)} <span className="text-white font-semibold">${((parseFloat(laborAmount) || 0) + (parseFloat(partsAmount) || 0)).toFixed(2)}</span>
+              {(() => {
+                const oldPrice = Number(myBid?.amount || 0)
+                const newTotal = (parseFloat(laborAmount) || 0) + (parseFloat(partsAmount) || 0)
+                const delta = newTotal - oldPrice
+                if (newTotal <= 0 || delta === 0) return null
+                return (
+                  <span className={delta > 0 ? 'text-yellow-400' : 'text-[#12A5A9]'}>
+                    {' '}({delta > 0 ? '+' : ''}${delta.toFixed(2)} {t('changeFromCurrentSuffix', lang)})
+                  </span>
+                )
+              })()}
             </p>
 
             <label className="text-white/70 text-sm block mb-1">{t('reasonLabel', lang)}</label>
