@@ -14,6 +14,7 @@ import { MagneticLink } from '@/components/MagneticLink'
 import { ProfileButton } from '@/components/ProfileButton'
 import { MessagesButton } from '@/components/MessagesButton'
 import { CountUp } from '@/components/CountUp'
+import { fetchAllPagesOrEmpty } from '@/lib/pagedQuery'
 import {
   BuildingIcon, WrenchIcon, CalendarIcon, ClipboardListIcon,
   DollarSignIcon, FileTextIcon, AlertTriangleIcon, CheckCircleIcon, UserIcon,
@@ -111,14 +112,22 @@ export default function LandlordDashboard() {
       }
       setUser(user)
 
-      const { data: propertiesData } = await supabase
-        .from('properties')
-        .select('*')
-        .eq('owner_user_id', user.id)
-        .eq('archived', false)
-        .order('created_at', { ascending: false })
-
-      const propertyList = propertiesData || []
+      // Paged: Supabase silently caps a single response at 1000 rows and
+      // drops the rest with no error. The top pricing tier now goes to
+      // 500+ units, and a dashboard silently showing a wrong (too-low)
+      // rent roll total or missing compliance alerts past that point is a
+      // worse failure than a slow page — it looks correct while being
+      // quietly incomplete, and this page is the first thing every
+      // landlord sees.
+      const propertyList = await fetchAllPagesOrEmpty<any>((from, to) =>
+        supabase
+          .from('properties')
+          .select('*')
+          .eq('owner_user_id', user.id)
+          .eq('archived', false)
+          .order('created_at', { ascending: false })
+          .range(from, to)
+      )
 
       if (propertyList.length === 0) {
         setLoading(false)
@@ -130,44 +139,52 @@ export default function LandlordDashboard() {
       // The dashboard used to run 20+ queries one after another, each waiting
       // on the last. Almost none depend on each other, so they run together
       // in rounds — only what genuinely needs an earlier result waits for it.
-      const [{ data: complianceItemsData }, { data: unitsData }] = await Promise.all([
-        supabase
-          .from('compliance_items')
-          .select('*, properties(address, city)')
-          .in('property_id', propertyIds)
-          .not('expiry_date', 'is', null),
-        supabase.from('units').select('*').in('property_id', propertyIds),
+      const [complianceItemsData, unitList] = await Promise.all([
+        fetchAllPagesOrEmpty<any>((from, to) =>
+          supabase
+            .from('compliance_items')
+            .select('*, properties(address, city)')
+            .in('property_id', propertyIds)
+            .not('expiry_date', 'is', null)
+            .range(from, to)
+        ),
+        fetchAllPagesOrEmpty<any>((from, to) => supabase.from('units').select('*').in('property_id', propertyIds).range(from, to)),
       ])
 
       const today = new Date()
       today.setHours(0, 0, 0, 0)
-      const complianceAlertsList = (complianceItemsData || []).filter((item) => {
+      const complianceAlertsList = complianceItemsData.filter((item) => {
         const expiry = new Date(item.expiry_date + 'T00:00:00')
         const daysUntil = Math.round((expiry.getTime() - today.getTime()) / (24 * 60 * 60 * 1000))
         const reminderDays = item.reminder_days ?? 30
         return daysUntil <= reminderDays
       })
 
-      const unitList = unitsData || []
       const unitIds = unitList.map((u) => u.id)
-      const none = Promise.resolve({ data: [] as any[] })
       const jobSelect = '*, units(unit_number, properties(address, city))'
 
       // One query for every job that's still live (previously nine separate
       // queries against the same table, one per status), and a capped one
-      // for recently finished jobs (only used for "rate this contractor").
-      const [tenanciesRes, openJobsRes, completedRes, invitesRes] = await Promise.all([
+      // for recently finished jobs (only used for "rate this contractor" —
+      // deliberately bounded at 100, unlike the others here, since that
+      // feature only ever needs "recent", not "every job ever").
+      const [tenancyList, openJobs, completedJobs, pendingInvitesList] = await Promise.all([
         unitIds.length > 0
-          ? supabase.from('tenancies').select('id, unit_id, rent_amount').in('unit_id', unitIds).eq('ended', false)
-          : none,
+          ? fetchAllPagesOrEmpty<any>((from, to) =>
+              supabase.from('tenancies').select('id, unit_id, rent_amount').in('unit_id', unitIds).eq('ended', false).range(from, to)
+            )
+          : Promise.resolve([]),
         unitIds.length > 0
-          ? supabase
-              .from('jobs')
-              .select(jobSelect)
-              .in('unit_id', unitIds)
-              .not('status', 'in', '(completed,archived,declined)')
-              .order('created_at', { ascending: false })
-          : none,
+          ? fetchAllPagesOrEmpty<any>((from, to) =>
+              supabase
+                .from('jobs')
+                .select(jobSelect)
+                .in('unit_id', unitIds)
+                .not('status', 'in', '(completed,archived,declined)')
+                .order('created_at', { ascending: false })
+                .range(from, to)
+            )
+          : Promise.resolve([]),
         unitIds.length > 0
           ? supabase
               .from('jobs')
@@ -176,20 +193,19 @@ export default function LandlordDashboard() {
               .in('status', ['completed', 'archived'])
               .order('created_at', { ascending: false })
               .limit(100)
-          : none,
+              .then((res) => res.data || [])
+          : Promise.resolve([]),
         unitIds.length > 0
-          ? supabase
-              .from('tenancy_invites')
-              .select('*, units(unit_number, property_id, properties(address, city))')
-              .in('unit_id', unitIds)
-              .eq('status', 'pending')
-          : none,
+          ? fetchAllPagesOrEmpty<any>((from, to) =>
+              supabase
+                .from('tenancy_invites')
+                .select('*, units(unit_number, property_id, properties(address, city))')
+                .in('unit_id', unitIds)
+                .eq('status', 'pending')
+                .range(from, to)
+            )
+          : Promise.resolve([]),
       ])
-
-      const tenancyList: any[] = tenanciesRes.data || []
-      const openJobs: any[] = openJobsRes.data || []
-      const completedJobs: any[] = completedRes.data || []
-      const pendingInvitesList: any[] = invitesRes.data || []
 
       const occupiedUnitIds = new Set(tenancyList.map((t) => t.unit_id))
       const monthlyRentRoll = tenancyList.reduce((sum, t) => sum + (t.rent_amount || 0), 0)
@@ -205,30 +221,30 @@ export default function LandlordDashboard() {
       const tenancyIds = tenancyList.map((t) => t.id)
       const openJobIds = openJobs.map((j) => j.id)
 
-      const [rentRes, bidsRes, reviewsRes] = await Promise.all([
+      const [rentPayments, bids, reviewedJobRows] = await Promise.all([
         tenancyIds.length > 0
-          ? supabase
-              .from('rent_payments')
-              .select('*')
-              .in('tenancy_id', tenancyIds)
-              .gte('month', rentWindowKey)
-          : none,
+          ? fetchAllPagesOrEmpty<any>((from, to) =>
+              supabase.from('rent_payments').select('*').in('tenancy_id', tenancyIds).gte('month', rentWindowKey).range(from, to)
+            )
+          : Promise.resolve([]),
         openJobIds.length > 0
-          ? supabase
-              .from('bids')
-              .select('job_id, contractor_user_id, status, price_change_status')
-              .in('job_id', openJobIds)
-          : none,
+          ? fetchAllPagesOrEmpty<any>((from, to) =>
+              supabase.from('bids').select('job_id, contractor_user_id, status, price_change_status').in('job_id', openJobIds).range(from, to)
+            )
+          : Promise.resolve([]),
         completedJobs.length > 0
-          ? supabase
-              .from('contractor_reviews')
-              .select('job_id')
-              .eq('reviewer_user_id', user.id)
-              .in('job_id', completedJobs.map((j) => j.id))
-          : none,
+          ? fetchAllPagesOrEmpty<any>((from, to) =>
+              supabase
+                .from('contractor_reviews')
+                .select('job_id')
+                .eq('reviewer_user_id', user.id)
+                .in('job_id', completedJobs.map((j) => j.id))
+                .range(from, to)
+            )
+          : Promise.resolve([]),
       ])
 
-      const rentAlertsList = ((rentRes.data as any[]) || [])
+      const rentAlertsList = rentPayments
         .filter((rp) => {
           const monthDate = new Date(rp.month + 'T00:00:00')
           const actual = rp.actual_amount || 0
@@ -246,7 +262,7 @@ export default function LandlordDashboard() {
       const activityCutoff = new Date()
       activityCutoff.setDate(activityCutoff.getDate() - 14)
       const activityCutoffKey = `${activityCutoff.getFullYear()}-${String(activityCutoff.getMonth() + 1).padStart(2, '0')}-${String(activityCutoff.getDate()).padStart(2, '0')}`
-      const rentActivityList = ((rentRes.data as any[]) || [])
+      const rentActivityList = rentPayments
         .map((rp) => {
           const paid = Number(rp.expected_amount) > 0 && Number(rp.actual_amount || 0) >= Number(rp.expected_amount)
           return { ...rp, paid, processing: !paid && rp.stripe_status === 'processing' }
@@ -262,7 +278,6 @@ export default function LandlordDashboard() {
         })
 
       // Everything below is sorting the jobs already loaded, no more queries.
-      const bids: any[] = (bidsRes.data as any[]) || []
       const byStatus = (...statuses: string[]) => openJobs.filter((j) => statuses.includes(j.status))
 
       const needsApprovalCount = byStatus('pending_approval', 'approved').length
@@ -281,7 +296,7 @@ export default function LandlordDashboard() {
       const confirmedSchedulesList = openJobs.filter((j) => j.status === 'scheduled' && j.schedule_confirmed === true)
       const pendingReviewList = byStatus('pending_review')
 
-      const reviewedJobIds = new Set(((reviewsRes.data as any[]) || []).map((r) => r.job_id))
+      const reviewedJobIds = new Set(reviewedJobRows.map((r: any) => r.job_id))
       const needsRatingList = completedJobs.filter((j) => !reviewedJobIds.has(j.id))
 
       // Only bids still open count, so a job reopened after a contractor
