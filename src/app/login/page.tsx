@@ -158,7 +158,16 @@ function LoginForm() {
         setJustVerifiedUser(session.user)
         setCheckingSession(false)
       } else if (session?.user) {
-        completeSignIn(session.user, true)
+        // Already signed in, but not from a fresh confirmation-link
+        // session (that's the branch above, gated on consumeFreshSignIn()
+        // matching) — just an ordinary visit to /login while already
+        // authenticated. Redirect straight through; this is NOT a first
+        // activation, and must not be treated as one. Passing `true` here
+        // used to fire the welcome email (and welcome-only side effects)
+        // on any such visit, for anyone whose welcomed_at hadn't been
+        // stamped yet — e.g. a contractor landing back on /login via a
+        // stale or deep-linked URL well after their real signup.
+        completeSignIn(session.user)
       } else {
         setLinkError(consumeAuthError())
         setCheckingSession(false)
