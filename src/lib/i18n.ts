@@ -707,6 +707,43 @@ const STRINGS = {
   jobChatSubtitleRenter: { en: 'Messages and updates about this job, in one place', es: 'Mensajes y actualizaciones sobre este trabajo, en un solo lugar' },
   timeProposedHeading: { en: 'Time proposed', es: 'Horario propuesto' },
   willLetYouKnowConfirmed: { en: "We'll let you know once it's confirmed.", es: 'Te avisaremos cuando se confirme.' },
+
+  // StripeConnectCard
+  getPaidRentTitle: { en: 'Get paid rent', es: 'Recibe pagos de renta' },
+  getPaidRentBody: { en: 'Connect a bank account so rent payments made through Prophandld go straight to you.', es: 'Conecta una cuenta bancaria para que los pagos de renta hechos a través de Prophandld vayan directo a ti.' },
+  getPaidJobsTitle: { en: 'Get paid for jobs', es: 'Recibe pagos por trabajos' },
+  getPaidJobsBody: { en: 'Connect a payout method (bank account or instant debit-card payout) so landlords can pay you through Prophandld.', es: 'Conecta un método de pago (cuenta bancaria o pago instantáneo con tarjeta de débito) para que los propietarios puedan pagarte a través de Prophandld.' },
+  payoutsActiveBadge: { en: 'Payouts active', es: 'Pagos activos' },
+  setupInProgress: { en: 'Setup in progress', es: 'Configuración en progreso' },
+  notSetUp: { en: 'Not set up', es: 'No configurado' },
+  couldNotStartPayoutSetup: { en: 'Could not start payout setup.', es: 'No se pudo iniciar la configuración de pagos.' },
+  managePayoutAccount: { en: 'Manage payout account', es: 'Administrar cuenta de pagos' },
+  redirecting: { en: 'Redirecting...', es: 'Redirigiendo...' },
+  billingHeading: { en: 'Billing', es: 'Facturación' },
+  youHaveUnitsPlanIs: { en: 'You have', es: 'Tienes' },
+  soYourPlanIs: { en: 'so your plan is', es: 'así que tu plan es' },
+  platformFeeDesc: { en: 'Your Prophandld platform fee, based on how many units you manage.', es: 'Tu tarifa de plataforma de Prophandld, según cuántas unidades administras.' },
+  tierSuffix: { en: 'tier', es: 'nivel' },
+  activeStatus: { en: 'Active', es: 'Activo' },
+  paymentNeededBadge: { en: 'Payment needed', es: 'Pago requerido' },
+  manageBillingBtn: { en: 'Manage billing', es: 'Administrar facturación' },
+  oneUnitStaysFree: { en: '1 unit stays free, no card needed.', es: '1 unidad se mantiene gratis, sin necesidad de tarjeta.' },
+  couldNotSyncUnitCount: { en: 'Could not sync your unit count.', es: 'No se pudo sincronizar tu cantidad de unidades.' },
+  couldNotLoadBillingStatus: { en: 'Could not load billing status.', es: 'No se pudo cargar el estado de facturación.' },
+  couldNotStartCheckout: { en: 'Could not start checkout.', es: 'No se pudo iniciar el pago.' },
+  couldNotOpenBillingPortal: { en: 'Could not open billing portal.', es: 'No se pudo abrir el portal de facturación.' },
+  tierRangeFree: { en: '1 unit', es: '1 unidad' },
+  tierRangeStarter: { en: '2–25 units', es: '2–25 unidades' },
+  tierRangeGrowth: { en: '26–100 units', es: '26–100 unidades' },
+  tierRangePortfolio: { en: '101–500 units', es: '101–500 unidades' },
+  tierRangeEnterprise: { en: '500+ units', es: '500+ unidades' },
+  subscribeColon: { en: 'Subscribe:', es: 'Suscribirse:' },
+  planIsForUnits: { en: 'Your plan is', es: 'Tu plan es' },
+  subscribeKeepAddingEnforced: { en: 'Subscribe to keep adding properties and units. Repairs, rent and messages keep working as usual.', es: 'Suscríbete para seguir agregando propiedades y unidades. Reparaciones, renta y mensajes siguen funcionando normalmente.' },
+  subscribeGoodStanding: { en: 'Subscribe to keep your account in good standing. Repairs, rent and messages keep working as usual.', es: 'Suscríbete para mantener tu cuenta en buen estado. Reparaciones, renta y mensajes siguen funcionando normalmente.' },
+  seeBillingDetails: { en: 'See billing details', es: 'Ver detalles de facturación' },
+  subscribeToAdd: { en: 'Subscribe to add', es: 'Suscríbete para agregar' },
+  onceActiveAddMore: { en: 'Once it is active you can add more. Everything you already have keeps working.', es: 'Una vez activo, puedes agregar más. Todo lo que ya tienes sigue funcionando.' },
   jobNotFound: { en: 'Job not found.', es: 'Trabajo no encontrado.' },
   couldNotRemovePhoto: { en: 'Could not remove photo.', es: 'No se pudo eliminar la foto.' },
   couldNotAcknowledgeJob: { en: 'Could not acknowledge job.', es: 'No se pudo reconocer el trabajo.' },
@@ -758,6 +795,20 @@ export function windowLabel(value: string | undefined, lang: Lang): string {
 // said "Renter" for the exact same role, a mismatch a viewer would notice
 // switching between the inbox and a conversation. Call this instead of
 // writing a fourth copy.
+// Translated version of pricingTiers.ts's TIER_RANGE_LABELS (kept separate
+// there for a deliberate reason — that file must stay free of anything
+// that isn't safe in a client bundle alongside the `stripe` package — but
+// the range text itself is plain UI copy, so it belongs here with the
+// rest of the translated strings.
+export function tierRangeLabel(tier: string, lang: Lang): string {
+  if (tier === 'free') return t('tierRangeFree', lang)
+  if (tier === 'starter') return t('tierRangeStarter', lang)
+  if (tier === 'growth') return t('tierRangeGrowth', lang)
+  if (tier === 'portfolio') return t('tierRangePortfolio', lang)
+  if (tier === 'enterprise') return t('tierRangeEnterprise', lang)
+  return tier
+}
+
 export function roleLabel(role: string, lang: Lang): string {
   if (role === 'landlord') return t('landlordLabel', lang)
   if (role === 'renter') return t('renterLabel', lang)

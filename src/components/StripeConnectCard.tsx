@@ -5,10 +5,12 @@ import { RippleButton } from '@/components/RippleButton'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { CheckCircleIcon } from '@/components/icons'
 import { openPendingTab, goToTab, abandonTab } from '@/lib/externalTab'
+import { useLanguage, t } from '@/lib/i18n'
 
 type ConnectStatus = 'not_started' | 'onboarding' | 'active'
 
 export function StripeConnectCard({ purpose }: { purpose: 'rent' | 'jobs' }) {
+  const lang = useLanguage()
   const [status, setStatus] = useState<ConnectStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [redirecting, setRedirecting] = useState(false)
@@ -45,7 +47,7 @@ export function StripeConnectCard({ purpose }: { purpose: 'rent' | 'jobs' }) {
       const data = await res.json()
       if (!res.ok || !data.url) {
         abandonTab(tab)
-        setError(data.error || 'Could not start payout setup.')
+        setError(data.error || t('couldNotStartPayoutSetup', lang))
         setRedirecting(false)
         return
       }
@@ -53,19 +55,19 @@ export function StripeConnectCard({ purpose }: { purpose: 'rent' | 'jobs' }) {
       setRedirecting(false)
     } catch {
       abandonTab(tab)
-      setError('Could not start payout setup.')
+      setError(t('couldNotStartPayoutSetup', lang))
       setRedirecting(false)
     }
   }
 
   const copy = purpose === 'rent'
     ? {
-        title: 'Get paid rent',
-        body: 'Connect a bank account so rent payments made through Prophandld go straight to you.',
+        title: t('getPaidRentTitle', lang),
+        body: t('getPaidRentBody', lang),
       }
     : {
-        title: 'Get paid for jobs',
-        body: 'Connect a payout method (bank account or instant debit-card payout) so landlords can pay you through Prophandld.',
+        title: t('getPaidJobsTitle', lang),
+        body: t('getPaidJobsBody', lang),
       }
 
   return (
@@ -81,7 +83,7 @@ export function StripeConnectCard({ purpose }: { purpose: 'rent' | 'jobs' }) {
                 : 'text-xs font-semibold px-2.5 py-1 rounded-full bg-white/8 text-white/50'
           }>
             {status === 'active' && <CheckCircleIcon className="w-3 h-3" />}
-            {status === 'active' ? 'Payouts active' : status === 'onboarding' ? 'Setup in progress' : 'Not set up'}
+            {status === 'active' ? t('payoutsActiveBadge', lang) : status === 'onboarding' ? t('setupInProgress', lang) : t('notSetUp', lang)}
           </span>
         )}
       </div>
@@ -101,14 +103,14 @@ export function StripeConnectCard({ purpose }: { purpose: 'rent' | 'jobs' }) {
           disabled={redirecting}
           className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
         >
-          {redirecting ? 'Redirecting...' : status === 'onboarding' ? 'Finish setup' : 'Set up payouts'}
+          {redirecting ? t('redirecting', lang) : status === 'onboarding' ? t('finishSetup', lang) : t('setUpPayouts', lang)}
         </RippleButton>
       ) : (
         <RippleButton
           onClick={handleSetup}
           className="bg-white/5 border border-white/10 text-white/70 text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-white/8 transition"
         >
-          Manage payout account
+          {t('managePayoutAccount', lang)}
         </RippleButton>
       )}
     </ScrollReveal>
