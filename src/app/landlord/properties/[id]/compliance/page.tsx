@@ -10,7 +10,20 @@ import { AlertTriangleIcon, CheckCircleIcon, FileTextIcon } from '@/components/i
 import { LANDLORD_TABS } from '@/lib/navTabs'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
+import { useLanguage, t, type Lang } from '@/lib/i18n'
 
+const ITEM_TYPE_KEYS: ('complianceItemRentalLicense' | 'complianceItemLeadCertification' | 'complianceItemSmokeDetector' | 'complianceItemCoDetector' | 'complianceItemFireExtinguisher' | 'complianceItemInsuranceRenewal')[] = [
+  'complianceItemRentalLicense',
+  'complianceItemLeadCertification',
+  'complianceItemSmokeDetector',
+  'complianceItemCoDetector',
+  'complianceItemFireExtinguisher',
+  'complianceItemInsuranceRenewal',
+]
+
+// The English item_type values are what's actually stored in the database
+// (compliance_items.item_type) — these stay fixed regardless of display
+// language, same policy as job categories elsewhere in the app.
 const ITEM_TYPES = [
   'Rental License',
   'Lead Certification',
@@ -21,9 +34,16 @@ const ITEM_TYPES = [
   'Other',
 ]
 
+const itemTypeDisplayLabel = (value: string, lang: Lang) => {
+  const idx = ITEM_TYPES.indexOf(value)
+  if (idx >= 0 && idx < ITEM_TYPE_KEYS.length) return t(ITEM_TYPE_KEYS[idx], lang)
+  return value
+}
+
 export default function PropertyCompliancePage() {
   const router = useRouter()
   const params = useParams()
+  const lang = useLanguage()
   const propertyId = params.id as string
 
   const [loading, setLoading] = useState(true)
@@ -126,7 +146,7 @@ export default function PropertyCompliancePage() {
 
     if (uploadError) {
       console.error('Error uploading compliance document:', uploadError)
-      setError(`Could not upload document: ${uploadError.message}`)
+      setError(`${t('couldNotUploadDocumentColon', lang)}${uploadError.message}`)
       return
     }
 
@@ -143,7 +163,7 @@ export default function PropertyCompliancePage() {
 
     if (docInsertError) {
       console.error('Error linking compliance document:', docInsertError)
-      setError(`Document uploaded, but could not link it: ${docInsertError.message}`)
+      setError(`${t('documentUploadedNotLinked', lang)}${docInsertError.message}`)
     }
   }
 
@@ -156,7 +176,7 @@ export default function PropertyCompliancePage() {
   }
 
   const handleRemoveAttachment = async (doc: any) => {
-    if (!window.confirm(`Remove "${doc.filename}"?`)) return
+    if (!window.confirm(`${t('removeAttachmentConfirmPrefix', lang)}${doc.filename}${t('removeAttachmentConfirmSuffix', lang)}`)) return
 
     const { error: storageError } = await supabase.storage.from('documents').remove([doc.file_url])
     if (storageError) {
@@ -166,7 +186,7 @@ export default function PropertyCompliancePage() {
     const { error: deleteError } = await supabase.from('documents').delete().eq('id', doc.id)
     if (deleteError) {
       console.error('Error deleting document record:', deleteError)
-      setError(`Could not remove document: ${deleteError.message}`)
+      setError(`${t('couldNotRemoveDocumentColon', lang)}${deleteError.message}`)
       return
     }
 
@@ -181,11 +201,11 @@ export default function PropertyCompliancePage() {
     e.preventDefault()
 
     if (!form.item_type) {
-      setError('Please select a type.')
+      setError(t('pleaseSelectAType', lang))
       return
     }
     if (form.item_type === 'Other' && !form.custom_item_type.trim()) {
-      setError('Please enter a type.')
+      setError(t('pleaseEnterAType', lang))
       return
     }
 
@@ -207,7 +227,7 @@ export default function PropertyCompliancePage() {
 
     if (insertError) {
       console.error('Error adding compliance item:', insertError)
-      setError(`Could not add item: ${insertError.message}`)
+      setError(`${t('couldNotAddItemColon', lang)}${insertError.message}`)
       setSaving(false)
       return
     }
@@ -235,7 +255,7 @@ export default function PropertyCompliancePage() {
 
   const saveRenew = async (itemId: string) => {
     if (!renewDate) {
-      setError('Please pick a new expiry date.')
+      setError(t('pleasePickNewExpiryDate', lang))
       return
     }
 
@@ -246,7 +266,7 @@ export default function PropertyCompliancePage() {
 
     if (updateError) {
       console.error('Error renewing item:', updateError)
-      setError(`Could not save changes: ${updateError.message}`)
+      setError(`${t('couldNotSaveChangesColon', lang)}${updateError.message}`)
       return
     }
 
@@ -256,21 +276,25 @@ export default function PropertyCompliancePage() {
   }
 
   const handleDelete = async (item: any) => {
-    if (!window.confirm(`Remove "${item.item_type}"?`)) return
+    if (!window.confirm(`${t('removeAttachmentConfirmPrefix', lang)}${item.item_type}${t('removeAttachmentConfirmSuffix', lang)}`)) return
 
     const { error: deleteError } = await supabase.from('compliance_items').delete().eq('id', item.id)
     if (deleteError) {
       console.error('Error deleting compliance item:', deleteError)
-      setError(`Could not delete item: ${deleteError.message}`)
+      setError(`${t('couldNotDeleteItemColon', lang)}${deleteError.message}`)
       return
     }
 
     setItems((prev) => prev.filter((i) => i.id !== item.id))
   }
 
+  // `key` is the stable, untranslated identifier to branch UI logic on
+  // (which icon to show, etc.) — `label` is only for display. Comparing
+  // logic against `label` broke the moment it got translated, since the
+  // translated string never equals the English literal being checked.
   const getExpiryStatus = (item: any) => {
     if (!item.expiry_date) {
-      return { label: 'No expiry set', color: 'bg-white/8 text-white/50' }
+      return { key: 'no_expiry', label: t('noExpirySet', lang), color: 'bg-white/8 text-white/50' }
     }
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -278,9 +302,9 @@ export default function PropertyCompliancePage() {
     const daysUntil = Math.round((expiry.getTime() - today.getTime()) / (24 * 60 * 60 * 1000))
     const reminderDays = item.reminder_days ?? 30
 
-    if (daysUntil < 0) return { label: 'Expired', color: 'bg-red-500/15 text-red-400' }
-    if (daysUntil <= reminderDays) return { label: 'Expiring soon', color: 'bg-yellow-500/15 text-yellow-400' }
-    return { label: 'Current', color: 'bg-[#12A5A9]/15 text-[#12A5A9]' }
+    if (daysUntil < 0) return { key: 'expired', label: t('expiredStatus', lang), color: 'bg-red-500/15 text-red-400' }
+    if (daysUntil <= reminderDays) return { key: 'expiring_soon', label: t('expiringSoonStatus', lang), color: 'bg-yellow-500/15 text-yellow-400' }
+    return { key: 'current', label: t('currentStatus', lang), color: 'bg-[#12A5A9]/15 text-[#12A5A9]' }
   }
 
   return (
@@ -290,7 +314,7 @@ export default function PropertyCompliancePage() {
           href={`/landlord/properties/${propertyId}`}
           className="text-white/50 hover:text-white text-sm transition"
         >
-          ← Property
+          {t('backToPropertyArrow', lang)}
         </Link>
         <Link href="/landlord" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
         <div className="w-20" />
@@ -311,25 +335,25 @@ export default function PropertyCompliancePage() {
         ) : !property ? null : (
         <>
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-white">Compliance</h1>
+          <h1 className="text-2xl font-bold text-white">{t('complianceHeading', lang)}</h1>
           <p className="text-white/50 text-sm mt-1">{property.address}</p>
         </div>
 
         <ScrollReveal>
         <form onSubmit={handleSubmit} className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6 space-y-4">
-          <h2 className="text-white font-semibold mb-2">Track an item</h2>
+          <h2 className="text-white font-semibold mb-2">{t('trackAnItemHeading', lang)}</h2>
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">Type</label>
+            <label className="text-white/70 text-sm block mb-1">{t('typeLabel', lang)}</label>
             <select
               name="item_type"
               value={form.item_type}
               onChange={handleChange}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
             >
-              <option value="" className="bg-[#0C1A2E]">Select a type</option>
+              <option value="" className="bg-[#0C1A2E]">{t('selectAType', lang)}</option>
               {ITEM_TYPES.map((type) => (
-                <option key={type} value={type} className="bg-[#0C1A2E]">{type}</option>
+                <option key={type} value={type} className="bg-[#0C1A2E]">{type === 'Other' ? t('itemTypeOther', lang) : itemTypeDisplayLabel(type, lang)}</option>
               ))}
             </select>
             {form.item_type === 'Other' && (
@@ -338,7 +362,7 @@ export default function PropertyCompliancePage() {
                 name="custom_item_type"
                 value={form.custom_item_type}
                 onChange={handleChange}
-                placeholder="Enter a type"
+                placeholder={t('enterATypePlaceholder', lang)}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition mt-2"
               />
             )}
@@ -346,7 +370,7 @@ export default function PropertyCompliancePage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-white/70 text-sm block mb-1">Expiry date</label>
+              <label className="text-white/70 text-sm block mb-1">{t('expiryDateLabelFull', lang)}</label>
               <input
                 type="date"
                 name="expiry_date"
@@ -356,7 +380,7 @@ export default function PropertyCompliancePage() {
               />
             </div>
             <div>
-              <label className="text-white/70 text-sm block mb-1">Remind me (days before)</label>
+              <label className="text-white/70 text-sm block mb-1">{t('remindMeDaysBeforeLabel', lang)}</label>
               <input
                 type="number"
                 name="reminder_days"
@@ -369,7 +393,7 @@ export default function PropertyCompliancePage() {
           </div>
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">Attach document (optional)</label>
+            <label className="text-white/70 text-sm block mb-1">{t('attachDocumentOptionalLabel', lang)}</label>
             <label className="block">
               <input
                 type="file"
@@ -378,7 +402,7 @@ export default function PropertyCompliancePage() {
                 className="hidden"
               />
               <span className="inline-block bg-white/8 text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-white/12 transition cursor-pointer">
-                {file ? file.name : '+ Choose file'}
+                {file ? file.name : t('chooseFileBtn', lang)}
               </span>
             </label>
           </div>
@@ -394,18 +418,18 @@ export default function PropertyCompliancePage() {
             disabled={saving}
             className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
           >
-            {saving ? 'Adding...' : 'Add item'}
+            {saving ? t('addingDots', lang) : t('addItemBtn', lang)}
           </RippleButton>
         </form>
         </ScrollReveal>
 
         <h2 className="text-white font-semibold mb-4">
-          All items {items.length > 0 && `(${items.length})`}
+          {t('allItemsHeading', lang)} {items.length > 0 && `(${items.length})`}
         </h2>
 
         {items.length === 0 ? (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
-            <p className="text-white/50 text-sm">No compliance items tracked yet.</p>
+            <p className="text-white/50 text-sm">{t('noComplianceItemsYet', lang)}</p>
           </div>
         ) : (
           <ScrollReveal>
@@ -417,16 +441,16 @@ export default function PropertyCompliancePage() {
                 <div key={item.id} className="bg-white/3 border border-white/8 rounded-2xl p-5">
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
-                      <h3 className="text-white font-semibold truncate">{item.item_type}</h3>
+                      <h3 className="text-white font-semibold truncate">{itemTypeDisplayLabel(item.item_type, lang)}</h3>
                       <div className="flex items-center gap-2 flex-wrap mt-2">
                         <span className={`inline-flex items-center gap-1 text-xs rounded-full px-2.5 py-0.5 ${status.color}`}>
-                          {status.label === 'Expired' && <AlertTriangleIcon className="w-3 h-3" />}
-                          {status.label === 'Current' && <CheckCircleIcon className="w-3 h-3" />}
+                          {status.key === 'expired' && <AlertTriangleIcon className="w-3 h-3" />}
+                          {status.key === 'current' && <CheckCircleIcon className="w-3 h-3" />}
                           {status.label}
                         </span>
                         {item.expiry_date && (
                           <span className="text-xs bg-white/8 text-white/50 rounded-full px-2.5 py-0.5">
-                            Expires {new Date(item.expiry_date + 'T00:00:00').toLocaleDateString()}
+                            {t('expiresOnPrefix', lang)} {new Date(item.expiry_date + 'T00:00:00').toLocaleDateString()}
                           </span>
                         )}
                       </div>
@@ -437,14 +461,14 @@ export default function PropertyCompliancePage() {
                           onClick={() => startRenew(item)}
                           className="text-[#12A5A9] text-xs font-semibold hover:underline"
                         >
-                          Renew
+                          {t('renewBtn', lang)}
                         </button>
                       )}
                       <button
                         onClick={() => handleDelete(item)}
                         className="text-red-400/70 text-xs hover:text-red-400 transition"
                       >
-                        Delete
+                        {t('deleteBtn', lang)}
                       </button>
                     </div>
                   </div>
@@ -461,13 +485,13 @@ export default function PropertyCompliancePage() {
                         onClick={() => saveRenew(item.id)}
                         className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-3 py-2 rounded-lg hover:opacity-90 transition"
                       >
-                        Save
+                        {t('saveBtn', lang)}
                       </button>
                       <button
                         onClick={cancelRenew}
                         className="text-white/50 hover:text-white text-xs px-2 transition"
                       >
-                        Cancel
+                        {t('cancelBtn', lang)}
                       </button>
                     </div>
                   )}
@@ -483,14 +507,14 @@ export default function PropertyCompliancePage() {
                             rel="noopener noreferrer"
                             className="text-[#12A5A9] text-xs font-semibold hover:underline"
                           >
-                            View attached document →
+                            {t('viewAttachedDocumentArrow', lang)}
                           </a>
                         )}
                         <button
                           onClick={() => handleRemoveAttachment(itemDocuments[item.id])}
                           className="text-red-400/70 text-xs hover:text-red-400 transition ml-auto"
                         >
-                          Remove
+                          {t('removeBtn', lang)}
                         </button>
                       </>
                     ) : (
@@ -506,7 +530,7 @@ export default function PropertyCompliancePage() {
                           }}
                         />
                         <span className="text-[#12A5A9] text-xs font-semibold hover:underline">
-                          {attachingId === item.id ? 'Uploading...' : '+ Attach document'}
+                          {attachingId === item.id ? t('uploadingDots', lang) : t('attachDocumentBtn', lang)}
                         </span>
                       </label>
                     )}
