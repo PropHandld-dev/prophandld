@@ -51,6 +51,7 @@ export default function ReportIssuePage() {
     description: '',
     is_emergency: false,
     maintenance_item_id: '',
+    access_notes: '',
   })
   const [categoryOptions] = useCategoryOptions()
 
@@ -178,6 +179,7 @@ export default function ReportIssuePage() {
         status: 'pending_approval',
         maintenance_item_id: form.maintenance_item_id || null,
         tenant_availability: availabilitySlots.filter((s) => s.date),
+        access_notes: form.access_notes.trim() || null,
       })
       .select()
       .single()
@@ -426,6 +428,19 @@ export default function ReportIssuePage() {
                   + Add a time you're free
                 </button>
               )}
+            </div>
+
+            <div>
+              <label className="text-white/70 text-sm block mb-1">{t('accessNotesLabel', lang)}</label>
+              <textarea
+                name="access_notes"
+                value={form.access_notes}
+                onChange={handleChange}
+                rows={2}
+                placeholder={t('accessNotesPlaceholder', lang)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition resize-none"
+              />
+              <p className="text-white/40 text-xs mt-1">{t('accessNotesHint', lang)}</p>
             </div>
 
             <button

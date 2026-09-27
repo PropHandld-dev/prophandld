@@ -44,6 +44,12 @@ export default function RenterRentPage() {
   const [payingId, setPayingId] = useState<string | null>(null)
   const [modal, setModal] = useState<{ clientSecret: string; amount: number; rentPaymentId: string } | null>(null)
   const [methodChoicePayment, setMethodChoicePayment] = useState<any>(null)
+  // 'all' by default — a tenant's own history rarely spans enough years for
+  // filtering to matter the way it does for a landlord's whole portfolio,
+  // so this defaults open rather than defaulting to "this year" and hiding
+  // older payments someone might actually be looking for (a mid-lease
+  // receipt lookup, tax records, moving-out reference).
+  const [historyYear, setHistoryYear] = useState<'all' | number>('all')
 
   const loadPayments = async (tenancyId: string) => {
     const { data, error: paymentsError } = await supabase
@@ -244,6 +250,9 @@ export default function RenterRentPage() {
 
   const unpaid = payments.filter((p) => !isPaid(p)).sort((a, b) => a.month.localeCompare(b.month))
   const paid = payments.filter(isPaid)
+  const paymentYears = Array.from(new Set(paid.map((p) => Number(p.month.slice(0, 4))))).sort((a, b) => b - a)
+  const paidInSelectedYear = historyYear === 'all' ? paid : paid.filter((p) => Number(p.month.slice(0, 4)) === historyYear)
+  const yearTotal = paidInSelectedYear.reduce((sum, p) => sum + Number(p.actual_amount) + Number(p.card_surcharge_amount || 0), 0)
   const heroPayment = unpaid.find((p) => !isUpcomingMonth(p)) ?? null
   const nextUp = heroPayment ? null : unpaid[0] ?? null
   const otherUnpaid = unpaid.filter((p) => p.id !== heroPayment?.id && p.id !== nextUp?.id)
@@ -472,9 +481,26 @@ export default function RenterRentPage() {
 
                 {paid.length > 0 && (
                   <section>
-                    <h2 className="text-white/60 text-xs font-semibold uppercase tracking-wide mb-3">{t('paymentHistory', lang)}</h2>
+                    <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+                      <h2 className="text-white/60 text-xs font-semibold uppercase tracking-wide">{t('paymentHistory', lang)}</h2>
+                      <div className="flex items-center gap-3">
+                        <span className="text-white/50 text-xs tabular-nums">{t('totalPaidPrefix', lang)} {money(yearTotal)}</span>
+                        {paymentYears.length > 1 && (
+                          <select
+                            value={historyYear}
+                            onChange={(e) => setHistoryYear(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+                            className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-[#12A5A9] transition"
+                          >
+                            <option value="all" className="bg-[#0C1A2E]">{t('allYearsOption', lang)}</option>
+                            {paymentYears.map((y) => (
+                              <option key={y} value={y} className="bg-[#0C1A2E]">{y}</option>
+                            ))}
+                          </select>
+                        )}
+                      </div>
+                    </div>
                     <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl divide-y divide-white/8">
-                      {paid.map((payment) => (
+                      {paidInSelectedYear.map((payment) => (
                         <div key={payment.id} className="flex items-center justify-between gap-4 px-4 py-3.5">
                           <div className="min-w-0">
                             <p className="text-white text-sm font-medium">{formatMonth(payment.month)}</p>

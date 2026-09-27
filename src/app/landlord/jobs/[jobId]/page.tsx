@@ -919,6 +919,13 @@ export default function JobDetailPage() {
 
           <p className="text-white/70 text-sm leading-relaxed">{job.description}</p>
 
+          {job.access_notes && (
+            <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 mt-3">
+              <p className="text-white/50 text-xs font-semibold mb-1">{t('accessNotesForContractorHeading', lang)}</p>
+              <p className="text-white/70 text-sm">{job.access_notes}</p>
+            </div>
+          )}
+
           <div className="flex items-center gap-4 mt-4 pt-4 border-t border-white/5">
             <span className="text-xs bg-white/8 text-white/50 rounded-full px-2.5 py-1 capitalize">
               {job.urgency} {t('urgencySuffix', lang)}

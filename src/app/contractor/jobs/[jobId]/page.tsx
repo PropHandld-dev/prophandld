@@ -596,6 +596,13 @@ export default function ContractorJobDetailPage() {
           )}
           <p className="text-white/70 text-sm leading-relaxed">{job.description}</p>
 
+          {job.access_notes && (
+            <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 mt-3">
+              <p className="text-white/50 text-xs font-semibold mb-1">{t('accessNotesForContractorHeading', lang)}</p>
+              <p className="text-white/70 text-sm">{job.access_notes}</p>
+            </div>
+          )}
+
           {myBid && (
             <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 mt-4">
               <p className="text-white/50 text-xs">{t('yourAcceptedBid', lang)}</p>

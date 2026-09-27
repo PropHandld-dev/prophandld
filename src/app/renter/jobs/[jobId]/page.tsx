@@ -42,6 +42,10 @@ export default function RenterJobDetailPage() {
   const [scheduleTime, setScheduleTime] = useState('')
   const [showProposedModal, setShowProposedModal] = useState(false)
 
+  const [editingAccessNotes, setEditingAccessNotes] = useState(false)
+  const [accessNotesDraft, setAccessNotesDraft] = useState('')
+  const [savingAccessNotes, setSavingAccessNotes] = useState(false)
+
   const fetchJob = async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
@@ -167,6 +171,31 @@ export default function RenterJobDetailPage() {
     setShowProposedModal(true)
   }
 
+  const startEditingAccessNotes = () => {
+    setAccessNotesDraft(job.access_notes || '')
+    setEditingAccessNotes(true)
+  }
+
+  const saveAccessNotes = async () => {
+    setSavingAccessNotes(true)
+    setError(null)
+    const { error: updateError } = await expectRow(supabase
+      .from('jobs')
+      .update({ access_notes: accessNotesDraft.trim() || null })
+      .eq('id', jobId))
+
+    if (updateError) {
+      console.error('Error saving access notes:', updateError)
+      setError(t('couldNotSaveAccessNotes', lang))
+      setSavingAccessNotes(false)
+      return
+    }
+
+    setJob({ ...job, access_notes: accessNotesDraft.trim() || null })
+    setEditingAccessNotes(false)
+    setSavingAccessNotes(false)
+  }
+
   const confirmSchedule = async () => {
     setActioning(true)
     const { error: updateError } = await expectRow(supabase
@@ -285,6 +314,52 @@ export default function RenterJobDetailPage() {
             </div>
           )}
         </ScrollReveal>
+
+        {!['completed', 'archived', 'declined'].includes(job.status) && (
+          <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-white font-semibold">{t('accessNotesHeading', lang)}</h2>
+              {!editingAccessNotes && (
+                <button
+                  onClick={startEditingAccessNotes}
+                  className="text-[#12A5A9] text-xs font-semibold hover:underline"
+                >
+                  {job.access_notes ? t('editAccessNotesBtn', lang) : t('addAccessNotesBtn', lang)}
+                </button>
+              )}
+            </div>
+            {editingAccessNotes ? (
+              <div className="space-y-3">
+                <textarea
+                  value={accessNotesDraft}
+                  onChange={(e) => setAccessNotesDraft(e.target.value)}
+                  rows={2}
+                  placeholder={t('accessNotesPlaceholder', lang)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition resize-none"
+                />
+                <div className="flex items-center gap-3">
+                  <RippleButton
+                    onClick={saveAccessNotes}
+                    disabled={savingAccessNotes}
+                    className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
+                  >
+                    {savingAccessNotes ? t('savingDots', lang) : t('saveBtn', lang)}
+                  </RippleButton>
+                  <button
+                    onClick={() => setEditingAccessNotes(false)}
+                    className="text-white/60 text-xs hover:text-white transition"
+                  >
+                    {t('cancelBtn', lang)}
+                  </button>
+                </div>
+              </div>
+            ) : job.access_notes ? (
+              <p className="text-white/70 text-sm">{job.access_notes}</p>
+            ) : (
+              <p className="text-white/40 text-sm">{t('accessNotesHint', lang)}</p>
+            )}
+          </ScrollReveal>
+        )}
 
         {job.status === 'disputed' && (
           <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl p-6 mb-4">

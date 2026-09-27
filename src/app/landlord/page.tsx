@@ -609,13 +609,16 @@ export default function LandlordDashboard() {
                 <div className="text-white/60 text-sm mt-1">{t('occupiedVacant', lang)} {stats.vacantUnits} {t('vacant', lang)}</div>
               </div>
 
-              <div className="bg-gradient-to-br from-[#0A7B7E]/15 to-[#12A5A9]/5 border border-[#12A5A9]/20 rounded-2xl p-5">
+              <Link
+                href="/landlord/rent"
+                className="bg-gradient-to-br from-[#0A7B7E]/15 to-[#12A5A9]/5 border border-[#12A5A9]/20 rounded-2xl p-5 block hover:border-[#12A5A9]/40 hover:-translate-y-0.5 transition-all"
+              >
                 <div className="flex items-center justify-between mb-3">
                   <DollarSignIcon className="w-5 h-5 text-[#12A5A9]" />
                 </div>
                 <div className="text-3xl font-bold text-white">{formatCurrency(stats.monthlyRentRoll)}</div>
                 <div className="text-white/60 text-sm mt-1">{t('monthlyRentRoll', lang)}</div>
-              </div>
+              </Link>
             </ScrollReveal>
 
             <div className="grid grid-cols-3 gap-4 mb-10" data-tour="pipeline">

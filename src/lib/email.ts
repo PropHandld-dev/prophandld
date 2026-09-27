@@ -1644,6 +1644,89 @@ export async function sendDmScheduleEmail({
   return sendEmail({ to, subject: heading, html })
 }
 
+// One shared reminder, three sets of copy — the tenant, the contractor, and
+// the landlord all benefit from a heads-up the day before an appointment
+// (fewer no-shows, one last chance for the tenant to add or fix access
+// notes before it's actually needed), so all three get one, not just the
+// tenant. Sent once per confirmed date by cron/appointment-reminder — see
+// that route for how it avoids sending twice for the same appointment.
+export async function sendAppointmentReminderEmail({
+  to,
+  role,
+  name,
+  category,
+  propertyLabel,
+  unitLabel,
+  when,
+  jobId,
+  accessNotes,
+  lang = 'en',
+}: {
+  to: string
+  role: 'renter' | 'contractor' | 'landlord'
+  name: string
+  category: string
+  propertyLabel: string
+  unitLabel?: string | null
+  when: string
+  jobId: string
+  accessNotes?: string | null
+  lang?: Lang
+}) {
+  const ctaUrl = `${SITE_URL}/${role}/jobs/${jobId}`
+  const cat = escapeHtml(category)
+  const at = escapeHtml(unitLabel ? `${propertyLabel}, ${unitLabel}` : propertyLabel)
+  const whenEsc = escapeHtml(when)
+
+  const accessNotesBlock = accessNotes
+    ? lang === 'es'
+      ? `<br /><br /><strong>Notas de acceso del inquilino:</strong> "${escapeHtml(accessNotes)}"`
+      : `<br /><br /><strong>The tenant's access notes:</strong> "${escapeHtml(accessNotes)}"`
+    : ''
+
+  const copy =
+    lang === 'es'
+      ? {
+          eyebrow: 'Recordatorio',
+          heading: `Mañana: ${cat}`,
+          renterBody: `Hola ${escapeHtml(name)}, un contratista está programado para visitar tu unidad mañana, <strong>${whenEsc}</strong>, por un trabajo de <strong>${cat}</strong>. ${accessNotes ? 'Si algo cambió, puedes actualizar tus notas de acceso desde el trabajo.' : 'Si el contratista necesita saber algo para entrar (código de la caja de seguridad, si estarás en casa, etc.), puedes agregarlo desde el trabajo antes de que lleguen.'}`,
+          contractorBody: `Hola ${escapeHtml(name)}, tienes un trabajo de <strong>${cat}</strong> programado para mañana, <strong>${whenEsc}</strong>, en ${at}.${accessNotesBlock}`,
+          landlordBody: `Hola ${escapeHtml(name)}, el trabajo de <strong>${cat}</strong> en ${at} está programado para mañana, <strong>${whenEsc}</strong>. Esto es solo un aviso — no se necesita nada de tu parte.`,
+          ctaLabel: 'Ver trabajo',
+        }
+      : {
+          eyebrow: 'Reminder',
+          heading: `Tomorrow: ${cat}`,
+          renterBody: `Hi ${escapeHtml(name)}, a contractor is scheduled to visit your unit tomorrow, <strong>${whenEsc}</strong>, for a <strong>${cat}</strong> job. ${accessNotes ? 'If anything has changed, you can update your access notes from the job.' : "If the contractor needs to know anything to get in (a lockbox code, whether you'll be home, etc.), you can add it from the job before they arrive."}`,
+          contractorBody: `Hi ${escapeHtml(name)}, you have a <strong>${cat}</strong> job scheduled for tomorrow, <strong>${whenEsc}</strong>, at ${at}.${accessNotesBlock}`,
+          landlordBody: `Hi ${escapeHtml(name)}, the <strong>${cat}</strong> job at ${at} is scheduled for tomorrow, <strong>${whenEsc}</strong>. This is just a heads-up — nothing is needed from you.`,
+          ctaLabel: 'View job',
+        }
+
+  const bodyHtml = role === 'renter' ? copy.renterBody : role === 'contractor' ? copy.contractorBody : copy.landlordBody
+
+  const html = baseTemplate({
+    lang,
+    eyebrow: copy.eyebrow,
+    heading: copy.heading,
+    bodyHtml,
+    preheader: `${whenEsc} · ${at}`,
+    facts: [
+      { label: fl('Job', lang), value: category },
+      { label: fl('Where', lang), value: unitLabel ? `${propertyLabel}, ${unitLabel}` : propertyLabel },
+      { label: lang === 'es' ? 'Cuándo' : 'When', value: when },
+    ],
+    ctaLabel: copy.ctaLabel,
+    ctaUrl,
+  })
+
+  return sendEmail({
+    to,
+    subject: lang === 'es' ? `Mañana: trabajo de ${category}` : `Tomorrow: ${category} appointment`,
+    html,
+  })
+}
+
 export async function sendJobInviteEmail({
   to,
   landlordName,

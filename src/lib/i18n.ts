@@ -1260,6 +1260,26 @@ const STRINGS = {
   couldNotLoadJobs: { en: 'Could not load jobs.', es: 'No se pudieron cargar los trabajos.' },
   searchJobsPlaceholder: { en: 'Search by category, description, or address…', es: 'Buscar por categoría, descripción o dirección…' },
   noJobsMatchSearch: { en: 'No jobs match your search.', es: 'Ningún trabajo coincide con tu búsqueda.' },
+
+  // App-wide error boundary
+  somethingWentWrongHeading: { en: 'Something went wrong', es: 'Algo salió mal' },
+  errorBoundaryDesc: { en: "That didn't work. Try again, or head back — nothing else was affected.", es: 'Eso no funcionó. Inténtalo de nuevo, o vuelve atrás — nada más se vio afectado.' },
+  tryAgainBtn: { en: 'Try again', es: 'Intentar de nuevo' },
+  goHomeBtn: { en: 'Go home', es: 'Ir al inicio' },
+
+  // Access instructions (report form + renter job page + contractor/landlord display)
+  accessNotesLabel: { en: 'Access notes (optional)', es: 'Notas de acceso (opcional)' },
+  accessNotesPlaceholder: { en: "e.g. I'll be home after 3pm, or use the lockbox — code 1234", es: 'ej. Estaré en casa después de las 3pm, o usa la caja de seguridad — código 1234' },
+  accessNotesHint: { en: 'Not sure yet? You can add or change this anytime from the job.', es: '¿Aún no lo sabes? Puedes agregarlo o cambiarlo cuando quieras desde el trabajo.' },
+  accessNotesHeading: { en: 'Access notes', es: 'Notas de acceso' },
+  addAccessNotesBtn: { en: '+ Add access notes', es: '+ Agregar notas de acceso' },
+  editAccessNotesBtn: { en: 'Edit', es: 'Editar' },
+  couldNotSaveAccessNotes: { en: 'Could not save access notes.', es: 'No se pudieron guardar las notas de acceso.' },
+  accessNotesForContractorHeading: { en: 'Access notes from the tenant', es: 'Notas de acceso del inquilino' },
+
+  // Renter rent page: payment history year filter + total
+  totalPaidPrefix: { en: 'Total:', es: 'Total:' },
+  allYearsOption: { en: 'All years', es: 'Todos los años' },
 } satisfies Record<string, Record<Lang, string>>
 
 // The three schedule windows (`morning`/`afternoon`/`evening`) show up
