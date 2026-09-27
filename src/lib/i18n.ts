@@ -1010,6 +1010,27 @@ const STRINGS = {
   leaseNotesLabel: { en: 'Lease notes', es: 'Notas del contrato' },
   leaseNotesPlaceholder: { en: 'Anything else worth noting about this lease', es: 'Cualquier otra cosa que valga la pena anotar sobre este contrato' },
   linkOrInviteRenterBtn: { en: 'Link or invite renter', es: 'Vincular o invitar inquilino' },
+
+  // Landlord create-job page
+  pleaseSelectACategory: { en: 'Please select a category.', es: 'Por favor selecciona una categoría.' },
+  pleaseTellUsKindOfJob: { en: 'Please tell us what kind of job this is.', es: 'Por favor dinos qué tipo de trabajo es.' },
+  pleaseDescribeTheIssue: { en: 'Please describe the issue.', es: 'Por favor describe el problema.' },
+  couldNotCreateJob: { en: 'Could not create job. Please try again.', es: 'No se pudo crear el trabajo. Inténtalo de nuevo.' },
+  createAJobHeading: { en: 'Create a job', es: 'Crear un trabajo' },
+  createJobDesc: { en: "Start a maintenance job directly. No approval needed since you're the landlord.", es: 'Inicia un trabajo de mantenimiento directamente. No se necesita aprobación ya que eres el propietario.' },
+  jobWillBePostedNudge: { en: 'This job will be posted openly, and the contractor you were messaging will be notified directly to bid on it first.', es: 'Este trabajo se publicará abiertamente, y el contratista con quien estabas conversando será notificado directamente para que sea el primero en ofertar.' },
+  whatKindOfJobIsIt: { en: 'What kind of job is it?', es: '¿Qué tipo de trabajo es?' },
+  categoryOtherPlaceholder: { en: 'e.g. Landscaping, Locksmith, Painting', es: 'ej. Jardinería, Cerrajería, Pintura' },
+  whatNeedsToBeDone: { en: 'What needs to be done?', es: '¿Qué se necesita hacer?' },
+  urgencyLabel: { en: 'Urgency', es: 'Urgencia' },
+  lowOption: { en: 'Low', es: 'Baja' },
+  normalOption: { en: 'Normal', es: 'Normal' },
+  highOption: { en: 'High', es: 'Alta' },
+  photosOrVideosOptionalLabel: { en: 'Photos or videos (optional)', es: 'Fotos o videos (opcional)' },
+  addMoreBtn: { en: '+ Add more', es: '+ Agregar más' },
+  addPhotosOrVideosPlain: { en: '+ Add photos or videos', es: '+ Agregar fotos o videos' },
+  creatingDots: { en: 'Creating...', es: 'Creando...' },
+  createJobBtn: { en: 'Create job', es: 'Crear trabajo' },
 } satisfies Record<string, Record<Lang, string>>
 
 // The three schedule windows (`morning`/`afternoon`/`evening`) show up

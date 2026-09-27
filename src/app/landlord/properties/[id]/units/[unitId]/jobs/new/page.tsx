@@ -12,11 +12,13 @@ import { LANDLORD_TABS } from '@/lib/navTabs'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { useCategoryOptions, saveCustomCategory } from '@/lib/categories'
+import { useLanguage, t } from '@/lib/i18n'
 
 export default function NewLandlordJobPage() {
   const router = useRouter()
   const params = useParams()
   const searchParams = useSearchParams()
+  const lang = useLanguage()
   const propertyId = params.id as string
   const unitId = params.unitId as string
   // Set when this job is posted from a DM with a contractor (the "start a
@@ -66,15 +68,15 @@ export default function NewLandlordJobPage() {
     e.preventDefault()
 
     if (!form.category) {
-      setError('Please select a category.')
+      setError(t('pleaseSelectACategory', lang))
       return
     }
     if (form.category === 'Other' && !form.categoryOther.trim()) {
-      setError('Please tell us what kind of job this is.')
+      setError(t('pleaseTellUsKindOfJob', lang))
       return
     }
     if (!form.description.trim()) {
-      setError('Please describe the issue.')
+      setError(t('pleaseDescribeTheIssue', lang))
       return
     }
 
@@ -83,7 +85,7 @@ export default function NewLandlordJobPage() {
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      setError('Not authenticated.')
+      setError(t('notAuthenticatedPeriod', lang))
       setSubmitting(false)
       return
     }
@@ -109,7 +111,7 @@ export default function NewLandlordJobPage() {
 
     if (insertError || !jobData) {
       console.error('Error creating job:', insertError)
-      setError('Could not create job. Please try again.')
+      setError(t('couldNotCreateJob', lang))
       setSubmitting(false)
       return
     }
@@ -160,22 +162,22 @@ export default function NewLandlordJobPage() {
           href={`/landlord/properties/${propertyId}/units/${unitId}`}
           className="text-white/50 hover:text-white text-sm transition"
         >
-          ← Back to unit
+          {t('backToUnitPlain', lang)}
         </Link>
         <Link href="/landlord" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
         <div className="w-24" />
       </nav>
 
       <main className="max-w-xl mx-auto px-6 py-10 pb-28">
-        <h1 className="text-2xl font-bold text-white mb-2">Create a job</h1>
+        <h1 className="text-2xl font-bold text-white mb-2">{t('createAJobHeading', lang)}</h1>
         <p className="text-white/50 text-sm mb-8">
-          Start a maintenance job directly. No approval needed since you're the landlord.
+          {t('createJobDesc', lang)}
         </p>
 
         {nudgeThreadId && (
           <div className="bg-[#12A5A9]/10 border border-[#12A5A9]/25 rounded-xl px-4 py-3 mb-6">
             <p className="text-[#12A5A9] text-sm">
-              This job will be posted openly, and the contractor you were messaging will be notified directly to bid on it first.
+              {t('jobWillBePostedNudge', lang)}
             </p>
           </div>
         )}
@@ -183,7 +185,7 @@ export default function NewLandlordJobPage() {
         <ScrollReveal>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-white/70 text-sm block mb-1">Category</label>
+            <label className="text-white/70 text-sm block mb-1">{t('category', lang)}</label>
             <select
               name="category"
               value={form.category}
@@ -191,57 +193,57 @@ export default function NewLandlordJobPage() {
               required
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
             >
-              <option value="" className="bg-[#0C1A2E]">Select a category</option>
+              <option value="" className="bg-[#0C1A2E]">{t('selectACategory', lang)}</option>
               {categoryOptions.map((cat) => (
                 <option key={cat} value={cat} className="bg-[#0C1A2E]">{cat}</option>
               ))}
-              <option value="Other" className="bg-[#0C1A2E]">Other</option>
+              <option value="Other" className="bg-[#0C1A2E]">{t('itemTypeOther', lang)}</option>
             </select>
           </div>
 
           {form.category === 'Other' && (
             <div>
-              <label className="text-white/70 text-sm block mb-1">What kind of job is it?</label>
+              <label className="text-white/70 text-sm block mb-1">{t('whatKindOfJobIsIt', lang)}</label>
               <input
                 type="text"
                 name="categoryOther"
                 value={form.categoryOther}
                 onChange={handleChange}
-                placeholder="e.g. Landscaping, Locksmith, Painting"
+                placeholder={t('categoryOtherPlaceholder', lang)}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
               />
             </div>
           )}
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">Description</label>
+            <label className="text-white/70 text-sm block mb-1">{t('description', lang)}</label>
             <textarea
               name="description"
               value={form.description}
               onChange={handleChange}
               required
               rows={4}
-              placeholder="What needs to be done?"
+              placeholder={t('whatNeedsToBeDone', lang)}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition resize-none"
             />
           </div>
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">Urgency</label>
+            <label className="text-white/70 text-sm block mb-1">{t('urgencyLabel', lang)}</label>
             <select
               name="urgency"
               value={form.urgency}
               onChange={handleChange}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
             >
-              <option value="low" className="bg-[#0C1A2E]">Low</option>
-              <option value="normal" className="bg-[#0C1A2E]">Normal</option>
-              <option value="high" className="bg-[#0C1A2E]">High</option>
+              <option value="low" className="bg-[#0C1A2E]">{t('lowOption', lang)}</option>
+              <option value="normal" className="bg-[#0C1A2E]">{t('normalOption', lang)}</option>
+              <option value="high" className="bg-[#0C1A2E]">{t('highOption', lang)}</option>
             </select>
           </div>
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">Photos or videos (optional)</label>
+            <label className="text-white/70 text-sm block mb-1">{t('photosOrVideosOptionalLabel', lang)}</label>
             <label className="block">
               <input
                 type="file"
@@ -251,7 +253,7 @@ export default function NewLandlordJobPage() {
                 className="hidden"
               />
               <span className="inline-block bg-white/8 text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-white/12 transition cursor-pointer">
-                {files.length > 0 ? `+ Add more` : '+ Add photos or videos'}
+                {files.length > 0 ? t('addMoreBtn', lang) : t('addPhotosOrVideosPlain', lang)}
               </span>
             </label>
             {files.length > 0 && (
@@ -288,7 +290,7 @@ export default function NewLandlordJobPage() {
               className="w-4 h-4"
             />
             <AlertTriangleIcon className="w-4 h-4 text-yellow-400 shrink-0" />
-            <span className="text-white text-sm">Mark as emergency</span>
+            <span className="text-white text-sm">{t('markAsEmergency', lang)}</span>
           </label>
 
           {error && (
@@ -302,7 +304,7 @@ export default function NewLandlordJobPage() {
             disabled={submitting}
             className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
           >
-            {submitting ? 'Creating...' : 'Create job'}
+            {submitting ? t('creatingDots', lang) : t('createJobBtn', lang)}
           </RippleButton>
         </form>
         </ScrollReveal>
