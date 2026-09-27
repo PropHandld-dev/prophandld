@@ -97,11 +97,16 @@ export default function ContractorJobDetailPage() {
       const completedAt = new Date(jobData.contractor_completed_at).getTime()
       const threeDaysMs = 3 * 24 * 60 * 60 * 1000
       if (Date.now() - completedAt > threeDaysMs) {
-        const approvedAt = new Date().toISOString()
-        await expectRow(supabase.from('jobs').update({ status: 'completed', landlord_approved_at: approvedAt }).eq('id', jobId))
-        jobData.status = 'completed'
-        jobData.landlord_approved_at = approvedAt
-        notify('job_completed', jobId)
+        // Server re-verifies staleness itself and sends every notification
+        // this deserves (including the landlord's own "pay now" email) —
+        // see autoApproveJobIfStale for why this used to just flip the
+        // status locally instead.
+        const res = await fetch(`/api/jobs/${jobId}/auto-approve-if-stale`, { method: 'POST' }).catch(() => null)
+        const data = await res?.json().catch(() => null)
+        if (data?.approved) {
+          jobData.status = 'completed'
+          jobData.landlord_approved_at = new Date().toISOString()
+        }
       }
     }
 
@@ -193,7 +198,10 @@ export default function ContractorJobDetailPage() {
       console.error('Error confirming schedule:', updateError)
       setError(t('couldNotConfirmSchedule', lang))
     } else {
-      notify('schedule_confirmed', jobId)
+      // Same reasoning as schedule_proposed just above: whoever clicked
+      // confirm was already looking at the screen when it happened, so
+      // being notified about their own action reads as noise, not news.
+      notify('schedule_confirmed', jobId, 'contractor')
       if (userId) postJobStatusMessage(jobId, userId, '✓ Schedule confirmed')
     }
 

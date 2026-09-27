@@ -178,7 +178,10 @@ export default function RenterJobDetailPage() {
       console.error('Error confirming schedule:', updateError)
       setError(t('couldNotConfirmSchedule', lang))
     } else {
-      notify('schedule_confirmed', jobId)
+      // Same reasoning as schedule_proposed just above: whoever clicked
+      // confirm was already looking at the screen when it happened, so
+      // being notified about their own action reads as noise, not news.
+      notify('schedule_confirmed', jobId, 'renter')
       if (userId) postJobStatusMessage(jobId, userId, '✓ Schedule confirmed')
     }
 

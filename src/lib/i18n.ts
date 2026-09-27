@@ -1162,6 +1162,14 @@ const STRINGS = {
   viewAttachedDocumentArrow: { en: 'View attached document →', es: 'Ver documento adjunto →' },
   removeBtn: { en: 'Remove', es: 'Eliminar' },
   attachDocumentBtn: { en: '+ Attach document', es: '+ Adjuntar documento' },
+
+  // Landlord job page: ask a clarifying question before approving
+  askAQuestionBtn: { en: 'Ask a question', es: 'Hacer una pregunta' },
+  askAQuestionHeading: { en: 'Ask a question', es: 'Hacer una pregunta' },
+  askAQuestionDesc: { en: "Before approving, ask the contractor for more detail. They'll see it on the job and can reply there.", es: 'Antes de aprobar, pídele al contratista más detalles. Lo verá en el trabajo y podrá responder ahí.' },
+  askAQuestionPlaceholder: { en: 'What do you want to know?', es: '¿Qué quieres saber?' },
+  sendQuestionBtn: { en: 'Send question', es: 'Enviar pregunta' },
+  couldNotSendClarification: { en: 'Could not send your question. Please try again.', es: 'No se pudo enviar tu pregunta. Inténtalo de nuevo.' },
 } satisfies Record<string, Record<Lang, string>>
 
 // The three schedule windows (`morning`/`afternoon`/`evening`) show up

@@ -55,6 +55,10 @@ export default function JobDetailPage() {
   const [selectedBidId, setSelectedBidId] = useState<string | null>(null)
   const [showArchiveModal, setShowArchiveModal] = useState(false)
   const [showApproveModal, setShowApproveModal] = useState(false)
+  const [showClarificationModal, setShowClarificationModal] = useState(false)
+  const [clarificationText, setClarificationText] = useState('')
+  const [sendingClarification, setSendingClarification] = useState(false)
+  const [clarificationError, setClarificationError] = useState<string | null>(null)
   const [payingContractor, setPayingContractor] = useState(false)
   const [paidBanner, setPaidBanner] = useState<PaymentOutcome | null>(null)
   const [paymentModal, setPaymentModal] = useState<{ clientSecret: string; amount: number } | null>(null)
@@ -93,11 +97,16 @@ export default function JobDetailPage() {
       const completedAt = new Date(jobData.contractor_completed_at).getTime()
       const threeDaysMs = 3 * 24 * 60 * 60 * 1000
       if (Date.now() - completedAt > threeDaysMs) {
-        const approvedAt = new Date().toISOString()
-        await expectRow(supabase.from('jobs').update({ status: 'completed', landlord_approved_at: approvedAt }).eq('id', jobId))
-        jobData.status = 'completed'
-        jobData.landlord_approved_at = approvedAt
-        notify('job_completed', jobId)
+        // Server re-verifies staleness itself and sends every notification
+        // this deserves (including the landlord's own "pay now" email) —
+        // see autoApproveJobIfStale for why this used to just flip the
+        // status locally instead.
+        const res = await fetch(`/api/jobs/${jobId}/auto-approve-if-stale`, { method: 'POST' }).catch(() => null)
+        const data = await res?.json().catch(() => null)
+        if (data?.approved) {
+          jobData.status = 'completed'
+          jobData.landlord_approved_at = new Date().toISOString()
+        }
       }
     }
 
@@ -522,7 +531,10 @@ export default function JobDetailPage() {
       console.error('Error confirming schedule:', updateError)
       setError(t('couldNotConfirmSchedule', lang))
     } else {
-      notify('schedule_confirmed', jobId)
+      // Same reasoning as schedule_proposed just above: whoever clicked
+      // confirm was already looking at the screen when it happened, so
+      // being notified about their own action reads as noise, not news.
+      notify('schedule_confirmed', jobId, 'landlord')
     }
 
     await fetchJob()
@@ -576,6 +588,35 @@ export default function JobDetailPage() {
         setTimeout(() => document.getElementById('pay-contractor')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100)
       }
     }
+  }
+
+  // Note: this doesn't pause the 3-day auto-approve clock, which still runs
+  // from contractor_completed_at regardless — a question left unanswered
+  // long enough can still auto-approve. Flagged, not solved here: pausing it
+  // is a separate decision about what the clock should actually mean once a
+  // question is outstanding.
+  const handleSendClarification = async () => {
+    if (!clarificationText.trim()) return
+    setSendingClarification(true)
+    setClarificationError(null)
+
+    const { error: updateError } = await expectRow(supabase
+      .from('jobs')
+      .update({ clarification_note: clarificationText.trim() })
+      .eq('id', jobId))
+
+    if (updateError) {
+      console.error('Error sending clarification request:', updateError)
+      setClarificationError(t('couldNotSendClarification', lang))
+      setSendingClarification(false)
+      return
+    }
+
+    notify('clarification_requested', jobId)
+    setShowClarificationModal(false)
+    setClarificationText('')
+    setSendingClarification(false)
+    await fetchJob()
   }
 
   const openPriceModal = (action: 'approve' | 'reject') => {
@@ -864,6 +905,14 @@ export default function JobDetailPage() {
                 >
                   {t('chatWithContractorLabel', lang)}
                 </button>
+                {!job.clarification_note && (
+                  <button
+                    onClick={() => setShowClarificationModal(true)}
+                    className="text-white/50 hover:text-white text-xs transition"
+                  >
+                    {t('askAQuestionBtn', lang)}
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -1556,6 +1605,43 @@ export default function JobDetailPage() {
                 className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
               >
                 {actioning ? t('approving', lang) : payOnApprove ? t('approveAndPayBtn', lang) : t('approveLabel', lang)}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showClarificationModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
+          <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
+            <h3 className="text-white font-semibold mb-2">{t('askAQuestionHeading', lang)}</h3>
+            <p className="text-white/50 text-sm mb-4">{t('askAQuestionDesc', lang)}</p>
+            <textarea
+              value={clarificationText}
+              onChange={(e) => setClarificationText(e.target.value)}
+              rows={3}
+              placeholder={t('askAQuestionPlaceholder', lang)}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition resize-none mb-3"
+            />
+            {clarificationError && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm mb-3">
+                {clarificationError}
+              </div>
+            )}
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setShowClarificationModal(false); setClarificationText(''); setClarificationError(null) }}
+                disabled={sendingClarification}
+                className="flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-white/12 transition disabled:opacity-50"
+              >
+                {t('cancel', lang)}
+              </button>
+              <button
+                onClick={handleSendClarification}
+                disabled={sendingClarification || !clarificationText.trim()}
+                className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
+              >
+                {sendingClarification ? t('sendingDots', lang) : t('sendQuestionBtn', lang)}
               </button>
             </div>
           </div>
