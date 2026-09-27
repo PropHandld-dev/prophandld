@@ -52,6 +52,15 @@ export async function GET(request: NextRequest) {
   const active = (subs || []).filter((s: any) => s.status === 'active' && s.tier !== 'free')
   const mrr = active.reduce((sum: number, s: any) => sum + graduatedMonthlyAmount(s.unit_count || 0), 0)
 
+  // Tier mix — every subscription row, not just active/non-free, same
+  // grouping the admin overview's "Landlord subscription tiers" card
+  // already uses. Recorded daily so that breakdown gets a real trend too,
+  // not just today's snapshot.
+  const tierCounts = { free: 0, starter: 0, growth: 0, portfolio: 0, enterprise: 0 }
+  for (const s of subs || []) {
+    if (s.tier in tierCounts) tierCounts[s.tier as keyof typeof tierCounts]++
+  }
+
   const today = new Date()
   const snapshotDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
 
@@ -65,6 +74,11 @@ export async function GET(request: NextRequest) {
         renter_count: counts.renter,
         contractor_count: counts.contractor,
         active_subscriptions: active.length,
+        tier_free_count: tierCounts.free,
+        tier_starter_count: tierCounts.starter,
+        tier_growth_count: tierCounts.growth,
+        tier_portfolio_count: tierCounts.portfolio,
+        tier_enterprise_count: tierCounts.enterprise,
       },
       { onConflict: 'snapshot_date' }
     )
@@ -74,5 +88,5 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Could not save snapshot' }, { status: 500 })
   }
 
-  return NextResponse.json({ ok: true, snapshotDate, mrr, ...counts, activeSubscriptions: active.length })
+  return NextResponse.json({ ok: true, snapshotDate, mrr, ...counts, activeSubscriptions: active.length, tierCounts })
 }

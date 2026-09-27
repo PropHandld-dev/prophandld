@@ -5,7 +5,22 @@ import { supabase } from '@/lib/supabase'
 import { AdminLayout } from '@/components/AdminLayout'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { MonthlyBarChart, type MonthPoint } from '@/components/admin/MonthlyBarChart'
+import { StackedMonthlyBarChart, type StackedSeries, type StackedMonthPoint } from '@/components/admin/StackedMonthlyBarChart'
 import { graduatedMonthlyAmount, TIER_RANGE_LABELS, type LandlordTier } from '@/lib/pricingTiers'
+
+const ROLE_COLORS: Record<'landlord' | 'renter' | 'contractor', string> = {
+  landlord: '#12A5A9',
+  renter: '#2DD4D9',
+  contractor: '#5E7189',
+}
+
+const TIER_COLORS: Record<LandlordTier, string> = {
+  free: '#3A4C64',
+  starter: '#0A7B7E',
+  growth: '#12A5A9',
+  portfolio: '#2DD4D9',
+  enterprise: '#7FEAEC',
+}
 
 const MONTHS_SHOWN = 6
 
@@ -49,11 +64,14 @@ export default function AdminOverviewPage() {
     jobPaymentsAllTime: number
     openDisputes: number
   } | null>(null)
-  const [signupPoints, setSignupPoints] = useState<MonthPoint[]>([])
+  const [signupSeries, setSignupSeries] = useState<StackedSeries[]>([])
   const [rentPoints, setRentPoints] = useState<MonthPoint[]>([])
   const [jobPaymentPoints, setJobPaymentPoints] = useState<MonthPoint[]>([])
   const [mrrPoints, setMrrPoints] = useState<MonthPoint[]>([])
+  const [tierSeries, setTierSeries] = useState<StackedSeries[]>([])
   const [hasMrrHistory, setHasMrrHistory] = useState(false)
+  const [hasTierHistory, setHasTierHistory] = useState(false)
+  const [monthPoints, setMonthPoints] = useState<StackedMonthPoint[]>([])
 
   useEffect(() => {
     const load = async () => {
@@ -110,13 +128,23 @@ export default function AdminOverviewPage() {
 
       // --- Growth trends: last 6 months, from data already loaded above ---
       const months = lastMonthKeys(MONTHS_SHOWN)
+      setMonthPoints(months.map((key) => ({ key, label: monthLabel(key), isCurrent: key === currentMonth })))
 
-      const signupsByMonth: Record<string, number> = {}
+      const signupsByRoleMonth: Record<'landlord' | 'renter' | 'contractor', Record<string, number>> = {
+        landlord: {}, renter: {}, contractor: {},
+      }
       ;(usersRes.users || []).forEach((u: any) => {
-        if (!u.created_at) return
+        if (!u.created_at || !u.role) return
+        if (u.role !== 'landlord' && u.role !== 'renter' && u.role !== 'contractor') return
         const key = monthKey(u.created_at)
-        signupsByMonth[key] = (signupsByMonth[key] || 0) + 1
+        signupsByRoleMonth[u.role as 'landlord' | 'renter' | 'contractor'][key] =
+          (signupsByRoleMonth[u.role as 'landlord' | 'renter' | 'contractor'][key] || 0) + 1
       })
+      setSignupSeries([
+        { key: 'landlord', label: 'Landlords', color: ROLE_COLORS.landlord, valuesByMonth: signupsByRoleMonth.landlord },
+        { key: 'renter', label: 'Renters', color: ROLE_COLORS.renter, valuesByMonth: signupsByRoleMonth.renter },
+        { key: 'contractor', label: 'Contractors', color: ROLE_COLORS.contractor, valuesByMonth: signupsByRoleMonth.contractor },
+      ])
 
       const rentByMonth: Record<string, number> = {}
       ;(rentPayments || []).forEach((p: any) => {
@@ -132,7 +160,6 @@ export default function AdminOverviewPage() {
         jobPaymentsByMonth[key] = (jobPaymentsByMonth[key] || 0) + Number(b.amount || 0)
       })
 
-      setSignupPoints(buildPoints(months, currentMonth, signupsByMonth))
       setRentPoints(buildPoints(months, currentMonth, rentByMonth))
       setJobPaymentPoints(buildPoints(months, currentMonth, jobPaymentsByMonth))
 
@@ -150,6 +177,28 @@ export default function AdminOverviewPage() {
           mrrByMonth[String(s.snapshot_date).slice(0, 7)] = Number(s.mrr || 0)
         }
         setMrrPoints(buildPoints(months, currentMonth, mrrByMonth))
+
+        const tierKeys: LandlordTier[] = ['free', 'starter', 'growth', 'portfolio', 'enterprise']
+        const tierColByMonth: Record<LandlordTier, Record<string, number>> = {
+          free: {}, starter: {}, growth: {}, portfolio: {}, enterprise: {},
+        }
+        for (const s of snapshots) {
+          const key = String(s.snapshot_date).slice(0, 7)
+          tierColByMonth.free[key] = Number(s.tier_free_count || 0)
+          tierColByMonth.starter[key] = Number(s.tier_starter_count || 0)
+          tierColByMonth.growth[key] = Number(s.tier_growth_count || 0)
+          tierColByMonth.portfolio[key] = Number(s.tier_portfolio_count || 0)
+          tierColByMonth.enterprise[key] = Number(s.tier_enterprise_count || 0)
+        }
+        setTierSeries(
+          tierKeys.map((key) => ({
+            key,
+            label: key.charAt(0).toUpperCase() + key.slice(1),
+            color: TIER_COLORS[key],
+            valuesByMonth: tierColByMonth[key],
+          }))
+        )
+        setHasTierHistory(true)
       }
 
       setLoading(false)
@@ -194,11 +243,11 @@ export default function AdminOverviewPage() {
 
           <h2 className="text-white font-semibold mb-4">Growth, last {MONTHS_SHOWN} months</h2>
           <ScrollReveal className="grid sm:grid-cols-2 gap-4 mb-4">
-            <MonthlyBarChart
+            <StackedMonthlyBarChart
               title="New signups"
-              subtitle="Landlords, renters and contractors combined"
-              points={signupPoints}
-              formatValue={(n) => String(n)}
+              subtitle="By role"
+              months={monthPoints}
+              series={signupSeries}
             />
             <MonthlyBarChart
               title="Rent collected"
@@ -228,6 +277,22 @@ export default function AdminOverviewPage() {
                 <p className="text-white/50 text-xs mt-2 leading-relaxed">
                   There's no recorded history to chart yet — MRR was only ever computed live, never saved. Daily
                   tracking starts today; check back in a few weeks for a real trend line.
+                </p>
+              </div>
+            )}
+            {hasTierHistory ? (
+              <StackedMonthlyBarChart
+                title="Subscription tier mix"
+                subtitle="How many landlords are in each tier"
+                months={monthPoints}
+                series={tierSeries}
+              />
+            ) : (
+              <div className="bg-white/3 border border-white/8 rounded-2xl p-6 flex flex-col justify-center">
+                <h2 className="text-white font-semibold">Subscription tier mix trend</h2>
+                <p className="text-white/50 text-xs mt-2 leading-relaxed">
+                  Same as MRR — recorded from today forward. Today's snapshot is the "Landlord subscription tiers"
+                  card above; check back in a few weeks for how that mix moves over time.
                 </p>
               </div>
             )}

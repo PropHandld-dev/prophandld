@@ -19,7 +19,7 @@ export async function GET() {
 
   const { data, error } = await supabaseAdmin
     .from('admin_metrics_snapshots')
-    .select('snapshot_date, mrr, landlord_count, renter_count, contractor_count, active_subscriptions')
+    .select('snapshot_date, mrr, landlord_count, renter_count, contractor_count, active_subscriptions, tier_free_count, tier_starter_count, tier_growth_count, tier_portfolio_count, tier_enterprise_count')
     .order('snapshot_date', { ascending: true })
     .limit(400) // well over a year of daily rows; the page itself only charts the last few months
 
