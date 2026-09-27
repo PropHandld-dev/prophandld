@@ -35,8 +35,12 @@ export async function POST() {
     const tier = tierForUnitCount(unitCount)
     const priceId = graduatedPriceId()
 
-    if (tier === 'free' || !priceId) {
+    if (tier === 'free') {
       return NextResponse.json({ error: 'No paid plan needed at your current unit count.' }, { status: 400 })
+    }
+    if (!priceId) {
+      console.error('subscription/checkout: STRIPE_PRICE_GRADUATED is not configured')
+      return NextResponse.json({ error: 'Billing is not set up yet. Try again shortly, or contact support if this continues.' }, { status: 503 })
     }
 
     const { data: userRow, error: userRowError } = await supabaseAdmin

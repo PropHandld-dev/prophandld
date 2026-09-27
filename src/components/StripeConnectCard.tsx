@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { RippleButton } from '@/components/RippleButton'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { CheckCircleIcon } from '@/components/icons'
-import { openPendingTab, goToTab, abandonTab } from '@/lib/externalTab'
+import { goToStripe } from '@/lib/externalTab'
 import { useLanguage, t } from '@/lib/i18n'
 
 type ConnectStatus = 'not_started' | 'onboarding' | 'active'
@@ -28,33 +28,25 @@ export function StripeConnectCard({ purpose }: { purpose: 'rent' | 'jobs' }) {
       setLoading(false)
     }
     load()
-
-    // Stripe opens in another tab, so pick up the new status when the
-    // user comes back to this one.
-    const onVisible = () => {
-      if (document.visibilityState === 'visible') load()
-    }
-    document.addEventListener('visibilitychange', onVisible)
-    return () => document.removeEventListener('visibilitychange', onVisible)
+    // Connect onboarding's return_url/refresh_url bring the browser back to
+    // this exact page via a real navigation, which remounts this component
+    // and runs this same effect fresh — no separate "did the tab come back"
+    // detection needed now that it's a same-tab redirect, not a second tab.
   }, [])
 
   const handleSetup = async () => {
-    const tab = openPendingTab()
     setRedirecting(true)
     setError(null)
     try {
       const res = await fetch('/api/stripe/connect/onboard', { method: 'POST' })
       const data = await res.json()
       if (!res.ok || !data.url) {
-        abandonTab(tab)
         setError(data.error || t('couldNotStartPayoutSetup', lang))
         setRedirecting(false)
         return
       }
-      goToTab(tab, data.url)
-      setRedirecting(false)
+      goToStripe(data.url)
     } catch {
-      abandonTab(tab)
       setError(t('couldNotStartPayoutSetup', lang))
       setRedirecting(false)
     }

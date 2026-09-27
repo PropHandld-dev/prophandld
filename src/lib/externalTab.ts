@@ -1,27 +1,13 @@
-// Stripe pages open in a new tab so the app stays where it was. The blank
-// tab has to be opened synchronously inside the click handler — after an
-// awaited fetch, browsers treat window.open as a popup and block it.
-export function openPendingTab(): Window | null {
-  const tab = window.open('', '_blank')
-  if (tab) {
-    try {
-      tab.opener = null
-      tab.document.title = 'Opening Stripe…'
-      tab.document.body.style.cssText = 'margin:0;display:grid;place-items:center;height:100vh;background:#0C1A2E;color:#fff;font-family:system-ui,sans-serif'
-      tab.document.body.textContent = 'Opening Stripe…'
-    } catch {}
-  }
-  return tab
-}
-
-export function goToTab(tab: Window | null, url: string) {
-  if (tab && !tab.closed) {
-    tab.location.href = url
-  } else if (!window.open(url, '_blank')) {
-    window.location.href = url
-  }
-}
-
-export function abandonTab(tab: Window | null) {
-  if (tab && !tab.closed) tab.close()
+// Every hosted Stripe page this app links out to (Checkout, the Billing
+// Portal, Connect onboarding) already has a real return_url/success_url
+// bringing the person back into the app when they're done — so the
+// straightforward, standard redirect is the whole story: leave, do the
+// Stripe thing, land back. A new tab used to be opened instead, on the
+// idea that it kept the dashboard exactly where it was — but window.open
+// is exactly the kind of call browsers (mobile Safari especially) block or
+// treat inconsistently, and a second tab is one more thing to find your
+// way back from for no real benefit over the redirect Stripe already
+// builds in.
+export function goToStripe(url: string) {
+  window.location.href = url
 }

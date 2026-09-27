@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { RippleButton } from '@/components/RippleButton'
-import { openPendingTab, goToTab, abandonTab } from '@/lib/externalTab'
+import { goToStripe } from '@/lib/externalTab'
 import { useBillingStatus, BILLING_ENFORCED } from '@/lib/useBillingStatus'
 import { formatTierPrice } from '@/lib/pricingTiers'
 import { useLanguage, t } from '@/lib/i18n'
@@ -14,23 +14,21 @@ function useSubscribe() {
   const [error, setError] = useState<string | null>(null)
 
   const subscribe = async () => {
-    const tab = openPendingTab()
     setRedirecting(true)
     setError(null)
     try {
       const res = await fetch('/api/stripe/subscription/checkout', { method: 'POST' })
       const data = await res.json()
       if (!res.ok || !data.url) {
-        abandonTab(tab)
         setError(data.error || t('couldNotStartCheckout', lang))
+        setRedirecting(false)
       } else {
-        goToTab(tab, data.url)
+        goToStripe(data.url)
       }
     } catch {
-      abandonTab(tab)
       setError(t('couldNotStartCheckout', lang))
+      setRedirecting(false)
     }
-    setRedirecting(false)
   }
 
   return { subscribe, redirecting, error }
