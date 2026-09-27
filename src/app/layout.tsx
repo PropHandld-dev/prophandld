@@ -45,7 +45,7 @@ export const metadata: Metadata = {
     description: SITE_DESCRIPTION,
     url: "https://www.prophandld.com",
     siteName: "Prophandld",
-    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "Prophandld — Your Property. Handled." }],
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "Prophandld: Your Property. Handled." }],
     locale: "en_US",
     type: "website",
   },

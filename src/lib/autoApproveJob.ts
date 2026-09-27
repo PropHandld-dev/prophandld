@@ -113,7 +113,7 @@ export async function autoApproveJobIfStale(admin: SupabaseClient, jobId: string
   if (landlordId) {
     await sendPush(landlordId, {
       title: 'Action needed: pay your contractor',
-      body: `$${amount.toFixed(2)} for ${job.category} — approved automatically after 3 days`,
+      body: `$${amount.toFixed(2)} for ${job.category}, approved automatically after 3 days`,
       url: `${SITE_URL}/landlord/jobs/${job.id}`,
     }).catch((err) => console.error('autoApproveJobIfStale: landlord push failed', { jobId, err }))
   }

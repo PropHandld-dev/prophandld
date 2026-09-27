@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from 'react'
 import { supabase } from '@/lib/supabase'
-import { notify } from '@/lib/notify'
+import { notifyJobOpen } from '@/lib/notify'
 import { expectRow } from '@/lib/expectRow'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -37,6 +37,7 @@ function LandlordJobsList() {
   const [search, setSearch] = useState('')
   const [actioningId, setActioningId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [noMatchingContractorsNotice, setNoMatchingContractorsNotice] = useState(false)
 
   const [showBiddingModal, setShowBiddingModal] = useState(false)
   const [biddingJobId, setBiddingJobId] = useState<string | null>(null)
@@ -122,7 +123,8 @@ function LandlordJobsList() {
       console.error('Error starting bidding:', biddingError)
       setError(t('acknowledgedButNoBidding', lang))
     } else {
-      notify('job_open', biddingJobId)
+      const result = await notifyJobOpen(biddingJobId)
+      setNoMatchingContractorsNotice(result?.sent === 0)
     }
 
     setShowBiddingModal(false)
@@ -287,6 +289,12 @@ function LandlordJobsList() {
         {error && (
           <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm mb-6">
             {error}
+          </div>
+        )}
+
+        {noMatchingContractorsNotice && (
+          <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl px-4 py-3 mb-6">
+            <p className="text-yellow-400 text-sm">{t('noContractorsMatchedNotice', lang)}</p>
           </div>
         )}
 

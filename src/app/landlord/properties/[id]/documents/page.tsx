@@ -254,7 +254,7 @@ export default function PropertyDocumentsPage() {
       const url = URL.createObjectURL(zipBlob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `${property?.address || 'documents'} — documents.zip`
+      a.download = `${property?.address || 'documents'} - documents.zip`
       document.body.appendChild(a)
       a.click()
       a.remove()

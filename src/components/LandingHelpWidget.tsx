@@ -42,7 +42,7 @@ const FAQS: Record<Role, { q: string; a: string }[]> = {
     },
     {
       q: 'How much does it cost?',
-      a: 'Free for 1 unit. Then $19.99/mo for 2–4 units, $39.99/mo for 5–10, $79.99/mo for 11–25 — and above that it scales down per unit the bigger your portfolio gets: $1.75/unit through 100, $1.25/unit through 500, $1/unit beyond that. That\'s the only fee — contractors pay nothing, so there\'s no per-job cut on top.',
+      a: 'Free for 1 unit. Then $19.99/mo for 2–4 units, $39.99/mo for 5–10, $79.99/mo for 11–25, and above that it scales down per unit the bigger your portfolio gets: $1.75/unit through 100, $1.25/unit through 500, $1/unit beyond that. That\'s the only fee. Contractors pay nothing, so there\'s no per-job cut on top.',
     },
     {
       q: 'Do contractors need a license?',
@@ -82,7 +82,7 @@ const FAQS: Record<Role, { q: string; a: string }[]> = {
     },
     {
       q: 'Does it cost anything to use Prophandld?',
-      a: 'No — Prophandld is completely free for contractors. You keep 100% of what you\'re paid for every job, no platform cut, ever.',
+      a: 'No, Prophandld is completely free for contractors. You keep 100% of what you\'re paid for every job, no platform cut, ever.',
     },
     {
       q: 'Do I need to be licensed to bid?',

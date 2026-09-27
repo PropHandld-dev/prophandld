@@ -183,7 +183,7 @@ export async function POST(request: NextRequest) {
                   const { error: messageError } = await supabaseAdmin.from('messages').insert({
                     thread_id: threadId,
                     sender_user_id: renterUserId,
-                    body: `✓ Rent paid — $${baseAmountPaid.toFixed(2)} for ${monthLabel}`,
+                    body: `✓ Rent paid: $${baseAmountPaid.toFixed(2)} for ${monthLabel}`,
                   })
                   if (messageError) console.error('stripe webhook: rent-paid message insert failed', messageError)
                 }

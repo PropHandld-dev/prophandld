@@ -24,7 +24,7 @@ export async function GET() {
   try {
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('users')
-      .select('service_categories, service_zip, service_radius_miles')
+      .select('service_categories, service_zip, service_radius_miles, notify_all_categories')
       .eq('id', user.id)
       .maybeSingle()
 
@@ -36,17 +36,26 @@ export async function GET() {
     const categories: string[] = profile?.service_categories || []
     const contractorZip = profile?.service_zip
     const radiusMiles = profile?.service_radius_miles || 25
+    // Same broadening as openJobAlerts.ts (see the notify_all_categories
+    // comment there) — this list has to agree with what the "new job near
+    // you" alert already promised, or a contractor who gets emailed about
+    // a job outside their trades would never find it again just by
+    // checking their own dashboard the normal way, without that specific
+    // email in hand.
+    const notifyAll = profile?.notify_all_categories !== false
 
-    if (categories.length === 0 || !contractorZip) {
+    if ((!notifyAll && categories.length === 0) || !contractorZip) {
       return NextResponse.json({ jobs: [] })
     }
 
-    const { data: candidates, error: jobsError } = await supabaseAdmin
+    let jobsQuery = supabaseAdmin
       .from('jobs')
       .select('id, category, description, is_emergency, created_at, units(unit_number, properties(address, city, state, zip))')
       .eq('status', 'bidding')
-      .in('category', categories)
       .order('created_at', { ascending: false })
+    if (!notifyAll) jobsQuery = jobsQuery.in('category', categories)
+
+    const { data: candidates, error: jobsError } = await jobsQuery
 
     if (jobsError) {
       console.error('available-jobs: error fetching candidate jobs', jobsError)

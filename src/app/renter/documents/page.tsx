@@ -12,7 +12,7 @@ import { FileTextIcon } from '@/components/icons'
 import { RENTER_TABS } from '@/lib/navTabs'
 import { useLanguage, t } from '@/lib/i18n'
 
-const TENANT_DOCUMENT_TYPES = ['Renters Insurance', 'Utility Proof — Electric', 'Utility Proof — Gas', 'Utility Proof — Water', 'Other']
+const TENANT_DOCUMENT_TYPES = ['Renters Insurance', 'Utility Proof: Electric', 'Utility Proof: Gas', 'Utility Proof: Water', 'Other']
 
 export default function RenterDocumentsPage() {
   const router = useRouter()

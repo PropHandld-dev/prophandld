@@ -569,6 +569,7 @@ const STRINGS = {
   answerBtn: { en: 'Answer', es: 'Responder' },
   sealedBidsHeading: { en: 'Sealed bids', es: 'Ofertas selladas' },
   noBidsYetNotified: { en: 'No bids yet. Contractors in range have been notified.', es: 'Aún no hay ofertas. Los contratistas en el área han sido notificados.' },
+  noContractorsMatchedNotice: { en: "No contractors currently match this job's category and location, so nobody's been notified yet. It'll stay open for bidding either way, worth double-checking your property's ZIP code if this seems unexpected.", es: 'Ningún contratista coincide actualmente con la categoría y ubicación de este trabajo, así que todavía no se ha notificado a nadie. Seguirá abierto para ofertas de todos modos, vale la pena verificar el código postal de tu propiedad si esto no era lo esperado.' },
   unknownContractor: { en: 'Unknown contractor', es: 'Contratista desconocido' },
   noLicenseOnFile: { en: 'No license on file', es: 'Sin licencia registrada' },
   availabilityColonLabel: { en: 'Availability:', es: 'Disponibilidad:' },

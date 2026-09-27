@@ -384,7 +384,7 @@ export function ContractorCredentials({ userId }: { userId: string }) {
                 ) : (
                   b.board
                 )}
-                {b.note ? <span className="text-yellow-400/70"> — {b.note}</span> : null}
+                {b.note ? <span className="text-yellow-400/70">: {b.note}</span> : null}
               </li>
             ))}
           </ul>

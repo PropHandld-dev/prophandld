@@ -22,7 +22,7 @@ export function rescheduleLockError(confirmedDate: string): string | null {
 
   if (daysUntil < RESCHEDULE_LOCKOUT_DAYS) {
     const label = apptDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
-    return `Too close to reschedule online — the appointment is ${label}. Message the other party directly to work it out.`
+    return `Too close to reschedule online: the appointment is ${label}. Message the other party directly to work it out.`
   }
   return null
 }

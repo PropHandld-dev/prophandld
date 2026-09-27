@@ -6,7 +6,7 @@ import { expectRow } from '@/lib/expectRow'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { PhotoGrid } from '@/components/PhotoGrid'
-import { notify } from '@/lib/notify'
+import { notify, notifyJobOpen } from '@/lib/notify'
 import { postJobStatusMessage } from '@/lib/systemMessage'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { Skeleton } from '@/components/Skeleton'
@@ -45,6 +45,7 @@ export default function JobDetailPage() {
   const [ratingSummaries, setRatingSummaries] = useState<Record<string, { avg_rating: number; review_count: number }>>({})
   const [expandedReviewsFor, setExpandedReviewsFor] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [noMatchingContractorsNotice, setNoMatchingContractorsNotice] = useState(false)
   const [actioning, setActioning] = useState(false)
   const [questions, setQuestions] = useState<any[]>([])
   const [answerDrafts, setAnswerDrafts] = useState<Record<string, string>>({})
@@ -309,7 +310,8 @@ export default function JobDetailPage() {
       console.error('Error starting bidding:', biddingError)
       setError(t('acknowledgedButNoBidding', lang))
     } else {
-      notify('job_open', jobId)
+      const result = await notifyJobOpen(jobId)
+      setNoMatchingContractorsNotice(result?.sent === 0)
     }
 
     setShowBiddingModal(false)
@@ -370,7 +372,8 @@ export default function JobDetailPage() {
       console.error('Error starting bidding:', updateError)
       setError(t('couldNotStartBidding', lang))
     } else {
-      notify('job_open', jobId)
+      const result = await notifyJobOpen(jobId)
+      setNoMatchingContractorsNotice(result?.sent === 0)
     }
 
     await fetchJob()
@@ -1035,6 +1038,11 @@ export default function JobDetailPage() {
             <h3 className="text-white font-semibold mb-4">
               {t('sealedBidsHeading', lang)} {openBids.length > 0 && `(${openBids.length})`}
             </h3>
+            {noMatchingContractorsNotice && (
+              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl px-4 py-3 mb-3">
+                <p className="text-yellow-400 text-sm">{t('noContractorsMatchedNotice', lang)}</p>
+              </div>
+            )}
             {openBids.length === 0 ? (
               <p className="text-white/50 text-sm">{t('noBidsYetNotified', lang)}</p>
             ) : (

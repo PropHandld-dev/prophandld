@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     .maybeSingle()
 
   if (existingInvite) {
-    return NextResponse.json({ error: "You've already invited this email — check your pending invites below." }, { status: 400 })
+    return NextResponse.json({ error: "You've already invited this email. Check your pending invites below." }, { status: 400 })
   }
 
   const { data: landlordRow } = await supabaseAdmin

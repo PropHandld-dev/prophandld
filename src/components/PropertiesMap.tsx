@@ -130,7 +130,7 @@ export function PropertiesMap({ properties }: { properties: MapProperty[] }) {
       </div>
       {missing > 0 && (
         <p className="text-white/40 text-xs mt-3">
-          {missing} propert{missing === 1 ? 'y isn’t' : 'ies aren’t'} shown — {missing === 1 ? 'it has' : 'they have'} no saved location yet. Open{missing === 1 ? ' it' : ' one'} and re-save its address to add {missing === 1 ? 'it' : 'them'}.
+          {missing} propert{missing === 1 ? 'y isn’t' : 'ies aren’t'} shown, {missing === 1 ? 'it has' : 'they have'} no saved location yet. Open{missing === 1 ? ' it' : ' one'} and re-save its address to add {missing === 1 ? 'it' : 'them'}.
         </p>
       )}
     </div>
