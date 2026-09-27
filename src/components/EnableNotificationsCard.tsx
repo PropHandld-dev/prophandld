@@ -54,7 +54,13 @@ export function EnableNotificationsCard() {
     }
     check()
 
-    setDismissed(sessionStorage.getItem('push-prompt-dismissed') === '1')
+    // localStorage, not sessionStorage: a dismissal needs to survive past
+    // this one tab/session or "Not now" only ever suppresses the card
+    // until the tab closes — which reads, from the user's side, as the
+    // notifications prompt coming back on every single login.
+    try {
+      setDismissed(localStorage.getItem('push-prompt-dismissed') === '1')
+    } catch {}
   }, [])
 
   const handleEnable = async () => {
@@ -115,7 +121,9 @@ export function EnableNotificationsCard() {
   }
 
   const handleDismiss = () => {
-    sessionStorage.setItem('push-prompt-dismissed', '1')
+    try {
+      localStorage.setItem('push-prompt-dismissed', '1')
+    } catch {}
     setDismissed(true)
   }
 
