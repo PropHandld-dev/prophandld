@@ -10,10 +10,12 @@ import { UserIcon } from '@/components/icons'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
+import { useLanguage, t } from '@/lib/i18n'
 
 export default function PropertyContactsPage() {
   const router = useRouter()
   const params = useParams()
+  const lang = useLanguage()
   const propertyId = params.id as string
 
   const [loading, setLoading] = useState(true)
@@ -102,7 +104,7 @@ export default function PropertyContactsPage() {
 
     if (insertError) {
       console.error('Error adding contact:', insertError)
-      setError('Could not add contact. Please try again.')
+      setError(t('couldNotAddContact', lang))
       setSaving(false)
       return
     }
@@ -120,7 +122,7 @@ export default function PropertyContactsPage() {
 
     if (deleteError) {
       console.error('Error deleting contact:', deleteError)
-      setError('Could not delete contact.')
+      setError(t('couldNotDeleteContact', lang))
       return
     }
 
@@ -128,9 +130,9 @@ export default function PropertyContactsPage() {
   }
 
   const getUnitLabel = (unitId: string | null) => {
-    if (!unitId) return 'All units (property default)'
+    if (!unitId) return t('allUnitsPropertyDefault', lang)
     const unit = units.find((u) => u.id === unitId)
-    return unit ? unit.unit_number : 'Unknown unit'
+    return unit ? unit.unit_number : t('unknownUnit', lang)
   }
 
   return (
@@ -140,7 +142,7 @@ export default function PropertyContactsPage() {
           href={`/landlord/properties/${propertyId}`}
           className="text-white/50 hover:text-white text-sm transition"
         >
-          ← Property
+          {t('backToPropertyArrow', lang)}
         </Link>
         <Link href="/landlord" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
         <div className="w-20" />
@@ -162,16 +164,16 @@ export default function PropertyContactsPage() {
         ) : (
         <>
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-white">Emergency contacts</h1>
+          <h1 className="text-2xl font-bold text-white">{t('emergencyContactsHeading', lang)}</h1>
           <p className="text-white/50 text-sm mt-1">{property.address}</p>
         </div>
 
         <ScrollReveal>
         <form onSubmit={handleSubmit} className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6 space-y-4">
-          <h2 className="text-white font-semibold mb-2">Add a contact</h2>
+          <h2 className="text-white font-semibold mb-2">{t('addAContactHeading', lang)}</h2>
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">Name</label>
+            <label className="text-white/70 text-sm block mb-1">{t('contactNameLabel', lang)}</label>
             <input
               type="text"
               name="name"
@@ -184,7 +186,7 @@ export default function PropertyContactsPage() {
           </div>
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">Role / relation</label>
+            <label className="text-white/70 text-sm block mb-1">{t('roleRelationLabel', lang)}</label>
             <input
               type="text"
               name="role"
@@ -197,7 +199,7 @@ export default function PropertyContactsPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-white/70 text-sm block mb-1">Phone</label>
+              <label className="text-white/70 text-sm block mb-1">{t('phoneLabel', lang)}</label>
               <input
                 type="tel"
                 name="phone"
@@ -208,7 +210,7 @@ export default function PropertyContactsPage() {
               />
             </div>
             <div>
-              <label className="text-white/70 text-sm block mb-1">Email</label>
+              <label className="text-white/70 text-sm block mb-1">{t('emailLabel', lang)}</label>
               <input
                 type="email"
                 name="email"
@@ -221,17 +223,17 @@ export default function PropertyContactsPage() {
           </div>
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">Applies to</label>
+            <label className="text-white/70 text-sm block mb-1">{t('appliesToLabel', lang)}</label>
             <select
               name="unit_id"
               value={form.unit_id}
               onChange={handleChange}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
             >
-              <option value="" className="bg-[#0C1A2E]">All units (property default)</option>
+              <option value="" className="bg-[#0C1A2E]">{t('allUnitsPropertyDefault', lang)}</option>
               {units.map((unit) => (
                 <option key={unit.id} value={unit.id} className="bg-[#0C1A2E]">
-                  {unit.unit_number} only
+                  {unit.unit_number} {t('unitOnlySuffix', lang)}
                 </option>
               ))}
             </select>
@@ -248,19 +250,19 @@ export default function PropertyContactsPage() {
             disabled={saving}
             className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
           >
-            {saving ? 'Adding...' : 'Add contact'}
+            {saving ? t('addingDots', lang) : t('addContactBtn', lang)}
           </RippleButton>
         </form>
         </ScrollReveal>
 
         <h2 className="text-white font-semibold mb-4 flex items-center gap-2">
           <UserIcon className="w-4 h-4 text-white/60" />
-          All contacts {contacts.length > 0 && `(${contacts.length})`}
+          {t('allContactsHeading', lang)} {contacts.length > 0 && `(${contacts.length})`}
         </h2>
 
         {contacts.length === 0 ? (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
-            <p className="text-white/50 text-sm">No emergency contacts added yet.</p>
+            <p className="text-white/50 text-sm">{t('noEmergencyContactsYet', lang)}</p>
           </div>
         ) : (
           <ScrollReveal>
@@ -281,7 +283,7 @@ export default function PropertyContactsPage() {
                     onClick={() => handleDelete(contact.id)}
                     className="text-red-400/70 text-xs hover:text-red-400 transition"
                   >
-                    Delete
+                    {t('deleteBtn', lang)}
                   </button>
                 </div>
               </div>

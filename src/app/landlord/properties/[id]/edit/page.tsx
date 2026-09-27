@@ -11,10 +11,12 @@ import { LANDLORD_TABS } from '@/lib/navTabs'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { AddressAutocomplete, type AutocompletePlace } from '@/components/AddressAutocomplete'
+import { useLanguage, t } from '@/lib/i18n'
 
 export default function EditPropertyPage() {
   const router = useRouter()
   const params = useParams()
+  const lang = useLanguage()
   const propertyId = params.id as string
 
   const [loading, setLoading] = useState(true)
@@ -97,7 +99,7 @@ export default function EditPropertyPage() {
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      setError('Not authenticated')
+      setError(t('notAuthenticatedPlain', lang))
       setSaving(false)
       return
     }
@@ -110,15 +112,13 @@ export default function EditPropertyPage() {
     const dup = await dupRes.json().catch(() => ({}))
 
     if (dup.ownedByMe) {
-      setError('You already have another property with this address.')
+      setError(t('alreadyHaveAnotherPropertyAddress', lang))
       setSaving(false)
       return
     }
 
     if (dup.ownedByOther) {
-      const proceed = window.confirm(
-        'This address is already registered by another Prophandld account. If you\'re taking over management of this property, that\'s fine to ignore — otherwise, double-check the address before continuing.\n\nSave anyway?'
-      )
+      const proceed = window.confirm(t('addressRegisteredOtherEditConfirm', lang))
       if (!proceed) {
         setSaving(false)
         return
@@ -143,7 +143,7 @@ export default function EditPropertyPage() {
       .eq('id', propertyId)
 
     if (updateError) {
-      setError('Error updating property: ' + updateError.message)
+      setError(t('errorUpdatingPropertyColon', lang) + updateError.message)
       setSaving(false)
       return
     }
@@ -153,8 +153,8 @@ export default function EditPropertyPage() {
 
   const handleArchiveToggle = async () => {
     const confirmed = archived
-      ? window.confirm('Unarchive this property? It\'ll show up in your active portfolio again.')
-      : window.confirm('Archive this property? It\'ll be hidden from your active portfolio, but nothing is deleted. You can unarchive it anytime from Properties → Show archived.')
+      ? window.confirm(t('confirmUnarchiveProperty', lang))
+      : window.confirm(t('confirmArchiveProperty', lang))
     if (!confirmed) return
 
     setArchiving(true)
@@ -164,7 +164,7 @@ export default function EditPropertyPage() {
       .eq('id', propertyId)
 
     if (archiveError) {
-      setError('Could not update archive status: ' + archiveError.message)
+      setError(t('couldNotUpdateArchiveStatus', lang) + archiveError.message)
       setArchiving(false)
       return
     }
@@ -174,7 +174,7 @@ export default function EditPropertyPage() {
 
   const handleDelete = async () => {
     if (deleteConfirmText.trim().toLowerCase() !== form.address.trim().toLowerCase()) {
-      setDeleteConfirmError("That didn't match the property's address. Check it and try again.")
+      setDeleteConfirmError(t('addressDidNotMatch', lang))
       return
     }
 
@@ -185,7 +185,7 @@ export default function EditPropertyPage() {
     const data = await res.json().catch(() => ({}))
 
     if (!res.ok) {
-      setError('Could not delete property' + (data.error ? ': ' + data.error : '.'))
+      setError(t('couldNotDeleteProperty', lang) + (data.error ? ': ' + data.error : '.'))
       setDeleting(false)
       return
     }
@@ -200,7 +200,7 @@ export default function EditPropertyPage() {
           href={`/landlord/properties/${propertyId}`}
           className="text-white/50 hover:text-white text-sm transition"
         >
-          ← Back to property
+          {t('backToProperty', lang)}
         </Link>
         <Link href="/landlord" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
         <div className="w-24" />
@@ -222,19 +222,19 @@ export default function EditPropertyPage() {
           </div>
         ) : (
         <>
-        <h1 className="text-2xl font-bold text-white mb-2">Edit property</h1>
-        <p className="text-white/50 text-sm mb-8">Update your property details below.</p>
+        <h1 className="text-2xl font-bold text-white mb-2">{t('editPropertyHeading', lang)}</h1>
+        <p className="text-white/50 text-sm mb-8">{t('updatePropertyDetailsBelow', lang)}</p>
 
         <ScrollReveal>
         <form onSubmit={handleSubmit} className="space-y-4">
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">Street address</label>
+            <label className="text-white/70 text-sm block mb-1">{t('streetAddressLabel', lang)}</label>
             <AddressAutocomplete
               value={form.address}
               onChange={handleAddressChange}
               onPlaceSelected={handlePlaceSelected}
-              placeholder="Start typing your address..."
+              placeholder={t('startTypingAddress', lang)}
               required
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
             />
@@ -242,7 +242,7 @@ export default function EditPropertyPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-white/70 text-sm block mb-1">City</label>
+              <label className="text-white/70 text-sm block mb-1">{t('cityLabel', lang)}</label>
               <input
                 type="text"
                 name="city"
@@ -254,7 +254,7 @@ export default function EditPropertyPage() {
               />
             </div>
             <div>
-              <label className="text-white/70 text-sm block mb-1">State</label>
+              <label className="text-white/70 text-sm block mb-1">{t('stateLabel', lang)}</label>
               <input
                 type="text"
                 name="state"
@@ -269,7 +269,7 @@ export default function EditPropertyPage() {
           </div>
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">ZIP code</label>
+            <label className="text-white/70 text-sm block mb-1">{t('zipCodeLabel', lang)}</label>
             <input
               type="text"
               name="zip"
@@ -281,16 +281,16 @@ export default function EditPropertyPage() {
           </div>
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">Property type</label>
+            <label className="text-white/70 text-sm block mb-1">{t('propertyTypeLabel', lang)}</label>
             <select
               name="property_type"
               value={form.property_type}
               onChange={handleChange}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
             >
-              <option value="residential" className="bg-[#0C1A2E]">Residential</option>
-              <option value="commercial" className="bg-[#0C1A2E]">Commercial</option>
-              <option value="mixed" className="bg-[#0C1A2E]">Mixed use</option>
+              <option value="residential" className="bg-[#0C1A2E]">{t('residentialOption', lang)}</option>
+              <option value="commercial" className="bg-[#0C1A2E]">{t('commercialOption', lang)}</option>
+              <option value="mixed" className="bg-[#0C1A2E]">{t('mixedUseOption', lang)}</option>
             </select>
           </div>
 
@@ -305,44 +305,44 @@ export default function EditPropertyPage() {
             disabled={saving}
             className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
           >
-            {saving ? 'Saving...' : 'Save changes'}
+            {saving ? t('savingDots', lang) : t('saveChangesBtn', lang)}
           </RippleButton>
 
         </form>
         </ScrollReveal>
 
         <div className="mt-10 pt-8 border-t border-white/8">
-          <h2 className="text-white font-semibold mb-1">{archived ? 'Archived' : 'Archive this property'}</h2>
+          <h2 className="text-white font-semibold mb-1">{archived ? t('archivedLabel', lang) : t('archiveThisPropertyHeading', lang)}</h2>
           <p className="text-white/60 text-sm mb-4">
             {archived
-              ? "This property is archived and hidden from your active portfolio. Nothing's been deleted."
-              : "Hide this property from your active portfolio without deleting anything, handy once you've sold it or stopped managing it. You can unarchive it anytime."}
+              ? t('archivedPropertyDesc', lang)
+              : t('archivePropertyDesc', lang)}
           </p>
           <button
             onClick={handleArchiveToggle}
             disabled={archiving}
             className="bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/8 font-semibold px-5 py-2.5 rounded-xl text-sm transition disabled:opacity-50"
           >
-            {archiving ? 'Working…' : archived ? 'Unarchive property' : 'Archive property'}
+            {archiving ? t('workingEllipsis', lang) : archived ? t('unarchivePropertyBtn', lang) : t('archivePropertyBtn', lang)}
           </button>
         </div>
 
         <div className="mt-8 pt-8 border-t border-red-500/20">
-          <h2 className="text-red-400 font-semibold mb-1">Delete this property</h2>
+          <h2 className="text-red-400 font-semibold mb-1">{t('deleteThisPropertyHeading', lang)}</h2>
           <p className="text-white/60 text-sm mb-4">
-            Permanently deletes this property and everything under it: units, tenancies, rent history, jobs, bids, documents, and compliance records. This cannot be undone. Archiving above is the safer, reversible option.
+            {t('deletePropertyWarning', lang)}
           </p>
           {!showDeleteConfirm ? (
             <button
               onClick={() => setShowDeleteConfirm(true)}
               className="bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 font-semibold px-5 py-2.5 rounded-xl text-sm transition"
             >
-              Delete property
+              {t('deletePropertyBtn', lang)}
             </button>
           ) : (
             <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-4 space-y-3">
               <p className="text-white/70 text-sm">
-                Type the property&apos;s address (<span className="text-white font-medium">{form.address}</span>) to confirm.
+                {t('typeAddressToConfirm', lang)}<span className="text-white font-medium">{form.address}</span>{t('toConfirmSuffix', lang)}
               </p>
               <input
                 type="text"
@@ -358,14 +358,14 @@ export default function EditPropertyPage() {
                   disabled={deleting}
                   className="bg-red-500 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition hover:opacity-90 disabled:opacity-40"
                 >
-                  {deleting ? 'Deleting…' : 'Permanently delete'}
+                  {deleting ? t('deletingEllipsis', lang) : t('permanentlyDeleteBtn', lang)}
                 </button>
                 <button
                   onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText('') }}
                   disabled={deleting}
                   className="text-white/50 hover:text-white text-sm transition"
                 >
-                  Cancel
+                  {t('cancelBtn', lang)}
                 </button>
               </div>
             </div>
