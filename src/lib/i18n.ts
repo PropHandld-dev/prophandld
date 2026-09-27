@@ -1031,6 +1031,21 @@ const STRINGS = {
   addPhotosOrVideosPlain: { en: '+ Add photos or videos', es: '+ Agregar fotos o videos' },
   creatingDots: { en: 'Creating...', es: 'Creando...' },
   createJobBtn: { en: 'Create job', es: 'Crear trabajo' },
+
+  // Invite a contractor page
+  backToDashboardArrowPlain: { en: '← Dashboard', es: '← Panel' },
+  inviteAContractorHeading: { en: 'Invite a contractor', es: 'Invitar a un contratista' },
+  inviteContractorDesc: { en: "Know a contractor who isn't on Prophandld yet? Invite them by email — once they sign up, you can message them and post jobs their way.", es: '¿Conoces a un contratista que aún no está en Prophandld? Invítalo por correo electrónico — una vez que se registre, podrás enviarle mensajes y publicar trabajos para él.' },
+  contractorsEmailLabel: { en: "Contractor's email", es: 'Correo electrónico del contratista' },
+  noteOptionalLabel: { en: 'Note (optional)', es: 'Nota (opcional)' },
+  noteOptionalPlaceholder: { en: "e.g. I've got a few plumbing jobs coming up", es: 'ej. Tengo algunos trabajos de plomería próximamente' },
+  sendInviteBtn: { en: 'Send invite', es: 'Enviar invitación' },
+  yourInvitesHeading: { en: 'Your invites', es: 'Tus invitaciones' },
+  couldNotSendInvitePlain: { en: 'Could not send invite.', es: 'No se pudo enviar la invitación.' },
+  inviteSentToDotPrefix: { en: 'Invite sent to ', es: 'Invitación enviada a ' },
+  joinedStatus: { en: 'Joined', es: 'Se unió' },
+  cancelledStatus: { en: 'Cancelled', es: 'Cancelado' },
+  waitingToSignUpStatus: { en: 'Waiting to sign up', es: 'Esperando registrarse' },
 } satisfies Record<string, Record<Lang, string>>
 
 // The three schedule windows (`morning`/`afternoon`/`evening`) show up

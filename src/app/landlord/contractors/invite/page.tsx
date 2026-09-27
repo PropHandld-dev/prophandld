@@ -9,9 +9,11 @@ import { Skeleton } from '@/components/Skeleton'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
+import { useLanguage, t } from '@/lib/i18n'
 
 export default function InviteContractorPage() {
   const router = useRouter()
+  const lang = useLanguage()
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -56,12 +58,12 @@ export default function InviteContractorPage() {
     const data = await res.json().catch(() => ({}))
 
     if (!res.ok) {
-      setError(data.error || 'Could not send invite.')
+      setError(data.error || t('couldNotSendInvitePlain', lang))
       setSending(false)
       return
     }
 
-    setSuccess(`Invite sent to ${form.email.trim()}.`)
+    setSuccess(`${t('inviteSentToDotPrefix', lang)}${form.email.trim()}.`)
     setForm({ email: '', note: '' })
     await loadInvites()
     setSending(false)
@@ -73,16 +75,16 @@ export default function InviteContractorPage() {
   }
 
   const statusLabel = (status: string) => {
-    if (status === 'accepted') return { label: 'Joined', className: 'bg-[#0A7B7E]/20 text-[#12A5A9]' }
-    if (status === 'cancelled') return { label: 'Cancelled', className: 'bg-white/8 text-white/50' }
-    return { label: 'Waiting to sign up', className: 'bg-yellow-500/15 text-yellow-400' }
+    if (status === 'accepted') return { label: t('joinedStatus', lang), className: 'bg-[#0A7B7E]/20 text-[#12A5A9]' }
+    if (status === 'cancelled') return { label: t('cancelledStatus', lang), className: 'bg-white/8 text-white/50' }
+    return { label: t('waitingToSignUpStatus', lang), className: 'bg-yellow-500/15 text-yellow-400' }
   }
 
   return (
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
         <Link href="/landlord" className="text-white/50 hover:text-white text-sm transition">
-          ← Dashboard
+          {t('backToDashboardArrowPlain', lang)}
         </Link>
         <Link href="/landlord" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
         <div className="w-20" />
@@ -97,15 +99,15 @@ export default function InviteContractorPage() {
           </div>
         ) : (
           <>
-            <h1 className="text-2xl font-bold text-white mb-2">Invite a contractor</h1>
+            <h1 className="text-2xl font-bold text-white mb-2">{t('inviteAContractorHeading', lang)}</h1>
             <p className="text-white/50 text-sm mb-8">
-              Know a contractor who isn&apos;t on Prophandld yet? Invite them by email — once they sign up, you can message them and post jobs their way.
+              {t('inviteContractorDesc', lang)}
             </p>
 
             <ScrollReveal>
               <form onSubmit={handleSubmit} className="bg-white/3 border border-white/8 rounded-2xl p-6 space-y-4 mb-8">
                 <div>
-                  <label className="text-white/70 text-sm block mb-1">Contractor&apos;s email</label>
+                  <label className="text-white/70 text-sm block mb-1">{t('contractorsEmailLabel', lang)}</label>
                   <input
                     type="email"
                     value={form.email}
@@ -116,12 +118,12 @@ export default function InviteContractorPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-white/70 text-sm block mb-1">Note (optional)</label>
+                  <label className="text-white/70 text-sm block mb-1">{t('noteOptionalLabel', lang)}</label>
                   <textarea
                     value={form.note}
                     onChange={(e) => setForm({ ...form, note: e.target.value })}
                     rows={2}
-                    placeholder="e.g. I've got a few plumbing jobs coming up"
+                    placeholder={t('noteOptionalPlaceholder', lang)}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition resize-none"
                   />
                 </div>
@@ -138,14 +140,14 @@ export default function InviteContractorPage() {
                   disabled={sending}
                   className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
                 >
-                  {sending ? 'Sending...' : 'Send invite'}
+                  {sending ? t('sendingDots', lang) : t('sendInviteBtn', lang)}
                 </RippleButton>
               </form>
             </ScrollReveal>
 
             {invites.length > 0 && (
               <div>
-                <h2 className="text-white font-semibold text-sm mb-3">Your invites</h2>
+                <h2 className="text-white font-semibold text-sm mb-3">{t('yourInvitesHeading', lang)}</h2>
                 <div className="space-y-2">
                   {invites.map((invite) => {
                     const status = statusLabel(invite.status)
@@ -162,7 +164,7 @@ export default function InviteContractorPage() {
                               onClick={() => handleCancel(invite.id)}
                               className="text-red-400/70 hover:text-red-400 text-xs transition"
                             >
-                              Cancel
+                              {t('cancelBtn', lang)}
                             </button>
                           )}
                         </div>
