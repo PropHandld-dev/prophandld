@@ -19,6 +19,7 @@ import { AddressLink } from '@/components/AddressLink'
 import { StreetView } from '@/components/StreetView'
 import { RaiseDisputeButton } from '@/components/RaiseDisputeButton'
 import { JobChatCard, scrollToChat } from '@/components/JobChatCard'
+import { JobProcessGuide } from '@/components/JobProcessGuide'
 import { UnreadDot } from '@/components/UnreadDot'
 import { getUnreadJobIds } from '@/lib/messageReads'
 import { useJobRealtime } from '@/lib/useJobRealtime'
@@ -654,6 +655,15 @@ export default function ContractorJobDetailPage() {
             </div>
           )}
         </ScrollReveal>
+
+        {myBid?.status === 'accepted' && (
+          <JobProcessGuide
+            jobStatus={job.status}
+            scheduleConfirmed={!!job.schedule_confirmed}
+            beforePhotoCount={beforePhotos.length}
+            afterPhotoCount={afterPhotos.length}
+          />
+        )}
 
         {myBid?.status === 'accepted' && job.status === 'disputed' && (
           <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl p-6 mb-4">

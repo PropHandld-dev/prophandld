@@ -17,13 +17,26 @@ export async function GET() {
   const supabaseAdmin = getSupabaseAdmin()
 
   try {
-    const { data, error } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 })
-    if (error) {
-      console.error('admin/users: error listing users', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+    // listUsers only ever returns one page (1000 rows here) — past that it
+    // silently omits the rest with no error, same class of bug as the
+    // portfolio-query truncation found and fixed elsewhere in the app.
+    // Looping pages until one comes back short keeps this admin list
+    // accurate regardless of how many accounts exist.
+    const perPage = 1000
+    let page = 1
+    const allUsers: any[] = []
+    while (true) {
+      const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage })
+      if (error) {
+        console.error('admin/users: error listing users', error)
+        return NextResponse.json({ error: error.message }, { status: 500 })
+      }
+      allUsers.push(...(data.users as any))
+      if (data.users.length < perPage) break
+      page++
     }
 
-    const users = data.users.map((u) => ({
+    const users = allUsers.map((u: any) => ({
       id: u.id,
       email: u.email,
       full_name: u.user_metadata?.full_name || null,
