@@ -960,6 +960,31 @@ const STRINGS = {
   systemStatusGood: { en: 'Good', es: 'Bueno' },
   systemStatusVerify: { en: 'Verify', es: 'Verificar' },
   systemStatusServiceDue: { en: 'Service Due', es: 'Servicio pendiente' },
+
+  // Move-in/move-out inspection page
+  noTenancyFoundInspection: { en: 'No tenancy found for this unit. A tenant must be linked before starting an inspection.', es: 'No se encontró un arrendamiento para esta unidad. Se debe vincular un inquilino antes de iniciar una inspección.' },
+  noAccessToInspection: { en: "You don't have access to this inspection.", es: 'No tienes acceso a esta inspección.' },
+  couldNotStartInspection: { en: 'Could not start inspection. Please try again.', es: 'No se pudo iniciar la inspección. Inténtalo de nuevo.' },
+  onePhotoFailedSave: { en: 'One or more photos failed to save.', es: 'Una o más fotos no se pudieron guardar.' },
+  couldNotMarkInspectionComplete: { en: 'Could not mark inspection as complete.', es: 'No se pudo marcar la inspección como completa.' },
+  moveOutInspectionTitle: { en: 'Move-out inspection', es: 'Inspección de salida' },
+  moveInInspectionTitle: { en: 'Move-in inspection', es: 'Inspección de entrada' },
+  moveOutInspectionSubtitle: { en: "Document the unit's condition with timestamped photos after move-out.", es: 'Documenta el estado de la unidad con fotos con fecha y hora después de la salida.' },
+  moveInInspectionSubtitle: { en: "Document the unit's condition with timestamped photos before move-in.", es: 'Documenta el estado de la unidad con fotos con fecha y hora antes de la entrada.' },
+  backToUnitArrowInspection: { en: '← Unit', es: '← Unidad' },
+  noInspectionStartedYet: { en: 'No inspection started yet.', es: 'Aún no se ha iniciado ninguna inspección.' },
+  startInspectionBtn: { en: 'Start inspection', es: 'Iniciar inspección' },
+  inspectionCompletedSaved: { en: 'Inspection completed and saved', es: 'Inspección completada y guardada' },
+  onDateSuffix: { en: 'on', es: 'el' },
+  statusColonLabel: { en: 'Status:', es: 'Estado:' },
+  completedStatus: { en: 'Completed', es: 'Completada' },
+  inProgressStatus: { en: 'In progress', es: 'En progreso' },
+  uploadingDots: { en: 'Uploading...', es: 'Subiendo...' },
+  addPhotosOrVideosBtn: { en: '+ Add photos or videos', es: '+ Agregar fotos o videos' },
+  photosLabel: { en: 'Photos', es: 'Fotos' },
+  noPhotosAddedYet: { en: 'No photos added yet.', es: 'Aún no se han agregado fotos.' },
+  unknownLabel: { en: 'Unknown', es: 'Desconocido' },
+  doneBackToUnit: { en: 'Done, back to unit', es: 'Listo, volver a la unidad' },
 } satisfies Record<string, Record<Lang, string>>
 
 // The three schedule windows (`morning`/`afternoon`/`evening`) show up

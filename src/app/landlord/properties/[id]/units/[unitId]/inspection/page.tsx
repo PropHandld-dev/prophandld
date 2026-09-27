@@ -13,11 +13,13 @@ import { LANDLORD_TABS } from '@/lib/navTabs'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { MagneticLink } from '@/components/MagneticLink'
 import { RippleButton } from '@/components/RippleButton'
+import { useLanguage, t, roleLabel } from '@/lib/i18n'
 
 export default function InspectionPage() {
   const router = useRouter()
   const params = useParams()
   const searchParams = useSearchParams()
+  const lang = useLanguage()
   const propertyId = params.id as string
   const unitId = params.unitId as string
   const inspectionType = searchParams.get('type') === 'move_out' ? 'move_out' : 'move_in'
@@ -50,7 +52,7 @@ export default function InspectionPage() {
         .maybeSingle()
 
       if (tenancyError || !tenancyData) {
-        setError('No tenancy found for this unit. A tenant must be linked before starting an inspection.')
+        setError(t('noTenancyFoundInspection', lang))
         setLoading(false)
         return
       }
@@ -67,7 +69,7 @@ export default function InspectionPage() {
       } else if (tenancyData.renter_user_id === user.id) {
         setUserRole('renter')
       } else {
-        setError("You don't have access to this inspection.")
+        setError(t('noAccessToInspection', lang))
         setLoading(false)
         return
       }
@@ -141,7 +143,7 @@ export default function InspectionPage() {
 
     if (insertError) {
       console.error('Error starting inspection:', insertError)
-      setError('Could not start inspection. Please try again.')
+      setError(t('couldNotStartInspection', lang))
       return
     }
 
@@ -175,7 +177,7 @@ export default function InspectionPage() {
 
       if (uploadError) {
         console.error('Error uploading photo:', uploadError)
-        setError('One or more photos failed to upload.')
+        setError(t('onePhotoFailedUpload', lang))
         continue
       }
 
@@ -190,7 +192,7 @@ export default function InspectionPage() {
 
       if (insertError) {
         console.error('Error saving photo record:', insertError)
-        setError('One or more photos failed to save.')
+        setError(t('onePhotoFailedSave', lang))
       }
     }
 
@@ -209,17 +211,17 @@ export default function InspectionPage() {
 
     if (updateError) {
       console.error('Error completing inspection:', updateError)
-      setError('Could not mark inspection as complete.')
+      setError(t('couldNotMarkInspectionComplete', lang))
       return
     }
 
     setInspection({ ...inspection, status: 'completed', completed_at: new Date().toISOString() })
   }
 
-  const title = inspectionType === 'move_out' ? 'Move-out inspection' : 'Move-in inspection'
+  const title = inspectionType === 'move_out' ? t('moveOutInspectionTitle', lang) : t('moveInInspectionTitle', lang)
   const subtitle = inspectionType === 'move_out'
-    ? "Document the unit's condition with timestamped photos after move-out."
-    : "Document the unit's condition with timestamped photos before move-in."
+    ? t('moveOutInspectionSubtitle', lang)
+    : t('moveInInspectionSubtitle', lang)
 
   return (
     <div className="min-h-screen bg-[#0C1A2E]">
@@ -228,7 +230,7 @@ export default function InspectionPage() {
           href={`/landlord/properties/${propertyId}/units/${unitId}`}
           className="text-white/50 hover:text-white text-sm transition"
         >
-          ← Unit
+          {t('backToUnitArrowInspection', lang)}
         </Link>
         <Link href="/landlord" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
         <div className="w-20" />
@@ -262,12 +264,12 @@ export default function InspectionPage() {
 
         {!tenancy ? null : !inspection ? (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
-            <p className="text-white/50 text-sm mb-4">No inspection started yet.</p>
+            <p className="text-white/50 text-sm mb-4">{t('noInspectionStartedYet', lang)}</p>
             <RippleButton
               onClick={startInspection}
               className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:opacity-90 transition"
             >
-              Start inspection
+              {t('startInspectionBtn', lang)}
             </RippleButton>
           </div>
         ) : (
@@ -277,15 +279,15 @@ export default function InspectionPage() {
                 <div className="bg-[#0A7B7E]/15 border border-[#12A5A9]/30 rounded-xl px-4 py-3 mb-4 flex items-center gap-2">
                   <CheckCircleIcon className="w-4 h-4 text-[#12A5A9] shrink-0" />
                   <p className="text-[#12A5A9] text-sm font-medium">
-                    Inspection completed and saved
-                    {inspection.completed_at && ` on ${new Date(inspection.completed_at).toLocaleString()}`}
+                    {t('inspectionCompletedSaved', lang)}
+                    {inspection.completed_at && ` ${t('onDateSuffix', lang)} ${new Date(inspection.completed_at).toLocaleString()}`}
                   </p>
                 </div>
               )}
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-white font-semibold">
-                  Status: <span className={inspection.status === 'completed' ? 'text-[#12A5A9]' : 'text-yellow-400'}>
-                    {inspection.status === 'completed' ? 'Completed' : 'In progress'}
+                  {t('statusColonLabel', lang)} <span className={inspection.status === 'completed' ? 'text-[#12A5A9]' : 'text-yellow-400'}>
+                    {inspection.status === 'completed' ? t('completedStatus', lang) : t('inProgressStatus', lang)}
                   </span>
                 </h2>
                 {inspection.status !== 'completed' && (
@@ -294,7 +296,7 @@ export default function InspectionPage() {
                     disabled={photos.length === 0}
                     className="text-xs bg-white/8 text-white/70 px-3 py-1.5 rounded-lg hover:bg-white/12 transition disabled:opacity-30 disabled:cursor-not-allowed"
                   >
-                    Mark complete
+                    {t('markCompleteBtn', lang)}
                   </button>
                 )}
               </div>
@@ -311,7 +313,7 @@ export default function InspectionPage() {
                     className="hidden"
                   />
                   <span className="inline-block bg-white/8 text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-white/12 transition cursor-pointer">
-                    {uploading ? 'Uploading...' : '+ Add photos or videos'}
+                    {uploading ? t('uploadingDots', lang) : t('addPhotosOrVideosBtn', lang)}
                   </span>
                 </label>
               )}
@@ -319,11 +321,11 @@ export default function InspectionPage() {
 
             <div>
               <h3 className="text-white font-semibold mb-3">
-                Photos {photos.length > 0 && `(${photos.length})`}
+                {t('photosLabel', lang)} {photos.length > 0 && `(${photos.length})`}
               </h3>
               {photos.length === 0 ? (
                 <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
-                  <p className="text-white/50 text-sm">No photos added yet.</p>
+                  <p className="text-white/50 text-sm">{t('noPhotosAddedYet', lang)}</p>
                 </div>
               ) : (
                 <ScrollReveal>
@@ -341,7 +343,7 @@ export default function InspectionPage() {
                       )}
                       <div className="p-3">
                         <p className="text-white/60 text-xs">
-                          {photo.uploader?.full_name || 'Unknown'} · {photo.uploaded_by_role}
+                          {photo.uploader?.full_name || t('unknownLabel', lang)} · {roleLabel(photo.uploaded_by_role, lang)}
                         </p>
                         <p className="text-white/50 text-xs mt-0.5">
                           {new Date(photo.created_at).toLocaleString()}
@@ -361,7 +363,7 @@ export default function InspectionPage() {
             href={`/landlord/properties/${propertyId}/units/${unitId}`}
             className="block text-center bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl mt-6 hover:opacity-90 transition"
           >
-            Done, back to unit
+            {t('doneBackToUnit', lang)}
           </MagneticLink>
         )}
         </>
