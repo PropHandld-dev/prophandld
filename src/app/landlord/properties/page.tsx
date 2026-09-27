@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -20,6 +20,7 @@ export default function PropertiesPage() {
   const [properties, setProperties] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showArchived, setShowArchived] = useState(false)
+  const [search, setSearch] = useState('')
   // Remembered per-device only — a light convenience, not something that
   // needs to sync across a landlord's phone and laptop.
   const [view, setView] = useState<'list' | 'map'>('list')
@@ -78,6 +79,17 @@ export default function PropertiesPage() {
 
   const activeCount = properties.filter((p) => !p.archived).length
   const archivedCount = properties.filter((p) => p.archived).length
+
+  // Counts above stay portfolio-wide on purpose — search narrows what's
+  // shown, not what's counted, same as the rent roll's stats follow its
+  // own filter but these totals describe the whole portfolio regardless.
+  const filteredProperties = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return properties
+    return properties.filter((p) =>
+      [p.address, p.city, p.state, p.zip, p.property_type].filter(Boolean).some((v) => String(v).toLowerCase().includes(q))
+    )
+  }, [properties, search])
 
   return (
     <div className="min-h-screen bg-[#0C1A2E]">
@@ -145,6 +157,18 @@ export default function PropertiesPage() {
             </div>
 
             {properties.length > 0 && (
+              <div className="mb-6">
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder={t('searchPropertiesPlaceholder', lang)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder-white/40 focus:outline-none focus:border-[#12A5A9] transition"
+                />
+              </div>
+            )}
+
+            {properties.length > 0 && (
               <ScrollReveal>
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className="bg-white/3 border border-white/8 rounded-2xl p-5 hover:border-[#12A5A9]/30 hover:-translate-y-0.5 transition-all">
@@ -168,7 +192,7 @@ export default function PropertiesPage() {
             {properties.length > 0 && view === 'map' ? (
               <ScrollReveal>
                 <PropertiesMap
-                  properties={properties.map((p) => ({
+                  properties={filteredProperties.map((p) => ({
                     id: p.id,
                     address: p.address,
                     city: p.city,
@@ -197,10 +221,14 @@ export default function PropertiesPage() {
                   </>
                 )}
               </div>
+            ) : filteredProperties.length === 0 ? (
+              <div className="bg-white/3 border border-white/8 rounded-2xl p-12 text-center">
+                <p className="text-white/50 text-sm">{t('noPropertiesMatchSearch', lang)}</p>
+              </div>
             ) : (
               <ScrollReveal>
               <div className="grid gap-4">
-                {properties.map((property) => (
+                {filteredProperties.map((property) => (
                   <div
                     key={property.id}
                     className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all"

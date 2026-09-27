@@ -1239,6 +1239,24 @@ const STRINGS = {
   unitFallback: { en: 'Unit', es: 'Unidad' },
   jobFallback: { en: 'Job', es: 'Trabajo' },
   propertyFallback: { en: 'Property', es: 'Propiedad' },
+
+  // Rent roll: range/search controls, added in the modernization pass
+  rentRollSubtitle: { en: 'Every unit, filtered and ranged however you need.', es: 'Todas las unidades, filtradas y en el rango que necesites.' },
+  searchPropertyOrUnit: { en: 'Search by property or unit…', es: 'Buscar por propiedad o unidad…' },
+  last3MonthsOption: { en: 'Last 3 months', es: 'Últimos 3 meses' },
+  last6MonthsOption: { en: 'Last 6 months', es: 'Últimos 6 meses' },
+  last12MonthsOption: { en: 'Last 12 months', es: 'Últimos 12 meses' },
+  customRangeOption: { en: 'Custom range…', es: 'Rango personalizado…' },
+  toWord: { en: 'to', es: 'a' },
+  expectedStatLabel: { en: 'Expected', es: 'Esperado' },
+  collectedStatLabel: { en: 'Collected', es: 'Cobrado' },
+  collectedRateStatLabel: { en: 'Collected rate', es: 'Tasa de cobro' },
+  pickACustomRangeMsg: { en: 'Pick a start and end month above.', es: 'Elige un mes de inicio y fin arriba.' },
+  noUnitsMatchSearch: { en: 'No units match your search.', es: 'Ninguna unidad coincide con tu búsqueda.' },
+
+  // Properties list search, added in the modernization pass
+  searchPropertiesPlaceholder: { en: 'Search by address, city, ZIP, or type…', es: 'Buscar por dirección, ciudad, código postal o tipo…' },
+  noPropertiesMatchSearch: { en: 'No properties match your search.', es: 'Ninguna propiedad coincide con tu búsqueda.' },
 } satisfies Record<string, Record<Lang, string>>
 
 // The three schedule windows (`morning`/`afternoon`/`evening`) show up
