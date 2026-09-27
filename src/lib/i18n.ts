@@ -699,6 +699,14 @@ const STRINGS = {
   couldNotSubmitPriceChange: { en: 'Could not submit price change request:', es: 'No se pudo enviar la solicitud de cambio de precio:' },
   onePhotoFailedUpload: { en: 'One or more photos failed to upload.', es: 'Una o más fotos no se pudieron subir.' },
   photoUploadedNotSaved: { en: 'Photo uploaded but could not be saved:', es: 'Foto subida pero no se pudo guardar:' },
+
+  // Renter job detail page
+  landlordWantsYouToPickTime: { en: 'Your landlord would like you to pick a time that works for you.', es: 'Tu propietario quisiera que elijas un horario que te funcione.' },
+  waitingOnLandlordOrContractor: { en: 'Waiting on the landlord or contractor to confirm.', es: 'Esperando confirmación del propietario o del contratista.' },
+  yourPhotosHeading: { en: 'Your photos', es: 'Tus fotos' },
+  jobChatSubtitleRenter: { en: 'Messages and updates about this job, in one place', es: 'Mensajes y actualizaciones sobre este trabajo, en un solo lugar' },
+  timeProposedHeading: { en: 'Time proposed', es: 'Horario propuesto' },
+  willLetYouKnowConfirmed: { en: "We'll let you know once it's confirmed.", es: 'Te avisaremos cuando se confirme.' },
   jobNotFound: { en: 'Job not found.', es: 'Trabajo no encontrado.' },
   couldNotRemovePhoto: { en: 'Could not remove photo.', es: 'No se pudo eliminar la foto.' },
   couldNotAcknowledgeJob: { en: 'Could not acknowledge job.', es: 'No se pudo reconocer el trabajo.' },

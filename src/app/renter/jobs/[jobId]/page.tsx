@@ -20,10 +20,12 @@ import { getUnreadJobIds } from '@/lib/messageReads'
 import { useJobRealtime } from '@/lib/useJobRealtime'
 import { RENTER_TABS } from '@/lib/navTabs'
 import { TIME_WINDOWS, validateScheduleTime, rescheduleLockError } from '@/lib/scheduleWindows'
+import { useLanguage, t, windowLabel } from '@/lib/i18n'
 
 export default function RenterJobDetailPage() {
   const router = useRouter()
   const params = useParams()
+  const lang = useLanguage()
   const jobId = params.jobId as string
 
   const [loading, setLoading] = useState(true)
@@ -57,7 +59,7 @@ export default function RenterJobDetailPage() {
 
     if (jobError || !jobData) {
       console.error('Error loading job:', jobError)
-      setError('Job not found or not accessible.')
+      setError(t('jobNotFoundAccessible', lang))
       setLoading(false)
       return
     }
@@ -102,7 +104,7 @@ export default function RenterJobDetailPage() {
     const { error: deleteError } = await supabase.from('job_photos').delete().eq('id', photo.id)
     if (deleteError) {
       console.error('Error deleting photo record:', deleteError)
-      setError('Could not remove photo.')
+      setError(t('couldNotRemovePhoto', lang))
       return
     }
 
@@ -118,7 +120,7 @@ export default function RenterJobDetailPage() {
 
   const submitProposal = async () => {
     if (!scheduleDate) {
-      setError('Please pick a date.')
+      setError(t('pleasePickADate', lang))
       return
     }
 
@@ -153,7 +155,7 @@ export default function RenterJobDetailPage() {
 
     if (updateError) {
       console.error('Error proposing schedule:', updateError)
-      setError('Could not propose a schedule.')
+      setError(t('couldNotProposeSchedule', lang))
       setActioning(false)
       return
     }
@@ -174,7 +176,7 @@ export default function RenterJobDetailPage() {
 
     if (updateError) {
       console.error('Error confirming schedule:', updateError)
-      setError('Could not confirm the schedule.')
+      setError(t('couldNotConfirmSchedule', lang))
     } else {
       notify('schedule_confirmed', jobId)
       if (userId) postJobStatusMessage(jobId, userId, '✓ Schedule confirmed')
@@ -186,24 +188,21 @@ export default function RenterJobDetailPage() {
 
   const statusLabel = (status: string) => {
     if (job.proposed_date && !job.schedule_confirmed) {
-      const proposer = job.proposed_by === 'renter' ? 'you' : 'the other side'
-      return `New time proposed by ${proposer}`
+      return job.proposed_by === 'renter' ? t('newTimeProposedByYou', lang) : t('newTimeProposedByOther', lang)
     }
     const labels: Record<string, string> = {
-      pending_approval: 'Landlord is finding a contractor',
-      approved: 'Landlord is finding a contractor',
-      bidding: 'Landlord is finding a contractor',
-      bid_selected: 'Landlord is finding a contractor',
-      scheduled: 'Scheduled',
-      in_progress: 'Work in progress',
-      pending_review: 'Work complete, waiting on landlord',
-      completed: 'Completed',
-      disputed: 'Under dispute review',
+      pending_approval: t('statusLandlordFinding', lang),
+      approved: t('statusLandlordFinding', lang),
+      bidding: t('statusLandlordFinding', lang),
+      bid_selected: t('statusLandlordFinding', lang),
+      scheduled: t('statusScheduledFull', lang),
+      in_progress: t('statusWorkInProgress', lang),
+      pending_review: t('statusWorkCompleteWaiting', lang),
+      completed: t('statusCompleted', lang),
+      disputed: t('statusDisputedFull', lang),
     }
     return labels[status] || status
   }
-
-  const windowLabel = (w: string) => TIME_WINDOWS.find((t) => t.value === w)?.label || w
 
   const disputeEligible =
     job?.status === 'pending_review' ||
@@ -215,7 +214,7 @@ export default function RenterJobDetailPage() {
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
         <Link href="/renter" className="text-white/50 hover:text-white text-sm transition">
-          ← Dashboard
+          {t('dashboard', lang)}
         </Link>
         <Link href="/renter" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
         <div className="w-20" />
@@ -250,10 +249,10 @@ export default function RenterJobDetailPage() {
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
         <Link href="/renter" className="text-white/50 hover:text-white text-sm transition">
-          ← Dashboard
+          {t('dashboard', lang)}
         </Link>
         <Link href="/renter" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
-        <a href="#chat" onClick={scrollToChat} aria-label="Go to the chat" className="relative text-white/50 hover:text-white transition">
+        <a href="#chat" onClick={scrollToChat} aria-label={t('goToChat', lang)} className="relative text-white/50 hover:text-white transition">
           <MessageCircleIcon className="w-5 h-5" />
           {hasUnread && <UnreadDot className="absolute -top-0.5 -right-0.5" />}
         </a>
@@ -265,7 +264,7 @@ export default function RenterJobDetailPage() {
             <h1 className="text-2xl font-bold text-white">{job.category}</h1>
             {job.is_emergency && (
               <span className="text-xs bg-red-500/20 text-red-400 border border-red-500/30 rounded-full px-2.5 py-1 font-semibold">
-                Emergency
+                {t('emergency', lang)}
               </span>
             )}
           </div>
@@ -273,7 +272,7 @@ export default function RenterJobDetailPage() {
 
         <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
           <h2 className="text-white font-semibold mb-3">
-            Status: <span className="text-[#12A5A9]">{statusLabel(job.status)}</span>
+            {t('statusPrefix', lang)} <span className="text-[#12A5A9]">{statusLabel(job.status)}</span>
           </h2>
           <p className="text-white/70 text-sm leading-relaxed">{job.description}</p>
 
@@ -286,9 +285,9 @@ export default function RenterJobDetailPage() {
 
         {job.status === 'disputed' && (
           <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl p-6 mb-4">
-            <h3 className="text-yellow-400 font-semibold mb-1">Under dispute review</h3>
+            <h3 className="text-yellow-400 font-semibold mb-1">{t('statusDisputedFull', lang)}</h3>
             <p className="text-white/60 text-sm">
-              Prophandld is reviewing a dispute on this job. Everyone involved will be notified once it&apos;s resolved.
+              {t('disputeReviewDesc', lang)}
             </p>
           </div>
         )}
@@ -302,31 +301,31 @@ export default function RenterJobDetailPage() {
 
         {job.schedule_ask_tenant && !job.proposed_date && (
           <div className="bg-blue-500/10 border border-blue-400/30 rounded-2xl p-5 mb-4">
-            <p className="text-blue-300 text-sm font-medium">Your landlord would like you to pick a time that works for you.</p>
+            <p className="text-blue-300 text-sm font-medium">{t('landlordWantsYouToPickTime', lang)}</p>
           </div>
         )}
 
         {showSchedulingSection && (
           <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
-            <h3 className="text-white font-semibold mb-4">Schedule</h3>
+            <h3 className="text-white font-semibold mb-4">{t('scheduleHeading', lang)}</h3>
 
             {!job.proposed_date ? (
               <div className="text-center py-4">
-                <p className="text-white/50 text-sm mb-4">No appointment proposed yet.</p>
+                <p className="text-white/50 text-sm mb-4">{t('noAppointmentProposedYet', lang)}</p>
                 <RippleButton
                   onClick={openScheduleModal}
                   className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition"
                 >
-                  Propose a time
+                  {t('proposeATimeBtn', lang)}
                 </RippleButton>
               </div>
             ) : job.schedule_confirmed ? (
               <div className="bg-[#0A7B7E]/15 border border-[#12A5A9]/30 rounded-xl px-4 py-3">
                 <p className="text-[#12A5A9] text-sm font-medium flex items-center gap-1.5">
-                  <CheckCircleIcon className="w-4 h-4" /> Confirmed
+                  <CheckCircleIcon className="w-4 h-4" /> {t('confirmedState', lang)}
                 </p>
                 <p className="text-white text-sm mt-1">
-                  {new Date(job.proposed_date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })} · {windowLabel(job.proposed_window)}
+                  {new Date(job.proposed_date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })} · {windowLabel(job.proposed_window, lang)}
                   {job.proposed_time && ` · ${job.proposed_time}`}
                 </p>
                 {rescheduleLockError(job.proposed_date) ? (
@@ -337,17 +336,17 @@ export default function RenterJobDetailPage() {
                     disabled={actioning}
                     className="text-white/50 text-xs hover:text-white transition mt-2"
                   >
-                    Reschedule
+                    {t('rescheduleBtn', lang)}
                   </button>
                 )}
               </div>
             ) : (
               <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
                 <p className="text-yellow-400/80 text-xs mb-1">
-                  Proposed by {job.proposed_by === 'renter' ? 'you' : job.proposed_by}
+                  {t('proposedByLabel', lang)} {job.proposed_by === 'renter' ? t('you', lang) : job.proposed_by}
                 </p>
                 <p className="text-white text-sm">
-                  {new Date(job.proposed_date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })} · {windowLabel(job.proposed_window)}
+                  {new Date(job.proposed_date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })} · {windowLabel(job.proposed_window, lang)}
                   {job.proposed_time && ` · ${job.proposed_time}`}
                 </p>
                 {isMyTurnToRespond ? (
@@ -357,18 +356,18 @@ export default function RenterJobDetailPage() {
                       disabled={actioning}
                       className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
                     >
-                      Confirm this time
+                      {t('confirmThisTime', lang)}
                     </RippleButton>
                     <button
                       onClick={openScheduleModal}
                       disabled={actioning}
                       className="text-white/50 text-xs hover:text-white transition"
                     >
-                      Propose different time
+                      {t('proposeDifferentTime', lang)}
                     </button>
                   </div>
                 ) : (
-                  <p className="text-white/60 text-xs mt-3">Waiting on the landlord or contractor to confirm.</p>
+                  <p className="text-white/60 text-xs mt-3">{t('waitingOnLandlordOrContractor', lang)}</p>
                 )}
               </div>
             )}
@@ -377,16 +376,16 @@ export default function RenterJobDetailPage() {
 
         {['in_progress', 'pending_review', 'completed'].includes(job.status) && (beforePhotos.length > 0 || afterPhotos.length > 0) && (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
-            <h3 className="text-white font-semibold mb-4">Proof of work</h3>
+            <h3 className="text-white font-semibold mb-4">{t('proofOfWorkHeading', lang)}</h3>
             {beforePhotos.length > 0 && (
               <div className="mb-5">
-                <p className="text-white/70 text-sm font-medium mb-2">Before</p>
+                <p className="text-white/70 text-sm font-medium mb-2">{t('beforeLabel', lang)}</p>
                 <PhotoGrid photos={beforePhotos} columns={3} />
               </div>
             )}
             {afterPhotos.length > 0 && (
               <div>
-                <p className="text-white/70 text-sm font-medium mb-2">After</p>
+                <p className="text-white/70 text-sm font-medium mb-2">{t('afterLabel', lang)}</p>
                 <PhotoGrid photos={afterPhotos} columns={3} />
               </div>
             )}
@@ -395,7 +394,7 @@ export default function RenterJobDetailPage() {
 
         {generalPhotos.length > 0 && (
           <div>
-            <h3 className="text-white font-semibold mb-3">Your photos</h3>
+            <h3 className="text-white font-semibold mb-3">{t('yourPhotosHeading', lang)}</h3>
             <PhotoGrid
               photos={generalPhotos}
               columns={2}
@@ -409,8 +408,8 @@ export default function RenterJobDetailPage() {
         {userId && (
           <JobChatCard
             jobId={jobId}
-            title="Job chat"
-            subtitle="Messages and updates about this job, in one place"
+            title={t('jobChatTitle', lang)}
+            subtitle={t('jobChatSubtitleRenter', lang)}
             onRead={() => setHasUnread(false)}
           />
         )}
@@ -419,9 +418,9 @@ export default function RenterJobDetailPage() {
       {showScheduleModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
           <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
-            <h3 className="text-white font-semibold mb-4">Propose a time</h3>
+            <h3 className="text-white font-semibold mb-4">{t('proposeATimeHeading', lang)}</h3>
 
-            <label className="text-white/70 text-sm block mb-1">Date</label>
+            <label className="text-white/70 text-sm block mb-1">{t('dateLabel', lang)}</label>
             <input
               type="date"
               value={scheduleDate}
@@ -429,18 +428,18 @@ export default function RenterJobDetailPage() {
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition mb-4"
             />
 
-            <label className="text-white/70 text-sm block mb-1">Time window</label>
+            <label className="text-white/70 text-sm block mb-1">{t('timeWindowLabel', lang)}</label>
             <select
               value={scheduleWindow}
               onChange={(e) => setScheduleWindow(e.target.value)}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition mb-4"
             >
               {TIME_WINDOWS.map((w) => (
-                <option key={w.value} value={w.value} className="bg-[#0C1A2E]">{w.label}</option>
+                <option key={w.value} value={w.value} className="bg-[#0C1A2E]">{windowLabel(w.value, lang)}</option>
               ))}
             </select>
 
-            <label className="text-white/70 text-sm block mb-1">Specific time (optional)</label>
+            <label className="text-white/70 text-sm block mb-1">{t('specificTimeOptional', lang)}</label>
             <input
               type="time"
               value={scheduleTime}
@@ -460,14 +459,14 @@ export default function RenterJobDetailPage() {
                 disabled={actioning}
                 className="flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-white/12 transition disabled:opacity-50"
               >
-                Cancel
+                {t('cancel', lang)}
               </button>
               <button
                 onClick={submitProposal}
                 disabled={actioning}
                 className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
               >
-                {actioning ? 'Proposing...' : 'Propose'}
+                {actioning ? t('proposing', lang) : t('proposeBtn', lang)}
               </button>
             </div>
           </div>
@@ -478,14 +477,14 @@ export default function RenterJobDetailPage() {
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
           <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full text-center">
             <h3 className="text-white font-semibold mb-2 flex items-center justify-center gap-1.5">
-              <CheckCircleIcon className="w-4 h-4 text-[#12A5A9]" /> Time proposed
+              <CheckCircleIcon className="w-4 h-4 text-[#12A5A9]" /> {t('timeProposedHeading', lang)}
             </h3>
-            <p className="text-white/50 text-sm mb-5">We'll let you know once it's confirmed.</p>
+            <p className="text-white/50 text-sm mb-5">{t('willLetYouKnowConfirmed', lang)}</p>
             <button
               onClick={() => setShowProposedModal(false)}
               className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-6 py-2.5 rounded-xl hover:opacity-90 transition"
             >
-              Got it
+              {t('gotIt', lang)}
             </button>
           </div>
         </div>
