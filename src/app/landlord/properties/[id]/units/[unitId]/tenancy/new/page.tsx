@@ -8,10 +8,12 @@ import { BottomTabBar } from '@/components/BottomTabBar'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { LANDLORD_TABS } from '@/lib/navTabs'
+import { useLanguage, t } from '@/lib/i18n'
 
 export default function NewTenancyPage() {
   const router = useRouter()
   const params = useParams()
+  const lang = useLanguage()
   const propertyId = params.id as string
   const unitId = params.unitId as string
 
@@ -75,7 +77,7 @@ export default function NewTenancyPage() {
       })
 
     if (tenancyError) {
-      setError('Error creating tenancy: ' + tenancyError.message)
+      setError(t('errorCreatingTenancyColon', lang) + tenancyError.message)
       setLoading(false)
       return
     }
@@ -86,7 +88,7 @@ export default function NewTenancyPage() {
   const sendInvite = async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      setError('Not authenticated.')
+      setError(t('notAuthenticatedPeriod', lang))
       setLoading(false)
       return
     }
@@ -120,7 +122,7 @@ export default function NewTenancyPage() {
 
     if (inviteError || !invite) {
       console.error('Error creating invite:', inviteError)
-      setError('Could not send invite. Please try again.')
+      setError(t('couldNotSendInvite', lang))
       setLoading(false)
       return
     }
@@ -142,29 +144,29 @@ export default function NewTenancyPage() {
           href={`/landlord/properties/${propertyId}/units/${unitId}`}
           className="text-white/50 hover:text-white text-sm transition"
         >
-          ← Back to unit
+          {t('backToUnitPlain', lang)}
         </Link>
         <Link href="/landlord" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
         <div className="w-20" />
       </nav>
 
       <main className="max-w-xl mx-auto px-6 py-10 pb-28">
-        <h1 className="text-2xl font-bold text-white mb-2">Link a renter</h1>
+        <h1 className="text-2xl font-bold text-white mb-2">{t('linkARenterHeading', lang)}</h1>
         <p className="text-white/50 text-sm mb-8">
-          Enter their email to link them to this unit. If they don't have a Prophandld account yet, we'll invite them. They'll be linked automatically once they sign up.
+          {t('linkRenterDesc', lang)}
         </p>
 
         {inviteSent ? (
           <div className="bg-[#0A7B7E]/15 border border-[#12A5A9]/30 rounded-2xl p-6 text-center">
-            <p className="text-[#12A5A9] font-medium">Invite sent to {form.renter_email}</p>
+            <p className="text-[#12A5A9] font-medium">{t('inviteSentToPrefix', lang)}{form.renter_email}</p>
             <p className="text-white/50 text-sm mt-2">
-              They'll be linked to this unit automatically once they sign up as a renter.
+              {t('linkedOnceSignUp', lang)}
             </p>
             <Link
               href={`/landlord/properties/${propertyId}/units/${unitId}`}
               className="text-[#12A5A9] text-sm hover:underline block mt-4"
             >
-              ← Back to unit
+              {t('backToUnitPlain', lang)}
             </Link>
           </div>
         ) : (
@@ -172,7 +174,7 @@ export default function NewTenancyPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">Renter email</label>
+            <label className="text-white/70 text-sm block mb-1">{t('renterEmailLabel', lang)}</label>
             <input
               type="email"
               name="renter_email"
@@ -185,7 +187,7 @@ export default function NewTenancyPage() {
           </div>
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">Monthly rent ($)</label>
+            <label className="text-white/70 text-sm block mb-1">{t('monthlyRentDollarLabel', lang)}</label>
             <input
               type="number"
               name="rent_amount"
@@ -197,7 +199,7 @@ export default function NewTenancyPage() {
           </div>
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">Rent due day of month</label>
+            <label className="text-white/70 text-sm block mb-1">{t('rentDueDayLabel', lang)}</label>
             <input
               type="number"
               name="rent_due_day"
@@ -208,11 +210,11 @@ export default function NewTenancyPage() {
               placeholder="1"
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
             />
-            <p className="text-white/40 text-xs mt-1">Pick 1–28 so it lands on every month, including February.</p>
+            <p className="text-white/40 text-xs mt-1">{t('pick1to28Desc', lang)}</p>
           </div>
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">Security deposit ($)</label>
+            <label className="text-white/70 text-sm block mb-1">{t('securityDepositDollarLabel', lang)}</label>
             <input
               type="number"
               name="security_deposit"
@@ -225,7 +227,7 @@ export default function NewTenancyPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-white/70 text-sm block mb-1">Lease start</label>
+              <label className="text-white/70 text-sm block mb-1">{t('leaseStartLabel', lang)}</label>
               <input
                 type="date"
                 name="lease_start"
@@ -235,7 +237,7 @@ export default function NewTenancyPage() {
               />
             </div>
             <div>
-              <label className="text-white/70 text-sm block mb-1">Lease end</label>
+              <label className="text-white/70 text-sm block mb-1">{t('leaseEndLabel', lang)}</label>
               <input
                 type="date"
                 name="lease_end"
@@ -248,7 +250,7 @@ export default function NewTenancyPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-white/70 text-sm block mb-1">Rent escalation (%)</label>
+              <label className="text-white/70 text-sm block mb-1">{t('rentEscalationPercentLabel', lang)}</label>
               <input
                 type="number"
                 step="0.1"
@@ -260,7 +262,7 @@ export default function NewTenancyPage() {
               />
             </div>
             <div>
-              <label className="text-white/70 text-sm block mb-1">Every (months)</label>
+              <label className="text-white/70 text-sm block mb-1">{t('everyMonthsLabel', lang)}</label>
               <input
                 type="number"
                 name="escalation_frequency_months"
@@ -273,7 +275,7 @@ export default function NewTenancyPage() {
           </div>
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">Occupants</label>
+            <label className="text-white/70 text-sm block mb-1">{t('occupantsLabel', lang)}</label>
             <input
               type="number"
               name="occupants"
@@ -285,25 +287,25 @@ export default function NewTenancyPage() {
           </div>
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">Pets</label>
+            <label className="text-white/70 text-sm block mb-1">{t('petsLabel', lang)}</label>
             <input
               type="text"
               name="pets"
               value={form.pets}
               onChange={handleChange}
-              placeholder="e.g. 1 dog (Labrador)"
+              placeholder={t('petsPlaceholder', lang)}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
             />
           </div>
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">Lease notes</label>
+            <label className="text-white/70 text-sm block mb-1">{t('leaseNotesLabel', lang)}</label>
             <textarea
               name="lease_notes"
               value={form.lease_notes}
               onChange={handleChange}
               rows={3}
-              placeholder="Anything else worth noting about this lease"
+              placeholder={t('leaseNotesPlaceholder', lang)}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition resize-none"
             />
           </div>
@@ -319,7 +321,7 @@ export default function NewTenancyPage() {
             disabled={loading}
             className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
           >
-            {loading ? 'Saving...' : 'Link or invite renter'}
+            {loading ? t('savingDots', lang) : t('linkOrInviteRenterBtn', lang)}
           </RippleButton>
 
         </form>

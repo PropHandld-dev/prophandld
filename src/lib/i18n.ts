@@ -985,6 +985,31 @@ const STRINGS = {
   noPhotosAddedYet: { en: 'No photos added yet.', es: 'Aún no se han agregado fotos.' },
   unknownLabel: { en: 'Unknown', es: 'Desconocido' },
   doneBackToUnit: { en: 'Done, back to unit', es: 'Listo, volver a la unidad' },
+
+  // New tenancy page
+  errorCreatingTenancyColon: { en: 'Error creating tenancy: ', es: 'Error al crear el arrendamiento: ' },
+  notAuthenticatedPeriod: { en: 'Not authenticated.', es: 'No autenticado.' },
+  couldNotSendInvite: { en: 'Could not send invite. Please try again.', es: 'No se pudo enviar la invitación. Inténtalo de nuevo.' },
+  backToUnitPlain: { en: '← Back to unit', es: '← Volver a la unidad' },
+  linkARenterHeading: { en: 'Link a renter', es: 'Vincular un inquilino' },
+  linkRenterDesc: { en: "Enter their email to link them to this unit. If they don't have a Prophandld account yet, we'll invite them. They'll be linked automatically once they sign up.", es: 'Ingresa su correo electrónico para vincularlo a esta unidad. Si aún no tiene una cuenta de Prophandld, le enviaremos una invitación. Se vinculará automáticamente una vez que se registre.' },
+  inviteSentToPrefix: { en: 'Invite sent to ', es: 'Invitación enviada a ' },
+  linkedOnceSignUp: { en: "They'll be linked to this unit automatically once they sign up as a renter.", es: 'Se vincularán a esta unidad automáticamente una vez que se registren como inquilinos.' },
+  renterEmailLabel: { en: 'Renter email', es: 'Correo electrónico del inquilino' },
+  monthlyRentDollarLabel: { en: 'Monthly rent ($)', es: 'Renta mensual ($)' },
+  rentDueDayLabel: { en: 'Rent due day of month', es: 'Día de vencimiento de la renta' },
+  pick1to28Desc: { en: 'Pick 1–28 so it lands on every month, including February.', es: 'Elige entre 1 y 28 para que caiga en todos los meses, incluyendo febrero.' },
+  securityDepositDollarLabel: { en: 'Security deposit ($)', es: 'Depósito de seguridad ($)' },
+  leaseStartLabel: { en: 'Lease start', es: 'Inicio del contrato' },
+  leaseEndLabel: { en: 'Lease end', es: 'Fin del contrato' },
+  rentEscalationPercentLabel: { en: 'Rent escalation (%)', es: 'Aumento de renta (%)' },
+  everyMonthsLabel: { en: 'Every (months)', es: 'Cada (meses)' },
+  occupantsLabel: { en: 'Occupants', es: 'Ocupantes' },
+  petsLabel: { en: 'Pets', es: 'Mascotas' },
+  petsPlaceholder: { en: 'e.g. 1 dog (Labrador)', es: 'ej. 1 perro (Labrador)' },
+  leaseNotesLabel: { en: 'Lease notes', es: 'Notas del contrato' },
+  leaseNotesPlaceholder: { en: 'Anything else worth noting about this lease', es: 'Cualquier otra cosa que valga la pena anotar sobre este contrato' },
+  linkOrInviteRenterBtn: { en: 'Link or invite renter', es: 'Vincular o invitar inquilino' },
 } satisfies Record<string, Record<Lang, string>>
 
 // The three schedule windows (`morning`/`afternoon`/`evening`) show up
