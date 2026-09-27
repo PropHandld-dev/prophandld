@@ -7,6 +7,7 @@ import { RippleButton } from '@/components/RippleButton'
 import { CheckCircleIcon } from '@/components/icons'
 import { LEGACY_LICENSE, type ScopedRequirement } from '@/lib/credentialRequirements'
 import type { StateBoard } from '@/lib/stateLicensingBoards'
+import { useLanguage, t, type Lang } from '@/lib/i18n'
 
 type RequirementsResponse = {
   homeState: string | null
@@ -28,10 +29,10 @@ type Credential = {
   admin_notes: string | null
 }
 
-const LEVEL_LABEL: Record<ScopedRequirement['level'], string> = {
-  required: 'Required',
-  conditional: 'Depends on the job',
-  recommended: 'Recommended',
+const levelLabel = (level: ScopedRequirement['level'], lang: Lang): string => {
+  if (level === 'required') return t('levelRequired', lang)
+  if (level === 'conditional') return t('levelConditional', lang)
+  return t('levelRecommended', lang)
 }
 
 function expiryState(expiry: string | null): 'expired' | 'soon' | null {
@@ -43,6 +44,7 @@ function expiryState(expiry: string | null): 'expired' | 'soon' | null {
 }
 
 export function ContractorCredentials({ userId }: { userId: string }) {
+  const lang = useLanguage()
   const [loading, setLoading] = useState(true)
   const [info, setInfo] = useState<RequirementsResponse | null>(null)
   const [credentials, setCredentials] = useState<Credential[]>([])
@@ -80,11 +82,11 @@ export function ContractorCredentials({ userId }: { userId: string }) {
   const save = async (req: ScopedRequirement) => {
     const existing = credentialFor(req.id)
     if (!existing?.document_url && !form.file) {
-      setError('Upload a photo or PDF of it so it can be reviewed.')
+      setError(t('uploadPhotoOrPdf', lang))
       return
     }
     if (req.hasExpiry !== false && !form.expiry) {
-      setError('Enter the expiry date.')
+      setError(t('enterExpiryDate', lang))
       return
     }
 
@@ -98,7 +100,7 @@ export function ContractorCredentials({ userId }: { userId: string }) {
       const { error: uploadError } = await supabase.storage.from('contractor-documents').upload(path, form.file)
       if (uploadError) {
         console.error('Error uploading credential document:', uploadError)
-        setError(`Could not upload the file: ${uploadError.message}`)
+        setError(`${t('couldNotUploadFile', lang)} ${uploadError.message}`)
         setSavingId(null)
         return
       }
@@ -125,7 +127,7 @@ export function ContractorCredentials({ userId }: { userId: string }) {
 
     if (saveError) {
       console.error('Error saving credential:', saveError)
-      setError(`Could not save: ${saveError.message}`)
+      setError(`${t('couldNotSaveColon', lang)} ${saveError.message}`)
       setSavingId(null)
       return
     }
@@ -154,7 +156,7 @@ export function ContractorCredentials({ userId }: { userId: string }) {
   }
 
   const removeCredential = async (credential: Credential) => {
-    if (!window.confirm('Remove this credential?')) return
+    if (!window.confirm(t('removeCredentialConfirm', lang))) return
     await supabase.from('contractor_credentials').delete().eq('id', credential.id)
     await load()
   }
@@ -176,7 +178,7 @@ export function ContractorCredentials({ userId }: { userId: string }) {
       { onConflict: 'contractor_user_id' }
     )
     if (upsertError) {
-      setError(`Could not save: ${upsertError.message}`)
+      setError(`${t('couldNotSaveColon', lang)} ${upsertError.message}`)
       return
     }
     setUnlicensed(true)
@@ -193,9 +195,9 @@ export function ContractorCredentials({ userId }: { userId: string }) {
   const verifiedRequired = required.filter((r) => credentialFor(r.id)?.status === 'verified').length
 
   const groups: { title: string; items: ScopedRequirement[] }[] = [
-    { title: 'Required for your work', items: listed.filter((r) => r.level === 'required') },
-    { title: 'Depends on the job', items: listed.filter((r) => r.level === 'conditional') },
-    { title: 'Recommended', items: listed.filter((r) => r.level === 'recommended') },
+    { title: t('requiredForYourWork', lang), items: listed.filter((r) => r.level === 'required') },
+    { title: t('levelConditional', lang), items: listed.filter((r) => r.level === 'conditional') },
+    { title: t('levelRecommended', lang), items: listed.filter((r) => r.level === 'recommended') },
   ].filter((g) => g.items.length > 0)
 
   const place = [info?.homeCity, info?.homeState].filter(Boolean).join(', ')
@@ -232,11 +234,11 @@ export function ContractorCredentials({ userId }: { userId: string }) {
               }`}
             >
               {credential.status === 'verified' && <CheckCircleIcon className="w-3 h-3" />}
-              {credential.status === 'verified' ? 'Verified' : credential.status === 'rejected' ? 'Rejected' : 'In review'}
+              {credential.status === 'verified' ? t('credVerified', lang) : credential.status === 'rejected' ? t('credRejected', lang) : t('credInReview', lang)}
             </span>
           ) : (
             <span className="shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full bg-white/8 text-white/60">
-              {LEVEL_LABEL[req.level]}
+              {levelLabel(req.level, lang)}
             </span>
           )}
         </div>
@@ -247,27 +249,27 @@ export function ContractorCredentials({ userId }: { userId: string }) {
           <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
             {req.lookupUrl && (
               <a href={req.lookupUrl} target="_blank" rel="noopener noreferrer" className="text-[#12A5A9] text-xs hover:underline">
-                {req.lookupLabel || 'Look it up'} →
+                {req.lookupLabel || t('lookItUp', lang)} →
               </a>
             )}
             {req.infoUrl && (
               <a href={req.infoUrl} target="_blank" rel="noopener noreferrer" className="text-white/60 text-xs hover:text-white hover:underline">
-                About this →
+                {t('aboutThis', lang)} →
               </a>
             )}
           </div>
         )}
 
         {credential?.status === 'rejected' && credential.admin_notes && (
-          <p className="text-red-400 text-xs mt-2">Reviewer note: {credential.admin_notes}</p>
+          <p className="text-red-400 text-xs mt-2">{t('reviewerNote', lang)} {credential.admin_notes}</p>
         )}
         {credential && (credential.credential_number || credential.expiry) && (
           <p className="text-white/50 text-xs mt-2">
             {credential.credential_number ? `#${credential.credential_number}` : ''}
             {credential.credential_number && credential.expiry ? ' · ' : ''}
-            {credential.expiry ? `Expires ${new Date(credential.expiry + 'T00:00:00').toLocaleDateString()}` : ''}
-            {exp === 'expired' && <span className="text-red-400"> · Expired, upload a renewal</span>}
-            {exp === 'soon' && <span className="text-yellow-400"> · Expires soon</span>}
+            {credential.expiry ? `${t('expiresLabelShort', lang)} ${new Date(credential.expiry + 'T00:00:00').toLocaleDateString()}` : ''}
+            {exp === 'expired' && <span className="text-red-400"> · {t('expiredUploadRenewal', lang)}</span>}
+            {exp === 'soon' && <span className="text-yellow-400"> · {t('expiresSoonShort', lang)}</span>}
           </p>
         )}
 
@@ -277,11 +279,11 @@ export function ContractorCredentials({ userId }: { userId: string }) {
             onClick={() => openForm(req)}
             className="text-white text-xs font-semibold bg-white/8 hover:bg-white/12 transition rounded-lg px-3 py-2"
           >
-            {isOpen ? 'Close' : credential ? 'Update' : 'Add yours'}
+            {isOpen ? t('closeBtn', lang) : credential ? t('updateBtn', lang) : t('addYoursBtn', lang)}
           </button>
           {credential && (
             <button type="button" onClick={() => removeCredential(credential)} className="text-red-400/70 hover:text-red-400 text-xs transition">
-              Remove
+              {t('remove', lang)}
             </button>
           )}
         </div>
@@ -290,7 +292,7 @@ export function ContractorCredentials({ userId }: { userId: string }) {
           <div className="mt-4 pt-4 border-t border-white/8 space-y-3">
             <div className={req.hasExpiry === false ? '' : 'grid grid-cols-2 gap-3'}>
               <div>
-                <label className="text-white/70 text-xs block mb-1">Number / ID (if it has one)</label>
+                <label className="text-white/70 text-xs block mb-1">{t('numberIdOptional', lang)}</label>
                 <input
                   type="text"
                   value={form.number}
@@ -300,7 +302,7 @@ export function ContractorCredentials({ userId }: { userId: string }) {
               </div>
               {req.hasExpiry !== false && (
                 <div>
-                  <label className="text-white/70 text-xs block mb-1">Expiry date</label>
+                  <label className="text-white/70 text-xs block mb-1">{t('expiryDateLabel', lang)}</label>
                   <input
                     type="date"
                     value={form.expiry}
@@ -319,7 +321,7 @@ export function ContractorCredentials({ userId }: { userId: string }) {
                   className="hidden"
                 />
                 <span className="inline-block bg-white/8 text-white text-xs font-medium px-3 py-2 rounded-lg hover:bg-white/12 transition cursor-pointer">
-                  {form.file ? form.file.name : credential?.document_url ? 'Replace file' : '+ Photo or PDF'}
+                  {form.file ? form.file.name : credential?.document_url ? t('replaceFile', lang) : t('photoOrPdf', lang)}
                 </span>
               </label>
             </div>
@@ -330,7 +332,7 @@ export function ContractorCredentials({ userId }: { userId: string }) {
               disabled={savingId === req.id}
               className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
             >
-              {savingId === req.id ? 'Saving...' : 'Submit for review'}
+              {savingId === req.id ? t('saving', lang) : t('submitForReview', lang)}
             </RippleButton>
           </div>
         )}
@@ -341,37 +343,35 @@ export function ContractorCredentials({ userId }: { userId: string }) {
   return (
     <ScrollReveal className="mt-10 pt-8 border-t border-white/8">
       <div className="flex items-center justify-between mb-2">
-        <h2 className="text-white font-semibold">Licenses &amp; insurance</h2>
+        <h2 className="text-white font-semibold">{t('licensesInsuranceHeading', lang)}</h2>
         {required.length > 0 && (
           <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-white/8 text-white/60">
-            {verifiedRequired} of {required.length} required verified
+            {verifiedRequired} {t('ofRequiredVerified', lang)} {required.length} {t('requiredVerifiedSuffix', lang)}
           </span>
         )}
       </div>
 
       {!info || info.categories.length === 0 || !info.homeState ? (
         <p className="text-white/50 text-sm mb-4">
-          Add your trades and service ZIP code above and save. Requirements are different for each trade and state, and
-          this list will show exactly what applies to you.
+          {t('addTradesAboveDesc', lang)}
         </p>
       ) : (
         <p className="text-white/50 text-sm mb-4">
-          For <span className="text-white/80">{info.categories.join(', ')}</span> work within {info.radiusMiles} miles of{' '}
+          {t('forWorkWithin', lang)} <span className="text-white/80">{info.categories.join(', ')}</span> {t('workWithinMilesOf', lang)} {info.radiusMiles} {t('milesOfLabel', lang)}{' '}
           <span className="text-white/80">{place}</span>
           {info.states.length > 1 && (
             <>
-              {' '}(this reaches <span className="text-white/80">{info.states.join(', ')}</span>, and each state has its own rules)
+              {' '}({t('thisReaches', lang)} <span className="text-white/80">{info.states.join(', ')}</span>{t('eachStateOwnRules', lang)}
             </>
           )}
-          . Landlords see the ones we verify next to your bids.
+          . {t('landlordsSeeVerified', lang)}
         </p>
       )}
 
       {info && info.boards.length > 0 && (
         <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl px-4 py-3 text-yellow-400/90 text-xs mb-4 space-y-2">
           <p>
-            We don&apos;t list detailed trade rules for {info.boards.map((b) => b.stateName).join(', ')} yet. Below are the
-            federal and insurance items. For anything specific to your trade there, check the state office:
+            {t('dontListDetailedRules', lang)} {info.boards.map((b) => b.stateName).join(', ')} {t('yetBelowFederal', lang)}
           </p>
           <ul className="space-y-1.5">
             {info.boards.map((b) => (
@@ -393,8 +393,7 @@ export function ContractorCredentials({ userId }: { userId: string }) {
 
       {unlicensed && credentials.length === 0 && (
         <div className="bg-white/3 border border-white/8 rounded-xl px-4 py-3 text-white/60 text-xs mb-4">
-          You&apos;ve told landlords you don&apos;t have a license or insurance on file. You can still bid, and you can add
-          credentials below any time.
+          {t('toldLandlordsNoLicense', lang)}
         </div>
       )}
 
@@ -409,13 +408,12 @@ export function ContractorCredentials({ userId }: { userId: string }) {
 
       {!unlicensed && credentials.length === 0 && (
         <button type="button" onClick={markUnlicensed} className="text-white/50 hover:text-white text-xs mt-6 transition">
-          I don&apos;t have a license or insurance yet
+          {t('dontHaveLicenseYet', lang)}
         </button>
       )}
 
       <p className="text-white/40 text-xs mt-6">
-        Requirements change and vary by city. This is a guide, not legal advice. Confirm with the agency that issues your
-        license.
+        {t('requirementsChangeGuide', lang)}
       </p>
     </ScrollReveal>
   )
