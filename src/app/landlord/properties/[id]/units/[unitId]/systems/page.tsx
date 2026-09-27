@@ -9,20 +9,21 @@ import { Skeleton } from '@/components/Skeleton'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { LANDLORD_TABS } from '@/lib/navTabs'
+import { useLanguage, t, type Lang } from '@/lib/i18n'
 
-const ITEM_TYPES = [
-  { value: 'plumbing', label: 'Plumbing' },
-  { value: 'electrical', label: 'Electrical' },
-  { value: 'hvac', label: 'HVAC' },
-  { value: 'appliance', label: 'Appliance' },
-  { value: 'structural', label: 'Structural' },
-  { value: 'other', label: 'Other' },
+const ITEM_TYPES: { value: string; labelKey: 'itemTypePlumbing' | 'itemTypeElectrical' | 'itemTypeHvac' | 'itemTypeAppliance' | 'itemTypeStructural' | 'itemTypeOther' }[] = [
+  { value: 'plumbing', labelKey: 'itemTypePlumbing' },
+  { value: 'electrical', labelKey: 'itemTypeElectrical' },
+  { value: 'hvac', labelKey: 'itemTypeHvac' },
+  { value: 'appliance', labelKey: 'itemTypeAppliance' },
+  { value: 'structural', labelKey: 'itemTypeStructural' },
+  { value: 'other', labelKey: 'itemTypeOther' },
 ]
 
-const STATUSES = [
-  { value: 'good', label: 'Good' },
-  { value: 'verify', label: 'Verify' },
-  { value: 'service_due', label: 'Service Due' },
+const STATUSES: { value: string; labelKey: 'systemStatusGood' | 'systemStatusVerify' | 'systemStatusServiceDue' }[] = [
+  { value: 'good', labelKey: 'systemStatusGood' },
+  { value: 'verify', labelKey: 'systemStatusVerify' },
+  { value: 'service_due', labelKey: 'systemStatusServiceDue' },
 ]
 
 const STATUS_STYLES: Record<string, string> = {
@@ -31,12 +32,19 @@ const STATUS_STYLES: Record<string, string> = {
   service_due: 'bg-red-500/15 text-red-400',
 }
 
-const statusLabel = (value: string) => STATUSES.find((s) => s.value === value)?.label || value
-const itemTypeLabel = (value: string) => ITEM_TYPES.find((t) => t.value === value)?.label || value
+const statusLabel = (value: string, lang: Lang) => {
+  const found = STATUSES.find((s) => s.value === value)
+  return found ? t(found.labelKey, lang) : value
+}
+const itemTypeLabel = (value: string, lang: Lang) => {
+  const found = ITEM_TYPES.find((i) => i.value === value)
+  return found ? t(found.labelKey, lang) : value
+}
 
 export default function UnitSystemsPage() {
   const router = useRouter()
   const params = useParams()
+  const lang = useLanguage()
   const propertyId = params.id as string
   const unitId = params.unitId as string
 
@@ -129,7 +137,7 @@ export default function UnitSystemsPage() {
     e.preventDefault()
 
     if (!form.name.trim()) {
-      setError('Please enter a name.')
+      setError(t('pleaseEnterAName', lang))
       return
     }
 
@@ -151,7 +159,7 @@ export default function UnitSystemsPage() {
 
     if (insertError) {
       console.error('Error adding system:', insertError)
-      setError('Could not add item. Please try again.')
+      setError(t('couldNotAddItem', lang))
       setSaving(false)
       return
     }
@@ -169,7 +177,7 @@ export default function UnitSystemsPage() {
 
     if (updateError) {
       console.error('Error updating status:', updateError)
-      setError('Could not update status.')
+      setError(t('couldNotUpdateStatus', lang))
       return
     }
 
@@ -177,7 +185,7 @@ export default function UnitSystemsPage() {
   }
 
   const handleDeleteItem = async (item: any) => {
-    if (!window.confirm(`Remove "${item.name}"? This also deletes its service history.`)) return
+    if (!window.confirm(`${t('removeSystemConfirmPrefix', lang)}${item.name}${t('removeSystemConfirmSuffix', lang)}`)) return
 
     const { error: logDeleteError } = await supabase
       .from('appliance_service_log')
@@ -191,7 +199,7 @@ export default function UnitSystemsPage() {
     const { error: deleteError } = await supabase.from('maintenance_items').delete().eq('id', item.id)
     if (deleteError) {
       console.error('Error deleting system:', deleteError)
-      setError('Could not delete item.')
+      setError(t('couldNotDeleteItem', lang))
       return
     }
 
@@ -225,7 +233,7 @@ export default function UnitSystemsPage() {
 
   const submitLog = async (itemId: string) => {
     if (!logForm.service_date) {
-      setError('Please pick a service date.')
+      setError(t('pleasePickServiceDate', lang))
       return
     }
 
@@ -240,7 +248,7 @@ export default function UnitSystemsPage() {
 
     if (insertError) {
       console.error('Error adding service log entry:', insertError)
-      setError('Could not add service entry.')
+      setError(t('couldNotAddServiceEntry', lang))
       return
     }
 
@@ -253,7 +261,7 @@ export default function UnitSystemsPage() {
     const { error: deleteError } = await supabase.from('appliance_service_log').delete().eq('id', logId)
     if (deleteError) {
       console.error('Error deleting service log entry:', deleteError)
-      setError('Could not delete entry.')
+      setError(t('couldNotDeleteEntry', lang))
       return
     }
     setLogs((prev) => prev.filter((l) => l.id !== logId))
@@ -264,7 +272,7 @@ export default function UnitSystemsPage() {
     if (!installDate) return null
     const years = (now - new Date(installDate + 'T00:00:00').getTime()) / (365.25 * 24 * 60 * 60 * 1000)
     const rounded = Math.floor(years)
-    return rounded < 1 ? 'Less than a year old' : `${rounded} year${rounded > 1 ? 's' : ''} old`
+    return rounded < 1 ? t('lessThanAYearOld', lang) : `${rounded} ${t('yearsOldSuffix', lang)}`
   }
 
   const getTotalSpent = (itemId: string) =>
@@ -277,7 +285,7 @@ export default function UnitSystemsPage() {
           href={`/landlord/properties/${propertyId}/units/${unitId}`}
           className="text-white/50 hover:text-white text-sm transition"
         >
-          ← Unit
+          {t('backToUnitArrow', lang)}
         </Link>
         <Link href="/landlord" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
         <div className="w-20" />
@@ -298,44 +306,44 @@ export default function UnitSystemsPage() {
         ) : !unit ? null : (
         <>
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-white">Systems & Appliances</h1>
-          <p className="text-white/50 text-sm mt-1">Unit {unit.unit_number}</p>
+          <h1 className="text-2xl font-bold text-white">{t('systemsAppliancesHeading', lang)}</h1>
+          <p className="text-white/50 text-sm mt-1">{t('unitLabelPrefix', lang)} {unit.unit_number}</p>
         </div>
 
         <ScrollReveal>
         <form onSubmit={handleSubmit} className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6 space-y-4">
-          <h2 className="text-white font-semibold mb-2">Add a system</h2>
+          <h2 className="text-white font-semibold mb-2">{t('addASystemHeading', lang)}</h2>
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">Name</label>
+            <label className="text-white/70 text-sm block mb-1">{t('contactNameLabel', lang)}</label>
             <input
               type="text"
               name="name"
               required
               value={form.name}
               onChange={handleChange}
-              placeholder="Water heater"
+              placeholder={t('systemNamePlaceholder', lang)}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-white/70 text-sm block mb-1">Category</label>
+              <label className="text-white/70 text-sm block mb-1">{t('categoryLabel', lang)}</label>
               <select
                 name="item_type"
                 value={form.item_type}
                 onChange={handleChange}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
               >
-                <option value="" className="bg-[#0C1A2E]">Select a category</option>
+                <option value="" className="bg-[#0C1A2E]">{t('selectACategory', lang)}</option>
                 {ITEM_TYPES.map((type) => (
-                  <option key={type.value} value={type.value} className="bg-[#0C1A2E]">{type.label}</option>
+                  <option key={type.value} value={type.value} className="bg-[#0C1A2E]">{t(type.labelKey, lang)}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="text-white/70 text-sm block mb-1">Status</label>
+              <label className="text-white/70 text-sm block mb-1">{t('statusLabel', lang)}</label>
               <select
                 name="status"
                 value={form.status}
@@ -343,7 +351,7 @@ export default function UnitSystemsPage() {
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
               >
                 {STATUSES.map((s) => (
-                  <option key={s.value} value={s.value} className="bg-[#0C1A2E]">{s.label}</option>
+                  <option key={s.value} value={s.value} className="bg-[#0C1A2E]">{t(s.labelKey, lang)}</option>
                 ))}
               </select>
             </div>
@@ -351,7 +359,7 @@ export default function UnitSystemsPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-white/70 text-sm block mb-1">Brand</label>
+              <label className="text-white/70 text-sm block mb-1">{t('brandLabel', lang)}</label>
               <input
                 type="text"
                 name="brand"
@@ -362,7 +370,7 @@ export default function UnitSystemsPage() {
               />
             </div>
             <div>
-              <label className="text-white/70 text-sm block mb-1">Model</label>
+              <label className="text-white/70 text-sm block mb-1">{t('modelLabel', lang)}</label>
               <input
                 type="text"
                 name="model"
@@ -375,7 +383,7 @@ export default function UnitSystemsPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-white/70 text-sm block mb-1">Install date</label>
+              <label className="text-white/70 text-sm block mb-1">{t('installDateLabel', lang)}</label>
               <input
                 type="date"
                 name="install_date"
@@ -385,7 +393,7 @@ export default function UnitSystemsPage() {
               />
             </div>
             <div>
-              <label className="text-white/70 text-sm block mb-1">Replacement cost</label>
+              <label className="text-white/70 text-sm block mb-1">{t('replacementCostLabel', lang)}</label>
               <input
                 type="number"
                 name="replacement_cost"
@@ -409,18 +417,18 @@ export default function UnitSystemsPage() {
             disabled={saving}
             className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
           >
-            {saving ? 'Adding...' : 'Add system'}
+            {saving ? t('addingDots', lang) : t('addSystemBtn', lang)}
           </RippleButton>
         </form>
         </ScrollReveal>
 
         <h2 className="text-white font-semibold mb-4">
-          All systems {items.length > 0 && `(${items.length})`}
+          {t('allSystemsHeading', lang)} {items.length > 0 && `(${items.length})`}
         </h2>
 
         {items.length === 0 ? (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
-            <p className="text-white/50 text-sm">No systems tracked yet.</p>
+            <p className="text-white/50 text-sm">{t('noSystemsTrackedYet', lang)}</p>
           </div>
         ) : (
           <ScrollReveal className="space-y-3">
@@ -436,11 +444,11 @@ export default function UnitSystemsPage() {
                       <div className="flex items-center gap-2 flex-wrap mt-2">
                         {item.item_type && (
                           <span className="text-xs bg-white/8 text-white/50 rounded-full px-2.5 py-0.5">
-                            {itemTypeLabel(item.item_type)}
+                            {itemTypeLabel(item.item_type, lang)}
                           </span>
                         )}
                         <span className={`text-xs rounded-full px-2.5 py-0.5 ${STATUS_STYLES[item.status] || 'bg-white/8 text-white/50'}`}>
-                          {statusLabel(item.status || 'good')}
+                          {statusLabel(item.status || 'good', lang)}
                         </span>
                       </div>
                       {(item.brand || item.model) && (
@@ -451,10 +459,10 @@ export default function UnitSystemsPage() {
                       <div className="flex items-center gap-3 flex-wrap mt-1">
                         {age && <p className="text-white/50 text-xs">{age}</p>}
                         {item.replacement_cost != null && (
-                          <p className="text-white/50 text-xs">Replace: ${item.replacement_cost}</p>
+                          <p className="text-white/50 text-xs">{t('replaceColonPrefix', lang)}{item.replacement_cost}</p>
                         )}
                         {itemLogs.length > 0 && (
-                          <p className="text-white/50 text-xs">Spent to date: ${getTotalSpent(item.id).toFixed(2)}</p>
+                          <p className="text-white/50 text-xs">{t('spentToDatePrefix', lang)}{getTotalSpent(item.id).toFixed(2)}</p>
                         )}
                       </div>
                     </div>
@@ -465,14 +473,14 @@ export default function UnitSystemsPage() {
                         className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white text-xs focus:outline-none focus:border-[#12A5A9] transition"
                       >
                         {STATUSES.map((s) => (
-                          <option key={s.value} value={s.value} className="bg-[#0C1A2E]">{s.label}</option>
+                          <option key={s.value} value={s.value} className="bg-[#0C1A2E]">{t(s.labelKey, lang)}</option>
                         ))}
                       </select>
                       <button
                         onClick={() => handleDeleteItem(item)}
                         className="text-red-400/70 text-xs hover:text-red-400 transition"
                       >
-                        Delete
+                        {t('deleteBtn', lang)}
                       </button>
                     </div>
                   </div>
@@ -481,13 +489,13 @@ export default function UnitSystemsPage() {
                     onClick={() => toggleExpanded(item.id)}
                     className="text-[#12A5A9] text-xs font-semibold hover:underline mt-4"
                   >
-                    {isExpanded ? 'Hide service history' : `Service history (${itemLogs.length})`}
+                    {isExpanded ? t('hideServiceHistory', lang) : `${t('serviceHistoryCount', lang)} (${itemLogs.length})`}
                   </button>
 
                   {isExpanded && (
                     <div className="mt-3 border-t border-white/8 pt-3 space-y-2">
                       {itemLogs.length === 0 && addingLogForId !== item.id && (
-                        <p className="text-white/50 text-xs">No service history yet.</p>
+                        <p className="text-white/50 text-xs">{t('noServiceHistoryYet', lang)}</p>
                       )}
                       {itemLogs.map((log) => (
                         <div key={log.id} className="flex items-start justify-between bg-white/5 rounded-lg px-3 py-2">
@@ -502,7 +510,7 @@ export default function UnitSystemsPage() {
                             onClick={() => deleteLog(log.id, item.id)}
                             className="text-red-400/70 text-xs hover:text-red-400 transition shrink-0 ml-3"
                           >
-                            Delete
+                            {t('deleteBtn', lang)}
                           </button>
                         </div>
                       ))}
@@ -521,7 +529,7 @@ export default function UnitSystemsPage() {
                             name="description"
                             value={logForm.description}
                             onChange={handleLogChange}
-                            placeholder="What was done"
+                            placeholder={t('whatWasDonePlaceholder', lang)}
                             className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-xs placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
                           />
                           <input
@@ -530,7 +538,7 @@ export default function UnitSystemsPage() {
                             value={logForm.cost}
                             onChange={handleLogChange}
                             min={0}
-                            placeholder="Cost"
+                            placeholder={t('costPlaceholder', lang)}
                             className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-xs placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
                           />
                           <div className="flex gap-2">
@@ -538,13 +546,13 @@ export default function UnitSystemsPage() {
                               onClick={() => submitLog(item.id)}
                               className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold py-2 rounded-lg hover:opacity-90 transition"
                             >
-                              Save
+                              {t('saveBtn', lang)}
                             </button>
                             <button
                               onClick={cancelAddingLog}
                               className="text-white/50 hover:text-white text-xs px-3 transition"
                             >
-                              Cancel
+                              {t('cancelBtn', lang)}
                             </button>
                           </div>
                         </div>
@@ -553,7 +561,7 @@ export default function UnitSystemsPage() {
                           onClick={() => startAddingLog(item.id)}
                           className="text-[#12A5A9] text-xs font-semibold hover:underline"
                         >
-                          + Add service entry
+                          {t('addServiceEntryBtn', lang)}
                         </button>
                       )}
                     </div>
