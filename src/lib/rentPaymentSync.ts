@@ -17,7 +17,7 @@ export async function syncRentPayment(
 ): Promise<RentSyncStatus> {
   const { data: rent } = await admin
     .from('rent_payments')
-    .select('id, actual_amount, stripe_payment_intent_id, stripe_status')
+    .select('id, actual_amount, card_surcharge_amount, stripe_payment_intent_id, stripe_status')
     .eq('id', rentPaymentId)
     .maybeSingle()
 
@@ -74,6 +74,14 @@ export async function syncRentPayment(
   const baseAmount = paymentIntent.metadata?.prophandld_base_amount
     ? Number(paymentIntent.metadata.prophandld_base_amount)
     : paymentIntent.amount / 100
+  // What the tenant was actually charged on top of rent for paying by card
+  // — kept separately from actual_amount (which must only ever mean "rent
+  // credited") purely so the tenant's own payment history and receipt can
+  // show their real total. Absent (old intents, or a bank payment) reads
+  // as 0, never null-propagates into the running total below.
+  const surcharge = paymentIntent.metadata?.prophandld_card_surcharge
+    ? Number(paymentIntent.metadata.prophandld_card_surcharge)
+    : 0
 
   // The status guard makes concurrent callers (webhook and confirm) safe:
   // only the first one to commit changes the row.
@@ -81,6 +89,7 @@ export async function syncRentPayment(
     .from('rent_payments')
     .update({
       actual_amount: Number(rent.actual_amount || 0) + baseAmount,
+      card_surcharge_amount: Number(rent.card_surcharge_amount || 0) + surcharge,
       paid_date: paymentPaidAt(paymentIntent).slice(0, 10),
       payment_method: method?.type === 'us_bank_account' ? 'bank' : 'card',
       stripe_status: 'succeeded',

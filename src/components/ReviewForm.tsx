@@ -4,20 +4,22 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { StarRatingInput } from '@/components/StarRatingInput'
 import { RippleButton } from '@/components/RippleButton'
+import { useLanguage, t } from '@/lib/i18n'
 
 type ReviewerRole = 'landlord' | 'renter'
+type CategoryKey = 'priceRatingCategory' | 'timelinessRatingCategory' | 'qualityRatingCategory' | 'communicationRatingCategory'
 
-const CATEGORY_CONFIG: Record<ReviewerRole, { key: string; label: string }[]> = {
+const CATEGORY_CONFIG: Record<ReviewerRole, { key: string; labelKey: CategoryKey }[]> = {
   landlord: [
-    { key: 'price_rating', label: 'Price fairness' },
-    { key: 'timeliness_rating', label: 'Timeliness' },
-    { key: 'quality_rating', label: 'Quality of work' },
-    { key: 'communication_rating', label: 'Communication' },
+    { key: 'price_rating', labelKey: 'priceRatingCategory' },
+    { key: 'timeliness_rating', labelKey: 'timelinessRatingCategory' },
+    { key: 'quality_rating', labelKey: 'qualityRatingCategory' },
+    { key: 'communication_rating', labelKey: 'communicationRatingCategory' },
   ],
   renter: [
-    { key: 'timeliness_rating', label: 'Timeliness' },
-    { key: 'quality_rating', label: 'Quality of work' },
-    { key: 'communication_rating', label: 'Communication' },
+    { key: 'timeliness_rating', labelKey: 'timelinessRatingCategory' },
+    { key: 'quality_rating', labelKey: 'qualityRatingCategory' },
+    { key: 'communication_rating', labelKey: 'communicationRatingCategory' },
   ],
 }
 
@@ -38,6 +40,13 @@ export function ReviewForm({
   const [existingReview, setExistingReview] = useState<any>(null)
   const [ratings, setRatings] = useState<Record<string, number>>({})
   const [comment, setComment] = useState('')
+  // Not persisted anywhere on purpose — "skip" just means "not now", not
+  // "never". Reloading the page (or coming back to this job later) shows
+  // the form again, since rating stays available for as long as the job
+  // itself is. There's nothing downstream gated on a review existing, so
+  // there's no real reason to force the choice permanently either.
+  const [skipped, setSkipped] = useState(false)
+  const lang = useLanguage()
 
   const categories = CATEGORY_CONFIG[reviewerRole]
 
@@ -75,7 +84,7 @@ export function ReviewForm({
     e.preventDefault()
     const missing = categories.some((c) => !ratings[c.key])
     if (missing) {
-      setError('Please rate every category.')
+      setError(t('pleaseRateEveryCategory', lang))
       return
     }
 
@@ -108,7 +117,7 @@ export function ReviewForm({
 
     if (upsertError) {
       console.error('Error saving review:', upsertError)
-      setError(`Could not save review: ${upsertError.message}`)
+      setError(`${t('couldNotSaveReviewColon', lang)}${upsertError.message}`)
       setSaving(false)
       return
     }
@@ -120,14 +129,29 @@ export function ReviewForm({
 
   if (loading) return null
 
+  if (skipped) {
+    return (
+      <div className="bg-white/3 border border-white/8 rounded-2xl p-6 flex items-center justify-between gap-4">
+        <p className="text-white/50 text-sm">{t('rateAnytimeMsg', lang)}</p>
+        <button
+          type="button"
+          onClick={() => setSkipped(false)}
+          className="text-[#12A5A9] text-sm font-semibold hover:underline shrink-0"
+        >
+          {t('rateNowBtn', lang)}
+        </button>
+      </div>
+    )
+  }
+
   if (existingReview) {
     return (
       <div className="bg-white/3 border border-white/8 rounded-2xl p-6">
-        <h3 className="text-white font-semibold mb-4">Your review</h3>
+        <h3 className="text-white font-semibold mb-4">{t('yourReviewHeading', lang)}</h3>
         <div className="space-y-2">
           {categories.map((c) => (
             <div key={c.key} className="flex items-center justify-between">
-              <span className="text-white/50 text-sm">{c.label}</span>
+              <span className="text-white/50 text-sm">{t(c.labelKey, lang)}</span>
               <StarRatingInput value={existingReview[c.key] || 0} readOnly size="sm" />
             </div>
           ))}
@@ -141,22 +165,22 @@ export function ReviewForm({
 
   return (
     <form onSubmit={handleSubmit} className="bg-white/3 border border-white/8 rounded-2xl p-6 space-y-4">
-      <h3 className="text-white font-semibold">Rate this contractor</h3>
+      <h3 className="text-white font-semibold">{t('rateThisContractorHeading', lang)}</h3>
       {categories.map((c) => (
         <StarRatingInput
           key={c.key}
-          label={c.label}
+          label={t(c.labelKey, lang)}
           value={ratings[c.key] || 0}
           onChange={(n) => setRatings({ ...ratings, [c.key]: n })}
         />
       ))}
       <div>
-        <label className="text-white/70 text-sm block mb-1">Comment (optional)</label>
+        <label className="text-white/70 text-sm block mb-1">{t('commentOptionalLabel', lang)}</label>
         <textarea
           value={comment}
           onChange={(e) => setComment(e.target.value)}
           rows={3}
-          placeholder="Anything else worth mentioning?"
+          placeholder={t('anythingElseWorthMentioning', lang)}
           className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition resize-none"
         />
       </div>
@@ -165,13 +189,23 @@ export function ReviewForm({
           {error}
         </div>
       )}
-      <RippleButton
-        type="submit"
-        disabled={saving}
-        className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
-      >
-        {saving ? 'Submitting...' : 'Submit review'}
-      </RippleButton>
+      <div className="flex items-center gap-4">
+        <RippleButton
+          type="submit"
+          disabled={saving}
+          className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
+        >
+          {saving ? t('submitting', lang) : t('submitReviewBtn', lang)}
+        </RippleButton>
+        <button
+          type="button"
+          onClick={() => setSkipped(true)}
+          disabled={saving}
+          className="text-white/50 hover:text-white text-sm transition disabled:opacity-50 shrink-0"
+        >
+          {t('skipForNowBtn', lang)}
+        </button>
+      </div>
     </form>
   )
 }

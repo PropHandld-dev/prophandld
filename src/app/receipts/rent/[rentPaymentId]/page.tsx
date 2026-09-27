@@ -13,6 +13,13 @@ export default function RentReceiptPage() {
   const [loading, setLoading] = useState(true)
   const [receipt, setReceipt] = useState<any>(null)
   const [backHref, setBackHref] = useState('/landlord')
+  // A card surcharge is real money to the renter (it's what left their
+  // card) but invisible to the landlord (their payout was always exactly
+  // the base rent, application_fee_amount already took the surcharge out
+  // before the transfer). Same receipt row, two honest totals depending on
+  // who's looking at it — never show the landlord a number bigger than
+  // what actually landed in their account.
+  const [isRenterViewer, setIsRenterViewer] = useState(false)
 
   useEffect(() => {
     const init = async () => {
@@ -25,7 +32,7 @@ export default function RentReceiptPage() {
       const { data } = await supabase
         .from('rent_payments')
         .select(
-          'id, month, expected_amount, actual_amount, water_amount, paid_date, payment_method, stripe_status, tenancies(renter_user_id, units(unit_number, properties(address, city, state, owner_user_id)))'
+          'id, month, expected_amount, actual_amount, card_surcharge_amount, water_amount, paid_date, payment_method, stripe_status, tenancies(renter_user_id, units(unit_number, properties(address, city, state, owner_user_id)))'
         )
         .eq('id', rentPaymentId)
         .maybeSingle()
@@ -40,6 +47,7 @@ export default function RentReceiptPage() {
       ])
 
       setReceipt(data ? { ...data, renterName: (renterData as any)?.full_name, landlordName: (landlordData as any)?.full_name } : data)
+      setIsRenterViewer(renterId === user.id)
       setBackHref(renterId === user.id ? '/renter/rent' : '/landlord')
       setLoading(false)
     }
@@ -69,6 +77,8 @@ export default function RentReceiptPage() {
   const unitLabel = property?.address
     ? `${property.address}${unit?.unit_number ? `, Unit ${unit.unit_number}` : ''}`
     : 'Unit'
+  const surcharge = isRenterViewer ? Number(receipt.card_surcharge_amount || 0) : 0
+  const totalCharged = Number(receipt.actual_amount) + surcharge
 
   return (
     <ReceiptCard
@@ -87,11 +97,15 @@ export default function RentReceiptPage() {
               { label: 'Water', value: `$${Number(receipt.water_amount).toFixed(2)}` },
             ]
           : []),
+        // Only shown when it's actually nonzero — a bank payment (the
+        // overwhelming majority) never had one, and the row would just be
+        // visual noise repeating "$0.00" on every receipt otherwise.
+        ...(surcharge > 0 ? [{ label: 'Card processing fee', value: `$${surcharge.toFixed(2)}` }] : []),
         { label: 'Paid on', value: receipt.paid_date ? new Date(receipt.paid_date + 'T00:00:00').toLocaleDateString() : '—' },
         { label: 'Method', value: receipt.payment_method === 'bank' ? 'Bank transfer' : 'Debit card' },
       ]}
       totalLabel="Amount paid"
-      totalValue={`$${Number(receipt.actual_amount).toFixed(2)}`}
+      totalValue={`$${totalCharged.toFixed(2)}`}
       receiptId={receipt.id}
       footerNote="Processed via Prophandld · prophandld.com"
     />

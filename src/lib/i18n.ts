@@ -1183,6 +1183,24 @@ const STRINGS = {
   trialEndsInPrefix: { en: 'Your free trial ends in', es: 'Tu prueba gratuita termina en' },
   dayWordSingular: { en: 'day', es: 'día' },
   trialEndedMsg: { en: 'Your free trial has ended.', es: 'Tu prueba gratuita ha terminado.' },
+
+  // Contractor review form
+  priceRatingCategory: { en: 'Price fairness', es: 'Precio justo' },
+  timelinessRatingCategory: { en: 'Timeliness', es: 'Puntualidad' },
+  qualityRatingCategory: { en: 'Quality of work', es: 'Calidad del trabajo' },
+  communicationRatingCategory: { en: 'Communication', es: 'Comunicación' },
+  yourReviewHeading: { en: 'Your review', es: 'Tu reseña' },
+  rateThisContractorHeading: { en: 'Rate this contractor', es: 'Califica a este contratista' },
+  commentOptionalLabel: { en: 'Comment (optional)', es: 'Comentario (opcional)' },
+  anythingElseWorthMentioning: { en: 'Anything else worth mentioning?', es: '¿Algo más que valga la pena mencionar?' },
+  pleaseRateEveryCategory: { en: 'Please rate every category.', es: 'Por favor califica cada categoría.' },
+  couldNotSaveReviewColon: { en: 'Could not save review: ', es: 'No se pudo guardar la reseña: ' },
+  submitReviewBtn: { en: 'Submit review', es: 'Enviar reseña' },
+  skipForNowBtn: { en: 'Skip for now', es: 'Omitir por ahora' },
+  rateAnytimeMsg: { en: 'You can rate this contractor anytime from this job.', es: 'Puedes calificar a este contratista cuando quieras desde este trabajo.' },
+  rateNowBtn: { en: 'Rate now', es: 'Calificar ahora' },
+  inclCardFeePrefix: { en: 'incl.', es: 'incl.' },
+  cardFeeSuffix: { en: 'card fee', es: 'cargo de tarjeta' },
 } satisfies Record<string, Record<Lang, string>>
 
 // The three schedule windows (`morning`/`afternoon`/`evening`) show up

@@ -483,10 +483,15 @@ export default function RenterRentPage() {
                                 ? `${t('paidLabel', lang)} ${new Date(payment.paid_date + 'T00:00:00').toLocaleDateString()}`
                                 : t('paidLabel', lang)}
                               {payment.water_amount ? ` · ${lang === 'es' ? `incl. ${money(Number(payment.water_amount))} de agua` : `incl. ${money(Number(payment.water_amount))} water`}` : ''}
+                              {Number(payment.card_surcharge_amount || 0) > 0
+                                ? ` · ${t('inclCardFeePrefix', lang)} ${money(Number(payment.card_surcharge_amount))} ${t('cardFeeSuffix', lang)}`
+                                : ''}
                             </p>
                           </div>
                           <div className="flex items-center gap-4 shrink-0">
-                            <span className="text-white text-sm tabular-nums">{money(Number(payment.actual_amount))}</span>
+                            <span className="text-white text-sm tabular-nums">
+                              {money(Number(payment.actual_amount) + Number(payment.card_surcharge_amount || 0))}
+                            </span>
                             <Link href={`/receipts/rent/${payment.id}`} className="text-[#12A5A9] text-xs font-semibold hover:underline">
                               {t('receipt', lang)}
                             </Link>
