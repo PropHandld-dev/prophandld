@@ -34,12 +34,26 @@ export async function notifyMatchingContractors(admin: any, jobId: string, exclu
     return { sent: 0, reason: 'could not load contractors' }
   }
 
-  const matches = (contractors || [])
+  const candidates = (contractors || [])
     .filter((c: any) => c.id !== excludeUserId && c.email && (c.service_categories || []).includes(job.category))
     .map((c: any) => ({ c, miles: zipcodes.distance(String(c.service_zip).slice(0, 5), propertyZip) as number | null }))
     .filter(({ c, miles }: any) => miles !== null && miles !== undefined && miles <= (c.service_radius_miles || 25))
     .sort((a: any, b: any) => a.miles - b.miles)
     .slice(0, MAX_ALERTS_PER_JOB)
+
+  // `public.users` has no role column — role only ever lives in Supabase
+  // Auth's user_metadata — so everything above can only match on leftover
+  // service_zip/service_categories values, regardless of who currently
+  // holds them. That's how a landlord who once set up a contractor
+  // profile (or switched roles) could still get matched here and receive
+  // a "New Electrical job near you" email that made no sense for their
+  // current account. Bounded to at most MAX_ALERTS_PER_JOB lookups since
+  // this runs after the zip/radius/category filtering already narrowed
+  // the list down, not against the whole user base.
+  const roleChecks = await Promise.all(
+    candidates.map(({ c }: any) => admin.auth.admin.getUserById(c.id).catch(() => null))
+  )
+  const matches = candidates.filter((_: any, i: number) => roleChecks[i]?.data?.user?.user_metadata?.role === 'contractor')
 
   const info: NotifyJobInfo = {
     jobId: job.id,
