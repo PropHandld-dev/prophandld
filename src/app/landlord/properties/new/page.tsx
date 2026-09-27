@@ -12,9 +12,11 @@ import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { AddressAutocomplete, type AutocompletePlace } from '@/components/AddressAutocomplete'
 import { LANDLORD_TABS } from '@/lib/navTabs'
+import { useLanguage, t } from '@/lib/i18n'
 
 function NewPropertyForm() {
   const router = useRouter()
+  const lang = useLanguage()
   const searchParams = useSearchParams()
   const isOnboarding = searchParams.get('onboarding') === '1'
   const billing = useBillingStatus()
@@ -96,14 +98,14 @@ function NewPropertyForm() {
     const { data: { user }, error: userError } = await supabase.auth.getUser()
 
     if (userError || !user) {
-      setError('Not authenticated: ' + (userError?.message || 'no user'))
+      setError(`${t('notAuthenticatedColon', lang)} ${userError?.message || 'no user'}`)
       setLoading(false)
       return
     }
 
     const { data: session } = await supabase.auth.getSession()
     if (!session.session) {
-      setError('No active session found')
+      setError(t('noActiveSessionFound', lang))
       setLoading(false)
       return
     }
@@ -120,15 +122,13 @@ function NewPropertyForm() {
     const dup = await dupRes.json().catch(() => ({}))
 
     if (dup.ownedByMe) {
-      setError('You already have a property at this address.')
+      setError(t('alreadyHavePropertyAddress', lang))
       setLoading(false)
       return
     }
 
     if (dup.ownedByOther) {
-      const proceed = window.confirm(
-        'This address is already registered by another Prophandld account. If you\'re taking over management of this property, that\'s fine to ignore — otherwise, double-check the address before continuing.\n\nAdd it anyway?'
-      )
+      const proceed = window.confirm(t('addressRegisteredOther', lang))
       if (!proceed) {
         setLoading(false)
         return
@@ -155,7 +155,7 @@ function NewPropertyForm() {
       .single()
 
     if (propertyError) {
-      setError('Error creating property: ' + propertyError.message + ' | User: ' + user.id)
+      setError(`${t('errorCreatingProperty', lang)} ${propertyError.message} | User: ${user.id}`)
       setLoading(false)
       return
     }
@@ -170,7 +170,7 @@ function NewPropertyForm() {
       })
 
     if (roleError) {
-      setError('Error setting property role: ' + roleError.message)
+      setError(`${t('errorSettingPropertyRole', lang)} ${roleError.message}`)
       setLoading(false)
       return
     }
@@ -187,7 +187,7 @@ function NewPropertyForm() {
         .insert(units)
 
       if (unitsError) {
-        setError('Error creating units: ' + unitsError.message)
+        setError(`${t('errorCreatingUnits', lang)} ${unitsError.message}`)
         setLoading(false)
         return
       }
@@ -228,9 +228,9 @@ function NewPropertyForm() {
           <div className="w-14 h-14 rounded-full bg-[#0A7B7E]/20 flex items-center justify-center mx-auto mb-5 motion-safe:animate-[popIn_0.5s_ease-out]">
             <span className="text-2xl">🎉</span>
           </div>
-          <h1 className="text-xl font-bold text-white mb-2">First property added</h1>
+          <h1 className="text-xl font-bold text-white mb-2">{t('firstPropertyAdded', lang)}</h1>
           <p className="text-white/50 text-sm mb-8">
-            You mentioned managing {label} properties — add another one now, or come back to it anytime from your dashboard.
+            {t('youMentionedManaging', lang)} {label} {t('addAnotherOrComeBack', lang)}
           </p>
           <div className="space-y-3">
             <RippleButton
@@ -238,14 +238,14 @@ function NewPropertyForm() {
               onClick={handleAddAnother}
               className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90"
             >
-              Add another property
+              {t('addAnotherPropertyBtn', lang)}
             </RippleButton>
             <RippleButton
               type="button"
               onClick={() => router.push('/landlord')}
               className="w-full bg-white/5 border border-white/10 text-white/70 font-medium py-3 rounded-xl transition hover:bg-white/10"
             >
-              I'll do this later
+              {t('illDoThisLater', lang)}
             </RippleButton>
           </div>
         </div>
@@ -258,43 +258,43 @@ function NewPropertyForm() {
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
         <Link href="/landlord" className="text-white/50 hover:text-white text-sm transition">
-          ← Back to dashboard
+          {t('backToDashboardArrow', lang)}
         </Link>
         <Link href="/landlord" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
       </nav>
 
       <main className="max-w-xl mx-auto px-6 py-10 pb-28">
         <h1 className="text-2xl font-bold text-white mb-2">
-          {isOnboarding ? "Let's add your first property" : 'Add a property'}
+          {isOnboarding ? t('letsAddFirstProperty', lang) : t('addAPropertyHeading', lang)}
         </h1>
         <p className="text-white/50 text-sm mb-8">
           {isOnboarding
-            ? "Tell us about the property you manage. We'll set up the units for you."
-            : 'Enter your property details below.'}
+            ? t('onboardingPropertyDesc', lang)
+            : t('enterPropertyDetails', lang)}
         </p>
 
         <ScrollReveal>
         {billingBlocked ? (
-          <SubscribeToAdd what="properties" />
+          <SubscribeToAdd what={t('propertiesWord', lang)} />
         ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">Street address</label>
+            <label className="text-white/70 text-sm block mb-1">{t('streetAddressLabel', lang)}</label>
             <AddressAutocomplete
               value={form.address}
               onChange={handleAddressChange}
               onPlaceSelected={handlePlaceSelected}
-              placeholder="Start typing your address..."
+              placeholder={t('startTypingAddress', lang)}
               required
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
             />
-            <p className="text-white/50 text-xs mt-1">Pick a suggestion to auto-fill city, state, and ZIP</p>
+            <p className="text-white/50 text-xs mt-1">{t('pickSuggestionAutofill', lang)}</p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-white/70 text-sm block mb-1">City</label>
+              <label className="text-white/70 text-sm block mb-1">{t('cityLabel', lang)}</label>
               <input
                 type="text"
                 name="city"
@@ -306,7 +306,7 @@ function NewPropertyForm() {
               />
             </div>
             <div>
-              <label className="text-white/70 text-sm block mb-1">State</label>
+              <label className="text-white/70 text-sm block mb-1">{t('stateLabel', lang)}</label>
               <input
                 type="text"
                 name="state"
@@ -321,7 +321,7 @@ function NewPropertyForm() {
           </div>
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">ZIP code</label>
+            <label className="text-white/70 text-sm block mb-1">{t('zipCodeLabel', lang)}</label>
             <input
               type="text"
               name="zip"
@@ -333,21 +333,21 @@ function NewPropertyForm() {
           </div>
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">Property type</label>
+            <label className="text-white/70 text-sm block mb-1">{t('propertyTypeLabel', lang)}</label>
             <select
               name="property_type"
               value={form.property_type}
               onChange={handleChange}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
             >
-              <option value="residential" className="bg-[#0C1A2E]">Residential</option>
-              <option value="commercial" className="bg-[#0C1A2E]">Commercial</option>
-              <option value="mixed" className="bg-[#0C1A2E]">Mixed use</option>
+              <option value="residential" className="bg-[#0C1A2E]">{t('residentialOption', lang)}</option>
+              <option value="commercial" className="bg-[#0C1A2E]">{t('commercialOption', lang)}</option>
+              <option value="mixed" className="bg-[#0C1A2E]">{t('mixedUseOption', lang)}</option>
             </select>
           </div>
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">Number of units</label>
+            <label className="text-white/70 text-sm block mb-1">{t('numberOfUnitsLabel', lang)}</label>
             <input
               type="number"
               name="num_units"
@@ -358,7 +358,7 @@ function NewPropertyForm() {
               onChange={handleChange}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
             />
-            <p className="text-white/50 text-xs mt-1">Units will be created automatically</p>
+            <p className="text-white/50 text-xs mt-1">{t('unitsCreatedAutomatically', lang)}</p>
           </div>
 
           {error && (
@@ -372,7 +372,7 @@ function NewPropertyForm() {
             disabled={loading}
             className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
           >
-            {loading ? 'Creating property...' : 'Add property'}
+            {loading ? t('creatingPropertyDots', lang) : t('addPropertyBtnShort', lang)}
           </RippleButton>
 
         </form>

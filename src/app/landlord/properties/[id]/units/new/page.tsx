@@ -10,10 +10,12 @@ import { BottomTabBar } from '@/components/BottomTabBar'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { LANDLORD_TABS } from '@/lib/navTabs'
+import { useLanguage, t } from '@/lib/i18n'
 
 export default function NewUnitPage() {
   const router = useRouter()
   const params = useParams()
+  const lang = useLanguage()
   const propertyId = params.id as string
 
   const billing = useBillingStatus()
@@ -37,7 +39,7 @@ export default function NewUnitPage() {
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      setError('Not authenticated')
+      setError(t('notAuthenticatedShort', lang))
       setLoading(false)
       return
     }
@@ -51,7 +53,7 @@ export default function NewUnitPage() {
       .maybeSingle()
 
     if (existing) {
-      setError('A unit with this number already exists on this property.')
+      setError(t('unitNumberExists', lang))
       setLoading(false)
       return
     }
@@ -66,7 +68,7 @@ export default function NewUnitPage() {
       })
 
     if (insertError) {
-      setError('Error creating unit: ' + insertError.message)
+      setError(`${t('errorCreatingUnit', lang)} ${insertError.message}`)
       setLoading(false)
       return
     }
@@ -83,24 +85,24 @@ export default function NewUnitPage() {
           href={`/landlord/properties/${propertyId}`}
           className="text-white/50 hover:text-white text-sm transition"
         >
-          ← Back to property
+          {t('backToProperty', lang)}
         </Link>
         <Link href="/landlord" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
         <div className="w-24" />
       </nav>
 
       <main className="max-w-xl mx-auto px-6 py-10 pb-28">
-        <h1 className="text-2xl font-bold text-white mb-2">Add a unit</h1>
-        <p className="text-white/50 text-sm mb-8">Enter the new unit's details below.</p>
+        <h1 className="text-2xl font-bold text-white mb-2">{t('addAUnitHeading', lang)}</h1>
+        <p className="text-white/50 text-sm mb-8">{t('enterUnitDetails', lang)}</p>
 
         <ScrollReveal>
         {billingBlocked ? (
-          <SubscribeToAdd what="units" />
+          <SubscribeToAdd what={t('unitsWord', lang)} />
         ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">Unit number</label>
+            <label className="text-white/70 text-sm block mb-1">{t('unitNumberLabel', lang)}</label>
             <input
               type="text"
               name="unit_number"
@@ -114,7 +116,7 @@ export default function NewUnitPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-white/70 text-sm block mb-1">Floor (optional)</label>
+              <label className="text-white/70 text-sm block mb-1">{t('floorOptional', lang)}</label>
               <input
                 type="number"
                 name="floor"
@@ -125,7 +127,7 @@ export default function NewUnitPage() {
               />
             </div>
             <div>
-              <label className="text-white/70 text-sm block mb-1">Sqft (optional)</label>
+              <label className="text-white/70 text-sm block mb-1">{t('sqftOptional', lang)}</label>
               <input
                 type="number"
                 name="sqft"
@@ -148,7 +150,7 @@ export default function NewUnitPage() {
             disabled={loading}
             className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
           >
-            {loading ? 'Creating unit...' : 'Add unit'}
+            {loading ? t('creatingUnitDots', lang) : t('addUnitBtnShort', lang)}
           </RippleButton>
 
         </form>
