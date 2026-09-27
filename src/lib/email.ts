@@ -256,7 +256,7 @@ export async function sendContractorInviteEmail({
     lang: 'en',
     eyebrow: 'Invite',
     heading: `${escapeHtml(landlordName)} invited you to Prophandld`,
-    bodyHtml: `${escapeHtml(landlordName)} wants to work with you through Prophandld: sealed bidding, completely free to use — no platform fee, ever — and you get paid directly the moment a job's done.${note ? `<br /><br />Their note: "${escapeHtml(note)}"` : ''} Sign up as a contractor with this same email address to get started.`,
+    bodyHtml: `${escapeHtml(landlordName)} wants to work with you through Prophandld: sealed bidding, completely free to use, no platform fee, ever, and you get paid directly the moment a job's done.${note ? `<br /><br />Their note: "${escapeHtml(note)}"` : ''} Sign up as a contractor with this same email address to get started.`,
     ctaLabel: 'Create your account',
     ctaUrl: `${SITE_URL}/signup?role=contractor`,
     footerText: `You're receiving this because ${escapeHtml(landlordName)} invited you to Prophandld.`,
@@ -272,13 +272,13 @@ const WELCOME_CONTENT: Record<'landlord' | 'renter' | 'contractor', Record<Lang,
   landlord: {
     en: {
       heading: 'Welcome to Prophandld',
-      bodyHtml: "You're set up. Add a property, invite your tenants, and the next time something breaks, post it once — contractors bid sealed, so you're never guessing what a fair price looks like.",
+      bodyHtml: "You're set up. Add a property, invite your tenants, and the next time something breaks, post it once. Contractors bid sealed, so you're never guessing what a fair price looks like.",
       ctaLabel: 'Go to your dashboard',
       ctaPath: '/landlord',
     },
     es: {
       heading: 'Bienvenido a Prophandld',
-      bodyHtml: 'Ya estás configurado. Agrega una propiedad, invita a tus inquilinos, y la próxima vez que algo se dañe, publícalo una vez — los contratistas ofertan de forma sellada, así que nunca tendrás que adivinar cuál es un precio justo.',
+      bodyHtml: 'Ya estás configurado. Agrega una propiedad, invita a tus inquilinos, y la próxima vez que algo se dañe, publícalo una vez. Los contratistas ofertan de forma sellada, así que nunca tendrás que adivinar cuál es un precio justo.',
       ctaLabel: 'Ir a tu panel',
       ctaPath: '/landlord',
     },
@@ -517,7 +517,7 @@ function pushCopy(type: NotifyType, role: NotifyRole, rawInfo: NotifyJobInfo): {
         body:
           role === 'contractor'
             ? paidPush
-              ? `${where}. Paid — check Earnings for your receipt.`
+              ? `${where}. Paid, check Earnings for your receipt.`
               : `${where}. Payment is on its way.`
             : `${where}. All done.`,
       }
@@ -827,8 +827,8 @@ export function buildNotificationEmail(type: NotifyType, role: NotifyRole, rawIn
         const contractorBody = paid
           ? `El arrendador aprobó tu trabajo de <strong>${cat}</strong> en ${at}, y el pago está en camino. Revisa Ganancias para el recibo.`
           : processing
-            ? `El arrendador aprobó tu trabajo de <strong>${cat}</strong> en ${at}. El pago comenzó y se está procesando — eso normalmente toma de 1 a 3 días hábiles.`
-            : `El arrendador aprobó tu trabajo de <strong>${cat}</strong> en ${at}. El pago es lo siguiente — te avisaremos por correo en cuanto se envíe.`
+            ? `El arrendador aprobó tu trabajo de <strong>${cat}</strong> en ${at}. El pago comenzó y se está procesando, eso normalmente toma de 1 a 3 días hábiles.`
+            : `El arrendador aprobó tu trabajo de <strong>${cat}</strong> en ${at}. El pago es lo siguiente, te avisaremos por correo en cuanto se envíe.`
         return {
           subject: `Trabajo cerrado: ${info.category}`,
           html: baseTemplate({
@@ -840,7 +840,7 @@ export function buildNotificationEmail(type: NotifyType, role: NotifyRole, rawIn
               role === 'contractor'
                 ? paid
                   ? 'Aprobado y pagado. Revisa Ganancias para tu recibo.'
-                  : 'Aprobado. El pago está en camino — revisa Ganancias para novedades.'
+                  : 'Aprobado. El pago está en camino, revisa Ganancias para novedades.'
                 : `${jobLocation(info)}. Todo listo.`,
             stage: role === 'contractor' && !paid ? 4 : 5,
             facts: compact([jobFact, whereFact, unitFact, role === 'contractor' && info.amount != null && { label: fl('Price', lang), value: money(info.amount) }]),
@@ -853,8 +853,8 @@ export function buildNotificationEmail(type: NotifyType, role: NotifyRole, rawIn
       const contractorBody = paid
         ? `The landlord approved your work on the <strong>${cat}</strong> job at ${at}, and payment is on its way. Check Earnings for the receipt.`
         : processing
-          ? `The landlord approved your work on the <strong>${cat}</strong> job at ${at}. Payment has started and is clearing — that usually takes 1 to 3 business days.`
-          : `The landlord approved your work on the <strong>${cat}</strong> job at ${at}. Payment is next — we'll email you the moment it's sent.`
+          ? `The landlord approved your work on the <strong>${cat}</strong> job at ${at}. Payment has started and is clearing, that usually takes 1 to 3 business days.`
+          : `The landlord approved your work on the <strong>${cat}</strong> job at ${at}. Payment is next, we'll email you the moment it's sent.`
       return {
         subject: `Job closed: ${info.category}`,
         html: baseTemplate({
@@ -866,7 +866,7 @@ export function buildNotificationEmail(type: NotifyType, role: NotifyRole, rawIn
             role === 'contractor'
               ? paid
                 ? 'Approved and paid. Check Earnings for your receipt.'
-                : 'Approved. Payment is on its way — check Earnings for updates.'
+                : 'Approved. Payment is on its way, check Earnings for updates.'
               : `${jobLocation(info)}. All done.`,
           // The tracker's last step is "Paid" — only light it up as reached
           // once payment genuinely succeeded, otherwise stop one step short
@@ -1260,7 +1260,7 @@ export async function sendJobAutoApprovedPayNowEmail({
     lang,
     eyebrow: 'Acción requerida',
     heading: 'Aprobamos este trabajo por ti',
-    bodyHtml: `Hola ${escapeHtml(landlordName)}, nadie revisó el trabajo de <strong>${escapeHtml(category)}</strong> en ${escapeHtml(propertyLabel)} dentro de los 3 días desde que <strong>${escapeHtml(contractorName)}</strong> lo terminó, así que se aprobó automáticamente para que no se quedara esperando. A ${escapeHtml(contractorName)} todavía no se le ha pagado — esa parte nunca es automática.`,
+    bodyHtml: `Hola ${escapeHtml(landlordName)}, nadie revisó el trabajo de <strong>${escapeHtml(category)}</strong> en ${escapeHtml(propertyLabel)} dentro de los 3 días desde que <strong>${escapeHtml(contractorName)}</strong> lo terminó, así que se aprobó automáticamente para que no se quedara esperando. A ${escapeHtml(contractorName)} todavía no se le ha pagado, esa parte nunca es automática.`,
     preheader: `${escapeHtml(contractorName)} está esperando $${amount.toFixed(2)}. Paga ahora para liberarlo.`,
     facts: [
       { label: fl('Amount due', lang), value: `$${amount.toFixed(2)}` },
@@ -1275,7 +1275,7 @@ export async function sendJobAutoApprovedPayNowEmail({
     lang,
     eyebrow: 'Action needed',
     heading: 'We approved this job for you',
-    bodyHtml: `Hi ${escapeHtml(landlordName)}, nobody reviewed the <strong>${escapeHtml(category)}</strong> job at ${escapeHtml(propertyLabel)} within 3 days of <strong>${escapeHtml(contractorName)}</strong> finishing it, so it was approved automatically so they aren't left waiting. ${escapeHtml(contractorName)} still hasn't been paid — that part is never automatic.`,
+    bodyHtml: `Hi ${escapeHtml(landlordName)}, nobody reviewed the <strong>${escapeHtml(category)}</strong> job at ${escapeHtml(propertyLabel)} within 3 days of <strong>${escapeHtml(contractorName)}</strong> finishing it, so it was approved automatically so they aren't left waiting. ${escapeHtml(contractorName)} still hasn't been paid, that part is never automatic.`,
     preheader: `${escapeHtml(contractorName)} is waiting on $${amount.toFixed(2)}. Pay now to release it.`,
     facts: [
       { label: fl('Amount due', lang), value: `$${amount.toFixed(2)}` },
@@ -1300,18 +1300,18 @@ export async function sendAutoApprovalDigestAdminEmail({
 }) {
   if (jobs.length === 0) return
   const rows = jobs
-    .map((j) => `<li style="margin-bottom:6px;">${escapeHtml(j.category)} at ${escapeHtml(j.propertyLabel)} — ${escapeHtml(j.contractorName)} is owed $${j.amount.toFixed(2)}</li>`)
+    .map((j) => `<li style="margin-bottom:6px;">${escapeHtml(j.category)} at ${escapeHtml(j.propertyLabel)}: ${escapeHtml(j.contractorName)} is owed $${j.amount.toFixed(2)}</li>`)
     .join('')
   const html = baseTemplate({
     lang: 'en',
     eyebrow: 'Auto-approved',
     heading: `${jobs.length} job${jobs.length === 1 ? '' : 's'} auto-approved today`,
-    bodyHtml: `No landlord response within 3 days, so ${jobs.length === 1 ? 'this job was' : 'these were'} approved automatically and the landlord was emailed to pay. Nothing forces them to — worth a manual check if any stay unpaid.<ul style="margin:14px 0 0;padding-left:20px;color:#A9B7C8;font-size:14px;line-height:1.6;">${rows}</ul>`,
+    bodyHtml: `No landlord response within 3 days, so ${jobs.length === 1 ? 'this job was' : 'these were'} approved automatically and the landlord was emailed to pay. Nothing forces them to, worth a manual check if any stay unpaid.<ul style="margin:14px 0 0;padding-left:20px;color:#A9B7C8;font-size:14px;line-height:1.6;">${rows}</ul>`,
     preheader: `${jobs.length} landlord${jobs.length === 1 ? '' : 's'} emailed to pay. Nothing is guaranteed until they do.`,
     ctaLabel: 'Open admin jobs',
     ctaUrl: `${SITE_URL}/admin/jobs`,
   })
-  return sendEmail({ to: 'admin@prophandld.com', subject: `${jobs.length} job(s) auto-approved — payment not guaranteed`, html })
+  return sendEmail({ to: 'admin@prophandld.com', subject: `${jobs.length} job(s) auto-approved, payment not guaranteed`, html })
 }
 
 export async function sendJobPaymentSentEmail({
@@ -1691,7 +1691,7 @@ export async function sendAppointmentReminderEmail({
           heading: `Mañana: ${cat}`,
           renterBody: `Hola ${escapeHtml(name)}, un contratista está programado para visitar tu unidad mañana, <strong>${whenEsc}</strong>, por un trabajo de <strong>${cat}</strong>. ${accessNotes ? 'Si algo cambió, puedes actualizar tus notas de acceso desde el trabajo.' : 'Si el contratista necesita saber algo para entrar (código de la caja de seguridad, si estarás en casa, etc.), puedes agregarlo desde el trabajo antes de que lleguen.'}`,
           contractorBody: `Hola ${escapeHtml(name)}, tienes un trabajo de <strong>${cat}</strong> programado para mañana, <strong>${whenEsc}</strong>, en ${at}.${accessNotesBlock}`,
-          landlordBody: `Hola ${escapeHtml(name)}, el trabajo de <strong>${cat}</strong> en ${at} está programado para mañana, <strong>${whenEsc}</strong>. Esto es solo un aviso — no se necesita nada de tu parte.`,
+          landlordBody: `Hola ${escapeHtml(name)}, el trabajo de <strong>${cat}</strong> en ${at} está programado para mañana, <strong>${whenEsc}</strong>. Esto es solo un aviso, no se necesita nada de tu parte.`,
           ctaLabel: 'Ver trabajo',
         }
       : {
@@ -1699,7 +1699,7 @@ export async function sendAppointmentReminderEmail({
           heading: `Tomorrow: ${cat}`,
           renterBody: `Hi ${escapeHtml(name)}, a contractor is scheduled to visit your unit tomorrow, <strong>${whenEsc}</strong>, for a <strong>${cat}</strong> job. ${accessNotes ? 'If anything has changed, you can update your access notes from the job.' : "If the contractor needs to know anything to get in (a lockbox code, whether you'll be home, etc.), you can add it from the job before they arrive."}`,
           contractorBody: `Hi ${escapeHtml(name)}, you have a <strong>${cat}</strong> job scheduled for tomorrow, <strong>${whenEsc}</strong>, at ${at}.${accessNotesBlock}`,
-          landlordBody: `Hi ${escapeHtml(name)}, the <strong>${cat}</strong> job at ${at} is scheduled for tomorrow, <strong>${whenEsc}</strong>. This is just a heads-up — nothing is needed from you.`,
+          landlordBody: `Hi ${escapeHtml(name)}, the <strong>${cat}</strong> job at ${at} is scheduled for tomorrow, <strong>${whenEsc}</strong>. This is just a heads-up, nothing is needed from you.`,
           ctaLabel: 'View job',
         }
 

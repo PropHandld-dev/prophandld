@@ -26,7 +26,7 @@ export async function notifyMatchingContractors(admin: any, jobId: string, exclu
 
   const { data: contractors, error } = await admin
     .from('users')
-    .select('id, email, phone, sms_opt_in, service_categories, service_zip, service_radius_miles, preferred_language')
+    .select('id, email, phone, sms_opt_in, service_categories, service_zip, service_radius_miles, preferred_language, notify_all_categories')
     .not('service_zip', 'is', null)
 
   if (error) {
@@ -34,8 +34,20 @@ export async function notifyMatchingContractors(admin: any, jobId: string, exclu
     return { sent: 0, reason: 'could not load contractors' }
   }
 
+  // A brand-new or one-off category (someone reports "Other: theft") starts
+  // with zero contractors who've ever selected it, so a strict category
+  // match would alert nobody at all — exactly the gap that came up in
+  // testing. notify_all_categories (default true, see the SQL) lets a
+  // contractor opt into every nearby job regardless of category instead of
+  // only their selected trades; opting out narrows them back to an exact
+  // category match, same as before.
   const candidates = (contractors || [])
-    .filter((c: any) => c.id !== excludeUserId && c.email && (c.service_categories || []).includes(job.category))
+    .filter(
+      (c: any) =>
+        c.id !== excludeUserId &&
+        c.email &&
+        (c.notify_all_categories !== false || (c.service_categories || []).includes(job.category))
+    )
     .map((c: any) => ({ c, miles: zipcodes.distance(String(c.service_zip).slice(0, 5), propertyZip) as number | null }))
     .filter(({ c, miles }: any) => miles !== null && miles !== undefined && miles <= (c.service_radius_miles || 25))
     .sort((a: any, b: any) => a.miles - b.miles)

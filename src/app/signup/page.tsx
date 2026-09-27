@@ -216,7 +216,7 @@ function SignupForm() {
           </p>
           <p className="text-white font-semibold mb-5">{confirmationEmail}</p>
           <p className="text-white/50 text-sm mb-6">
-            Click the link to activate your account. If this wasn&apos;t your email, no account was created for you — nothing to do.
+            Click the link to activate your account. If this wasn&apos;t your email, no account was created for you, so there&apos;s nothing to do.
           </p>
           <RippleButton
             type="button"
@@ -351,7 +351,7 @@ function SignupForm() {
               <option value="11-25" className="bg-[#0C1A2E]">11–25</option>
               <option value="26+" className="bg-[#0C1A2E]">26 or more</option>
             </select>
-            <p className="text-white/40 text-xs mt-1">Helps us set you up right — never shown to anyone else.</p>
+            <p className="text-white/40 text-xs mt-1">Helps us set you up right, never shown to anyone else.</p>
           </div>
         )}
 
@@ -371,7 +371,7 @@ function SignupForm() {
               placeholder="Start typing an address..."
               className="w-full bg-white/[0.06] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:border-[#12A5A9] focus:ring-2 focus:ring-[#12A5A9]/15 transition"
             />
-            <p className="text-white/40 text-xs mt-1">Skip this if you'd rather add it after confirming your email — either way works.</p>
+            <p className="text-white/40 text-xs mt-1">Skip this if you'd rather add it after confirming your email. Either way works.</p>
           </div>
         )}
 

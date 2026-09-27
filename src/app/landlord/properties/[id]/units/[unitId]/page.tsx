@@ -115,7 +115,7 @@ export default function UnitDetailPage() {
     if (coOccupants.length >= maxCoRenters) {
       setCoRenterError(
         tenancy.occupants
-          ? `${t('leaseSetForOccupantsPrefix', lang)} ${tenancy.occupants} ${tenancy.occupants === 1 ? t('occupantSingular', lang) : t('occupantPlural', lang)} ${t('leaseSetForOccupantsSuffix', lang)}`
+          ? `${t('leaseSetForOccupantsPrefix', lang)} ${tenancy.occupants} ${tenancy.occupants === 1 ? t('occupantSingular', lang) : t('occupantPlural', lang)}${t('leaseSetForOccupantsSuffix', lang)}`
           : `${t('reachedDefaultLimitPrefix', lang)} ${maxCoRenters} ${t('reachedDefaultLimitSuffix', lang)}`
       )
       setAddingCoRenter(false)
@@ -945,7 +945,7 @@ export default function UnitDetailPage() {
               {Number(tenancy.security_deposit) - (Number(depositRefunded) || 0) > 0 && (
                 <>
                   <p className="text-yellow-400 text-xs mb-2">
-                    {t('keepingAmountPrefix', lang)}{(Number(tenancy.security_deposit) - (Number(depositRefunded) || 0)).toFixed(2)} {t('reasonRequiredSuffix', lang)}
+                    {t('keepingAmountPrefix', lang)}{(Number(tenancy.security_deposit) - (Number(depositRefunded) || 0)).toFixed(2)}{t('reasonRequiredSuffix', lang)}
                   </p>
                   <label className="text-white/70 text-sm block mb-1">{t('reasonLabel', lang)}</label>
                   <textarea

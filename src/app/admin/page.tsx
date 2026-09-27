@@ -275,7 +275,7 @@ export default function AdminOverviewPage() {
               <div className="bg-white/3 border border-white/8 rounded-2xl p-6 flex flex-col justify-center">
                 <h2 className="text-white font-semibold">MRR trend</h2>
                 <p className="text-white/50 text-xs mt-2 leading-relaxed">
-                  There's no recorded history to chart yet — MRR was only ever computed live, never saved. Daily
+                  There's no recorded history to chart yet. MRR was only ever computed live, never saved. Daily
                   tracking starts today; check back in a few weeks for a real trend line.
                 </p>
               </div>
@@ -291,7 +291,7 @@ export default function AdminOverviewPage() {
               <div className="bg-white/3 border border-white/8 rounded-2xl p-6 flex flex-col justify-center">
                 <h2 className="text-white font-semibold">Subscription tier mix trend</h2>
                 <p className="text-white/50 text-xs mt-2 leading-relaxed">
-                  Same as MRR — recorded from today forward. Today's snapshot is the "Landlord subscription tiers"
+                  Same as MRR, recorded from today forward. Today's snapshot is the "Landlord subscription tiers"
                   card above; check back in a few weeks for how that mix moves over time.
                 </p>
               </div>

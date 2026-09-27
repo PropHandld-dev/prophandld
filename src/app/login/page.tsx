@@ -263,7 +263,7 @@ function LoginForm() {
         {linkError && (
           <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm mb-6">
             {linkError.code === 'otp_expired'
-              ? "That link has expired or was already used. If you signed up, try signing up again with the same email — we'll send a fresh one."
+              ? "That link has expired or was already used. If you signed up, try signing up again with the same email and we'll send a fresh one."
               : linkError.description?.replace(/\+/g, ' ') || 'That link is no longer valid. Try again from where it was sent.'}
           </div>
         )}

@@ -29,6 +29,13 @@ export default function ContractorSettingsPage() {
   const [zip, setZip] = useState('')
   const [radiusMiles, setRadiusMiles] = useState(25)
   const [licensed, setLicensed] = useState(false)
+  // Defaults true — see the SQL default and openJobAlerts.ts for why: a
+  // brand-new category (like "Other: theft") starts with zero contractors
+  // who've selected it, so a strict category match would alert nobody at
+  // all. Broad-by-default means every new category gets real coverage from
+  // day one; a contractor narrows this once they have enough leads in
+  // their actual trade to want fewer, more relevant alerts.
+  const [notifyAllCategories, setNotifyAllCategories] = useState(true)
   const [categoryOptions, addCategoryOption] = useCategoryOptions()
 
   const [userId, setUserId] = useState<string | null>(null)
@@ -45,7 +52,7 @@ export default function ContractorSettingsPage() {
 
       const { data: profileData } = await supabase
         .from('users')
-        .select('service_categories, service_zip, service_radius_miles, licensed')
+        .select('service_categories, service_zip, service_radius_miles, licensed, notify_all_categories')
         .eq('id', user.id)
         .maybeSingle()
 
@@ -54,6 +61,7 @@ export default function ContractorSettingsPage() {
         setZip(profileData.service_zip || '')
         setRadiusMiles(profileData.service_radius_miles || 25)
         setLicensed(profileData.licensed || false)
+        setNotifyAllCategories(profileData.notify_all_categories !== false)
       }
 
       const { data: summary } = await supabase
@@ -120,6 +128,7 @@ export default function ContractorSettingsPage() {
         service_zip: zip.trim(),
         service_radius_miles: radiusMiles,
         licensed,
+        notify_all_categories: notifyAllCategories,
       })
       .eq('id', user.id)
 
@@ -197,6 +206,14 @@ export default function ContractorSettingsPage() {
                 className="w-full mt-2 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
               />
             )}
+          </div>
+
+          <div className="flex items-center justify-between gap-3 bg-white/3 border border-white/8 rounded-xl p-4">
+            <div>
+              <span className="text-white text-sm block">{t('notifyAllJobsLabel', lang)}</span>
+              <span className="text-white/50 text-xs mt-0.5 block">{t('notifyAllJobsDesc', lang)}</span>
+            </div>
+            <Switch checked={notifyAllCategories} onChange={setNotifyAllCategories} />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
