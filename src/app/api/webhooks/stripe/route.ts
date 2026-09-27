@@ -134,6 +134,14 @@ export async function POST(request: NextRequest) {
 
             const unit = (rentPayment?.tenancies as any)?.units
             const landlordUserId = unit?.properties?.owner_user_id
+            // A card payment's PaymentIntent amount includes Prophandld's
+            // processing-fee surcharge — never rent itself. Landlord-facing
+            // amounts (email, push, the chat receipt) always mean rent, so
+            // they read the real rent portion, not the surcharged total.
+            // See the matching note in rentPaymentSync.ts.
+            const baseAmountPaid = paymentIntent.metadata?.prophandld_base_amount
+              ? Number(paymentIntent.metadata.prophandld_base_amount)
+              : paymentIntent.amount / 100
             if (landlordUserId) {
               const monthLabel = rentPayment?.month
                 ? new Date(rentPayment.month + 'T00:00:00').toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
@@ -151,7 +159,7 @@ export async function POST(request: NextRequest) {
                 await sendRentPaymentReceivedEmail({
                   to: landlord.email,
                   landlordName: landlord.full_name || 'there',
-                  amount: paymentIntent.amount / 100,
+                  amount: baseAmountPaid,
                   monthLabel,
                   unitLabel,
                   lang: landlord.preferred_language === 'es' ? 'es' : 'en',
@@ -159,7 +167,7 @@ export async function POST(request: NextRequest) {
               }
               await sendPush(landlordUserId, {
                 title: 'Rent payment received',
-                body: `$${(paymentIntent.amount / 100).toFixed(2)} for ${unitLabel}`,
+                body: `$${baseAmountPaid.toFixed(2)} for ${unitLabel}`,
                 url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/landlord`,
               }).catch((err) => console.error('stripe webhook: sendPush (rent) failed', err))
 
@@ -175,7 +183,7 @@ export async function POST(request: NextRequest) {
                   const { error: messageError } = await supabaseAdmin.from('messages').insert({
                     thread_id: threadId,
                     sender_user_id: renterUserId,
-                    body: `✓ Rent paid — $${(paymentIntent.amount / 100).toFixed(2)} for ${monthLabel}`,
+                    body: `✓ Rent paid — $${baseAmountPaid.toFixed(2)} for ${monthLabel}`,
                   })
                   if (messageError) console.error('stripe webhook: rent-paid message insert failed', messageError)
                 }

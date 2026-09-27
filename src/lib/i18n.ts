@@ -1170,6 +1170,14 @@ const STRINGS = {
   askAQuestionPlaceholder: { en: 'What do you want to know?', es: '¿Qué quieres saber?' },
   sendQuestionBtn: { en: 'Send question', es: 'Enviar pregunta' },
   couldNotSendClarification: { en: 'Could not send your question. Please try again.', es: 'No se pudo enviar tu pregunta. Inténtalo de nuevo.' },
+
+  // Renter rent page: choose how to pay
+  howDoYouWantToPay: { en: 'How do you want to pay?', es: '¿Cómo quieres pagar?' },
+  bankAccountOptionLabel: { en: 'Bank account', es: 'Cuenta bancaria' },
+  bankAccountOptionDesc: { en: 'No fee · usually clears in 1–3 business days', es: 'Sin cargo · normalmente se procesa en 1–3 días hábiles' },
+  debitCardOptionLabel: { en: 'Debit card', es: 'Tarjeta de débito' },
+  debitCardOptionDescPrefix: { en: 'instant', es: 'instantáneo' },
+  processingFeeSuffix: { en: 'processing fee', es: 'cargo por procesamiento' },
 } satisfies Record<string, Record<Lang, string>>
 
 // The three schedule windows (`morning`/`afternoon`/`evening`) show up

@@ -12,6 +12,7 @@ import { StripePaymentModal } from '@/components/StripePaymentModal'
 import { CheckCircleIcon, CalendarIcon, FileTextIcon } from '@/components/icons'
 import { RENTER_TABS } from '@/lib/navTabs'
 import { ensureCurrentMonthRentPayment, ensureNextMonthRentPayment } from '@/lib/rentAutomation'
+import { cardProcessingFee } from '@/lib/cardSurcharge'
 import { useLanguage, t, type Lang } from '@/lib/i18n'
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -42,6 +43,7 @@ export default function RenterRentPage() {
   const [error, setError] = useState<string | null>(null)
   const [payingId, setPayingId] = useState<string | null>(null)
   const [modal, setModal] = useState<{ clientSecret: string; amount: number; rentPaymentId: string } | null>(null)
+  const [methodChoicePayment, setMethodChoicePayment] = useState<any>(null)
 
   const loadPayments = async (tenancyId: string) => {
     const { data, error: paymentsError } = await supabase
@@ -151,7 +153,17 @@ export default function RenterRentPage() {
     })
   }, [payments, tenancy])
 
-  const handlePayNow = async (payment: any) => {
+  // Opens the "how do you want to pay" choice first — the PaymentIntent
+  // itself can't be created until a method is picked, since a card payment
+  // adds a visible processing-fee surcharge that a bank payment never has,
+  // and the charge amount has to be fixed before the PaymentIntent exists.
+  const handlePayNow = (payment: any) => {
+    setError(null)
+    setMethodChoicePayment(payment)
+  }
+
+  const handleChooseMethod = async (payment: any, method: 'bank' | 'card') => {
+    setMethodChoicePayment(null)
     setPayingId(payment.id)
     setError(null)
 
@@ -159,7 +171,7 @@ export default function RenterRentPage() {
       const res = await fetch('/api/stripe/rent/create-payment-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rentPaymentId: payment.id }),
+        body: JSON.stringify({ rentPaymentId: payment.id, paymentMethod: method }),
       })
       const data = await res.json()
       if (data.alreadyPaid) {
@@ -169,14 +181,14 @@ export default function RenterRentPage() {
         return
       }
       if (!res.ok || !data.clientSecret) {
-        setError(data.error || 'Could not start payment.')
+        setError(data.error || t('couldNotStartPayment', lang))
         if (tenancy) await loadPayments(tenancy.id)
         setPayingId(null)
         return
       }
       setModal({ clientSecret: data.clientSecret, amount: data.amount, rentPaymentId: payment.id })
     } catch {
-      setError('Could not start payment.')
+      setError(t('couldNotStartPayment', lang))
     }
     setPayingId(null)
   }
@@ -493,6 +505,48 @@ export default function RenterRentPage() {
           </>
         )}
       </main>
+
+      {methodChoicePayment && (() => {
+        const amountDue = Number(methodChoicePayment.expected_amount) - Number(methodChoicePayment.actual_amount || 0)
+        const fee = cardProcessingFee(amountDue)
+        return (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
+            <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
+              <h3 className="text-white font-semibold mb-4">{t('howDoYouWantToPay', lang)}</h3>
+              <div className="space-y-3">
+                <button
+                  onClick={() => handleChooseMethod(methodChoicePayment, 'bank')}
+                  className="w-full text-left bg-white/5 hover:bg-white/8 border border-white/10 rounded-xl px-4 py-3 transition"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-white font-medium text-sm">{t('bankAccountOptionLabel', lang)}</span>
+                    <span className="text-white font-semibold text-sm tabular-nums">{money(amountDue)}</span>
+                  </div>
+                  <p className="text-white/50 text-xs mt-1">{t('bankAccountOptionDesc', lang)}</p>
+                </button>
+                <button
+                  onClick={() => handleChooseMethod(methodChoicePayment, 'card')}
+                  className="w-full text-left bg-white/5 hover:bg-white/8 border border-white/10 rounded-xl px-4 py-3 transition"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-white font-medium text-sm">{t('debitCardOptionLabel', lang)}</span>
+                    <span className="text-white font-semibold text-sm tabular-nums">{money(amountDue + fee)}</span>
+                  </div>
+                  <p className="text-white/50 text-xs mt-1">
+                    +{money(fee)} {t('processingFeeSuffix', lang)} · {t('debitCardOptionDescPrefix', lang)}
+                  </p>
+                </button>
+              </div>
+              <button
+                onClick={() => setMethodChoicePayment(null)}
+                className="w-full text-center text-white/50 hover:text-white text-sm mt-4 transition"
+              >
+                {t('cancel', lang)}
+              </button>
+            </div>
+          </div>
+        )
+      })()}
 
       {modal && (
         <StripePaymentModal

@@ -64,12 +64,23 @@ export async function syncRentPayment(
     return 'refunded_credit_card'
   }
 
+  // A card payment's PaymentIntent amount includes Stripe's processing fee
+  // as a surcharge on top of rent (see create-payment-intent) — that
+  // surcharge is Prophandld's, not rent, so it must never be counted
+  // toward what the tenant "paid" here. prophandld_base_amount carries the
+  // real rent portion; older intents from before this existed have no such
+  // metadata, and for those (and for bank payments, which are never
+  // surcharged) the full amount already equals the base amount.
+  const baseAmount = paymentIntent.metadata?.prophandld_base_amount
+    ? Number(paymentIntent.metadata.prophandld_base_amount)
+    : paymentIntent.amount / 100
+
   // The status guard makes concurrent callers (webhook and confirm) safe:
   // only the first one to commit changes the row.
   await admin
     .from('rent_payments')
     .update({
-      actual_amount: Number(rent.actual_amount || 0) + paymentIntent.amount / 100,
+      actual_amount: Number(rent.actual_amount || 0) + baseAmount,
       paid_date: paymentPaidAt(paymentIntent).slice(0, 10),
       payment_method: method?.type === 'us_bank_account' ? 'bank' : 'card',
       stripe_status: 'succeeded',
