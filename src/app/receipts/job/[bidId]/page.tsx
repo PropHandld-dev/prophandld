@@ -4,10 +4,12 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useParams, useRouter } from 'next/navigation'
 import { ReceiptCard } from '@/components/ReceiptCard'
+import { useLanguage, t } from '@/lib/i18n'
 
 export default function JobPaymentReceiptPage() {
   const params = useParams()
   const router = useRouter()
+  const lang = useLanguage()
   const bidId = params.bidId as string
 
   const [loading, setLoading] = useState(true)
@@ -49,7 +51,7 @@ export default function JobPaymentReceiptPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center">
-        <div className="text-white/50">Loading...</div>
+        <div className="text-white/50">{t('loadingEllipsisPlain', lang)}</div>
       </div>
     )
   }
@@ -57,7 +59,7 @@ export default function JobPaymentReceiptPage() {
   if (!receipt || receipt.payment_status !== 'paid') {
     return (
       <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center">
-        <div className="text-white/50 text-sm">Receipt not found.</div>
+        <div className="text-white/50 text-sm">{t('receiptNotFound', lang)}</div>
       </div>
     )
   }
@@ -68,26 +70,26 @@ export default function JobPaymentReceiptPage() {
   const amount = Number(receipt.amount)
   const propertyLabel = property?.address
     ? `${property.address}${unit?.unit_number ? `, Unit ${unit.unit_number}` : ''}`
-    : 'Property'
+    : t('propertyFallback', lang)
 
   return (
     <ReceiptCard
       backHref={backHref}
-      eyebrow="Job payment receipt"
-      title={job?.category || 'Job'}
+      eyebrow={t('jobPaymentReceiptEyebrow', lang)}
+      title={job?.category || t('jobFallback', lang)}
       subtitle={propertyLabel}
       rows={[
-        { label: 'Paid by', value: receipt.landlordName || '—' },
-        { label: 'Paid to', value: receipt.contractorName || '—' },
-        { label: 'Property', value: property ? `${property.city}, ${property.state}` : '—' },
-        { label: 'Job', value: job?.category || '—' },
-        { label: 'Paid on', value: receipt.paid_at ? new Date(receipt.paid_at).toLocaleDateString() : '—' },
-        { label: 'Method', value: 'Card or bank transfer' },
+        { label: t('paidByLabel', lang), value: receipt.landlordName || '—' },
+        { label: t('paidToLabel', lang), value: receipt.contractorName || '—' },
+        { label: t('propertyLabel', lang), value: property ? `${property.city}, ${property.state}` : '—' },
+        { label: t('jobLabel', lang), value: job?.category || '—' },
+        { label: t('paidOnLabel', lang), value: receipt.paid_at ? new Date(receipt.paid_at).toLocaleDateString(lang === 'es' ? 'es-ES' : undefined) : '—' },
+        { label: t('methodLabelReceipt', lang), value: t('cardOrBankTransferValue', lang) },
       ]}
-      totalLabel="Amount paid"
+      totalLabel={t('amountPaidLabel', lang)}
       totalValue={`$${amount.toFixed(2)}`}
       receiptId={receipt.id}
-      footerNote="Processed via Prophandld · prophandld.com"
+      footerNote={t('processedViaFooterNote', lang)}
     />
   )
 }

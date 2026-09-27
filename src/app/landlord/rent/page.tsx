@@ -8,6 +8,7 @@ import { BottomTabBar } from '@/components/BottomTabBar'
 import { Skeleton } from '@/components/Skeleton'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { LANDLORD_TABS } from '@/lib/navTabs'
+import { useLanguage, t } from '@/lib/i18n'
 
 const MONTHS_SHOWN = 6
 
@@ -23,15 +24,16 @@ function monthKeys(count: number): string[] {
   return out
 }
 
-const monthLabel = (key: string) => {
+const monthLabel = (key: string, lang: 'en' | 'es') => {
   const [y, m] = key.split('-').map(Number)
-  return new Date(y, m - 1, 1).toLocaleDateString(undefined, { month: 'short' })
+  return new Date(y, m - 1, 1).toLocaleDateString(lang === 'es' ? 'es-ES' : undefined, { month: 'short' })
 }
 
 type Cell = { status: 'paid' | 'partial' | 'unpaid' | 'no-tenant'; expected?: number; actual?: number; paymentId?: string }
 
 export default function RentRollPage() {
   const router = useRouter()
+  const lang = useLanguage()
   const [loading, setLoading] = useState(true)
   const [rows, setRows] = useState<{ unitId: string; propertyId: string; label: string; hasTenancy: boolean; cells: Record<string, Cell> }[]>([])
 
@@ -144,7 +146,7 @@ export default function RentRollPage() {
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
         <Link href="/landlord" className="text-white/50 hover:text-white text-sm transition">
-          ← Dashboard
+          {t('backToDashboardArrowPlain', lang)}
         </Link>
         <Link href="/landlord" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
         <div className="w-20" />
@@ -152,8 +154,8 @@ export default function RentRollPage() {
 
       <main className="max-w-4xl mx-auto px-6 py-10 pb-28">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-white">Rent roll</h1>
-          <p className="text-white/50 text-sm mt-1">Every unit, the last {MONTHS_SHOWN} months, at a glance.</p>
+          <h1 className="text-2xl font-bold text-white">{t('rentRollHeading', lang)}</h1>
+          <p className="text-white/50 text-sm mt-1">{t('everyUnitLastMonthsGlance', lang)} {MONTHS_SHOWN} {t('monthsAtAGlanceSuffix', lang)}</p>
         </div>
 
         {loading ? (
@@ -163,7 +165,7 @@ export default function RentRollPage() {
           </div>
         ) : rows.length === 0 ? (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
-            <p className="text-white/50 text-sm">No units yet.</p>
+            <p className="text-white/50 text-sm">{t('noUnitsYet', lang)}</p>
           </div>
         ) : (
           <ScrollReveal>
@@ -171,10 +173,10 @@ export default function RentRollPage() {
               <table className="w-full min-w-[560px] border-collapse">
                 <thead>
                   <tr className="border-b border-white/8">
-                    <th className="text-left text-white/50 text-xs font-medium uppercase tracking-wide px-4 py-3">Unit</th>
+                    <th className="text-left text-white/50 text-xs font-medium uppercase tracking-wide px-4 py-3">{t('unitColumnHeading', lang)}</th>
                     {months.map((m) => (
                       <th key={m} className="text-center text-white/50 text-xs font-medium uppercase tracking-wide px-2 py-3">
-                        {monthLabel(m)}
+                        {monthLabel(m, lang)}
                       </th>
                     ))}
                   </tr>
@@ -189,7 +191,7 @@ export default function RentRollPage() {
                         >
                           {row.label}
                         </Link>
-                        {!row.hasTenancy && <span className="text-white/30 text-xs">No tenant</span>}
+                        {!row.hasTenancy && <span className="text-white/30 text-xs">{t('noTenantLabel', lang)}</span>}
                       </td>
                       {months.map((m) => {
                         const cell = row.cells[m]
@@ -198,7 +200,7 @@ export default function RentRollPage() {
                             <Link
                               href={`/landlord/properties/${row.propertyId}/units/${row.unitId}/rent`}
                               className={`inline-flex items-center justify-center w-14 h-9 rounded-lg text-xs font-semibold transition hover:opacity-80 ${cellStyle(cell.status)}`}
-                              title={cell.expected ? `Expected $${cell.expected} · Paid $${cell.actual}` : undefined}
+                              title={cell.expected ? `${t('expectedDollarPrefix', lang)}${cell.expected} ${t('paidDollarPrefix', lang)}${cell.actual}` : undefined}
                             >
                               {cell.status === 'paid' ? '✓' : cell.status === 'partial' ? '½' : cell.status === 'unpaid' ? '✕' : '—'}
                             </Link>
@@ -211,10 +213,10 @@ export default function RentRollPage() {
               </table>
             </div>
             <div className="flex items-center gap-4 text-xs text-white/50 flex-wrap mt-4">
-              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-[#12A5A9]/40" /> Paid</span>
-              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-yellow-500/40" /> Partial</span>
-              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-red-500/40" /> Unpaid</span>
-              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-white/10" /> No tenant / no record yet</span>
+              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-[#12A5A9]/40" /> {t('paidLegend', lang)}</span>
+              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-yellow-500/40" /> {t('partialLegend', lang)}</span>
+              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-red-500/40" /> {t('unpaidLegend', lang)}</span>
+              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-white/10" /> {t('noTenantNoRecordLegend', lang)}</span>
             </div>
           </ScrollReveal>
         )}

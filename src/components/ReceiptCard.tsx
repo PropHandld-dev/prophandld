@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { Logo } from '@/components/Logo'
 import { RippleButton } from '@/components/RippleButton'
+import { useLanguage, t } from '@/lib/i18n'
 
 export type ReceiptRow = { label: string; value: string }
 
@@ -27,6 +28,7 @@ export function ReceiptCard({
   receiptId: string
   footerNote: string
 }) {
+  const lang = useLanguage()
   const refNumber = receiptId.replace(/-/g, '').slice(0, 12).toUpperCase()
 
   return (
@@ -40,13 +42,13 @@ export function ReceiptCard({
 
       <nav className="max-w-md mx-auto mb-8 flex items-center justify-between no-print">
         <Link href={backHref} className="text-white/50 hover:text-white text-sm transition">
-          ← Back
+          {t('backArrow', lang)}
         </Link>
         <RippleButton
           onClick={() => window.print()}
           className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition"
         >
-          Print / Save as PDF
+          {t('printSaveAsPdfBtn', lang)}
         </RippleButton>
       </nav>
 
@@ -61,7 +63,7 @@ export function ReceiptCard({
                 <span className="text-[#0C1A2E] font-bold text-sm tracking-tight">Prophandld</span>
               </div>
               <span className="font-mono text-[10px] text-black/40 text-right leading-tight">
-                No. {refNumber}
+                {t('receiptNumberPrefix', lang)} {refNumber}
               </span>
             </div>
 

@@ -4,10 +4,12 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useParams, useRouter } from 'next/navigation'
 import { ReceiptCard } from '@/components/ReceiptCard'
+import { useLanguage, t } from '@/lib/i18n'
 
 export default function RentReceiptPage() {
   const params = useParams()
   const router = useRouter()
+  const lang = useLanguage()
   const rentPaymentId = params.rentPaymentId as string
 
   const [loading, setLoading] = useState(true)
@@ -57,7 +59,7 @@ export default function RentReceiptPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center">
-        <div className="text-white/50">Loading...</div>
+        <div className="text-white/50">{t('loadingEllipsisPlain', lang)}</div>
       </div>
     )
   }
@@ -65,7 +67,7 @@ export default function RentReceiptPage() {
   if (!receipt || !receipt.actual_amount) {
     return (
       <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center">
-        <div className="text-white/50 text-sm">Receipt not found.</div>
+        <div className="text-white/50 text-sm">{t('receiptNotFound', lang)}</div>
       </div>
     )
   }
@@ -73,41 +75,41 @@ export default function RentReceiptPage() {
   const tenancy = receipt.tenancies as any
   const unit = tenancy?.units
   const property = unit?.properties
-  const monthLabel = new Date(receipt.month + 'T00:00:00').toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+  const monthLabel = new Date(receipt.month + 'T00:00:00').toLocaleDateString(lang === 'es' ? 'es-ES' : undefined, { month: 'long', year: 'numeric' })
   const unitLabel = property?.address
     ? `${property.address}${unit?.unit_number ? `, Unit ${unit.unit_number}` : ''}`
-    : 'Unit'
+    : t('unitFallback', lang)
   const surcharge = isRenterViewer ? Number(receipt.card_surcharge_amount || 0) : 0
   const totalCharged = Number(receipt.actual_amount) + surcharge
 
   return (
     <ReceiptCard
       backHref={backHref}
-      eyebrow="Rent receipt"
+      eyebrow={t('rentReceiptEyebrow', lang)}
       title={unitLabel}
       subtitle={monthLabel}
       rows={[
-        { label: 'Paid by', value: receipt.renterName || '—' },
-        { label: 'Paid to', value: receipt.landlordName || '—' },
-        { label: 'Property', value: property ? `${property.city}, ${property.state}` : '—' },
-        { label: 'Period', value: monthLabel },
+        { label: t('paidByLabel', lang), value: receipt.renterName || '—' },
+        { label: t('paidToLabel', lang), value: receipt.landlordName || '—' },
+        { label: t('propertyLabel', lang), value: property ? `${property.city}, ${property.state}` : '—' },
+        { label: t('periodLabel', lang), value: monthLabel },
         ...(receipt.water_amount
           ? [
-              { label: 'Rent', value: `$${(Number(receipt.expected_amount) - Number(receipt.water_amount)).toFixed(2)}` },
-              { label: 'Water', value: `$${Number(receipt.water_amount).toFixed(2)}` },
+              { label: t('rentWord', lang), value: `$${(Number(receipt.expected_amount) - Number(receipt.water_amount)).toFixed(2)}` },
+              { label: t('waterWord', lang), value: `$${Number(receipt.water_amount).toFixed(2)}` },
             ]
           : []),
         // Only shown when it's actually nonzero — a bank payment (the
         // overwhelming majority) never had one, and the row would just be
         // visual noise repeating "$0.00" on every receipt otherwise.
-        ...(surcharge > 0 ? [{ label: 'Card processing fee', value: `$${surcharge.toFixed(2)}` }] : []),
-        { label: 'Paid on', value: receipt.paid_date ? new Date(receipt.paid_date + 'T00:00:00').toLocaleDateString() : '—' },
-        { label: 'Method', value: receipt.payment_method === 'bank' ? 'Bank transfer' : 'Debit card' },
+        ...(surcharge > 0 ? [{ label: t('cardProcessingFeeLabel', lang), value: `$${surcharge.toFixed(2)}` }] : []),
+        { label: t('paidOnLabel', lang), value: receipt.paid_date ? new Date(receipt.paid_date + 'T00:00:00').toLocaleDateString(lang === 'es' ? 'es-ES' : undefined) : '—' },
+        { label: t('methodLabelReceipt', lang), value: receipt.payment_method === 'bank' ? t('bankTransferValue', lang) : t('debitCardValue', lang) },
       ]}
-      totalLabel="Amount paid"
+      totalLabel={t('amountPaidLabel', lang)}
       totalValue={`$${totalCharged.toFixed(2)}`}
       receiptId={receipt.id}
-      footerNote="Processed via Prophandld · prophandld.com"
+      footerNote={t('processedViaFooterNote', lang)}
     />
   )
 }
