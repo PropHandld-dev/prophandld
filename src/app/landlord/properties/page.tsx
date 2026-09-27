@@ -12,6 +12,7 @@ import { ScrollReveal } from '@/components/ScrollReveal'
 import { MagneticLink } from '@/components/MagneticLink'
 import { CountUp } from '@/components/CountUp'
 import { PropertiesMap } from '@/components/PropertiesMap'
+import { fetchAllPagesOrEmpty } from '@/lib/pagedQuery'
 import { useLanguage, t } from '@/lib/i18n'
 
 export default function PropertiesPage() {
@@ -44,18 +45,20 @@ export default function PropertiesPage() {
       return
     }
 
-    let query = supabase
-      .from('properties')
-      .select('*')
-      .eq('owner_user_id', user.id)
-      .order('created_at', { ascending: false })
-
-    if (!includeArchived) {
-      query = query.eq('archived', false)
-    }
-
-    const { data } = await query
-    if (data) setProperties(data)
+    // Paged: Supabase silently caps a single response at 1000 rows and
+    // drops the rest — the top pricing tier now goes to 500+ units, and a
+    // portfolio that large plausibly has enough properties to approach
+    // that on its own, let alone alongside everything else on this page.
+    const data = await fetchAllPagesOrEmpty<any>((from, to) => {
+      let query = supabase
+        .from('properties')
+        .select('*')
+        .eq('owner_user_id', user.id)
+        .order('created_at', { ascending: false })
+      if (!includeArchived) query = query.eq('archived', false)
+      return query.range(from, to)
+    })
+    setProperties(data)
     setLoading(false)
   }
 

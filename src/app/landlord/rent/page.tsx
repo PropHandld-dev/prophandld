@@ -10,6 +10,7 @@ import { ScrollReveal } from '@/components/ScrollReveal'
 import { CountUp } from '@/components/CountUp'
 import { DollarSignIcon, CheckCircleIcon } from '@/components/icons'
 import { LANDLORD_TABS } from '@/lib/navTabs'
+import { fetchAllPagesOrEmpty } from '@/lib/pagedQuery'
 import { useLanguage, t } from '@/lib/i18n'
 
 // A custom range is capped rather than unbounded — a portfolio can run
@@ -107,61 +108,62 @@ export default function RentRollPage() {
         return
       }
 
-      const { data: properties } = await supabase
-        .from('properties')
-        .select('id, address')
-        .eq('owner_user_id', user.id)
-        .eq('archived', false)
-        .order('address')
+      // Paged rather than one query each: Supabase silently caps a single
+      // response at 1000 rows and drops the rest with no error. The top
+      // pricing tier now goes to 500+ units, and rent_payments alone can
+      // mean up to 500 tenancies × up to 24 months in one request — well
+      // past that cap on a wide custom range for a large portfolio.
+      const properties = await fetchAllPagesOrEmpty<{ id: string; address: string }>((from, to) =>
+        supabase.from('properties').select('id, address').eq('owner_user_id', user.id).eq('archived', false).order('address').range(from, to)
+      )
 
-      const propertyIds = (properties || []).map((p) => p.id)
+      const propertyIds = properties.map((p) => p.id)
       if (propertyIds.length === 0) {
         setRows([])
         setLoading(false)
         return
       }
-      const propertyById = new Map((properties || []).map((p) => [p.id, p]))
+      const propertyById = new Map(properties.map((p) => [p.id, p]))
 
-      const { data: units } = await supabase
-        .from('units')
-        .select('id, unit_number, property_id')
-        .in('property_id', propertyIds)
-        .order('unit_number')
+      const units = await fetchAllPagesOrEmpty<{ id: string; unit_number: string; property_id: string }>((from, to) =>
+        supabase.from('units').select('id, unit_number, property_id').in('property_id', propertyIds).order('unit_number').range(from, to)
+      )
 
-      const unitIds = (units || []).map((u) => u.id)
+      const unitIds = units.map((u) => u.id)
       if (unitIds.length === 0) {
         setRows([])
         setLoading(false)
         return
       }
 
-      const { data: tenancies } = await supabase
-        .from('tenancies')
-        .select('id, unit_id, rent_amount')
-        .in('unit_id', unitIds)
-        .eq('ended', false)
+      const tenancies = await fetchAllPagesOrEmpty<{ id: string; unit_id: string; rent_amount: number }>((from, to) =>
+        supabase.from('tenancies').select('id, unit_id, rent_amount').in('unit_id', unitIds).eq('ended', false).range(from, to)
+      )
 
-      const tenancyByUnit = new Map((tenancies || []).map((t) => [t.unit_id, t]))
-      const tenancyIds = (tenancies || []).map((t) => t.id)
+      const tenancyByUnit = new Map(tenancies.map((t) => [t.unit_id, t]))
+      const tenancyIds = tenancies.map((t) => t.id)
 
       const earliestMonth = `${months[0]}-01`
       const latestMonth = `${months[months.length - 1]}-01`
-      const { data: payments } = tenancyIds.length
-        ? await supabase
-            .from('rent_payments')
-            .select('id, tenancy_id, month, expected_amount, actual_amount')
-            .in('tenancy_id', tenancyIds)
-            .gte('month', earliestMonth)
-            .lte('month', latestMonth)
-        : { data: [] as any[] }
+      const payments = tenancyIds.length
+        ? await fetchAllPagesOrEmpty<{ id: string; tenancy_id: string; month: string; expected_amount: number; actual_amount: number }>((from, to) =>
+            supabase
+              .from('rent_payments')
+              .select('id, tenancy_id, month, expected_amount, actual_amount')
+              .in('tenancy_id', tenancyIds)
+              .gte('month', earliestMonth)
+              .lte('month', latestMonth)
+              .range(from, to)
+          )
+        : []
 
       const paymentsByTenancyMonth = new Map<string, any>()
-      for (const p of payments || []) {
+      for (const p of payments) {
         const key = `${p.tenancy_id}:${String(p.month).slice(0, 7)}`
         paymentsByTenancyMonth.set(key, p)
       }
 
-      const builtRows: Row[] = (units || []).map((unit) => {
+      const builtRows: Row[] = units.map((unit) => {
         const property = propertyById.get(unit.property_id)
         const tenancy = tenancyByUnit.get(unit.id)
         const cells: Record<string, Cell> = {}
@@ -187,7 +189,7 @@ export default function RentRollPage() {
         return {
           unitId: unit.id,
           propertyId: unit.property_id,
-          label: `${property?.address || 'Unknown'} · ${unit.unit_number}`,
+          label: `${property?.address || t('unknownLabel', lang)} · ${unit.unit_number}`,
           hasTenancy: !!tenancy,
           cells,
         }

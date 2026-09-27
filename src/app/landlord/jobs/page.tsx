@@ -14,6 +14,7 @@ import { CheckCircleIcon, ClipboardListIcon, MessageCircleIcon } from '@/compone
 import { LANDLORD_TABS } from '@/lib/navTabs'
 import { UnreadDot } from '@/components/UnreadDot'
 import { getUnreadJobIds } from '@/lib/messageReads'
+import { fetchAllPages } from '@/lib/pagedQuery'
 import { useLanguage, t } from '@/lib/i18n'
 
 const IN_PROGRESS_STATUSES = ['approved', 'bidding', 'bid_selected', 'scheduled', 'in_progress']
@@ -50,10 +51,18 @@ function LandlordJobsList() {
       return
     }
 
-    const { data: jobsData, error: jobsError } = await supabase
-      .from('jobs')
-      .select('*, units(unit_number, property_id, properties(address, city, state))')
-      .order('created_at', { ascending: false })
+    // Paged: this has no date bound (unlike the rent roll or the crons),
+    // so a landlord with enough job history — not a scale concern today,
+    // but a real one over years of real use — would otherwise silently
+    // stop seeing their oldest jobs once the table crossed 1000 rows,
+    // with nothing on screen to say so.
+    const { data: jobsList, error: jobsError } = await fetchAllPages<any>((from, to) =>
+      supabase
+        .from('jobs')
+        .select('*, units(unit_number, property_id, properties(address, city, state))')
+        .order('created_at', { ascending: false })
+        .range(from, to)
+    )
 
     if (jobsError) {
       console.error('Error loading jobs:', jobsError)
@@ -61,8 +70,6 @@ function LandlordJobsList() {
       setLoading(false)
       return
     }
-
-    const jobsList = jobsData || []
 
     const enriched = await Promise.all(
       jobsList.map(async (job) => {
