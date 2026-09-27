@@ -20,7 +20,7 @@ function NewPropertyForm() {
   const searchParams = useSearchParams()
   const isOnboarding = searchParams.get('onboarding') === '1'
   const billing = useBillingStatus()
-  const billingBlocked = BILLING_ENFORCED && billing.needsPayment
+  const billingBlocked = BILLING_ENFORCED && billing.needsPayment && billing.trialExpired
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [form, setForm] = useState({

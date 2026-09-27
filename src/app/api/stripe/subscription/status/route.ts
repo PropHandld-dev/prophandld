@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { tierForUnitCount } from '@/lib/stripe'
+import { TRIAL_DAYS } from '@/lib/pricingTiers'
+
+const TRIAL_MS = TRIAL_DAYS * 24 * 60 * 60 * 1000
 
 export async function GET() {
   const authClient = await createClient()
@@ -54,7 +57,7 @@ export async function GET() {
 
     const { data: userRow, error: userRowError } = await supabaseAdmin
       .from('users')
-      .select('stripe_customer_id')
+      .select('stripe_customer_id, trial_started_at')
       .eq('id', user.id)
       .maybeSingle()
 
@@ -63,12 +66,44 @@ export async function GET() {
       return NextResponse.json({ error: 'Could not load account', detail: userRowError.message }, { status: 500 })
     }
 
+    const computedTier = tierForUnitCount(unitCount)
+    const hasActiveSubscription = !!subscription?.stripe_subscription_id && subscription.status === 'active'
+
+    // Claim-once, same pattern as welcomed_at in auth/welcome: only the
+    // first call to ever see this landlord past the free tier sets it, and
+    // it never resets even if they later archive units back under the
+    // line — the trial is "since you first needed this", not a clock that
+    // pauses and resumes.
+    let trialStartedAt = userRow?.trial_started_at ?? null
+    if (computedTier !== 'free' && !trialStartedAt) {
+      const stampedAt = new Date().toISOString()
+      const { data: claimed } = await supabaseAdmin
+        .from('users')
+        .update({ trial_started_at: stampedAt })
+        .eq('id', user.id)
+        .is('trial_started_at', null)
+        .select('trial_started_at')
+        .maybeSingle()
+      trialStartedAt = claimed?.trial_started_at ?? trialStartedAt
+    }
+
+    let daysLeftInTrial: number | null = null
+    let trialExpired = false
+    if (trialStartedAt && !hasActiveSubscription) {
+      const elapsedMs = Date.now() - new Date(trialStartedAt).getTime()
+      daysLeftInTrial = Math.max(0, Math.ceil((TRIAL_MS - elapsedMs) / (24 * 60 * 60 * 1000)))
+      trialExpired = elapsedMs >= TRIAL_MS
+    }
+
     return NextResponse.json({
       unitCount,
-      computedTier: tierForUnitCount(unitCount),
+      computedTier,
       tier: subscription?.tier || 'free',
-      hasActiveSubscription: !!subscription?.stripe_subscription_id && subscription.status === 'active',
+      hasActiveSubscription,
       hasStripeCustomer: !!userRow?.stripe_customer_id,
+      trialStartedAt,
+      daysLeftInTrial,
+      trialExpired,
     })
   } catch (err) {
     console.error('subscription/status: unhandled error', err)

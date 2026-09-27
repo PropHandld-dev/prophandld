@@ -19,7 +19,7 @@ export default function NewUnitPage() {
   const propertyId = params.id as string
 
   const billing = useBillingStatus()
-  const billingBlocked = BILLING_ENFORCED && billing.needsPayment
+  const billingBlocked = BILLING_ENFORCED && billing.needsPayment && billing.trialExpired
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [form, setForm] = useState({

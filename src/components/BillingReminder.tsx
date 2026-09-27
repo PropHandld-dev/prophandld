@@ -40,7 +40,7 @@ function useSubscribe() {
 // It never blocks the everyday work (requests, rent, messages).
 export function BillingReminder() {
   const lang = useLanguage()
-  const { needsPayment, unitCount } = useBillingStatus()
+  const { needsPayment, unitCount, daysLeftInTrial, trialExpired } = useBillingStatus()
   const { subscribe, redirecting, error } = useSubscribe()
   if (!needsPayment) return null
 
@@ -51,9 +51,13 @@ export function BillingReminder() {
         {t('planIsForUnits', lang)} {formatTierPrice(unitCount)} {t('forLabel', lang)} {unitCount} unit{unitCount === 1 ? '' : 's'}.
       </p>
       <p className="text-white/60 text-sm mt-1">
-        {BILLING_ENFORCED
-          ? t('subscribeKeepAddingEnforced', lang)
-          : t('subscribeGoodStanding', lang)}
+        {!trialExpired && daysLeftInTrial !== null
+          ? `${t('trialEndsInPrefix', lang)} ${daysLeftInTrial} ${daysLeftInTrial === 1 ? t('dayWordSingular', lang) : t('daysWord', lang)}.`
+          : trialExpired
+            ? t('trialEndedMsg', lang)
+            : BILLING_ENFORCED
+              ? t('subscribeKeepAddingEnforced', lang)
+              : t('subscribeGoodStanding', lang)}
       </p>
       {error && <p className="text-red-400 text-sm mt-2">{error}</p>}
       <div className="flex items-center gap-4 mt-4 flex-wrap">

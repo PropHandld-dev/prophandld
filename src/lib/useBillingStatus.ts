@@ -11,12 +11,30 @@ export type BillingTier = LandlordTier
 // always shows.
 export const BILLING_ENFORCED = process.env.NEXT_PUBLIC_BILLING_ENFORCE === 'on'
 
-type State = { loading: boolean; needsPayment: boolean; tier: BillingTier; unitCount: number }
+type State = {
+  loading: boolean
+  needsPayment: boolean
+  tier: BillingTier
+  unitCount: number
+  // null while still on the Free tier (1 unit) — the trial only starts
+  // counting from the moment a subscription is actually owed. See
+  // TRIAL_DAYS in pricingTiers.ts and the claim-once stamp in
+  // subscription/status.
+  daysLeftInTrial: number | null
+  trialExpired: boolean
+}
 
 // Does this landlord owe a subscription they haven't started? A plan above
-// Free (3 or more units) needs an active subscription.
+// Free (2 or more units) needs an active subscription.
 export function useBillingStatus(): State {
-  const [state, setState] = useState<State>({ loading: true, needsPayment: false, tier: 'free', unitCount: 0 })
+  const [state, setState] = useState<State>({
+    loading: true,
+    needsPayment: false,
+    tier: 'free',
+    unitCount: 0,
+    daysLeftInTrial: null,
+    trialExpired: false,
+  })
 
   useEffect(() => {
     let cancelled = false
@@ -26,7 +44,14 @@ export function useBillingStatus(): State {
         if (cancelled) return
         if (!data) return setState((s) => ({ ...s, loading: false }))
         const tier: BillingTier = data.computedTier ?? data.tier ?? 'free'
-        setState({ loading: false, needsPayment: tier !== 'free' && !data.hasActiveSubscription, tier, unitCount: data.unitCount ?? 0 })
+        setState({
+          loading: false,
+          needsPayment: tier !== 'free' && !data.hasActiveSubscription,
+          tier,
+          unitCount: data.unitCount ?? 0,
+          daysLeftInTrial: data.daysLeftInTrial ?? null,
+          trialExpired: !!data.trialExpired,
+        })
       })
       .catch(() => !cancelled && setState((s) => ({ ...s, loading: false })))
     return () => {

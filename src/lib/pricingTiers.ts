@@ -6,6 +6,16 @@
 
 export type LandlordTier = 'free' | 'starter' | 'growth' | 'portfolio' | 'enterprise'
 
+// A landlord owes nothing at 1 unit (Free) regardless of how long they've
+// had the account — this only ever starts counting down from the moment
+// they first exceed that, i.e. the first time they'd genuinely owe a
+// subscription. Deliberately not from signup: someone who takes a month to
+// add their second property shouldn't find their trial already half spent
+// the day they actually need it. See trial_started_at on public.users,
+// stamped once (claim-once, same pattern as welcomed_at) the first time
+// subscription/status sees them cross this line.
+export const TRIAL_DAYS = 14
+
 // The tier NAMES and their unit ranges are unchanged from Joshua's
 // structure. What changed is the price *within* Starter: it used to be one
 // flat $79 across the whole 2–25 range; it's now three separate flat

@@ -1178,6 +1178,11 @@ const STRINGS = {
   debitCardOptionLabel: { en: 'Debit card', es: 'Tarjeta de débito' },
   debitCardOptionDescPrefix: { en: 'instant', es: 'instantáneo' },
   processingFeeSuffix: { en: 'processing fee', es: 'cargo por procesamiento' },
+
+  // Free trial before billing gets enforced
+  trialEndsInPrefix: { en: 'Your free trial ends in', es: 'Tu prueba gratuita termina en' },
+  dayWordSingular: { en: 'day', es: 'día' },
+  trialEndedMsg: { en: 'Your free trial has ended.', es: 'Tu prueba gratuita ha terminado.' },
 } satisfies Record<string, Record<Lang, string>>
 
 // The three schedule windows (`morning`/`afternoon`/`evening`) show up
