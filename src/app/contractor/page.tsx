@@ -19,6 +19,7 @@ import { EnableNotificationsCard } from '@/components/EnableNotificationsCard'
 import { UnreadDot } from '@/components/UnreadDot'
 import { ShowMoreList } from '@/components/ShowMoreList'
 import { getUnreadJobIds } from '@/lib/messageReads'
+import { fetchAllPages } from '@/lib/pagedQuery'
 import {
   CalendarIcon, ClipboardListIcon, WrenchIcon,
   DollarSignIcon, AlertTriangleIcon, CheckCircleIcon,
@@ -126,17 +127,25 @@ export default function ContractorDashboard() {
 
       // All four lookups are independent, so they run together instead of
       // one after another (the available-jobs route in particular is slow).
+      // Bids is paged — Supabase silently caps a single response at 1000
+      // rows and drops the rest with no error, and a contractor's entire
+      // bid history has no date bound here. Not a scale concern for a
+      // brand-new account, but a real one over years of active bidding,
+      // same class of bug as the landlord dashboard's queries.
       const [{ data: credentialRows }, { data: verificationData }, jobsResult, { data: bidsData, error: bidsError }] = await Promise.all([
         supabase.from('contractor_credentials').select('status').eq('contractor_user_id', user.id),
         supabase.from('contractor_verifications').select('status').eq('contractor_user_id', user.id).maybeSingle(),
         fetch('/api/contractor/available-jobs')
           .then(async (res) => ({ ok: res.ok, body: await res.json() }))
           .catch((err) => ({ ok: false, body: err })),
-        supabase
-          .from('bids')
-          .select('*, jobs(id, category, description, status, unit_id, proposed_date, proposed_window, proposed_by, schedule_confirmed, clarification_note, clarification_response, units(unit_number, properties(address, city)))')
-          .eq('contractor_user_id', user.id)
-          .order('created_at', { ascending: false }),
+        fetchAllPages<any>((from, to) =>
+          supabase
+            .from('bids')
+            .select('*, jobs(id, category, description, status, unit_id, proposed_date, proposed_window, proposed_by, schedule_confirmed, clarification_note, clarification_response, units(unit_number, properties(address, city)))')
+            .eq('contractor_user_id', user.id)
+            .order('created_at', { ascending: false })
+            .range(from, to)
+        ),
       ])
       const credentialStatuses = (credentialRows || []).map((c) => c.status)
       setVerificationStatus(
