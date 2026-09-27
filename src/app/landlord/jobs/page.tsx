@@ -33,6 +33,7 @@ function LandlordJobsList() {
   const [jobs, setJobs] = useState<any[]>([])
   const [unreadJobIds, setUnreadJobIds] = useState<Set<string>>(new Set())
   const [activeFilter, setActiveFilter] = useState(searchParams.get('filter') || 'needs_approval')
+  const [search, setSearch] = useState('')
   const [actioningId, setActioningId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -56,7 +57,7 @@ function LandlordJobsList() {
 
     if (jobsError) {
       console.error('Error loading jobs:', jobsError)
-      setError('Could not load jobs.')
+      setError(t('couldNotLoadJobs', lang))
       setLoading(false)
       return
     }
@@ -91,7 +92,7 @@ function LandlordJobsList() {
 
     if (updateError) {
       console.error('Error acknowledging job:', updateError)
-      setError('Could not acknowledge job.')
+      setError(t('couldNotAcknowledgeJob', lang))
       setActioningId(null)
       return
     }
@@ -112,7 +113,7 @@ function LandlordJobsList() {
 
     if (biddingError) {
       console.error('Error starting bidding:', biddingError)
-      setError('Acknowledged, but could not start bidding.')
+      setError(t('acknowledgedButNoBidding', lang))
     } else {
       notify('job_open', biddingJobId)
     }
@@ -146,7 +147,7 @@ function LandlordJobsList() {
 
     if (updateError) {
       console.error('Error declining job:', updateError)
-      setError('Could not decline job.')
+      setError(t('couldNotDeclineJob', lang))
     }
 
     setShowDeclineModal(false)
@@ -155,7 +156,7 @@ function LandlordJobsList() {
     setActioningId(null)
   }
 
-  const filteredJobs = jobs.filter((job) => {
+  const statusFilteredJobs = jobs.filter((job) => {
     if (activeFilter === 'all') return true
     if (activeFilter === 'emergency') return job.is_emergency
     if (activeFilter === 'needs_approval') return ['pending_approval', 'approved', 'pending_review'].includes(job.status)
@@ -163,6 +164,18 @@ function LandlordJobsList() {
     if (activeFilter === 'completed') return job.status === 'completed' || job.status === 'archived'
     return true
   })
+
+  // Search narrows within whichever status filter is active, not instead
+  // of it — the two work together, same as the rent roll's search and
+  // date range both apply at once rather than one replacing the other.
+  const searchQuery = search.trim().toLowerCase()
+  const filteredJobs = !searchQuery
+    ? statusFilteredJobs
+    : statusFilteredJobs.filter((job) =>
+        [job.category, job.description, job.units?.properties?.address, job.units?.properties?.city, job.units?.unit_number]
+          .filter(Boolean)
+          .some((v) => String(v).toLowerCase().includes(searchQuery))
+      )
 
   const urgencyBadge = (job: any) => {
     if (job.is_emergency) {
@@ -238,7 +251,7 @@ function LandlordJobsList() {
       <main className="max-w-4xl mx-auto px-6 py-10 pb-28">
         <h1 className="text-2xl font-bold text-white mb-6">{t('jobsTitle', lang)}</h1>
 
-        <div className="flex flex-wrap gap-2 mb-8">
+        <div className="flex flex-wrap gap-2 mb-4">
           {FILTERS.map((f) => (
             <button
               key={f.key}
@@ -254,6 +267,16 @@ function LandlordJobsList() {
           ))}
         </div>
 
+        {jobs.length > 0 && (
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t('searchJobsPlaceholder', lang)}
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder-white/40 focus:outline-none focus:border-[#12A5A9] transition mb-6"
+          />
+        )}
+
         {error && (
           <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm mb-6">
             {error}
@@ -263,7 +286,7 @@ function LandlordJobsList() {
         {filteredJobs.length === 0 ? (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-12 text-center">
             <ClipboardListIcon className="w-8 h-8 text-white/50 mx-auto mb-3" />
-            <p className="text-white/60 text-sm">{t('noJobsInView', lang)}</p>
+            <p className="text-white/60 text-sm">{searchQuery ? t('noJobsMatchSearch', lang) : t('noJobsInView', lang)}</p>
           </div>
         ) : (
           <ScrollReveal className="grid gap-3">

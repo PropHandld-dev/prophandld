@@ -1257,6 +1257,9 @@ const STRINGS = {
   // Properties list search, added in the modernization pass
   searchPropertiesPlaceholder: { en: 'Search by address, city, ZIP, or type…', es: 'Buscar por dirección, ciudad, código postal o tipo…' },
   noPropertiesMatchSearch: { en: 'No properties match your search.', es: 'Ninguna propiedad coincide con tu búsqueda.' },
+  couldNotLoadJobs: { en: 'Could not load jobs.', es: 'No se pudieron cargar los trabajos.' },
+  searchJobsPlaceholder: { en: 'Search by category, description, or address…', es: 'Buscar por categoría, descripción o dirección…' },
+  noJobsMatchSearch: { en: 'No jobs match your search.', es: 'Ningún trabajo coincide con tu búsqueda.' },
 } satisfies Record<string, Record<Lang, string>>
 
 // The three schedule windows (`morning`/`afternoon`/`evening`) show up
