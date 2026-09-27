@@ -818,7 +818,7 @@ export default function UnitDetailPage() {
               {tenancy.move_out_date && (
                 <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl px-4 py-3 mt-2">
                   <p className="text-yellow-400/80 text-sm">
-                    {t('moveOutScheduledPrefix', lang)} {new Date(tenancy.move_out_date).toLocaleDateString()}
+                    {t('moveOutScheduledPrefix', lang)} {new Date(tenancy.move_out_date + 'T00:00:00').toLocaleDateString()}
                   </p>
                 </div>
               )}

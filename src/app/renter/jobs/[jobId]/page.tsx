@@ -55,11 +55,14 @@ export default function RenterJobDetailPage() {
     setUserId(user.id)
     getUnreadJobIds([jobId], user.id).then((unread) => setHasUnread(unread.has(jobId)))
 
-    const { data: jobData, error: jobError } = await supabase
-      .from('jobs')
-      .select('*')
-      .eq('id', jobId)
-      .maybeSingle()
+    // The job row and its photo list don't depend on each other — both are
+    // keyed only on jobId — so they load together instead of one after
+    // another (same fix already applied on the landlord/contractor job
+    // pages).
+    const [{ data: jobData, error: jobError }, { data: photosData }] = await Promise.all([
+      supabase.from('jobs').select('*').eq('id', jobId).maybeSingle(),
+      supabase.from('job_photos').select('*').eq('job_id', jobId).order('created_at', { ascending: false }),
+    ])
 
     if (jobError || !jobData) {
       console.error('Error loading job:', jobError)
@@ -69,12 +72,6 @@ export default function RenterJobDetailPage() {
     }
 
     setJob(jobData)
-
-    const { data: photosData } = await supabase
-      .from('job_photos')
-      .select('*')
-      .eq('job_id', jobId)
-      .order('created_at', { ascending: false })
 
     if (photosData && photosData.length > 0) {
       const enriched = await Promise.all(

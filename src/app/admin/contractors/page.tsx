@@ -295,11 +295,11 @@ export default function AdminContractorsPage() {
         </div>
         <div>
           <p className="text-white/50 text-xs">License expiry</p>
-          <p className="text-white/70">{row.license_expiry ? new Date(row.license_expiry).toLocaleDateString() : '—'}</p>
+          <p className="text-white/70">{row.license_expiry ? new Date(row.license_expiry + 'T00:00:00').toLocaleDateString() : '—'}</p>
         </div>
         <div>
           <p className="text-white/50 text-xs">Insurance expiry</p>
-          <p className="text-white/70">{row.insurance_expiry ? new Date(row.insurance_expiry).toLocaleDateString() : '—'}</p>
+          <p className="text-white/70">{row.insurance_expiry ? new Date(row.insurance_expiry + 'T00:00:00').toLocaleDateString() : '—'}</p>
         </div>
       </div>
 
