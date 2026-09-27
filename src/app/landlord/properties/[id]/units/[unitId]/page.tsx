@@ -13,12 +13,14 @@ import { ScrollReveal } from '@/components/ScrollReveal'
 import { MagneticLink } from '@/components/MagneticLink'
 import { RippleButton } from '@/components/RippleButton'
 import { ShowMoreList } from '@/components/ShowMoreList'
+import { useLanguage, t } from '@/lib/i18n'
 
 const IN_PROGRESS_STATUSES = ['pending_approval', 'approved', 'bidding', 'bid_selected', 'scheduled', 'in_progress']
 
 export default function UnitDetailPage() {
   const router = useRouter()
   const params = useParams()
+  const lang = useLanguage()
   const propertyId = params.id as string
   const unitId = params.unitId as string
   const [unit, setUnit] = useState<any>(null)
@@ -113,8 +115,8 @@ export default function UnitDetailPage() {
     if (coOccupants.length >= maxCoRenters) {
       setCoRenterError(
         tenancy.occupants
-          ? `This lease is set for ${tenancy.occupants} occupant${tenancy.occupants === 1 ? '' : 's'} — update the occupant count first to add more co-renters.`
-          : `You've reached the default limit of ${maxCoRenters} co-renters. Set an occupant count on the lease to raise it.`
+          ? `${t('leaseSetForOccupantsPrefix', lang)} ${tenancy.occupants} ${tenancy.occupants === 1 ? t('occupantSingular', lang) : t('occupantPlural', lang)} ${t('leaseSetForOccupantsSuffix', lang)}`
+          : `${t('reachedDefaultLimitPrefix', lang)} ${maxCoRenters} ${t('reachedDefaultLimitSuffix', lang)}`
       )
       setAddingCoRenter(false)
       return
@@ -124,7 +126,7 @@ export default function UnitDetailPage() {
       .rpc('get_user_id_by_email', { email_input: coRenterEmail.trim().toLowerCase() })
 
     if (lookupError || !renterId) {
-      setCoRenterError('No Prophandld account found with that email. They need to sign up first.')
+      setCoRenterError(t('noAccountFoundEmail', lang))
       setAddingCoRenter(false)
       return
     }
@@ -134,7 +136,7 @@ export default function UnitDetailPage() {
       .insert({ tenancy_id: tenancy.id, renter_user_id: renterId })
 
     if (insertError) {
-      setCoRenterError(insertError.code === '23505' ? 'They\'re already a co-renter on this unit.' : 'Could not add co-renter: ' + insertError.message)
+      setCoRenterError(insertError.code === '23505' ? t('alreadyCoRenter', lang) : t('couldNotAddCoRenterColon', lang) + insertError.message)
       setAddingCoRenter(false)
       return
     }
@@ -146,7 +148,7 @@ export default function UnitDetailPage() {
 
   const handleRemoveCoRenter = async (occupantId: string) => {
     if (!tenancy) return
-    if (!window.confirm('Remove this co-renter? They\'ll lose access to this unit.')) return
+    if (!window.confirm(t('removeCoRenterConfirm', lang))) return
     await supabase.from('tenancy_occupants').delete().eq('id', occupantId)
     await loadCoOccupants(tenancy.id)
   }
@@ -268,7 +270,7 @@ export default function UnitDetailPage() {
 
   const handleCancelInvite = async () => {
     if (!pendingInvite) return
-    if (!window.confirm(`Cancel the invite to ${pendingInvite.renter_email}?`)) return
+    if (!window.confirm(`${t('cancelInviteConfirmPrefix', lang)} ${pendingInvite.renter_email}${t('cancelInviteConfirmSuffix', lang)}`)) return
 
     setInvitingBusy(true)
     const { error } = await supabase
@@ -298,13 +300,13 @@ export default function UnitDetailPage() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setInviteResendError(data.error || 'Could not resend invite.')
+        setInviteResendError(data.error || t('couldNotResendInvitePlain', lang))
       } else {
         setInviteResendSuccess(true)
       }
     } catch (err) {
       console.error('invite-renter fetch failed:', err)
-      setInviteResendError('Could not resend invite.')
+      setInviteResendError(t('couldNotResendInvitePlain', lang))
     }
 
     setInvitingBusy(false)
@@ -312,7 +314,7 @@ export default function UnitDetailPage() {
 
   const handleConfirmMoveOutDate = async () => {
     if (!moveOutDate) {
-      setMoveOutError('Please select a move-out date.')
+      setMoveOutError(t('pleaseSelectMoveOutDate', lang))
       return
     }
 
@@ -326,7 +328,7 @@ export default function UnitDetailPage() {
 
     if (updateError) {
       console.error('Error setting move-out date:', updateError)
-      setMoveOutError('Could not set move-out date.')
+      setMoveOutError(t('couldNotSetMoveOutDate', lang))
       setSavingMoveOut(false)
       return
     }
@@ -357,7 +359,7 @@ export default function UnitDetailPage() {
       setShowDepositModal(true)
       return
     }
-    if (!window.confirm('Confirm this tenant has fully moved out? This will mark the unit as vacant.')) return
+    if (!window.confirm(t('confirmTenantMovedOut', lang))) return
     finalizeMoveOut({})
   }
 
@@ -369,7 +371,7 @@ export default function UnitDetailPage() {
 
     if (updateError) {
       console.error('Error ending tenancy:', updateError)
-      setMoveOutError('Could not end tenancy: ' + updateError.message)
+      setMoveOutError(t('couldNotEndTenancyColon', lang) + updateError.message)
       return
     }
 
@@ -384,11 +386,11 @@ export default function UnitDetailPage() {
     const kept = Math.max(0, deposit - refunded)
 
     if (refunded > deposit) {
-      setMoveOutError('Refunded amount can\'t be more than the deposit collected.')
+      setMoveOutError(t('refundCantExceedDeposit', lang))
       return
     }
     if (kept > 0 && !depositReason.trim()) {
-      setMoveOutError('Add a reason for the amount kept.')
+      setMoveOutError(t('addReasonForAmountKept', lang))
       return
     }
 
@@ -444,7 +446,7 @@ export default function UnitDetailPage() {
 
     if (updateError) {
       console.error('Error updating tenancy:', updateError)
-      setTenancyEditError('Could not save changes.')
+      setTenancyEditError(t('couldNotSaveTenancyChanges', lang))
       setSavingTenancy(false)
       return
     }
@@ -474,15 +476,15 @@ export default function UnitDetailPage() {
 
   const statusLabel = (status: string) => {
     const labels: Record<string, string> = {
-      pending_approval: 'Needs approval',
-      approved: 'Acknowledged',
-      bidding: 'Getting bids',
-      bid_selected: 'Contractor selected',
-      scheduled: 'Scheduled',
-      in_progress: 'In progress',
-      completed: 'Completed',
-      archived: 'Archived',
-      declined: 'Declined',
+      pending_approval: t('statusNeedsApproval', lang),
+      approved: t('statusAcknowledged', lang),
+      bidding: t('statusBidding', lang),
+      bid_selected: t('statusBidSelected', lang),
+      scheduled: t('statusScheduledFull', lang),
+      in_progress: t('statusInProgressFull', lang),
+      completed: t('statusCompleted', lang),
+      archived: t('statusArchived', lang),
+      declined: t('statusDeclined', lang),
     }
     return labels[status] || status
   }
@@ -494,7 +496,7 @@ export default function UnitDetailPage() {
           href={`/landlord/properties/${propertyId}`}
           className="text-white/50 hover:text-white text-sm transition"
         >
-          ← Property
+          {t('backToPropertyArrow', lang)}
         </Link>
         <Link href="/landlord" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
         <div className="w-20" />
@@ -517,15 +519,15 @@ export default function UnitDetailPage() {
         {/* Unit header */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-white">{unit.unit_number}</h1>
-          {unit.floor && <p className="text-white/50 text-sm mt-1">Floor {unit.floor}</p>}
-          {unit.sqft && <p className="text-white/50 text-sm">{unit.sqft} sqft</p>}
+          {unit.floor && <p className="text-white/50 text-sm mt-1">{t('floorLabelPrefix', lang)} {unit.floor}</p>}
+          {unit.sqft && <p className="text-white/50 text-sm">{unit.sqft} {t('sqftSuffixWord', lang)}</p>}
         </div>
 
         {moveOutSuccess && (
           <div className="bg-[#0A7B7E]/15 border border-[#12A5A9]/30 rounded-xl px-4 py-3 mb-4 flex items-center gap-2">
             <CheckCircleIcon className="w-4 h-4 text-[#12A5A9] shrink-0" />
             <p className="text-[#12A5A9] text-sm font-medium">
-              Tenancy ended. This unit is now marked vacant.
+              {t('tenancyEndedVacantMsg', lang)}
             </p>
           </div>
         )}
@@ -534,13 +536,13 @@ export default function UnitDetailPage() {
         <ScrollReveal>
         <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-white font-semibold">Tenant</h2>
+            <h2 className="text-white font-semibold">{t('tenantHeading', lang)}</h2>
             {!tenancy && !pendingInvite && (
               <MagneticLink
                 href={`/landlord/properties/${propertyId}/units/${unitId}/tenancy/new`}
                 className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-3 py-1.5 rounded-lg hover:opacity-90 transition"
               >
-                + Link renter
+                {t('linkRenterBtn', lang)}
               </MagneticLink>
             )}
             {tenancy && !editingTenancy && (
@@ -550,13 +552,13 @@ export default function UnitDetailPage() {
                   disabled={messagingTenant}
                   className="text-[#12A5A9] text-xs font-semibold hover:underline disabled:opacity-50"
                 >
-                  {messagingTenant ? 'Opening…' : 'Message'}
+                  {messagingTenant ? t('openingEllipsis', lang) : t('messageBtn', lang)}
                 </button>
                 <button
                   onClick={openTenancyEdit}
                   className="text-[#12A5A9] text-xs font-semibold hover:underline"
                 >
-                  Edit
+                  {t('editBtn', lang)}
                 </button>
               </div>
             )}
@@ -564,7 +566,7 @@ export default function UnitDetailPage() {
 
           {tenancy && tenantLookupFailed ? (
             <p className="text-yellow-400/70 text-sm">
-              Tenant linked, but details are unavailable right now.
+              {t('tenantLinkedUnavailable', lang)}
             </p>
           ) : tenancy ? (
             <div className="space-y-3">
@@ -583,37 +585,37 @@ export default function UnitDetailPage() {
               {tenancy.rent_amount && (
                 <p className="text-white/60 text-sm flex items-center gap-1.5">
                   <DollarSignIcon className="w-3.5 h-3.5 text-white/60" />
-                  ${tenancy.rent_amount}/month, due the {ordinal(tenancy.rent_due_day ?? 1)}
+                  ${tenancy.rent_amount}{t('perMonthCommaPrefix', lang)}{t('dueTheDayPrefix', lang)} {lang === 'es' ? (tenancy.rent_due_day ?? 1) : ordinal(tenancy.rent_due_day ?? 1)}
                 </p>
               )}
               {tenancy.lease_start && (
                 <p className="text-white/60 text-sm flex items-center gap-1.5">
                   <CalendarIcon className="w-3.5 h-3.5 text-white/60" />
                   {new Date(tenancy.lease_start + 'T00:00:00').toLocaleDateString()}
-                  {tenancy.lease_end ? ` → ${new Date(tenancy.lease_end + 'T00:00:00').toLocaleDateString()}` : ' → ongoing'}
+                  {tenancy.lease_end ? ` → ${new Date(tenancy.lease_end + 'T00:00:00').toLocaleDateString()}` : ` ${t('arrowOngoingSuffix', lang)}`}
                 </p>
               )}
 
               {!editingTenancy && tenancy.escalation_percent && tenancy.escalation_frequency_months && (
                 <p className="text-white/60 text-sm">
-                  📈 +{tenancy.escalation_percent}% every {tenancy.escalation_frequency_months} months
+                  📈 +{tenancy.escalation_percent}{t('percentEveryPrefix', lang)} {tenancy.escalation_frequency_months} {t('monthsWord', lang)}
                   {tenancy.lease_start && (() => {
                     const next = nextEscalationDate(tenancy.lease_start, tenancy.escalation_frequency_months)
-                    return next ? `, next due ${next.toLocaleDateString()}` : ''
+                    return next ? `${t('nextDuePrefix', lang)} ${next.toLocaleDateString()}` : ''
                   })()}
                 </p>
               )}
 
               {!editingTenancy && tenancy.late_fee_amount && (
                 <p className="text-white/60 text-sm">
-                  ⏰ ${tenancy.late_fee_amount} late fee after {tenancy.grace_period_days ?? 5} days
+                  ⏰ ${tenancy.late_fee_amount} {t('lateFeeAfterPrefix', lang)} {tenancy.grace_period_days ?? 5} {t('daysWord', lang)}
                 </p>
               )}
 
               {!editingTenancy && tenancy.occupants && (
                 <p className="text-white/60 text-sm flex items-center gap-1.5">
                   <UserIcon className="w-3.5 h-3.5 text-white/60" />
-                  {tenancy.occupants} occupant{tenancy.occupants === 1 ? '' : 's'}
+                  {tenancy.occupants} {tenancy.occupants === 1 ? t('occupantSingular', lang) : t('occupantPlural', lang)}
                 </p>
               )}
 
@@ -629,22 +631,22 @@ export default function UnitDetailPage() {
 
               {!editingTenancy && (
                 <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 mt-2">
-                  <p className="text-white/70 text-xs font-semibold mb-2">Co-renters</p>
+                  <p className="text-white/70 text-xs font-semibold mb-2">{t('coRentersHeading', lang)}</p>
                   {coOccupants.length === 0 ? (
-                    <p className="text-white/40 text-xs mb-3">No co-renters added. Everyone added here gets the same access as the primary tenant: reporting issues and viewing documents.</p>
+                    <p className="text-white/40 text-xs mb-3">{t('noCoRentersDesc', lang)}</p>
                   ) : (
                     <div className="space-y-2 mb-3">
                       {coOccupants.map((o) => (
                         <div key={o.id} className="flex items-center justify-between">
                           <div>
-                            <p className="text-white text-sm">{o.users?.full_name || 'Unknown'}</p>
+                            <p className="text-white text-sm">{o.users?.full_name || t('unknownLabel', lang)}</p>
                             <p className="text-white/40 text-xs">{o.users?.email}</p>
                           </div>
                           <button
                             onClick={() => handleRemoveCoRenter(o.id)}
                             className="text-red-400/70 hover:text-red-400 text-xs transition"
                           >
-                            Remove
+                            {t('removeBtn', lang)}
                           </button>
                         </div>
                       ))}
@@ -655,7 +657,7 @@ export default function UnitDetailPage() {
                       type="email"
                       value={coRenterEmail}
                       onChange={(e) => setCoRenterEmail(e.target.value)}
-                      placeholder="Co-renter's email"
+                      placeholder={t('coRenterEmailPlaceholder', lang)}
                       className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-xs placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
                     />
                     <button
@@ -663,7 +665,7 @@ export default function UnitDetailPage() {
                       disabled={addingCoRenter || !coRenterEmail.trim()}
                       className="shrink-0 bg-white/8 text-white text-xs font-semibold px-3 py-2 rounded-lg hover:bg-white/12 transition disabled:opacity-50"
                     >
-                      {addingCoRenter ? 'Adding…' : 'Add'}
+                      {addingCoRenter ? t('addingDots', lang) : t('addBtn', lang)}
                     </button>
                   </div>
                   {coRenterError && <p className="text-red-400 text-xs mt-2">{coRenterError}</p>}
@@ -672,7 +674,7 @@ export default function UnitDetailPage() {
 
               {!editingTenancy && tenantBackupContacts.length > 0 && (
                 <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 mt-2">
-                  <p className="text-white/70 text-xs font-semibold mb-1">If they don&apos;t answer</p>
+                  <p className="text-white/70 text-xs font-semibold mb-1">{t('ifTheyDontAnswer', lang)}</p>
                   <div className="space-y-2">
                     {tenantBackupContacts.map((c) => (
                       <div key={c.id}>
@@ -688,7 +690,7 @@ export default function UnitDetailPage() {
                 <div className="bg-white/5 border border-white/10 rounded-xl p-4 mt-2 space-y-3">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-white/70 text-xs block mb-1">Monthly rent ($)</label>
+                      <label className="text-white/70 text-xs block mb-1">{t('monthlyRentDollarLabel', lang)}</label>
                       <input
                         type="number"
                         name="rent_amount"
@@ -698,7 +700,7 @@ export default function UnitDetailPage() {
                       />
                     </div>
                     <div>
-                      <label className="text-white/70 text-xs block mb-1">Due day of month</label>
+                      <label className="text-white/70 text-xs block mb-1">{t('dueDayOfMonthLabel', lang)}</label>
                       <input
                         type="number"
                         name="rent_due_day"
@@ -712,7 +714,7 @@ export default function UnitDetailPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-white/70 text-xs block mb-1">Escalation (%)</label>
+                      <label className="text-white/70 text-xs block mb-1">{t('escalationPercentLabelShort', lang)}</label>
                       <input
                         type="number"
                         step="0.1"
@@ -723,7 +725,7 @@ export default function UnitDetailPage() {
                       />
                     </div>
                     <div>
-                      <label className="text-white/70 text-xs block mb-1">Every (months)</label>
+                      <label className="text-white/70 text-xs block mb-1">{t('everyMonthsLabel', lang)}</label>
                       <input
                         type="number"
                         name="escalation_frequency_months"
@@ -735,18 +737,18 @@ export default function UnitDetailPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-white/70 text-xs block mb-1">Late fee ($, optional)</label>
+                      <label className="text-white/70 text-xs block mb-1">{t('lateFeeOptionalLabel', lang)}</label>
                       <input
                         type="number"
                         name="late_fee_amount"
                         value={editForm.late_fee_amount}
                         onChange={handleEditFormChange}
-                        placeholder="No fee"
+                        placeholder={t('noFeePlaceholder', lang)}
                         className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
                       />
                     </div>
                     <div>
-                      <label className="text-white/70 text-xs block mb-1">Grace period (days)</label>
+                      <label className="text-white/70 text-xs block mb-1">{t('gracePeriodDaysLabel', lang)}</label>
                       <input
                         type="number"
                         name="grace_period_days"
@@ -757,10 +759,10 @@ export default function UnitDetailPage() {
                     </div>
                   </div>
                   <p className="text-white/50 text-[11px] -mt-2">
-                    Leave the fee blank for no automatic late fee. If set, it&apos;s added to the amount due (never auto-charged) once the grace period passes with rent unpaid.
+                    {t('lateFeeHelperText', lang)}
                   </p>
                   <div>
-                    <label className="text-white/70 text-xs block mb-1">Occupants</label>
+                    <label className="text-white/70 text-xs block mb-1">{t('occupantsLabel', lang)}</label>
                     <input
                       type="number"
                       name="occupants"
@@ -770,18 +772,18 @@ export default function UnitDetailPage() {
                     />
                   </div>
                   <div>
-                    <label className="text-white/70 text-xs block mb-1">Pets</label>
+                    <label className="text-white/70 text-xs block mb-1">{t('petsLabel', lang)}</label>
                     <input
                       type="text"
                       name="pets"
                       value={editForm.pets}
                       onChange={handleEditFormChange}
-                      placeholder="e.g. 1 dog (Labrador)"
+                      placeholder={t('petsPlaceholder', lang)}
                       className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
                     />
                   </div>
                   <div>
-                    <label className="text-white/70 text-xs block mb-1">Lease notes</label>
+                    <label className="text-white/70 text-xs block mb-1">{t('leaseNotesLabel', lang)}</label>
                     <textarea
                       name="lease_notes"
                       value={editForm.lease_notes}
@@ -801,13 +803,13 @@ export default function UnitDetailPage() {
                       disabled={savingTenancy}
                       className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
                     >
-                      {savingTenancy ? 'Saving...' : 'Save'}
+                      {savingTenancy ? t('savingDots', lang) : t('saveBtn', lang)}
                     </RippleButton>
                     <button
                       onClick={() => setEditingTenancy(false)}
                       className="text-white/60 text-xs hover:text-white transition"
                     >
-                      Cancel
+                      {t('cancelBtn', lang)}
                     </button>
                   </div>
                 </div>
@@ -816,7 +818,7 @@ export default function UnitDetailPage() {
               {tenancy.move_out_date && (
                 <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl px-4 py-3 mt-2">
                   <p className="text-yellow-400/80 text-sm">
-                    🚪 Move-out scheduled for {new Date(tenancy.move_out_date).toLocaleDateString()}
+                    {t('moveOutScheduledPrefix', lang)} {new Date(tenancy.move_out_date).toLocaleDateString()}
                   </p>
                 </div>
               )}
@@ -829,7 +831,7 @@ export default function UnitDetailPage() {
 
               {showMoveOutForm ? (
                 <div className="bg-white/5 border border-white/10 rounded-xl p-4 mt-2 space-y-3">
-                  <label className="text-white/70 text-sm block">Move-out date</label>
+                  <label className="text-white/70 text-sm block">{t('moveOutDateLabel', lang)}</label>
                   <input
                     type="date"
                     value={moveOutDate}
@@ -842,13 +844,13 @@ export default function UnitDetailPage() {
                       disabled={savingMoveOut}
                       className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
                     >
-                      {savingMoveOut ? 'Saving...' : 'Confirm & start move-out inspection'}
+                      {savingMoveOut ? t('savingDots', lang) : t('confirmStartMoveOutInspectionBtn', lang)}
                     </button>
                     <button
                       onClick={() => setShowMoveOutForm(false)}
                       className="text-white/60 text-xs hover:text-white transition"
                     >
-                      Cancel
+                      {t('cancelBtn', lang)}
                     </button>
                   </div>
                 </div>
@@ -858,14 +860,14 @@ export default function UnitDetailPage() {
                     href={`/landlord/properties/${propertyId}/units/${unitId}/inspection`}
                     className="text-[#12A5A9] text-xs hover:underline"
                   >
-                    Move-in inspection
+                    {t('moveInInspectionLink', lang)}
                   </Link>
                   {tenancy.move_out_date && (
                     <Link
                       href={`/landlord/properties/${propertyId}/units/${unitId}/inspection?type=move_out`}
                       className="text-[#12A5A9] text-xs hover:underline"
                     >
-                      Move-out inspection
+                      {t('moveOutInspectionLink', lang)}
                     </Link>
                   )}
                   {!tenancy.move_out_date ? (
@@ -873,14 +875,14 @@ export default function UnitDetailPage() {
                       onClick={handleStartEndTenancy}
                       className="text-red-400/70 text-xs hover:text-red-400 transition"
                     >
-                      End tenancy
+                      {t('endTenancyBtn', lang)}
                     </button>
                   ) : (
                     <button
                       onClick={handleConfirmMoveOutComplete}
                       className="text-red-400/70 text-xs hover:text-red-400 transition"
                     >
-                      Confirm move-out complete
+                      {t('confirmMoveOutCompleteBtn', lang)}
                     </button>
                   )}
                 </div>
@@ -889,14 +891,14 @@ export default function UnitDetailPage() {
           ) : pendingInvite ? (
             <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
               <p className="text-yellow-400/80 text-sm font-medium">
-                Invited: {pendingInvite.renter_email}
+                {t('invitedColonPrefix', lang)} {pendingInvite.renter_email}
               </p>
-              <p className="text-white/60 text-xs mt-1">Waiting for them to sign up.</p>
+              <p className="text-white/60 text-xs mt-1">{t('waitingForSignUp', lang)}</p>
               {inviteResendError && (
                 <p className="text-red-400 text-xs mt-2">{inviteResendError}</p>
               )}
               {inviteResendSuccess && (
-                <p className="text-[#12A5A9] text-xs mt-2">Invite resent.</p>
+                <p className="text-[#12A5A9] text-xs mt-2">{t('inviteResentMsg', lang)}</p>
               )}
               <div className="flex items-center gap-4 mt-3">
                 <button
@@ -904,19 +906,19 @@ export default function UnitDetailPage() {
                   disabled={invitingBusy}
                   className="text-[#12A5A9] text-xs font-semibold hover:underline disabled:opacity-50"
                 >
-                  {invitingBusy ? 'Sending...' : 'Resend'}
+                  {invitingBusy ? t('sendingDots', lang) : t('resendBtn', lang)}
                 </button>
                 <button
                   onClick={handleCancelInvite}
                   disabled={invitingBusy}
                   className="text-red-400/70 hover:text-red-400 text-xs transition disabled:opacity-50"
                 >
-                  Cancel invite
+                  {t('cancelInviteBtn', lang)}
                 </button>
               </div>
             </div>
           ) : (
-            <p className="text-white/50 text-sm">No tenant linked. Unit is vacant.</p>
+            <p className="text-white/50 text-sm">{t('noTenantLinkedVacant', lang)}</p>
           )}
         </div>
         </ScrollReveal>
@@ -924,12 +926,12 @@ export default function UnitDetailPage() {
         {showDepositModal && tenancy && (
           <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
             <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
-              <h3 className="text-white font-semibold mb-1">Security deposit</h3>
+              <h3 className="text-white font-semibold mb-1">{t('securityDepositHeading', lang)}</h3>
               <p className="text-white/50 text-xs mb-4">
-                ${Number(tenancy.security_deposit).toFixed(2)} was collected. What's happening to it?
+                {t('depositCollectedPrefix', lang)}{Number(tenancy.security_deposit).toFixed(2)} {t('depositCollectedSuffix', lang)}
               </p>
 
-              <label className="text-white/70 text-sm block mb-1">Amount refunded to tenant ($)</label>
+              <label className="text-white/70 text-sm block mb-1">{t('amountRefundedLabel', lang)}</label>
               <input
                 type="number"
                 min="0"
@@ -943,14 +945,14 @@ export default function UnitDetailPage() {
               {Number(tenancy.security_deposit) - (Number(depositRefunded) || 0) > 0 && (
                 <>
                   <p className="text-yellow-400 text-xs mb-2">
-                    Keeping ${(Number(tenancy.security_deposit) - (Number(depositRefunded) || 0)).toFixed(2)} — a reason is required.
+                    {t('keepingAmountPrefix', lang)}{(Number(tenancy.security_deposit) - (Number(depositRefunded) || 0)).toFixed(2)} {t('reasonRequiredSuffix', lang)}
                   </p>
-                  <label className="text-white/70 text-sm block mb-1">Reason</label>
+                  <label className="text-white/70 text-sm block mb-1">{t('reasonLabel', lang)}</label>
                   <textarea
                     value={depositReason}
                     onChange={(e) => setDepositReason(e.target.value)}
                     rows={3}
-                    placeholder="e.g. Carpet damage beyond normal wear, per the move-out inspection photos"
+                    placeholder={t('depositReasonPlaceholder', lang)}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition resize-none mb-3"
                   />
                 </>
@@ -968,14 +970,14 @@ export default function UnitDetailPage() {
                   disabled={savingDeposit}
                   className="flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-white/12 transition disabled:opacity-50"
                 >
-                  Cancel
+                  {t('cancelBtn', lang)}
                 </button>
                 <button
                   onClick={submitDepositResolution}
                   disabled={savingDeposit}
                   className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
                 >
-                  {savingDeposit ? 'Saving...' : 'Confirm & end tenancy'}
+                  {savingDeposit ? t('savingDots', lang) : t('confirmEndTenancyBtn', lang)}
                 </button>
               </div>
             </div>
@@ -987,12 +989,12 @@ export default function UnitDetailPage() {
           <ScrollReveal>
           <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-white font-semibold">Rent</h2>
+              <h2 className="text-white font-semibold">{t('rentHeading', lang)}</h2>
               <Link
                 href={`/landlord/properties/${propertyId}/units/${unitId}/rent`}
                 className="text-[#12A5A9] text-sm hover:underline"
               >
-                Manage
+                {t('manage', lang)}
               </Link>
             </div>
             {(() => {
@@ -1001,7 +1003,7 @@ export default function UnitDetailPage() {
               const isPaidRow = (r: any) => Number(r.expected_amount) > 0 && Number(r.actual_amount || 0) >= Number(r.expected_amount)
               const focus = rows.find((r) => !isPaidRow(r)) ?? rows[rows.length - 1]
               if (!focus) {
-                return <p className="text-white/50 text-sm">Rent months appear here once the tenancy is active.</p>
+                return <p className="text-white/50 text-sm">{t('rentMonthsAppearHere', lang)}</p>
               }
               const paid = isPaidRow(focus)
               const processing = !paid && focus.stripe_status === 'processing'
@@ -1013,15 +1015,15 @@ export default function UnitDetailPage() {
               const monthLabel = monthDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
               const dueLabel = dueDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
               const pill = paid
-                ? { text: 'Paid', style: 'bg-[#0A7B7E]/20 text-[#12A5A9]' }
+                ? { text: t('paidStatus', lang), style: 'bg-[#0A7B7E]/20 text-[#12A5A9]' }
                 : processing
-                  ? { text: 'Bank payment processing', style: 'bg-yellow-500/15 text-yellow-400' }
+                  ? { text: t('bankPaymentProcessing', lang), style: 'bg-yellow-500/15 text-yellow-400' }
                   : daysLate > 0
-                    ? { text: `${daysLate} day${daysLate === 1 ? '' : 's'} late`, style: 'bg-red-500/15 text-red-400' }
-                    : { text: `Due ${dueLabel}`, style: 'bg-white/8 text-white/60' }
+                    ? { text: `${daysLate} ${t('dayLateSuffix', lang)}`, style: 'bg-red-500/15 text-red-400' }
+                    : { text: `${t('dueDatePrefix', lang)} ${dueLabel}`, style: 'bg-white/8 text-white/60' }
               const detail = paid
-                ? `$${Number(focus.actual_amount).toLocaleString()} received${focus.paid_date ? ` on ${new Date(focus.paid_date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : ''}`
-                : `$${Number(focus.actual_amount || 0).toLocaleString()} of $${Number(focus.expected_amount).toLocaleString()}`
+                ? `$${Number(focus.actual_amount).toLocaleString()} ${t('receivedWord', lang)}${focus.paid_date ? ` ${t('onWord', lang)} ${new Date(focus.paid_date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : ''}`
+                : `$${Number(focus.actual_amount || 0).toLocaleString()} ${t('ofWord', lang)} $${Number(focus.expected_amount).toLocaleString()}`
               return (
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                   <div className="min-w-0">
@@ -1040,16 +1042,16 @@ export default function UnitDetailPage() {
         <ScrollReveal>
         <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-white font-semibold">Open jobs</h2>
+            <h2 className="text-white font-semibold">{t('openJobsHeading', lang)}</h2>
             <Link
               href={`/landlord/properties/${propertyId}/units/${unitId}/jobs/new`}
               className="text-[#12A5A9] text-xs hover:underline"
             >
-              + Create job
+              {t('createJobLinkBtn', lang)}
             </Link>
           </div>
           {openJobs.length === 0 ? (
-            <p className="text-white/50 text-sm">No open jobs for this unit.</p>
+            <p className="text-white/50 text-sm">{t('noOpenJobsUnit', lang)}</p>
           ) : (
             <div className="space-y-1">
               <ShowMoreList
@@ -1061,7 +1063,7 @@ export default function UnitDetailPage() {
                       <p className="text-white font-medium text-sm">{job.category}</p>
                       {job.is_emergency && (
                         <span className="text-xs bg-red-500/20 text-red-400 border border-red-500/30 rounded-full px-2 py-0.5 font-semibold">
-                          Emergency
+                          {t('emergency', lang)}
                         </span>
                       )}
                     </div>
@@ -1078,9 +1080,9 @@ export default function UnitDetailPage() {
         {/* Job history */}
         <ScrollReveal>
         <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
-          <h2 className="text-white font-semibold mb-4">Job history</h2>
+          <h2 className="text-white font-semibold mb-4">{t('jobHistoryHeading', lang)}</h2>
           {jobHistory.length === 0 ? (
-            <p className="text-white/50 text-sm">No completed jobs yet.</p>
+            <p className="text-white/50 text-sm">{t('noCompletedJobsYet', lang)}</p>
           ) : (
             <div className="space-y-1">
               <ShowMoreList
@@ -1103,15 +1105,15 @@ export default function UnitDetailPage() {
         <ScrollReveal>
         <div className="bg-white/3 border border-white/8 rounded-2xl p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-white font-semibold">Systems & Appliances</h2>
+            <h2 className="text-white font-semibold">{t('systemsAppliancesHeading', lang)}</h2>
             <Link
               href={`/landlord/properties/${propertyId}/units/${unitId}/systems`}
               className="text-[#12A5A9] text-sm hover:underline"
             >
-              Manage
+              {t('manage', lang)}
             </Link>
           </div>
-          <p className="text-white/50 text-sm">Track major systems (HVAC, water heater, roof, panel) with service history and replacement cost.</p>
+          <p className="text-white/50 text-sm">{t('systemsAppliancesDesc', lang)}</p>
         </div>
         </ScrollReveal>
         </>
