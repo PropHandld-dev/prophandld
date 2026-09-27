@@ -56,9 +56,9 @@ export async function GET(request: NextRequest) {
   }
 
   const contractorIds = Array.from(due.keys())
-  const people = new Map<string, { email: string | null; full_name: string | null }>()
+  const people = new Map<string, { email: string | null; full_name: string | null; preferred_language: string | null }>()
   for (let i = 0; i < contractorIds.length; i += CHUNK) {
-    const { data } = await admin.from('users').select('id, email, full_name').in('id', contractorIds.slice(i, i + CHUNK))
+    const { data } = await admin.from('users').select('id, email, full_name, preferred_language').in('id', contractorIds.slice(i, i + CHUNK))
     for (const u of data || []) people.set(u.id, u)
   }
 
@@ -70,6 +70,7 @@ export async function GET(request: NextRequest) {
       to: person.email,
       contractorName: person.full_name || 'there',
       items: entries.map((e) => e.item),
+      lang: person.preferred_language === 'es' ? 'es' : 'en',
     })
     if (!result.ok) continue
     emailsSent++

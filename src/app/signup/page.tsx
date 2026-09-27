@@ -128,6 +128,22 @@ function SignupForm() {
       return
     }
 
+    // The public.users row (created by a DB trigger off auth.users, same
+    // moment as the signUp() call above) only ever gets preferred_language
+    // from a later /profile save — never from signup itself. Every
+    // server-sent email reads it straight from public.users, so without
+    // this, a Spanish-speaking sign-up would get English emails right up
+    // until they happened to open Profile and hit Save once. Fire-and-log:
+    // worst case on failure is that same pre-existing gap, not a blocked
+    // signup.
+    supabase
+      .from('users')
+      .update({ preferred_language: form.preferred_language })
+      .eq('id', data.user.id)
+      .then(({ error: langSyncError }) => {
+        if (langSyncError) console.error('signup: could not sync preferred_language to public.users', langSyncError)
+      })
+
     // No session back means this project requires confirming the email
     // address before the account is usable — the account row exists, but
     // nobody is signed in yet. Show that instead of walking straight into

@@ -111,9 +111,9 @@ export async function POST(request: NextRequest) {
 
               const renterUserId = (rentPaymentForRefund?.tenancies as any)?.renter_user_id
               if (renterUserId) {
-                const { data: renter } = await supabaseAdmin.from('users').select('email, full_name').eq('id', renterUserId).maybeSingle()
+                const { data: renter } = await supabaseAdmin.from('users').select('email, full_name, preferred_language').eq('id', renterUserId).maybeSingle()
                 if (renter?.email) {
-                  await sendCreditCardRejectedEmail({ to: renter.email, renterName: renter.full_name || 'there' })
+                  await sendCreditCardRejectedEmail({ to: renter.email, renterName: renter.full_name || 'there', lang: renter.preferred_language === 'es' ? 'es' : 'en' })
                 }
                 await sendPush(renterUserId, {
                   title: 'Payment refunded',
@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
 
               const { data: landlord } = await supabaseAdmin
                 .from('users')
-                .select('email, full_name')
+                .select('email, full_name, preferred_language')
                 .eq('id', landlordUserId)
                 .maybeSingle()
               if (landlord?.email) {
@@ -154,6 +154,7 @@ export async function POST(request: NextRequest) {
                   amount: paymentIntent.amount / 100,
                   monthLabel,
                   unitLabel,
+                  lang: landlord.preferred_language === 'es' ? 'es' : 'en',
                 })
               }
               await sendPush(landlordUserId, {
@@ -204,7 +205,7 @@ export async function POST(request: NextRequest) {
             const landlordId = receiptJob?.units?.properties?.owner_user_id
             if (bid?.contractor_user_id && landlordId) {
               const [{ data: landlord }, { data: payee }] = await Promise.all([
-                supabaseAdmin.from('users').select('email, full_name').eq('id', landlordId).maybeSingle(),
+                supabaseAdmin.from('users').select('email, full_name, preferred_language').eq('id', landlordId).maybeSingle(),
                 supabaseAdmin.from('users').select('full_name').eq('id', bid.contractor_user_id).maybeSingle(),
               ])
               if (landlord?.email) {
@@ -216,6 +217,7 @@ export async function POST(request: NextRequest) {
                   category: receiptJob?.category || 'your job',
                   propertyLabel: receiptJob?.units?.properties?.address || 'the property',
                   bidId,
+                  lang: landlord.preferred_language === 'es' ? 'es' : 'en',
                 }).catch((err) => console.error('stripe webhook: landlord job receipt email failed', err))
               }
             }
@@ -224,7 +226,7 @@ export async function POST(request: NextRequest) {
               const job = bid.jobs as any
               const { data: contractor } = await supabaseAdmin
                 .from('users')
-                .select('email, full_name')
+                .select('email, full_name, preferred_language')
                 .eq('id', bid.contractor_user_id)
                 .maybeSingle()
               if (contractor?.email) {
@@ -235,6 +237,7 @@ export async function POST(request: NextRequest) {
                   category: job?.category || 'your job',
                   propertyLabel: job?.units?.properties?.address || 'the property',
                   bidId,
+                  lang: contractor.preferred_language === 'es' ? 'es' : 'en',
                 })
               }
               await sendPush(bid.contractor_user_id, {

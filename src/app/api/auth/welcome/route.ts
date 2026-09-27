@@ -52,6 +52,7 @@ export async function POST() {
     to: user.email,
     name: user.user_metadata?.full_name,
     role,
+    lang: user.user_metadata?.preferred_language === 'es' ? 'es' : 'en',
   })
 
   if (!result.ok) {

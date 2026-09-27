@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
 
   const [{ data: sender }, { data: recipient }] = await Promise.all([
     supabaseAdmin.from('users').select('full_name').eq('id', user.id).maybeSingle(),
-    supabaseAdmin.from('users').select('email, full_name').eq('id', recipientId).maybeSingle(),
+    supabaseAdmin.from('users').select('email, full_name, preferred_language').eq('id', recipientId).maybeSingle(),
   ])
 
   if (!recipient?.email) {
@@ -53,6 +53,7 @@ export async function POST(request: NextRequest) {
     kind,
     role: recipientRole as 'landlord' | 'renter' | 'contractor',
     threadId,
+    lang: recipient.preferred_language === 'es' ? 'es' : 'en',
   })
 
   if (!result.ok) {

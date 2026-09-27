@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
-import { buildNotificationEmail, buildPushMessage, buildSmsMessage, SMS_ENABLED_TYPES, sendEmail, type NotifyType, type NotifyJobInfo } from '@/lib/email'
+import { buildNotificationEmail, buildPushMessage, buildSmsMessage, SMS_ENABLED_TYPES, sendEmail, type NotifyType, type NotifyJobInfo, type Lang } from '@/lib/email'
 import { sendPush } from '@/lib/push'
 import { sendSms } from '@/lib/sms'
 import { notifyMatchingContractors } from '@/lib/openJobAlerts'
@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
     (Object.entries(roleUserIds) as [Role, string][]).map(async ([role, userId]) => {
       const { data: recipient, error: recipientError } = await supabaseAdmin
         .from('users')
-        .select('email, phone, sms_opt_in')
+        .select('email, phone, sms_opt_in, preferred_language')
         .eq('id', userId)
         .maybeSingle()
 
@@ -155,7 +155,8 @@ export async function POST(request: NextRequest) {
         return
       }
 
-      const { subject, html } = buildNotificationEmail(type, role, jobInfo)
+      const lang: Lang = recipient.preferred_language === 'es' ? 'es' : 'en'
+      const { subject, html } = buildNotificationEmail(type, role, jobInfo, lang)
       const result = await sendEmail({ to: recipient.email, subject, html })
       if (!result.ok) console.error('notify: sendEmail failed', { jobId, role, type })
 

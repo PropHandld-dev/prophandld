@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cronAuthorized } from '@/lib/cronAuth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
-import { buildNotificationEmail, buildPushMessage, sendEmail, sendAutoApprovalDigestAdminEmail, sendJobAutoApprovedPayNowEmail, type NotifyJobInfo } from '@/lib/email'
+import { buildNotificationEmail, buildPushMessage, sendEmail, sendAutoApprovalDigestAdminEmail, sendJobAutoApprovedPayNowEmail, type NotifyJobInfo, type Lang } from '@/lib/email'
 import { sendPush } from '@/lib/push'
 
 export const maxDuration = 60
@@ -129,11 +129,12 @@ export async function GET(request: NextRequest) {
     const ownerId = ownerByJob.get(j.id)
     if (ownerId) userIds.add(ownerId)
   }
-  const userById = new Map<string, { email: string | null; full_name: string | null }>()
+  const userById = new Map<string, { email: string | null; full_name: string | null; preferred_language: string | null }>()
   for (const ids of chunk(Array.from(userIds), ID_CHUNK)) {
-    const { data } = await supabaseAdmin.from('users').select('id, email, full_name').in('id', ids)
+    const { data } = await supabaseAdmin.from('users').select('id, email, full_name, preferred_language').in('id', ids)
     for (const u of data || []) userById.set(u.id, u)
   }
+  const langOf = (u: { preferred_language: string | null } | null | undefined): Lang => (u?.preferred_language === 'es' ? 'es' : 'en')
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'
   const digestEntries: { category: string; propertyLabel: string; contractorName: string; amount: number; jobId: string }[] = []
@@ -191,6 +192,7 @@ export async function GET(request: NextRequest) {
         category: job.category,
         propertyLabel,
         jobId: job.id,
+        lang: langOf(landlord),
       }).catch((err) => console.error('cron/job-auto-approve: landlord email failed', { jobId: job.id, err }))
     }
     if (landlordId) {
@@ -203,7 +205,7 @@ export async function GET(request: NextRequest) {
 
     // Same notification a manual approval already sends to these two.
     if (contractor?.email) {
-      const { subject, html } = buildNotificationEmail('job_completed', 'contractor', info)
+      const { subject, html } = buildNotificationEmail('job_completed', 'contractor', info, langOf(contractor))
       await sendEmail({ to: contractor.email, subject, html }).catch((err) =>
         console.error('cron/job-auto-approve: contractor email failed', { jobId: job.id, err })
       )
@@ -214,7 +216,7 @@ export async function GET(request: NextRequest) {
       )
     }
     if (renter?.email) {
-      const { subject, html } = buildNotificationEmail('job_completed', 'renter', info)
+      const { subject, html } = buildNotificationEmail('job_completed', 'renter', info, langOf(renter))
       await sendEmail({ to: renter.email, subject, html }).catch((err) =>
         console.error('cron/job-auto-approve: renter email failed', { jobId: job.id, err })
       )

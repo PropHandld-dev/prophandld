@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
   const [{ data: job }, { data: landlord }, { data: contractor }] = await Promise.all([
     supabaseAdmin.from('jobs').select('category').eq('id', jobId).maybeSingle(),
     supabaseAdmin.from('users').select('full_name').eq('id', user.id).maybeSingle(),
-    supabaseAdmin.from('users').select('email').eq('id', thread.other_user_id).maybeSingle(),
+    supabaseAdmin.from('users').select('email, preferred_language').eq('id', thread.other_user_id).maybeSingle(),
   ])
 
   if (!job || !contractor?.email) {
@@ -45,6 +45,7 @@ export async function POST(request: NextRequest) {
     landlordName: landlord?.full_name || 'A landlord',
     jobCategory: job.category,
     jobId,
+    lang: contractor.preferred_language === 'es' ? 'es' : 'en',
   })
 
   if (!result.ok) {

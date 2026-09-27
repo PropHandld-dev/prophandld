@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cronAuthorized } from '@/lib/cronAuth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { rentMonthBounds } from '@/lib/rentAutomation'
-import { sendRentDueEmail, sendRentDueRenterEmail, sendRentLateRenterEmail, sendRentLateLandlordEmail } from '@/lib/email'
+import { sendRentDueEmail, sendRentDueRenterEmail, sendRentLateRenterEmail, sendRentLateLandlordEmail, type Lang } from '@/lib/email'
 import { sendPush } from '@/lib/push'
 
 export const maxDuration = 60
@@ -108,11 +108,12 @@ export async function GET(request: NextRequest) {
   // People we may need to email, in bulk.
   const renterIds = Array.from(new Set(tenancies.map((t) => t.renter_user_id).filter(Boolean)))
   const landlordIds = Array.from(new Set(tenancies.map((t) => t.units?.properties?.owner_user_id).filter(Boolean)))
-  const userById = new Map<string, { email: string | null; full_name: string | null }>()
+  const userById = new Map<string, { email: string | null; full_name: string | null; preferred_language: string | null }>()
   for (const ids of chunk(Array.from(new Set([...renterIds, ...landlordIds])), ID_CHUNK)) {
-    const { data } = await supabaseAdmin.from('users').select('id, email, full_name').in('id', ids)
+    const { data } = await supabaseAdmin.from('users').select('id, email, full_name, preferred_language').in('id', ids)
     for (const u of data || []) userById.set(u.id, u)
   }
+  const langOf = (u: { preferred_language: string | null } | null | undefined): Lang => (u?.preferred_language === 'es' ? 'es' : 'en')
 
   const unitLabelOf = (t: any) =>
     `${t.units?.properties?.address || 'a property'}${t.units?.unit_number ? `, Unit ${t.units.unit_number}` : ''}`
@@ -131,7 +132,7 @@ export async function GET(request: NextRequest) {
     if (tenancy.renter_user_id) {
       const renter = userById.get(tenancy.renter_user_id)
       if (renter?.email) {
-        await sendRentDueRenterEmail({ to: renter.email, unitLabel, amount: Number(tenancy.rent_amount) })
+        await sendRentDueRenterEmail({ to: renter.email, unitLabel, amount: Number(tenancy.rent_amount), lang: langOf(renter) })
         dueRenterNotifications++
       }
       await sendPush(tenancy.renter_user_id, {
@@ -142,9 +143,15 @@ export async function GET(request: NextRequest) {
     }
   })
 
-  // Late check — current month only, regardless of whether it was just created.
+  // Late check — current month only, but never for a row this exact run just
+  // created: with a 0-day grace period and rent_due_day == today, daysSinceDue
+  // computes to 0 on the very first run, which used to fire the "due" and
+  // "now late" emails back to back, in the same batch, before the renter had
+  // any real chance to pay. A grace period is measured from having actually
+  // been notified once, not from the row's mere existence.
   let lateNotifications = 0
   const lateCandidates = tenancies.filter((tenancy) => {
+    if (createdTenancyIds.has(tenancy.id)) return false
     const rentPayment = paymentByTenancy.get(tenancy.id)
     if (!rentPayment || rentPayment.reminder_sent_at) return false
     if (Number(rentPayment.actual_amount || 0) >= Number(rentPayment.expected_amount || 0)) return false
@@ -177,6 +184,7 @@ export async function GET(request: NextRequest) {
           unitLabel,
           amount: Number(updates.expected_amount ?? rentPayment.expected_amount),
           lateFeeAdded,
+          lang: langOf(renter),
         })
       }
       await sendPush(tenancy.renter_user_id, {
@@ -189,7 +197,7 @@ export async function GET(request: NextRequest) {
     if (landlordUserId) {
       const landlord = userById.get(landlordUserId)
       if (landlord?.email) {
-        await sendRentLateLandlordEmail({ to: landlord.email, landlordName: landlord.full_name || 'there', unitLabel, lateFeeAdded })
+        await sendRentLateLandlordEmail({ to: landlord.email, landlordName: landlord.full_name || 'there', unitLabel, lateFeeAdded, lang: langOf(landlord) })
       }
     }
 
@@ -200,7 +208,7 @@ export async function GET(request: NextRequest) {
   await runInBatches(Object.entries(newlyCreatedByLandlord), async ([landlordUserId, unitLabels]) => {
     const landlord = userById.get(landlordUserId)
     if (landlord?.email) {
-      await sendRentDueEmail({ to: landlord.email, landlordName: landlord.full_name || 'there', unitLabels })
+      await sendRentDueEmail({ to: landlord.email, landlordName: landlord.full_name || 'there', unitLabels, lang: langOf(landlord) })
     }
     await sendPush(landlordUserId, {
       title: 'Rent due',

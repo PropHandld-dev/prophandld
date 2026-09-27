@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
   const supabaseAdmin = getSupabaseAdmin()
   const { data: contractor, error: contractorError } = await supabaseAdmin
     .from('users')
-    .select('email, full_name')
+    .select('email, full_name, preferred_language')
     .eq('id', contractorUserId)
     .maybeSingle()
 
@@ -40,6 +40,7 @@ export async function POST(request: NextRequest) {
     contractorName: contractor.full_name || 'there',
     approved,
     notes,
+    lang: contractor.preferred_language === 'es' ? 'es' : 'en',
   })
 
   if (!result.ok) {

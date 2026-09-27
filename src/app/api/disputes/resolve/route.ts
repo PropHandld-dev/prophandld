@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
 
   await Promise.allSettled(
     recipients.map(async ({ userId, role }) => {
-      const { data: recipient } = await supabaseAdmin.from('users').select('email').eq('id', userId).maybeSingle()
+      const { data: recipient } = await supabaseAdmin.from('users').select('email, preferred_language').eq('id', userId).maybeSingle()
       if (!recipient?.email) return
       await sendDisputeResolvedEmail({
         to: recipient.email,
@@ -99,6 +99,7 @@ export async function POST(request: NextRequest) {
         resolutionNotes,
         role,
         jobId: dispute.job_id,
+        lang: recipient.preferred_language === 'es' ? 'es' : 'en',
       })
     })
   )
