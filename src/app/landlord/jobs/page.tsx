@@ -116,7 +116,7 @@ function LandlordJobsList() {
 
     const { error: biddingError } = await expectRow(supabase
       .from('jobs')
-      .update({ status: 'bidding' })
+      .update({ status: 'bidding', bidding_opened_at: new Date().toISOString() })
       .eq('id', biddingJobId))
 
     if (biddingError) {

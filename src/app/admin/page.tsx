@@ -89,6 +89,11 @@ export default function AdminOverviewPage() {
   const [hasMrrHistory, setHasMrrHistory] = useState(false)
   const [hasTierHistory, setHasTierHistory] = useState(false)
   const [monthPoints, setMonthPoints] = useState<StackedMonthPoint[]>([])
+  const [marketplaceHealth, setMarketplaceHealth] = useState<{
+    coverage: { zip: string; landlordCount: number; contractorCount: number; ratio: number | null }[]
+    responsiveness: { eligibleJobs: number; gotAnyBid: number; withinFourHours: number }
+  } | null>(null)
+  const [loadingMarketplace, setLoadingMarketplace] = useState(true)
 
   const loadCostSettings = async () => {
     const res = await fetch('/api/admin/cost-settings')
@@ -242,6 +247,21 @@ export default function AdminOverviewPage() {
     load()
   }, [])
 
+  // Kept separate from the load() above: this one does a role-verification
+  // pass per contractor (same as the real contractor-matching logic), which
+  // is slower than everything else on this page and shouldn't hold up the
+  // rest of the dashboard rendering.
+  useEffect(() => {
+    fetch('/api/admin/marketplace-health')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data && !data.error) setMarketplaceHealth(data)
+        else console.error('Admin overview: marketplace-health returned an error', data)
+      })
+      .catch((err) => console.error('Admin overview: could not load marketplace health', err))
+      .finally(() => setLoadingMarketplace(false))
+  }, [])
+
   const startEditingInfraCost = () => {
     setInfraCostDraft(infraCost.toFixed(2))
     setEditingInfraCost(true)
@@ -313,6 +333,71 @@ export default function AdminOverviewPage() {
               Stripe fees are a directional estimate (standard card/ACH rates applied to real payment amounts), not exact accounting.
               Infrastructure is a number you keep current yourself, click it to update.
             </p>
+          </ScrollReveal>
+
+          <SectionHeading
+            title="Marketplace health"
+            subtitle="Is there enough contractor coverage where the landlords actually are, and once a job opens for bidding, does it get a bid fast?"
+          />
+          <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-10">
+            {loadingMarketplace ? (
+              <div className="text-white/40 text-sm">Loading...</div>
+            ) : !marketplaceHealth ? (
+              <div className="text-white/40 text-sm">Could not load this right now.</div>
+            ) : (
+              <>
+                <div className="mb-6">
+                  {marketplaceHealth.responsiveness.eligibleJobs === 0 ? (
+                    <p className="text-white/40 text-sm">
+                      No jobs have opened for bidding since this started tracking. It'll fill in as real jobs post.
+                    </p>
+                  ) : (
+                    <>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-2xl font-bold text-white tabular-nums">
+                          {Math.round((marketplaceHealth.responsiveness.withinFourHours / marketplaceHealth.responsiveness.eligibleJobs) * 100)}%
+                        </span>
+                        <span className="text-white/50 text-sm">got a first bid within 4 hours of opening</span>
+                      </div>
+                      <p className="text-white/30 text-xs mt-1">
+                        {marketplaceHealth.responsiveness.withinFourHours} of {marketplaceHealth.responsiveness.eligibleJobs} jobs
+                        {marketplaceHealth.responsiveness.gotAnyBid < marketplaceHealth.responsiveness.eligibleJobs &&
+                          ` (${marketplaceHealth.responsiveness.eligibleJobs - marketplaceHealth.responsiveness.gotAnyBid} never got a bid at all)`}
+                      </p>
+                    </>
+                  )}
+                </div>
+
+                {marketplaceHealth.coverage.length === 0 ? (
+                  <p className="text-white/40 text-sm">No properties with a ZIP code on file yet.</p>
+                ) : (
+                  <div>
+                    <p className="text-white/40 text-xs uppercase tracking-wide mb-3">Contractor coverage by ZIP, worst first</p>
+                    <div className="space-y-1.5">
+                      {marketplaceHealth.coverage.map((row) => (
+                        <div key={row.zip} className="flex items-center justify-between gap-3 bg-white/3 rounded-lg px-3.5 py-2.5">
+                          <span className="text-white text-sm tabular-nums">{row.zip}</span>
+                          <span className="text-white/50 text-xs flex-1 text-right">
+                            {row.landlordCount} landlord{row.landlordCount === 1 ? '' : 's'} · {row.contractorCount} contractor{row.contractorCount === 1 ? '' : 's'} in range
+                          </span>
+                          <span
+                            className={`text-xs font-semibold rounded-full px-2.5 py-1 shrink-0 ${
+                              row.contractorCount === 0
+                                ? 'bg-red-500/15 text-red-400'
+                                : (row.ratio ?? 0) < 4
+                                ? 'bg-yellow-500/15 text-yellow-400'
+                                : 'bg-[#12A5A9]/15 text-[#12A5A9]'
+                            }`}
+                          >
+                            {row.contractorCount === 0 ? 'No coverage' : `${row.ratio!.toFixed(1)}:1`}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
           </ScrollReveal>
 
           <SectionHeading title="Subscription mix" />

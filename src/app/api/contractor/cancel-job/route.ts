@@ -56,6 +56,7 @@ export async function POST(request: NextRequest) {
     .from('jobs')
     .update({
       status: 'bidding',
+      bidding_opened_at: new Date().toISOString(),
       proposed_date: null,
       proposed_window: null,
       proposed_time: null,

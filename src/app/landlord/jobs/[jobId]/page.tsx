@@ -343,7 +343,7 @@ export default function JobDetailPage() {
     setActioning(true)
     const { error: biddingError } = await expectRow(supabase
       .from('jobs')
-      .update({ status: 'bidding' })
+      .update({ status: 'bidding', bidding_opened_at: new Date().toISOString() })
       .eq('id', jobId))
 
     if (biddingError) {
@@ -405,7 +405,7 @@ export default function JobDetailPage() {
     setActioning(true)
     const { error: updateError } = await expectRow(supabase
       .from('jobs')
-      .update({ status: 'bidding' })
+      .update({ status: 'bidding', bidding_opened_at: new Date().toISOString() })
       .eq('id', jobId))
 
     if (updateError) {
