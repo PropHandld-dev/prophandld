@@ -5,6 +5,7 @@ import { isAdminUserId } from '@/lib/adminAccess'
 import { logAdminAudit } from '@/lib/auditLog'
 import { sendContractorVerificationDecisionEmail } from '@/lib/email'
 import { sendPush } from '@/lib/push'
+import { emailAllowed } from '@/lib/notificationPrefs'
 
 export async function POST(request: NextRequest) {
   const authClient = await createClient()
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest) {
   const supabaseAdmin = getSupabaseAdmin()
   const { data: contractor, error: contractorError } = await supabaseAdmin
     .from('users')
-    .select('email, full_name, preferred_language')
+    .select('email, full_name, preferred_language, email_notifications_enabled')
     .eq('id', contractorUserId)
     .maybeSingle()
 
@@ -47,17 +48,19 @@ export async function POST(request: NextRequest) {
     detail: { approved, notes: notes || null },
   })
 
-  const result = await sendContractorVerificationDecisionEmail({
-    to: contractor.email,
-    contractorName: contractor.full_name || 'there',
-    approved,
-    notes,
-    lang: contractor.preferred_language === 'es' ? 'es' : 'en',
-  })
+  if (emailAllowed(contractor)) {
+    const result = await sendContractorVerificationDecisionEmail({
+      to: contractor.email,
+      contractorName: contractor.full_name || 'there',
+      approved,
+      notes,
+      lang: contractor.preferred_language === 'es' ? 'es' : 'en',
+    })
 
-  if (!result.ok) {
-    console.error('notify-verification-decision: sendEmail failed', result)
-    return NextResponse.json({ error: 'Could not send email' }, { status: 500 })
+    if (!result.ok) {
+      console.error('notify-verification-decision: sendEmail failed', result)
+      return NextResponse.json({ error: 'Could not send email' }, { status: 500 })
+    }
   }
 
   await sendPush(contractorUserId, {

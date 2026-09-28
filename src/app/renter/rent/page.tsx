@@ -153,7 +153,7 @@ export default function RenterRentPage() {
     ).then((results) => {
       const changed = open.some((p, i) => {
         const status = results[i]?.status
-        return status === 'paid' || status === 'refunded_credit_card' || (status === 'processing' && p.stripe_status !== 'processing')
+        return status === 'paid' || status === 'already_paid' || status === 'refunded_credit_card' || (status === 'processing' && p.stripe_status !== 'processing')
       })
       if (changed) loadPayments(tenancy.id)
     })

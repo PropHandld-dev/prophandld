@@ -154,7 +154,19 @@ function LoginForm() {
       // by the time this resolves, a SIGNED_IN event from a confirmation
       // link has already had its chance to fire and be captured.
       const freshUser = consumeFreshSignIn()
-      if (session?.user && freshUser && freshUser.id === session.user.id) {
+      // Set by signup's OTP-code flow right before it redirects here — a
+      // synchronous, same-tick fact rather than something that depends on
+      // consumeFreshSignIn() having already caught a SIGNED_IN event that
+      // Supabase can dispatch asynchronously. See the comment where it's
+      // set for why that race is real and why losing it used to be silent.
+      let justActivated = false
+      try {
+        if (sessionStorage.getItem('ph_just_activated') === '1') {
+          justActivated = true
+          sessionStorage.removeItem('ph_just_activated')
+        }
+      } catch {}
+      if (session?.user && ((freshUser && freshUser.id === session.user.id) || justActivated)) {
         setJustVerifiedUser(session.user)
         setCheckingSession(false)
       } else if (session?.user) {

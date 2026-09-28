@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { sendDmScheduleEmail } from '@/lib/email'
+import { emailAllowed } from '@/lib/notificationPrefs'
 
 export async function POST(request: NextRequest) {
   const authClient = await createClient()
@@ -39,11 +40,14 @@ export async function POST(request: NextRequest) {
 
   const [{ data: sender }, { data: recipient }] = await Promise.all([
     supabaseAdmin.from('users').select('full_name').eq('id', user.id).maybeSingle(),
-    supabaseAdmin.from('users').select('email, full_name, preferred_language').eq('id', recipientId).maybeSingle(),
+    supabaseAdmin.from('users').select('email, full_name, preferred_language, email_notifications_enabled').eq('id', recipientId).maybeSingle(),
   ])
 
   if (!recipient?.email) {
     return NextResponse.json({ error: 'Recipient email not found' }, { status: 404 })
+  }
+  if (!emailAllowed(recipient)) {
+    return NextResponse.json({ ok: true, skipped: 'recipient has email notifications off' })
   }
 
   const result = await sendDmScheduleEmail({

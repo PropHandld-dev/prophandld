@@ -6,6 +6,7 @@ import { sendPush } from '@/lib/push'
 import { sendSms } from '@/lib/sms'
 import { notifyMatchingContractors } from '@/lib/openJobAlerts'
 import { loadNotifyExtras } from '@/lib/notifyExtras'
+import { emailAllowed } from '@/lib/notificationPrefs'
 
 type Role = 'landlord' | 'renter' | 'contractor'
 
@@ -142,7 +143,7 @@ export async function POST(request: NextRequest) {
     (Object.entries(roleUserIds) as [Role, string][]).map(async ([role, userId]) => {
       const { data: recipient, error: recipientError } = await supabaseAdmin
         .from('users')
-        .select('email, phone, sms_opt_in, preferred_language')
+        .select('email, phone, sms_opt_in, preferred_language, email_notifications_enabled')
         .eq('id', userId)
         .maybeSingle()
 
@@ -156,9 +157,11 @@ export async function POST(request: NextRequest) {
       }
 
       const lang: Lang = recipient.preferred_language === 'es' ? 'es' : 'en'
-      const { subject, html } = buildNotificationEmail(type, role, jobInfo, lang)
-      const result = await sendEmail({ to: recipient.email, subject, html })
-      if (!result.ok) console.error('notify: sendEmail failed', { jobId, role, type })
+      if (emailAllowed(recipient)) {
+        const { subject, html } = buildNotificationEmail(type, role, jobInfo, lang)
+        const result = await sendEmail({ to: recipient.email, subject, html })
+        if (!result.ok) console.error('notify: sendEmail failed', { jobId, role, type })
+      }
 
       const push = buildPushMessage(type, role, jobInfo)
       await sendPush(userId, push).catch((err) => console.error('notify: sendPush failed', { jobId, role, err }))

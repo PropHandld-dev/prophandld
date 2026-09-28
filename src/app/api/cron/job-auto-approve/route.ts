@@ -3,6 +3,7 @@ import { cronAuthorized } from '@/lib/cronAuth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { buildNotificationEmail, buildPushMessage, sendEmail, sendAutoApprovalDigestAdminEmail, sendJobAutoApprovedPayNowEmail, type NotifyJobInfo, type Lang } from '@/lib/email'
 import { sendPush } from '@/lib/push'
+import { emailAllowed } from '@/lib/notificationPrefs'
 
 export const maxDuration = 60
 
@@ -129,9 +130,9 @@ export async function GET(request: NextRequest) {
     const ownerId = ownerByJob.get(j.id)
     if (ownerId) userIds.add(ownerId)
   }
-  const userById = new Map<string, { email: string | null; full_name: string | null; preferred_language: string | null }>()
+  const userById = new Map<string, { email: string | null; full_name: string | null; preferred_language: string | null; email_notifications_enabled: boolean | null }>()
   for (const ids of chunk(Array.from(userIds), ID_CHUNK)) {
-    const { data } = await supabaseAdmin.from('users').select('id, email, full_name, preferred_language').in('id', ids)
+    const { data } = await supabaseAdmin.from('users').select('id, email, full_name, preferred_language, email_notifications_enabled').in('id', ids)
     for (const u of data || []) userById.set(u.id, u)
   }
   const langOf = (u: { preferred_language: string | null } | null | undefined): Lang => (u?.preferred_language === 'es' ? 'es' : 'en')
@@ -183,7 +184,7 @@ export async function GET(request: NextRequest) {
 
     // Tell the landlord specifically: this is the one that matters, since
     // they're the only person who can actually release payment.
-    if (landlord?.email) {
+    if (landlord?.email && emailAllowed(landlord)) {
       await sendJobAutoApprovedPayNowEmail({
         to: landlord.email,
         landlordName: landlord.full_name || 'there',
@@ -204,7 +205,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Same notification a manual approval already sends to these two.
-    if (contractor?.email) {
+    if (contractor?.email && emailAllowed(contractor)) {
       const { subject, html } = buildNotificationEmail('job_completed', 'contractor', info, langOf(contractor))
       await sendEmail({ to: contractor.email, subject, html }).catch((err) =>
         console.error('cron/job-auto-approve: contractor email failed', { jobId: job.id, err })
@@ -215,7 +216,7 @@ export async function GET(request: NextRequest) {
         console.error('cron/job-auto-approve: contractor push failed', { jobId: job.id, err })
       )
     }
-    if (renter?.email) {
+    if (renter?.email && emailAllowed(renter)) {
       const { subject, html } = buildNotificationEmail('job_completed', 'renter', info, langOf(renter))
       await sendEmail({ to: renter.email, subject, html }).catch((err) =>
         console.error('cron/job-auto-approve: renter email failed', { jobId: job.id, err })

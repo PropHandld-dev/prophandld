@@ -109,7 +109,7 @@ export async function GET() {
     } else {
       status = paid > 0 ? 'succeeded' : 'failed'
     }
-    if (status === 'processing' && r.paid_date && now - new Date(r.paid_date).getTime() > 5 * DAY_MS) {
+    if (status === 'processing' && r.paid_date && now - new Date(r.paid_date + 'T00:00:00').getTime() > 5 * DAY_MS) {
       flags.push({ label: 'Processing 5+ days (bank payments can be slow)', severity: 'yellow' })
     }
 

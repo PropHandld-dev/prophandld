@@ -11,6 +11,7 @@ import { LANDLORD_TABS } from '@/lib/navTabs'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { useLanguage, t, type Lang } from '@/lib/i18n'
+import { validateDocumentFile } from '@/lib/mediaValidation'
 
 const ITEM_TYPE_KEYS: ('complianceItemRentalLicense' | 'complianceItemLeadCertification' | 'complianceItemSmokeDetector' | 'complianceItemCoDetector' | 'complianceItemFireExtinguisher' | 'complianceItemInsuranceRenewal')[] = [
   'complianceItemRentalLicense',
@@ -136,6 +137,12 @@ export default function PropertyCompliancePage() {
 
   const uploadComplianceDocument = async (complianceItemId: string, documentType: string, docFile: File) => {
     if (!userId) return
+
+    const validationError = validateDocumentFile(docFile)
+    if (validationError) {
+      setError(validationError)
+      return
+    }
 
     const ext = docFile.name.split('.').pop()
     const filePath = `${propertyId}/${crypto.randomUUID()}.${ext}`

@@ -121,10 +121,13 @@ export default function AdminContractorsPage() {
   const [notes, setNotes] = useState<Record<string, string>>({})
 
   const load = async () => {
-    const { data: verifs, error: verifError } = await supabase
-      .from('contractor_verifications')
-      .select('*')
-      .order('created_at', { ascending: false })
+    // Two unrelated tables — fetched together, and their (separately
+    // per-row) enrichment passes below run concurrently too instead of one
+    // whole pass finishing before the other starts.
+    const [{ data: verifs, error: verifError }, { data: creds, error: credsError }] = await Promise.all([
+      supabase.from('contractor_verifications').select('*').order('created_at', { ascending: false }),
+      supabase.from('contractor_credentials').select('*').order('created_at', { ascending: false }),
+    ])
 
     if (verifError) {
       console.error('Error loading verifications:', verifError)
@@ -133,7 +136,7 @@ export default function AdminContractorsPage() {
       return
     }
 
-    const enriched = await Promise.all(
+    const enrichedVerifsPromise = Promise.all(
       (verifs || []).map(async (v) => {
         const { data: contractorData } = await supabase
           .rpc('get_user_by_id', { user_id_input: v.contractor_user_id })
@@ -156,13 +159,6 @@ export default function AdminContractorsPage() {
       })
     )
 
-    setRows(enriched)
-
-    const { data: creds, error: credsError } = await supabase
-      .from('contractor_credentials')
-      .select('*')
-      .order('created_at', { ascending: false })
-
     if (credsError) {
       console.error('Error loading credentials:', credsError)
     } else {
@@ -182,6 +178,7 @@ export default function AdminContractorsPage() {
       setCredRows(enrichedCreds)
     }
 
+    setRows(await enrichedVerifsPromise)
     setLoading(false)
   }
 

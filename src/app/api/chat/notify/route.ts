@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { sendChatMessageEmail } from '@/lib/email'
 import { sendPush } from '@/lib/push'
 import { loadChatParticipants } from '@/lib/chatParticipants'
+import { emailAllowed } from '@/lib/notificationPrefs'
 
 type Role = 'landlord' | 'renter' | 'contractor'
 
@@ -77,8 +78,8 @@ export async function POST(request: NextRequest) {
         console.error('chat/notify: push failed', { userId, err })
       )
       if (!sendEmailToo) return
-      const { data: recipient } = await admin.from('users').select('email, preferred_language').eq('id', userId).maybeSingle()
-      if (recipient?.email) {
+      const { data: recipient } = await admin.from('users').select('email, preferred_language, email_notifications_enabled').eq('id', userId).maybeSingle()
+      if (recipient?.email && emailAllowed(recipient)) {
         await sendChatMessageEmail({ to: recipient.email, senderName, context, preview, ctaUrl: url, lang: recipient.preferred_language === 'es' ? 'es' : 'en' })
       }
     })

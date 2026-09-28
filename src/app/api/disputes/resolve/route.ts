@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { isAdminUserId } from '@/lib/adminAccess'
 import { logAdminAudit } from '@/lib/auditLog'
 import { sendDisputeResolvedEmail } from '@/lib/email'
+import { emailAllowed } from '@/lib/notificationPrefs'
 
 export async function POST(request: NextRequest) {
   const authClient = await createClient()
@@ -98,8 +99,8 @@ export async function POST(request: NextRequest) {
 
   await Promise.allSettled(
     recipients.map(async ({ userId, role }) => {
-      const { data: recipient } = await supabaseAdmin.from('users').select('email, preferred_language').eq('id', userId).maybeSingle()
-      if (!recipient?.email) return
+      const { data: recipient } = await supabaseAdmin.from('users').select('email, preferred_language, email_notifications_enabled').eq('id', userId).maybeSingle()
+      if (!recipient?.email || !emailAllowed(recipient)) return
       await sendDisputeResolvedEmail({
         to: recipient.email,
         jobCategory,

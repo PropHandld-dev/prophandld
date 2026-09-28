@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
   if (rentPayment.stripe_payment_intent_id && ['requires_payment', 'processing'].includes(rentPayment.stripe_status || '')) {
     try {
       const synced = await syncRentPayment(supabaseAdmin, stripe, rentPayment.id)
-      if (synced === 'paid') {
+      if (synced === 'paid' || synced === 'already_paid') {
         return NextResponse.json({ error: 'This month is already paid.', alreadyPaid: true }, { status: 409 })
       }
       if (synced === 'processing') {

@@ -8,6 +8,7 @@ import { CheckCircleIcon } from '@/components/icons'
 import { LEGACY_LICENSE, type ScopedRequirement } from '@/lib/credentialRequirements'
 import type { StateBoard } from '@/lib/stateLicensingBoards'
 import { useLanguage, t, type Lang } from '@/lib/i18n'
+import { validateDocumentFile } from '@/lib/mediaValidation'
 
 type RequirementsResponse = {
   homeState: string | null
@@ -95,6 +96,12 @@ export function ContractorCredentials({ userId }: { userId: string }) {
 
     let documentUrl = existing?.document_url || null
     if (form.file) {
+      const validationError = validateDocumentFile(form.file, { allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'] })
+      if (validationError) {
+        setError(validationError)
+        setSavingId(null)
+        return
+      }
       const ext = form.file.name.split('.').pop()
       const path = `${userId}/cred-${crypto.randomUUID()}.${ext}`
       const { error: uploadError } = await supabase.storage.from('contractor-documents').upload(path, form.file)

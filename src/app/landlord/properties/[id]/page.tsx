@@ -66,65 +66,49 @@ export default function PropertyDetailPage() {
 
       setProperty(propertyData)
 
+      // Units must come first (tenancies below needs its ids), but
+      // contacts/documents/compliance don't depend on units at all, so they
+      // run alongside tenancies instead of one after another.
       const { data: unitsData } = await supabase
         .from('units')
         .select('*')
         .eq('property_id', propertyId)
         .order('unit_number')
 
+      const unitIds = unitsData ? unitsData.map((u) => u.id) : []
+
+      const [tenanciesResult, contactsResult, documentsResult, complianceResult] = await Promise.all([
+        unitIds.length > 0
+          ? supabase.from('tenancies').select('unit_id').in('unit_id', unitIds).eq('ended', false)
+          : Promise.resolve({ data: [] as { unit_id: string }[], error: null }),
+        supabase.from('contacts').select('*').eq('property_id', propertyId).order('created_at', { ascending: false }),
+        supabase.from('documents').select('*').eq('property_id', propertyId).order('created_at', { ascending: false }),
+        supabase.from('compliance_items').select('*').eq('property_id', propertyId).order('expiry_date', { ascending: true, nullsFirst: false }),
+      ])
+
       if (unitsData) {
         setUnits(unitsData)
-
-        const unitIds = unitsData.map((u) => u.id)
-        if (unitIds.length > 0) {
-          const { data: tenanciesData, error: tenanciesError } = await supabase
-            .from('tenancies')
-            .select('unit_id')
-            .in('unit_id', unitIds)
-            .eq('ended', false)
-
-          if (tenanciesError) {
-            console.error('Error fetching tenancies:', tenanciesError)
-          }
-
-          if (tenanciesData) {
-            setOccupiedUnitIds(new Set(tenanciesData.map((t) => t.unit_id)))
-          }
-        } else {
-          setOccupiedUnitIds(new Set())
+        if (tenanciesResult.error) {
+          console.error('Error fetching tenancies:', tenanciesResult.error)
         }
+        setOccupiedUnitIds(new Set((tenanciesResult.data || []).map((t) => t.unit_id)))
       }
 
-      const { data: contactsData, error: contactsError } = await supabase
-        .from('contacts')
-        .select('*')
-        .eq('property_id', propertyId)
-        .order('created_at', { ascending: false })
-
+      const { data: contactsData, error: contactsError } = contactsResult
       if (contactsError) {
         console.error('Error fetching contacts:', contactsError)
       } else if (contactsData) {
         setContacts(contactsData)
       }
 
-      const { data: documentsData, error: documentsError } = await supabase
-        .from('documents')
-        .select('*')
-        .eq('property_id', propertyId)
-        .order('created_at', { ascending: false })
-
+      const { data: documentsData, error: documentsError } = documentsResult
       if (documentsError) {
         console.error('Error fetching documents:', documentsError)
       } else if (documentsData) {
         setDocuments(documentsData)
       }
 
-      const { data: complianceData, error: complianceError } = await supabase
-        .from('compliance_items')
-        .select('*')
-        .eq('property_id', propertyId)
-        .order('expiry_date', { ascending: true, nullsFirst: false })
-
+      const { data: complianceData, error: complianceError } = complianceResult
       if (complianceError) {
         console.error('Error fetching compliance items:', complianceError)
       } else if (complianceData) {

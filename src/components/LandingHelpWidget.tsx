@@ -146,7 +146,7 @@ export function LandingHelpWidget() {
                 <p className="text-white text-sm font-semibold">Questions?</p>
                 <p className="text-white/60 text-xs">Common questions, answered</p>
               </div>
-              <button onClick={() => setOpen(false)} className="text-white/60 hover:text-white text-lg leading-none transition shrink-0">
+              <button onClick={() => setOpen(false)} aria-label="Close" className="text-white/60 hover:text-white text-lg leading-none transition shrink-0">
                 ×
               </button>
             </div>

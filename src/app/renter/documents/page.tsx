@@ -11,6 +11,7 @@ import { RippleButton } from '@/components/RippleButton'
 import { FileTextIcon } from '@/components/icons'
 import { RENTER_TABS } from '@/lib/navTabs'
 import { useLanguage, t } from '@/lib/i18n'
+import { validateDocumentFile } from '@/lib/mediaValidation'
 
 const TENANT_DOCUMENT_TYPES = ['Renters Insurance', 'Utility Proof: Electric', 'Utility Proof: Gas', 'Utility Proof: Water', 'Other']
 
@@ -135,6 +136,13 @@ export default function RenterDocumentsPage() {
     if (files.length === 0) {
       setError('Please choose at least one file.')
       return
+    }
+    for (const file of files) {
+      const validationError = validateDocumentFile(file)
+      if (validationError) {
+        setError(validationError)
+        return
+      }
     }
     if (!userId || !propertyId || !unitId) return
 

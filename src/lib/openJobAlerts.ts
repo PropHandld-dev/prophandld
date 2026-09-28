@@ -2,6 +2,7 @@ import zipcodes from 'zipcodes'
 import { buildNotificationEmail, buildPushMessage, buildSmsMessage, sendEmail, type NotifyJobInfo, type Lang } from '@/lib/email'
 import { sendPush } from '@/lib/push'
 import { sendSms } from '@/lib/sms'
+import { emailAllowed } from '@/lib/notificationPrefs'
 
 const MAX_ALERTS_PER_JOB = 30
 
@@ -26,7 +27,7 @@ export async function notifyMatchingContractors(admin: any, jobId: string, exclu
 
   const { data: contractors, error } = await admin
     .from('users')
-    .select('id, email, phone, sms_opt_in, service_categories, service_zip, service_radius_miles, preferred_language, notify_all_categories')
+    .select('id, email, phone, sms_opt_in, service_categories, service_zip, service_radius_miles, preferred_language, notify_all_categories, email_notifications_enabled')
     .not('service_zip', 'is', null)
 
   if (error) {
@@ -78,8 +79,10 @@ export async function notifyMatchingContractors(admin: any, jobId: string, exclu
   await Promise.allSettled(
     matches.map(async ({ c }: any) => {
       const lang: Lang = c.preferred_language === 'es' ? 'es' : 'en'
-      const { subject, html } = buildNotificationEmail('job_open', 'contractor', info, lang)
-      await sendEmail({ to: c.email, subject, html })
+      if (emailAllowed(c)) {
+        const { subject, html } = buildNotificationEmail('job_open', 'contractor', info, lang)
+        await sendEmail({ to: c.email, subject, html })
+      }
       await sendPush(c.id, buildPushMessage('job_open', 'contractor', info)).catch((err) =>
         console.error('openJobAlerts: push failed', { userId: c.id, err })
       )

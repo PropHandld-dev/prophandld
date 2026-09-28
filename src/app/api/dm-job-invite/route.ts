@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { sendJobInviteEmail } from '@/lib/email'
+import { emailAllowed } from '@/lib/notificationPrefs'
 
 export async function POST(request: NextRequest) {
   const authClient = await createClient()
@@ -31,26 +32,34 @@ export async function POST(request: NextRequest) {
   }
 
   const [{ data: job }, { data: landlord }, { data: contractor }] = await Promise.all([
-    supabaseAdmin.from('jobs').select('category').eq('id', jobId).maybeSingle(),
+    supabaseAdmin.from('jobs').select('category, units(properties(owner_user_id))').eq('id', jobId).maybeSingle(),
     supabaseAdmin.from('users').select('full_name').eq('id', user.id).maybeSingle(),
-    supabaseAdmin.from('users').select('email, preferred_language').eq('id', thread.other_user_id).maybeSingle(),
+    supabaseAdmin.from('users').select('email, preferred_language, email_notifications_enabled').eq('id', thread.other_user_id).maybeSingle(),
   ])
 
   if (!job || !contractor?.email) {
     return NextResponse.json({ error: 'Job or contractor not found' }, { status: 404 })
   }
+  // The thread proves the caller IS a landlord — this proves the job is
+  // actually theirs, not just any job id in the system.
+  const jobOwnerId = (job.units as any)?.properties?.owner_user_id
+  if (jobOwnerId !== user.id) {
+    return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
+  }
 
-  const result = await sendJobInviteEmail({
-    to: contractor.email,
-    landlordName: landlord?.full_name || 'A landlord',
-    jobCategory: job.category,
-    jobId,
-    lang: contractor.preferred_language === 'es' ? 'es' : 'en',
-  })
+  if (emailAllowed(contractor)) {
+    const result = await sendJobInviteEmail({
+      to: contractor.email,
+      landlordName: landlord?.full_name || 'A landlord',
+      jobCategory: job.category,
+      jobId,
+      lang: contractor.preferred_language === 'es' ? 'es' : 'en',
+    })
 
-  if (!result.ok) {
-    console.error('dm-job-invite: email failed', result.error)
-    return NextResponse.json({ error: 'Could not send invite' }, { status: 502 })
+    if (!result.ok) {
+      console.error('dm-job-invite: email failed', result.error)
+      return NextResponse.json({ error: 'Could not send invite' }, { status: 502 })
+    }
   }
 
   return NextResponse.json({ ok: true })

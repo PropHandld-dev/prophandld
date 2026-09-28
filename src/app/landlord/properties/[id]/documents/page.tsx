@@ -11,6 +11,7 @@ import { LANDLORD_TABS } from '@/lib/navTabs'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { useLanguage, t } from '@/lib/i18n'
+import { validateDocumentFile } from '@/lib/mediaValidation'
 
 const DOCUMENT_TYPES = ['Lease', 'Rental Agreement', 'Deed', 'Insurance', 'Inspection Report', 'Other']
 
@@ -150,6 +151,13 @@ export default function PropertyDocumentsPage() {
     if (files.length === 0) {
       setError('Please choose at least one file.')
       return
+    }
+    for (const file of files) {
+      const validationError = validateDocumentFile(file)
+      if (validationError) {
+        setError(validationError)
+        return
+      }
     }
     if (!userId) return
 

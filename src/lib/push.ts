@@ -24,6 +24,19 @@ export async function sendPush(
   ensureConfigured()
 
   const supabaseAdmin = getSupabaseAdmin()
+
+  // The one central gate for every push send in the app — checked here,
+  // once, rather than at each of the 15+ call sites, so a preference
+  // change takes effect immediately everywhere with nothing else to keep
+  // in sync. Defaults to allowed (true) if the column is somehow null,
+  // same as the column's own DB default.
+  const { data: prefRow } = await supabaseAdmin
+    .from('users')
+    .select('push_notifications_enabled')
+    .eq('id', userId)
+    .maybeSingle()
+  if (prefRow?.push_notifications_enabled === false) return
+
   const { data: subscriptions, error } = await supabaseAdmin
     .from('push_subscriptions')
     .select('id, endpoint, p256dh, auth_key')

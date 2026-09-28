@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { sendAppointmentReminderEmail, type Lang } from '@/lib/email'
 import { sendPush } from '@/lib/push'
 import { formatWhen } from '@/lib/notifyExtras'
+import { emailAllowed } from '@/lib/notificationPrefs'
 
 export const maxDuration = 60
 
@@ -89,9 +90,9 @@ export async function GET(request: NextRequest) {
     const ownerId = (j.units as any)?.properties?.owner_user_id
     if (ownerId) userIds.add(ownerId)
   }
-  const userById = new Map<string, { email: string | null; full_name: string | null; preferred_language: string | null }>()
+  const userById = new Map<string, { email: string | null; full_name: string | null; preferred_language: string | null; email_notifications_enabled: boolean | null }>()
   for (const ids of chunk(Array.from(userIds), ID_CHUNK)) {
-    const { data } = await admin.from('users').select('id, email, full_name, preferred_language').in('id', ids)
+    const { data } = await admin.from('users').select('id, email, full_name, preferred_language, email_notifications_enabled').in('id', ids)
     for (const u of data || []) userById.set(u.id, u)
   }
 
@@ -123,7 +124,7 @@ export async function GET(request: NextRequest) {
     for (const { userId, role } of recipients) {
       if (!userId) continue
       const person = userById.get(userId)
-      if (person?.email) {
+      if (person?.email && emailAllowed(person)) {
         await sendAppointmentReminderEmail({
           to: person.email,
           role,

@@ -131,7 +131,7 @@ export function FloatingChatWidget() {
             <div className="flex items-center gap-3 px-4 py-3.5 border-b border-white/8 shrink-0">
               {active ? (
                 <>
-                  <button onClick={handleBackToList} className="text-white/50 hover:text-white transition shrink-0">
+                  <button onClick={handleBackToList} aria-label="Back to messages" className="text-white/50 hover:text-white transition shrink-0">
                     ←
                   </button>
                   <div className="min-w-0 flex-1">
@@ -155,7 +155,7 @@ export function FloatingChatWidget() {
                   </button>
                 </>
               )}
-              <button onClick={handleClose} className="text-white/60 hover:text-white text-lg leading-none transition shrink-0">
+              <button onClick={handleClose} aria-label="Close" className="text-white/60 hover:text-white text-lg leading-none transition shrink-0">
                 ×
               </button>
             </div>

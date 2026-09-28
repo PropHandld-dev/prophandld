@@ -2,7 +2,7 @@ import type Stripe from 'stripe'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { paymentPaidAt } from '@/lib/stripe'
 
-export type RentSyncStatus = 'none' | 'paid' | 'processing' | 'unpaid' | 'refunded_credit_card'
+export type RentSyncStatus = 'none' | 'paid' | 'already_paid' | 'processing' | 'unpaid' | 'refunded_credit_card'
 
 /**
  * Brings one rent month in line with what Stripe says about its latest
@@ -22,7 +22,12 @@ export async function syncRentPayment(
     .maybeSingle()
 
   if (!rent?.stripe_payment_intent_id) return 'none'
-  if (rent.stripe_status === 'succeeded') return 'paid'
+  // Distinct from the fresh-apply 'paid' below: this row was already
+  // credited by an earlier call (a prior webhook delivery, a page poll
+  // that beat this one to it, etc). Callers that just want "is it paid"
+  // treat this the same as 'paid'; the webhook uses the distinction to
+  // never re-send a "you got paid" email/push/chat message on a retry.
+  if (rent.stripe_status === 'succeeded') return 'already_paid'
   if (rent.stripe_status === 'refunded_credit_card') return 'refunded_credit_card'
 
   const paymentIntent = await stripe.paymentIntents.retrieve(rent.stripe_payment_intent_id, {

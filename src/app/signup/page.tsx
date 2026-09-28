@@ -235,6 +235,21 @@ function SignupForm() {
       return
     }
 
+    // Belt-and-suspenders alongside consumeFreshSignIn(): verifyOtp() just
+    // fired a SIGNED_IN event, but Supabase dispatches that notification to
+    // subscribers asynchronously, not necessarily before this tick ends —
+    // and router.replace() below is a same-tab SPA transition, so /login's
+    // mount effect can genuinely run and check consumeFreshSignIn() before
+    // that event has actually landed. Losing that race used to be silently
+    // masked by a since-fixed bug (any already-signed-in /login visit fired
+    // the welcome email); now that it's fixed, losing it means a real first
+    // activation gets treated as an ordinary already-signed-in visit and
+    // never gets welcomed at all. This flag is a synchronous, same-tick
+    // fact instead of a race — set here, read and cleared once on arrival.
+    try {
+      sessionStorage.setItem('ph_just_activated', '1')
+    } catch {}
+
     router.replace('/login')
   }
 

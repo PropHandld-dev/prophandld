@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { buildNotificationEmail, buildPushMessage, sendEmail, sendJobAutoApprovedPayNowEmail, type NotifyJobInfo, type Lang } from '@/lib/email'
 import { sendPush } from '@/lib/push'
+import { emailAllowed } from '@/lib/notificationPrefs'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const AUTO_APPROVE_AFTER_MS = 3 * DAY_MS
@@ -86,19 +87,19 @@ export async function autoApproveJobIfStale(admin: SupabaseClient, jobId: string
 
   const [{ data: landlord }, { data: contractor }, { data: renter }] = await Promise.all([
     landlordId
-      ? admin.from('users').select('email, full_name, preferred_language').eq('id', landlordId).maybeSingle()
+      ? admin.from('users').select('email, full_name, preferred_language, email_notifications_enabled').eq('id', landlordId).maybeSingle()
       : Promise.resolve({ data: null as any }),
     bid?.contractor_user_id
-      ? admin.from('users').select('email, full_name, preferred_language').eq('id', bid.contractor_user_id).maybeSingle()
+      ? admin.from('users').select('email, full_name, preferred_language, email_notifications_enabled').eq('id', bid.contractor_user_id).maybeSingle()
       : Promise.resolve({ data: null as any }),
     tenancy?.renter_user_id
-      ? admin.from('users').select('email, preferred_language').eq('id', tenancy.renter_user_id).maybeSingle()
+      ? admin.from('users').select('email, preferred_language, email_notifications_enabled').eq('id', tenancy.renter_user_id).maybeSingle()
       : Promise.resolve({ data: null as any }),
   ])
 
   // Tell the landlord specifically: this is the one that matters, since
   // they're the only person who can actually release payment.
-  if (landlord?.email) {
+  if (landlord?.email && emailAllowed(landlord)) {
     await sendJobAutoApprovedPayNowEmail({
       to: landlord.email,
       landlordName: landlord.full_name || 'there',
@@ -119,7 +120,7 @@ export async function autoApproveJobIfStale(admin: SupabaseClient, jobId: string
   }
 
   // Same notification a manual approval already sends to these two.
-  if (contractor?.email) {
+  if (contractor?.email && emailAllowed(contractor)) {
     const { subject, html } = buildNotificationEmail('job_completed', 'contractor', info, langOf(contractor))
     await sendEmail({ to: contractor.email, subject, html }).catch((err) =>
       console.error('autoApproveJobIfStale: contractor email failed', { jobId, err })
@@ -130,7 +131,7 @@ export async function autoApproveJobIfStale(admin: SupabaseClient, jobId: string
       console.error('autoApproveJobIfStale: contractor push failed', { jobId, err })
     )
   }
-  if (renter?.email) {
+  if (renter?.email && emailAllowed(renter)) {
     const { subject, html } = buildNotificationEmail('job_completed', 'renter', info, langOf(renter))
     await sendEmail({ to: renter.email, subject, html }).catch((err) =>
       console.error('autoApproveJobIfStale: renter email failed', { jobId, err })

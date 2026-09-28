@@ -173,6 +173,15 @@ export default function UnitDetailPage() {
 
     setUnit(unitData)
 
+    // Kicked off now, awaited later — jobs only depends on unitId (already
+    // known), so it runs alongside the tenancy/invite branch below instead
+    // of waiting for it to finish first.
+    const jobsPromise = supabase
+      .from('jobs')
+      .select('*')
+      .eq('unit_id', unitId)
+      .order('created_at', { ascending: false })
+
     const { data: tenancyData } = await supabase
       .from('tenancies')
       .select('*')
@@ -223,11 +232,7 @@ export default function UnitDetailPage() {
       setPendingInvite(inviteData || null)
     }
 
-    const { data: jobsData, error: jobsError } = await supabase
-      .from('jobs')
-      .select('*')
-      .eq('unit_id', unitId)
-      .order('created_at', { ascending: false })
+    const { data: jobsData, error: jobsError } = await jobsPromise
 
     if (jobsError) {
       console.error('Error loading jobs:', jobsError)

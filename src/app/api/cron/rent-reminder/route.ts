@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { rentMonthBounds } from '@/lib/rentAutomation'
 import { sendRentDueEmail, sendRentDueRenterEmail, sendRentLateRenterEmail, sendRentLateLandlordEmail, type Lang } from '@/lib/email'
 import { sendPush } from '@/lib/push'
+import { emailAllowed } from '@/lib/notificationPrefs'
 
 export const maxDuration = 60
 
@@ -108,9 +109,9 @@ export async function GET(request: NextRequest) {
   // People we may need to email, in bulk.
   const renterIds = Array.from(new Set(tenancies.map((t) => t.renter_user_id).filter(Boolean)))
   const landlordIds = Array.from(new Set(tenancies.map((t) => t.units?.properties?.owner_user_id).filter(Boolean)))
-  const userById = new Map<string, { email: string | null; full_name: string | null; preferred_language: string | null }>()
+  const userById = new Map<string, { email: string | null; full_name: string | null; preferred_language: string | null; email_notifications_enabled: boolean | null }>()
   for (const ids of chunk(Array.from(new Set([...renterIds, ...landlordIds])), ID_CHUNK)) {
-    const { data } = await supabaseAdmin.from('users').select('id, email, full_name, preferred_language').in('id', ids)
+    const { data } = await supabaseAdmin.from('users').select('id, email, full_name, preferred_language, email_notifications_enabled').in('id', ids)
     for (const u of data || []) userById.set(u.id, u)
   }
   const langOf = (u: { preferred_language: string | null } | null | undefined): Lang => (u?.preferred_language === 'es' ? 'es' : 'en')
@@ -131,7 +132,7 @@ export async function GET(request: NextRequest) {
 
     if (tenancy.renter_user_id) {
       const renter = userById.get(tenancy.renter_user_id)
-      if (renter?.email) {
+      if (renter?.email && emailAllowed(renter)) {
         await sendRentDueRenterEmail({ to: renter.email, unitLabel, amount: Number(tenancy.rent_amount), lang: langOf(renter) })
         dueRenterNotifications++
       }
@@ -178,7 +179,7 @@ export async function GET(request: NextRequest) {
 
     if (tenancy.renter_user_id) {
       const renter = userById.get(tenancy.renter_user_id)
-      if (renter?.email) {
+      if (renter?.email && emailAllowed(renter)) {
         await sendRentLateRenterEmail({
           to: renter.email,
           unitLabel,
@@ -196,7 +197,7 @@ export async function GET(request: NextRequest) {
 
     if (landlordUserId) {
       const landlord = userById.get(landlordUserId)
-      if (landlord?.email) {
+      if (landlord?.email && emailAllowed(landlord)) {
         await sendRentLateLandlordEmail({ to: landlord.email, landlordName: landlord.full_name || 'there', unitLabel, lateFeeAdded, lang: langOf(landlord) })
       }
     }
@@ -207,7 +208,7 @@ export async function GET(request: NextRequest) {
   // One digest per landlord for the newly created rows.
   await runInBatches(Object.entries(newlyCreatedByLandlord), async ([landlordUserId, unitLabels]) => {
     const landlord = userById.get(landlordUserId)
-    if (landlord?.email) {
+    if (landlord?.email && emailAllowed(landlord)) {
       await sendRentDueEmail({ to: landlord.email, landlordName: landlord.full_name || 'there', unitLabels, lang: langOf(landlord) })
     }
     await sendPush(landlordUserId, {

@@ -5,6 +5,7 @@ import { getStripe, isPayoutReady } from '@/lib/stripe'
 import { syncRentPayment } from '@/lib/rentPaymentSync'
 import { sendRentPaymentReceivedEmail, sendJobPaymentSentEmail, sendJobPaymentReceiptEmail, sendCreditCardRejectedEmail } from '@/lib/email'
 import { sendPush } from '@/lib/push'
+import { emailAllowed } from '@/lib/notificationPrefs'
 
 export async function POST(request: NextRequest) {
   const signature = request.headers.get('stripe-signature')
@@ -111,8 +112,8 @@ export async function POST(request: NextRequest) {
 
               const renterUserId = (rentPaymentForRefund?.tenancies as any)?.renter_user_id
               if (renterUserId) {
-                const { data: renter } = await supabaseAdmin.from('users').select('email, full_name, preferred_language').eq('id', renterUserId).maybeSingle()
-                if (renter?.email) {
+                const { data: renter } = await supabaseAdmin.from('users').select('email, full_name, preferred_language, email_notifications_enabled').eq('id', renterUserId).maybeSingle()
+                if (renter?.email && emailAllowed(renter)) {
                   await sendCreditCardRejectedEmail({ to: renter.email, renterName: renter.full_name || 'there', lang: renter.preferred_language === 'es' ? 'es' : 'en' })
                 }
                 await sendPush(renterUserId, {
@@ -124,6 +125,10 @@ export async function POST(request: NextRequest) {
               break
             }
 
+            // 'already_paid' means an earlier call (a prior delivery of this
+            // same event, a page poll, etc) already credited and notified
+            // for this row — stop here so a Stripe retry never re-sends the
+            // "rent paid" email/push/chat message.
             if (synced !== 'paid') break
 
             const { data: rentPayment } = await supabaseAdmin
@@ -152,10 +157,10 @@ export async function POST(request: NextRequest) {
 
               const { data: landlord } = await supabaseAdmin
                 .from('users')
-                .select('email, full_name, preferred_language')
+                .select('email, full_name, preferred_language, email_notifications_enabled')
                 .eq('id', landlordUserId)
                 .maybeSingle()
-              if (landlord?.email) {
+              if (landlord?.email && emailAllowed(landlord)) {
                 await sendRentPaymentReceivedEmail({
                   to: landlord.email,
                   landlordName: landlord.full_name || 'there',
@@ -206,12 +211,19 @@ export async function POST(request: NextRequest) {
             ? Number(paymentIntent.metadata.prophandld_card_surcharge)
             : 0
           if (bidId) {
-            const { error } = await supabaseAdmin
+            const { data: updatedBid, error } = await supabaseAdmin
               .from('bids')
               .update({ payment_status: 'paid', paid_at: new Date().toISOString(), card_surcharge_amount: cardSurcharge })
               .eq('id', bidId)
               .neq('payment_status', 'paid')
+              .select('id')
             if (error) console.error('stripe webhook: job payment_intent.succeeded failed', error)
+
+            // Nothing actually changed — the bid was already marked paid by
+            // an earlier delivery of this same event (or a prior call), so
+            // stop here rather than re-sending the landlord's receipt and
+            // the contractor's "you've been paid" email/push on every retry.
+            if (!error && (!updatedBid || updatedBid.length === 0)) break
 
             const { data: bid } = await supabaseAdmin
               .from('bids')
@@ -224,10 +236,10 @@ export async function POST(request: NextRequest) {
             const landlordId = receiptJob?.units?.properties?.owner_user_id
             if (bid?.contractor_user_id && landlordId) {
               const [{ data: landlord }, { data: payee }] = await Promise.all([
-                supabaseAdmin.from('users').select('email, full_name, preferred_language').eq('id', landlordId).maybeSingle(),
+                supabaseAdmin.from('users').select('email, full_name, preferred_language, email_notifications_enabled').eq('id', landlordId).maybeSingle(),
                 supabaseAdmin.from('users').select('full_name').eq('id', bid.contractor_user_id).maybeSingle(),
               ])
-              if (landlord?.email) {
+              if (landlord?.email && emailAllowed(landlord)) {
                 await sendJobPaymentReceiptEmail({
                   to: landlord.email,
                   landlordName: landlord.full_name || 'there',
@@ -246,10 +258,10 @@ export async function POST(request: NextRequest) {
               const job = bid.jobs as any
               const { data: contractor } = await supabaseAdmin
                 .from('users')
-                .select('email, full_name, preferred_language')
+                .select('email, full_name, preferred_language, email_notifications_enabled')
                 .eq('id', bid.contractor_user_id)
                 .maybeSingle()
-              if (contractor?.email) {
+              if (contractor?.email && emailAllowed(contractor)) {
                 await sendJobPaymentSentEmail({
                   to: contractor.email,
                   contractorName: contractor.full_name || 'there',

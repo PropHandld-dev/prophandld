@@ -13,6 +13,7 @@ import { RentMonthEditor, type RentEditValues } from '@/components/RentMonthEdit
 import { ensureCurrentMonthRentPayment } from '@/lib/rentAutomation'
 import { FileTextIcon } from '@/components/icons'
 import { useLanguage, t } from '@/lib/i18n'
+import { validateDocumentFile } from '@/lib/mediaValidation'
 
 export default function UnitRentPage() {
   const router = useRouter()
@@ -111,7 +112,7 @@ export default function UnitRentPage() {
     ).then((results) => {
       const changed = open.some((p, i) => {
         const status = results[i]?.status
-        return status === 'paid' || status === 'refunded_credit_card' || (status === 'processing' && p.stripe_status !== 'processing')
+        return status === 'paid' || status === 'already_paid' || status === 'refunded_credit_card' || (status === 'processing' && p.stripe_status !== 'processing')
       })
       if (changed) loadPayments(tenancy.id)
     })
@@ -144,6 +145,11 @@ export default function UnitRentPage() {
 
   const handleAttachWaterBill = async (payment: any, file: File) => {
     if (!userId) return
+    const validationError = validateDocumentFile(file, { allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'] })
+    if (validationError) {
+      setError(validationError)
+      return
+    }
     setUploadingWaterBillId(payment.id)
     setError(null)
 

@@ -13,6 +13,8 @@ import { LogOutIcon } from '@/components/icons'
 import { TABS_BY_ROLE } from '@/lib/navTabs'
 import { StripeConnectCard } from '@/components/StripeConnectCard'
 import { BillingSection } from '@/components/BillingSection'
+import { Switch } from '@/components/Switch'
+import { usePushSubscription } from '@/lib/usePushSubscription'
 import { useLanguage, t } from '@/lib/i18n'
 
 export default function ProfilePage() {
@@ -37,6 +39,11 @@ export default function ProfilePage() {
   const [showPasswordToast, setShowPasswordToast] = useState(false)
   const [smsOptIn, setSmsOptIn] = useState(false)
   const [smsSaving, setSmsSaving] = useState(false)
+  const [emailNotifEnabled, setEmailNotifEnabled] = useState(true)
+  const [emailNotifSaving, setEmailNotifSaving] = useState(false)
+  const [pushNotifEnabled, setPushNotifEnabled] = useState(true)
+  const [pushNotifSaving, setPushNotifSaving] = useState(false)
+  const pushSub = usePushSubscription()
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
   const [deletingAccount, setDeletingAccount] = useState(false)
@@ -60,8 +67,14 @@ export default function ProfilePage() {
         preferred_language: user.user_metadata?.preferred_language || 'en',
       })
 
-      const { data: userRow } = await supabase.from('users').select('sms_opt_in').eq('id', user.id).maybeSingle()
+      const { data: userRow } = await supabase
+        .from('users')
+        .select('sms_opt_in, email_notifications_enabled, push_notifications_enabled')
+        .eq('id', user.id)
+        .maybeSingle()
       setSmsOptIn(!!userRow?.sms_opt_in)
+      setEmailNotifEnabled(userRow?.email_notifications_enabled !== false)
+      setPushNotifEnabled(userRow?.push_notifications_enabled !== false)
 
       await loadBackupContacts(user.id)
 
@@ -140,6 +153,44 @@ export default function ProfilePage() {
 
     setSmsOptIn(next)
     setSmsSaving(false)
+  }
+
+  const handleToggleEmailNotif = async (next: boolean) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    setEmailNotifSaving(true)
+    setError(null)
+    const { error: updateError } = await supabase.from('users').update({ email_notifications_enabled: next }).eq('id', user.id)
+    if (updateError) {
+      console.error('Error updating email_notifications_enabled:', updateError)
+      setError('Could not update email preference: ' + updateError.message)
+      setEmailNotifSaving(false)
+      return
+    }
+    setEmailNotifEnabled(next)
+    setEmailNotifSaving(false)
+  }
+
+  const handleTogglePushNotif = async (next: boolean) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    setPushNotifSaving(true)
+    setError(null)
+    const { error: updateError } = await supabase.from('users').update({ push_notifications_enabled: next }).eq('id', user.id)
+    if (updateError) {
+      console.error('Error updating push_notifications_enabled:', updateError)
+      setError('Could not update push preference: ' + updateError.message)
+      setPushNotifSaving(false)
+      return
+    }
+    setPushNotifEnabled(next)
+    setPushNotifSaving(false)
+    // Turning it on here only saves the account-level preference — if this
+    // browser has never actually subscribed, prompt for that too so the
+    // toggle isn't a no-op. Declining just leaves the hint below visible.
+    if (next && pushSub.checked && !pushSub.subscribed && pushSub.supported) {
+      await pushSub.enable()
+    }
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -434,33 +485,50 @@ export default function ProfilePage() {
           <h2 className="text-white font-semibold mb-2">{t('notificationPreferences', lang)}</h2>
           <p className="text-white/60 text-sm mb-6">{t('notifPrefDesc', lang)}</p>
           <div className="space-y-4">
-            <div className="flex items-center justify-between py-1">
+            <div className="flex items-center justify-between py-1 gap-3">
               <div>
                 <p className="text-white text-sm font-medium">{t('emailNotifications', lang)}</p>
                 <p className="text-white/60 text-xs">{t('emailNotifDesc', lang)}</p>
               </div>
-              <span className="text-[#12A5A9] text-xs font-semibold bg-[#12A5A9]/10 border border-[#12A5A9]/20 rounded-full px-2.5 py-1">{t('alwaysOn', lang)}</span>
+              <Switch checked={emailNotifEnabled} onChange={(next) => !emailNotifSaving && handleToggleEmailNotif(next)} />
             </div>
-            <div className="flex items-center justify-between py-1">
-              <div>
-                <p className="text-white text-sm font-medium">{t('pushNotifications', lang)}</p>
-                <p className="text-white/60 text-xs">{t('pushNotifDesc', lang)}</p>
+
+            <div className="py-1">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-white text-sm font-medium">{t('pushNotifications', lang)}</p>
+                  <p className="text-white/60 text-xs">{t('pushNotifDesc', lang)}</p>
+                </div>
+                <Switch checked={pushNotifEnabled} onChange={(next) => !pushNotifSaving && handleTogglePushNotif(next)} />
               </div>
+              {pushNotifEnabled && pushSub.checked && !pushSub.subscribed && (
+                <div className="mt-3 bg-white/5 border border-white/8 rounded-xl px-3.5 py-3 flex items-center justify-between gap-3 flex-wrap">
+                  <p className="text-white/60 text-xs flex-1 min-w-[180px]">
+                    {pushSub.isIosBrowserTab ? t('pushNeedsBrowserSetupIos', lang) : t('pushNeedsBrowserSetup', lang)}
+                  </p>
+                  {!pushSub.isIosBrowserTab && pushSub.supported && (
+                    <RippleButton
+                      onClick={pushSub.enable}
+                      disabled={pushSub.loading}
+                      className="text-xs font-semibold bg-white/8 text-white px-3.5 py-2 rounded-lg hover:bg-white/12 transition disabled:opacity-50 shrink-0"
+                    >
+                      {pushSub.loading ? t('enabling', lang) : t('enableInThisBrowser', lang)}
+                    </RippleButton>
+                  )}
+                </div>
+              )}
+              {pushSub.error && <p className="text-red-400 text-xs mt-2">{pushSub.error}</p>}
             </div>
-            <div className="flex items-center justify-between py-1">
+
+            <div className="flex items-center justify-between py-1 gap-3">
               <div>
                 <p className="text-white text-sm font-medium">{t('textAlerts', lang)}</p>
                 <p className="text-white/60 text-xs">{t('textAlertsDesc', lang)}</p>
               </div>
-              <button
-                onClick={handleToggleSms}
-                disabled={smsSaving}
-                className={`w-10 h-6 rounded-full relative transition disabled:opacity-50 ${smsOptIn ? 'bg-[#0A7B7E]' : 'bg-white/10'}`}
-              >
-                <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all ${smsOptIn ? 'right-1' : 'left-1'}`} />
-              </button>
+              <Switch checked={smsOptIn} onChange={() => !smsSaving && handleToggleSms()} />
             </div>
           </div>
+          <p className="text-white/40 text-xs mt-6 pt-4 border-t border-white/8">{t('notifPrefFootnote', lang)}</p>
         </div>
 
         {/* Personal backup contact */}
