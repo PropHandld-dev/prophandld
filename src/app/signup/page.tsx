@@ -48,6 +48,9 @@ function SignupForm() {
   // types an email address (theirs or not) into the form.
   const [confirmationEmail, setConfirmationEmail] = useState<string | null>(null)
   const [resendState, setResendState] = useState<'idle' | 'sending' | 'sent'>('idle')
+  const [otpCode, setOtpCode] = useState('')
+  const [verifyingCode, setVerifyingCode] = useState(false)
+  const [otpError, setOtpError] = useState<string | null>(null)
   const [form, setForm] = useState({
     full_name: '',
     email: '',
@@ -203,6 +206,35 @@ function SignupForm() {
     setResendState('sent')
   }
 
+  // Supabase's confirmation email carries both a click-through link and a
+  // 6-digit code (the same underlying token, two ways to use it) — this is
+  // the code path, for anyone checking email on a different device than
+  // they're signing up on, where a link is more friction than typing 6
+  // digits. On success this hands off to /login exactly the way clicking
+  // the link already does (same SIGNED_IN event, same consumeFreshSignIn()
+  // pickup there) rather than duplicating the welcome-email/invite-linking/
+  // role-redirect logic a third time in this file.
+  const handleVerifyCode = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!confirmationEmail || otpCode.trim().length === 0) return
+    setVerifyingCode(true)
+    setOtpError(null)
+
+    const { error: verifyError } = await supabase.auth.verifyOtp({
+      email: confirmationEmail,
+      token: otpCode.trim(),
+      type: 'signup',
+    })
+
+    if (verifyError) {
+      setOtpError('That code didn\'t work. Double-check it, or use the link in the email instead.')
+      setVerifyingCode(false)
+      return
+    }
+
+    router.replace('/login')
+  }
+
   if (confirmationEmail) {
     return (
       <AuthLayout headline="Almost there." subtext="One more step and your account is ready.">
@@ -212,11 +244,38 @@ function SignupForm() {
           </div>
           <h2 className="text-white text-xl font-bold mb-2">Check your email</h2>
           <p className="text-white/60 text-sm mb-1">
-            We sent a confirmation link to
+            We sent a code to
           </p>
           <p className="text-white font-semibold mb-5">{confirmationEmail}</p>
-          <p className="text-white/50 text-sm mb-6">
-            Click the link to activate your account. If this wasn&apos;t your email, no account was created for you, so there&apos;s nothing to do.
+
+          <form onSubmit={handleVerifyCode} className="text-left mb-6">
+            <label className="text-white/70 text-sm block mb-1.5 text-center">Enter the 6-digit code</label>
+            <AuthInput
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              value={otpCode}
+              onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              placeholder="123456"
+              className="text-center text-lg tracking-[0.3em] font-semibold"
+            />
+            {otpError && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm mt-3">
+                {otpError}
+              </div>
+            )}
+            <RippleButton
+              type="submit"
+              disabled={verifyingCode || otpCode.length === 0}
+              className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50 mt-3"
+            >
+              {verifyingCode ? 'Verifying...' : 'Verify'}
+            </RippleButton>
+          </form>
+
+          <p className="text-white/50 text-sm mb-4">
+            Or click the link in that same email instead. If this wasn&apos;t your email, no account was created for you, so there&apos;s nothing to do.
           </p>
           <RippleButton
             type="button"
@@ -224,7 +283,7 @@ function SignupForm() {
             disabled={resendState === 'sending'}
             className="text-[#12A5A9] text-sm font-semibold hover:underline disabled:opacity-50"
           >
-            {resendState === 'sent' ? '✓ Sent again' : resendState === 'sending' ? 'Sending...' : "Didn't get it? Resend"}
+            {resendState === 'sent' ? '✓ Sent again' : resendState === 'sending' ? 'Sending...' : "Didn't get either? Resend"}
           </RippleButton>
           {error && (
             <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm mt-4">
