@@ -15,6 +15,10 @@ export default function JobPaymentReceiptPage() {
   const [loading, setLoading] = useState(true)
   const [receipt, setReceipt] = useState<any>(null)
   const [backHref, setBackHref] = useState('/landlord')
+  // The surcharge is only ever real to the landlord who paid it — the
+  // contractor received exactly the base bid amount either way, and
+  // should never see a receipt implying otherwise.
+  const [isLandlordViewer, setIsLandlordViewer] = useState(false)
 
   useEffect(() => {
     const init = async () => {
@@ -27,7 +31,7 @@ export default function JobPaymentReceiptPage() {
       const { data } = await supabase
         .from('bids')
         .select(
-          'id, amount, proposed_amount, payment_status, paid_at, contractor_user_id, jobs(category, created_at, units(unit_number, properties(address, city, state, owner_user_id)))'
+          'id, amount, proposed_amount, card_surcharge_amount, payment_status, paid_at, contractor_user_id, jobs(category, created_at, units(unit_number, properties(address, city, state, owner_user_id)))'
         )
         .eq('id', bidId)
         .maybeSingle()
@@ -43,6 +47,7 @@ export default function JobPaymentReceiptPage() {
 
       setReceipt(data ? { ...data, contractorName: (contractorData as any)?.full_name, landlordName: (landlordData as any)?.full_name } : data)
       setBackHref(contractorId === user.id ? '/contractor' : '/landlord')
+      setIsLandlordViewer(landlordId === user.id)
       setLoading(false)
     }
     init()
@@ -68,6 +73,8 @@ export default function JobPaymentReceiptPage() {
   const unit = job?.units
   const property = unit?.properties
   const amount = Number(receipt.amount)
+  const surcharge = isLandlordViewer ? Number(receipt.card_surcharge_amount || 0) : 0
+  const totalCharged = amount + surcharge
   const propertyLabel = property?.address
     ? `${property.address}${unit?.unit_number ? `, Unit ${unit.unit_number}` : ''}`
     : t('propertyFallback', lang)
@@ -83,11 +90,15 @@ export default function JobPaymentReceiptPage() {
         { label: t('paidToLabel', lang), value: receipt.contractorName || '—' },
         { label: t('propertyLabel', lang), value: property ? `${property.city}, ${property.state}` : '—' },
         { label: t('jobLabel', lang), value: job?.category || '—' },
+        // Only shown when it's actually nonzero (a bank payment never has
+        // one), and only to the landlord — the contractor's own receipt
+        // never mentions it, since they received exactly the bid amount.
+        ...(surcharge > 0 ? [{ label: t('cardProcessingFeeLabel', lang), value: `$${surcharge.toFixed(2)}` }] : []),
         { label: t('paidOnLabel', lang), value: receipt.paid_at ? new Date(receipt.paid_at).toLocaleDateString(lang === 'es' ? 'es-ES' : undefined) : '—' },
         { label: t('methodLabelReceipt', lang), value: t('cardOrBankTransferValue', lang) },
       ]}
       totalLabel={t('amountPaidLabel', lang)}
-      totalValue={`$${amount.toFixed(2)}`}
+      totalValue={`$${totalCharged.toFixed(2)}`}
       receiptId={receipt.id}
       footerNote={t('processedViaFooterNote', lang)}
     />

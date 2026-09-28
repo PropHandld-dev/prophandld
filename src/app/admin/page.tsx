@@ -109,7 +109,7 @@ export default function AdminOverviewPage() {
         fetch('/api/admin/users').then((r) => r.json()).catch(() => ({ users: [] })),
         supabase.from('landlord_subscriptions').select('tier, unit_count, status'),
         supabase.from('rent_payments').select('actual_amount, month, card_surcharge_amount'),
-        supabase.from('bids').select('amount, proposed_amount, paid_at').eq('payment_status', 'paid'),
+        supabase.from('bids').select('amount, proposed_amount, paid_at, card_surcharge_amount').eq('payment_status', 'paid'),
         supabase.from('disputes').select('id').eq('status', 'open'),
         fetch('/api/admin/metrics-trend').then((r) => r.json()).catch(() => ({ snapshots: [] })),
       ])
@@ -147,12 +147,13 @@ export default function AdminOverviewPage() {
 
       const jobPaymentsAllTime = (paidBids || []).reduce((sum, b) => sum + Number(b.amount ?? 0), 0)
 
-      // Job payments: Prophandld absorbs the full card fee (contractors
-      // keep 100% of their bid). Rent: a card payment already collected a
-      // surcharge to cover this (see cardSurcharge.ts), so only ACH rent
-      // payments (no surcharge) cost the platform anything here.
+      // Job payments: a card payment now collects a surcharge to cover
+      // Stripe's real fee (same mechanism as rent card payments), so only
+      // bank-paid job payments (no surcharge) still cost the platform
+      // anything here — card ones are break-even by design.
       const jobFeesThisMonth = (paidBids || [])
         .filter((b: any) => b.paid_at && monthKey(b.paid_at) === currentMonth)
+        .filter((b: any) => !b.card_surcharge_amount || Number(b.card_surcharge_amount) === 0)
         .reduce((sum: number, b: any) => sum + Number(b.amount || 0) * CARD_FEE_RATE + CARD_FEE_FIXED, 0)
       const rentAchFeesThisMonth = rentPaymentsThisMonth
         .filter((p: any) => !p.card_surcharge_amount || Number(p.card_surcharge_amount) === 0)

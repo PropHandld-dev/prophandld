@@ -25,6 +25,7 @@ import { useJobRealtime } from '@/lib/useJobRealtime'
 import { requirementById } from '@/lib/credentialRequirements'
 import { TIME_WINDOWS, validateScheduleTime, rescheduleLockError } from '@/lib/scheduleWindows'
 import { AddressLink } from '@/components/AddressLink'
+import { cardProcessingFee } from '@/lib/cardSurcharge'
 import { useLanguage, t, windowLabel } from '@/lib/i18n'
 
 export default function JobDetailPage() {
@@ -66,6 +67,7 @@ export default function JobDetailPage() {
   const [paidBanner, setPaidBanner] = useState<PaymentOutcome | null>(null)
   const [paymentModal, setPaymentModal] = useState<{ clientSecret: string; amount: number } | null>(null)
   const [paymentError, setPaymentError] = useState<string | null>(null)
+  const [showPaymentMethodChoice, setShowPaymentMethodChoice] = useState(false)
   const [showPriceModal, setShowPriceModal] = useState(false)
   const [priceAction, setPriceAction] = useState<'approve' | 'reject' | null>(null)
 
@@ -672,20 +674,33 @@ export default function JobDetailPage() {
     setActioning(false)
   }
 
-  // Returns true when the payment window opened, false if it couldn't start.
+  // Opens the "how do you want to pay" choice first — same reason as
+  // rent: the charge amount (and whether a processing-fee surcharge
+  // applies) has to be fixed before the PaymentIntent is created, which
+  // means the method has to be picked first. Returns true once the choice
+  // is showing — the auto-approve flow only uses this to decide whether
+  // to scroll to the Pay button, not to know the payment actually started.
   const handlePayContractor = async (): Promise<boolean> => {
     const acceptedBid = bids.find((b) => b.status === 'accepted')
     if (!acceptedBid) return false
+    setPaymentError(null)
+    setShowPaymentMethodChoice(true)
+    return true
+  }
+
+  const startPaymentWithMethod = async (method: 'bank' | 'card') => {
+    const acceptedBid = bids.find((b) => b.status === 'accepted')
+    setShowPaymentMethodChoice(false)
+    if (!acceptedBid) return
 
     setPayingContractor(true)
     setPaymentError(null)
 
-    let started = false
     try {
       const res = await fetch('/api/stripe/job-payment/create-payment-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bidId: acceptedBid.id }),
+        body: JSON.stringify({ bidId: acceptedBid.id, paymentMethod: method }),
       })
       const data = await res.json()
       if (data.alreadyPaid) {
@@ -695,13 +710,11 @@ export default function JobDetailPage() {
         setPaymentError(data.error || 'Could not start payment.')
       } else {
         setPaymentModal({ clientSecret: data.clientSecret, amount: data.amount })
-        started = true
       }
     } catch {
       setPaymentError('Could not start payment.')
     }
     setPayingContractor(false)
-    return started
   }
 
   // Fires the moment Stripe confirms the payment, while the confirmation
@@ -1717,6 +1730,49 @@ export default function JobDetailPage() {
           </div>
         </div>
       )}
+
+      {showPaymentMethodChoice && acceptedBid && (() => {
+        const baseAmount = Number(acceptedBid.amount)
+        const fee = cardProcessingFee(baseAmount)
+        return (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
+            <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
+              <h3 className="text-white font-semibold mb-1">{t('howDoYouWantToPay', lang)}</h3>
+              <p className="text-white/50 text-xs mb-4">{acceptedBid.contractor?.full_name} keeps ${baseAmount.toFixed(2)} either way.</p>
+              <div className="space-y-3">
+                <button
+                  onClick={() => startPaymentWithMethod('bank')}
+                  className="w-full text-left bg-white/5 hover:bg-white/8 border border-white/10 rounded-xl px-4 py-3 transition"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-white font-medium text-sm">{t('bankAccountOptionLabel', lang)}</span>
+                    <span className="text-white font-semibold text-sm tabular-nums">${baseAmount.toFixed(2)}</span>
+                  </div>
+                  <p className="text-white/50 text-xs mt-1">{t('bankAccountOptionDesc', lang)}</p>
+                </button>
+                <button
+                  onClick={() => startPaymentWithMethod('card')}
+                  className="w-full text-left bg-white/5 hover:bg-white/8 border border-white/10 rounded-xl px-4 py-3 transition"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-white font-medium text-sm">{t('debitCardOptionLabel', lang)}</span>
+                    <span className="text-white font-semibold text-sm tabular-nums">${(baseAmount + fee).toFixed(2)}</span>
+                  </div>
+                  <p className="text-white/50 text-xs mt-1">
+                    +${fee.toFixed(2)} {t('processingFeeSuffix', lang)}
+                  </p>
+                </button>
+              </div>
+              <button
+                onClick={() => setShowPaymentMethodChoice(false)}
+                className="w-full text-center text-white/50 hover:text-white text-sm mt-4 transition"
+              >
+                {t('cancel', lang)}
+              </button>
+            </div>
+          </div>
+        )
+      })()}
 
       {paymentModal && (
         <StripePaymentModal

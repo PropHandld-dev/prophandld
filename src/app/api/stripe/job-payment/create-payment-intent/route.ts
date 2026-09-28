@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { getStripe, paymentPaidAt } from '@/lib/stripe'
+import { cardProcessingFee } from '@/lib/cardSurcharge'
 
 export async function POST(request: NextRequest) {
   const authClient = await createClient()
@@ -10,10 +11,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
 
-  const { bidId } = (await request.json()) as { bidId?: string }
+  const { bidId, paymentMethod } = (await request.json()) as { bidId?: string; paymentMethod?: 'bank' | 'card' }
   if (!bidId) {
     return NextResponse.json({ error: 'Missing bidId' }, { status: 400 })
   }
+  // Same safe default as rent: anything other than an explicit 'card'
+  // choice is treated as 'bank' — free to the landlord, no surcharge.
+  const method: 'bank' | 'card' = paymentMethod === 'card' ? 'card' : 'bank'
 
   const supabaseAdmin = getSupabaseAdmin()
 
@@ -56,9 +60,25 @@ export async function POST(request: NextRequest) {
   // `amount` is the agreed price: approving a price change copies the new
   // number into it. `proposed_amount` is only a request, and keeps its value
   // after a rejection, so it must never be charged.
+  //
+  // The contractor still receives exactly `amount` either way — "no
+  // platform fee, ever" was a promise about their side of this, not about
+  // what the landlord's total charge looks like. A card payment adds
+  // Stripe's real processing fee on top as a visible surcharge (same
+  // mechanism already proven on rent card payments); application_fee_amount
+  // retains exactly that surcharge for Prophandld instead of the platform
+  // absorbing it out of its own balance on every job payment. Bank
+  // transfers stay genuinely free to the landlord. Restricting
+  // payment_method_types to the one chosen method is what makes a
+  // method-specific amount possible — the amount has to be fixed before
+  // the PaymentIntent is created, so the method has to be picked first.
   const amount = Number(bid.amount)
+  const surcharge = method === 'card' ? cardProcessingFee(amount) : 0
+  const chargeAmount = amount + surcharge
   const stripe = getStripe()
-  const amountCents = Math.round(amount * 100)
+  const amountCents = Math.round(chargeAmount * 100)
+  const applicationFeeCents = method === 'card' ? Math.round(surcharge * 100) : undefined
+  const paymentMethodTypes = method === 'card' ? ['card'] : ['us_bank_account']
 
   // "processing" is written when a payment window opens, so it can be left
   // over from a window that was closed without paying. Check what Stripe
@@ -85,13 +105,19 @@ export async function POST(request: NextRequest) {
       }
 
       if (existing.status !== 'canceled') {
+        // Must match on the chosen method too, not just the amount — a
+        // stale bank-only intent from a previous attempt is never reusable
+        // for a card request (or vice versa), since the amount, the
+        // surcharge, and the allowed payment method all move together.
         const reusable =
           ['requires_payment_method', 'requires_confirmation', 'requires_action'].includes(existing.status) &&
           existing.amount === amountCents &&
           existing.client_secret &&
-          existing.transfer_data?.destination === contractorRow.stripe_connect_account_id
+          existing.transfer_data?.destination === contractorRow.stripe_connect_account_id &&
+          existing.payment_method_types?.length === paymentMethodTypes.length &&
+          existing.payment_method_types?.every((t) => paymentMethodTypes.includes(t))
         if (reusable) {
-          return NextResponse.json({ clientSecret: existing.client_secret, amount })
+          return NextResponse.json({ clientSecret: existing.client_secret, amount: chargeAmount, baseAmount: amount, fee: surcharge })
         }
         // Amount or payee changed since it was created: retire the old one.
         await stripe.paymentIntents.cancel(existing.id).catch((err) => {
@@ -107,11 +133,14 @@ export async function POST(request: NextRequest) {
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amountCents,
       currency: 'usd',
-      payment_method_types: ['card', 'us_bank_account'],
+      payment_method_types: paymentMethodTypes,
       transfer_data: { destination: contractorRow.stripe_connect_account_id },
+      ...(applicationFeeCents ? { application_fee_amount: applicationFeeCents } : {}),
       metadata: {
         prophandld_type: 'job_payment',
         prophandld_bid_id: bid.id,
+        prophandld_base_amount: amount.toFixed(2),
+        prophandld_card_surcharge: surcharge.toFixed(2),
       },
     })
 
@@ -120,7 +149,7 @@ export async function POST(request: NextRequest) {
       .update({ stripe_payment_intent_id: paymentIntent.id, payment_status: 'processing' })
       .eq('id', bid.id)
 
-    return NextResponse.json({ clientSecret: paymentIntent.client_secret, amount })
+    return NextResponse.json({ clientSecret: paymentIntent.client_secret, amount: chargeAmount, baseAmount: amount, fee: surcharge })
   } catch (err) {
     console.error('job-payment/create-payment-intent: unhandled error', err)
     const message = err instanceof Error ? err.message : 'Unknown error'

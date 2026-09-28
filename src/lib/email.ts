@@ -1241,6 +1241,7 @@ export async function sendJobPaymentReceiptEmail({
   landlordName,
   contractorName,
   amount,
+  fee = 0,
   category,
   propertyLabel,
   bidId,
@@ -1250,41 +1251,52 @@ export async function sendJobPaymentReceiptEmail({
   landlordName: string
   contractorName: string
   amount: number
+  fee?: number
   category: string
   propertyLabel: string
   bidId: string
   lang?: Lang
 }) {
+  // `amount` is always what the contractor was actually paid — the
+  // landlord's own total (if they paid by card and a processing-fee
+  // surcharge applied) is amount + fee, shown as its own fact rather than
+  // folded into "Amount" so the number the contractor was paid never
+  // looks ambiguous on the landlord's own receipt.
+  const total = amount + fee
+  const esFacts: EmailFact[] = [
+    { label: fl('Amount', lang), value: `$${amount.toFixed(2)}` },
+    ...(fee > 0 ? [{ label: 'Cargo por procesamiento', value: `$${fee.toFixed(2)}` }, { label: 'Total cobrado', value: `$${total.toFixed(2)}` }] : []),
+    { label: fl('Paid to', lang), value: contractorName },
+    { label: fl('Job', lang), value: category },
+    { label: fl('Where', lang), value: propertyLabel },
+  ]
+  const enFacts: EmailFact[] = [
+    { label: fl('Amount', lang), value: `$${amount.toFixed(2)}` },
+    ...(fee > 0 ? [{ label: 'Processing fee', value: `$${fee.toFixed(2)}` }, { label: 'Total charged', value: `$${total.toFixed(2)}` }] : []),
+    { label: fl('Paid to', lang), value: contractorName },
+    { label: fl('Job', lang), value: category },
+    { label: fl('Where', lang), value: propertyLabel },
+  ]
   const html = lang === 'es' ? baseTemplate({
     lang,
     eyebrow: 'Recibo',
     heading: 'Recibo de pago',
-    bodyHtml: `Hola ${escapeHtml(landlordName)}, tu pago de <strong>$${amount.toFixed(2)}</strong> a <strong>${escapeHtml(contractorName)}</strong> por el trabajo de <strong>${escapeHtml(category)}</strong> en ${escapeHtml(propertyLabel)} se procesó. Tu recibo está guardado en el trabajo para tus registros.`,
-    preheader: `$${amount.toFixed(2)} a ${contractorName} por ${category}.`,
-    facts: [
-      { label: fl('Amount', lang), value: `$${amount.toFixed(2)}` },
-      { label: fl('Paid to', lang), value: contractorName },
-      { label: fl('Job', lang), value: category },
-      { label: fl('Where', lang), value: propertyLabel },
-    ],
+    bodyHtml: `Hola ${escapeHtml(landlordName)}, tu pago de <strong>$${total.toFixed(2)}</strong> a <strong>${escapeHtml(contractorName)}</strong> por el trabajo de <strong>${escapeHtml(category)}</strong> en ${escapeHtml(propertyLabel)} se procesó. Tu recibo está guardado en el trabajo para tus registros.`,
+    preheader: `$${total.toFixed(2)} a ${contractorName} por ${category}.`,
+    facts: esFacts,
     ctaLabel: 'Ver recibo',
     ctaUrl: `${SITE_URL}/receipts/job/${bidId}`,
   }) : baseTemplate({
     lang,
     eyebrow: 'Receipt',
     heading: 'Payment receipt',
-    bodyHtml: `Hi ${escapeHtml(landlordName)}, your payment of <strong>$${amount.toFixed(2)}</strong> to <strong>${escapeHtml(contractorName)}</strong> for the <strong>${escapeHtml(category)}</strong> job at ${escapeHtml(propertyLabel)} went through. Your receipt is saved on the job for your records.`,
-    preheader: `$${amount.toFixed(2)} to ${contractorName} for ${category}.`,
-    facts: [
-      { label: fl('Amount', lang), value: `$${amount.toFixed(2)}` },
-      { label: fl('Paid to', lang), value: contractorName },
-      { label: fl('Job', lang), value: category },
-      { label: fl('Where', lang), value: propertyLabel },
-    ],
+    bodyHtml: `Hi ${escapeHtml(landlordName)}, your payment of <strong>$${total.toFixed(2)}</strong> to <strong>${escapeHtml(contractorName)}</strong> for the <strong>${escapeHtml(category)}</strong> job at ${escapeHtml(propertyLabel)} went through. Your receipt is saved on the job for your records.`,
+    preheader: `$${total.toFixed(2)} to ${contractorName} for ${category}.`,
+    facts: enFacts,
     ctaLabel: 'View receipt',
     ctaUrl: `${SITE_URL}/receipts/job/${bidId}`,
   })
-  return sendEmail({ to, subject: lang === 'es' ? `Recibo: $${amount.toFixed(2)} pagado por ${category}` : `Receipt: $${amount.toFixed(2)} paid for ${category}`, html })
+  return sendEmail({ to, subject: lang === 'es' ? `Recibo: $${total.toFixed(2)} pagado por ${category}` : `Receipt: $${total.toFixed(2)} paid for ${category}`, html })
 }
 
 export async function sendJobAutoApprovedPayNowEmail({

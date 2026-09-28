@@ -194,10 +194,21 @@ export async function POST(request: NextRequest) {
 
         if (type === 'job_payment') {
           const bidId = paymentIntent.metadata?.prophandld_bid_id
+          // The contractor's real payout — and what they should ever be
+          // told they "got paid" — is always this, not the raw charge
+          // amount, which now can include a card surcharge the landlord
+          // paid on top. Falls back to the raw amount for any older
+          // PaymentIntent created before this metadata existed.
+          const baseAmountPaid = paymentIntent.metadata?.prophandld_base_amount
+            ? Number(paymentIntent.metadata.prophandld_base_amount)
+            : paymentIntent.amount / 100
+          const cardSurcharge = paymentIntent.metadata?.prophandld_card_surcharge
+            ? Number(paymentIntent.metadata.prophandld_card_surcharge)
+            : 0
           if (bidId) {
             const { error } = await supabaseAdmin
               .from('bids')
-              .update({ payment_status: 'paid', paid_at: new Date().toISOString() })
+              .update({ payment_status: 'paid', paid_at: new Date().toISOString(), card_surcharge_amount: cardSurcharge })
               .eq('id', bidId)
               .neq('payment_status', 'paid')
             if (error) console.error('stripe webhook: job payment_intent.succeeded failed', error)
@@ -221,7 +232,8 @@ export async function POST(request: NextRequest) {
                   to: landlord.email,
                   landlordName: landlord.full_name || 'there',
                   contractorName: payee?.full_name || 'your contractor',
-                  amount: paymentIntent.amount / 100,
+                  amount: baseAmountPaid,
+                  fee: cardSurcharge,
                   category: receiptJob?.category || 'your job',
                   propertyLabel: receiptJob?.units?.properties?.address || 'the property',
                   bidId,
@@ -241,7 +253,7 @@ export async function POST(request: NextRequest) {
                 await sendJobPaymentSentEmail({
                   to: contractor.email,
                   contractorName: contractor.full_name || 'there',
-                  amount: paymentIntent.amount / 100,
+                  amount: baseAmountPaid,
                   category: job?.category || 'your job',
                   propertyLabel: job?.units?.properties?.address || 'the property',
                   bidId,
@@ -250,7 +262,7 @@ export async function POST(request: NextRequest) {
               }
               await sendPush(bid.contractor_user_id, {
                 title: "You've been paid",
-                body: `$${(paymentIntent.amount / 100).toFixed(2)} for ${job?.category || 'your job'}`,
+                body: `$${baseAmountPaid.toFixed(2)} for ${job?.category || 'your job'}`,
                 url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/receipts/job/${bidId}`,
               }).catch((err) => console.error('stripe webhook: sendPush (job payment) failed', err))
             }
