@@ -76,6 +76,44 @@ export default function JobDetailPage() {
   const [scheduleWindow, setScheduleWindow] = useState('morning')
   const [scheduleTime, setScheduleTime] = useState('')
 
+  // A job sitting with zero bids is the single moment most likely to make a
+  // landlord give up on the app entirely, per Nevin's own reasoning: a
+  // landlord who checks back and sees nothing assumes the marketplace is
+  // empty and never comes back. Rather than just wait on more contractors
+  // to sign up, this turns the moment into the invite-your-own-contractor
+  // growth loop right where the landlord is already looking.
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [inviteSending, setInviteSending] = useState(false)
+  const [inviteSent, setInviteSent] = useState(false)
+  const [inviteError, setInviteError] = useState<string | null>(null)
+
+  const handleInviteFromJob = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!inviteEmail.trim() || inviteSending) return
+    setInviteSending(true)
+    setInviteError(null)
+
+    const res = await fetch('/api/invite-contractor', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: inviteEmail.trim(),
+        note: job?.category ? `I have a ${job.category} job ready for bids on Prophandld` : undefined,
+      }),
+    })
+    const data = await res.json().catch(() => ({}))
+
+    if (!res.ok) {
+      setInviteError(data.error || t('couldNotSendInvitePlain', lang))
+      setInviteSending(false)
+      return
+    }
+
+    setInviteSent(true)
+    setInviteEmail('')
+    setInviteSending(false)
+  }
+
   const fetchJob = async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
@@ -1057,7 +1095,45 @@ export default function JobDetailPage() {
               </div>
             )}
             {openBids.length === 0 ? (
-              <p className="text-white/50 text-sm">{t('noBidsYetNotified', lang)}</p>
+              <div>
+                <p className="text-white/50 text-sm mb-4">{t('noBidsYetNotified', lang)}</p>
+                <div className="bg-white/3 border border-white/8 rounded-xl p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-r from-[#0A7B7E]/30 to-[#12A5A9]/30 border border-[#12A5A9]/30 flex items-center justify-center shrink-0">
+                      <WrenchIcon className="w-4 h-4 text-[#12A5A9]" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-sm font-medium">{t('jobInviteHeading', lang)}</p>
+                      <p className="text-white/50 text-xs mt-0.5 mb-3">{t('jobInviteDesc', lang)}</p>
+                      {inviteSent ? (
+                        <div className="flex items-center gap-2 text-[#12A5A9] text-sm font-medium">
+                          <CheckCircleIcon className="w-4 h-4 shrink-0" />
+                          {t('inviteCardSent', lang)}
+                        </div>
+                      ) : (
+                        <form onSubmit={handleInviteFromJob} className="flex flex-col sm:flex-row gap-2">
+                          <input
+                            type="email"
+                            value={inviteEmail}
+                            onChange={(e) => setInviteEmail(e.target.value)}
+                            required
+                            placeholder={t('contractorsEmailPlaceholder', lang)}
+                            className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-white/40 focus:outline-none focus:border-[#12A5A9] transition"
+                          />
+                          <RippleButton
+                            type="submit"
+                            disabled={inviteSending}
+                            className="text-sm font-semibold bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50 shrink-0"
+                          >
+                            {inviteSending ? t('sendingDots', lang) : t('inviteCardSendBtn', lang)}
+                          </RippleButton>
+                        </form>
+                      )}
+                      {inviteError && <p className="text-red-400 text-xs mt-2">{inviteError}</p>}
+                    </div>
+                  </div>
+                </div>
+              </div>
             ) : (
               <div className="space-y-3">
                 {openBids.map((bid) => (
