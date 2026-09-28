@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/Skeleton'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { EnableNotificationsCard } from '@/components/EnableNotificationsCard'
 import { BillingReminder } from '@/components/BillingReminder'
+import { InviteContractorCard } from '@/components/InviteContractorCard'
 import { MagneticLink } from '@/components/MagneticLink'
 import { ProfileButton } from '@/components/ProfileButton'
 import { MessagesButton } from '@/components/MessagesButton'
@@ -522,6 +523,8 @@ export default function LandlordDashboard() {
             </div>
 
             <AlertsList items={alertItems} />
+
+            <InviteContractorCard />
 
             {visibleRentActivity.length > 0 && (
               <div className="bg-white/3 border border-white/8 rounded-2xl p-5 mb-6">

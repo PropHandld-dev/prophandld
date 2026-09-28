@@ -64,6 +64,7 @@ export default function LandingPage() {
         <div className="flex items-center gap-6">
           <a href="#how-it-works" className="text-sm text-white/50 hover:text-white transition hidden sm:block">How it works</a>
           <a href="#roles" className="text-sm text-white/50 hover:text-white transition hidden sm:block">Who it&apos;s for</a>
+          <Link href="/contractors" className="text-sm text-white/50 hover:text-white transition hidden sm:block">For contractors</Link>
           <Link href="/login" className="text-sm font-medium text-white/70 hover:text-white transition">
             Sign in
           </Link>
@@ -227,11 +228,13 @@ export default function LandingPage() {
         <div className="grid sm:grid-cols-3 gap-6">
           <div className="bg-white/3 border border-[#12A5A9]/30 rounded-2xl p-7 hover:border-[#12A5A9]/50 hover:bg-white/5 hover:-translate-y-0.5 transition-all duration-200">
             <span className="text-xs font-semibold text-[#12A5A9] bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 border border-[#12A5A9]/30 px-2.5 py-1 rounded-full">Landlords</span>
-            <h3 className="text-white font-bold text-lg mt-4 mb-2">Stop chasing quotes</h3>
+            <h3 className="text-white font-bold text-lg mt-4 mb-2">Bring your own guy. Or find a new one.</h3>
             <p className="text-white/50 text-sm leading-relaxed mb-5">
-              Manage every property, unit, and tenant in one dashboard, with no
-              more spreadsheets or scattered notes. Get competitive bids,
-              collect rent online, and pay contractors right here too.
+              Already have a plumber or electrician you trust? Invite them in
+              directly, no bidding required, everything from quotes to
+              payments stays in one dashboard. Need someone new? Open the job
+              to sealed bidding instead. Either way, you also get rent
+              collection, leases, and compliance tracking in the same place.
             </p>
             <Link href="/signup?role=landlord" className="text-[#12A5A9] text-sm font-semibold hover:underline">
               Sign up as a landlord →
@@ -251,15 +254,15 @@ export default function LandingPage() {
           </div>
           <div className="bg-white/3 border border-white/8 rounded-2xl p-7 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all duration-200">
             <span className="text-xs font-semibold text-[#12A5A9] bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 border border-[#12A5A9]/30 px-2.5 py-1 rounded-full">Contractors</span>
-            <h3 className="text-white font-bold text-lg mt-4 mb-2">Bid fair, get picked on merit</h3>
+            <h3 className="text-white font-bold text-lg mt-4 mb-2">Free leads. No cut. Ever.</h3>
             <p className="text-white/50 text-sm leading-relaxed mb-5">
-              See real jobs near you, submit a sealed bid, get picked on the
-              merits, and get paid directly the moment the job&apos;s done.
-              Once you&apos;re confirmed, one tap pulls up directions and a
-              street view of the property. <span className="text-white/70 font-medium">Completely free to use, no platform fee, ever.</span>
+              Real jobs near you, sent straight to your phone for your trade.
+              Submit a sealed bid and get picked on merit, not by who lowballed
+              hardest. Get paid directly the moment the job&apos;s approved.{' '}
+              <span className="text-white/70 font-medium">No signup fee, no monthly fee, no cut of your bid. Not now, not ever.</span>
             </p>
-            <Link href="/signup?role=contractor" className="text-[#12A5A9] text-sm font-semibold hover:underline">
-              Sign up as a contractor →
+            <Link href="/contractors" className="text-[#12A5A9] text-sm font-semibold hover:underline">
+              See how it works for contractors →
             </Link>
           </div>
         </div>

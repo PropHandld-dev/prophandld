@@ -9,7 +9,14 @@ import { Skeleton } from '@/components/Skeleton'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
+import { WrenchIcon, MessageCircleIcon, ReceiptIcon, CheckCircleIcon } from '@/components/icons'
 import { useLanguage, t } from '@/lib/i18n'
+
+const PITCH_POINTS: { icon: typeof WrenchIcon; textKey: Parameters<typeof t>[0] }[] = [
+  { icon: WrenchIcon, textKey: 'invitePitchNoFees' },
+  { icon: MessageCircleIcon, textKey: 'invitePitchOneThread' },
+  { icon: ReceiptIcon, textKey: 'invitePitchPaidFast' },
+]
 
 export default function InviteContractorPage() {
   const router = useRouter()
@@ -99,10 +106,26 @@ export default function InviteContractorPage() {
           </div>
         ) : (
           <>
-            <h1 className="text-2xl font-bold text-white mb-2">{t('inviteAContractorHeading', lang)}</h1>
-            <p className="text-white/50 text-sm mb-8">
-              {t('inviteContractorDesc', lang)}
-            </p>
+            {/* Hero / pitch */}
+            <div className="mb-8">
+              <span className="inline-flex items-center gap-1.5 bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 text-[#12A5A9] border border-[#12A5A9]/30 text-xs font-semibold rounded-full px-3 py-1 mb-4">
+                <WrenchIcon className="w-3 h-3" />
+                {t('inviteEyebrow', lang)}
+              </span>
+              <h1 className="text-2xl font-bold text-white mb-2">{t('inviteAContractorHeading', lang)}</h1>
+              <p className="text-white/60 text-sm leading-relaxed">
+                {t('inviteContractorDesc', lang)}
+              </p>
+            </div>
+
+            <ScrollReveal className="grid sm:grid-cols-3 gap-3 mb-8">
+              {PITCH_POINTS.map(({ icon: Icon, textKey }) => (
+                <div key={textKey} className="bg-white/3 border border-white/8 rounded-xl px-3.5 py-3.5">
+                  <Icon className="w-4 h-4 text-[#12A5A9] mb-2" />
+                  <p className="text-white/70 text-xs leading-snug">{t(textKey, lang)}</p>
+                </div>
+              ))}
+            </ScrollReveal>
 
             <ScrollReveal>
               <form onSubmit={handleSubmit} className="bg-white/3 border border-white/8 rounded-2xl p-6 space-y-4 mb-8">
@@ -113,7 +136,7 @@ export default function InviteContractorPage() {
                     value={form.email}
                     onChange={(e) => setForm({ ...form, email: e.target.value })}
                     required
-                    placeholder="them@example.com"
+                    placeholder={t('contractorsEmailPlaceholder', lang)}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
                   />
                 </div>
@@ -132,7 +155,10 @@ export default function InviteContractorPage() {
                   <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">{error}</div>
                 )}
                 {success && (
-                  <div className="bg-[#0A7B7E]/15 border border-[#12A5A9]/30 rounded-xl px-4 py-3 text-[#12A5A9] text-sm">{success}</div>
+                  <div className="bg-[#0A7B7E]/15 border border-[#12A5A9]/30 rounded-xl px-4 py-3 text-[#12A5A9] text-sm flex items-center gap-2">
+                    <CheckCircleIcon className="w-4 h-4 shrink-0" />
+                    {success}
+                  </div>
                 )}
 
                 <RippleButton
