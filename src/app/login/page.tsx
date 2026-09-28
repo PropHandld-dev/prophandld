@@ -34,6 +34,26 @@ const ROLE_CONTENT: Record<Role, { headline: string; subtext: string; checklist:
 
 const VALID_ROLES: Role[] = ['landlord', 'renter', 'contractor']
 
+// The public.users row for a brand-new account is created by a database
+// trigger off auth.users, not by this app — so a request landing right after
+// signup can genuinely beat that trigger. The endpoint tells this case apart
+// (409 + notReady) from "already welcomed," so it's worth one retry after a
+// beat instead of silently giving up on a real first activation.
+async function sendWelcomeEmailWithRetry() {
+  try {
+    const res = await fetch('/api/auth/welcome', { method: 'POST' })
+    if (res.status === 409) {
+      const body = await res.json().catch(() => ({}))
+      if (body?.notReady) {
+        await new Promise((resolve) => setTimeout(resolve, 1500))
+        await fetch('/api/auth/welcome', { method: 'POST' })
+      }
+    }
+  } catch (err) {
+    console.error('Error sending welcome email:', err)
+  }
+}
+
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -83,9 +103,7 @@ function LoginForm() {
     } catch {}
     const accountRole = user.user_metadata?.role
     if (isFirstActivation && (accountRole === 'landlord' || accountRole === 'renter' || accountRole === 'contractor')) {
-      fetch('/api/auth/welcome', { method: 'POST' }).catch((err) =>
-        console.error('Error sending welcome email:', err)
-      )
+      sendWelcomeEmailWithRetry()
     }
     if (accountRole === 'renter') {
       // A renter's real first entry into the app now happens here, not on

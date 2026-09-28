@@ -44,7 +44,28 @@ export async function POST() {
     return NextResponse.json({ ok: false, sent: false }, { status: 500 })
   }
   if (!claimed) {
-    // Already welcomed at some point before — correct outcome, not an error.
+    // Zero rows matched .is('welcomed_at', null) — but that's true for two
+    // very different reasons that used to get silently conflated: the row
+    // exists and was already welcomed (fine, nothing to do), or the
+    // public.users row for this brand-new account doesn't exist YET (it's
+    // created by a database trigger off auth.users, not by this app, so a
+    // request that lands before that trigger has finished loses this race
+    // and the welcome email would otherwise just never send, with nothing
+    // anywhere to show it failed). Told apart here so the second case is a
+    // real, logged, retryable error instead of a silent no-op.
+    const { data: existing, error: existingError } = await supabaseAdmin
+      .from('users')
+      .select('welcomed_at')
+      .eq('id', user.id)
+      .maybeSingle()
+    if (existingError) {
+      console.error('welcome email: could not check existing row', existingError)
+      return NextResponse.json({ ok: false, sent: false }, { status: 500 })
+    }
+    if (!existing) {
+      console.error('welcome email: public.users row not found yet for', user.id, '(likely still waiting on the auth.users trigger)')
+      return NextResponse.json({ ok: false, sent: false, notReady: true }, { status: 409 })
+    }
     return NextResponse.json({ ok: true, sent: false, alreadyWelcomed: true })
   }
 
