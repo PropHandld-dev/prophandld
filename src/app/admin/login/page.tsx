@@ -46,6 +46,7 @@ export default function AdminLoginPage() {
       setLoading(false)
       return
     }
+    fetch('/api/admin/log-login', { method: 'POST' }).catch(() => {})
     router.replace('/admin')
   }
 

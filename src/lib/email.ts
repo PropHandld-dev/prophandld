@@ -1330,6 +1330,32 @@ export async function sendAutoApprovalDigestAdminEmail({
   return sendToAdmins(`${jobs.length} job(s) auto-approved, payment not guaranteed`, html)
 }
 
+// Sent once per dispute, the first time it's still open 3+ days after
+// being raised — not a repeating daily nag, cron/stale-disputes guards
+// that with stale_reminder_sent_at. A dispute pauses the whole job for
+// everyone on it, so it sitting unnoticed is worse than most other
+// "stuck" states this app already flags.
+export async function sendStaleDisputesDigestEmail({
+  disputes,
+}: {
+  disputes: { jobCategory: string; propertyLabel: string; raisedByRole: string; ageDays: number; disputeId: string }[]
+}) {
+  if (disputes.length === 0) return
+  const rows = disputes
+    .map((d) => `<li style="margin-bottom:6px;">${escapeHtml(d.jobCategory)} at ${escapeHtml(d.propertyLabel)}: raised by ${escapeHtml(d.raisedByRole)}, open ${d.ageDays} days</li>`)
+    .join('')
+  const html = baseTemplate({
+    lang: 'en',
+    eyebrow: 'Needs attention',
+    heading: `${disputes.length} dispute${disputes.length === 1 ? ' has' : 's have'} been open 3+ days`,
+    bodyHtml: `${disputes.length === 1 ? 'This dispute is' : 'These are'} still waiting on a resolution, and the job${disputes.length === 1 ? ' is' : 's are'} paused for everyone on it until then.<ul style="margin:14px 0 0;padding-left:20px;color:#A9B7C8;font-size:14px;line-height:1.6;">${rows}</ul>`,
+    preheader: `${disputes.length} dispute${disputes.length === 1 ? '' : 's'} still open after 3+ days.`,
+    ctaLabel: 'Review disputes',
+    ctaUrl: `${SITE_URL}/admin/disputes`,
+  })
+  return sendToAdmins(`${disputes.length} dispute(s) open 3+ days, needs a look`, html)
+}
+
 export async function sendJobPaymentSentEmail({
   to,
   contractorName,

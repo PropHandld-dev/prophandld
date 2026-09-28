@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { getStripe } from '@/lib/stripe'
+import { logAdminAudit } from '@/lib/auditLog'
 
 // Self-service account deletion. Cascades follow the same per-role
 // pattern used for the manual test-account cleanups run against this
@@ -119,6 +120,19 @@ export async function POST() {
     await supabaseAdmin.from('messages').delete().eq('sender_user_id', userId)
     await supabaseAdmin.from('custom_categories').update({ created_by: null }).eq('created_by', userId)
     await supabaseAdmin.from('users').delete().eq('id', userId)
+
+    // Captured before the row (and the auth account right after) is gone
+    // for good — this is the one record that survives a deletion, and
+    // deliberately holds only enough to answer "did this account exist and
+    // when did it leave", not a copy of anything the deletion was for.
+    await logAdminAudit({
+      actionType: 'account_deleted',
+      actorEmail: user.email,
+      targetUserId: userId,
+      targetEmail: user.email,
+      targetRole: role,
+      detail: { self_deleted: true },
+    })
 
     const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(userId)
     if (authDeleteError) {

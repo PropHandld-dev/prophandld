@@ -18,7 +18,7 @@ export default function AdminDisputesPage() {
   const load = async () => {
     const { data, error: loadError } = await supabase
       .from('disputes')
-      .select('*, jobs(category, units(properties(address, city))), raiser:raised_by_user_id(full_name)')
+      .select('*, jobs(category, units(properties(address, city))), raiser:raised_by_user_id(full_name), resolver:resolved_by(full_name)')
       .order('created_at', { ascending: false })
 
     if (loadError) {
@@ -88,8 +88,13 @@ export default function AdminDisputesPage() {
         </p>
         <p className="text-white/70 text-sm mb-3">{row.reason}</p>
 
-        {row.status === 'resolved' && row.resolution_notes && (
-          <p className="text-white/60 text-xs italic mb-3">Resolution: {row.resolution_notes}</p>
+        {row.status === 'resolved' && (
+          <div className="mb-3">
+            {row.resolution_notes && <p className="text-white/60 text-xs italic">Resolution: {row.resolution_notes}</p>}
+            <p className="text-white/40 text-[11px] mt-1">
+              Resolved by {row.resolver?.full_name || 'an admin'}{row.resolved_at ? ` · ${new Date(row.resolved_at).toLocaleString()}` : ''}
+            </p>
+          </div>
         )}
 
         {row.status === 'open' && (

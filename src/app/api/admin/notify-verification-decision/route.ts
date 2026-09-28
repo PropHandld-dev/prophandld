@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { isAdminUserId } from '@/lib/adminAccess'
+import { logAdminAudit } from '@/lib/auditLog'
 import { sendContractorVerificationDecisionEmail } from '@/lib/email'
 import { sendPush } from '@/lib/push'
 
@@ -35,6 +36,16 @@ export async function POST(request: NextRequest) {
   if (!contractor?.email) {
     return NextResponse.json({ error: 'Contractor not found' }, { status: 404 })
   }
+
+  await logAdminAudit({
+    actionType: 'contractor_verification_decision',
+    actorUserId: user.id,
+    actorEmail: user.email,
+    targetUserId: contractorUserId,
+    targetEmail: contractor.email,
+    targetRole: 'contractor',
+    detail: { approved, notes: notes || null },
+  })
 
   const result = await sendContractorVerificationDecisionEmail({
     to: contractor.email,

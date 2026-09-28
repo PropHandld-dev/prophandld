@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { isAdminUserId } from '@/lib/adminAccess'
+import { logAdminAudit } from '@/lib/auditLog'
 import { sendDisputeResolvedEmail } from '@/lib/email'
 
 export async function POST(request: NextRequest) {
@@ -47,6 +48,13 @@ export async function POST(request: NextRequest) {
     console.error('disputes/resolve: error updating dispute', updateError)
     return NextResponse.json({ error: 'Could not resolve dispute' }, { status: 500 })
   }
+
+  await logAdminAudit({
+    actionType: 'dispute_resolved',
+    actorUserId: user.id,
+    actorEmail: user.email,
+    detail: { disputeId, jobId: dispute.job_id, outcome },
+  })
 
   const { error: jobUpdateError } = await supabaseAdmin
     .from('jobs')
