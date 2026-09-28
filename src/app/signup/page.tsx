@@ -207,10 +207,13 @@ function SignupForm() {
   }
 
   // Supabase's confirmation email carries both a click-through link and a
-  // 6-digit code (the same underlying token, two ways to use it) — this is
+  // numeric code (the same underlying token, two ways to use it) — this is
   // the code path, for anyone checking email on a different device than
-  // they're signing up on, where a link is more friction than typing 6
-  // digits. On success this hands off to /login exactly the way clicking
+  // they're signing up on, where a link is more friction than typing the
+  // code. Deliberately not assuming a specific digit count anywhere here —
+  // Supabase's own default (whatever this project is actually configured
+  // for) decides that, the input just accepts digits up to a generous
+  // upper bound. On success this hands off to /login exactly the way clicking
   // the link already does (same SIGNED_IN event, same consumeFreshSignIn()
   // pickup there) rather than duplicating the welcome-email/invite-linking/
   // role-redirect logic a third time in this file.
@@ -249,15 +252,15 @@ function SignupForm() {
           <p className="text-white font-semibold mb-5">{confirmationEmail}</p>
 
           <form onSubmit={handleVerifyCode} className="text-left mb-6">
-            <label className="text-white/70 text-sm block mb-1.5 text-center">Enter the 6-digit code</label>
+            <label className="text-white/70 text-sm block mb-1.5 text-center">Enter the code from that email</label>
             <AuthInput
               type="text"
               inputMode="numeric"
               autoComplete="one-time-code"
-              maxLength={6}
+              maxLength={12}
               value={otpCode}
-              onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              placeholder="123456"
+              onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 12))}
+              placeholder="Code"
               className="text-center text-lg tracking-[0.3em] font-semibold"
             />
             {otpError && (
