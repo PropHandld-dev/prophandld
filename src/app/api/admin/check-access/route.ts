@@ -9,15 +9,10 @@ import { isAdminUserId } from '@/lib/adminAccess'
 // admin", nothing else about the table is exposed.
 export async function GET() {
   const authClient = await createClient()
-  const { data: { user }, error } = await authClient.auth.getUser()
+  const { data: { user } } = await authClient.auth.getUser()
   if (!user) {
-    // Temporary diagnostic field — safe to expose (a viewer only ever
-    // learns whether their own request carried a recognizable session),
-    // useful for telling "server never saw a session at all" apart from
-    // "saw a session, but it's not on the allowlist" while debugging the
-    // first real admin login.
-    return NextResponse.json({ authorized: false, debugReason: 'no_session', authError: error?.message || null })
+    return NextResponse.json({ authorized: false })
   }
   const authorized = await isAdminUserId(user.id)
-  return NextResponse.json({ authorized, debugUserId: user.id, debugEmail: user.email })
+  return NextResponse.json({ authorized })
 }

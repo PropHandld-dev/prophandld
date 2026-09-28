@@ -284,17 +284,35 @@ function escapeHtml(value: string) {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 
+// A styled numbered list for the welcome email's "getting started" steps —
+// same visual language as the digest emails' <ul> (color:#A9B7C8 body
+// text), just ordered since these are steps in a suggested order, not an
+// unordered summary list.
+function startList(items: string[]) {
+  return `<ol style="margin:16px 0 0;padding-left:20px;color:#A9B7C8;font-size:14px;line-height:1.7;">${items
+    .map((i) => `<li style="margin-bottom:4px;">${i}</li>`)
+    .join('')}</ol>`
+}
+
 const WELCOME_CONTENT: Record<'landlord' | 'renter' | 'contractor', Record<Lang, { heading: string; bodyHtml: string; ctaLabel: string; ctaPath: string }>> = {
   landlord: {
     en: {
       heading: 'Welcome to Prophandld',
-      bodyHtml: "You're set up. Add a property, invite your tenants, and the next time something breaks, post it once. Contractors bid sealed, so you're never guessing what a fair price looks like.",
+      bodyHtml: "You're set up. Here's how to get the most out of it:" + startList([
+        'Add a property, or pick up where you left off if you started one already',
+        'Invite your tenants so they can report issues directly, no more texts to track down',
+        "When something breaks, post it once. Contractors bid sealed, so you're never guessing what a fair price looks like",
+      ]),
       ctaLabel: 'Go to your dashboard',
       ctaPath: '/landlord',
     },
     es: {
       heading: 'Bienvenido a Prophandld',
-      bodyHtml: 'Ya estás configurado. Agrega una propiedad, invita a tus inquilinos, y la próxima vez que algo se dañe, publícalo una vez. Los contratistas ofertan de forma sellada, así que nunca tendrás que adivinar cuál es un precio justo.',
+      bodyHtml: 'Ya estás configurado. Así puedes sacarle el mayor provecho:' + startList([
+        'Agrega una propiedad, o continúa donde la dejaste si ya empezaste una',
+        'Invita a tus inquilinos para que reporten problemas directamente, sin más mensajes de texto que rastrear',
+        'Cuando algo se dañe, publícalo una vez. Los contratistas ofertan de forma sellada, así que nunca tendrás que adivinar cuál es un precio justo',
+      ]),
       ctaLabel: 'Ir a tu panel',
       ctaPath: '/landlord',
     },
@@ -302,13 +320,21 @@ const WELCOME_CONTENT: Record<'landlord' | 'renter' | 'contractor', Record<Lang,
   renter: {
     en: {
       heading: "You're in",
-      bodyHtml: "Something broken? Report it in a few taps, no digging through old texts for your landlord's number. You can also see your lease documents and pay rent right from here.",
+      bodyHtml: "Here's what you can do from here:" + startList([
+        "Report an issue in a few taps, with photos or video, no digging through old texts for your landlord's number",
+        'See your lease documents anytime',
+        'Pay rent right from here, no checks or cash',
+      ]),
       ctaLabel: 'Go to your dashboard',
       ctaPath: '/renter',
     },
     es: {
       heading: 'Ya estás dentro',
-      bodyHtml: '¿Algo se dañó? Repórtalo en pocos toques, sin buscar entre mensajes antiguos el número de tu arrendador. También puedes ver los documentos de tu contrato y pagar la renta directamente desde aquí.',
+      bodyHtml: 'Esto es lo que puedes hacer desde aquí:' + startList([
+        'Reporta un problema en pocos toques, con fotos o video, sin buscar entre mensajes antiguos el número de tu arrendador',
+        'Ve los documentos de tu contrato en cualquier momento',
+        'Paga la renta directamente desde aquí, sin cheques ni efectivo',
+      ]),
       ctaLabel: 'Ir a tu panel',
       ctaPath: '/renter',
     },
@@ -316,13 +342,21 @@ const WELCOME_CONTENT: Record<'landlord' | 'renter' | 'contractor', Record<Lang,
   contractor: {
     en: {
       heading: 'Welcome to Prophandld',
-      bodyHtml: "Real jobs near you, sealed bids so you're never guessing what to quote, and payment the moment a landlord confirms the work's done.",
+      bodyHtml: "Real jobs near you, sealed bids, payment the moment a landlord confirms the work's done. A few things to do first:" + startList([
+        'Set your service area and trades in Settings, so the right jobs find you',
+        'Add your license and insurance for a "Verified" badge landlords can see',
+        "Bid sealed on real jobs near you, you're never guessing what to quote",
+      ]),
       ctaLabel: 'Go to your dashboard',
       ctaPath: '/contractor',
     },
     es: {
       heading: 'Bienvenido a Prophandld',
-      bodyHtml: 'Trabajos reales cerca de ti, ofertas selladas para que nunca tengas que adivinar cuánto cotizar, y pago en el momento en que un arrendador confirma que el trabajo está terminado.',
+      bodyHtml: 'Trabajos reales cerca de ti, ofertas selladas, pago en el momento en que un arrendador confirma que el trabajo está terminado. Algunas cosas para hacer primero:' + startList([
+        'Configura tu área de servicio y oficios en Ajustes, para que los trabajos correctos te encuentren',
+        'Agrega tu licencia y seguro para obtener una insignia de "Verificado" que los propietarios pueden ver',
+        'Oferta de forma sellada en trabajos reales cerca de ti, nunca tendrás que adivinar cuánto cotizar',
+      ]),
       ctaLabel: 'Ir a tu panel',
       ctaPath: '/contractor',
     },
