@@ -53,7 +53,7 @@ export default function LandingPage() {
     <div className="min-h-screen bg-[#0C1A2E] text-white relative">
 
       {/* Nav */}
-      <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between sticky top-0 bg-[#0C1A2E]/90 backdrop-blur-sm z-10">
+      <nav className="border-b border-white/8 px-6 pb-4 pt-[calc(1rem+env(safe-area-inset-top))] flex items-center justify-between sticky top-0 bg-[#0C1A2E]/90 backdrop-blur-sm z-10">
         <div className="flex items-center gap-2.5">
           <BrandLink className="gap-2.5">
             <Logo className="w-[30px] h-[30px]" />

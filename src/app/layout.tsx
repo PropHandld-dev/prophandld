@@ -59,6 +59,13 @@ export const metadata: Metadata = {
 
 export const viewport = {
   themeColor: "#0C1A2E",
+  // Required for env(safe-area-inset-*) to resolve to anything but 0 —
+  // BottomTabBar already accounts for the iPhone home-indicator area with
+  // it, but without this the whole page renders letterboxed behind the
+  // notch/indicator instead of edge-to-edge, and that CSS was silently a
+  // no-op. Matters specifically for anyone using this installed as a Home
+  // Screen app on a notched device, not in an ordinary browser tab.
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

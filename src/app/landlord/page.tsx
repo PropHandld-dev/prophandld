@@ -478,7 +478,7 @@ export default function LandlordDashboard() {
 
   return (
     <div className="min-h-screen bg-[#0C1A2E]">
-      <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between backdrop-blur-sm sticky top-0 bg-[#0C1A2E]/90 z-10">
+      <nav className="border-b border-white/8 px-6 pb-4 pt-[calc(1rem+env(safe-area-inset-top))] flex items-center justify-between backdrop-blur-sm sticky top-0 bg-[#0C1A2E]/90 z-10">
         <div className="flex items-center gap-3">
           <Link href="/landlord" aria-label="Prophandld home" className="flex items-center gap-3 transition hover:opacity-80 active:scale-[0.97] motion-reduce:active:scale-100">
           <svg width="30" height="30" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
