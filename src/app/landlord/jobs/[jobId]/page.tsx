@@ -280,6 +280,20 @@ export default function JobDetailPage() {
   }
 
   useEffect(() => {
+    // Next's App Router reuses this same component instance across
+    // navigations between two jobIds (that's why fetchJob() needs jobId as
+    // a dependency at all) — so any state that isn't naturally overwritten
+    // by fetchJob() itself survives a jump from one job to another and can
+    // show stale UI for the new job. The inline invite card's "Invite
+    // sent!" confirmation is exactly that: it used to keep showing on Job
+    // B after being triggered on Job A, with no way to actually invite
+    // anyone for Job B short of a hard refresh.
+    setInviteEmail('')
+    setInviteSending(false)
+    setInviteSent(false)
+    setInviteError(null)
+    setLoading(true)
+    setJob(null)
     fetchJob()
   }, [jobId, router])
 

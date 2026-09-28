@@ -8,7 +8,7 @@ import { usePushSubscription } from '@/lib/usePushSubscription'
 
 export function EnableNotificationsCard() {
   const lang = useLanguage()
-  const { supported, subscribed, loading, error, isIosBrowserTab, enable } = usePushSubscription()
+  const { supported, subscribed, loading, error, isIosBrowserTab, enable, preferenceEnabled } = usePushSubscription()
   const [dismissed, setDismissed] = useState(false)
 
   useEffect(() => {
@@ -28,7 +28,11 @@ export function EnableNotificationsCard() {
     setDismissed(true)
   }
 
-  if ((!supported && !isIosBrowserTab) || subscribed || dismissed) return null
+  // preferenceEnabled === false means the account-level toggle in Settings
+  // was explicitly turned off — respect that instead of nagging to "enable
+  // notifications" for something the person already said no to. (null just
+  // means it hasn't loaded yet; don't hide on that.)
+  if ((!supported && !isIosBrowserTab) || subscribed || dismissed || preferenceEnabled === false) return null
 
   if (isIosBrowserTab && !supported) {
     return (

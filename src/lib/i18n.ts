@@ -222,7 +222,6 @@ const STRINGS = {
   notifPrefDesc: { en: 'Choose how you want to hear about job updates, payments, and messages.', es: 'Elige cómo quieres enterarte de actualizaciones de trabajos, pagos y mensajes.' },
   emailNotifications: { en: 'Email notifications', es: 'Notificaciones por correo' },
   emailNotifDesc: { en: 'Job updates, payments, and messages', es: 'Actualizaciones de trabajos, pagos y mensajes' },
-  alwaysOn: { en: 'Always on', es: 'Siempre activo' },
   pushNotifications: { en: 'Push notifications', es: 'Notificaciones push' },
   pushNotifDesc: { en: 'Alerts on your phone or browser, in real time', es: 'Avisos en tu teléfono o navegador, en tiempo real' },
   pushNeedsBrowserSetup: { en: "You'll also need to allow notifications in this browser to actually receive these.", es: 'También debes permitir las notificaciones en este navegador para recibirlas.' },

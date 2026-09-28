@@ -46,7 +46,16 @@ export async function GET() {
   // with accounts that aren't really contractors anymore. Same gap this
   // app hit before with contractor job alerts.
   const roleChecks = await Promise.all(
-    contractorRows.map((c) => admin.auth.admin.getUserById(c.id).catch(() => null))
+    contractorRows.map((c) =>
+      admin.auth.admin.getUserById(c.id).catch((err) => {
+        // Swallowed on purpose (one failed lookup shouldn't fail the whole
+        // page), but logged rather than silently dropped — a rate limit
+        // or transient failure here quietly understates coverage with
+        // nothing visible to the admin viewing the page otherwise.
+        console.error('marketplace-health: getUserById failed', c.id, err)
+        return null
+      })
+    )
   )
   const contractors = contractorRows.filter((_, i) => roleChecks[i]?.data?.user?.user_metadata?.role === 'contractor')
 

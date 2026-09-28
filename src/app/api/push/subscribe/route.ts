@@ -31,5 +31,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Could not save subscription' }, { status: 500 })
   }
 
+  // Actually subscribing this browser is itself an explicit opt-in — if the
+  // account-level preference had been turned off before this (e.g. from
+  // Settings, before ever granting browser permission), turn it back on
+  // rather than leaving sendPush() silently dropping everything for an
+  // account that just went through the trouble of enabling notifications.
+  const { error: prefError } = await supabaseAdmin
+    .from('users')
+    .update({ push_notifications_enabled: true })
+    .eq('id', user.id)
+  if (prefError) console.error('push/subscribe: could not re-enable push preference', prefError)
+
   return NextResponse.json({ ok: true })
 }

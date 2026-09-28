@@ -135,7 +135,7 @@ export default function ContractorsLandingPage() {
             You already know the drill from other apps. Here is the honest side-by-side.
           </p>
           <div className="bg-white/3 border border-white/8 rounded-2xl overflow-hidden">
-            <div className="grid grid-cols-3 text-xs font-semibold uppercase tracking-wide text-white/40 px-5 py-3 border-b border-white/8">
+            <div className="hidden sm:grid grid-cols-3 text-xs font-semibold uppercase tracking-wide text-white/40 px-5 py-3 border-b border-white/8">
               <span></span>
               <span>Typical lead app</span>
               <span className="text-[#12A5A9]">Prophandld</span>
@@ -143,13 +143,19 @@ export default function ContractorsLandingPage() {
             {COMPARISON_ROWS.map((row, i) => (
               <div
                 key={row.label}
-                className={`grid grid-cols-3 gap-2 px-5 py-4 text-sm ${i !== COMPARISON_ROWS.length - 1 ? 'border-b border-white/8' : ''}`}
+                className={`px-5 py-4 text-sm sm:grid sm:grid-cols-3 sm:gap-2 sm:items-start ${i !== COMPARISON_ROWS.length - 1 ? 'border-b border-white/8' : ''}`}
               >
-                <span className="text-white font-medium">{row.label}</span>
-                <span className="text-white/40">{row.typical}</span>
+                <span className="text-white font-medium block mb-2 sm:mb-0">{row.label}</span>
+                <span className="text-white/40 block mb-1 sm:mb-0">
+                  <span className="sm:hidden text-white/30 text-xs uppercase tracking-wide block mb-0.5">Typical lead app</span>
+                  {row.typical}
+                </span>
                 <span className="text-white/90 flex items-start gap-1.5">
                   <CheckCircleIcon className="w-4 h-4 text-[#12A5A9] shrink-0 mt-0.5" />
-                  {row.prophandld}
+                  <span>
+                    <span className="sm:hidden text-[#12A5A9] text-xs uppercase tracking-wide block mb-0.5">Prophandld</span>
+                    {row.prophandld}
+                  </span>
                 </span>
               </div>
             ))}

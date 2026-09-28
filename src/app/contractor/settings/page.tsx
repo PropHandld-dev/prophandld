@@ -213,7 +213,7 @@ export default function ContractorSettingsPage() {
               <span className="text-white text-sm block">{t('notifyAllJobsLabel', lang)}</span>
               <span className="text-white/50 text-xs mt-0.5 block">{t('notifyAllJobsDesc', lang)}</span>
             </div>
-            <Switch checked={notifyAllCategories} onChange={setNotifyAllCategories} />
+            <Switch checked={notifyAllCategories} onChange={setNotifyAllCategories} label={t('notifyAllJobsLabel', lang)} />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -246,7 +246,7 @@ export default function ContractorSettingsPage() {
 
           <div className="flex items-center justify-between gap-3 bg-white/3 border border-white/8 rounded-xl p-4">
             <span className="text-white text-sm">{t('iAmLicensed', lang)}</span>
-            <Switch checked={licensed} onChange={setLicensed} />
+            <Switch checked={licensed} onChange={setLicensed} label={t('iAmLicensed', lang)} />
           </div>
 
           {error && (

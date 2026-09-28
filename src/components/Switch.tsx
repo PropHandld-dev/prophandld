@@ -1,11 +1,12 @@
 'use client'
 
-export function Switch({ checked, onChange }: { checked: boolean; onChange: (checked: boolean) => void }) {
+export function Switch({ checked, onChange, label }: { checked: boolean; onChange: (checked: boolean) => void; label?: string }) {
   return (
     <button
       type="button"
       role="switch"
       aria-checked={checked}
+      aria-label={label}
       onClick={() => onChange(!checked)}
       className={`relative w-11 h-6 rounded-full shrink-0 transition-colors duration-200 ${
         checked ? 'bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9]' : 'bg-white/15'

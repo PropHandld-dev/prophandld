@@ -226,6 +226,14 @@ function LoginForm() {
     }
 
     if (data.user) {
+      // signInWithPassword() fires the same SIGNED_IN event a confirmation
+      // link does, setting the same module-level "just signed in" signal —
+      // discard it here so it can't later stale-match an ordinary revisit
+      // to /login while still authenticated (same tab, no reload) and get
+      // mistaken for "just clicked a confirmation link," which used to
+      // show the "Email verified!" screen and re-fire the welcome-email
+      // check for a login that has nothing to do with either.
+      consumeFreshSignIn()
       await completeSignIn(data.user)
     }
 

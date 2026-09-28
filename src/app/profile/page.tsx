@@ -490,7 +490,7 @@ export default function ProfilePage() {
                 <p className="text-white text-sm font-medium">{t('emailNotifications', lang)}</p>
                 <p className="text-white/60 text-xs">{t('emailNotifDesc', lang)}</p>
               </div>
-              <Switch checked={emailNotifEnabled} onChange={(next) => !emailNotifSaving && handleToggleEmailNotif(next)} />
+              <Switch checked={emailNotifEnabled} onChange={(next) => !emailNotifSaving && handleToggleEmailNotif(next)} label={t('emailNotifications', lang)} />
             </div>
 
             <div className="py-1">
@@ -499,7 +499,7 @@ export default function ProfilePage() {
                   <p className="text-white text-sm font-medium">{t('pushNotifications', lang)}</p>
                   <p className="text-white/60 text-xs">{t('pushNotifDesc', lang)}</p>
                 </div>
-                <Switch checked={pushNotifEnabled} onChange={(next) => !pushNotifSaving && handleTogglePushNotif(next)} />
+                <Switch checked={pushNotifEnabled} onChange={(next) => !pushNotifSaving && handleTogglePushNotif(next)} label={t('pushNotifications', lang)} />
               </div>
               {pushNotifEnabled && pushSub.checked && !pushSub.subscribed && (
                 <div className="mt-3 bg-white/5 border border-white/8 rounded-xl px-3.5 py-3 flex items-center justify-between gap-3 flex-wrap">
@@ -525,7 +525,7 @@ export default function ProfilePage() {
                 <p className="text-white text-sm font-medium">{t('textAlerts', lang)}</p>
                 <p className="text-white/60 text-xs">{t('textAlertsDesc', lang)}</p>
               </div>
-              <Switch checked={smsOptIn} onChange={() => !smsSaving && handleToggleSms()} />
+              <Switch checked={smsOptIn} onChange={() => !smsSaving && handleToggleSms()} label={t('textAlerts', lang)} />
             </div>
           </div>
           <p className="text-white/40 text-xs mt-6 pt-4 border-t border-white/8">{t('notifPrefFootnote', lang)}</p>

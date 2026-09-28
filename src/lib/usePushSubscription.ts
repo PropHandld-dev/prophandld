@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabase'
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -39,11 +40,30 @@ export function usePushSubscription() {
   // web push once installed. Tracked separately so callers can show
   // something actionable ("add to Home Screen first") instead of nothing.
   const [isIosBrowserTab, setIsIosBrowserTab] = useState(false)
+  // The account-level "do you want push" preference (Settings), as opposed
+  // to `subscribed` (does this browser have an active subscription) — two
+  // different axes that used to only be checked in one place each.
+  // EnableNotificationsCard used to nag to "enable notifications" even
+  // after someone explicitly turned this off in Settings, and clicking
+  // through it would look like a success (a real browser subscription
+  // gets created) while sendPush() kept silently dropping everything
+  // because this stayed false. null = not loaded yet, don't judge either way.
+  const [preferenceEnabled, setPreferenceEnabled] = useState<boolean | null>(null)
 
   useEffect(() => {
     const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent)
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true
     setIsIosBrowserTab(isIos && !isStandalone)
+
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return
+      supabase
+        .from('users')
+        .select('push_notifications_enabled')
+        .eq('id', user.id)
+        .maybeSingle()
+        .then(({ data }) => setPreferenceEnabled(data?.push_notifications_enabled !== false))
+    })
 
     const isSupported = typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window
     setSupported(isSupported)
@@ -107,6 +127,14 @@ export function usePushSubscription() {
       }
 
       setSubscribed(true)
+      // Clicking "Enable" is itself an explicit opt-in — if the account-level
+      // preference had been turned off (e.g. from Settings, before ever
+      // granting browser permission), a fresh subscription should turn it
+      // back on rather than silently staying off while sendPush() keeps
+      // dropping everything with no visible error. /api/push/subscribe
+      // does this server-side; mirrored here so the UI reflects it
+      // immediately without a reload.
+      setPreferenceEnabled(true)
       setLoading(false)
       return true
     } catch (err) {
@@ -118,5 +146,5 @@ export function usePushSubscription() {
     }
   }, [])
 
-  return { supported, subscribed, checked, loading, error, isIosBrowserTab, enable }
+  return { supported, subscribed, checked, loading, error, isIosBrowserTab, enable, preferenceEnabled }
 }
