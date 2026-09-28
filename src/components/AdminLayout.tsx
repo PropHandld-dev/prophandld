@@ -25,19 +25,42 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     // it makes a network round-trip that can resolve before the session
     // is fully synced, bouncing a legitimate admin. onAuthStateChange's
     // first callback (INITIAL_SESSION) reflects the actual persisted
-    // session instead, so it's the single source of truth here rather
-    // than racing two separate checks against each other.
+    // session instead, so it's the source of truth for "is there a
+    // session at all". Whether that session is actually an admin now
+    // needs its own check — admin_users has no client-readable policy,
+    // by design, so /api/admin/check-access is the only way to ask.
+    let cancelled = false
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       const user = session?.user
-      setAuthorized(!!user && !!user.email?.endsWith('@prophandld.com'))
-      setChecking(false)
+      if (!user) {
+        if (!cancelled) {
+          setAuthorized(false)
+          setChecking(false)
+        }
+        return
+      }
+      fetch('/api/admin/check-access')
+        .then((r) => r.json())
+        .then((data) => {
+          if (cancelled) return
+          setAuthorized(!!data.authorized)
+          setChecking(false)
+        })
+        .catch(() => {
+          if (cancelled) return
+          setAuthorized(false)
+          setChecking(false)
+        })
     })
-    return () => subscription.unsubscribe()
+    return () => {
+      cancelled = true
+      subscription.unsubscribe()
+    }
   }, [])
 
   useEffect(() => {
     if (checking) return
-    if (!authorized) router.replace('/')
+    if (!authorized) router.replace('/admin/login')
   }, [checking, authorized, router])
 
   if (checking || !authorized) {

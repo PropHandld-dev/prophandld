@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { loadChatParticipants } from '@/lib/chatParticipants'
+import { isAdminUserId, adminUserIdSet } from '@/lib/adminAccess'
 
 
 type Member = { userId: string; role: string }
@@ -77,7 +78,7 @@ export async function GET(request: NextRequest) {
   }
 
   const members = await membersForNaming(admin, { jobId, threadId }, loaded.participants)
-  const isAdmin = (user.email || '').toLowerCase().endsWith('@prophandld.com')
+  const isAdmin = await isAdminUserId(user.id)
   if (!members.has(user.id) && !isAdmin) {
     return NextResponse.json({ error: 'Conversation not found' }, { status: 404 })
   }
@@ -87,12 +88,13 @@ export async function GET(request: NextRequest) {
     .select('id, full_name, email')
     .in('id', Array.from(members.keys()))
   const byId = new Map((people || []).map((u: any) => [u.id, u]))
+  const staffIds = await adminUserIdSet(Array.from(members.keys()))
 
   return NextResponse.json({
     participants: Array.from(members.entries()).map(([userId, role]) => {
       const person: any = byId.get(userId)
       // Staff who posted (for example an admin) are labelled as such rather than "Unknown".
-      const isStaff = role === 'other' && (person?.email || '').toLowerCase().endsWith('@prophandld.com')
+      const isStaff = role === 'other' && staffIds.has(userId)
       return { role: isStaff ? 'admin' : role, user_id: userId, full_name: person?.full_name ?? null }
     }),
   })

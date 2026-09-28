@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
+import { isAdminUserId } from '@/lib/adminAccess'
 
 // public.users has no `role` column — role only ever lived in Supabase
 // Auth's user_metadata (set at signup, read everywhere else in the app
@@ -10,7 +11,7 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 export async function GET() {
   const authClient = await createClient()
   const { data: { user } } = await authClient.auth.getUser()
-  if (!user || !user.email?.endsWith('@prophandld.com')) {
+  if (!user || !(await isAdminUserId(user.id))) {
     return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
   }
 

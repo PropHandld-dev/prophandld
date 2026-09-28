@@ -24,6 +24,18 @@ const TIER_COLORS: Record<LandlordTier, string> = {
 
 const MONTHS_SHOWN = 6
 
+// Stripe's standard US card rate — used only to estimate the processing
+// fee Prophandld absorbs on job payments (the "no platform fee, ever"
+// promise to contractors means that cost comes straight out of the
+// platform, not the contractor). This is a directional estimate for a
+// weekly check-in, not real accounting — Stripe's actual fee varies by
+// card type/country and this doesn't attempt to match it to the cent.
+const CARD_FEE_RATE = 0.029
+const CARD_FEE_FIXED = 0.30
+// ACH: 0.8%, capped at $5 — Stripe's standard bank-transfer rate.
+const ACH_FEE_RATE = 0.008
+const ACH_FEE_CAP = 5
+
 function monthKey(d: string | Date) {
   const date = typeof d === 'string' ? new Date(d) : d
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
@@ -63,7 +75,12 @@ export default function AdminOverviewPage() {
     rentThisMonth: number
     jobPaymentsAllTime: number
     openDisputes: number
+    stripeFeesThisMonth: number
   } | null>(null)
+  const [infraCost, setInfraCost] = useState(0)
+  const [infraCostDraft, setInfraCostDraft] = useState('')
+  const [editingInfraCost, setEditingInfraCost] = useState(false)
+  const [savingInfraCost, setSavingInfraCost] = useState(false)
   const [signupSeries, setSignupSeries] = useState<StackedSeries[]>([])
   const [rentPoints, setRentPoints] = useState<MonthPoint[]>([])
   const [jobPaymentPoints, setJobPaymentPoints] = useState<MonthPoint[]>([])
@@ -72,6 +89,12 @@ export default function AdminOverviewPage() {
   const [hasMrrHistory, setHasMrrHistory] = useState(false)
   const [hasTierHistory, setHasTierHistory] = useState(false)
   const [monthPoints, setMonthPoints] = useState<StackedMonthPoint[]>([])
+
+  const loadCostSettings = async () => {
+    const res = await fetch('/api/admin/cost-settings')
+    const data = await res.json().catch(() => null)
+    if (data && typeof data.monthlyInfraCost === 'number') setInfraCost(data.monthlyInfraCost)
+  }
 
   useEffect(() => {
     const load = async () => {
@@ -85,11 +108,12 @@ export default function AdminOverviewPage() {
       ] = await Promise.all([
         fetch('/api/admin/users').then((r) => r.json()).catch(() => ({ users: [] })),
         supabase.from('landlord_subscriptions').select('tier, unit_count, status'),
-        supabase.from('rent_payments').select('actual_amount, month'),
+        supabase.from('rent_payments').select('actual_amount, month, card_surcharge_amount'),
         supabase.from('bids').select('amount, proposed_amount, paid_at').eq('payment_status', 'paid'),
         supabase.from('disputes').select('id').eq('status', 'open'),
         fetch('/api/admin/metrics-trend').then((r) => r.json()).catch(() => ({ snapshots: [] })),
       ])
+      await loadCostSettings()
 
       // These queries failing shouldn't crash the page, but they also
       // shouldn't silently render as "0 of everything" with no clue why —
@@ -118,13 +142,24 @@ export default function AdminOverviewPage() {
         .reduce((sum: number, s: any) => sum + graduatedMonthlyAmount(s.unit_count || 0), 0)
 
       const currentMonth = new Date().toISOString().slice(0, 7)
-      const rentThisMonth = (rentPayments || [])
-        .filter((p) => p.month?.startsWith(currentMonth))
-        .reduce((sum, p) => sum + Number(p.actual_amount || 0), 0)
+      const rentPaymentsThisMonth = (rentPayments || []).filter((p: any) => p.month?.startsWith(currentMonth))
+      const rentThisMonth = rentPaymentsThisMonth.reduce((sum: number, p: any) => sum + Number(p.actual_amount || 0), 0)
 
       const jobPaymentsAllTime = (paidBids || []).reduce((sum, b) => sum + Number(b.amount ?? 0), 0)
 
-      setStats({ userCounts, tierCounts, mrr, rentThisMonth, jobPaymentsAllTime, openDisputes: disputes?.length || 0 })
+      // Job payments: Prophandld absorbs the full card fee (contractors
+      // keep 100% of their bid). Rent: a card payment already collected a
+      // surcharge to cover this (see cardSurcharge.ts), so only ACH rent
+      // payments (no surcharge) cost the platform anything here.
+      const jobFeesThisMonth = (paidBids || [])
+        .filter((b: any) => b.paid_at && monthKey(b.paid_at) === currentMonth)
+        .reduce((sum: number, b: any) => sum + Number(b.amount || 0) * CARD_FEE_RATE + CARD_FEE_FIXED, 0)
+      const rentAchFeesThisMonth = rentPaymentsThisMonth
+        .filter((p: any) => !p.card_surcharge_amount || Number(p.card_surcharge_amount) === 0)
+        .reduce((sum: number, p: any) => sum + Math.min(Number(p.actual_amount || 0) * ACH_FEE_RATE, ACH_FEE_CAP), 0)
+      const stripeFeesThisMonth = jobFeesThisMonth + rentAchFeesThisMonth
+
+      setStats({ userCounts, tierCounts, mrr, rentThisMonth, jobPaymentsAllTime, openDisputes: disputes?.length || 0, stripeFeesThisMonth })
 
       // --- Growth trends: last 6 months, from data already loaded above ---
       const months = lastMonthKeys(MONTHS_SHOWN)
@@ -206,25 +241,81 @@ export default function AdminOverviewPage() {
     load()
   }, [])
 
+  const startEditingInfraCost = () => {
+    setInfraCostDraft(infraCost.toFixed(2))
+    setEditingInfraCost(true)
+  }
+
+  const saveInfraCost = async () => {
+    const value = parseFloat(infraCostDraft)
+    if (Number.isNaN(value) || value < 0) return
+    setSavingInfraCost(true)
+    const res = await fetch('/api/admin/cost-settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ monthlyInfraCost: value }),
+    })
+    if (res.ok) {
+      setInfraCost(value)
+      setEditingInfraCost(false)
+    }
+    setSavingInfraCost(false)
+  }
+
+  const netMonthly = stats ? stats.mrr - stats.stripeFeesThisMonth - infraCost : 0
+
   return (
     <AdminLayout>
-      <h1 className="text-2xl font-bold text-white mb-8">Overview</h1>
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-white">Overview</h1>
+        <p className="text-white/40 text-sm mt-1">
+          {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+        </p>
+      </div>
 
       {loading || !stats ? (
         <div className="text-white/50 text-sm">Loading...</div>
       ) : (
         <>
-          <ScrollReveal className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
+          <SectionHeading title="This month" />
+          <ScrollReveal className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-10">
             <StatCard label="Landlords" value={stats.userCounts.landlord || 0} />
             <StatCard label="Renters" value={stats.userCounts.renter || 0} />
             <StatCard label="Contractors" value={stats.userCounts.contractor || 0} />
-            <StatCard label="Est. MRR" value={`$${stats.mrr.toLocaleString()}`} />
-            <StatCard label="Rent this month" value={`$${stats.rentThisMonth.toLocaleString()}`} />
+            <StatCard label="Rent collected" value={`$${stats.rentThisMonth.toLocaleString()}`} />
+            <StatCard label="Job payments, all-time" value={`$${stats.jobPaymentsAllTime.toLocaleString()}`} />
             <StatCard label="Open disputes" value={stats.openDisputes} tone={stats.openDisputes > 0 ? 'yellow' : undefined} />
           </ScrollReveal>
 
-          <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
-            <h2 className="text-white font-semibold mb-4">Landlord subscription tiers</h2>
+          <SectionHeading title="Economics" subtitle="Real revenue, real costs, and what's actually left over — the numbers for the weekly meeting" />
+          <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-10">
+            <div className="grid sm:grid-cols-4 gap-6">
+              <EconLine label="Revenue" sublabel="Subscription MRR" value={stats.mrr} tone="positive" />
+              <EconLine label="Stripe fees absorbed" sublabel="Estimated, this month" value={-stats.stripeFeesThisMonth} tone="negative" />
+              <EconLine
+                label="Infrastructure"
+                sublabel="Vercel · Supabase · Resend · Twilio"
+                value={-infraCost}
+                tone="negative"
+                editable
+                editing={editingInfraCost}
+                draft={infraCostDraft}
+                onDraftChange={setInfraCostDraft}
+                onStartEdit={startEditingInfraCost}
+                onSave={saveInfraCost}
+                onCancel={() => setEditingInfraCost(false)}
+                saving={savingInfraCost}
+              />
+              <EconLine label="Net" sublabel="Per month" value={netMonthly} tone={netMonthly >= 0 ? 'positive' : 'negative'} emphasize />
+            </div>
+            <p className="text-white/30 text-[11px] mt-6 leading-relaxed">
+              Stripe fees are a directional estimate (standard card/ACH rates applied to real payment amounts), not exact accounting.
+              Infrastructure is a number you keep current yourself, click it to update.
+            </p>
+          </ScrollReveal>
+
+          <SectionHeading title="Subscription mix" />
+          <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-10">
             <div className="space-y-2">
               {(['free', 'starter', 'growth', 'portfolio', 'enterprise'] as LandlordTier[]).map((key) => (
                 <div key={key} className="flex items-center justify-between">
@@ -235,13 +326,7 @@ export default function AdminOverviewPage() {
             </div>
           </ScrollReveal>
 
-          <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-8">
-            <h2 className="text-white font-semibold mb-2">Job payments processed</h2>
-            <p className="text-white text-2xl font-bold">${stats.jobPaymentsAllTime.toLocaleString()}</p>
-            <p className="text-white/50 text-xs mt-1">All-time total paid to contractors through Prophandld</p>
-          </ScrollReveal>
-
-          <h2 className="text-white font-semibold mb-4">Growth, last {MONTHS_SHOWN} months</h2>
+          <SectionHeading title={`Growth, last ${MONTHS_SHOWN} months`} />
           <ScrollReveal className="grid sm:grid-cols-2 gap-4 mb-4">
             <StackedMonthlyBarChart
               title="New signups"
@@ -291,8 +376,8 @@ export default function AdminOverviewPage() {
               <div className="bg-white/3 border border-white/8 rounded-2xl p-6 flex flex-col justify-center">
                 <h2 className="text-white font-semibold">Subscription tier mix trend</h2>
                 <p className="text-white/50 text-xs mt-2 leading-relaxed">
-                  Same as MRR, recorded from today forward. Today's snapshot is the "Landlord subscription tiers"
-                  card above; check back in a few weeks for how that mix moves over time.
+                  Same as MRR, recorded from today forward. Today's snapshot is the "Subscription mix" card above;
+                  check back in a few weeks for how that mix moves over time.
                 </p>
               </div>
             )}
@@ -303,11 +388,86 @@ export default function AdminOverviewPage() {
   )
 }
 
+function SectionHeading({ title, subtitle }: { title: string; subtitle?: string }) {
+  return (
+    <div className="mb-4">
+      <h2 className="text-white/50 text-xs font-semibold uppercase tracking-wider">{title}</h2>
+      {subtitle && <p className="text-white/30 text-xs mt-1">{subtitle}</p>}
+    </div>
+  )
+}
+
 function StatCard({ label, value, tone }: { label: string; value: string | number; tone?: 'yellow' }) {
   return (
     <div className="bg-white/3 border border-white/8 rounded-xl p-4 text-center">
-      <div className={`text-xl font-bold ${tone === 'yellow' ? 'text-yellow-400' : 'text-white'}`}>{value}</div>
+      <div className={`text-xl font-bold tabular-nums ${tone === 'yellow' ? 'text-yellow-400' : 'text-white'}`}>{value}</div>
       <div className="text-white/60 text-xs mt-0.5">{label}</div>
+    </div>
+  )
+}
+
+function EconLine({
+  label,
+  sublabel,
+  value,
+  tone,
+  emphasize,
+  editable,
+  editing,
+  draft,
+  onDraftChange,
+  onStartEdit,
+  onSave,
+  onCancel,
+  saving,
+}: {
+  label: string
+  sublabel: string
+  value: number
+  tone: 'positive' | 'negative'
+  emphasize?: boolean
+  editable?: boolean
+  editing?: boolean
+  draft?: string
+  onDraftChange?: (v: string) => void
+  onStartEdit?: () => void
+  onSave?: () => void
+  onCancel?: () => void
+  saving?: boolean
+}) {
+  const formatted = `${value < 0 ? '-' : ''}$${Math.abs(value).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+  return (
+    <div>
+      <div className="text-white/50 text-xs">{label}</div>
+      <div className="text-white/25 text-[11px] mb-1.5">{sublabel}</div>
+      {editable && editing ? (
+        <div className="flex items-center gap-1.5">
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            value={draft}
+            onChange={(e) => onDraftChange?.(e.target.value)}
+            autoFocus
+            className="w-24 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white text-lg font-bold tabular-nums focus:outline-none focus:border-[#12A5A9] transition"
+          />
+          <button onClick={onSave} disabled={saving} className="text-[#12A5A9] text-xs font-semibold hover:underline disabled:opacity-50">
+            {saving ? '...' : 'Save'}
+          </button>
+          <button onClick={onCancel} className="text-white/40 text-xs hover:text-white/60 transition">
+            Cancel
+          </button>
+        </div>
+      ) : (
+        <div
+          className={`${emphasize ? 'text-2xl' : 'text-xl'} font-bold tabular-nums ${tone === 'positive' ? 'text-[#12A5A9]' : 'text-white'} ${editable ? 'cursor-pointer hover:underline decoration-dashed underline-offset-4' : ''}`}
+          onClick={editable ? onStartEdit : undefined}
+          title={editable ? 'Click to update' : undefined}
+        >
+          {formatted}
+          {editable && <span className="text-white/30 text-xs font-normal ml-1.5">edit</span>}
+        </div>
+      )}
     </div>
   )
 }
