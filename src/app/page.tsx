@@ -1,9 +1,12 @@
 'use client'
 
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { supabase } from '@/lib/supabase'
 import { MagneticLink } from '@/components/MagneticLink'
 import { ScrollReveal } from '@/components/ScrollReveal'
-import { DollarSignIcon, AlertTriangleIcon, FileTextIcon, WrenchIcon, CalendarIcon, CheckCircleIcon, MessageCircleIcon, LockIcon } from '@/components/icons'
+import { DollarSignIcon, AlertTriangleIcon, FileTextIcon, WrenchIcon, CalendarIcon, CheckCircleIcon, MessageCircleIcon, LockIcon, StarIcon, GlobeIcon } from '@/components/icons'
 import { Logo } from '@/components/Logo'
 import { BrandLink } from '@/components/BrandLink'
 import { RoleShowcase } from '@/components/RoleShowcase'
@@ -17,16 +20,35 @@ const OPERATIONS_FEATURES = [
   { icon: ReceiptIcon, title: 'Receipts & records', desc: 'Every rent and repair payment gets a receipt, emailed to you and saved on the record.' },
   { icon: MessageCircleIcon, title: 'Job chat', desc: 'Every job has one thread for the landlord, renter and contractor, with updates and history in one place.' },
   { icon: MessageCircleIcon, title: 'Direct messages', desc: "Message your tenants, or a contractor you've worked with before, job or no job. No phone numbers exchanged." },
-  { icon: CalendarIcon, title: 'Schedule calendar', desc: 'Every confirmed visit, across every property, in one month view. Past jobs stay as history.' },
+  { icon: CalendarIcon, title: 'Schedule calendar', desc: 'Confirmed visits, rent due dates, and expiring compliance items, all in one month view. It nags so you don\'t have to remember to.' },
   { icon: AlertTriangleIcon, title: 'Compliance alerts', desc: 'Licenses, certificates, and detectors. Get warned before something expires, not after the inspector shows up.' },
-  { icon: FileTextIcon, title: 'Documents vault', desc: 'Leases, deeds, insurance, inspection reports, all in one place per property. Not a shoebox, not an email from 2019.' },
+  { icon: FileTextIcon, title: 'Documents vault', desc: 'Leases, deeds, insurance, inspection reports. Tenants can upload their own too, like proof of renters insurance, shared with you or kept private.' },
   { icon: WrenchIcon, title: 'Systems & appliances', desc: 'Track HVAC, water heaters, roofs, and panels with install dates and service history.' },
   { icon: CheckCircleIcon, title: 'Verified contractors', desc: "Contractors can submit license and insurance for review, so you can see who's verified before you pick a bid." },
+  { icon: StarIcon, title: 'Real reviews', desc: 'Landlords and tenants rate every contractor after the job. See the actual feedback, not just a star count, before you pick who to trust.' },
   { icon: AlertTriangleIcon, title: 'Emergency priority', desc: 'Flag something that cannot wait and matching contractors are alerted with an emergency label.' },
   { icon: LockIcon, title: 'Dispute protection', desc: "Hopefully you never need it. After a landlord approves, any side has 48 hours to flag a problem and Prophandld steps in." },
+  { icon: GlobeIcon, title: 'English & Spanish', desc: 'The entire app, not just a translated homepage. Switch anytime from your profile.' },
 ]
 
 export default function LandingPage() {
+  const router = useRouter()
+
+  // A returning, already-signed-in visitor (especially one who installed
+  // this as a Home Screen app) shouldn't have to look at a pitch for a
+  // product they already use. getSession() reads the locally persisted
+  // session with no network round trip, so this resolves fast enough not
+  // to be a visible flash for the far more common case: someone who isn't
+  // signed in at all, who this redirect never touches.
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const role = session?.user?.user_metadata?.role
+      if (role === 'landlord') router.replace('/landlord')
+      else if (role === 'renter') router.replace('/renter')
+      else if (role === 'contractor') router.replace('/contractor')
+    })
+  }, [router])
+
   return (
     <div className="min-h-screen bg-[#0C1A2E] text-white relative">
 
@@ -261,6 +283,7 @@ export default function LandingPage() {
               { q: 'What if a contractor cancels?', a: "The job reopens for sealed bids, nearby contractors are alerted again, and the landlord and renter are told. Photos, notes, and other bids stay put." },
               { q: "What if something isn't right after the job?", a: 'After the landlord approves, any side has 48 hours to raise a dispute. The job pauses while the Prophandld team reviews it. If nobody responds, finished work is approved automatically after 3 days so contractors are not left waiting.' },
               { q: 'Is Prophandld available in my area?', a: "We're currently onboarding beta landlords in the Philadelphia area, with more markets opening soon." },
+              { q: 'Does it work in Spanish?', a: 'The whole app does, not a translated homepage that quietly drops you back into English the moment you sign in. Switch anytime from your profile.' },
             ].map((item) => (
               <details key={item.q} className="group bg-white/3 border border-white/8 rounded-2xl px-5 py-4 open:border-[#12A5A9]/30 open:bg-white/5 transition-colors">
                 <summary className="flex items-center justify-between gap-4 cursor-pointer list-none text-white font-semibold [&::-webkit-details-marker]:hidden">

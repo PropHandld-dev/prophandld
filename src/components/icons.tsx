@@ -206,3 +206,20 @@ export function MapPinIcon({ className }: IconProps) {
     </svg>
   )
 }
+
+export function StarIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M12 2.5l2.9 6.2 6.6.7-5 4.6 1.4 6.6L12 17.5l-5.9 3.1 1.4-6.6-5-4.6 6.6-.7L12 2.5z" />
+    </svg>
+  )
+}
+
+export function GlobeIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20" />
+    </svg>
+  )
+}
