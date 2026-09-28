@@ -1,6 +1,7 @@
 import { Resend } from 'resend'
 import { isPreviewDeployment } from '@/lib/env'
 import { SITE_URL } from '@/lib/site'
+import { getAdminEmails } from '@/lib/adminAccess'
 
 // Deliberately not imported from '@/lib/i18n' — that file is a 'use client'
 // module (React hooks for the UI's live language switch), and this one runs
@@ -39,6 +40,21 @@ export async function sendEmail({ to, subject, html }: { to: string; subject: st
     console.error('Failed to send email to', to, 'from', fromAddress, err)
     return { ok: false, error: err, from: fromAddress }
   }
+}
+
+// Every admin-facing notification used to go to one hardcoded
+// admin@prophandld.com inbox, disconnected from who's actually authorized
+// as admin now that that's a real per-person list (admin_users). This
+// sends to everyone on that list instead — one email per address rather
+// than one email with everyone in the To: line, matching the pattern the
+// rest of this app already uses for multi-recipient sends. Falls back to
+// the old shared inbox if the list is somehow empty, so a notification
+// never just silently goes nowhere.
+async function sendToAdmins(subject: string, html: string) {
+  const emails = await getAdminEmails()
+  const recipients = emails.length > 0 ? emails : ['admin@prophandld.com']
+  const results = await Promise.all(recipients.map((to) => sendEmail({ to, subject, html })))
+  return results[0]
 }
 
 // Transactional email shell. One status pill, one headline, the facts that
@@ -361,7 +377,7 @@ export async function sendCredentialSubmittedAdminEmail({
     ctaLabel: 'Review credential',
     ctaUrl: `${SITE_URL}/admin/contractors`,
   })
-  return sendEmail({ to: 'admin@prophandld.com', subject: `Credential to review: ${requirementName} (${contractorName})`, html })
+  return sendToAdmins(`Credential to review: ${requirementName} (${contractorName})`, html)
 }
 
 export type CredentialExpiryItem = { name: string; expiry: string; stage: 1 | 2 | 3 }
@@ -1311,7 +1327,7 @@ export async function sendAutoApprovalDigestAdminEmail({
     ctaLabel: 'Open admin jobs',
     ctaUrl: `${SITE_URL}/admin/jobs`,
   })
-  return sendEmail({ to: 'admin@prophandld.com', subject: `${jobs.length} job(s) auto-approved, payment not guaranteed`, html })
+  return sendToAdmins(`${jobs.length} job(s) auto-approved, payment not guaranteed`, html)
 }
 
 export async function sendJobPaymentSentEmail({
@@ -1424,7 +1440,7 @@ export async function sendDisputeRaisedAdminEmail({
     ctaLabel: 'Review dispute',
     ctaUrl: `${SITE_URL}/admin/disputes`,
   })
-  return sendEmail({ to: 'admin@prophandld.com', subject: `Dispute raised: ${jobCategory} (job ${jobId.slice(0, 8)})`, html })
+  return sendToAdmins(`Dispute raised: ${jobCategory} (job ${jobId.slice(0, 8)})`, html)
 }
 
 const DISPUTE_OUTCOME_LABEL: Record<Lang, Record<string, string>> = {
@@ -1593,7 +1609,7 @@ export async function sendSupportEscalationEmail({
     ctaLabel: 'Reply to asker',
     ctaUrl: `mailto:${escapeHtml(askerEmail)}`,
   })
-  return sendEmail({ to: 'admin@prophandld.com', subject: `Support question from ${askerEmail}`, html })
+  return sendToAdmins(`Support question from ${askerEmail}`, html)
 }
 
 export async function sendSupportConfirmationEmail({ to, question }: { to: string; question: string }) {

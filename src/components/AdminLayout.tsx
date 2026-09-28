@@ -41,9 +41,21 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       }
       fetch('/api/admin/check-access')
         .then((r) => r.json())
-        .then((data) => {
+        .then(async (data) => {
           if (cancelled) return
-          setAuthorized(!!data.authorized)
+          if (!data.authorized) {
+            setAuthorized(false)
+            setChecking(false)
+            return
+          }
+          // Being on the allowlist isn't enough on its own — this session
+          // also has to have actually cleared the MFA challenge (aal2), not
+          // just password auth (aal1). /admin/login is where that normally
+          // happens; this is the belt-and-suspenders check against someone
+          // typing /admin directly with a stale aal1-only session.
+          const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+          if (cancelled) return
+          setAuthorized(aal?.currentLevel === 'aal2')
           setChecking(false)
         })
         .catch(() => {

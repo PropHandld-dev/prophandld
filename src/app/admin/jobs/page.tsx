@@ -1,9 +1,11 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, Suspense } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { AdminLayout } from '@/components/AdminLayout'
 import { ScrollReveal } from '@/components/ScrollReveal'
+import { PhotoGrid } from '@/components/PhotoGrid'
 
 type Person = { id: string; name: string | null; email: string | null; phone: string | null }
 type Job = {
@@ -30,6 +32,7 @@ type Job = {
   paymentStatus: string | null
   hasOpenDispute: boolean
   flags: { key: string; label: string; severity: 'red' | 'yellow' | 'info' }[]
+  photos: { stage: string; url: string }[]
 }
 
 const STATUSES = [
@@ -74,14 +77,18 @@ function Tile({ label: text, value, tone }: { label: string; value: number; tone
   )
 }
 
-export default function AdminJobsPage() {
+function AdminJobsPageInner() {
+  const searchParams = useSearchParams()
   const [jobs, setJobs] = useState<Job[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState('all')
   const [attentionOnly, setAttentionOnly] = useState(false)
   const [emergencyOnly, setEmergencyOnly] = useState(false)
   const [query, setQuery] = useState('')
-  const [openId, setOpenId] = useState<string | null>(null)
+  // Pre-opened when arriving with ?jobId=... — the disputes page (and
+  // anywhere else that wants to hand off to a specific job) links here
+  // instead of duplicating this page's detail view.
+  const [openId, setOpenId] = useState<string | null>(() => searchParams.get('jobId'))
 
   useEffect(() => {
     fetch('/api/admin/jobs')
@@ -89,6 +96,14 @@ export default function AdminJobsPage() {
       .then((json) => (json.error ? setError(json.error) : setJobs(json.jobs)))
       .catch(() => setError('Could not load jobs.'))
   }, [])
+
+  useEffect(() => {
+    if (!openId || !jobs) return
+    document.getElementById(`job-${openId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    // Only on the initial arrival with a jobId in the URL, not every time
+    // jobs refreshes — openId is otherwise fully driven by clicking rows.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jobs])
 
   const stats = useMemo(() => {
     const list = jobs || []
@@ -170,7 +185,7 @@ export default function AdminJobsPage() {
                 const where = [j.address, j.unit ? `Unit ${j.unit}` : null, j.city].filter(Boolean).join(', ')
                 const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([j.address, j.city, j.state, j.zip].filter(Boolean).join(', '))}`
                 return (
-                  <div key={j.id} className="border-b border-white/5 last:border-0">
+                  <div key={j.id} id={`job-${j.id}`} className="border-b border-white/5 last:border-0 scroll-mt-6">
                     <button onClick={() => setOpenId(open ? null : j.id)} className="w-full text-left px-5 py-4 hover:bg-white/3 transition">
                       <div className="flex items-start justify-between gap-4">
                         <div className="min-w-0">
@@ -229,6 +244,21 @@ export default function AdminJobsPage() {
                           </div>
                         </div>
 
+                        {j.photos.length > 0 && (
+                          <div className="space-y-4">
+                            {(['before', 'after', 'receipt'] as const).map((stage) => {
+                              const stagePhotos = j.photos.filter((p) => p.stage === stage)
+                              if (stagePhotos.length === 0) return null
+                              return (
+                                <div key={stage}>
+                                  <p className="text-white/50 text-xs mb-1.5 capitalize">{stage} ({stagePhotos.length})</p>
+                                  <PhotoGrid photos={stagePhotos.map((p, i) => ({ id: `${stage}-${i}`, displayUrl: p.url }))} columns={4} thumbHeight="h-20" />
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )}
+
                         {j.contractor && (
                           <div>
                             <p className="text-white/50 text-xs mb-1.5">Contractor&apos;s verified credentials</p>
@@ -283,5 +313,13 @@ export default function AdminJobsPage() {
         </>
       )}
     </AdminLayout>
+  )
+}
+
+export default function AdminJobsPage() {
+  return (
+    <Suspense fallback={<AdminLayout><div className="text-white/50 text-sm">Loading...</div></AdminLayout>}>
+      <AdminJobsPageInner />
+    </Suspense>
   )
 }

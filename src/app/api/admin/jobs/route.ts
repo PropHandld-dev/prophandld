@@ -58,6 +58,33 @@ export async function GET() {
     tenancies.push(...(data || []))
   }
 
+  // Photos are the actual evidence for anything that becomes a dispute —
+  // "was the work done right" isn't answerable from a text description
+  // alone. Signed URLs, same pattern every other photo-viewing page uses,
+  // just batched per job here instead of one job's worth at a time.
+  const photosByJob = new Map<string, { stage: string; url: string }[]>()
+  const allPhotoRows: { job_id: string; stage: string; photo_url: string }[] = []
+  for (const ids of chunk(jobIds, CHUNK)) {
+    const { data: photoRows } = await admin
+      .from('job_photos')
+      .select('job_id, stage, photo_url, created_at')
+      .in('job_id', ids)
+      .order('created_at', { ascending: true })
+    allPhotoRows.push(...(photoRows || []))
+  }
+  for (const rowsChunk of chunk(allPhotoRows, CHUNK)) {
+    const { data: signedRows } = await admin.storage
+      .from('job-photos')
+      .createSignedUrls(rowsChunk.map((r) => r.photo_url), 3600)
+    ;(signedRows || []).forEach((signed, i) => {
+      if (!signed?.signedUrl) return
+      const row = rowsChunk[i]
+      const list = photosByJob.get(row.job_id) || []
+      list.push({ stage: row.stage, url: signed.signedUrl })
+      photosByJob.set(row.job_id, list)
+    })
+  }
+
   const contractorIds = Array.from(new Set(bids.filter((b) => b.status === 'accepted').map((b) => b.contractor_user_id)))
   const credentials: any[] = []
   for (const ids of chunk(contractorIds, CHUNK)) {
@@ -165,6 +192,7 @@ export async function GET() {
       paymentStatus: accepted?.payment_status || null,
       hasOpenDispute: !!dispute,
       flags,
+      photos: photosByJob.get(j.id) || [],
     }
   })
 

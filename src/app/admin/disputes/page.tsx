@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { AdminLayout } from '@/components/AdminLayout'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
+import Link from 'next/link'
 
 export default function AdminDisputesPage() {
   const [loading, setLoading] = useState(true)
@@ -69,6 +70,9 @@ export default function AdminDisputesPage() {
           <div>
             <p className="text-white font-semibold">{job?.category || 'Unknown job'}</p>
             <p className="text-white/60 text-xs">{property?.address}{property?.city ? `, ${property.city}` : ''}</p>
+            <Link href={`/admin/jobs?jobId=${row.job_id}`} className="text-[#12A5A9] text-xs font-semibold hover:underline">
+              View full job (people, bids, photos) →
+            </Link>
           </div>
           <span className={
             row.status === 'open'
@@ -79,7 +83,9 @@ export default function AdminDisputesPage() {
           </span>
         </div>
 
-        <p className="text-white/50 text-xs mb-2">Raised by {row.raiser?.full_name || 'Unknown'} ({row.raised_by_role})</p>
+        <p className="text-white/50 text-xs mb-2">
+          Raised by {row.raiser?.full_name || 'Unknown'} ({row.raised_by_role}) · {new Date(row.created_at).toLocaleString()}
+        </p>
         <p className="text-white/70 text-sm mb-3">{row.reason}</p>
 
         {row.status === 'resolved' && row.resolution_notes && (

@@ -135,6 +135,15 @@ export function LockIcon({ className }: IconProps) {
   )
 }
 
+export function ShieldIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M12 2 4 5v6c0 5 3.5 8.5 8 11 4.5-2.5 8-6 8-11V5l-8-3Z" />
+      <path d="m9 12 2 2 4-4" />
+    </svg>
+  )
+}
+
 export function MessageCircleIcon({ className }: IconProps) {
   return (
     <svg {...base} className={className}>
