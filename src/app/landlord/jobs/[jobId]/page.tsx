@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { expectRow } from '@/lib/expectRow'
+import { compressImage } from '@/lib/imageCompress'
+import { validateMediaFile } from '@/lib/mediaValidation'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { PhotoGrid } from '@/components/PhotoGrid'
@@ -53,6 +55,11 @@ export default function JobDetailPage() {
   const [answeringId, setAnsweringId] = useState<string | null>(null)
 
   const [showBiddingModal, setShowBiddingModal] = useState(false)
+  const [showDiyModal, setShowDiyModal] = useState(false)
+  const [diyUploading, setDiyUploading] = useState(false)
+  const [diyNote, setDiyNote] = useState('')
+  const [diyCost, setDiyCost] = useState('')
+  const [diyError, setDiyError] = useState<string | null>(null)
   const [showDeclineModal, setShowDeclineModal] = useState(false)
   const [declineNote, setDeclineNote] = useState('')
   const [showSelectModal, setShowSelectModal] = useState(false)
@@ -430,6 +437,93 @@ export default function JobDetailPage() {
       setNoMatchingContractorsNotice(result?.sent === 0)
     }
 
+    await fetchJob()
+    setActioning(false)
+  }
+
+  const openDiyModal = () => {
+    setShowBiddingModal(false)
+    setDiyNote('')
+    setDiyCost('')
+    setDiyError(null)
+    setShowDiyModal(true)
+  }
+
+  const handleDiyPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>, stage: 'before' | 'after') => {
+    const files = e.target.files
+    if (!files || files.length === 0 || !userId) return
+
+    for (const file of Array.from(files)) {
+      const problem = validateMediaFile(file)
+      if (problem) {
+        setDiyError(problem)
+        e.target.value = ''
+        return
+      }
+    }
+
+    setDiyUploading(true)
+    setDiyError(null)
+
+    for (const original of Array.from(files)) {
+      const file = await compressImage(original)
+      const fileExt = file.name.split('.').pop()
+      const filePath = `${jobId}/${crypto.randomUUID()}.${fileExt}`
+
+      const { error: uploadError } = await supabase.storage.from('job-photos').upload(filePath, file)
+      if (uploadError) {
+        console.error('Error uploading photo:', uploadError)
+        setDiyError(t('onePhotoFailedUpload', lang))
+        continue
+      }
+
+      const { error: insertError } = await supabase
+        .from('job_photos')
+        .insert({ job_id: jobId, uploaded_by: userId, photo_url: filePath, stage })
+      if (insertError) {
+        console.error('Error saving photo record:', insertError)
+        setDiyError(`${t('photoUploadedNotSaved', lang)} ${insertError.message}`)
+      }
+    }
+
+    await fetchJob()
+    setDiyUploading(false)
+    e.target.value = ''
+  }
+
+  const confirmDiyComplete = async () => {
+    if (afterPhotos.length === 0) {
+      setDiyError(t('diyAfterPhotoRequired', lang))
+      return
+    }
+
+    setActioning(true)
+    setDiyError(null)
+
+    if (diyNote.trim() || diyCost.trim()) {
+      const notesParts = [diyNote.trim(), diyCost.trim() ? `Materials: $${diyCost.trim()}` : null].filter(Boolean)
+      await supabase.from('jobs').update({ landlord_notes: notesParts.join(' · ') }).eq('id', jobId)
+    }
+
+    let failure: string | null = null
+    try {
+      const res = await fetch(`/api/jobs/${jobId}/complete-diy`, { method: 'POST' })
+      if (!res.ok) failure = (await res.json()).error || t('couldNotCompleteDiy', lang)
+    } catch {
+      failure = t('couldNotCompleteDiy', lang)
+    }
+
+    if (failure) {
+      console.error('Error completing job myself:', failure)
+      setDiyError(failure)
+      setActioning(false)
+      return
+    }
+
+    notify('job_completed', jobId)
+    if (userId) postJobStatusMessage(jobId, userId, '✓ Landlord marked this handled themselves')
+
+    setShowDiyModal(false)
     await fetchJob()
     setActioning(false)
   }
@@ -924,6 +1018,11 @@ export default function JobDetailPage() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-white font-semibold">
               {t('statusPrefix', lang)} <span className="text-[#12A5A9]">{statusLabel(job.status)}</span>
+              {job.self_completed && (
+                <span className="ml-2 text-[10px] font-semibold text-[#12A5A9] bg-[#12A5A9]/15 border border-[#12A5A9]/30 rounded-full px-2 py-0.5 align-middle">
+                  {t('diySelfCompletedBadge', lang)}
+                </span>
+              )}
             </h2>
             {job.status === 'pending_approval' && (
               <div className="flex items-center gap-3">
@@ -944,13 +1043,22 @@ export default function JobDetailPage() {
               </div>
             )}
             {job.status === 'approved' && (
-              <button
-                onClick={handleStartBidding}
-                disabled={actioning}
-                className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
-              >
-                {t('startBidding', lang)}
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleStartBidding}
+                  disabled={actioning}
+                  className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
+                >
+                  {t('startBidding', lang)}
+                </button>
+                <button
+                  onClick={openDiyModal}
+                  disabled={actioning}
+                  className="text-white/50 hover:text-white text-xs transition disabled:opacity-50"
+                >
+                  {t('handleItMyselfShort', lang)}
+                </button>
+              </div>
             )}
             {job.status === 'pending_review' && (
               <div className="flex items-center gap-3">
@@ -1139,6 +1247,13 @@ export default function JobDetailPage() {
                     </div>
                   </div>
                 </div>
+                <button
+                  onClick={openDiyModal}
+                  disabled={actioning}
+                  className="text-white/50 hover:text-white text-xs mt-3 transition disabled:opacity-50"
+                >
+                  {t('handleItMyself', lang)}
+                </button>
               </div>
             ) : (
               <div className="space-y-3">
@@ -1522,6 +1637,86 @@ export default function JobDetailPage() {
                 className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
               >
                 {actioning ? t('starting', lang) : t('startBidding', lang)}
+              </button>
+            </div>
+            <button
+              onClick={openDiyModal}
+              disabled={actioning}
+              className="w-full text-white/50 hover:text-white text-xs mt-4 transition disabled:opacity-50"
+            >
+              {t('handleItMyself', lang)}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showDiyModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20 py-10 overflow-y-auto">
+          <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full my-auto">
+            <h3 className="text-white font-semibold mb-2 flex items-center gap-1.5">
+              <WrenchIcon className="w-4 h-4 text-[#12A5A9]" /> {t('diyModalHeading', lang)}
+            </h3>
+            <p className="text-white/50 text-sm mb-5">{t('diyModalDesc', lang)}</p>
+
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-white/70 text-xs font-medium">{t('afterLabel', lang)} ({afterPhotos.length})</p>
+                <label>
+                  <input type="file" accept="image/*,video/*" multiple onChange={(e) => handleDiyPhotoUpload(e, 'after')} className="hidden" />
+                  <span className="text-[#12A5A9] text-xs hover:underline cursor-pointer">{t('addPhotosLink', lang)}</span>
+                </label>
+              </div>
+              {afterPhotos.length > 0 && <PhotoGrid photos={afterPhotos} columns={4} />}
+            </div>
+
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-white/70 text-xs font-medium">{t('beforeLabel', lang)} ({beforePhotos.length})</p>
+                <label>
+                  <input type="file" accept="image/*,video/*" multiple onChange={(e) => handleDiyPhotoUpload(e, 'before')} className="hidden" />
+                  <span className="text-[#12A5A9] text-xs hover:underline cursor-pointer">{t('addPhotosLink', lang)}</span>
+                </label>
+              </div>
+              {beforePhotos.length > 0 && <PhotoGrid photos={beforePhotos} columns={4} />}
+            </div>
+
+            <textarea
+              value={diyNote}
+              onChange={(e) => setDiyNote(e.target.value)}
+              placeholder={t('diyNotePlaceholder', lang)}
+              rows={2}
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-white/40 focus:outline-none focus:border-[#12A5A9] transition mb-3 resize-none"
+            />
+
+            <div className="mb-4">
+              <label className="text-white/50 text-xs block mb-1">{t('diyCostLabel', lang)}</label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={diyCost}
+                onChange={(e) => setDiyCost(e.target.value)}
+                placeholder="0.00"
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-white/40 focus:outline-none focus:border-[#12A5A9] transition"
+              />
+            </div>
+
+            {diyError && <p className="text-red-400 text-xs mb-3">{diyError}</p>}
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDiyModal(false)}
+                disabled={actioning}
+                className="flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-white/12 transition disabled:opacity-50"
+              >
+                {t('cancel', lang)}
+              </button>
+              <button
+                onClick={confirmDiyComplete}
+                disabled={actioning || diyUploading}
+                className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
+              >
+                {actioning ? t('diyMarkingFixed', lang) : t('diyMarkFixed', lang)}
               </button>
             </div>
           </div>

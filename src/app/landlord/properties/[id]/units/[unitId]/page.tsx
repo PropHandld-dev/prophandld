@@ -1097,7 +1097,12 @@ export default function UnitDetailPage() {
                   <Link href={`/landlord/jobs/${job.id}`} className="block rounded-xl px-2 -mx-2 py-3 border-b border-white/5 last:border-0 hover:bg-white/5 transition-all">
                     <p className="text-white font-medium text-sm">{job.category}</p>
                     <p className="text-white/50 text-xs">{job.description}</p>
-                    <p className="text-white/50 text-xs mt-1">{statusLabel(job.status)}</p>
+                    <p className="text-white/50 text-xs mt-1">
+                      {statusLabel(job.status)}
+                      {job.self_completed && (
+                        <span className="ml-1.5 text-[#12A5A9]">· {t('diySelfCompletedBadge', lang)}</span>
+                      )}
+                    </p>
                   </Link>
                 )}
               />
