@@ -332,7 +332,8 @@ export default function LandingPage() {
             <p className="text-white/50 text-sm leading-relaxed mb-5">
               Report an issue in seconds, message your landlord directly, and
               pay rent online, with no more checks, cash, or digging through old
-              text threads.
+              text threads. Add your own documents too, like proof of renters
+              insurance, kept private or shared with your landlord.
             </p>
             <Link href="/signup?role=renter" className="text-[#12A5A9] text-sm font-semibold hover:underline">
               Sign up as a renter →

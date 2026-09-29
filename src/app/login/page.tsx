@@ -38,13 +38,17 @@ const VALID_ROLES: Role[] = ['landlord', 'renter', 'contractor']
 // trigger off auth.users, not by this app — so a request landing right after
 // signup can genuinely beat that trigger. The endpoint tells this case apart
 // (409 + notReady) from "already welcomed," so it's worth one retry after a
-// beat instead of silently giving up on a real first activation.
+// beat instead of silently giving up on a real first activation. A plain 500
+// means the send itself failed (Resend hiccup, rate limit) — the endpoint
+// releases its claim on that outcome, so it's worth exactly the same one
+// retry rather than leaving a real first activation to just silently not
+// get an email.
 async function sendWelcomeEmailWithRetry() {
   try {
     const res = await fetch('/api/auth/welcome', { method: 'POST' })
-    if (res.status === 409) {
-      const body = await res.json().catch(() => ({}))
-      if (body?.notReady) {
+    if (res.status === 409 || res.status === 500) {
+      const body = res.status === 409 ? await res.json().catch(() => ({})) : null
+      if (res.status === 500 || body?.notReady) {
         await new Promise((resolve) => setTimeout(resolve, 1500))
         await fetch('/api/auth/welcome', { method: 'POST' })
       }

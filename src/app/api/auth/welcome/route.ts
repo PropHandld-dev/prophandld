@@ -78,6 +78,14 @@ export async function POST() {
 
   if (!result.ok) {
     console.error('welcome email: send failed', result.error)
+    // The claim above already stamped welcomed_at, but the email never
+    // actually went out — a transient Resend failure here must not
+    // permanently lock this account out of ever getting one. Release the
+    // claim so the next attempt (the client's own retry, or their next
+    // login) sees welcomed_at as null again and gets a real shot at
+    // sending it, instead of every future call finding the row already
+    // "claimed" and silently reporting alreadyWelcomed forever.
+    await supabaseAdmin.from('users').update({ welcomed_at: null }).eq('id', user.id)
     return NextResponse.json({ ok: false, sent: false }, { status: 500 })
   }
 

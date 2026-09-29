@@ -33,6 +33,7 @@ const PROPERTIES = [
 const LANDLORD_ALERTS = [
   { icon: AlertTriangleIcon, tone: 'red', title: 'Kitchen sink leak', subtitle: '123 Oak St · Unit 2', badge: 'New' },
   { icon: WrenchIcon, tone: 'yellow', title: 'Bathroom fan replacement', subtitle: '789 Pine St · Unit B', badge: '3 bids' },
+  { icon: AlertTriangleIcon, tone: 'teal', title: 'Rental license renewal', subtitle: '456 Elm Ave · expires in 12 days', badge: 'Compliance' },
 ] as const
 
 const RENTER_ISSUES = [
