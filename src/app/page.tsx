@@ -21,7 +21,7 @@ const OPERATIONS_FEATURES = [
   { icon: MessageCircleIcon, title: 'Job chat', desc: 'Every job has one thread for the landlord, renter and contractor, with updates and history in one place.' },
   { icon: MessageCircleIcon, title: 'Direct messages', desc: "Message your tenants, or a contractor you've worked with before, job or no job. No phone numbers exchanged." },
   { icon: CalendarIcon, title: 'Schedule calendar', desc: 'Confirmed visits, rent due dates, and expiring compliance items, all in one month view. It nags so you don\'t have to remember to.' },
-  { icon: AlertTriangleIcon, title: 'Compliance alerts', desc: 'Licenses, certificates, and detectors. Get warned before something expires, not after the inspector shows up.' },
+  { icon: AlertTriangleIcon, title: 'Compliance alerts', desc: 'Rental licenses, certificates, and detectors. Get warned before something expires, not after an inspector, or a lawsuit, tells you.' },
   { icon: FileTextIcon, title: 'Documents vault', desc: 'Leases, deeds, insurance, inspection reports. Tenants can upload their own too, like proof of renters insurance, shared with you or kept private.' },
   { icon: WrenchIcon, title: 'Systems & appliances', desc: 'Track HVAC, water heaters, roofs, and panels with install dates and service history.' },
   { icon: CheckCircleIcon, title: 'Verified contractors', desc: "Contractors can submit license and insurance for review, so you can see who's verified before you pick a bid." },
@@ -154,6 +154,53 @@ export default function LandingPage() {
       <section className="max-w-4xl mx-auto px-6 pb-20">
         <ScrollReveal>
           <RoleShowcase />
+        </ScrollReveal>
+      </section>
+
+      {/* Safe Healthy Homes Act — a real, dated deadline for Philadelphia
+          landlords, deliberately given its own prominent section rather than
+          buried as one card among many. Facts below (30-day cure window,
+          license suspension blocking rent collection, $1,000-per-violation
+          private right of action) are sourced from actual legal coverage of
+          the ordinance, not asserted from memory. */}
+      <section className="max-w-5xl mx-auto px-6 py-16">
+        <ScrollReveal>
+          <div className="relative overflow-hidden bg-gradient-to-br from-[#0A7B7E]/15 via-white/3 to-white/3 border border-[#12A5A9]/25 rounded-3xl p-8 sm:p-12">
+            <div className="max-w-3xl">
+              <div className="inline-flex items-center gap-2 bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 text-[#12A5A9] border border-[#12A5A9]/30 text-xs font-semibold px-3 py-1.5 rounded-full mb-5">
+                Philadelphia landlords
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4 leading-tight">
+                Philadelphia&apos;s Safe Healthy Homes Act takes effect November 1, 2026.
+              </h2>
+              <p className="text-white/60 leading-relaxed mb-8 max-w-2xl">
+                A lapsed rental license under the new law means you legally can&apos;t collect rent
+                until it&apos;s fixed, and unresolved violations give tenants the right to sue for
+                $1,000 or more per violation. Prophandld&apos;s compliance tracking warns you before a
+                license or certificate expires, not after an inspector or a lawsuit tells you.
+              </p>
+              <div className="grid sm:grid-cols-3 gap-4 mb-8">
+                <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+                  <p className="text-white font-bold text-lg">30 days</p>
+                  <p className="text-white/50 text-xs mt-1">to fix a cited violation before your license can be suspended</p>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+                  <p className="text-white font-bold text-lg">No license, no rent</p>
+                  <p className="text-white/50 text-xs mt-1">a suspended license means you can&apos;t legally collect rent at all</p>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+                  <p className="text-white font-bold text-lg">$1,000+</p>
+                  <p className="text-white/50 text-xs mt-1">per violation a tenant can sue for, on top of attorney&apos;s fees</p>
+                </div>
+              </div>
+              <Link
+                href="/signup?role=landlord"
+                className="inline-block bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-6 py-3 rounded-full hover:opacity-90 transition"
+              >
+                Set up compliance tracking →
+              </Link>
+            </div>
+          </div>
         </ScrollReveal>
       </section>
 
@@ -325,6 +372,7 @@ export default function LandingPage() {
               { q: 'What if a contractor cancels?', a: "The job reopens for sealed bids, nearby contractors are alerted again, and the landlord and renter are told. Photos, notes, and other bids stay put." },
               { q: "What if something isn't right after the job?", a: 'After the landlord approves, any side has 48 hours to raise a dispute. The job pauses while the Prophandld team reviews it. If nobody responds, finished work is approved automatically after 3 days so contractors are not left waiting.' },
               { q: 'Is Prophandld available in my area?', a: "We're currently onboarding beta landlords in the Philadelphia area, with more markets opening soon." },
+              { q: "What is Philadelphia's Safe Healthy Homes Act?", a: "A new city law taking effect November 1, 2026. It requires cited violations to be fixed within 30 days, ties rent collection directly to having a valid rental license, and gives tenants the right to sue for $1,000 or more per unresolved violation. Prophandld's compliance tracking is built to keep your licenses and certificates from ever lapsing without you knowing." },
               { q: 'Does it work in Spanish?', a: 'The whole app does, not a translated homepage that quietly drops you back into English the moment you sign in. Switch anytime from your profile.' },
             ].map((item) => (
               <details key={item.q} className="group bg-white/3 border border-white/8 rounded-2xl px-5 py-4 open:border-[#12A5A9]/30 open:bg-white/5 transition-colors">
