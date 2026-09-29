@@ -104,6 +104,7 @@ export async function GET(request: NextRequest) {
     const when = formatWhen(job.proposed_date, job.proposed_window, job.proposed_time) || job.proposed_date
 
     const bid = bidByJob.get(job.id)
+    const isDiy = !bid
     const renterId = tenancyByUnit.get(job.unit_id)
     const landlordId = property?.owner_user_id
 
@@ -135,11 +136,17 @@ export async function GET(request: NextRequest) {
           when,
           jobId: job.id,
           accessNotes: role === 'contractor' ? accessNotes : null,
+          isDiy: role === 'landlord' ? isDiy : undefined,
           lang: langOf(person),
         }).catch((err) => console.error('cron/appointment-reminder: email failed', { jobId: job.id, role, err }))
       }
       await sendPush(userId, {
-        title: role === 'landlord' ? `Tomorrow: ${job.category} (FYI)` : `Tomorrow: ${job.category}`,
+        title:
+          role === 'landlord'
+            ? isDiy
+              ? `Tomorrow: ${job.category} — you're doing this one`
+              : `Tomorrow: ${job.category} (FYI)`
+            : `Tomorrow: ${job.category}`,
         body: `${when} · ${propertyLabel}`,
         url: `${SITE_URL}/${role}/jobs/${job.id}`,
       }).catch((err) => console.error('cron/appointment-reminder: push failed', { jobId: job.id, role, err }))

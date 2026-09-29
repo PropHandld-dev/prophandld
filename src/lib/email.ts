@@ -1786,6 +1786,7 @@ export async function sendAppointmentReminderEmail({
   when,
   jobId,
   accessNotes,
+  isDiy,
   lang = 'en',
 }: {
   to: string
@@ -1797,6 +1798,11 @@ export async function sendAppointmentReminderEmail({
   when: string
   jobId: string
   accessNotes?: string | null
+  // Only meaningful for role 'landlord' — a normal job's landlord reminder
+  // is a passive FYI (a contractor is doing the work), but on a job the
+  // landlord marked "handle it myself" they're the one actually expected to
+  // show up, and "nothing is needed from you" is flatly untrue there.
+  isDiy?: boolean
   lang?: Lang
 }) {
   const ctaUrl = `${SITE_URL}/${role}/jobs/${jobId}`
@@ -1817,7 +1823,9 @@ export async function sendAppointmentReminderEmail({
           heading: `Mañana: ${cat}`,
           renterBody: `Hola ${escapeHtml(name)}, un contratista está programado para visitar tu unidad mañana, <strong>${whenEsc}</strong>, por un trabajo de <strong>${cat}</strong>. ${accessNotes ? 'Si algo cambió, puedes actualizar tus notas de acceso desde el trabajo.' : 'Si el contratista necesita saber algo para entrar (código de la caja de seguridad, si estarás en casa, etc.), puedes agregarlo desde el trabajo antes de que lleguen.'}`,
           contractorBody: `Hola ${escapeHtml(name)}, tienes un trabajo de <strong>${cat}</strong> programado para mañana, <strong>${whenEsc}</strong>, en ${at}.${accessNotesBlock}`,
-          landlordBody: `Hola ${escapeHtml(name)}, el trabajo de <strong>${cat}</strong> en ${at} está programado para mañana, <strong>${whenEsc}</strong>. Esto es solo un aviso, no se necesita nada de tu parte.`,
+          landlordBody: isDiy
+            ? `Hola ${escapeHtml(name)}, no lo olvides: mañana, <strong>${whenEsc}</strong>, harás tú mismo el trabajo de <strong>${cat}</strong> en ${at}.`
+            : `Hola ${escapeHtml(name)}, el trabajo de <strong>${cat}</strong> en ${at} está programado para mañana, <strong>${whenEsc}</strong>. Esto es solo un aviso, no se necesita nada de tu parte.`,
           ctaLabel: 'Ver trabajo',
         }
       : {
@@ -1825,7 +1833,9 @@ export async function sendAppointmentReminderEmail({
           heading: `Tomorrow: ${cat}`,
           renterBody: `Hi ${escapeHtml(name)}, a contractor is scheduled to visit your unit tomorrow, <strong>${whenEsc}</strong>, for a <strong>${cat}</strong> job. ${accessNotes ? 'If anything has changed, you can update your access notes from the job.' : "If the contractor needs to know anything to get in (a lockbox code, whether you'll be home, etc.), you can add it from the job before they arrive."}`,
           contractorBody: `Hi ${escapeHtml(name)}, you have a <strong>${cat}</strong> job scheduled for tomorrow, <strong>${whenEsc}</strong>, at ${at}.${accessNotesBlock}`,
-          landlordBody: `Hi ${escapeHtml(name)}, the <strong>${cat}</strong> job at ${at} is scheduled for tomorrow, <strong>${whenEsc}</strong>. This is just a heads-up, nothing is needed from you.`,
+          landlordBody: isDiy
+            ? `Hi ${escapeHtml(name)}, don't forget: you're doing the <strong>${cat}</strong> job at ${at} yourself tomorrow, <strong>${whenEsc}</strong>.`
+            : `Hi ${escapeHtml(name)}, the <strong>${cat}</strong> job at ${at} is scheduled for tomorrow, <strong>${whenEsc}</strong>. This is just a heads-up, nothing is needed from you.`,
           ctaLabel: 'View job',
         }
 
