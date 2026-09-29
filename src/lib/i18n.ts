@@ -351,7 +351,7 @@ const STRINGS = {
   nothingDueRightNow: { en: 'Nothing due right now.', es: 'No hay nada pendiente por ahora.' },
   paymentHistory: { en: 'Payment history', es: 'Historial de pagos' },
   paidLabel: { en: 'Paid', es: 'Pagado' },
-  rentDisclaimer: { en: "Credit cards aren't accepted for rent. Bank payments (ACH) can take a few business days to clear; debit card payments are instant.", es: 'No se aceptan tarjetas de crédito para la renta. Los pagos bancarios (ACH) pueden tardar unos días hábiles en procesarse; los pagos con tarjeta de débito son instantáneos.' },
+  rentDisclaimer: { en: "Rent is paid by secure bank transfer. It usually clears in 1 to 3 business days.", es: 'La renta se paga por transferencia bancaria segura. Normalmente se procesa en 1 a 3 días hábiles.' },
   payRentModalTitle: { en: 'Pay rent', es: 'Pagar renta' },
   payRentModalNote: { en: "Debit card or bank account only. Credit cards aren't accepted for rent and will be refunded. Bank payments may take a few business days to clear.", es: 'Solo tarjeta de débito o cuenta bancaria. No se aceptan tarjetas de crédito para la renta y serán reembolsadas. Los pagos bancarios pueden tardar unos días hábiles en procesarse.' },
 

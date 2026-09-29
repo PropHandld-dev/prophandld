@@ -159,13 +159,22 @@ export default function RenterRentPage() {
     })
   }, [payments, tenancy])
 
-  // Opens the "how do you want to pay" choice first — the PaymentIntent
-  // itself can't be created until a method is picked, since a card payment
-  // adds a visible processing-fee surcharge that a bank payment never has,
-  // and the charge amount has to be fixed before the PaymentIntent exists.
+  // Bank transfer only, for now — a deliberate, temporary launch decision,
+  // not a removed feature. Debit card already works end to end (surcharge,
+  // receipts, everything below is untouched), but credit-card rejection for
+  // rent only happens AFTER Stripe confirms the charge (there's no way to
+  // block by card funding type before that, Stripe doesn't expose it until
+  // then), which means a renter could briefly see "Payment complete" before
+  // a credit-card attempt gets silently reversed a moment later. Shipping
+  // with bank-only for the first stretch of real rent payments sidesteps
+  // that confusing window entirely while it's still unproven with real
+  // money. To bring debit card back, skip straight to
+  // setMethodChoicePayment(payment) instead of calling handleChooseMethod
+  // directly below — the choice modal and the 'card' path are still fully
+  // there.
   const handlePayNow = (payment: any) => {
     setError(null)
-    setMethodChoicePayment(payment)
+    handleChooseMethod(payment, 'bank')
   }
 
   const handleChooseMethod = async (payment: any, method: 'bank' | 'card') => {
