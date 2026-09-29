@@ -77,6 +77,21 @@ export default function LandingPage() {
         </div>
       </nav>
 
+      {/* Contractor callout — the nav link to /contractors is desktop-only
+          (no room for it in the tight mobile nav row), and the contractor
+          role card further down the page is well past the fold on a phone.
+          This is the guaranteed-visible path for a first-time mobile
+          visitor who is actually a contractor, not a landlord: seen the
+          instant the page loads, no scrolling required. */}
+      <Link
+        href="/contractors"
+        className="block bg-gradient-to-r from-[#0A7B7E]/15 to-[#12A5A9]/15 border-b border-[#12A5A9]/20 px-6 py-2.5 text-center hover:from-[#0A7B7E]/20 hover:to-[#12A5A9]/20 transition"
+      >
+        <span className="text-xs sm:text-sm text-[#12A5A9] font-medium">
+          Contractor? Free local leads, no cut, ever. See how it works →
+        </span>
+      </Link>
+
       {/* Hero */}
       <section className="relative max-w-5xl mx-auto px-6 pt-20 pb-16 text-center overflow-hidden">
         <div aria-hidden className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-[#0A7B7E]/20 blur-3xl -z-10 motion-safe:animate-[drift_9s_ease-in-out_infinite]" />
