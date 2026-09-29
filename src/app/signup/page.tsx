@@ -230,7 +230,19 @@ function SignupForm() {
     })
 
     if (verifyError) {
-      setOtpError('That code didn\'t work. Double-check it, or use the link in the email instead.')
+      // A network failure reaching Supabase (name === 'AuthRetryableFetchError',
+      // set by the SDK for exactly this case) has nothing to do with what was
+      // typed — telling someone "that code didn't work" when the real problem
+      // is their connection sends them second-guessing a code they got right,
+      // which is exactly what happened here: this got reported as a wrong-code
+      // bug when the actual failure was the browser never reaching Supabase at
+      // all (the resend button right below surfaced the real error honestly;
+      // this one was silently flattened into the generic message instead).
+      setOtpError(
+        verifyError.name === 'AuthRetryableFetchError'
+          ? "Couldn't reach the server. Check your connection and try again."
+          : 'That code didn\'t work. Double-check it, or use the link in the email instead.'
+      )
       setVerifyingCode(false)
       return
     }
