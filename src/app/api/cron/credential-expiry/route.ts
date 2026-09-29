@@ -3,6 +3,7 @@ import { cronAuthorized } from '@/lib/cronAuth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { requirementById } from '@/lib/credentialRequirements'
 import { sendCredentialExpiryEmail, type CredentialExpiryItem } from '@/lib/email'
+import { sendPush } from '@/lib/push'
 
 export const maxDuration = 60
 
@@ -74,6 +75,14 @@ export async function GET(request: NextRequest) {
     })
     if (!result.ok) continue
     emailsSent++
+
+    const worstStage = Math.max(...entries.map((e) => e.stage))
+    await sendPush(contractorId, {
+      title: worstStage === 3 ? 'A credential has expired' : 'A credential is expiring soon',
+      body: entries.length === 1 ? entries[0].item.name : `${entries.length} credentials need attention`,
+      url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/contractor/settings`,
+    }).catch((err) => console.error('cron/credential-expiry: sendPush failed', { contractorId, err }))
+
     for (const e of entries) {
       await admin.from('contractor_credentials').update({ expiry_reminder_stage: e.stage }).eq('id', e.id)
     }

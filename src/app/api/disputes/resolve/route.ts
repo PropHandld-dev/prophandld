@@ -5,6 +5,7 @@ import { isAdminUserId } from '@/lib/adminAccess'
 import { logAdminAudit } from '@/lib/auditLog'
 import { sendDisputeResolvedEmail } from '@/lib/email'
 import { emailAllowed } from '@/lib/notificationPrefs'
+import { sendPush } from '@/lib/push'
 
 export async function POST(request: NextRequest) {
   const authClient = await createClient()
@@ -100,17 +101,23 @@ export async function POST(request: NextRequest) {
   await Promise.allSettled(
     recipients.map(async ({ userId, role }) => {
       const { data: recipient } = await supabaseAdmin.from('users').select('email, preferred_language, email_notifications_enabled').eq('id', userId).maybeSingle()
-      if (!recipient?.email || !emailAllowed(recipient)) return
-      await sendDisputeResolvedEmail({
-        to: recipient.email,
-        jobCategory,
-        propertyLabel,
-        outcome,
-        resolutionNotes,
-        role,
-        jobId: dispute.job_id,
-        lang: recipient.preferred_language === 'es' ? 'es' : 'en',
-      })
+      if (recipient?.email && emailAllowed(recipient)) {
+        await sendDisputeResolvedEmail({
+          to: recipient.email,
+          jobCategory,
+          propertyLabel,
+          outcome,
+          resolutionNotes,
+          role,
+          jobId: dispute.job_id,
+          lang: recipient.preferred_language === 'es' ? 'es' : 'en',
+        })
+      }
+      await sendPush(userId, {
+        title: 'Dispute resolved',
+        body: `${jobCategory} at ${propertyLabel}`,
+        url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/${role}/jobs/${dispute.job_id}`,
+      }).catch((err) => console.error('disputes/resolve: sendPush failed', { userId, err }))
     })
   )
 

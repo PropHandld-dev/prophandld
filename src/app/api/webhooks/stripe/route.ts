@@ -252,6 +252,11 @@ export async function POST(request: NextRequest) {
                   lang: landlord.preferred_language === 'es' ? 'es' : 'en',
                 }).catch((err) => console.error('stripe webhook: landlord job receipt email failed', err))
               }
+              await sendPush(landlordId, {
+                title: 'Payment sent',
+                body: `$${baseAmountPaid.toFixed(2)} to ${payee?.full_name || 'your contractor'} for ${receiptJob?.category || 'the job'}`,
+                url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/receipts/job/${bidId}`,
+              }).catch((err) => console.error('stripe webhook: sendPush (landlord receipt) failed', err))
             }
 
             if (bid?.contractor_user_id) {

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { sendDmScheduleEmail } from '@/lib/email'
 import { emailAllowed } from '@/lib/notificationPrefs'
+import { sendPush } from '@/lib/push'
 
 export async function POST(request: NextRequest) {
   const authClient = await createClient()
@@ -42,6 +43,17 @@ export async function POST(request: NextRequest) {
     supabaseAdmin.from('users').select('full_name').eq('id', user.id).maybeSingle(),
     supabaseAdmin.from('users').select('email, full_name, preferred_language, email_notifications_enabled').eq('id', recipientId).maybeSingle(),
   ])
+
+  // This message was sent with the chat thread's normal push suppressed
+  // (it has its own email instead) — which used to mean it produced no
+  // push either, even though a schedule proposal is exactly the kind of
+  // thing worth a phone alert. sendPush() has its own preference gate, so
+  // this is safe to attempt unconditionally alongside the email below.
+  await sendPush(recipientId, {
+    title: sender?.full_name || 'Someone',
+    body: text,
+    url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/${recipientRole}/messages/${threadId}`,
+  }).catch((err) => console.error('dm-schedule-notify: sendPush failed', { recipientId, err }))
 
   if (!recipient?.email) {
     return NextResponse.json({ error: 'Recipient email not found' }, { status: 404 })

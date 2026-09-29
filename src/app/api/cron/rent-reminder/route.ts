@@ -200,6 +200,11 @@ export async function GET(request: NextRequest) {
       if (landlord?.email && emailAllowed(landlord)) {
         await sendRentLateLandlordEmail({ to: landlord.email, landlordName: landlord.full_name || 'there', unitLabel, lateFeeAdded, lang: langOf(landlord) })
       }
+      await sendPush(landlordUserId, {
+        title: 'Rent is late',
+        body: lateFeeAdded ? `${unitLabel}: a $${lateFeeAdded.toFixed(2)} late fee was added.` : `${unitLabel} is past due.`,
+        url: `${siteUrl}/landlord`,
+      }).catch((err) => console.error('cron/rent-reminder: sendPush (landlord late) failed', err))
     }
 
     lateNotifications++
