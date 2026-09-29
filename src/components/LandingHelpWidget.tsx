@@ -54,13 +54,13 @@ const FAQS: Record<Role, { q: string; a: string }[]> = {
     },
     {
       q: 'How does rent collection work?',
-      a: 'Rent tracks itself every month. Tenants pay by debit card or bank transfer, no checks or cash to chase down, and you get one tap to mark a payment received if it came in outside the app.',
+      a: 'Rent tracks itself every month. Tenants pay by secure bank transfer, no checks or cash to chase down, and you get one tap to mark a payment received if it came in outside the app.',
     },
   ],
   renter: [
     {
       q: 'Is paying rent through Prophandld safe?',
-      a: 'Yes, rent is paid by debit card or bank transfer through Stripe, the same payment processor used by most major platforms. Prophandld never sees or stores your card details. Credit cards aren\'t accepted for rent, on purpose, so you\'re not tempted into card debt to make rent.',
+      a: 'Yes, rent is paid by secure bank transfer through Stripe, the same payment processor used by most major platforms. Prophandld never sees or stores your bank details. Cards aren\'t accepted for rent, on purpose, so you\'re never tempted into card debt to make rent.',
     },
     {
       q: 'How do I report a maintenance issue?',
