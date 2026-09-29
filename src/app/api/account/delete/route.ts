@@ -40,6 +40,8 @@ export async function POST() {
         const jobIds = (jobs || []).map((j) => j.id)
 
         if (jobIds.length) {
+          await supabaseAdmin.from('disputes').delete().in('job_id', jobIds)
+          await supabaseAdmin.from('job_questions').delete().in('job_id', jobIds)
           await supabaseAdmin.from('contractor_reviews').delete().in('job_id', jobIds)
           await supabaseAdmin.from('job_photos').delete().in('job_id', jobIds)
           await supabaseAdmin.from('bids').delete().in('job_id', jobIds)
@@ -48,6 +50,7 @@ export async function POST() {
         }
         if (tenancyIds.length) {
           await supabaseAdmin.from('rent_payments').delete().in('tenancy_id', tenancyIds)
+          await supabaseAdmin.from('tenancy_occupants').delete().in('tenancy_id', tenancyIds)
         }
         if (unitIds.length) {
           await supabaseAdmin.from('tenancy_invites').delete().in('unit_id', unitIds)
@@ -87,6 +90,8 @@ export async function POST() {
       const { data: jobs } = await supabaseAdmin.from('jobs').select('id').eq('reported_by', userId)
       const jobIds = (jobs || []).map((j) => j.id)
       if (jobIds.length) {
+        await supabaseAdmin.from('disputes').delete().in('job_id', jobIds)
+        await supabaseAdmin.from('job_questions').delete().in('job_id', jobIds)
         await supabaseAdmin.from('contractor_reviews').delete().in('job_id', jobIds)
         await supabaseAdmin.from('job_photos').delete().in('job_id', jobIds)
         await supabaseAdmin.from('bids').delete().in('job_id', jobIds)
@@ -97,14 +102,22 @@ export async function POST() {
       const tenancyIds = (tenancies || []).map((t) => t.id)
       if (tenancyIds.length) {
         await supabaseAdmin.from('rent_payments').delete().in('tenancy_id', tenancyIds)
+        await supabaseAdmin.from('tenancy_occupants').delete().in('tenancy_id', tenancyIds)
       }
       await supabaseAdmin.from('tenancies').delete().eq('renter_user_id', userId)
+      // Covers a co-occupant added to someone else's tenancy, not just a
+      // primary tenant's own — that row references this account's id too
+      // and isn't reached by the tenancy_id cleanup above, which only
+      // covers tenancies this account is the primary renter on.
+      await supabaseAdmin.from('tenancy_occupants').delete().eq('renter_user_id', userId)
     }
 
     if (role === 'contractor') {
+      await supabaseAdmin.from('job_questions').delete().eq('contractor_user_id', userId)
       await supabaseAdmin.from('contractor_reviews').delete().eq('contractor_user_id', userId)
       await supabaseAdmin.from('bids').delete().eq('contractor_user_id', userId)
       await supabaseAdmin.from('contractor_verifications').delete().eq('contractor_user_id', userId)
+      await supabaseAdmin.from('contractor_credentials').delete().eq('contractor_user_id', userId)
     }
 
     // Common to every role
@@ -118,8 +131,30 @@ export async function POST() {
       await supabaseAdmin.from('dm_threads').delete().in('id', threadIds)
     }
     await supabaseAdmin.from('messages').delete().eq('sender_user_id', userId)
+    await supabaseAdmin.from('message_read_state').delete().eq('user_id', userId)
+    await supabaseAdmin.from('push_subscriptions').delete().eq('user_id', userId)
+    await supabaseAdmin.from('personal_emergency_contacts').delete().eq('user_id', userId)
+    // Preserve the dispute itself (and whoever else's audit trail this
+    // resolution is part of) — only detach this account's own reference to
+    // it, the same pattern already used for custom_categories.created_by.
+    await supabaseAdmin.from('disputes').update({ resolved_by: null }).eq('resolved_by', userId)
+    await supabaseAdmin.from('disputes').delete().eq('raised_by_user_id', userId)
     await supabaseAdmin.from('custom_categories').update({ created_by: null }).eq('created_by', userId)
-    await supabaseAdmin.from('users').delete().eq('id', userId)
+
+    // This is the row a re-signup with the same email would otherwise
+    // collide with if it's left behind — every table that can reference
+    // this id must be cleared above before this delete is even attempted,
+    // and its result actually has to be checked. A foreign-key violation
+    // here used to be silently discarded, the route would still go on to
+    // delete the auth account and report success, and the orphaned
+    // public.users row (still holding its old welcomed_at, among other
+    // stale state) would sit there ready to collide with whatever the
+    // signup trigger does next time this email signs up again.
+    const { error: usersDeleteError } = await supabaseAdmin.from('users').delete().eq('id', userId)
+    if (usersDeleteError) {
+      console.error('account delete: could not delete public.users row', { userId, usersDeleteError })
+      return NextResponse.json({ error: usersDeleteError.message }, { status: 500 })
+    }
 
     // Captured before the row (and the auth account right after) is gone
     // for good — this is the one record that survives a deletion, and
