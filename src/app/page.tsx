@@ -208,7 +208,7 @@ export default function LandingPage() {
       <section className="max-w-5xl mx-auto px-6 py-16">
         <ScrollReveal>
         <h2 className="text-3xl font-bold text-center mb-12 text-white">Everything you need. None of the group texts.</h2>
-        <div className="grid sm:grid-cols-3 gap-6">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-white/3 border border-white/8 rounded-2xl p-7 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all duration-200">
             <div className="w-12 h-12 rounded-full bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 border border-[#12A5A9]/30 flex items-center justify-center mb-5">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#12A5A9" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -247,6 +247,21 @@ export default function LandingPage() {
             <p className="text-white/50 text-sm leading-relaxed">
               Every job wraps up with before-and-after photos, so you can see
               exactly what was done before you sign off.
+            </p>
+          </div>
+          <div className="bg-white/3 border border-white/8 rounded-2xl p-7 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all duration-200">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 border border-[#12A5A9]/30 flex items-center justify-center mb-5">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#12A5A9" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 3l7 3v6c0 4.86-3.14 8.53-7 9.93C8.14 17.53 5 13.86 5 9V6l7-3z" />
+                <path d="M12 8v4.5" />
+                <circle cx="12" cy="15.5" r="0.5" fill="#12A5A9" />
+              </svg>
+            </div>
+            <h3 className="text-white font-bold text-lg mb-2">Compliance, on autopilot</h3>
+            <p className="text-white/50 text-sm leading-relaxed">
+              Rental licenses, certificates, inspections. Add the expiry date
+              once and get warned weeks out, not the day an inspector or a
+              lawsuit tells you it already lapsed.
             </p>
           </div>
         </div>
@@ -356,6 +371,37 @@ export default function LandingPage() {
         </ScrollReveal>
       </section>
 
+      {/* Pricing teaser — final numbers aren't set yet (still being
+          confirmed before official launch), so this deliberately shows the
+          structure, not dollar figures: a real free tier, then a flat
+          monthly plan that scales gently with how many units you actually
+          have. No per-unit surprise, no numbers here that might change. */}
+      <section className="max-w-5xl mx-auto px-6 py-16">
+        <ScrollReveal>
+          <div className="bg-white/3 border border-white/8 rounded-2xl p-8 sm:p-12 text-center">
+            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 text-[#12A5A9] border border-[#12A5A9]/30 text-xs font-semibold px-3 py-1.5 rounded-full mb-5">
+              Pricing, finalizing before launch
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">Free to try. Simple after that.</h2>
+            <p className="text-white/50 max-w-xl mx-auto leading-relaxed mb-6">
+              Your first unit is free, full stop. Past that, one flat monthly
+              plan that scales gently with how many units you actually
+              manage, not a per-unit fee that punishes you for growing.
+              We&apos;re confirming the exact numbers with a couple of advisors
+              before official launch, so nothing&apos;s posted here yet, but
+              the shape of it won&apos;t change: affordable for a landlord with
+              a few properties, not priced like enterprise software.
+            </p>
+            <MagneticLink
+              href="/signup?role=landlord"
+              className="inline-block bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-6 py-3 rounded-full hover:opacity-90 transition"
+            >
+              Try it free →
+            </MagneticLink>
+          </div>
+        </ScrollReveal>
+      </section>
+
       {/* FAQ */}
       <section
         className="border-y border-white/8 py-20 bg-[linear-gradient(to_right,rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:56px_56px]"
@@ -365,6 +411,7 @@ export default function LandingPage() {
           <div className="space-y-3">
             {[
               { q: 'Is this just for finding contractors?', a: "No. Prophandld is built to replace the spreadsheet. Track every property, unit, and tenant, handle maintenance end to end with sealed bidding, and collect rent, all in one dashboard. Your spreadsheet can finally retire." },
+              { q: 'What does it cost?', a: "Your first unit is free. Past that, one flat monthly plan that scales gently with your unit count, we're confirming the exact numbers before official launch. Contractors never pay anything, ever, no signup fee, no monthly fee, no cut of a bid." },
               { q: 'How does sealed bidding actually work?', a: "Contractors near the property are alerted when you open a job for bids. They submit their price privately and never see what anyone else bid. You choose who you trust, not just the lowest number. No bidding wars, no “my cousin quoted less”." },
               { q: "What if the contractor's price changes?", a: 'If a contractor needs to adjust their price once work has started, they show you the new labor and parts breakdown, and you approve it before they move forward. No surprise invoices.' },
               { q: 'How do rent and contractor payments work?', a: "Renters pay rent by bank transfer or debit card, not credit cards, so nobody goes into card debt to make rent. Landlords pay contractors when they approve a finished job, by bank transfer or card. Payments are processed by Stripe and go straight to the person being paid." },
