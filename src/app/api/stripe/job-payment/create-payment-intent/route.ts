@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { getStripe, paymentPaidAt } from '@/lib/stripe'
-import { cardProcessingFee } from '@/lib/cardSurcharge'
+import { cardProcessingFee, achProcessingFee } from '@/lib/cardSurcharge'
 
 export async function POST(request: NextRequest) {
   const authClient = await createClient()
@@ -63,21 +63,24 @@ export async function POST(request: NextRequest) {
   //
   // The contractor still receives exactly `amount` either way — "no
   // platform fee, ever" was a promise about their side of this, not about
-  // what the landlord's total charge looks like. A card payment adds
-  // Stripe's real processing fee on top as a visible surcharge (same
-  // mechanism already proven on rent card payments); application_fee_amount
-  // retains exactly that surcharge for Prophandld instead of the platform
-  // absorbing it out of its own balance on every job payment. Bank
-  // transfers stay genuinely free to the landlord. Restricting
-  // payment_method_types to the one chosen method is what makes a
-  // method-specific amount possible — the amount has to be fixed before
-  // the PaymentIntent is created, so the method has to be picked first.
+  // what the landlord's total charge looks like. Unlike rent (where a bank
+  // payment stays free and Prophandld absorbs that fee itself), a landlord
+  // paying a contractor covers Stripe's real processing fee on top either
+  // way, as a visible surcharge shown before they commit — they're already
+  // choosing to pay for real work at a price they picked, so this isn't a
+  // new barrier the way a fee on rent would be. application_fee_amount
+  // retains exactly that surcharge for Prophandld, whichever method is
+  // used, rather than the platform absorbing anything out of its own
+  // balance on a job payment. Restricting payment_method_types to the one
+  // chosen method is what makes a method-specific amount possible — the
+  // amount has to be fixed before the PaymentIntent is created, so the
+  // method has to be picked first.
   const amount = Number(bid.amount)
-  const surcharge = method === 'card' ? cardProcessingFee(amount) : 0
+  const surcharge = method === 'card' ? cardProcessingFee(amount) : achProcessingFee(amount)
   const chargeAmount = amount + surcharge
   const stripe = getStripe()
   const amountCents = Math.round(chargeAmount * 100)
-  const applicationFeeCents = method === 'card' ? Math.round(surcharge * 100) : undefined
+  const applicationFeeCents = Math.round(surcharge * 100)
   const paymentMethodTypes = method === 'card' ? ['card'] : ['us_bank_account']
 
   // "processing" is written when a payment window opens, so it can be left

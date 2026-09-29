@@ -25,7 +25,7 @@ import { useJobRealtime } from '@/lib/useJobRealtime'
 import { requirementById } from '@/lib/credentialRequirements'
 import { TIME_WINDOWS, validateScheduleTime, rescheduleLockError } from '@/lib/scheduleWindows'
 import { AddressLink } from '@/components/AddressLink'
-import { cardProcessingFee } from '@/lib/cardSurcharge'
+import { cardProcessingFee, achProcessingFee } from '@/lib/cardSurcharge'
 import { useLanguage, t, windowLabel } from '@/lib/i18n'
 
 export default function JobDetailPage() {
@@ -1823,12 +1823,13 @@ export default function JobDetailPage() {
 
       {showPaymentMethodChoice && acceptedBid && (() => {
         const baseAmount = Number(acceptedBid.amount)
-        const fee = cardProcessingFee(baseAmount)
+        const cardFee = cardProcessingFee(baseAmount)
+        const bankFee = achProcessingFee(baseAmount)
         return (
           <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
             <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
               <h3 className="text-white font-semibold mb-1">{t('howDoYouWantToPay', lang)}</h3>
-              <p className="text-white/50 text-xs mb-4">{acceptedBid.contractor?.full_name} keeps ${baseAmount.toFixed(2)} either way.</p>
+              <p className="text-white/50 text-xs mb-4">{acceptedBid.contractor?.full_name} keeps ${baseAmount.toFixed(2)} either way, the fee below is Stripe's processing cost, not a Prophandld charge.</p>
               <div className="space-y-3">
                 <button
                   onClick={() => startPaymentWithMethod('bank')}
@@ -1836,9 +1837,11 @@ export default function JobDetailPage() {
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-white font-medium text-sm">{t('bankAccountOptionLabel', lang)}</span>
-                    <span className="text-white font-semibold text-sm tabular-nums">${baseAmount.toFixed(2)}</span>
+                    <span className="text-white font-semibold text-sm tabular-nums">${(baseAmount + bankFee).toFixed(2)}</span>
                   </div>
-                  <p className="text-white/50 text-xs mt-1">{t('bankAccountOptionDesc', lang)}</p>
+                  <p className="text-white/50 text-xs mt-1">
+                    +${bankFee.toFixed(2)} {t('processingFeeSuffix', lang)} · {t('bankAccountOptionDescJobPay', lang)}
+                  </p>
                 </button>
                 <button
                   onClick={() => startPaymentWithMethod('card')}
@@ -1846,10 +1849,10 @@ export default function JobDetailPage() {
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-white font-medium text-sm">{t('debitCardOptionLabel', lang)}</span>
-                    <span className="text-white font-semibold text-sm tabular-nums">${(baseAmount + fee).toFixed(2)}</span>
+                    <span className="text-white font-semibold text-sm tabular-nums">${(baseAmount + cardFee).toFixed(2)}</span>
                   </div>
                   <p className="text-white/50 text-xs mt-1">
-                    +${fee.toFixed(2)} {t('processingFeeSuffix', lang)}
+                    +${cardFee.toFixed(2)} {t('processingFeeSuffix', lang)}
                   </p>
                 </button>
               </div>

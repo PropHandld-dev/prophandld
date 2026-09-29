@@ -55,9 +55,21 @@ export async function POST(request: NextRequest) {
     }
 
     if (paymentIntent.status === 'succeeded') {
+      // Whichever of this route or the payment_intent.succeeded webhook
+      // gets here first is the one that actually records the payment (the
+      // .neq('payment_status', 'paid') guard is what makes that safe) — so
+      // this needs to write the real surcharge too, not just flip the
+      // status, or a landlord/contractor whose confirm call happens to win
+      // that race would end up with card_surcharge_amount silently left at
+      // null despite a real fee having been charged, since the webhook's
+      // own idempotency check would then see the row already marked paid
+      // and skip entirely rather than fill it in after the fact.
+      const cardSurcharge = paymentIntent.metadata?.prophandld_card_surcharge
+        ? Number(paymentIntent.metadata.prophandld_card_surcharge)
+        : 0
       const { error } = await supabaseAdmin
         .from('bids')
-        .update({ payment_status: 'paid', paid_at: paymentPaidAt(paymentIntent) })
+        .update({ payment_status: 'paid', paid_at: paymentPaidAt(paymentIntent), card_surcharge_amount: cardSurcharge })
         .eq('id', bid.id)
         .neq('payment_status', 'paid')
       if (error) {

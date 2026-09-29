@@ -1612,14 +1612,14 @@ export async function sendRentDueRenterEmail({ to, unitLabel, amount, lang = 'en
     lang,
     eyebrow: 'Pago',
     heading: `Renta vence: ${escapeHtml(monthLabel)}`,
-    bodyHtml: `Se debe $${amount.toFixed(2)} para ${escapeHtml(unitLabel)}. Paga por transferencia bancaria segura, directamente desde tu panel.`,
+    bodyHtml: `Se debe $${amount.toFixed(2)} para ${escapeHtml(unitLabel)}. Paga con tarjeta de débito o cuenta bancaria, directamente desde tu panel.`,
     ctaLabel: 'Pagar renta',
     ctaUrl: `${SITE_URL}/renter/rent`,
   }) : baseTemplate({
     lang,
     eyebrow: 'Payment',
     heading: `Rent is due: ${escapeHtml(monthLabel)}`,
-    bodyHtml: `$${amount.toFixed(2)} is due for ${escapeHtml(unitLabel)}. Pay by secure bank transfer, right from your dashboard.`,
+    bodyHtml: `$${amount.toFixed(2)} is due for ${escapeHtml(unitLabel)}. Pay by debit card or bank account, right from your dashboard.`,
     ctaLabel: 'Pay rent',
     ctaUrl: `${SITE_URL}/renter/rent`,
   })

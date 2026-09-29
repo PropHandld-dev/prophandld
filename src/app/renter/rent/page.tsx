@@ -159,22 +159,17 @@ export default function RenterRentPage() {
     })
   }, [payments, tenancy])
 
-  // Bank transfer only, for now — a deliberate, temporary launch decision,
-  // not a removed feature. Debit card already works end to end (surcharge,
-  // receipts, everything below is untouched), but credit-card rejection for
-  // rent only happens AFTER Stripe confirms the charge (there's no way to
-  // block by card funding type before that, Stripe doesn't expose it until
-  // then), which means a renter could briefly see "Payment complete" before
-  // a credit-card attempt gets silently reversed a moment later. Shipping
-  // with bank-only for the first stretch of real rent payments sidesteps
-  // that confusing window entirely while it's still unproven with real
-  // money. To bring debit card back, skip straight to
-  // setMethodChoicePayment(payment) instead of calling handleChooseMethod
-  // directly below — the choice modal and the 'card' path are still fully
-  // there.
+  // Opens the "how do you want to pay" choice first — the PaymentIntent
+  // itself can't be created until a method is picked, since a card payment
+  // adds a visible processing-fee surcharge that a bank payment never has,
+  // and the charge amount has to be fixed before the PaymentIntent exists.
+  // Debit card is safe to offer alongside bank transfer: StripePaymentModal's
+  // `verify` prop (below) catches a credit card AFTER Stripe confirms it and
+  // shows an honest rejection screen instead of a false "Payment complete,"
+  // which is what used to make offering card risky here at all.
   const handlePayNow = (payment: any) => {
     setError(null)
-    handleChooseMethod(payment, 'bank')
+    setMethodChoicePayment(payment)
   }
 
   const handleChooseMethod = async (payment: any, method: 'bank' | 'card') => {
@@ -595,14 +590,20 @@ export default function RenterRentPage() {
           title={t('payRentModalTitle', lang)}
           note={t('payRentModalNote', lang)}
           onClose={() => setModal(null)}
-          onPaid={async () => {
-            // Record it now (processing or paid) so the list is right behind the confirmation screen.
-            await fetch('/api/stripe/rent-payment/confirm', {
+          verify={async () => {
+            // Asks Stripe what actually happened and records it — the same
+            // call this page already relied on, now also the thing that
+            // decides whether the success screen is allowed to show at all.
+            const result = await fetch('/api/stripe/rent-payment/confirm', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ rentPaymentId: modal.rentPaymentId }),
-            }).catch(() => null)
+            }).then((r) => r.json()).catch(() => null)
             if (tenancy) await loadPayments(tenancy.id)
+            if (result?.status === 'refunded_credit_card') {
+              return { ok: false, message: t('creditCardRentRejectedMessage', lang) }
+            }
+            return { ok: true }
           }}
           onSuccess={handlePaymentSuccess}
         />

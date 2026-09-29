@@ -6,16 +6,23 @@ import { getStripeClient } from '@/lib/stripeClient'
 import { RippleButton } from '@/components/RippleButton'
 
 export type PaymentOutcome = 'succeeded' | 'processing'
+// What a `verify` call can come back with: 'ok' means show the normal
+// success screen; 'rejected' means the charge was reversed (so far, only
+// rent's "that was a credit card" case) and a plain, honest message should
+// show instead of a false "Payment complete."
+export type VerifyResult = { ok: true } | { ok: false; message: string }
 
 function PaymentForm({
   amount,
   note,
-  onPaid,
+  verifying,
+  onConfirmed,
   onClose,
 }: {
   amount: number
   note?: string
-  onPaid: (outcome: PaymentOutcome) => void
+  verifying: boolean
+  onConfirmed: (outcome: PaymentOutcome) => void
   onClose: () => void
 }) {
   const stripe = useStripe()
@@ -42,13 +49,15 @@ function PaymentForm({
     }
 
     if (paymentIntent?.status === 'succeeded' || paymentIntent?.status === 'processing') {
-      onPaid(paymentIntent.status)
+      onConfirmed(paymentIntent.status)
       return
     }
 
     setError('Payment could not be completed.')
     setSubmitting(false)
   }
+
+  const busy = submitting || verifying
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -71,15 +80,15 @@ function PaymentForm({
       <div className="flex items-center gap-3">
         <RippleButton
           type="submit"
-          disabled={!stripe || submitting}
+          disabled={!stripe || busy}
           className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
         >
-          {submitting ? 'Processing...' : `Pay $${amount.toFixed(2)}`}
+          {verifying ? 'Confirming...' : submitting ? 'Processing...' : `Pay $${amount.toFixed(2)}`}
         </RippleButton>
         <button
           type="button"
           onClick={onClose}
-          disabled={submitting}
+          disabled={busy}
           className="text-white/50 hover:text-white text-sm transition disabled:opacity-50"
         >
           Cancel
@@ -153,10 +162,48 @@ function SuccessView({
   )
 }
 
+// Shown instead of SuccessView when `verify` comes back rejected — a charge
+// that went through on Stripe's side but got reversed a moment later (today,
+// only rent's "that card turned out to be a credit card" case). Deliberately
+// not styled like an error: the payment attempt itself wasn't the visitor's
+// mistake in any way that matters, they just need to try a different method.
+function RejectedView({ message, onDone }: { message: string; onDone: () => void }) {
+  return (
+    <div className="text-center py-2" role="status" aria-live="polite">
+      <div className="w-20 h-20 mx-auto mb-5 rounded-full bg-gradient-to-br from-yellow-600 to-yellow-400 shadow-[0_10px_40px_-8px_rgba(234,179,8,0.5)] flex items-center justify-center motion-safe:animate-[popIn_0.45s_cubic-bezier(0.34,1.56,0.64,1)_both]">
+        <svg viewBox="0 0 24 24" className="w-10 h-10" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 8v5" />
+          <circle cx="12" cy="16" r="0.5" fill="white" />
+        </svg>
+      </div>
+      <h3 className="text-white font-bold text-xl">That didn't go through</h3>
+      <p className="text-white/60 text-sm mt-3 max-w-xs mx-auto">{message}</p>
+      <RippleButton
+        onClick={onDone}
+        className="w-full mt-6 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90"
+      >
+        Got it
+      </RippleButton>
+    </div>
+  )
+}
+
 /**
  * `onPaid` fires the moment the payment goes through (refresh data behind the
  * modal); the modal then shows a confirmation screen. `onSuccess` fires when
  * the person taps Done, and is where callers close the modal.
+ *
+ * `verify`, when passed, runs after Stripe confirms the charge but BEFORE
+ * the success screen shows — the modal waits on it and only shows "Payment
+ * complete" if it resolves `{ ok: true }`. This exists because Stripe
+ * doesn't expose a card's funding type (debit vs. credit) until after a
+ * charge is confirmed, so a flow that needs to reject credit cards (rent)
+ * can only find out AFTER Stripe already says "succeeded." Without this,
+ * the modal would show a real "Payment complete" for a split second before
+ * the charge gets silently reversed behind the scenes. Callers that don't
+ * have this concern (job payments, which accept any card) can leave it out
+ * entirely and get the original immediate-success behavior.
  */
 export function StripePaymentModal({
   clientSecret,
@@ -167,6 +214,7 @@ export function StripePaymentModal({
   onClose,
   onPaid,
   onSuccess,
+  verify,
 }: {
   clientSecret: string
   amount: number
@@ -176,18 +224,45 @@ export function StripePaymentModal({
   onClose: () => void
   onPaid?: (outcome: PaymentOutcome) => void
   onSuccess: () => void
+  verify?: (outcome: PaymentOutcome) => Promise<VerifyResult>
 }) {
   const [outcome, setOutcome] = useState<PaymentOutcome | null>(null)
+  const [verifying, setVerifying] = useState(false)
+  const [rejected, setRejected] = useState<string | null>(null)
 
-  const handlePaid = (result: PaymentOutcome) => {
-    setOutcome(result)
-    onPaid?.(result)
+  const handleConfirmed = async (result: PaymentOutcome) => {
+    if (!verify) {
+      setOutcome(result)
+      onPaid?.(result)
+      return
+    }
+    setVerifying(true)
+    try {
+      const verdict = await verify(result)
+      if (verdict.ok) {
+        setOutcome(result)
+        onPaid?.(result)
+      } else {
+        setRejected(verdict.message)
+        onPaid?.(result)
+      }
+    } catch {
+      // Couldn't reach the verify step at all — Stripe already says the
+      // charge succeeded, so treat it as a normal success rather than
+      // stranding the person on a spinner; the real status still gets
+      // caught by the webhook and any later page-load sync either way.
+      setOutcome(result)
+      onPaid?.(result)
+    }
+    setVerifying(false)
   }
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
       <div className="bg-[#0F2138] border border-white/10 rounded-2xl p-6 w-full max-w-md">
-        {outcome ? (
+        {rejected ? (
+          <RejectedView message={rejected} onDone={onSuccess} />
+        ) : outcome ? (
           <SuccessView amount={amount} outcome={outcome} message={successMessage} onDone={onSuccess} />
         ) : (
           <>
@@ -208,7 +283,7 @@ export function StripePaymentModal({
                 },
               }}
             >
-              <PaymentForm amount={amount} note={note} onPaid={handlePaid} onClose={onClose} />
+              <PaymentForm amount={amount} note={note} verifying={verifying} onConfirmed={handleConfirmed} onClose={onClose} />
             </Elements>
           </>
         )}

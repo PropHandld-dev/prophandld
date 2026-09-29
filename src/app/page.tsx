@@ -15,7 +15,7 @@ import { BellIcon, ReceiptIcon } from '@/components/icons'
 import { LandingHelpWidget } from '@/components/LandingHelpWidget'
 
 const OPERATIONS_FEATURES = [
-  { icon: DollarSignIcon, title: 'Online rent', desc: 'Rent tracks itself every month. Renters pay by secure bank transfer, no checks, no cash. Edit any month, add a credit, or refund an overpayment in a tap.' },
+  { icon: DollarSignIcon, title: 'Online rent', desc: 'Rent tracks itself every month. Renters pay by bank transfer or debit card. Edit any month, add a credit, or refund an overpayment in a tap.' },
   { icon: BellIcon, title: 'Instant alerts', desc: "The right person hears at the right moment: a new bid, a proposed time, work ready for review. By email, and on your phone's Home Screen." },
   { icon: ReceiptIcon, title: 'Receipts & records', desc: 'Every rent and repair payment gets a receipt, emailed to you and saved on the record.' },
   { icon: MessageCircleIcon, title: 'Job chat', desc: 'Every job has one thread for the landlord, renter and contractor, with updates and history in one place.' },
@@ -319,7 +319,7 @@ export default function LandingPage() {
               { q: 'Is this just for finding contractors?', a: "No. Prophandld is built to replace the spreadsheet. Track every property, unit, and tenant, handle maintenance end to end with sealed bidding, and collect rent, all in one dashboard. Your spreadsheet can finally retire." },
               { q: 'How does sealed bidding actually work?', a: "Contractors near the property are alerted when you open a job for bids. They submit their price privately and never see what anyone else bid. You choose who you trust, not just the lowest number. No bidding wars, no “my cousin quoted less”." },
               { q: "What if the contractor's price changes?", a: 'If a contractor needs to adjust their price once work has started, they show you the new labor and parts breakdown, and you approve it before they move forward. No surprise invoices.' },
-              { q: 'How do rent and contractor payments work?', a: "Renters pay rent by secure bank transfer, no credit cards, so nobody goes into card debt to make rent. Landlords pay contractors when they approve a finished job, by bank transfer or card. Payments are processed by Stripe and go straight to the person being paid." },
+              { q: 'How do rent and contractor payments work?', a: "Renters pay rent by bank transfer or debit card, not credit cards, so nobody goes into card debt to make rent. Landlords pay contractors when they approve a finished job, by bank transfer or card. Payments are processed by Stripe and go straight to the person being paid." },
               { q: 'How will I know when something happens?', a: "You get an email for each step: a bid arrives, a time is proposed or confirmed, work is ready for review. Add Prophandld to your phone's Home Screen and you get instant alerts too." },
               { q: 'Do I get receipts and records?', a: 'Yes. Every rent payment and every contractor payment gets a receipt, emailed to you and saved on the job or rent record, so finding one later is a lookup, not a hunt.' },
               { q: 'What if a contractor cancels?', a: "The job reopens for sealed bids, nearby contractors are alerted again, and the landlord and renter are told. Photos, notes, and other bids stay put." },

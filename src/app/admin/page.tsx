@@ -152,10 +152,12 @@ export default function AdminOverviewPage() {
 
       const jobPaymentsAllTime = (paidBids || []).reduce((sum, b) => sum + Number(b.amount ?? 0), 0)
 
-      // Job payments: a card payment now collects a surcharge to cover
-      // Stripe's real fee (same mechanism as rent card payments), so only
-      // bank-paid job payments (no surcharge) still cost the platform
-      // anything here — card ones are break-even by design.
+      // Job payments: both card and bank now collect a surcharge to cover
+      // Stripe's real fee (the landlord pays it either way, not Prophandld),
+      // so every new job payment is break-even by design. This filter still
+      // finds real cost on job payments made before that surcharge existed
+      // on bank transfers at all — it naturally stops finding anything once
+      // there's no more of that older data left in the "this month" window.
       const jobFeesThisMonth = (paidBids || [])
         .filter((b: any) => b.paid_at && monthKey(b.paid_at) === currentMonth)
         .filter((b: any) => !b.card_surcharge_amount || Number(b.card_surcharge_amount) === 0)
