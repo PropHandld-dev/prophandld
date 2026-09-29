@@ -96,6 +96,9 @@ const FACT_LABELS: Record<string, string> = {
   'New price': 'Nuevo precio',
   'Amount': 'Monto',
   'Amount due': 'Monto adeudado',
+  'Late fee added': 'Cargo por atraso agregado',
+  'Reason': 'Motivo',
+  'Status': 'Estado',
 }
 
 function fl(label: string, lang: Lang): string {
@@ -442,15 +445,16 @@ export async function sendCredentialExpiryEmail({
 }) {
   const anyExpired = items.some((i) => i.stage === 3)
   const locale = lang === 'es' ? 'es-ES' : 'en-US'
-  const lines = items
-    .map((i) => {
-      const date = new Date(i.expiry + 'T00:00:00').toLocaleDateString(locale, { month: 'long', day: 'numeric', year: 'numeric' })
-      const when = lang === 'es'
-        ? (i.stage === 3 ? `venció el ${date}` : `vence el ${date}`)
-        : (i.stage === 3 ? `expired on ${date}` : `expires ${date}`)
-      return `<li><strong>${escapeHtml(i.name)}</strong> ${when}</li>`
-    })
-    .join('')
+  // One fact row per credential, same styled table every other list-like
+  // email in the app already uses — this used to be a bare <ul>, visually
+  // out of step with everything around it.
+  const credentialFacts: EmailFact[] = items.map((i) => {
+    const date = new Date(i.expiry + 'T00:00:00').toLocaleDateString(locale, { month: 'long', day: 'numeric', year: 'numeric' })
+    const when = lang === 'es'
+      ? (i.stage === 3 ? `Venció el ${date}` : `Vence el ${date}`)
+      : (i.stage === 3 ? `Expired ${date}` : `Expires ${date}`)
+    return { label: i.name, value: when }
+  })
   const html = baseTemplate({
     lang,
     eyebrow: lang === 'es' ? (anyExpired ? 'Vencido' : 'Renovación') : (anyExpired ? 'Expired' : 'Renewal'),
@@ -458,16 +462,20 @@ export async function sendCredentialExpiryEmail({
       ? (anyExpired ? 'Una credencial de tu perfil venció' : 'Una credencial de tu perfil vence pronto')
       : (anyExpired ? 'A credential on your profile has expired' : 'A credential on your profile is expiring soon'),
     bodyHtml: lang === 'es'
-      ? `Hola ${escapeHtml(contractorName)},<ul style="padding-left:18px;margin:12px 0;">${lines}</ul>${
+      ? `Hola ${escapeHtml(contractorName)}, ${
           anyExpired
-            ? 'Los arrendadores ya no ven las credenciales vencidas junto a tus ofertas. Sube la renovación y la revisaremos.'
-            : 'Sube la renovación antes de que venza para que los arrendadores sigan viéndola junto a tus ofertas.'
+            ? 'los arrendadores ya no ven las credenciales vencidas junto a tus ofertas. Sube la renovación y la revisaremos.'
+            : 'sube la renovación antes de que venza para que los arrendadores sigan viéndola junto a tus ofertas.'
         }`
-      : `Hi ${escapeHtml(contractorName)},<ul style="padding-left:18px;margin:12px 0;">${lines}</ul>${
+      : `Hi ${escapeHtml(contractorName)}, ${
           anyExpired
-            ? 'Landlords no longer see expired credentials next to your bids. Upload the renewal and we\'ll review it.'
-            : 'Upload the renewal before it lapses so landlords keep seeing it next to your bids.'
+            ? "landlords no longer see expired credentials next to your bids. Upload the renewal and we'll review it."
+            : 'upload the renewal before it lapses so landlords keep seeing it next to your bids.'
         }`,
+    preheader: items.length === 1
+      ? `${items[0].name} — ${lang === 'es' ? (items[0].stage === 3 ? 'venció' : 'vence pronto') : (items[0].stage === 3 ? 'expired' : 'expiring soon')}`
+      : lang === 'es' ? `${items.length} credenciales necesitan atención` : `${items.length} credentials need attention`,
+    facts: credentialFacts,
     ctaLabel: lang === 'es' ? 'Actualizar credenciales' : 'Update credentials',
     ctaUrl: `${SITE_URL}/contractor/settings`,
     footerText: lang === 'es' ? 'Enviado porque tienes credenciales registradas en Prophandld.' : 'Sent because you have credentials on file with Prophandld.',
@@ -533,6 +541,14 @@ function money(value: number) {
   return `$${Number.isInteger(value) ? value : value.toFixed(2)}`
 }
 
+// Categories are stored lowercase ("plumbing"), which reads fine tucked
+// into the middle of a sentence but looks like a typo as the very first
+// word of a push notification title — the one place in pushCopy() that
+// happens is job_completed's non-contractor title.
+function capFirst(value: string) {
+  return value ? value.charAt(0).toUpperCase() + value.slice(1) : value
+}
+
 // --- Push and SMS copy stays English-only for now (not part of this pass —
 // only the email templates below were asked for). Tracked as a deliberate
 // follow-up, not an oversight: the plumbing here (NotifyJobInfo, forRole)
@@ -564,7 +580,7 @@ function pushCopy(type: NotifyType, role: NotifyRole, rawInfo: NotifyJobInfo): {
     case 'bid_received':
       return {
         title: info.amount != null ? `New bid: ${money(info.amount)} for ${cat}` : `New bid on your ${cat} job`,
-        body: `${info.contractorName ? `${info.contractorName} · ` : ''}${where}`,
+        body: `${info.contractorName ? `${info.contractorName} · ` : ''}${where}.`,
       }
     case 'contractor_selected':
       return { title: `You got the ${cat} job`, body: `${where}. Tap to set a time.` }
@@ -582,14 +598,14 @@ function pushCopy(type: NotifyType, role: NotifyRole, rawInfo: NotifyJobInfo): {
         title: info.isLateReschedule
           ? `Urgent: confirmed for${info.when ? ` ${info.when}` : ' a new time'}, very soon`
           : info.when ? `Confirmed: ${info.when}` : 'Visit confirmed',
-        body: `${cat} · ${where}`,
+        body: `${cat} · ${where}.`,
       }
     case 'job_pending_review':
       return { title: `${who} finished the ${cat} work`, body: `${where}. Review and approve. It auto-approves in 3 days.` }
     case 'job_completed': {
       const paidPush = info.paymentStatus === 'paid'
       return {
-        title: role === 'contractor' ? `Work approved: ${cat}` : `${cat} repair closed`,
+        title: role === 'contractor' ? `Work approved: ${cat}` : `${capFirst(cat)} repair closed`,
         body:
           role === 'contractor'
             ? paidPush
@@ -615,7 +631,7 @@ function pushCopy(type: NotifyType, role: NotifyRole, rawInfo: NotifyJobInfo): {
     case 'clarification_requested':
       return { title: 'The landlord has a question', body: `${cat} · ${where}. Tap to reply.` }
     case 'clarification_responded':
-      return { title: `${who} replied`, body: `${cat} · ${where}` }
+      return { title: `${who} replied`, body: `${cat} · ${where}.` }
     case 'contractor_cancelled':
       return {
         title: 'Contractor cancelled',
@@ -655,8 +671,15 @@ export const SMS_ENABLED_TYPES: NotifyType[] = [
   'job_pending_review',
 ]
 
-export function buildSmsMessage(type: NotifyType, info: NotifyJobInfo) {
-  const { title } = pushCopy(type, 'landlord', info)
+// Was hardcoded to build its title as if every recipient were the
+// landlord — harmless today only because none of SMS_ENABLED_TYPES
+// happens to put a price in its pushCopy title, not because it was
+// actually safe by design. A future SMS-enabled type with a dollar amount
+// in its title would otherwise leak it to a renter, who forRole() exists
+// specifically to keep prices away from. Now takes the real recipient's
+// role, same as every other copy-building function here does.
+export function buildSmsMessage(type: NotifyType, role: NotifyRole, info: NotifyJobInfo) {
+  const { title } = pushCopy(type, role, info)
   return `Prophandld: ${title}. ${info.category} at ${jobLocation(info)}.`
 }
 
@@ -1602,12 +1625,31 @@ export async function sendDisputeResolvedEmail({
   return sendEmail({ to, subject: lang === 'es' ? `Disputa resuelta: ${jobCategory}` : `Dispute resolved: ${jobCategory}`, html })
 }
 
-export async function sendCreditCardRejectedEmail({ to, renterName, lang = 'en' }: { to: string; renterName: string; lang?: Lang }) {
+export async function sendCreditCardRejectedEmail({
+  to,
+  renterName,
+  amount,
+  unitLabel,
+  lang = 'en',
+}: {
+  to: string
+  renterName: string
+  // Both optional so this degrades gracefully if a future call site doesn't
+  // have them yet — but the real call site (the Stripe webhook) does, since
+  // the rejected paymentIntent already carries its own charged amount.
+  amount?: number | null
+  unitLabel?: string | null
+  lang?: Lang
+}) {
+  const amountFact: EmailFact | null = amount != null ? { label: fl('Amount', lang), value: `$${amount.toFixed(2)}` } : null
+  const unitFact: EmailFact | null = unitLabel ? { label: fl('Unit', lang), value: unitLabel } : null
   const html = lang === 'es' ? baseTemplate({
     lang,
     eyebrow: 'Pago',
     heading: 'Pago reembolsado',
     bodyHtml: `Hola ${escapeHtml(renterName)}, la renta solo se puede pagar con <strong>tarjeta de débito o cuenta bancaria</strong>. No se aceptan tarjetas de crédito. Tu pago fue reembolsado por completo y la renta sigue pendiente. Por favor intenta de nuevo con una tarjeta de débito o transferencia bancaria.`,
+    preheader: 'Tu pago fue reembolsado por completo. La renta sigue pendiente.',
+    facts: [amountFact, unitFact, { label: fl('Reason', lang), value: 'Tarjetas de crédito no aceptadas' }].filter((f): f is EmailFact => !!f),
     ctaLabel: 'Intentar de nuevo',
     ctaUrl: `${SITE_URL}/renter/rent`,
   }) : baseTemplate({
@@ -1615,6 +1657,8 @@ export async function sendCreditCardRejectedEmail({ to, renterName, lang = 'en' 
     eyebrow: 'Payment',
     heading: 'Payment refunded',
     bodyHtml: `Hi ${escapeHtml(renterName)}, rent can only be paid by <strong>debit card or bank account</strong>. Credit cards aren't accepted. Your payment was fully refunded and rent is still due. Please try again with a debit card or bank transfer.`,
+    preheader: 'Your payment was fully refunded. Rent is still due.',
+    facts: [amountFact, unitFact, { label: fl('Reason', lang), value: 'Credit cards not accepted' }].filter((f): f is EmailFact => !!f),
     ctaLabel: 'Try again',
     ctaUrl: `${SITE_URL}/renter/rent`,
   })
@@ -1626,11 +1670,17 @@ export async function sendRentDueEmail({ to, landlordName, unitLabels, lang = 'e
   const list = lang === 'es'
     ? (unitLabels.length === 1 ? unitLabels[0] : `${unitLabels.length} unidades`)
     : (unitLabels.length === 1 ? unitLabels[0] : `${unitLabels.length} units`)
+  // A single unit gets a real fact row; a digest across many units stays
+  // prose (a growing list of rows doesn't read well in the same 3-4-row
+  // table every other email uses), but still gets a proper preheader.
+  const singleUnitFact: EmailFact[] = unitLabels.length === 1 ? [{ label: fl('Unit', lang), value: unitLabels[0] }] : []
   const html = lang === 'es' ? baseTemplate({
     lang,
     eyebrow: 'Pago',
     heading: `Renta vence: ${escapeHtml(monthLabel)}`,
     bodyHtml: `Hola ${escapeHtml(landlordName)}, el seguimiento de renta de ${escapeHtml(monthLabel)} está listo para ${escapeHtml(list)}. Márcala como recibida con un toque en cuanto llegue, sin necesidad de escribir nada.`,
+    preheader: `${monthLabel} · ${list}`,
+    facts: singleUnitFact,
     ctaLabel: 'Ver panel',
     ctaUrl: `${SITE_URL}/landlord`,
   }) : baseTemplate({
@@ -1638,6 +1688,8 @@ export async function sendRentDueEmail({ to, landlordName, unitLabels, lang = 'e
     eyebrow: 'Payment',
     heading: `Rent is due: ${escapeHtml(monthLabel)}`,
     bodyHtml: `Hi ${escapeHtml(landlordName)}, ${escapeHtml(monthLabel)} rent tracking is ready for ${escapeHtml(list)}. Mark it received in one tap once it comes in, no typing required.`,
+    preheader: `${monthLabel} · ${list}`,
+    facts: singleUnitFact,
     ctaLabel: 'View dashboard',
     ctaUrl: `${SITE_URL}/landlord`,
   })
@@ -1651,6 +1703,12 @@ export async function sendRentDueRenterEmail({ to, unitLabel, amount, lang = 'en
     eyebrow: 'Pago',
     heading: `Renta vence: ${escapeHtml(monthLabel)}`,
     bodyHtml: `Se debe $${amount.toFixed(2)} para ${escapeHtml(unitLabel)}. Paga con tarjeta de débito o cuenta bancaria, directamente desde tu panel.`,
+    preheader: `$${amount.toFixed(2)} · ${unitLabel}`,
+    facts: [
+      { label: fl('Amount', lang), value: `$${amount.toFixed(2)}` },
+      { label: fl('Unit', lang), value: unitLabel },
+      { label: fl('For', lang), value: monthLabel },
+    ],
     ctaLabel: 'Pagar renta',
     ctaUrl: `${SITE_URL}/renter/rent`,
   }) : baseTemplate({
@@ -1658,6 +1716,12 @@ export async function sendRentDueRenterEmail({ to, unitLabel, amount, lang = 'en
     eyebrow: 'Payment',
     heading: `Rent is due: ${escapeHtml(monthLabel)}`,
     bodyHtml: `$${amount.toFixed(2)} is due for ${escapeHtml(unitLabel)}. Pay by debit card or bank account, right from your dashboard.`,
+    preheader: `$${amount.toFixed(2)} · ${unitLabel}`,
+    facts: [
+      { label: fl('Amount', lang), value: `$${amount.toFixed(2)}` },
+      { label: fl('Unit', lang), value: unitLabel },
+      { label: fl('For', lang), value: monthLabel },
+    ],
     ctaLabel: 'Pay rent',
     ctaUrl: `${SITE_URL}/renter/rent`,
   })
@@ -1665,37 +1729,72 @@ export async function sendRentDueRenterEmail({ to, unitLabel, amount, lang = 'en
 }
 
 export async function sendRentLateRenterEmail({ to, unitLabel, amount, lateFeeAdded, lang = 'en' }: { to: string; unitLabel: string; amount: number; lateFeeAdded: number | null; lang?: Lang }) {
+  const facts: EmailFact[] = [
+    { label: fl('Amount due', lang), value: `$${amount.toFixed(2)}` },
+    { label: fl('Unit', lang), value: unitLabel },
+    ...(lateFeeAdded ? [{ label: fl('Late fee added', lang), value: `$${lateFeeAdded.toFixed(2)}` }] : []),
+  ]
   const html = lang === 'es' ? baseTemplate({
     lang,
     eyebrow: 'Pago',
     heading: 'La renta está atrasada',
-    bodyHtml: `La renta de ${escapeHtml(unitLabel)} sigue sin pagarse.${lateFeeAdded ? ` Se agregó un cargo por atraso de $${lateFeeAdded.toFixed(2)}.` : ''} Ahora se deben $${amount.toFixed(2)}. Paga lo antes posible.`,
+    bodyHtml: `La renta de ${escapeHtml(unitLabel)} sigue sin pagarse. Paga lo antes posible.`,
+    preheader: `$${amount.toFixed(2)} · ${unitLabel}`,
+    facts,
     ctaLabel: 'Pagar renta',
     ctaUrl: `${SITE_URL}/renter/rent`,
   }) : baseTemplate({
     lang,
     eyebrow: 'Payment',
     heading: 'Rent is now late',
-    bodyHtml: `Rent for ${escapeHtml(unitLabel)} is still unpaid.${lateFeeAdded ? ` A $${lateFeeAdded.toFixed(2)} late fee has been added.` : ''} $${amount.toFixed(2)} is now due. Pay as soon as you can.`,
+    bodyHtml: `Rent for ${escapeHtml(unitLabel)} is still unpaid. Pay as soon as you can.`,
+    preheader: `$${amount.toFixed(2)} · ${unitLabel}`,
+    facts,
     ctaLabel: 'Pay rent',
     ctaUrl: `${SITE_URL}/renter/rent`,
   })
   return sendEmail({ to, subject: lang === 'es' ? `Renta atrasada: ${unitLabel}` : `Rent is late: ${unitLabel}`, html })
 }
 
-export async function sendRentLateLandlordEmail({ to, landlordName, unitLabel, lateFeeAdded, lang = 'en' }: { to: string; landlordName: string; unitLabel: string; lateFeeAdded: number | null; lang?: Lang }) {
+export async function sendRentLateLandlordEmail({
+  to,
+  landlordName,
+  unitLabel,
+  amount,
+  lateFeeAdded,
+  lang = 'en',
+}: {
+  to: string
+  landlordName: string
+  unitLabel: string
+  // Optional for the same reason as sendCreditCardRejectedEmail — this
+  // function only just started receiving a real number; keep it degrading
+  // gracefully rather than making every call site update at once.
+  amount?: number | null
+  lateFeeAdded: number | null
+  lang?: Lang
+}) {
+  const facts: EmailFact[] = [
+    { label: fl('Unit', lang), value: unitLabel },
+    ...(amount != null ? [{ label: fl('Amount due', lang), value: `$${amount.toFixed(2)}` }] : []),
+    ...(lateFeeAdded ? [{ label: fl('Late fee added', lang), value: `$${lateFeeAdded.toFixed(2)}` }] : []),
+  ]
   const html = lang === 'es' ? baseTemplate({
     lang,
     eyebrow: 'Pago',
     heading: 'La renta está atrasada',
-    bodyHtml: `Hola ${escapeHtml(landlordName)}, la renta de ${escapeHtml(unitLabel)} está vencida y sigue sin pagarse.${lateFeeAdded ? ` Se agregó automáticamente un cargo por atraso de $${lateFeeAdded.toFixed(2)}.` : ' Se notificó al inquilino.'}`,
+    bodyHtml: `Hola ${escapeHtml(landlordName)}, la renta de ${escapeHtml(unitLabel)} está vencida y sigue sin pagarse.${lateFeeAdded ? ' Se agregó automáticamente un cargo por atraso.' : ' Se notificó al inquilino.'}`,
+    preheader: amount != null ? `$${amount.toFixed(2)} · ${unitLabel}` : unitLabel,
+    facts,
     ctaLabel: 'Ver panel',
     ctaUrl: `${SITE_URL}/landlord`,
   }) : baseTemplate({
     lang,
     eyebrow: 'Payment',
     heading: 'Rent is now late',
-    bodyHtml: `Hi ${escapeHtml(landlordName)}, rent for ${escapeHtml(unitLabel)} is past due and still unpaid.${lateFeeAdded ? ` A $${lateFeeAdded.toFixed(2)} late fee was automatically added.` : ' The renter has been notified.'}`,
+    bodyHtml: `Hi ${escapeHtml(landlordName)}, rent for ${escapeHtml(unitLabel)} is past due and still unpaid.${lateFeeAdded ? ' A late fee was automatically added.' : ' The renter has been notified.'}`,
+    preheader: amount != null ? `$${amount.toFixed(2)} · ${unitLabel}` : unitLabel,
+    facts,
     ctaLabel: 'View dashboard',
     ctaUrl: `${SITE_URL}/landlord`,
   })

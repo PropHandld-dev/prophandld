@@ -111,10 +111,20 @@ export async function POST(request: NextRequest) {
                 .maybeSingle()
 
               const renterUserId = (rentPaymentForRefund?.tenancies as any)?.renter_user_id
+              const refundedUnits = (rentPaymentForRefund?.tenancies as any)?.units
+              const refundedUnitLabel = refundedUnits
+                ? `${refundedUnits.properties?.address || 'your property'}${refundedUnits.unit_number ? `, Unit ${refundedUnits.unit_number}` : ''}`
+                : null
               if (renterUserId) {
                 const { data: renter } = await supabaseAdmin.from('users').select('email, full_name, preferred_language, email_notifications_enabled').eq('id', renterUserId).maybeSingle()
                 if (renter?.email && emailAllowed(renter)) {
-                  await sendCreditCardRejectedEmail({ to: renter.email, renterName: renter.full_name || 'there', lang: renter.preferred_language === 'es' ? 'es' : 'en' })
+                  await sendCreditCardRejectedEmail({
+                    to: renter.email,
+                    renterName: renter.full_name || 'there',
+                    amount: paymentIntent.amount / 100,
+                    unitLabel: refundedUnitLabel,
+                    lang: renter.preferred_language === 'es' ? 'es' : 'en',
+                  })
                 }
                 await sendPush(renterUserId, {
                   title: 'Payment refunded',

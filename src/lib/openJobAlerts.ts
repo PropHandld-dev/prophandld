@@ -88,7 +88,7 @@ export async function notifyMatchingContractors(admin: any, jobId: string, exclu
       )
       // Text messages cost money, so only genuine emergencies, and only for opted-in contractors.
       if (info.isEmergency && c.sms_opt_in && c.phone) {
-        await sendSms(c.phone, buildSmsMessage('job_open', info)).catch((err) =>
+        await sendSms(c.phone, buildSmsMessage('job_open', 'contractor', info)).catch((err) =>
           console.error('openJobAlerts: sms failed', { userId: c.id, err })
         )
       }

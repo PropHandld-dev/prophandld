@@ -168,7 +168,7 @@ export async function POST(request: NextRequest) {
 
       const smsAllowedForType = SMS_ENABLED_TYPES.includes(type) && (type !== 'job_reported' || jobInfo.isEmergency)
       if (smsAllowedForType && recipient.sms_opt_in && recipient.phone) {
-        await sendSms(recipient.phone, buildSmsMessage(type, jobInfo)).catch((err) =>
+        await sendSms(recipient.phone, buildSmsMessage(type, role, jobInfo)).catch((err) =>
           console.error('notify: sendSms failed', { jobId, role, err })
         )
       }

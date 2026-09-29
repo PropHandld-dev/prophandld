@@ -198,7 +198,14 @@ export async function GET(request: NextRequest) {
     if (landlordUserId) {
       const landlord = userById.get(landlordUserId)
       if (landlord?.email && emailAllowed(landlord)) {
-        await sendRentLateLandlordEmail({ to: landlord.email, landlordName: landlord.full_name || 'there', unitLabel, lateFeeAdded, lang: langOf(landlord) })
+        await sendRentLateLandlordEmail({
+          to: landlord.email,
+          landlordName: landlord.full_name || 'there',
+          unitLabel,
+          amount: Number(updates.expected_amount ?? rentPayment.expected_amount),
+          lateFeeAdded,
+          lang: langOf(landlord),
+        })
       }
       await sendPush(landlordUserId, {
         title: 'Rent is late',
