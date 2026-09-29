@@ -40,6 +40,7 @@ export default function JobDetailPage() {
   const [userId, setUserId] = useState<string | null>(null)
   const [hasUnread, setHasUnread] = useState(false)
   const [job, setJob] = useState<any>(null)
+  const [hasActiveTenant, setHasActiveTenant] = useState(false)
   const [photos, setPhotos] = useState<any[]>([])
   const [bids, setBids] = useState<any[]>([])
   const [verifiedContractorIds, setVerifiedContractorIds] = useState<Set<string>>(new Set())
@@ -281,7 +282,20 @@ export default function JobDetailPage() {
       setQuestions(data || [])
     }
 
-    await Promise.all([loadReporter(), loadPhotos(), loadBids(), loadQuestions()])
+    // Determines whether "handle it myself" needs a schedule/access step —
+    // a vacant unit has no one to coordinate with, an occupied one does.
+    const loadTenancy = async () => {
+      const { data } = await supabase
+        .from('tenancies')
+        .select('id')
+        .eq('unit_id', jobData.unit_id)
+        .eq('ended', false)
+        .limit(1)
+        .maybeSingle()
+      setHasActiveTenant(!!data)
+    }
+
+    await Promise.all([loadReporter(), loadPhotos(), loadBids(), loadQuestions(), loadTenancy()])
 
     setLoading(false)
   }
@@ -441,8 +455,55 @@ export default function JobDetailPage() {
     setActioning(false)
   }
 
-  const openDiyModal = () => {
+  // A vacant unit has no one to coordinate access with, so "handle it
+  // myself" goes straight to the completion modal there. An occupied one
+  // needs the same propose/confirm a time exchange a contractor job
+  // already has — reused as-is below (status bid_selected/scheduled,
+  // proposed_by 'landlord') rather than building a second mechanism,
+  // since that section only ever keys off status, never off an actual
+  // bid existing.
+  const openDiyModal = async () => {
     setShowBiddingModal(false)
+    if (hasActiveTenant) {
+      await startDiySelfSchedule()
+      return
+    }
+    setDiyNote('')
+    setDiyCost('')
+    setDiyError(null)
+    setShowDiyModal(true)
+  }
+
+  const startDiySelfSchedule = async () => {
+    setActioning(true)
+    setError(null)
+    const { error: updateError } = await expectRow(supabase
+      .from('jobs')
+      .update({ status: 'bid_selected' })
+      .eq('id', jobId)
+      .in('status', ['approved', 'bidding']))
+
+    if (updateError) {
+      console.error('Error starting self-scheduled job:', updateError)
+      setError(t('couldNotStartDiySchedule', lang))
+      setActioning(false)
+      return
+    }
+
+    if (openBids.length > 0) {
+      const { error: bidsError } = await supabase
+        .from('bids')
+        .update({ status: 'declined' })
+        .eq('job_id', jobId)
+        .eq('status', 'pending')
+      if (bidsError) console.error('Error declining open bids on DIY schedule start:', bidsError)
+    }
+
+    await fetchJob()
+    setActioning(false)
+  }
+
+  const openDiyCompleteModal = () => {
     setDiyNote('')
     setDiyCost('')
     setDiyError(null)
@@ -881,6 +942,10 @@ export default function JobDetailPage() {
   }
 
   const statusLabel = (status: string) => {
+    // A DIY job passes through bid_selected/scheduled too (reusing the same
+    // propose/confirm mechanism a contractor job uses), but "Contractor
+    // selected" reads as wrong when there's no contractor on it at all.
+    if (status === 'bid_selected' && !acceptedBid) return t('statusDiyScheduling', lang)
     const labels: Record<string, string> = {
       pending_approval: t('statusNeedsApproval', lang),
       approved: t('statusAcknowledged', lang),
@@ -1084,6 +1149,15 @@ export default function JobDetailPage() {
                   </button>
                 )}
               </div>
+            )}
+            {!acceptedBid && ['bid_selected', 'scheduled'].includes(job.status) && (
+              <button
+                onClick={openDiyCompleteModal}
+                disabled={actioning}
+                className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
+              >
+                {t('diyMarkFixed', lang)}
+              </button>
             )}
           </div>
 
@@ -1319,7 +1393,7 @@ export default function JobDetailPage() {
           </ScrollReveal>
         )}
 
-        {['bid_selected', 'scheduled', 'in_progress', 'pending_review', 'completed', 'archived'].includes(job.status) && (
+        {['bid_selected', 'scheduled', 'in_progress', 'pending_review', 'completed', 'archived'].includes(job.status) && acceptedBid && (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
             <h3 className="text-white font-semibold mb-3">{t('selectedContractorHeading', lang)}</h3>
             {acceptedBid && (

@@ -32,7 +32,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ error: 'Job not found' }, { status: 404 })
   }
 
-  if (!['approved', 'bidding'].includes(job.status)) {
+  // bid_selected/scheduled cover a job that went through the optional
+  // self-schedule step first (an occupied unit, coordinating access with
+  // the tenant) — still a DIY job the whole time, just with a time set
+  // before the landlord actually did the work.
+  if (!['approved', 'bidding', 'bid_selected', 'scheduled'].includes(job.status)) {
     return NextResponse.json({ error: 'This job can no longer be marked as handled yourself.' }, { status: 400 })
   }
 
@@ -66,7 +70,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       self_completed_at: new Date().toISOString(),
     })
     .eq('id', jobId)
-    .in('status', ['approved', 'bidding'])
+    .in('status', ['approved', 'bidding', 'bid_selected', 'scheduled'])
 
   if (updateError) {
     console.error('complete-diy: could not update job', { jobId, updateError })

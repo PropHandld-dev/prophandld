@@ -420,6 +420,8 @@ const STRINGS = {
   diyMarkingFixed: { en: 'Marking fixed...', es: 'Marcando como arreglado...' },
   diySelfCompletedBadge: { en: 'Self-completed', es: 'Completado por ti' },
   couldNotCompleteDiy: { en: 'Could not mark this fixed. Try again.', es: 'No se pudo marcar como arreglado. Inténtalo de nuevo.' },
+  couldNotStartDiySchedule: { en: 'Could not start scheduling. Try again.', es: 'No se pudo iniciar la programación. Inténtalo de nuevo.' },
+  statusDiyScheduling: { en: 'Scheduling it yourself', es: 'Programándolo tú mismo' },
   declineThisJob: { en: 'Decline this job?', es: '¿Rechazar este trabajo?' },
   optionallyLetRenterKnow: { en: 'Optionally let the renter know why.', es: 'Opcionalmente, explícale al inquilino por qué.' },
   declineNotePlaceholder: { en: 'e.g. Already scheduled with our regular contractor', es: 'ej. Ya programado con nuestro contratista habitual' },
