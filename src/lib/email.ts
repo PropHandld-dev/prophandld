@@ -506,6 +506,11 @@ export interface NotifyJobInfo {
   // paid yet. Undefined means "don't know" (most events never load it) —
   // never treated the same as 'unpaid', which is an asserted fact.
   paymentStatus?: 'paid' | 'processing' | 'unpaid' | null
+  // Set only for schedule_proposed/schedule_confirmed, when the date being
+  // proposed or confirmed is close enough to count as a late change (see
+  // isLateReschedule in scheduleWindows.ts) — makes that one push urgent so
+  // a last-minute change never quietly sits unread.
+  isLateReschedule?: boolean
 }
 
 function jobLocation(info: NotifyJobInfo) {
@@ -553,11 +558,20 @@ function pushCopy(type: NotifyType, role: NotifyRole, rawInfo: NotifyJobInfo): {
       return { title: `You got the ${cat} job`, body: `${where}. Tap to set a time.` }
     case 'schedule_proposed':
       return {
-        title: info.when ? `Time proposed: ${info.when}` : 'New time proposed',
-        body: `${cat} · ${where}. Tap to confirm or suggest another.`,
+        title: info.isLateReschedule
+          ? `Urgent: last-minute time change${info.when ? ` · ${info.when}` : ''}`
+          : info.when ? `Time proposed: ${info.when}` : 'New time proposed',
+        body: info.isLateReschedule
+          ? `${cat} · ${where}. This is close to the current date, please check as soon as you can.`
+          : `${cat} · ${where}. Tap to confirm or suggest another.`,
       }
     case 'schedule_confirmed':
-      return { title: info.when ? `Confirmed: ${info.when}` : 'Visit confirmed', body: `${cat} · ${where}` }
+      return {
+        title: info.isLateReschedule
+          ? `Urgent: confirmed for${info.when ? ` ${info.when}` : ' a new time'}, very soon`
+          : info.when ? `Confirmed: ${info.when}` : 'Visit confirmed',
+        body: `${cat} · ${where}`,
+      }
     case 'job_pending_review':
       return { title: `${who} finished the ${cat} work`, body: `${where}. Review and approve. It auto-approves in 3 days.` }
     case 'job_completed': {
@@ -608,9 +622,13 @@ export function buildPushMessage(type: NotifyType, role: NotifyRole, info: Notif
     // instead of stacking five near-identical banners.
     tag: `job-${info.jobId}`,
     // "High" urgency asks the phone to wake up and deliver right away rather
-    // than batch for battery savings — reserved for the two events that are
-    // actually urgent, and only when the job itself is flagged emergency.
-    urgent: (type === 'job_reported' || type === 'job_open') && !!info.isEmergency,
+    // than batch for battery savings — reserved for jobs flagged emergency,
+    // and separately for a schedule change proposed or confirmed close
+    // enough to the date that it counts as a late change (see
+    // isLateReschedule in scheduleWindows.ts).
+    urgent:
+      ((type === 'job_reported' || type === 'job_open') && !!info.isEmergency) ||
+      ((type === 'schedule_proposed' || type === 'schedule_confirmed') && !!info.isLateReschedule),
   }
 }
 
@@ -769,12 +787,14 @@ export function buildNotificationEmail(type: NotifyType, role: NotifyRole, rawIn
       }
     case 'schedule_proposed':
       return lang === 'es' ? {
-        subject: info.when ? `Horario propuesto: ${info.when}` : `Nuevo horario propuesto: ${info.category}`,
+        subject: info.isLateReschedule
+          ? `Urgente, cambio de último momento${info.when ? `: ${info.when}` : ''}`
+          : info.when ? `Horario propuesto: ${info.when}` : `Nuevo horario propuesto: ${info.category}`,
         html: baseTemplate({
           lang,
-          eyebrow: 'Programación',
+          eyebrow: info.isLateReschedule ? 'Cambio urgente' : 'Programación',
           heading: info.when ? `Visita propuesta para ${escapeHtml(info.when)}` : 'Se propuso un nuevo horario',
-          bodyHtml: `Se propuso una visita para el trabajo de <strong>${cat}</strong>. Confírmala, o sugiere un horario que te convenga más.`,
+          bodyHtml: `${info.isLateReschedule ? '<strong>Este cambio es muy cercano a la fecha actual.</strong> ' : ''}Se propuso una visita para el trabajo de <strong>${cat}</strong>. Confírmala, o sugiere un horario que te convenga más.`,
           preheader: `${info.when ? `${info.when}. ` : ''}Confírmalo o sugiere otro horario.`,
           stage: 2,
           facts: compact([whenFact, jobFact, whereFact, unitFact]),
@@ -782,12 +802,14 @@ export function buildNotificationEmail(type: NotifyType, role: NotifyRole, rawIn
           ctaUrl,
         }),
       } : {
-        subject: info.when ? `Time proposed: ${info.when}` : `New time proposed: ${info.category}`,
+        subject: info.isLateReschedule
+          ? `Urgent, last-minute change${info.when ? `: ${info.when}` : ''}`
+          : info.when ? `Time proposed: ${info.when}` : `New time proposed: ${info.category}`,
         html: baseTemplate({
           lang,
-          eyebrow: 'Scheduling',
+          eyebrow: info.isLateReschedule ? 'Urgent change' : 'Scheduling',
           heading: info.when ? `Visit proposed for ${escapeHtml(info.when)}` : 'A new time was proposed',
-          bodyHtml: `A visit for the <strong>${cat}</strong> job was proposed. Confirm it, or suggest a time that suits you better.`,
+          bodyHtml: `${info.isLateReschedule ? '<strong>This change is very close to the current date.</strong> ' : ''}A visit for the <strong>${cat}</strong> job was proposed. Confirm it, or suggest a time that suits you better.`,
           preheader: `${info.when ? `${info.when}. ` : ''}Confirm it or suggest another time.`,
           stage: 2,
           facts: compact([whenFact, jobFact, whereFact, unitFact]),
@@ -797,10 +819,12 @@ export function buildNotificationEmail(type: NotifyType, role: NotifyRole, rawIn
       }
     case 'schedule_confirmed':
       return lang === 'es' ? {
-        subject: info.when ? `Confirmado: ${info.when}` : `Visita confirmada: ${info.category}`,
+        subject: info.isLateReschedule
+          ? `Confirmado, muy pronto${info.when ? `: ${info.when}` : ''}`
+          : info.when ? `Confirmado: ${info.when}` : `Visita confirmada: ${info.category}`,
         html: baseTemplate({
           lang,
-          eyebrow: 'Confirmado',
+          eyebrow: info.isLateReschedule ? 'Confirmado, muy pronto' : 'Confirmado',
           heading: info.when ? `Visita confirmada para ${escapeHtml(info.when)}` : 'Visita confirmada',
           bodyHtml: `Todos acordaron un horario para el trabajo de <strong>${cat}</strong>. Ya está en el calendario.`,
           preheader: `${info.when ? `${info.when}. ` : ''}${jobLocation(info)}`,
@@ -811,10 +835,12 @@ export function buildNotificationEmail(type: NotifyType, role: NotifyRole, rawIn
           note: '¿Necesitas cambiarlo? Abre el trabajo y propón un nuevo horario.',
         }),
       } : {
-        subject: info.when ? `Confirmed: ${info.when}` : `Visit confirmed: ${info.category}`,
+        subject: info.isLateReschedule
+          ? `Confirmed, very soon${info.when ? `: ${info.when}` : ''}`
+          : info.when ? `Confirmed: ${info.when}` : `Visit confirmed: ${info.category}`,
         html: baseTemplate({
           lang,
-          eyebrow: 'Confirmed',
+          eyebrow: info.isLateReschedule ? 'Confirmed, very soon' : 'Confirmed',
           heading: info.when ? `Visit confirmed for ${escapeHtml(info.when)}` : 'Visit confirmed',
           bodyHtml: `Everyone agreed on a time for the <strong>${cat}</strong> job. It's on the calendar.`,
           preheader: `${info.when ? `${info.when}. ` : ''}${jobLocation(info)}`,

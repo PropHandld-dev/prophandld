@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { NotifyJobInfo } from '@/lib/email'
+import { isLateReschedule } from '@/lib/scheduleWindows'
 
 // "Tue, Sep 22 · Morning" (or "· 9:30 AM" when an exact time was set).
 // The date is a plain calendar date, so it is read as UTC to keep it from
@@ -41,6 +42,12 @@ export async function loadNotifyExtras(admin: SupabaseClient, jobId: string): Pr
       extras.when = formatWhen(job.proposed_date, job.proposed_window, job.proposed_time)
       const unit = (job.units as any)?.unit_number
       if (unit) extras.unit = String(unit)
+      // Re-derived here, server-side, from the same proposed_date rather
+      // than trusted from the client that triggered this — a late
+      // reschedule (weather, a sudden conflict) is exactly the case that
+      // most needs to reach the other side as a real, wake-the-phone
+      // alert instead of sitting in a normal notification queue.
+      if (job.proposed_date) extras.isLateReschedule = isLateReschedule(job.proposed_date)
     }
   } catch (err) {
     console.error('notify extras: job lookup failed', { jobId, err })

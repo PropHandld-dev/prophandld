@@ -24,7 +24,7 @@ import { UnreadDot } from '@/components/UnreadDot'
 import { getUnreadJobIds } from '@/lib/messageReads'
 import { useJobRealtime } from '@/lib/useJobRealtime'
 import { CONTRACTOR_TABS } from '@/lib/navTabs'
-import { TIME_WINDOWS, validateScheduleTime, rescheduleLockError } from '@/lib/scheduleWindows'
+import { TIME_WINDOWS, validateScheduleTime, lateRescheduleWarning } from '@/lib/scheduleWindows'
 import { useLanguage, t, windowLabel } from '@/lib/i18n'
 
 export default function ContractorJobDetailPage() {
@@ -152,13 +152,6 @@ export default function ContractorJobDetailPage() {
     if (timeError) {
       setError(timeError)
       return
-    }
-    if (job.schedule_confirmed && job.proposed_date) {
-      const lockError = rescheduleLockError(job.proposed_date)
-      if (lockError) {
-        setError(lockError)
-        return
-      }
     }
     setActioning(true)
     setError(null)
@@ -733,17 +726,13 @@ export default function ContractorJobDetailPage() {
                   {new Date(job.proposed_date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })} · {windowLabel(job.proposed_window, lang)}
                   {job.proposed_time && ` · ${job.proposed_time}`}
                 </p>
-                {rescheduleLockError(job.proposed_date) ? (
-                  <p className="text-white/40 text-xs mt-2">{rescheduleLockError(job.proposed_date)}</p>
-                ) : (
-                  <button
-                    onClick={openScheduleModal}
-                    disabled={actioning}
-                    className="text-white/50 text-xs hover:text-white transition mt-2"
-                  >
-                    {t('rescheduleBtn', lang)}
-                  </button>
-                )}
+                <button
+                  onClick={openScheduleModal}
+                  disabled={actioning}
+                  className="text-white/50 text-xs hover:text-white transition mt-2"
+                >
+                  {t('rescheduleBtn', lang)}
+                </button>
               </div>
             ) : (
               <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
@@ -899,6 +888,12 @@ export default function ContractorJobDetailPage() {
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
           <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
             <h3 className="text-white font-semibold mb-4">{t('proposeATimeHeading', lang)}</h3>
+
+            {job.schedule_confirmed && job.proposed_date && lateRescheduleWarning(job.proposed_date) && (
+              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl px-4 py-3 mb-4">
+                <p className="text-yellow-400/90 text-xs leading-relaxed">{lateRescheduleWarning(job.proposed_date)}</p>
+              </div>
+            )}
 
             {job.tenant_availability && job.tenant_availability.length > 0 && (
               <div className="mb-4">

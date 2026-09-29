@@ -8,23 +8,38 @@ export const TIME_WINDOWS = [
   { value: 'evening', label: 'Evening (5pm–8pm)', startHour: 17, endHour: 20 },
 ]
 
-// Once a schedule is confirmed, a change within 2 days of the
-// appointment can't go through the normal "propose a new time, other
-// side confirms" flow — there isn't time left for that round trip, and
-// a change that close to the date needs a direct conversation instead.
+// A change proposed this close to a confirmed appointment used to be
+// hard-blocked (the normal propose-and-confirm flow requires a round trip
+// that felt "too close" to fit) and the only escape hatch was "message the
+// other party directly" — a real dead end, since nothing in the app ever
+// actually updated even after a real conversation, weather or a sudden
+// conflict rarely waits for 2 days' notice, and the person on the other
+// end still needed a clean way to see and confirm the new time, not just
+// take someone's word for it. The lockout is gone; RESCHEDULE_LOCKOUT_DAYS
+// now only decides when a change is flagged as urgent, not whether it's
+// allowed at all — the real safety mechanism was always the other side
+// having to explicitly confirm, which a late change still requires exactly
+// the same as any other.
 export const RESCHEDULE_LOCKOUT_DAYS = 2
 
-export function rescheduleLockError(confirmedDate: string): string | null {
+export function isLateReschedule(confirmedDate: string): boolean {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const apptDate = new Date(confirmedDate + 'T00:00:00')
   const daysUntil = Math.round((apptDate.getTime() - today.getTime()) / (24 * 60 * 60 * 1000))
+  return daysUntil < RESCHEDULE_LOCKOUT_DAYS
+}
 
-  if (daysUntil < RESCHEDULE_LOCKOUT_DAYS) {
-    const label = apptDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
-    return `Too close to reschedule online: the appointment is ${label}. Message the other party directly to work it out.`
-  }
-  return null
+// Shown as a heads-up inside the reschedule form when isLateReschedule is
+// true — proposing still works, this just sets expectations that it'll
+// reach the other side as an urgent, wake-the-phone notification instead
+// of an ordinary one, since a change this close to the date shouldn't sit
+// unread.
+export function lateRescheduleWarning(confirmedDate: string): string | null {
+  if (!isLateReschedule(confirmedDate)) return null
+  const apptDate = new Date(confirmedDate + 'T00:00:00')
+  const label = apptDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
+  return `Heads up: the current appointment is ${label}, very soon. The other side will get an urgent alert the moment you propose a new time, so let them know to check as soon as they can.`
 }
 
 // `time` is an <input type="time"> value ("HH:MM", 24h). Returns an
