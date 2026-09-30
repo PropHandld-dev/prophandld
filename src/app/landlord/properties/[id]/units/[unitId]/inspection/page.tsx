@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { compressImage } from '@/lib/imageCompress'
 import { validateMediaFile, isVideoPath } from '@/lib/mediaValidation'
+import { validateFileSize, MAX_MEDIA_FILE_SIZE } from '@/lib/fileUpload'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
@@ -155,6 +156,12 @@ export default function InspectionPage() {
     if (!files || files.length === 0 || !inspection || !currentUserId || !userRole) return
 
     for (const file of Array.from(files)) {
+      const sizeProblem = validateFileSize(file, MAX_MEDIA_FILE_SIZE)
+      if (sizeProblem) {
+        setError(sizeProblem)
+        if (fileInputRef.current) fileInputRef.current.value = ''
+        return
+      }
       const problem = validateMediaFile(file)
       if (problem) {
         setError(problem)

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { RippleButton } from '@/components/RippleButton'
 import { FileTextIcon } from '@/components/icons'
+import { validateFileSize, MAX_DOCUMENT_FILE_SIZE } from '@/lib/fileUpload'
 
 export type RentEditValues = {
   rent: number
@@ -61,6 +62,11 @@ export function RentMonthEditor({
   const [periodStart, setPeriodStart] = useState(initialStart)
   const [periodEnd, setPeriodEnd] = useState(initialEnd)
   const [note, setNote] = useState('')
+  // This component doesn't own the error state passed down as `error`
+  // (the parent's onAttach kicks off the actual upload) — a bad file needs
+  // to be rejected right here, before onAttach is ever called, so it gets
+  // its own local slot and is shown alongside the same error block.
+  const [sizeError, setSizeError] = useState<string | null>(null)
 
   const rentNum = Number(rent)
   const waterNum = Number(water || 0)
@@ -137,7 +143,16 @@ export function RentMonthEditor({
                   disabled={uploading}
                   onChange={(e) => {
                     const file = e.target.files?.[0]
-                    if (file) onAttach(file)
+                    if (file) {
+                      const problem = validateFileSize(file, MAX_DOCUMENT_FILE_SIZE)
+                      if (problem) {
+                        setSizeError(problem)
+                        e.target.value = ''
+                        return
+                      }
+                      setSizeError(null)
+                      onAttach(file)
+                    }
                     e.target.value = ''
                   }}
                 />
@@ -161,8 +176,8 @@ export function RentMonthEditor({
             {outcome.text}
           </div>
 
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">{error}</div>
+          {(sizeError || error) && (
+            <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">{sizeError || error}</div>
           )}
         </div>
 

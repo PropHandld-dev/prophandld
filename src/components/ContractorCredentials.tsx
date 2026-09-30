@@ -9,6 +9,7 @@ import { LEGACY_LICENSE, type ScopedRequirement } from '@/lib/credentialRequirem
 import type { StateBoard } from '@/lib/stateLicensingBoards'
 import { useLanguage, t, type Lang } from '@/lib/i18n'
 import { validateDocumentFile } from '@/lib/mediaValidation'
+import { validateFileSize, MAX_DOCUMENT_FILE_SIZE } from '@/lib/fileUpload'
 
 type RequirementsResponse = {
   homeState: string | null
@@ -324,7 +325,19 @@ export function ContractorCredentials({ userId }: { userId: string }) {
                 <input
                   type="file"
                   accept=".pdf,.jpg,.jpeg,.png"
-                  onChange={(e) => setForm({ ...form, file: e.target.files?.[0] || null })}
+                  onChange={(e) => {
+                    const selected = e.target.files?.[0] || null
+                    if (selected) {
+                      const sizeError = validateFileSize(selected, MAX_DOCUMENT_FILE_SIZE)
+                      if (sizeError) {
+                        setError(sizeError)
+                        e.target.value = ''
+                        return
+                      }
+                    }
+                    setError(null)
+                    setForm({ ...form, file: selected })
+                  }}
                   className="hidden"
                 />
                 <span className="inline-block bg-white/8 text-white text-xs font-medium px-3 py-2 rounded-lg hover:bg-white/12 transition cursor-pointer">

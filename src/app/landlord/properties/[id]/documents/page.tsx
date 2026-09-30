@@ -12,6 +12,7 @@ import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { useLanguage, t } from '@/lib/i18n'
 import { validateDocumentFile } from '@/lib/mediaValidation'
+import { validateFileSize, MAX_DOCUMENT_FILE_SIZE } from '@/lib/fileUpload'
 
 const DOCUMENT_TYPES = ['Lease', 'Rental Agreement', 'Deed', 'Insurance', 'Inspection Report', 'Other']
 
@@ -128,7 +129,17 @@ export default function PropertyDocumentsPage() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setFiles([...files, ...Array.from(e.target.files)])
+      const incoming = Array.from(e.target.files)
+      for (const file of incoming) {
+        const sizeError = validateFileSize(file, MAX_DOCUMENT_FILE_SIZE)
+        if (sizeError) {
+          setError(sizeError)
+          e.target.value = ''
+          return
+        }
+      }
+      setError(null)
+      setFiles([...files, ...incoming])
     }
     e.target.value = ''
   }

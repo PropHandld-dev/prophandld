@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { compressImage } from '@/lib/imageCompress'
 import { validateMediaFile, isVideoFile } from '@/lib/mediaValidation'
+import { validateFileSize, MAX_MEDIA_FILE_SIZE } from '@/lib/fileUpload'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
@@ -48,6 +49,11 @@ export default function NewLandlordJobPage() {
     if (e.target.files) {
       const incoming = Array.from(e.target.files)
       for (const file of incoming) {
+        const sizeProblem = validateFileSize(file, MAX_MEDIA_FILE_SIZE)
+        if (sizeProblem) {
+          setError(sizeProblem)
+          return
+        }
         const problem = validateMediaFile(file)
         if (problem) {
           setError(problem)

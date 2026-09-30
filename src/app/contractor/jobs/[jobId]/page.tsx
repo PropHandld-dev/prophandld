@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { expectRow } from '@/lib/expectRow'
 import { compressImage } from '@/lib/imageCompress'
 import { validateMediaFile } from '@/lib/mediaValidation'
+import { validateFileSize, MAX_MEDIA_FILE_SIZE } from '@/lib/fileUpload'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { PhotoGrid } from '@/components/PhotoGrid'
@@ -263,6 +264,12 @@ export default function ContractorJobDetailPage() {
     if (!files || files.length === 0 || !userId) return
 
     for (const file of Array.from(files)) {
+      const sizeProblem = validateFileSize(file, MAX_MEDIA_FILE_SIZE)
+      if (sizeProblem) {
+        setError(sizeProblem)
+        e.target.value = ''
+        return
+      }
       const problem = validateMediaFile(file)
       if (problem) {
         setError(problem)

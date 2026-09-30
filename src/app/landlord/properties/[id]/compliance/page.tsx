@@ -12,6 +12,7 @@ import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { useLanguage, t, type Lang } from '@/lib/i18n'
 import { validateDocumentFile } from '@/lib/mediaValidation'
+import { validateFileSize, MAX_DOCUMENT_FILE_SIZE } from '@/lib/fileUpload'
 
 const ITEM_TYPE_KEYS: ('complianceItemRentalLicense' | 'complianceItemLeadCertification' | 'complianceItemSmokeDetector' | 'complianceItemCoDetector' | 'complianceItemFireExtinguisher' | 'complianceItemInsuranceRenewal')[] = [
   'complianceItemRentalLicense',
@@ -405,7 +406,19 @@ export default function PropertyCompliancePage() {
               <input
                 type="file"
                 accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                onChange={(e) => setFile(e.target.files?.[0] || null)}
+                onChange={(e) => {
+                  const selected = e.target.files?.[0] || null
+                  if (selected) {
+                    const sizeError = validateFileSize(selected, MAX_DOCUMENT_FILE_SIZE)
+                    if (sizeError) {
+                      setError(sizeError)
+                      e.target.value = ''
+                      return
+                    }
+                  }
+                  setError(null)
+                  setFile(selected)
+                }}
                 className="hidden"
               />
               <span className="inline-block bg-white/8 text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-white/12 transition cursor-pointer">
@@ -532,7 +545,15 @@ export default function PropertyCompliancePage() {
                           className="hidden"
                           onChange={(e) => {
                             const selected = e.target.files?.[0]
-                            if (selected) handleAttachToItem(item, selected)
+                            if (selected) {
+                              const sizeError = validateFileSize(selected, MAX_DOCUMENT_FILE_SIZE)
+                              if (sizeError) {
+                                setError(sizeError)
+                                e.target.value = ''
+                                return
+                              }
+                              handleAttachToItem(item, selected)
+                            }
                             e.target.value = ''
                           }}
                         />
