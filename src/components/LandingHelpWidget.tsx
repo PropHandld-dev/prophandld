@@ -42,7 +42,7 @@ const FAQS: Record<Role, { q: string; a: string }[]> = {
     },
     {
       q: 'How much does it cost?',
-      a: 'Your first unit is free, full stop. Past that, one flat monthly plan that scales gently with your unit count, not a per-unit fee that punishes you for growing. We\'re confirming the exact numbers with a couple of advisors before official launch, so nothing\'s posted here yet — that\'s the only fee either way, since contractors pay nothing, ever, no cut of a bid.',
+      a: 'Your first unit is free, full stop. Flat monthly plans through 25 units. Past that, a simple per-unit rate that gets cheaper the bigger you grow, never more expensive. We\'re confirming the exact numbers with a couple of advisors before official launch, so nothing\'s posted here yet — that\'s the only fee either way, since contractors pay nothing, ever, no cut of a bid.',
     },
     {
       q: 'Do contractors need a license?',

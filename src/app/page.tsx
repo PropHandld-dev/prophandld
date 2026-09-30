@@ -372,9 +372,11 @@ export default function LandingPage() {
 
       {/* Pricing teaser — final numbers aren't set yet (still being
           confirmed before official launch), so this deliberately shows the
-          structure, not dollar figures: a real free tier, then a flat
-          monthly plan that scales gently with how many units you actually
-          have. No per-unit surprise, no numbers here that might change. */}
+          structure, not dollar figures: a real free tier, flat monthly
+          plans through 25 units, then a per-unit rate that steps DOWN as a
+          portfolio grows (26-100 / 101-500 / 500+ each get cheaper than
+          the last) — a volume discount, not a per-unit penalty. Matches
+          pricingTiers.ts exactly; keep this in sync if those tiers change. */}
       <section className="max-w-5xl mx-auto px-6 py-16">
         <ScrollReveal>
           <div className="bg-white/3 border border-white/8 rounded-2xl p-8 sm:p-12 text-center">
@@ -383,9 +385,9 @@ export default function LandingPage() {
             </div>
             <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">Free to try. Simple after that.</h2>
             <p className="text-white/50 max-w-xl mx-auto leading-relaxed mb-6">
-              Your first unit is free, full stop. Past that, one flat monthly
-              plan that scales gently with how many units you actually
-              manage, not a per-unit fee that punishes you for growing.
+              Your first unit is free, full stop. Flat monthly plans through
+              25 units. Past that, a simple per-unit rate that gets cheaper
+              the bigger you grow, never more expensive.
               We&apos;re confirming the exact numbers with a couple of advisors
               before official launch, so nothing&apos;s posted here yet, but
               the shape of it won&apos;t change: affordable for a landlord with
@@ -410,7 +412,7 @@ export default function LandingPage() {
           <div className="space-y-3">
             {[
               { q: 'Is this just for finding contractors?', a: "No. Prophandld is built to replace the spreadsheet. Track every property, unit, and tenant, handle maintenance end to end with sealed bidding, and collect rent, all in one dashboard. Your spreadsheet can finally retire." },
-              { q: 'What does it cost?', a: "Your first unit is free. Past that, one flat monthly plan that scales gently with your unit count, we're confirming the exact numbers before official launch. Contractors never pay anything, ever, no signup fee, no monthly fee, no cut of a bid." },
+              { q: 'What does it cost?', a: "Your first unit is free. Flat monthly plans through 25 units, then a per-unit rate that gets cheaper the bigger you grow. We're confirming the exact numbers before official launch. Contractors never pay anything, ever, no signup fee, no monthly fee, no cut of a bid." },
               { q: 'How does sealed bidding actually work?', a: "Contractors near the property are alerted when you open a job for bids. They submit their price privately and never see what anyone else bid. You choose who you trust, not just the lowest number. No bidding wars, no “my cousin quoted less”." },
               { q: 'Do I have to use a contractor?', a: "No. For anything small enough to handle yourself, mark it fixed directly, no bidding required. Contractors are there for when you want one, not a requirement for every repair." },
               { q: "What if the contractor's price changes?", a: 'If a contractor needs to adjust their price once work has started, they show you the new labor and parts breakdown, and you approve it before they move forward. No surprise invoices.' },
