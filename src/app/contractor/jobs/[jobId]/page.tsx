@@ -770,7 +770,8 @@ export default function ContractorJobDetailPage() {
 
         {myBid?.status === 'accepted' && ['in_progress', 'pending_review', 'completed', 'archived'].includes(job.status) && (
           <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
-            <h3 className="text-white font-semibold mb-4">{t('proofOfWorkHeading', lang)}</h3>
+            <h3 className="text-white font-semibold mb-1">{t('proofOfWorkHeading', lang)}</h3>
+            {job.status === 'in_progress' && <p className="text-white/40 text-xs mb-4">{t('videoLengthHint', lang)}</p>}
 
             <div className="mb-5">
               <div className="flex items-center justify-between mb-2">

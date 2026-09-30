@@ -244,6 +244,7 @@ export default function NewLandlordJobPage() {
 
           <div>
             <label className="text-white/70 text-sm block mb-1">{t('photosOrVideosOptionalLabel', lang)}</label>
+            <p className="text-white/40 text-xs mb-2">{t('videoLengthHint', lang)}</p>
             <label className="block">
               <input
                 type="file"

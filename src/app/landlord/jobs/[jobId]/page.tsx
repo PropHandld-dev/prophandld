@@ -1730,7 +1730,8 @@ export default function JobDetailPage() {
             <h3 className="text-white font-semibold mb-2 flex items-center gap-1.5">
               <WrenchIcon className="w-4 h-4 text-[#12A5A9]" /> {t('diyModalHeading', lang)}
             </h3>
-            <p className="text-white/50 text-sm mb-5">{t('diyModalDesc', lang)}</p>
+            <p className="text-white/50 text-sm mb-2">{t('diyModalDesc', lang)}</p>
+            <p className="text-white/40 text-xs mb-5">{t('videoLengthHint', lang)}</p>
 
             <div className="mb-4">
               <div className="flex items-center justify-between mb-2">

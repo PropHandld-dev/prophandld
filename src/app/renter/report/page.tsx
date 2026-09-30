@@ -351,6 +351,7 @@ export default function ReportIssuePage() {
             <div>
               <label className="text-white/70 text-sm block mb-1">Photos or videos (optional)</label>
               <p className="text-white/40 text-xs mb-2">A short video helps a lot for things a photo can't show: a strange sound, a slow drip, a flickering light.</p>
+              <p className="text-white/40 text-xs mb-2">{t('videoLengthHint', lang)}</p>
               <label className="block mb-3">
                 <input
                   type="file"

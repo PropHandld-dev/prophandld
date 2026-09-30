@@ -170,6 +170,14 @@ export default function SubmitBidPage() {
       return
     }
 
+    // Noisy job site, thumbs typing on a phone — a typo here (e.g. $450
+    // instead of $4,500) is a real, easy mistake worth one explicit
+    // confirmation before it's locked in and shown to the landlord.
+    const confirmedAmount = parseFloat(form.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    if (!window.confirm(`${t('confirmBidAmountPrefix', lang)}${confirmedAmount}${t('confirmBidAmountSuffix', lang)}`)) {
+      return
+    }
+
     setSubmitting(true)
     setError(null)
 

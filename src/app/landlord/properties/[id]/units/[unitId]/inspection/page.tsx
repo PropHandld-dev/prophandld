@@ -302,6 +302,8 @@ export default function InspectionPage() {
               </div>
 
               {inspection.status !== 'completed' && (
+                <>
+                <p className="text-white/40 text-xs mb-2">{t('videoLengthHint', lang)}</p>
                 <label className="block">
                   <input
                     ref={fileInputRef}
@@ -316,6 +318,7 @@ export default function InspectionPage() {
                     {uploading ? t('uploadingDots', lang) : t('addPhotosOrVideosBtn', lang)}
                   </span>
                 </label>
+                </>
               )}
             </div>
 
