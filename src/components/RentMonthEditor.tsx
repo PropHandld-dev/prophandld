@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { RippleButton } from '@/components/RippleButton'
 import { FileTextIcon } from '@/components/icons'
-import { validateFileSize, MAX_DOCUMENT_FILE_SIZE } from '@/lib/fileUpload'
+import { validateDocumentFile } from '@/lib/mediaValidation'
 
 export type RentEditValues = {
   rent: number
@@ -144,7 +144,7 @@ export function RentMonthEditor({
                   onChange={(e) => {
                     const file = e.target.files?.[0]
                     if (file) {
-                      const problem = validateFileSize(file, MAX_DOCUMENT_FILE_SIZE)
+                      const problem = validateDocumentFile(file, { allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'] })
                       if (problem) {
                         setSizeError(problem)
                         e.target.value = ''

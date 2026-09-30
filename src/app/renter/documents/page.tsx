@@ -12,7 +12,6 @@ import { FileTextIcon } from '@/components/icons'
 import { RENTER_TABS } from '@/lib/navTabs'
 import { useLanguage, t } from '@/lib/i18n'
 import { validateDocumentFile } from '@/lib/mediaValidation'
-import { validateFileSize, MAX_DOCUMENT_FILE_SIZE } from '@/lib/fileUpload'
 
 const TENANT_DOCUMENT_TYPES = ['Renters Insurance', 'Utility Proof: Electric', 'Utility Proof: Gas', 'Utility Proof: Water', 'Other']
 
@@ -116,9 +115,9 @@ export default function RenterDocumentsPage() {
     if (e.target.files) {
       const incoming = Array.from(e.target.files)
       for (const file of incoming) {
-        const sizeError = validateFileSize(file, MAX_DOCUMENT_FILE_SIZE)
-        if (sizeError) {
-          setError(sizeError)
+        const validationError = validateDocumentFile(file)
+        if (validationError) {
+          setError(validationError)
           e.target.value = ''
           return
         }

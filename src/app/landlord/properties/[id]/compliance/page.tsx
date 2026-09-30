@@ -12,7 +12,6 @@ import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { useLanguage, t, type Lang } from '@/lib/i18n'
 import { validateDocumentFile } from '@/lib/mediaValidation'
-import { validateFileSize, MAX_DOCUMENT_FILE_SIZE } from '@/lib/fileUpload'
 
 const ITEM_TYPE_KEYS: ('complianceItemRentalLicense' | 'complianceItemLeadCertification' | 'complianceItemSmokeDetector' | 'complianceItemCoDetector' | 'complianceItemFireExtinguisher' | 'complianceItemInsuranceRenewal')[] = [
   'complianceItemRentalLicense',
@@ -409,9 +408,9 @@ export default function PropertyCompliancePage() {
                 onChange={(e) => {
                   const selected = e.target.files?.[0] || null
                   if (selected) {
-                    const sizeError = validateFileSize(selected, MAX_DOCUMENT_FILE_SIZE)
-                    if (sizeError) {
-                      setError(sizeError)
+                    const validationError = validateDocumentFile(selected)
+                    if (validationError) {
+                      setError(validationError)
                       e.target.value = ''
                       return
                     }
@@ -546,12 +545,6 @@ export default function PropertyCompliancePage() {
                           onChange={(e) => {
                             const selected = e.target.files?.[0]
                             if (selected) {
-                              const sizeError = validateFileSize(selected, MAX_DOCUMENT_FILE_SIZE)
-                              if (sizeError) {
-                                setError(sizeError)
-                                e.target.value = ''
-                                return
-                              }
                               handleAttachToItem(item, selected)
                             }
                             e.target.value = ''

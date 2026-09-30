@@ -7,7 +7,6 @@ import Link from 'next/link'
 import { notify } from '@/lib/notify'
 import { compressImage } from '@/lib/imageCompress'
 import { validateMediaFile, isVideoFile } from '@/lib/mediaValidation'
-import { validateFileSize, MAX_MEDIA_FILE_SIZE } from '@/lib/fileUpload'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { Skeleton } from '@/components/Skeleton'
 import { ScrollReveal } from '@/components/ScrollReveal'
@@ -112,11 +111,6 @@ export default function ReportIssuePage() {
     if (e.target.files) {
       const incoming = Array.from(e.target.files)
       for (const file of incoming) {
-        const sizeProblem = validateFileSize(file, MAX_MEDIA_FILE_SIZE)
-        if (sizeProblem) {
-          setError(sizeProblem)
-          return
-        }
         const problem = validateMediaFile(file)
         if (problem) {
           setError(problem)

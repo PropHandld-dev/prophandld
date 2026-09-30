@@ -9,7 +9,6 @@ import { LEGACY_LICENSE, type ScopedRequirement } from '@/lib/credentialRequirem
 import type { StateBoard } from '@/lib/stateLicensingBoards'
 import { useLanguage, t, type Lang } from '@/lib/i18n'
 import { validateDocumentFile } from '@/lib/mediaValidation'
-import { validateFileSize, MAX_DOCUMENT_FILE_SIZE } from '@/lib/fileUpload'
 
 type RequirementsResponse = {
   homeState: string | null
@@ -328,9 +327,9 @@ export function ContractorCredentials({ userId }: { userId: string }) {
                   onChange={(e) => {
                     const selected = e.target.files?.[0] || null
                     if (selected) {
-                      const sizeError = validateFileSize(selected, MAX_DOCUMENT_FILE_SIZE)
-                      if (sizeError) {
-                        setError(sizeError)
+                      const validationError = validateDocumentFile(selected, { allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'] })
+                      if (validationError) {
+                        setError(validationError)
                         e.target.value = ''
                         return
                       }

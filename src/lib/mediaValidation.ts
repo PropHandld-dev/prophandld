@@ -6,14 +6,25 @@
 // that says why rather than a generic failure.
 const MAX_VIDEO_BYTES = 60 * 1024 * 1024 // 60MB — a minute or so of phone video at normal quality
 
+// Images on these inputs never went through compressImage's document path,
+// so an uncompressed max-resolution phone photo had no ceiling at all
+// until now — same 20MB reasoning as MAX_DOCUMENT_BYTES below.
+const MAX_IMAGE_BYTES = 20 * 1024 * 1024 // 20MB
+
 export function isVideoFile(file: File) {
   return file.type.startsWith('video/')
 }
 
 // Returns an error string to show the user, or null if the file's fine.
 export function validateMediaFile(file: File): string | null {
-  if (isVideoFile(file) && file.size > MAX_VIDEO_BYTES) {
-    return `${file.name} is too large (over 60MB). Trim it or take a shorter clip.`
+  if (isVideoFile(file)) {
+    if (file.size > MAX_VIDEO_BYTES) {
+      return `${file.name} is too large (over 60MB). Trim it or take a shorter clip.`
+    }
+    return null
+  }
+  if (file.size > MAX_IMAGE_BYTES) {
+    return `${file.name} is too large (over 20MB). Use a smaller file or a lower-resolution photo.`
   }
   return null
 }
