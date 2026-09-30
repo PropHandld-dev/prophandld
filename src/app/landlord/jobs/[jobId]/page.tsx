@@ -1614,7 +1614,7 @@ export default function JobDetailPage() {
                     </button>
                   </div>
                 ) : (
-                  <p className="text-white/60 text-xs mt-3">{t('waitingOnContractorOrTenant', lang)}</p>
+                  <p className="text-white/60 text-xs mt-3">{t(acceptedBid ? 'waitingOnContractorOrTenant' : 'waitingOnTenantOnly', lang)}</p>
                 )}
               </div>
             )}

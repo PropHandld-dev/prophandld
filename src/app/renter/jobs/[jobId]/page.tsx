@@ -32,6 +32,7 @@ export default function RenterJobDetailPage() {
   const [userId, setUserId] = useState<string | null>(null)
   const [hasUnread, setHasUnread] = useState(false)
   const [job, setJob] = useState<any>(null)
+  const [hasAcceptedBid, setHasAcceptedBid] = useState(true)
   const [photos, setPhotos] = useState<any[]>([])
   const [error, setError] = useState<string | null>(null)
   const [actioning, setActioning] = useState(false)
@@ -59,9 +60,14 @@ export default function RenterJobDetailPage() {
     // keyed only on jobId — so they load together instead of one after
     // another (same fix already applied on the landlord/contractor job
     // pages).
-    const [{ data: jobData, error: jobError }, { data: photosData }] = await Promise.all([
+    const [{ data: jobData, error: jobError }, { data: photosData }, { data: acceptedBidData }] = await Promise.all([
       supabase.from('jobs').select('*').eq('id', jobId).maybeSingle(),
       supabase.from('job_photos').select('*').eq('job_id', jobId).order('created_at', { ascending: false }),
+      // Only used to tell a DIY job (landlord handling it themselves, no
+      // contractor) apart from a normal one for status copy — see
+      // statusLabel() below. Same fix already applied on the landlord's
+      // own job and unit pages.
+      supabase.from('bids').select('id').eq('job_id', jobId).eq('status', 'accepted').maybeSingle(),
     ])
 
     if (jobError || !jobData) {
@@ -72,6 +78,7 @@ export default function RenterJobDetailPage() {
     }
 
     setJob(jobData)
+    setHasAcceptedBid(!!acceptedBidData)
 
     if (photosData && photosData.length > 0) {
       const enriched = await Promise.all(
@@ -211,6 +218,10 @@ export default function RenterJobDetailPage() {
     if (job.proposed_date && !job.schedule_confirmed) {
       return job.proposed_by === 'renter' ? t('newTimeProposedByYou', lang) : t('newTimeProposedByOther', lang)
     }
+    // bid_selected on a DIY job means the landlord chose to handle it
+    // themselves, not that one is still being found — same fix already
+    // applied on the landlord's own job and unit pages.
+    if (status === 'bid_selected' && !hasAcceptedBid) return t('statusLandlordDiy', lang)
     const labels: Record<string, string> = {
       pending_approval: t('statusLandlordFinding', lang),
       approved: t('statusLandlordFinding', lang),
@@ -430,7 +441,7 @@ export default function RenterJobDetailPage() {
                     </button>
                   </div>
                 ) : (
-                  <p className="text-white/60 text-xs mt-3">{t('waitingOnLandlordOrContractor', lang)}</p>
+                  <p className="text-white/60 text-xs mt-3">{t(hasAcceptedBid ? 'waitingOnLandlordOrContractor' : 'waitingOnLandlordOnly', lang)}</p>
                 )}
               </div>
             )}

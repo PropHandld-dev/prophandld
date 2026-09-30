@@ -148,6 +148,7 @@ const STRINGS = {
   ifLandlordDoesntAnswer: { en: "If your landlord doesn't answer", es: 'Si tu propietario no responde' },
   theirBackupContact: { en: 'Their backup contact', es: 'Su contacto de respaldo' },
   statusLandlordFinding: { en: 'Landlord is finding a contractor', es: 'El propietario está buscando un contratista' },
+  statusLandlordDiy: { en: 'Your landlord is handling this themselves', es: 'Tu propietario se está encargando de esto' },
   statusScheduled: { en: 'Scheduled', es: 'Programado' },
   statusWorkInProgress: { en: 'Work in progress', es: 'Trabajo en progreso' },
   statusWorkCompleteWaiting: { en: 'Work complete, waiting on landlord', es: 'Trabajo terminado, esperando al propietario' },
@@ -613,6 +614,7 @@ const STRINGS = {
   proposedByLabel: { en: 'Proposed by', es: 'Propuesto por' },
   proposeDifferentTime: { en: 'Propose different time', es: 'Proponer otro horario' },
   waitingOnContractorOrTenant: { en: 'Waiting on the contractor or tenant to confirm.', es: 'Esperando confirmación del contratista o del inquilino.' },
+  waitingOnTenantOnly: { en: 'Waiting on the tenant to confirm.', es: 'Esperando confirmación del inquilino.' },
   proofOfWorkHeading: { en: 'Proof of work', es: 'Prueba del trabajo' },
   beforeLabel: { en: 'Before', es: 'Antes' },
   afterLabel: { en: 'After', es: 'Después' },
@@ -732,6 +734,7 @@ const STRINGS = {
   // Renter job detail page
   landlordWantsYouToPickTime: { en: 'Your landlord would like you to pick a time that works for you.', es: 'Tu propietario quisiera que elijas un horario que te funcione.' },
   waitingOnLandlordOrContractor: { en: 'Waiting on the landlord or contractor to confirm.', es: 'Esperando confirmación del propietario o del contratista.' },
+  waitingOnLandlordOnly: { en: 'Waiting on the landlord to confirm.', es: 'Esperando confirmación del propietario.' },
   yourPhotosHeading: { en: 'Your photos', es: 'Tus fotos' },
   jobChatSubtitleRenter: { en: 'Messages and updates about this job, in one place', es: 'Mensajes y actualizaciones sobre este trabajo, en un solo lugar' },
   timeProposedHeading: { en: 'Time proposed', es: 'Horario propuesto' },

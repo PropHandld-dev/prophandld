@@ -178,7 +178,7 @@ export default function UnitDetailPage() {
     // of waiting for it to finish first.
     const jobsPromise = supabase
       .from('jobs')
-      .select('*')
+      .select('*, bids(status)')
       .eq('unit_id', unitId)
       .order('created_at', { ascending: false })
 
@@ -479,7 +479,12 @@ export default function UnitDetailPage() {
     return next
   }
 
-  const statusLabel = (status: string) => {
+  // A DIY job passes through bid_selected/scheduled too (reusing the
+  // contractor job's own propose/confirm mechanism), but "Contractor
+  // selected" is simply false when there's no contractor on it at all —
+  // same fix already applied on the job detail page itself.
+  const statusLabel = (status: string, isDiy?: boolean) => {
+    if (status === 'bid_selected' && isDiy) return t('statusDiyScheduling', lang)
     const labels: Record<string, string> = {
       pending_approval: t('statusNeedsApproval', lang),
       approved: t('statusAcknowledged', lang),
@@ -1073,7 +1078,9 @@ export default function UnitDetailPage() {
                       )}
                     </div>
                     <p className="text-white/50 text-xs">{job.description}</p>
-                    <p className="text-[#12A5A9] text-xs mt-1">{statusLabel(job.status)}</p>
+                    <p className="text-[#12A5A9] text-xs mt-1">
+                      {statusLabel(job.status, !(job.bids || []).some((b: any) => b.status === 'accepted'))}
+                    </p>
                   </Link>
                 )}
               />
