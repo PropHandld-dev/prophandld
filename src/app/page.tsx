@@ -21,7 +21,6 @@ const OPERATIONS_FEATURES = [
   { icon: MessageCircleIcon, title: 'Job chat', desc: 'Every job has one thread for the landlord, renter and contractor, with updates and history in one place.' },
   { icon: MessageCircleIcon, title: 'Direct messages', desc: "Message your tenants, or a contractor you've worked with before, job or no job. No phone numbers exchanged." },
   { icon: CalendarIcon, title: 'Schedule calendar', desc: 'Confirmed visits, rent due dates, and expiring compliance items, all in one month view. It nags so you don\'t have to remember to.' },
-  { icon: AlertTriangleIcon, title: 'Compliance alerts', desc: 'Rental licenses, certificates, and detectors. Get warned before something expires, not after an inspector, or a lawsuit, tells you.' },
   { icon: FileTextIcon, title: 'Documents vault', desc: 'Leases, deeds, insurance, inspection reports. Tenants can upload their own too, like proof of renters insurance, shared with you or kept private.' },
   { icon: WrenchIcon, title: 'Systems & appliances', desc: 'Track HVAC, water heaters, roofs, and panels with install dates and service history.' },
   { icon: CheckCircleIcon, title: 'Verified contractors', desc: "Contractors can submit license and insurance for review, so you can see who's verified before you pick a bid." },
