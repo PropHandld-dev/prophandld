@@ -18,5 +18,13 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: '/:path*',
+  // Vercel invokes cron jobs (and Stripe hits webhooks) directly against the
+  // *.vercel.app production host, never the custom domain, and a cron
+  // invocation does not follow redirects — it just treats the 308 as the
+  // job "completing" and moves on. Redirecting /api/* here silently stopped
+  // every one of this app's 6 cron jobs (rent reminders, credential expiry,
+  // job auto-approve, appointment reminders, metrics snapshot, stale
+  // disputes) from ever actually running. Excluding /api entirely: nothing
+  // under it should ever redirect regardless of which host it's reached on.
+  matcher: ['/((?!api/).*)'],
 }
