@@ -42,7 +42,7 @@ const FAQS: Record<Role, { q: string; a: string }[]> = {
     },
     {
       q: 'How much does it cost?',
-      a: 'Free for 1 unit. Then $19.99/mo for 2–4 units, $39.99/mo for 5–10, $79.99/mo for 11–25, and above that it scales down per unit the bigger your portfolio gets: $1.75/unit through 100, $1.25/unit through 500, $1/unit beyond that. That\'s the only fee. Contractors pay nothing, so there\'s no per-job cut on top.',
+      a: 'Your first unit is free, full stop. Past that, one flat monthly plan that scales gently with your unit count, not a per-unit fee that punishes you for growing. We\'re confirming the exact numbers with a couple of advisors before official launch, so nothing\'s posted here yet — that\'s the only fee either way, since contractors pay nothing, ever, no cut of a bid.',
     },
     {
       q: 'Do contractors need a license?',
