@@ -528,6 +528,54 @@ export async function sendComplianceReminderEmail({
   })
 }
 
+// A landlord-side equivalent of sendComplianceReminderEmail above, for
+// compliance_items (rental license, lead cert, inspections, etc.) that are
+// expired or approaching their own reminder_days — the landlord's property
+// page shows this already, but nothing emails or pushes it unless the
+// landlord happens to open that page. Only ever sent by an admin's
+// deliberate "Send reminder" click, not a cron.
+export async function sendPropertyComplianceReminderEmail({
+  to,
+  landlordName,
+  propertyId,
+  propertyAddress,
+  items,
+  lang = 'en',
+}: {
+  to: string
+  landlordName: string
+  propertyId: string
+  propertyAddress: string
+  items: { name: string; expired: boolean; expiryDate: string | null }[]
+  lang?: Lang
+}) {
+  const anyExpired = items.some((i) => i.expired)
+  const locale = lang === 'es' ? 'es-ES' : 'en-US'
+  const facts: EmailFact[] = items.map((i) => {
+    const date = i.expiryDate ? new Date(i.expiryDate + 'T00:00:00').toLocaleDateString(locale, { month: 'long', day: 'numeric', year: 'numeric' }) : null
+    const when = !date ? (lang === 'es' ? 'Sin fecha' : 'No date on file') : lang === 'es' ? (i.expired ? `Venció el ${date}` : `Vence el ${date}`) : (i.expired ? `Expired ${date}` : `Expires ${date}`)
+    return { label: i.name, value: when }
+  })
+  const html = baseTemplate({
+    lang,
+    eyebrow: lang === 'es' ? (anyExpired ? 'Vencido' : 'Renovación') : (anyExpired ? 'Expired' : 'Renewal'),
+    heading: lang === 'es' ? 'Cumplimiento de propiedad pendiente' : 'Property compliance needs attention',
+    bodyHtml: lang === 'es'
+      ? `Hola ${escapeHtml(landlordName)}, en <strong>${escapeHtml(propertyAddress)}</strong> hay elementos de cumplimiento que necesitan tu atención. Revísalos y sube la renovación cuando puedas.`
+      : `Hi ${escapeHtml(landlordName)}, <strong>${escapeHtml(propertyAddress)}</strong> has compliance items that need your attention. Take a look and upload the renewal when you get a chance.`,
+    preheader: items.length === 1 ? items[0].name : (lang === 'es' ? `${items.length} elementos necesitan atención` : `${items.length} items need attention`),
+    facts,
+    ctaLabel: lang === 'es' ? 'Ver cumplimiento' : 'View compliance',
+    ctaUrl: `${SITE_URL}/landlord/properties/${propertyId}/compliance`,
+    footerText: lang === 'es' ? 'Enviado por un administrador de Prophandld.' : 'Sent by a Prophandld admin.',
+  })
+  return sendEmail({
+    to,
+    subject: lang === 'es' ? `Cumplimiento pendiente: ${propertyAddress}` : `Compliance needs attention: ${propertyAddress}`,
+    html,
+  })
+}
+
 export type NotifyType =
   | 'job_reported'
   | 'bid_received'

@@ -8,7 +8,7 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 // business reason can be retained past account deletion), never a copy of
 // their actual profile, documents, messages, or job history, which are
 // genuinely erased as they always have been.
-export type AuditActionType = 'account_deleted' | 'admin_login' | 'dispute_resolved' | 'contractor_verification_decision' | 'compliance_reminder_sent'
+export type AuditActionType = 'account_deleted' | 'admin_login' | 'dispute_resolved' | 'contractor_verification_decision' | 'compliance_reminder_sent' | 'property_compliance_reminder_sent'
 
 export async function logAdminAudit({
   actionType,

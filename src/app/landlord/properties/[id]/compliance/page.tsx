@@ -12,6 +12,7 @@ import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { useLanguage, t, type Lang } from '@/lib/i18n'
 import { validateDocumentFile } from '@/lib/mediaValidation'
+import { getComplianceStatus } from '@/lib/complianceStatus'
 
 const ITEM_TYPE_KEYS: ('complianceItemRentalLicense' | 'complianceItemLeadCertification' | 'complianceItemSmokeDetector' | 'complianceItemCoDetector' | 'complianceItemFireExtinguisher' | 'complianceItemInsuranceRenewal')[] = [
   'complianceItemRentalLicense',
@@ -300,18 +301,11 @@ export default function PropertyCompliancePage() {
   // logic against `label` broke the moment it got translated, since the
   // translated string never equals the English literal being checked.
   const getExpiryStatus = (item: any) => {
-    if (!item.expiry_date) {
-      return { key: 'no_expiry', label: t('noExpirySet', lang), color: 'bg-white/8 text-white/50' }
-    }
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const expiry = new Date(item.expiry_date + 'T00:00:00')
-    const daysUntil = Math.round((expiry.getTime() - today.getTime()) / (24 * 60 * 60 * 1000))
-    const reminderDays = item.reminder_days ?? 30
-
-    if (daysUntil < 0) return { key: 'expired', label: t('expiredStatus', lang), color: 'bg-red-500/15 text-red-400' }
-    if (daysUntil <= reminderDays) return { key: 'expiring_soon', label: t('expiringSoonStatus', lang), color: 'bg-yellow-500/15 text-yellow-400' }
-    return { key: 'current', label: t('currentStatus', lang), color: 'bg-[#12A5A9]/15 text-[#12A5A9]' }
+    const { key } = getComplianceStatus(item.expiry_date, item.reminder_days)
+    if (key === 'no_expiry') return { key, label: t('noExpirySet', lang), color: 'bg-white/8 text-white/50' }
+    if (key === 'expired') return { key, label: t('expiredStatus', lang), color: 'bg-red-500/15 text-red-400' }
+    if (key === 'expiring_soon') return { key, label: t('expiringSoonStatus', lang), color: 'bg-yellow-500/15 text-yellow-400' }
+    return { key, label: t('currentStatus', lang), color: 'bg-[#12A5A9]/15 text-[#12A5A9]' }
   }
 
   return (
