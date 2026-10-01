@@ -20,6 +20,19 @@ export async function POST() {
   const role = user.user_metadata?.role
   const supabaseAdmin = getSupabaseAdmin()
 
+  // The database rows were always fully cleaned up here; the actual files
+  // in Supabase Storage were not — "delete my account" left every photo
+  // and document behind forever, which is both a real promise this app's
+  // own privacy policy makes and not keeping, and a quiet, permanent leak
+  // against the free-tier storage cap. A storage removal failing is never
+  // worth blocking someone's account deletion over, so this only logs.
+  const removeStorageFiles = async (bucket: string, paths: (string | null | undefined)[]) => {
+    const clean = paths.filter((p): p is string => Boolean(p))
+    if (!clean.length) return
+    const { error } = await supabaseAdmin.storage.from(bucket).remove(clean)
+    if (error) console.error(`account delete: could not remove files from ${bucket}`, { userId, error })
+  }
+
   try {
     if (role === 'landlord') {
       const { data: properties } = await supabaseAdmin.from('properties').select('id').eq('owner_user_id', userId)
@@ -43,6 +56,8 @@ export async function POST() {
           await supabaseAdmin.from('disputes').delete().in('job_id', jobIds)
           await supabaseAdmin.from('job_questions').delete().in('job_id', jobIds)
           await supabaseAdmin.from('contractor_reviews').delete().in('job_id', jobIds)
+          const { data: jobPhotos } = await supabaseAdmin.from('job_photos').select('photo_url').in('job_id', jobIds)
+          await removeStorageFiles('job-photos', (jobPhotos || []).map((p) => p.photo_url))
           await supabaseAdmin.from('job_photos').delete().in('job_id', jobIds)
           await supabaseAdmin.from('bids').delete().in('job_id', jobIds)
           await supabaseAdmin.from('messages').delete().in('job_id', jobIds)
@@ -77,10 +92,14 @@ export async function POST() {
           const { data: inspections } = await supabaseAdmin.from('move_in_inspections').select('id').in('unit_id', unitIds)
           const inspectionIds = (inspections || []).map((i) => i.id)
           if (inspectionIds.length) {
+            const { data: inspectionPhotos } = await supabaseAdmin.from('inspection_photos').select('photo_url').in('inspection_id', inspectionIds)
+            await removeStorageFiles('inspection-photos', (inspectionPhotos || []).map((p) => p.photo_url))
             await supabaseAdmin.from('inspection_photos').delete().in('inspection_id', inspectionIds)
           }
           await supabaseAdmin.from('move_in_inspections').delete().in('unit_id', unitIds)
         }
+        const { data: propertyDocs } = await supabaseAdmin.from('documents').select('file_url').in('property_id', propertyIds)
+        await removeStorageFiles('documents', (propertyDocs || []).map((d) => d.file_url))
         await supabaseAdmin.from('documents').delete().in('property_id', propertyIds)
         await supabaseAdmin.from('compliance_items').delete().in('property_id', propertyIds)
         await supabaseAdmin.from('contacts').delete().in('property_id', propertyIds)
@@ -117,6 +136,8 @@ export async function POST() {
         await supabaseAdmin.from('disputes').delete().in('job_id', jobIds)
         await supabaseAdmin.from('job_questions').delete().in('job_id', jobIds)
         await supabaseAdmin.from('contractor_reviews').delete().in('job_id', jobIds)
+        const { data: jobPhotos } = await supabaseAdmin.from('job_photos').select('photo_url').in('job_id', jobIds)
+        await removeStorageFiles('job-photos', (jobPhotos || []).map((p) => p.photo_url))
         await supabaseAdmin.from('job_photos').delete().in('job_id', jobIds)
         await supabaseAdmin.from('bids').delete().in('job_id', jobIds)
         await supabaseAdmin.from('messages').delete().in('job_id', jobIds)
@@ -140,6 +161,15 @@ export async function POST() {
       await supabaseAdmin.from('job_questions').delete().eq('contractor_user_id', userId)
       await supabaseAdmin.from('contractor_reviews').delete().eq('contractor_user_id', userId)
       await supabaseAdmin.from('bids').delete().eq('contractor_user_id', userId)
+      const { data: verifications } = await supabaseAdmin
+        .from('contractor_verifications')
+        .select('license_document_url, insurance_document_url')
+        .eq('contractor_user_id', userId)
+      const { data: credentials } = await supabaseAdmin.from('contractor_credentials').select('document_url').eq('contractor_user_id', userId)
+      await removeStorageFiles('contractor-documents', [
+        ...(verifications || []).flatMap((v) => [v.license_document_url, v.insurance_document_url]),
+        ...(credentials || []).map((c) => c.document_url),
+      ])
       await supabaseAdmin.from('contractor_verifications').delete().eq('contractor_user_id', userId)
       await supabaseAdmin.from('contractor_credentials').delete().eq('contractor_user_id', userId)
     }
@@ -172,6 +202,8 @@ export async function POST() {
     // either leaves this account referenced by a row that still exists
     // after the rest of this cleanup, which fails the public.users delete
     // below the same way the comment there already warns about.
+    const { data: ownDocs } = await supabaseAdmin.from('documents').select('file_url').eq('uploaded_by', userId)
+    await removeStorageFiles('documents', (ownDocs || []).map((d) => d.file_url))
     await supabaseAdmin.from('documents').delete().eq('uploaded_by', userId)
     await supabaseAdmin.from('contractor_reviews').delete().eq('reviewer_user_id', userId)
     // Preserve the dispute itself (and whoever else's audit trail this

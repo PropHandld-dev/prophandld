@@ -14,6 +14,7 @@ import { MagneticLink } from '@/components/MagneticLink'
 import { RippleButton } from '@/components/RippleButton'
 import { ShowMoreList } from '@/components/ShowMoreList'
 import { useLanguage, t } from '@/lib/i18n'
+import { maxLateFee } from '@/lib/lateFee'
 
 const IN_PROGRESS_STATUSES = ['pending_approval', 'approved', 'bidding', 'bid_selected', 'scheduled', 'in_progress']
 
@@ -436,8 +437,17 @@ export default function UnitDetailPage() {
   }
 
   const handleSaveTenancy = async () => {
-    setSavingTenancy(true)
     setTenancyEditError(null)
+
+    const rentAmount = editForm.rent_amount ? parseFloat(editForm.rent_amount) : null
+    const lateFeeAmount = editForm.late_fee_amount ? parseFloat(editForm.late_fee_amount) : null
+    const lateFeeCap = maxLateFee(rentAmount)
+    if (lateFeeAmount && lateFeeCap !== null && lateFeeAmount > lateFeeCap) {
+      setTenancyEditError(`${t('lateFeeTooHighPrefix', lang)}$${lateFeeCap.toFixed(2)}${t('lateFeeTooHighSuffix', lang)}`)
+      return
+    }
+
+    setSavingTenancy(true)
 
     const { error: updateError } = await expectRow(supabase
       .from('tenancies')
@@ -761,6 +771,12 @@ export default function UnitDetailPage() {
                         placeholder={t('noFeePlaceholder', lang)}
                         className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
                       />
+                      {(() => {
+                        const cap = maxLateFee(editForm.rent_amount ? parseFloat(editForm.rent_amount) : null)
+                        return cap !== null ? (
+                          <p className="text-white/40 text-xs mt-1">{t('lateFeeMaxHintPrefix', lang)}${cap.toFixed(2)}{t('lateFeeMaxHintSuffix', lang)}</p>
+                        ) : null
+                      })()}
                     </div>
                     <div>
                       <label className="text-white/70 text-xs block mb-1">{t('gracePeriodDaysLabel', lang)}</label>
