@@ -618,10 +618,16 @@ export default function JobDetailPage() {
     setActioning(true)
     setError(null)
 
+    // Guarding on status='pending' (not just id) is what makes this safe
+    // against two concurrent accept attempts — a double-click, or two tabs
+    // racing on the same job — since only the first one still finds a
+    // 'pending' row to match; the second gets zero rows and expectRow
+    // surfaces that as a real error instead of silently "succeeding" twice.
     const { error: selectError } = await expectRow(supabase
       .from('bids')
       .update({ status: 'accepted', selected_at: new Date().toISOString() })
-      .eq('id', selectedBidId))
+      .eq('id', selectedBidId)
+      .eq('status', 'pending'))
 
     if (selectError) {
       console.error('Error selecting bid:', selectError)

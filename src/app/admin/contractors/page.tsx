@@ -121,6 +121,16 @@ export default function AdminContractorsPage() {
   const [notes, setNotes] = useState<Record<string, string>>({})
 
   const load = async () => {
+    // This page mounts (and load() fires) before AdminLayout's own
+    // authorization check resolves — it's a sibling in the same render
+    // tree, not something that check gates. RLS is the real backstop on
+    // the two queries below; this is the one app-layer check too.
+    const accessCheck = await fetch('/api/admin/check-access').then((r) => r.json()).catch(() => ({ authorized: false }))
+    if (!accessCheck.authorized) {
+      setLoading(false)
+      return
+    }
+
     // Two unrelated tables — fetched together, and their (separately
     // per-row) enrichment passes below run concurrently too instead of one
     // whole pass finishing before the other starts.

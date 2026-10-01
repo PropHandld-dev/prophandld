@@ -38,7 +38,13 @@ const levelLabel = (level: ScopedRequirement['level'], lang: Lang): string => {
 
 function expiryState(expiry: string | null): 'expired' | 'soon' | null {
   if (!expiry) return null
-  const days = Math.round((new Date(expiry + 'T00:00:00').getTime() - Date.now()) / 86400000)
+  // Normalize "today" to local midnight before diffing — comparing against
+  // the current instant instead flipped a credential to "expired" a full
+  // day early, the moment the clock passed local midnight on expiry day.
+  // Same fix already applied in compliance/page.tsx's getExpiryStatus.
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const days = Math.round((new Date(expiry + 'T00:00:00').getTime() - today.getTime()) / 86400000)
   if (days < 0) return 'expired'
   if (days <= 30) return 'soon'
   return null

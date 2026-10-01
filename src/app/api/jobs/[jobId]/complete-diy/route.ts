@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
+import { expectRow } from '@/lib/expectRow'
 
 // A landlord marking their own job fixed, no contractor and no payment
 // involved. Deliberately does NOT set landlord_approved_at — that column is
@@ -62,7 +63,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ error: 'Add at least one photo of the finished work before marking it fixed.' }, { status: 400 })
   }
 
-  const { error: updateError } = await admin
+  // expectRow (not a plain .update()) is what catches the job having moved
+  // out of an eligible status between the check above and this write — a
+  // raced request otherwise returns { ok: true } for an update that
+  // silently touched zero rows, and still runs the bid-decline cleanup
+  // below for a job it never actually completed.
+  const { error: updateError } = await expectRow(admin
     .from('jobs')
     .update({
       status: 'completed',
@@ -70,11 +76,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       self_completed_at: new Date().toISOString(),
     })
     .eq('id', jobId)
-    .in('status', ['approved', 'bidding', 'bid_selected', 'scheduled'])
+    .in('status', ['approved', 'bidding', 'bid_selected', 'scheduled']))
 
   if (updateError) {
     console.error('complete-diy: could not update job', { jobId, updateError })
-    return NextResponse.json({ error: updateError.message }, { status: 500 })
+    return NextResponse.json({ error: updateError.message }, { status: 400 })
   }
 
   // Any still-open sealed bids on this job need to be closed out, mirroring

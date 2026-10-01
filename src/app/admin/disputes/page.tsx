@@ -16,6 +16,17 @@ export default function AdminDisputesPage() {
   const [notesById, setNotesById] = useState<Record<string, string>>({})
 
   const load = async () => {
+    // This page mounts (and load() fires) before AdminLayout's own
+    // authorization check resolves — it's a sibling in the same render
+    // tree, not something that check gates. RLS is the real backstop on
+    // the query below, which also joins in raiser/resolver names; this is
+    // the one app-layer check too.
+    const accessCheck = await fetch('/api/admin/check-access').then((r) => r.json()).catch(() => ({ authorized: false }))
+    if (!accessCheck.authorized) {
+      setLoading(false)
+      return
+    }
+
     const { data, error: loadError } = await supabase
       .from('disputes')
       .select('*, jobs(category, units(properties(address, city))), raiser:raised_by_user_id(full_name), resolver:resolved_by(full_name)')

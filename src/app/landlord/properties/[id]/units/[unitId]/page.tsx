@@ -66,11 +66,16 @@ export default function UnitDetailPage() {
   })
 
   const loadCoOccupants = async (tenancyId: string) => {
-    const { data: occupants } = await supabase
+    const { data: occupants, error: occupantsError } = await supabase
       .from('tenancy_occupants')
       .select('*')
       .eq('tenancy_id', tenancyId)
       .order('added_at', { ascending: true })
+
+    // Was silently swallowed before — a real query failure (e.g. a missing
+    // column) looked identical to "no co-renters on this unit," with no way
+    // to tell the two apart from the UI or the logs.
+    if (occupantsError) console.error('Error loading co-occupants:', occupantsError)
 
     if (!occupants || occupants.length === 0) {
       setCoOccupants([])

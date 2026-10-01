@@ -103,6 +103,15 @@ export default function AdminOverviewPage() {
 
   useEffect(() => {
     const load = async () => {
+      // This component mounts (and this effect fires) the instant the route
+      // loads — AdminLayout wraps it, but as a child in the same tree, so
+      // its own authorization check doesn't block this effect from running
+      // first. The queries below rely solely on RLS to keep a non-admin
+      // from getting real data back; this is the one check at the app layer
+      // too, so it's never relying on RLS alone.
+      const accessCheck = await fetch('/api/admin/check-access').then((r) => r.json()).catch(() => ({ authorized: false }))
+      if (!accessCheck.authorized) return
+
       const [
         usersRes,
         { data: subs, error: subsError },
