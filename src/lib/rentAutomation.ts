@@ -37,9 +37,20 @@ async function ensureRentPaymentForMonth(
 
   if (existing && existing.length > 0) return null
 
+  // upsert, not insert: two concurrent calls (a page load racing the daily
+  // cron, or two tabs open at once) can both pass the check above — the
+  // database-level unique constraint on (tenancy_id, month) is what
+  // actually stops the second one from creating a duplicate row for a
+  // month that's already due or already paid. ignoreDuplicates means a
+  // losing racer gets back no row (same as the early-return above), not an
+  // error. Needs a real unique constraint added via SQL before this is
+  // fully race-proof — see the migration note where this is called.
   const { data: created, error } = await supabase
     .from('rent_payments')
-    .insert({ tenancy_id: tenancyId, month, expected_amount: rentAmount })
+    .upsert(
+      { tenancy_id: tenancyId, month, expected_amount: rentAmount },
+      { onConflict: 'tenancy_id,month', ignoreDuplicates: true }
+    )
     .select('id')
     .maybeSingle()
 
