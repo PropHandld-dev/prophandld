@@ -305,6 +305,10 @@ export function ChatPanel({
         </div>
       )}
 
+      {/* No edit/delete action on any message, deliberately: job chat and DMs
+          are the audit trail if a fair-housing or maintenance dispute ever
+          goes legal, so the raw history has to stay provable as unedited.
+          Don't add one without checking with the team first. */}
       <div ref={listRef} className="flex-1 overflow-y-auto space-y-1 pb-4 pr-3">
         {messages.length === 0 ? (
           <p className="text-white/50 text-sm text-center py-10">{t('noMessagesYet', lang)}</p>
