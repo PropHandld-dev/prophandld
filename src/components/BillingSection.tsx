@@ -29,6 +29,13 @@ export function BillingSection() {
   const [justArrived, setJustArrived] = useState(false)
   useEffect(() => {
     if (typeof window === 'undefined' || window.location.hash !== '#billing') return
+    // Scrolled here imperatively, not left to the browser's default
+    // hash-on-navigation behavior — that only fires once, immediately on
+    // navigation, and this page's landlord/role check resolves async, so
+    // #billing doesn't exist in the DOM yet at that moment. By the time
+    // THIS effect runs, BillingSection has actually mounted, so the
+    // target is guaranteed to be there.
+    document.getElementById('billing')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     setJustArrived(true)
     const id = setTimeout(() => setJustArrived(false), 2000)
     return () => clearTimeout(id)
