@@ -13,7 +13,11 @@ let resendClient: Resend | null = null
 
 function getResendClient() {
   if (!resendClient) {
-    resendClient = new Resend(process.env.RESEND_API_KEY)
+    // .trim() for the same reason as the Stripe and Twilio clients — a
+    // trailing newline/space pasted into Vercel's env var UI makes the
+    // Authorization header malformed and every request fail outright.
+    // Already confirmed to have happened for real with STRIPE_SECRET_KEY.
+    resendClient = new Resend(process.env.RESEND_API_KEY?.trim())
   }
   return resendClient
 }

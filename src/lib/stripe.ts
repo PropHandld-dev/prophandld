@@ -11,7 +11,15 @@ let stripeClient: Stripe | null = null
 
 export function getStripe() {
   if (!stripeClient) {
-    stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY!)
+    // .trim() is deliberate, not defensive paranoia — a trailing newline
+    // or space in the env var (easy to introduce pasting into Vercel's
+    // dashboard) makes every request fail with a raw Node-level
+    // "Invalid character in header content [Authorization]" error, which
+    // looks exactly like a network/connection problem and is genuinely
+    // hard to tell apart from one without reading the full stack trace.
+    // This actually happened in production — every Stripe call was
+    // silently failing, not just the ones someone happened to screenshot.
+    stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY!.trim())
   }
   return stripeClient
 }
