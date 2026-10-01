@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { MagneticLink } from '@/components/MagneticLink'
 import { ScrollReveal } from '@/components/ScrollReveal'
-import { DollarSignIcon, AlertTriangleIcon, FileTextIcon, WrenchIcon, CalendarIcon, CheckCircleIcon, MessageCircleIcon, LockIcon, StarIcon, GlobeIcon } from '@/components/icons'
+import { DollarSignIcon, AlertTriangleIcon, FileTextIcon, WrenchIcon, CalendarIcon, CheckCircleIcon, MessageCircleIcon, LockIcon, StarIcon, GlobeIcon, ShieldIcon } from '@/components/icons'
 import { Logo } from '@/components/Logo'
 import { BrandLink } from '@/components/BrandLink'
 import { RoleShowcase } from '@/components/RoleShowcase'
@@ -367,6 +367,61 @@ export default function LandingPage() {
             </Link>
           </div>
         </div>
+        </ScrollReveal>
+      </section>
+
+      {/* Trust/security — pre-launch means no real customer logos or
+          testimonials exist yet, and claiming them would do more damage
+          than having none (research: fabricated social proof at true
+          pre-launch stage actively erodes trust vs. stage-appropriate
+          transparency). Every claim below is a real, shipped mechanism —
+          not a number or a name, which would need faking right now. */}
+      <section className="max-w-5xl mx-auto px-6 py-16">
+        <ScrollReveal>
+          <div className="text-center mb-10">
+            <h2 className="text-3xl font-bold text-white mb-3">Built to protect your money, not just move it</h2>
+            <p className="text-white/50 max-w-2xl mx-auto">
+              We&apos;re a new platform, so instead of asking you to trust a logo wall, here&apos;s exactly what&apos;s actually built in.
+            </p>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div className="bg-white/3 border border-white/8 rounded-2xl p-6">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 border border-[#12A5A9]/30 flex items-center justify-center mb-4">
+                <LockIcon className="w-4 h-4 text-[#12A5A9]" />
+              </div>
+              <h3 className="text-white font-semibold mb-1.5">Payments run through Stripe</h3>
+              <p className="text-white/50 text-sm leading-relaxed">
+                The same infrastructure banks and major platforms rely on. Rent and job payments go straight to the recipient&apos;s bank account.
+              </p>
+            </div>
+            <div className="bg-white/3 border border-white/8 rounded-2xl p-6">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 border border-[#12A5A9]/30 flex items-center justify-center mb-4">
+                <ShieldIcon className="w-4 h-4 text-[#12A5A9]" />
+              </div>
+              <h3 className="text-white font-semibold mb-1.5">Sealed bidding, for real</h3>
+              <p className="text-white/50 text-sm leading-relaxed">
+                No contractor ever sees another contractor&apos;s bid. Not a lower number, not even that one exists.
+              </p>
+            </div>
+            <div className="bg-white/3 border border-white/8 rounded-2xl p-6">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 border border-[#12A5A9]/30 flex items-center justify-center mb-4">
+                <AlertTriangleIcon className="w-4 h-4 text-[#12A5A9]" />
+              </div>
+              <h3 className="text-white font-semibold mb-1.5">A real dispute window</h3>
+              <p className="text-white/50 text-sm leading-relaxed">
+                48 hours after a job&apos;s approved for either side to flag a problem before it&apos;s final. Not a policy, an actual pause.
+              </p>
+            </div>
+            <div className="bg-white/3 border border-white/8 rounded-2xl p-6">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 border border-[#12A5A9]/30 flex items-center justify-center mb-4">
+                <CheckCircleIcon className="w-4 h-4 text-[#12A5A9]" />
+              </div>
+              <h3 className="text-white font-semibold mb-1.5">Payouts pause if something looks off</h3>
+              <p className="text-white/50 text-sm leading-relaxed">
+                If a payout bank account changes, payouts automatically freeze for 48 hours and we alert the account owner, in case it wasn&apos;t them.
+              </p>
+            </div>
+          </div>
         </ScrollReveal>
       </section>
 
