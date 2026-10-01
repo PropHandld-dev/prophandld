@@ -370,6 +370,56 @@ export default function LandingPage() {
         </ScrollReveal>
       </section>
 
+      {/* Comparison — deliberately never names a specific competitor
+          (Yelp, Angi, etc). Comparative advertising naming a real
+          competitor by name is generally legal in the US (nominative fair
+          use) IF every claim about them is precisely accurate — but that's
+          exactly the exposure: a specific factual claim about a named
+          competitor's current business model that turns out imprecise is
+          a false-advertising problem, not just a trademark one. With no
+          attorney review in place yet, "the old way" makes the same point
+          with nobody who could ever claim we got a fact about their
+          business wrong. */}
+      <section className="border-y border-white/8 py-20 bg-[linear-gradient(to_right,rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:56px_56px]">
+        <ScrollReveal className="max-w-3xl mx-auto px-6">
+          <h2 className="text-3xl font-bold text-center mb-3 text-white">The quotes you remember, without the chaos you don&apos;t</h2>
+          <p className="text-white/50 text-center max-w-2xl mx-auto mb-12">
+            You&apos;ve probably requested quotes online before, multiple contractors, real competition. Here&apos;s the part that experience usually leaves out.
+          </p>
+          <div className="bg-white/3 border border-white/8 rounded-2xl overflow-hidden">
+            <div className="hidden sm:grid grid-cols-3 text-xs font-semibold uppercase tracking-wide text-white/40 px-5 py-3 border-b border-white/8">
+              <span></span>
+              <span>The old way</span>
+              <span className="text-[#12A5A9]">Prophandld</span>
+            </div>
+            {[
+              { label: 'Getting quotes', typical: "Contractors call and text you directly, you're juggling comparisons yourself.", prophandld: 'Every bid lands in one dashboard, side by side.' },
+              { label: 'Bidding fairness', typical: "Contractors can tell roughly how many others are bidding, some don't bother competing seriously.", prophandld: "Sealed bidding, nobody sees another's number, so you get real prices, not posturing." },
+              { label: 'What it costs the contractor', typical: 'Many apps charge contractors per lead, win or not.', prophandld: 'Free, always, so the contractors who show up actually want the job.' },
+              { label: 'After you pick someone', typical: "You're often on your own, no tracking, no proof of work, no built-in payment.", prophandld: 'Scheduling, before/after photos, and payment all stay in one place.' },
+            ].map((row, i, arr) => (
+              <div
+                key={row.label}
+                className={`px-5 py-4 text-sm sm:grid sm:grid-cols-3 sm:gap-2 sm:items-start ${i !== arr.length - 1 ? 'border-b border-white/8' : ''}`}
+              >
+                <span className="text-white font-medium block mb-2 sm:mb-0">{row.label}</span>
+                <span className="text-white/40 block mb-1 sm:mb-0">
+                  <span className="sm:hidden text-white/30 text-xs uppercase tracking-wide block mb-0.5">The old way</span>
+                  {row.typical}
+                </span>
+                <span className="text-white/90 flex items-start gap-1.5">
+                  <CheckCircleIcon className="w-4 h-4 text-[#12A5A9] shrink-0 mt-0.5" />
+                  <span>
+                    <span className="sm:hidden text-[#12A5A9] text-xs uppercase tracking-wide block mb-0.5">Prophandld</span>
+                    {row.prophandld}
+                  </span>
+                </span>
+              </div>
+            ))}
+          </div>
+        </ScrollReveal>
+      </section>
+
       {/* Trust/security — pre-launch means no real customer logos or
           testimonials exist yet, and claiming them would do more damage
           than having none (research: fabricated social proof at true
