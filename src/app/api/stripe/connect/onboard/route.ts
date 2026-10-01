@@ -130,14 +130,15 @@ export async function POST() {
     return NextResponse.json({ url: accountLink.url })
   } catch (err) {
     console.error('connect/onboard: unhandled error', err)
-    // Stripe's own SDK message for a connection-level failure ("Request
-    // was retried N times") is accurate but not something to show a
-    // landlord or contractor raw — they can't do anything with it, and it
-    // reads like the product is broken rather than a one-off network blip.
-    // Real detail still goes to the server log above for actually
-    // diagnosing a recurring one.
-    const message = err instanceof Stripe.errors.StripeConnectionError
-      ? "Couldn't reach Stripe just now — this is usually temporary. Try again in a moment."
+    // Every Stripe SDK error, not just the connection-error case this
+    // originally special-cased — every field going into accounts.create
+    // (business_profile, individual, mcc) is built server-side from the
+    // user's own profile, not a form they filled in, so a raw
+    // StripeInvalidRequestError about mcc/url/phone shape is just as
+    // unactionable to them as a connection error. Real detail still goes
+    // to the server log above either way.
+    const message = err instanceof Stripe.errors.StripeError
+      ? "Couldn't set up payouts with Stripe just now — this is usually temporary. Try again in a moment, and contact admin@prophandld.com if it keeps happening."
       : err instanceof Error
         ? err.message
         : 'Unknown error'
