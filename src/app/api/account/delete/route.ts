@@ -134,6 +134,15 @@ export async function POST() {
     await supabaseAdmin.from('message_read_state').delete().eq('user_id', userId)
     await supabaseAdmin.from('push_subscriptions').delete().eq('user_id', userId)
     await supabaseAdmin.from('personal_emergency_contacts').delete().eq('user_id', userId)
+    // Two columns the per-role blocks above don't reach: a renter's own
+    // document-vault upload (not tied to any job, so the job cascade above
+    // never sees it) and a review any role can leave on a contractor (not
+    // just the contractor's own id, already handled above). Left alone,
+    // either leaves this account referenced by a row that still exists
+    // after the rest of this cleanup, which fails the public.users delete
+    // below the same way the comment there already warns about.
+    await supabaseAdmin.from('documents').delete().eq('uploaded_by', userId)
+    await supabaseAdmin.from('contractor_reviews').delete().eq('reviewer_user_id', userId)
     // Preserve the dispute itself (and whoever else's audit trail this
     // resolution is part of) — only detach this account's own reference to
     // it, the same pattern already used for custom_categories.created_by.
