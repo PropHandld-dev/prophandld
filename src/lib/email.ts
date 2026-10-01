@@ -489,6 +489,45 @@ export async function sendCredentialExpiryEmail({
   })
 }
 
+// Distinct from sendCredentialExpiryEmail above: that one counts down an
+// expiry date on something already submitted. This is for a requirement
+// the admin roster shows as never submitted at all — nothing to count
+// down, so it's only ever sent by an admin's deliberate "Send reminder"
+// click, never a cron.
+export async function sendComplianceReminderEmail({
+  to,
+  contractorName,
+  missingNames,
+  note,
+  lang = 'en',
+}: {
+  to: string
+  contractorName: string
+  missingNames: string[]
+  note?: string | null
+  lang?: Lang
+}) {
+  const facts: EmailFact[] = missingNames.map((name) => ({ label: name, value: lang === 'es' ? 'No enviado' : 'Not submitted' }))
+  const html = baseTemplate({
+    lang,
+    eyebrow: lang === 'es' ? 'Verificación' : 'Verification',
+    heading: lang === 'es' ? 'Faltan credenciales en tu perfil' : 'Your profile is missing a required credential',
+    bodyHtml: lang === 'es'
+      ? `Hola ${escapeHtml(contractorName)}, según tu zona de servicio y oficios, tu perfil necesita lo siguiente que aún no está en el expediente.${note ? ` ${escapeHtml(note)}` : ''} Súbelo cuando puedas para que los arrendadores lo vean junto a tus ofertas.`
+      : `Hi ${escapeHtml(contractorName)}, based on your service area and trades, your profile needs the following, which isn't on file yet.${note ? ` ${escapeHtml(note)}` : ''} Upload it when you get a chance so landlords see it next to your bids.`,
+    preheader: missingNames.length === 1 ? missingNames[0] : `${missingNames.length} items needed`,
+    facts,
+    ctaLabel: lang === 'es' ? 'Actualizar credenciales' : 'Update credentials',
+    ctaUrl: `${SITE_URL}/contractor/settings`,
+    footerText: lang === 'es' ? 'Enviado por un administrador de Prophandld.' : 'Sent by a Prophandld admin.',
+  })
+  return sendEmail({
+    to,
+    subject: lang === 'es' ? 'Faltan credenciales en tu perfil de Prophandld' : 'Your Prophandld profile is missing a required credential',
+    html,
+  })
+}
+
 export type NotifyType =
   | 'job_reported'
   | 'bid_received'

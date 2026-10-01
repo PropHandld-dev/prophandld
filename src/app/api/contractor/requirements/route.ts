@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
-import zipcodes from 'zipcodes'
 import { requirementsFor } from '@/lib/credentialRequirements'
 import { STATE_BOARDS } from '@/lib/stateLicensingBoards'
+import { computeServiceArea } from '@/lib/contractorServiceArea'
 
 // Which licenses/registrations/insurance apply to this contractor, based on
 // the trades they offer and every state inside their service radius — the
@@ -32,34 +32,15 @@ export async function GET() {
   }
 
   const categories: string[] = profile?.service_categories || []
-  const radiusMiles = Math.min(profile?.service_radius_miles || 25, 100)
-  const home = profile?.service_zip ? zipcodes.lookup(profile.service_zip) : null
+  const { homeState, homeCity, radiusMiles, states, cities } = computeServiceArea(profile?.service_zip, profile?.service_radius_miles)
 
-  const states = new Set<string>()
-  const cities = new Map<string, { state: string; city: string }>()
-  if (home?.state) {
-    states.add(home.state)
-    cities.set(`${home.state}:${home.city}`, { state: home.state, city: home.city })
-    const nearby = (zipcodes.radius(profile!.service_zip, radiusMiles) as string[]) || []
-    for (const zip of nearby) {
-      const place = zipcodes.lookup(zip)
-      if (!place?.state) continue
-      states.add(place.state)
-      cities.set(`${place.state}:${place.city}`, { state: place.state, city: place.city })
-    }
-  }
-
-  const { requirements, unmappedStates } = requirementsFor({
-    states: Array.from(states),
-    cities: Array.from(cities.values()),
-    categories,
-  })
+  const { requirements, unmappedStates } = requirementsFor({ states, cities, categories })
 
   return NextResponse.json({
-    homeState: home?.state || null,
-    homeCity: home?.city || null,
+    homeState,
+    homeCity,
     radiusMiles,
-    states: Array.from(states).sort(),
+    states: [...states].sort(),
     categories,
     requirements,
     boards: unmappedStates.map((s) => STATE_BOARDS[s]).filter(Boolean),

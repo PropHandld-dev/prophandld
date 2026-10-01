@@ -112,6 +112,159 @@ function VerificationGuide() {
   )
 }
 
+function RosterSection() {
+  const [roster, setRoster] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [filter, setFilter] = useState<'needs-attention' | 'all'>('needs-attention')
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [sendingId, setSendingId] = useState<string | null>(null)
+  const [sentIds, setSentIds] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    fetch('/api/admin/contractor-compliance')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.error) {
+          setError(data.error)
+        } else {
+          setRoster(data.contractors || [])
+        }
+        setLoading(false)
+      })
+      .catch(() => {
+        setError('Could not load the contractor roster.')
+        setLoading(false)
+      })
+  }, [])
+
+  const sendReminder = async (contractor: any) => {
+    const missingNames = contractor.items
+      .filter((i: any) => i.level === 'required' && (i.status === 'missing' || i.status === 'expired'))
+      .map((i: any) => i.name)
+    if (missingNames.length === 0) return
+    setSendingId(contractor.id)
+    const res = await fetch('/api/admin/send-compliance-reminder', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contractorUserId: contractor.id, missingNames }),
+    })
+    setSendingId(null)
+    if (res.ok) {
+      setSentIds((prev) => new Set(prev).add(contractor.id))
+    } else {
+      setError('Could not send the reminder. Try again in a moment.')
+    }
+  }
+
+  const visible = filter === 'needs-attention' ? roster.filter((c) => c.needsAttention) : roster
+
+  if (loading) return <div className="text-white/50 text-sm mb-8">Loading roster...</div>
+
+  return (
+    <ScrollReveal>
+      <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+        <h2 className="text-white/70 font-semibold text-sm">Contractor roster — who&apos;s missing what</h2>
+        <div className="flex gap-1.5">
+          {(['needs-attention', 'all'] as const).map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={
+                filter === f
+                  ? 'text-xs font-semibold px-3 py-1.5 rounded-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white'
+                  : 'text-xs font-semibold px-3 py-1.5 rounded-full bg-white/5 text-white/50 hover:bg-white/8 transition'
+              }
+            >
+              {f === 'needs-attention' ? `Needs attention (${roster.filter((c) => c.needsAttention).length})` : `All (${roster.length})`}
+            </button>
+          ))}
+        </div>
+      </div>
+      {error && <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm mb-4">{error}</div>}
+      {visible.length === 0 ? (
+        <p className="text-white/50 text-sm mb-8">{filter === 'needs-attention' ? 'Nobody is missing a required credential right now.' : 'No contractors yet.'}</p>
+      ) : (
+        <div className="bg-white/3 border border-white/8 rounded-2xl divide-y divide-white/5 mb-8 overflow-hidden">
+          {visible.map((c) => {
+            const expanded = expandedId === c.id
+            const sent = sentIds.has(c.id)
+            return (
+              <div key={c.id}>
+                <button
+                  onClick={() => setExpandedId(expanded ? null : c.id)}
+                  className="w-full flex items-center justify-between gap-4 px-5 py-3.5 text-left hover:bg-white/5 transition"
+                >
+                  <div className="min-w-0">
+                    <p className="text-white text-sm font-medium">{c.name}</p>
+                    <p className="text-white/40 text-xs truncate">
+                      {c.email} {c.zip ? `· ${c.zip} (${c.states.join(', ') || '—'})` : '· no service area set'}
+                    </p>
+                  </div>
+                  <div className="shrink-0 flex items-center gap-2">
+                    {!c.hasServiceProfile ? (
+                      <span className="text-xs font-semibold rounded-full px-2.5 py-1 bg-white/8 text-white/40">No profile yet</span>
+                    ) : (
+                      <>
+                        {c.missingCount > 0 && <span className="text-xs font-semibold rounded-full px-2.5 py-1 bg-red-500/15 text-red-400">{c.missingCount} missing</span>}
+                        {c.expiredCount > 0 && <span className="text-xs font-semibold rounded-full px-2.5 py-1 bg-red-500/15 text-red-400">{c.expiredCount} expired</span>}
+                        {c.pendingCount > 0 && <span className="text-xs font-semibold rounded-full px-2.5 py-1 bg-yellow-500/15 text-yellow-400">{c.pendingCount} pending</span>}
+                        {c.missingCount === 0 && c.expiredCount === 0 && (
+                          <span className="text-xs font-semibold rounded-full px-2.5 py-1 bg-[#0A7B7E]/20 text-[#12A5A9]">{c.verifiedCount}/{c.requiredCount} verified</span>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </button>
+                {expanded && (
+                  <div className="px-5 pb-4">
+                    {!c.hasServiceProfile ? (
+                      <p className="text-white/40 text-xs">This contractor hasn&apos;t set a service ZIP and trade categories yet, so requirements can&apos;t be computed.</p>
+                    ) : (
+                      <>
+                        <div className="flex flex-wrap gap-1.5 mb-3">
+                          {c.categories.map((cat: string) => (
+                            <span key={cat} className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-white/5 text-white/50">{cat}</span>
+                          ))}
+                        </div>
+                        <div className="space-y-1.5 mb-3">
+                          {c.items.filter((i: any) => i.level === 'required').map((i: any) => (
+                            <div key={i.id} className="flex items-center justify-between gap-3 text-xs">
+                              <span className="text-white/70">{i.name} <span className="text-white/30">· {i.regions.join(', ')}</span></span>
+                              <span className={
+                                i.status === 'verified' ? 'text-[#12A5A9] font-semibold' :
+                                i.status === 'pending' ? 'text-yellow-400 font-semibold' :
+                                i.status === 'missing' ? 'text-red-400 font-semibold' :
+                                i.status === 'expired' ? 'text-red-400 font-semibold' :
+                                'text-white/40 font-semibold'
+                              }>
+                                {i.status === 'missing' ? 'Not submitted' : i.status === 'expired' ? `Expired ${Math.abs(i.daysLeft)}d ago` : i.status}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                        {c.needsAttention && (
+                          <RippleButton
+                            onClick={() => sendReminder(c)}
+                            disabled={sendingId === c.id || sent}
+                            className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
+                          >
+                            {sent ? 'Reminder sent ✓' : sendingId === c.id ? 'Sending...' : 'Send reminder (email + app)'}
+                          </RippleButton>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </ScrollReveal>
+  )
+}
+
 export default function AdminContractorsPage() {
   const [loading, setLoading] = useState(true)
   const [rows, setRows] = useState<any[]>([])
@@ -461,6 +614,8 @@ export default function AdminContractorsPage() {
   return (
     <AdminLayout>
       <h1 className="text-2xl font-bold text-white mb-8">Contractor verification</h1>
+
+      <RosterSection />
 
       <VerificationGuide />
 
