@@ -3,7 +3,7 @@ import Stripe from 'stripe'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { getStripe, isPayoutReady } from '@/lib/stripe'
 import { syncRentPayment } from '@/lib/rentPaymentSync'
-import { sendRentPaymentReceivedEmail, sendJobPaymentSentEmail, sendJobPaymentReceiptEmail, sendCreditCardRejectedEmail } from '@/lib/email'
+import { sendRentPaymentReceivedEmail, sendJobPaymentSentEmail, sendJobPaymentReceiptEmail, sendCreditCardRejectedEmail, sendPayoutDetailsChangedEmail } from '@/lib/email'
 import { sendPush } from '@/lib/push'
 import { emailAllowed } from '@/lib/notificationPrefs'
 
@@ -33,11 +33,32 @@ export async function POST(request: NextRequest) {
       case 'account.updated': {
         const account = event.data.object as Stripe.Account
         const status = isPayoutReady(account) ? 'active' : 'onboarding'
-        const { error } = await supabaseAdmin
+        // previous_attributes only lists fields that actually changed in
+        // this event — present means Stripe just saw a new or edited
+        // payout bank account on this connected account. That's the exact
+        // moment a phished Express dashboard login would be exploited, so
+        // payouts pause for 48h and the real owner gets an alert — see the
+        // payout_frozen_until check in both create-payment-intent routes.
+        const previousAttributes = (event.data as { previous_attributes?: Record<string, unknown> }).previous_attributes || {}
+        const bankDetailsChanged = 'external_accounts' in previousAttributes
+        const updates: Record<string, unknown> = { stripe_connect_status: status }
+        if (bankDetailsChanged) {
+          updates.payout_frozen_until = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString()
+        }
+        const { data: updatedUser, error } = await supabaseAdmin
           .from('users')
-          .update({ stripe_connect_status: status })
+          .update(updates)
           .eq('stripe_connect_account_id', account.id)
+          .select('email, full_name, preferred_language')
+          .maybeSingle()
         if (error) console.error('stripe webhook: account.updated update failed', error)
+        if (bankDetailsChanged && updatedUser?.email) {
+          sendPayoutDetailsChangedEmail({
+            to: updatedUser.email,
+            name: updatedUser.full_name || 'there',
+            lang: updatedUser.preferred_language === 'es' ? 'es' : 'en',
+          }).catch((err) => console.error('stripe webhook: payout-changed alert email failed', err))
+        }
         break
       }
 

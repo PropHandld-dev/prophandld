@@ -1551,6 +1551,42 @@ export async function sendContractorVerificationDecisionEmail({
   })
 }
 
+// Fires whenever Stripe reports a payout bank account was added or changed
+// on a connected account — the exact moment a phished dashboard login would
+// be exploited. Payouts are paused for 48 hours regardless (see the
+// payout_frozen_until check in both create-payment-intent routes); this
+// email is what lets the real account owner catch it if it wasn't them.
+export async function sendPayoutDetailsChangedEmail({
+  to,
+  name,
+  lang = 'en',
+}: {
+  to: string
+  name: string
+  lang?: Lang
+}) {
+  const html = lang === 'es' ? baseTemplate({
+    lang,
+    eyebrow: 'Alerta de seguridad',
+    heading: 'Tu cuenta bancaria de pagos cambió',
+    bodyHtml: `Hola ${escapeHtml(name)}, se actualizó la cuenta bancaria donde recibes tus pagos en Prophandld. Como medida de seguridad de rutina, los pagos a esta cuenta se pausan automáticamente por 48 horas y luego se reanudan solos — no tienes que hacer nada si fuiste tú.<br><br><strong>Si no hiciste este cambio, contáctanos de inmediato</strong> en admin@prophandld.com.`,
+    ctaLabel: 'Ver mi perfil',
+    ctaUrl: `${SITE_URL}/profile`,
+  }) : baseTemplate({
+    lang,
+    eyebrow: 'Security alert',
+    heading: 'Your payout bank account changed',
+    bodyHtml: `Hi ${escapeHtml(name)}, the bank account where you receive Prophandld payouts was just updated. As a routine security measure, payouts to this account are automatically paused for 48 hours and then resume on their own — no action needed if this was you.<br><br><strong>If you didn't make this change, contact us immediately</strong> at admin@prophandld.com.`,
+    ctaLabel: 'View my profile',
+    ctaUrl: `${SITE_URL}/profile`,
+  })
+  return sendEmail({
+    to,
+    subject: lang === 'es' ? 'Alerta de seguridad: tu cuenta bancaria de pagos cambió' : 'Security alert: your payout bank account changed',
+    html,
+  })
+}
+
 // Internal, always English.
 export async function sendDisputeRaisedAdminEmail({
   jobCategory,

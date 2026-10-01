@@ -49,12 +49,22 @@ export async function POST(request: NextRequest) {
 
   const { data: contractorRow } = await supabaseAdmin
     .from('users')
-    .select('stripe_connect_account_id, stripe_connect_status')
+    .select('stripe_connect_account_id, stripe_connect_status, payout_frozen_until')
     .eq('id', bid.contractor_user_id)
     .maybeSingle()
 
   if (!contractorRow?.stripe_connect_account_id || contractorRow.stripe_connect_status !== 'active') {
     return NextResponse.json({ error: "This contractor hasn't set up payouts yet." }, { status: 400 })
+  }
+
+  // The contractor's payout bank account was changed in the last 48 hours —
+  // routine fraud guard against a phished Stripe dashboard login redirecting
+  // the payout to a new account. See account.updated in the Stripe webhook.
+  if (contractorRow.payout_frozen_until && new Date(contractorRow.payout_frozen_until) > new Date()) {
+    return NextResponse.json(
+      { error: "This contractor's payout details recently changed. Payments are paused for 48 hours as a security precaution — please try again shortly." },
+      { status: 400 }
+    )
   }
 
   // `amount` is the agreed price: approving a price change copies the new

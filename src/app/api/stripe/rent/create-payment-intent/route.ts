@@ -67,12 +67,22 @@ export async function POST(request: NextRequest) {
 
   const { data: landlordRow } = await supabaseAdmin
     .from('users')
-    .select('stripe_connect_account_id, stripe_connect_status')
+    .select('stripe_connect_account_id, stripe_connect_status, payout_frozen_until')
     .eq('id', landlordUserId)
     .maybeSingle()
 
   if (!landlordRow?.stripe_connect_account_id || landlordRow.stripe_connect_status !== 'active') {
     return NextResponse.json({ error: "Your landlord hasn't set up rent payouts yet." }, { status: 400 })
+  }
+
+  // The landlord's payout bank account was changed in the last 48 hours —
+  // routine fraud guard against a phished Stripe dashboard login redirecting
+  // rent to a new account. See account.updated in the Stripe webhook.
+  if (landlordRow.payout_frozen_until && new Date(landlordRow.payout_frozen_until) > new Date()) {
+    return NextResponse.json(
+      { error: "Your landlord's payout details recently changed. Payments are paused for 48 hours as a security precaution — please try again shortly." },
+      { status: 400 }
+    )
   }
 
   const stripe = getStripe()
