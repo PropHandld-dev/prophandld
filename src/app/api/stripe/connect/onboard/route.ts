@@ -1,7 +1,16 @@
+import Stripe from 'stripe'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { getStripe, isPayoutReady } from '@/lib/stripe'
+
+// This route makes up to 4 sequential Stripe calls in the worst case
+// (retrieve, update, accounts.create, accountLinks.create) — the 10s
+// default Vercel function timeout a retry or two of real network latency
+// away from being hit, which surfaces to Stripe's own SDK as a connection
+// error indistinguishable from a real outage. Raising this is free and
+// directly addresses the likely cause of a "retried 2 times" report.
+export const maxDuration = 30
 
 function toE164(phone: string | null | undefined) {
   const digits = (phone || '').replace(/\D/g, '')
@@ -121,7 +130,17 @@ export async function POST() {
     return NextResponse.json({ url: accountLink.url })
   } catch (err) {
     console.error('connect/onboard: unhandled error', err)
-    const message = err instanceof Error ? err.message : 'Unknown error'
+    // Stripe's own SDK message for a connection-level failure ("Request
+    // was retried N times") is accurate but not something to show a
+    // landlord or contractor raw — they can't do anything with it, and it
+    // reads like the product is broken rather than a one-off network blip.
+    // Real detail still goes to the server log above for actually
+    // diagnosing a recurring one.
+    const message = err instanceof Stripe.errors.StripeConnectionError
+      ? "Couldn't reach Stripe just now — this is usually temporary. Try again in a moment."
+      : err instanceof Error
+        ? err.message
+        : 'Unknown error'
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }

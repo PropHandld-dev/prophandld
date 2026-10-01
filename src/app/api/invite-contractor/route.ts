@@ -27,7 +27,46 @@ export async function POST(request: NextRequest) {
 
   const { data: existingUserId } = await supabaseAdmin.rpc('get_user_id_by_email', { email_input: contractorEmail })
   if (existingUserId) {
-    return NextResponse.json({ error: 'This email already has a Prophandld account. Message them directly instead.' }, { status: 400 })
+    // get_user_id_by_email finds ANY account by that address, any role —
+    // it used to be trusted blindly here, telling every landlord to
+    // "message them directly instead" even when that's not actually
+    // possible. DMing a contractor requires an accepted-bid history with
+    // THIS landlord specifically (see start_landlord_contractor_thread);
+    // an existing account that's a renter, another landlord, or a
+    // contractor this landlord has never worked with has no path to a
+    // message at all, so the old message was a dead end in those cases.
+    const { data: existingAuthUser } = await supabaseAdmin.auth.admin.getUserById(existingUserId)
+    const existingRole = existingAuthUser?.user?.user_metadata?.role
+
+    if (existingRole !== 'contractor') {
+      return NextResponse.json(
+        { error: `This email already has a Prophandld account (as a ${existingRole || 'different role'}), so it can't be invited as a contractor.` },
+        { status: 400 }
+      )
+    }
+
+    const { data: hasWorkedTogether } = await supabaseAdmin
+      .from('bids')
+      .select('id, jobs!inner(units!inner(properties!inner(owner_user_id)))')
+      .eq('contractor_user_id', existingUserId)
+      .eq('status', 'accepted')
+      .eq('jobs.units.properties.owner_user_id', user.id)
+      .limit(1)
+
+    if (hasWorkedTogether && hasWorkedTogether.length > 0) {
+      return NextResponse.json(
+        { error: "This contractor already has a Prophandld account, and you've worked together before — message them directly instead." },
+        { status: 400 }
+      )
+    }
+
+    return NextResponse.json(
+      {
+        error:
+          "This contractor already has a Prophandld account, but you haven't worked together yet, so there's no way to message them directly. Post the job and they'll see it if it's in their service area and trade — or ask them for their service ZIP to confirm.",
+      },
+      { status: 400 }
+    )
   }
 
   const { data: existingInvite } = await supabaseAdmin
