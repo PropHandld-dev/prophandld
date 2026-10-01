@@ -3,6 +3,8 @@ import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { getStripe, paymentPaidAt } from '@/lib/stripe'
 
+export const maxDuration = 15
+
 // Asks Stripe directly whether a job payment went through, and records it.
 // The payment_intent.succeeded webhook does the same job, but it can arrive
 // a few seconds after the landlord sees "Payment complete" — this lets the

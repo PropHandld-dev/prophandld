@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { getStripe } from '@/lib/stripe'
+import { friendlyStripeError } from '@/lib/stripeErrorMessage'
+
+export const maxDuration = 15
 
 export async function POST() {
   const authClient = await createClient()
@@ -33,7 +36,6 @@ export async function POST() {
     return NextResponse.json({ url: session.url })
   } catch (err) {
     console.error('billing-portal: unhandled error', err)
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return NextResponse.json({ error: friendlyStripeError(err, 'open your billing portal') }, { status: 500 })
   }
 }

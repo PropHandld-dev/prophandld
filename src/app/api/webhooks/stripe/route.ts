@@ -7,6 +7,8 @@ import { sendRentPaymentReceivedEmail, sendJobPaymentSentEmail, sendJobPaymentRe
 import { sendPush } from '@/lib/push'
 import { emailAllowed } from '@/lib/notificationPrefs'
 
+export const maxDuration = 30
+
 export async function POST(request: NextRequest) {
   const signature = request.headers.get('stripe-signature')
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET

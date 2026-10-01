@@ -1,8 +1,8 @@
-import Stripe from 'stripe'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { getStripe, isPayoutReady } from '@/lib/stripe'
+import { friendlyStripeError } from '@/lib/stripeErrorMessage'
 
 // This route makes up to 4 sequential Stripe calls in the worst case
 // (retrieve, update, accounts.create, accountLinks.create) — the 10s
@@ -130,18 +130,6 @@ export async function POST() {
     return NextResponse.json({ url: accountLink.url })
   } catch (err) {
     console.error('connect/onboard: unhandled error', err)
-    // Every Stripe SDK error, not just the connection-error case this
-    // originally special-cased — every field going into accounts.create
-    // (business_profile, individual, mcc) is built server-side from the
-    // user's own profile, not a form they filled in, so a raw
-    // StripeInvalidRequestError about mcc/url/phone shape is just as
-    // unactionable to them as a connection error. Real detail still goes
-    // to the server log above either way.
-    const message = err instanceof Stripe.errors.StripeError
-      ? "Couldn't set up payouts with Stripe just now — this is usually temporary. Try again in a moment, and contact admin@prophandld.com if it keeps happening."
-      : err instanceof Error
-        ? err.message
-        : 'Unknown error'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return NextResponse.json({ error: friendlyStripeError(err, 'set up payouts') }, { status: 500 })
   }
 }

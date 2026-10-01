@@ -4,6 +4,8 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { getStripe } from '@/lib/stripe'
 import { syncRentPayment } from '@/lib/rentPaymentSync'
 
+export const maxDuration = 15
+
 // Asks Stripe directly what happened to a rent payment and records it. The
 // payment_intent.succeeded webhook does the same, but a bank payment can
 // take days to clear and a webhook can arrive late, so the renter's and the

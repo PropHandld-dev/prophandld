@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { getStripe } from '@/lib/stripe'
+import { friendlyStripeError } from '@/lib/stripeErrorMessage'
+
+export const maxDuration = 20
 
 type Mode = 'stripe_refund' | 'external_refund' | 'apply_to_next'
 
@@ -173,8 +176,7 @@ export async function POST(request: NextRequest) {
     )
   } catch (err) {
     console.error('resolve-overpayment: stripe refund failed', err)
-    const message = err instanceof Error ? err.message : 'The refund could not be created.'
-    return NextResponse.json({ error: message }, { status: 400 })
+    return NextResponse.json({ error: friendlyStripeError(err, 'create that refund') }, { status: 400 })
   }
 
   const ok = await lowerThisMonth(`Refunded ${money(amount)} to the tenant through Stripe`)

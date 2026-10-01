@@ -4,6 +4,9 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { getStripe } from '@/lib/stripe'
 import { syncRentPayment } from '@/lib/rentPaymentSync'
 import { cardProcessingFee } from '@/lib/cardSurcharge'
+import { friendlyStripeError } from '@/lib/stripeErrorMessage'
+
+export const maxDuration = 20
 
 export async function POST(request: NextRequest) {
   const authClient = await createClient()
@@ -167,7 +170,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ clientSecret: paymentIntent.client_secret, amount: chargeAmount, baseAmount: amountDue, fee: surcharge })
   } catch (err) {
     console.error('rent/create-payment-intent: unhandled error', err)
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return NextResponse.json({ error: friendlyStripeError(err, 'start that payment') }, { status: 500 })
   }
 }
