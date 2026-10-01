@@ -66,7 +66,7 @@ export function BillingReminder() {
         >
           {redirecting ? t('redirecting', lang) : `${t('subscribeColon', lang)} ${formatTierPrice(unitCount)}`}
         </RippleButton>
-        <Link href="/profile" className="text-white/60 hover:text-white text-sm transition">
+        <Link href="/profile#billing" className="text-white/60 hover:text-white text-sm transition">
           {t('seeBillingDetails', lang)}
         </Link>
       </div>

@@ -21,6 +21,18 @@ export function BillingSection() {
   const [loading, setLoading] = useState(true)
   const [redirecting, setRedirecting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // A brief, one-shot pulse when arriving here via the "See billing
+  // details" link (/profile#billing) — otherwise landing on a long
+  // profile page via an anchor jump gives no visual confirmation this is
+  // actually the thing that was clicked for. Self-clears so it never
+  // lingers or replays on a later visit without the hash.
+  const [justArrived, setJustArrived] = useState(false)
+  useEffect(() => {
+    if (typeof window === 'undefined' || window.location.hash !== '#billing') return
+    setJustArrived(true)
+    const id = setTimeout(() => setJustArrived(false), 2000)
+    return () => clearTimeout(id)
+  }, [])
 
   const load = async () => {
     try {
@@ -110,7 +122,7 @@ export function BillingSection() {
   const needsToSubscribe = status.tier !== 'free' && !status.hasActiveSubscription
 
   return (
-    <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
+    <ScrollReveal className={`bg-white/3 border border-white/8 rounded-2xl p-6 mb-6 ${justArrived ? 'motion-safe:animate-[bubblePulse_1s_ease-out_2]' : ''}`}>
       <h2 className="text-white font-semibold mb-2">{t('billingHeading', lang)}</h2>
       <p className="text-white/50 text-sm mb-1">
         {t('youHaveUnitsPlanIs', lang)} <span className="text-white font-semibold">{status.unitCount} unit{status.unitCount === 1 ? '' : 's'}</span>, {t('soYourPlanIs', lang)}{' '}

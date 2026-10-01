@@ -473,7 +473,9 @@ export default function ProfilePage() {
         {/* Landlord billing + payouts */}
         {role === 'landlord' && (
           <>
-            <BillingSection />
+            <div id="billing" className="scroll-mt-6">
+              <BillingSection />
+            </div>
             <div className="mb-6">
               <StripeConnectCard purpose="rent" />
             </div>
