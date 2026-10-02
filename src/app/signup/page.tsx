@@ -11,6 +11,7 @@ import { MailIcon, LockIcon } from '@/components/icons'
 import { RolePicker, type Role } from '@/components/RolePicker'
 import { AddressAutocomplete, type AutocompletePlace } from '@/components/AddressAutocomplete'
 import { SITE_URL } from '@/lib/site'
+import { setAppMetadataRole } from '@/lib/setAppMetadataRole'
 
 const ROLE_CONTENT: Record<Role, { headline: string; subtext: string; checklist: string[] }> = {
   landlord: {
@@ -146,6 +147,20 @@ function SignupForm() {
       .then(({ error: langSyncError }) => {
         if (langSyncError) console.error('signup: could not sync preferred_language to public.users', langSyncError)
       })
+
+    // role above only ever lands in user_metadata, which this same user
+    // could rewrite themselves later (it's just a profile field as far as
+    // Supabase is concerned) — that's the actual security boundary every
+    // server-side role check needs, so it has to live somewhere only the
+    // server can write. setAppMetadataRole() sets the real, tamper-proof
+    // copy in app_metadata — but it needs an actual session, which this
+    // project's required email confirmation means signUp() usually hasn't
+    // produced yet (data.session is null until confirmed). Call it here
+    // only for the rare case a session did come back immediately;
+    // otherwise it's called once a session actually exists, at the end of
+    // the confirmation-code flow below and in /login for the
+    // confirmation-link flow.
+    if (data.session) setAppMetadataRole(role)
 
     // No session back means this project requires confirming the email
     // address before the account is usable — the account row exists, but

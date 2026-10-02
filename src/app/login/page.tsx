@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { supabase, consumeFreshSignIn, consumeAuthError } from '@/lib/supabase'
+import { setAppMetadataRole } from '@/lib/setAppMetadataRole'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { RippleButton } from '@/components/RippleButton'
@@ -108,6 +109,12 @@ function LoginForm() {
     const accountRole = user.user_metadata?.role
     if (isFirstActivation && (accountRole === 'landlord' || accountRole === 'renter' || accountRole === 'contractor')) {
       sendWelcomeEmailWithRetry()
+      // Same "first activation" moment signup couldn't use directly (no
+      // session existed yet when the role was chosen, since email
+      // confirmation defers the real session to here) — see
+      // setAppMetadataRole's own comment for why this has to happen
+      // server-side rather than trusting user_metadata.role going forward.
+      setAppMetadataRole(accountRole)
     }
     if (accountRole === 'renter') {
       // A renter's real first entry into the app now happens here, not on
