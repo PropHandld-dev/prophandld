@@ -53,7 +53,7 @@ export async function GET() {
     contractor: { thisWeek: 0, lastWeek: 0 },
   }
   for (const u of allUsers) {
-    const role = u.user_metadata?.role
+    const role = u.app_metadata?.role
     if (role !== 'landlord' && role !== 'renter' && role !== 'contractor') continue
     if (inWindow(u.created_at, weekAgo, now)) signups[role as 'landlord' | 'renter' | 'contractor'].thisWeek++
     else if (inWindow(u.created_at, twoWeeksAgo, weekAgo)) signups[role as 'landlord' | 'renter' | 'contractor'].lastWeek++

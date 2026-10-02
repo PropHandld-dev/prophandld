@@ -33,7 +33,7 @@ export async function GET() {
     if (data.users.length < perPage) break
     page++
   }
-  const contractorIds = allUsers.filter((u) => u.user_metadata?.role === 'contractor').map((u) => u.id)
+  const contractorIds = allUsers.filter((u) => u.app_metadata?.role === 'contractor').map((u) => u.id)
   if (contractorIds.length === 0) {
     return NextResponse.json({ contractors: [] })
   }

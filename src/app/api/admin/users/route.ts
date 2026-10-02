@@ -5,11 +5,11 @@ import { requireAdminAal2 } from '@/lib/adminAccess'
 import { graduatedMonthlyAmount } from '@/lib/pricingTiers'
 import { fetchAllPagesOrEmpty } from '@/lib/pagedQuery'
 
-// public.users has no `role` column — role only ever lived in Supabase
-// Auth's user_metadata (set at signup, read everywhere else in the app
-// as user.user_metadata?.role). Listing users with their role therefore
-// has to go through the Auth Admin API (service-role only, so this
-// can't be a plain client-side query like the rest of /admin/*).
+// public.users has no `role` column — role lives in Supabase Auth's
+// app_metadata (service-role-only writable, set once at signup via
+// /api/auth/set-role; see adminAccess.ts). Listing users with their
+// role therefore has to go through the Auth Admin API, same reason
+// this can't be a plain client-side query like the rest of /admin/*.
 export async function GET() {
   const authClient = await createClient()
   const { data: { user } } = await authClient.auth.getUser()
@@ -79,7 +79,7 @@ export async function GET() {
     const nameById = new Map(allUsers.map((u) => [u.id, u.user_metadata?.full_name || u.email]))
 
     const users = allUsers.map((u: any) => {
-      const role = u.user_metadata?.role || null
+      const role = u.app_metadata?.role || null
       const base = {
         id: u.id,
         email: u.email,

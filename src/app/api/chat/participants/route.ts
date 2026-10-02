@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { loadChatParticipants } from '@/lib/chatParticipants'
-import { isAdminUserId, adminUserIdSet } from '@/lib/adminAccess'
+import { requireAdminAal2, adminUserIdSet } from '@/lib/adminAccess'
 
 
 type Member = { userId: string; role: string }
@@ -78,7 +78,15 @@ export async function GET(request: NextRequest) {
   }
 
   const members = await membersForNaming(admin, { jobId, threadId }, loaded.participants)
-  const isAdmin = await isAdminUserId(user.id)
+  // Real authorization, not just a naming label (that's adminUserIdSet
+  // below, which only tags senders as staff in an already-authorized
+  // response) — this is the gate deciding whether a non-participant can
+  // see who's in someone else's conversation at all. Needs the same
+  // aal2 check every other admin-privileged action requires, not just
+  // admin_users membership — a leaked password alone shouldn't be
+  // enough to pull the participant list of any job or DM on the
+  // platform by id.
+  const isAdmin = await requireAdminAal2(authClient, user.id)
   if (!members.has(user.id) && !isAdmin) {
     return NextResponse.json({ error: 'Conversation not found' }, { status: 404 })
   }

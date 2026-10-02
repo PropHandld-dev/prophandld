@@ -57,7 +57,7 @@ export async function GET() {
       })
     )
   )
-  const contractors = contractorRows.filter((_, i) => roleChecks[i]?.data?.user?.user_metadata?.role === 'contractor')
+  const contractors = contractorRows.filter((_, i) => roleChecks[i]?.data?.user?.app_metadata?.role === 'contractor')
 
   const zipStats = new Map<string, { landlords: Set<string>; contractors: Set<string> }>()
   for (const p of properties) {

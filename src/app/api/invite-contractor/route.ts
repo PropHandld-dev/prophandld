@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     // contractor this landlord has never worked with has no path to a
     // message at all, so the old message was a dead end in those cases.
     const { data: existingAuthUser } = await supabaseAdmin.auth.admin.getUserById(existingUserId)
-    const existingRole = existingAuthUser?.user?.user_metadata?.role
+    const existingRole = existingAuthUser?.user?.app_metadata?.role
 
     if (existingRole !== 'contractor') {
       return NextResponse.json(

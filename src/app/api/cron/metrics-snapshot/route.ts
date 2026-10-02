@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
 
   const counts: { landlord: number; renter: number; contractor: number } = { landlord: 0, renter: 0, contractor: 0 }
   for (const u of allUsers) {
-    const role = u.user_metadata?.role
+    const role = u.app_metadata?.role
     if (role === 'landlord' || role === 'renter' || role === 'contractor') counts[role as 'landlord' | 'renter' | 'contractor']++
   }
 
