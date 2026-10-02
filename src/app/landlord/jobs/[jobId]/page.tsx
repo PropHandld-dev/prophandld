@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import dynamic from 'next/dynamic'
 import { supabase } from '@/lib/supabase'
 import { expectRow } from '@/lib/expectRow'
 import { compressImage } from '@/lib/imageCompress'
@@ -17,7 +18,13 @@ import { RippleButton } from '@/components/RippleButton'
 import { WrenchIcon, CheckCircleIcon, MessageCircleIcon } from '@/components/icons'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 import { ReviewForm } from '@/components/ReviewForm'
-import { StripePaymentModal, type PaymentOutcome } from '@/components/StripePaymentModal'
+import type { PaymentOutcome } from '@/components/StripePaymentModal'
+// Pulls in @stripe/react-stripe-js, only ever needed once a payment
+// actually starts — most visits to a job's page are just checking
+// status, not paying, so there's no reason to ship that into every
+// visit's own JS chunk. (PaymentOutcome above is a type-only import,
+// erased at compile time, so it costs nothing either way.)
+const StripePaymentModal = dynamic(() => import('@/components/StripePaymentModal').then((m) => m.StripePaymentModal), { ssr: false })
 import { RaiseDisputeButton } from '@/components/RaiseDisputeButton'
 import { JobChatCard, scrollToChat } from '@/components/JobChatCard'
 import { ContractorReviewsList } from '@/components/ContractorReviewsList'

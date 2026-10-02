@@ -1588,6 +1588,7 @@ const STRINGS = {
   collectedStatLabel: { en: 'Collected', es: 'Cobrado' },
   collectedRateStatLabel: { en: 'Collected rate', es: 'Tasa de cobro' },
   noUnitsMatchSearch: { en: 'No units match your search.', es: 'Ninguna unidad coincide con tu búsqueda.' },
+  tenantNamesUnavailable: { en: "Couldn't load tenant names right now — showing unit addresses instead. Amounts and status below are still accurate.", es: 'No se pudieron cargar los nombres de los inquilinos — se muestran las direcciones de las unidades. Los montos y el estado siguen siendo correctos.' },
 
   // Properties list search, added in the modernization pass
   searchPropertiesPlaceholder: { en: 'Search by address, city, ZIP, or type…', es: 'Buscar por dirección, ciudad, código postal o tipo…' },

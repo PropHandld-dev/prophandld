@@ -313,17 +313,15 @@ export default function LandlordDashboard() {
         .map((job) => ({ ...job, bidCount: openBidCounts.get(job.id) || 0 }))
         .filter((job) => job.bidCount > 0)
 
-      // Names for the "work complete" banners: one lookup per contractor.
+      // Names for the "work complete" banners — one batched call instead
+      // of one get_user_by_id round trip per contractor.
       const acceptedByJob = new Map<string, string>()
       bids.filter((b) => b.status === 'accepted').forEach((b) => acceptedByJob.set(b.job_id, b.contractor_user_id))
       const contractorIds = Array.from(new Set(pendingReviewList.map((j) => acceptedByJob.get(j.id)).filter(Boolean))) as string[]
-      const nameEntries = await Promise.all(
-        contractorIds.map(async (id) => {
-          const { data } = await supabase.rpc('get_user_by_id', { user_id_input: id }).maybeSingle()
-          return [id, (data as any)?.full_name || 'Contractor'] as const
-        })
-      )
-      const contractorNames = new Map(nameEntries)
+      const { data: contractorRows } = contractorIds.length
+        ? await supabase.rpc('get_users_by_ids', { user_ids_input: contractorIds })
+        : { data: [] as any[] }
+      const contractorNames = new Map((contractorRows || []).map((r: any) => [r.id as string, (r.full_name as string) || 'Contractor']))
       const enrichedReviewJobs = pendingReviewList.map((job) => ({
         ...job,
         contractorName: contractorNames.get(acceptedByJob.get(job.id) || '') || 'Contractor',

@@ -38,10 +38,12 @@ export default function RentRollPage() {
   const [loading, setLoading] = useState(true)
   const [rows, setRows] = useState<Row[]>([])
   const [search, setSearch] = useState('')
+  const [namesUnavailable, setNamesUnavailable] = useState(false)
 
   useEffect(() => {
     const init = async () => {
       setLoading(true)
+      setNamesUnavailable(false)
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
         router.replace('/login')
@@ -78,29 +80,47 @@ export default function RentRollPage() {
           .select('id, unit_id, rent_amount, rent_due_day, renter_user_id')
           .in('unit_id', unitIds)
           .eq('ended', false)
+          .order('created_at', { ascending: false })
           .range(from, to)
       )
-      const tenancyByUnit = new Map(tenancies.map((tn) => [tn.unit_id, tn]))
+      // Ordered newest-first above so that if a unit ever somehow ends up
+      // with more than one non-ended tenancy (no DB constraint prevents
+      // it), keeping only the first occurrence per unit deterministically
+      // picks the most recent one — same guard the per-unit rent page
+      // already uses, rather than whatever order Postgres happens to
+      // return duplicates in.
+      const tenancyByUnit = new Map<string, typeof tenancies[number]>()
+      for (const tn of tenancies) {
+        if (!tenancyByUnit.has(tn.unit_id)) tenancyByUnit.set(tn.unit_id, tn)
+      }
       const tenancyIds = tenancies.map((tn) => tn.id)
 
+      // Neither depends on the other's result (both only need tenancyIds/
+      // renterIds, already known at this point) — run them together
+      // instead of one extra avoidable round trip in sequence.
       const renterIds = Array.from(new Set(tenancies.map((tn) => tn.renter_user_id).filter(Boolean)))
-      const { data: renters } = renterIds.length
-        ? await supabase.rpc('get_users_by_ids', { user_ids_input: renterIds })
-        : { data: [] as any[] }
-      const renterById = new Map<string, string | null>((renters || []).map((r: any) => [r.id as string, r.full_name as string | null]))
-
       const thisMonth = currentMonthKey()
-      const payments = tenancyIds.length
-        ? await fetchAllPagesOrEmpty<{ tenancy_id: string; month: string; expected_amount: number; actual_amount: number; stripe_status: string | null }>((from, to) =>
-            supabase
-              .from('rent_payments')
-              .select('tenancy_id, month, expected_amount, actual_amount, stripe_status')
-              .in('tenancy_id', tenancyIds)
-              .gte('month', `${thisMonth}-01`)
-              .lte('month', `${thisMonth}-28`)
-              .range(from, to)
-          )
-        : []
+      const [{ data: renters, error: rentersError }, payments] = await Promise.all([
+        renterIds.length
+          ? supabase.rpc('get_users_by_ids', { user_ids_input: renterIds })
+          : Promise.resolve({ data: [] as any[], error: null }),
+        tenancyIds.length
+          ? fetchAllPagesOrEmpty<{ tenancy_id: string; month: string; expected_amount: number; actual_amount: number; stripe_status: string | null }>((from, to) =>
+              supabase
+                .from('rent_payments')
+                .select('tenancy_id, month, expected_amount, actual_amount, stripe_status')
+                .in('tenancy_id', tenancyIds)
+                .gte('month', `${thisMonth}-01`)
+                .lte('month', `${thisMonth}-28`)
+                .range(from, to)
+            )
+          : Promise.resolve([]),
+      ])
+      if (rentersError) {
+        console.error('rent roll: could not load tenant names', rentersError)
+        setNamesUnavailable(true)
+      }
+      const renterById = new Map<string, string | null>((renters || []).map((r: any) => [r.id as string, r.full_name as string | null]))
       const paymentByTenancy = new Map(payments.map((p) => [p.tenancy_id, p]))
 
       const today = new Date()
@@ -199,6 +219,12 @@ export default function RentRollPage() {
           <h1 className="text-2xl font-bold text-white">{t('rentRollHeading', lang)}</h1>
           <p className="text-white/50 text-sm mt-1">{t('rentRollSubtitle', lang)}</p>
         </div>
+
+        {namesUnavailable && (
+          <div className="bg-yellow-500/8 border border-yellow-500/25 rounded-xl px-4 py-3 text-yellow-400 text-sm mb-6">
+            {t('tenantNamesUnavailable', lang)}
+          </div>
+        )}
 
         <input
           type="text"

@@ -76,9 +76,13 @@ function LandlordJobsList() {
     // that scaled with total job history (every page visit, every
     // approve/decline refetch), not with anything bounded.
     const reporterIds = Array.from(new Set(jobsList.map((j: any) => j.reported_by).filter(Boolean)))
-    const { data: reporters } = reporterIds.length
+    const { data: reporters, error: reportersError } = reporterIds.length
       ? await supabase.rpc('get_users_by_ids', { user_ids_input: reporterIds })
-      : { data: [] as any[] }
+      : { data: [] as any[], error: null }
+    // Degrades to the existing "Unknown" fallback below either way, but
+    // a real RPC failure (vs. just no reporters) shouldn't vanish
+    // silently — worth knowing about if names stop showing up.
+    if (reportersError) console.error('landlord jobs: could not load reporter names', reportersError)
     const reporterById = new Map((reporters || []).map((r: any) => [r.id, r]))
     const enriched = jobsList.map((job) => ({ ...job, reporter: reporterById.get(job.reported_by) || null }))
 
