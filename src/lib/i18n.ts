@@ -207,6 +207,8 @@ const STRINGS = {
   phone: { en: 'Phone', es: 'Teléfono' },
   language: { en: 'Language / Idioma', es: 'Idioma / Language' },
   languageHelp: { en: "Changes take effect after you save.", es: "Los cambios se aplican después de guardar." },
+  languageUpdatedToast: { en: 'Language updated — reloading…', es: 'Idioma actualizado — recargando…' },
+  profileUpdatedToast: { en: 'Profile updated', es: 'Perfil actualizado' },
   saveChanges: { en: 'Save changes', es: 'Guardar cambios' },
   saving: { en: 'Saving...', es: 'Guardando...' },
   changePassword: { en: 'Change password', es: 'Cambiar contraseña' },

@@ -133,7 +133,7 @@ export default function AdminHealthPage() {
                   {data.frozenPayoutAccounts.map((a) => (
                     <div key={a.id} className="flex items-center justify-between text-sm">
                       <span className="text-white/80">{a.name} · {a.email}</span>
-                      <span className="text-yellow-400 text-xs">until {new Date(a.frozenUntil).toLocaleString()}</span>
+                      <span className="text-yellow-400 text-xs" suppressHydrationWarning>until {new Date(a.frozenUntil).toLocaleString()}</span>
                     </div>
                   ))}
                 </div>

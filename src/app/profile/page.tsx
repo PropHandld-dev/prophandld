@@ -37,6 +37,8 @@ export default function ProfilePage() {
     confirm_password: '',
   })
   const [showPasswordToast, setShowPasswordToast] = useState(false)
+  const [initialLanguage, setInitialLanguage] = useState<'en' | 'es'>('en')
+  const [showLanguageToast, setShowLanguageToast] = useState(false)
   const [smsOptIn, setSmsOptIn] = useState(false)
   const [smsSaving, setSmsSaving] = useState(false)
   const [emailNotifEnabled, setEmailNotifEnabled] = useState(true)
@@ -60,12 +62,14 @@ export default function ProfilePage() {
         return
       }
       setRole(user.user_metadata?.role || '')
+      const loadedLanguage = user.user_metadata?.preferred_language === 'es' ? 'es' : 'en'
       setForm({
         full_name: user.user_metadata?.full_name || '',
         email: user.email || '',
         phone: user.user_metadata?.phone || '',
-        preferred_language: user.user_metadata?.preferred_language || 'en',
+        preferred_language: loadedLanguage,
       })
+      setInitialLanguage(loadedLanguage)
 
       const { data: userRow } = await supabase
         .from('users')
@@ -237,8 +241,21 @@ export default function ProfilePage() {
       }
     }
 
-    setSuccess('Profile updated successfully.')
     setSaving(false)
+
+    // The rest of the app (nav, tab bar, every other already-mounted page)
+    // reads the saved language once on its own mount via useLanguage() —
+    // it has no way to hear about this change live. A toast alone would
+    // claim success while the UI silently stayed in the old language, so
+    // this reloads once the user's actually seen the confirmation,
+    // guaranteeing what the toast says is immediately true everywhere.
+    if (form.preferred_language !== initialLanguage) {
+      setShowLanguageToast(true)
+      setTimeout(() => window.location.reload(), 1400)
+      return
+    }
+
+    setSuccess(t('profileUpdatedToast', lang))
   }
 
   const handleChangePassword = async (e: React.FormEvent) => {
@@ -665,6 +682,13 @@ export default function ProfilePage() {
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-[#0F2138] border border-[#12A5A9]/30 rounded-xl px-5 py-3 shadow-lg flex items-center gap-2 z-50 motion-safe:animate-[floatUp_0.25s_ease-out]">
           <span className="text-[#12A5A9]">✓</span>
           <span className="text-white text-sm font-medium">{t('passwordUpdatedToast', lang)}</span>
+        </div>
+      )}
+
+      {showLanguageToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-[#0F2138] border border-[#12A5A9]/30 rounded-xl px-5 py-3 shadow-lg flex items-center gap-2 z-50 motion-safe:animate-[floatUp_0.25s_ease-out]">
+          <span className="text-[#12A5A9]">✓</span>
+          <span className="text-white text-sm font-medium">{t('languageUpdatedToast', form.preferred_language as 'en' | 'es')}</span>
         </div>
       )}
     </div>

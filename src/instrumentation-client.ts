@@ -18,6 +18,14 @@ Sentry.init({
   // Enable sending user PII (Personally Identifiable Information)
   // https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/options/#sendDefaultPii
   sendDefaultPii: true,
+
+  // The browser's View Transitions API (which React's <ViewTransition> in
+  // layout.tsx uses for page navigations) is spec-required to abort an
+  // in-flight transition the instant the tab/document becomes hidden —
+  // switching tabs or backgrounding mid-navigation, nothing to do with our
+  // code. It was showing up here as a real-looking error every time that
+  // race happened, with no app bug behind it and nothing actionable to fix.
+  ignoreErrors: ['Transition was aborted because of invalid state'],
 });
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
