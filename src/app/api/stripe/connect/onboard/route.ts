@@ -26,7 +26,7 @@ export async function POST() {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
 
-  const role = user.app_metadata?.role
+  const role = user.user_metadata?.role
   if (role !== 'landlord' && role !== 'contractor') {
     return NextResponse.json({ error: 'Only landlords and contractors can set up payouts' }, { status: 403 })
   }

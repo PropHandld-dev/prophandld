@@ -66,7 +66,7 @@ export async function notifyMatchingContractors(admin: any, jobId: string, exclu
   const roleChecks = await Promise.all(
     candidates.map(({ c }: any) => admin.auth.admin.getUserById(c.id).catch(() => null))
   )
-  const matches = candidates.filter((_: any, i: number) => roleChecks[i]?.data?.user?.app_metadata?.role === 'contractor')
+  const matches = candidates.filter((_: any, i: number) => roleChecks[i]?.data?.user?.user_metadata?.role === 'contractor')
 
   const info: NotifyJobInfo = {
     jobId: job.id,

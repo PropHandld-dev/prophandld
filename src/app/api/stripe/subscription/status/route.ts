@@ -12,7 +12,7 @@ export async function GET() {
   if (!user) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
-  if (user.app_metadata?.role !== 'landlord') {
+  if (user.user_metadata?.role !== 'landlord') {
     return NextResponse.json({ error: 'Only landlords have a platform subscription' }, { status: 403 })
   }
 
