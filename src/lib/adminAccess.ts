@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 // Every admin-facing notification (dispute raised, credential to review,
 // auto-approval digest, support question) used to go to one hardcoded
@@ -27,6 +28,22 @@ export async function getAdminEmails(): Promise<string[]> {
 export async function isAdminUserId(userId: string): Promise<boolean> {
   const { data } = await getSupabaseAdmin().from('admin_users').select('user_id').eq('user_id', userId).maybeSingle()
   return !!data
+}
+
+// isAdminUserId alone was the full gate on every /api/admin/* route — but
+// AdminLayout and /admin/login only ever enforce the MFA (aal2) challenge
+// in the browser, on top of that same check. A route that re-implements
+// only the admin_users half silently accepts a plain password session
+// (aal1) with no MFA cleared at all, reachable by calling the API directly
+// and skipping the UI entirely — a leaked password alone would be enough.
+// Every /api/admin/* route should gate on this instead of isAdminUserId
+// directly. Takes the route's own already-created authClient so this
+// doesn't instantiate a second one.
+export async function requireAdminAal2(authClient: SupabaseClient, userId: string): Promise<boolean> {
+  const isAdmin = await isAdminUserId(userId)
+  if (!isAdmin) return false
+  const { data: aal } = await authClient.auth.mfa.getAuthenticatorAssuranceLevel()
+  return aal?.currentLevel === 'aal2'
 }
 
 // Batched version for call sites checking several people at once (e.g.

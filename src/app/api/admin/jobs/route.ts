@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
-import { isAdminUserId } from '@/lib/adminAccess'
+import { requireAdminAal2 } from '@/lib/adminAccess'
 import { requirementById } from '@/lib/credentialRequirements'
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -22,7 +22,7 @@ type Flag = { key: string; label: string; severity: 'red' | 'yellow' | 'info' }
 export async function GET() {
   const authClient = await createClient()
   const { data: { user } } = await authClient.auth.getUser()
-  if (!user || !(await isAdminUserId(user.id))) {
+  if (!user || !(await requireAdminAal2(authClient, user.id))) {
     return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
   }
 

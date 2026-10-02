@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
-import { isAdminUserId } from '@/lib/adminAccess'
+import { requireAdminAal2 } from '@/lib/adminAccess'
 import { logAdminAudit } from '@/lib/auditLog'
 import { sendDisputeResolvedEmail } from '@/lib/email'
 import { emailAllowed } from '@/lib/notificationPrefs'
@@ -10,7 +10,7 @@ import { sendPush } from '@/lib/push'
 export async function POST(request: NextRequest) {
   const authClient = await createClient()
   const { data: { user } } = await authClient.auth.getUser()
-  if (!user || !(await isAdminUserId(user.id))) {
+  if (!user || !(await requireAdminAal2(authClient, user.id))) {
     return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
   }
 
