@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cronAuthorized } from '@/lib/cronAuth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { graduatedMonthlyAmount } from '@/lib/pricingTiers'
+import { fetchAllPages } from '@/lib/pagedQuery'
 
 export const maxDuration = 60
 
@@ -40,9 +41,16 @@ export async function GET(request: NextRequest) {
     if (role === 'landlord' || role === 'renter' || role === 'contractor') counts[role as 'landlord' | 'renter' | 'contractor']++
   }
 
-  const { data: subs, error: subsError } = await admin
-    .from('landlord_subscriptions')
-    .select('tier, unit_count, status')
+  // One row per landlord ever — won't truncate until landlord count
+  // crosses 1000, but the same unbounded-select bug this project built
+  // fetchAllPages specifically to stop, so it gets the same treatment
+  // rather than being a second copy that quietly forgets it. Kept as the
+  // throwing variant (not fetchAllPagesOrEmpty) since a load failure here
+  // must still skip recording a snapshot, not silently store a wrong,
+  // all-zero one for today.
+  const { data: subs, error: subsError } = await fetchAllPages<any>((from, to) =>
+    admin.from('landlord_subscriptions').select('tier, unit_count, status').range(from, to)
+  )
 
   if (subsError) {
     console.error('cron/metrics-snapshot: error loading subscriptions', subsError)

@@ -43,8 +43,24 @@ export async function POST(request: NextRequest) {
         // payout_frozen_until check in both create-payment-intent routes.
         const previousAttributes = (event.data as { previous_attributes?: Record<string, unknown> }).previous_attributes || {}
         const bankDetailsChanged = 'external_accounts' in previousAttributes
-        const updates: Record<string, unknown> = { stripe_connect_status: status }
+        // Unlike every other branch here, this one had no retry guard at
+        // all — a redelivered account.updated event (normal, expected
+        // Stripe behavior) would re-extend the freeze window and re-send
+        // the "your payout details changed" alert a second time for the
+        // same real change. Reading whether the account was already
+        // frozen before this update is what distinguishes a genuinely new
+        // bank-detail change from a retry of one already in effect.
+        let alreadyFrozen = false
         if (bankDetailsChanged) {
+          const { data: existing } = await supabaseAdmin
+            .from('users')
+            .select('payout_frozen_until')
+            .eq('stripe_connect_account_id', account.id)
+            .maybeSingle()
+          alreadyFrozen = !!existing?.payout_frozen_until && new Date(existing.payout_frozen_until) > new Date()
+        }
+        const updates: Record<string, unknown> = { stripe_connect_status: status }
+        if (bankDetailsChanged && !alreadyFrozen) {
           updates.payout_frozen_until = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString()
         }
         const { data: updatedUser, error } = await supabaseAdmin
@@ -54,7 +70,7 @@ export async function POST(request: NextRequest) {
           .select('email, full_name, preferred_language')
           .maybeSingle()
         if (error) console.error('stripe webhook: account.updated update failed', error)
-        if (bankDetailsChanged && updatedUser?.email) {
+        if (bankDetailsChanged && !alreadyFrozen && updatedUser?.email) {
           sendPayoutDetailsChangedEmail({
             to: updatedUser.email,
             name: updatedUser.full_name || 'there',

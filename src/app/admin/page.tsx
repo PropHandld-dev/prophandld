@@ -7,6 +7,7 @@ import { ScrollReveal } from '@/components/ScrollReveal'
 import { MonthlyBarChart, type MonthPoint } from '@/components/admin/MonthlyBarChart'
 import { StackedMonthlyBarChart, type StackedSeries, type StackedMonthPoint } from '@/components/admin/StackedMonthlyBarChart'
 import { graduatedMonthlyAmount, TIER_RANGE_LABELS, type LandlordTier } from '@/lib/pricingTiers'
+import { fetchAllPagesOrEmpty } from '@/lib/pagedQuery'
 
 const ROLE_COLORS: Record<'landlord' | 'renter' | 'contractor', string> = {
   landlord: '#12A5A9',
@@ -112,30 +113,46 @@ export default function AdminOverviewPage() {
       const accessCheck = await fetch('/api/admin/check-access').then((r) => r.json()).catch(() => ({ authorized: false }))
       if (!accessCheck.authorized) return
 
+      // rent_payments feeds only "this month" and a MONTHS_SHOWN-month
+      // chart below, never an all-time total, so unlike subs/paidBids it's
+      // safe (and correct — matches the same window landlord/page.tsx
+      // already uses for the identical reason) to bound by date instead of
+      // just paginating through years of rows no chart here ever reads.
+      const thisMonthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+      const rentWindowStart = new Date(thisMonthStart.getFullYear(), thisMonthStart.getMonth() - 12, 1)
+      const rentWindowKey = `${rentWindowStart.getFullYear()}-${String(rentWindowStart.getMonth() + 1).padStart(2, '0')}-01`
+
       const [
         usersRes,
-        { data: subs, error: subsError },
-        { data: rentPayments, error: rentError },
-        { data: paidBids, error: bidsError },
+        subs,
+        rentPayments,
+        paidBids,
         { data: disputes, error: disputesError },
         metricsTrendRes,
       ] = await Promise.all([
         fetch('/api/admin/users').then((r) => r.json()).catch(() => ({ users: [] })),
-        supabase.from('landlord_subscriptions').select('tier, unit_count, status'),
-        supabase.from('rent_payments').select('actual_amount, month, card_surcharge_amount'),
-        supabase.from('bids').select('amount, proposed_amount, paid_at, card_surcharge_amount').eq('payment_status', 'paid'),
+        // subs is one row per landlord ever and feeds current tier counts/
+        // MRR (not a time-series), paidBids feeds a genuine all-time total
+        // (jobPaymentsAllTime below) — neither can be date-windowed the
+        // way rent_payments can, so both just need truncation-proofing.
+        fetchAllPagesOrEmpty<any>((from, to) =>
+          supabase.from('landlord_subscriptions').select('tier, unit_count, status').range(from, to)
+        ),
+        fetchAllPagesOrEmpty<any>((from, to) =>
+          supabase.from('rent_payments').select('actual_amount, month, card_surcharge_amount').gte('month', rentWindowKey).range(from, to)
+        ),
+        fetchAllPagesOrEmpty<any>((from, to) =>
+          supabase.from('bids').select('amount, proposed_amount, paid_at, card_surcharge_amount').eq('payment_status', 'paid').range(from, to)
+        ),
         supabase.from('disputes').select('id').eq('status', 'open'),
         fetch('/api/admin/metrics-trend').then((r) => r.json()).catch(() => ({ snapshots: [] })),
       ])
       await loadCostSettings()
 
-      // These queries failing shouldn't crash the page, but they also
-      // shouldn't silently render as "0 of everything" with no clue why —
-      // log each one so a real permissions/grant issue is diagnosable
-      // instead of just looking like an empty platform.
-      if (subsError) console.error('Admin overview: could not load landlord_subscriptions', subsError)
-      if (rentError) console.error('Admin overview: could not load rent_payments', rentError)
-      if (bidsError) console.error('Admin overview: could not load bids', bidsError)
+      // fetchAllPagesOrEmpty already logs its own query failures — only
+      // the one query left as a direct call here (disputes) needs its own
+      // check so a real permissions/grant issue doesn't just silently
+      // render as "0 of everything" with no clue why.
       if (disputesError) console.error('Admin overview: could not load disputes', disputesError)
 
       const userCounts: Record<string, number> = {}

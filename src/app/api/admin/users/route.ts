@@ -3,6 +3,7 @@ import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireAdminAal2 } from '@/lib/adminAccess'
 import { graduatedMonthlyAmount } from '@/lib/pricingTiers'
+import { fetchAllPagesOrEmpty } from '@/lib/pagedQuery'
 
 // public.users has no `role` column — role only ever lived in Supabase
 // Auth's user_metadata (set at signup, read everywhere else in the app
@@ -45,14 +46,21 @@ export async function GET() {
     // grows, not just work fine in testing with a handful of rows.
     const [
       { data: profileRows },
-      { data: subs },
-      { data: properties },
+      subs,
+      properties,
       { data: tenancies },
       { data: verifications },
     ] = await Promise.all([
       supabaseAdmin.from('users').select('id, service_categories, service_zip, licensed').in('id', ids),
-      supabaseAdmin.from('landlord_subscriptions').select('landlord_user_id, tier, unit_count, status'),
-      supabaseAdmin.from('properties').select('owner_user_id'),
+      // One row per landlord/property ever — won't truncate until either
+      // count crosses 1000, but the same unbounded-select bug this
+      // project built fetchAllPages specifically to stop.
+      fetchAllPagesOrEmpty<any>((from, to) =>
+        supabaseAdmin.from('landlord_subscriptions').select('landlord_user_id, tier, unit_count, status').range(from, to)
+      ),
+      fetchAllPagesOrEmpty<any>((from, to) =>
+        supabaseAdmin.from('properties').select('owner_user_id').range(from, to)
+      ),
       supabaseAdmin
         .from('tenancies')
         .select('renter_user_id, rent_amount, units(unit_number, properties(address, city, state, owner_user_id))')

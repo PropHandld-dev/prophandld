@@ -89,8 +89,15 @@ export async function syncRentPayment(
     : 0
 
   // The status guard makes concurrent callers (webhook and confirm) safe:
-  // only the first one to commit changes the row.
-  await admin
+  // only the first one to commit changes the row. But the guard alone only
+  // protects the DB write — without checking whether this call actually
+  // won that race, every caller still reported 'paid' regardless, so a
+  // webhook retry landing at the same moment as the renter's own
+  // /confirm call (or a redelivered webhook) could send the landlord's
+  // "rent paid" email/push/chat message twice for one real payment. The
+  // job-payment branch of the webhook handler already guards this
+  // correctly (.select() + a row-count check) — same fix here.
+  const { data: updated } = await admin
     .from('rent_payments')
     .update({
       actual_amount: Number(rent.actual_amount || 0) + baseAmount,
@@ -101,6 +108,9 @@ export async function syncRentPayment(
     })
     .eq('id', rent.id)
     .neq('stripe_status', 'succeeded')
+    .select('id')
+
+  if (!updated || updated.length === 0) return 'already_paid'
 
   return 'paid'
 }
