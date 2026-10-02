@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { loadGoogleMapsScript, DARK_MAP_STYLE } from '@/lib/googleMaps'
 import { BuildingIcon } from '@/components/icons'
+import { useLanguage, t } from '@/lib/i18n'
 
 type MapProperty = {
   id: string
@@ -26,6 +27,7 @@ const PIN_SVG = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
 </svg>`)}`
 
 export function PropertiesMap({ properties }: { properties: MapProperty[] }) {
+  const lang = useLanguage()
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstance = useRef<any>(null)
   const [ready, setReady] = useState(false)
@@ -90,7 +92,7 @@ export function PropertiesMap({ properties }: { properties: MapProperty[] }) {
       <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
         <BuildingIcon className="w-8 h-8 text-white/40 mx-auto mb-3" />
         <p className="text-white/60 text-sm">
-          None of your properties have a saved location yet. Open one and re-save its address to add it to the map.
+          {t('noPropertiesOnMapYet', lang)}
         </p>
       </div>
     )
@@ -102,7 +104,7 @@ export function PropertiesMap({ properties }: { properties: MapProperty[] }) {
         <div ref={mapRef} className="absolute inset-0" />
         {!ready && (
           <div className="absolute inset-0 bg-white/3 animate-pulse flex items-center justify-center">
-            <span className="text-white/40 text-sm">Loading map…</span>
+            <span className="text-white/40 text-sm">{t('loadingMapEllipsis', lang)}</span>
           </div>
         )}
 
@@ -123,14 +125,14 @@ export function PropertiesMap({ properties }: { properties: MapProperty[] }) {
               href={`/landlord/properties/${selected.id}`}
               className="inline-block mt-3 text-[#12A5A9] text-sm font-semibold hover:underline"
             >
-              View property →
+              {t('viewPropertyArrow', lang)}
             </Link>
           </div>
         )}
       </div>
       {missing > 0 && (
         <p className="text-white/40 text-xs mt-3">
-          {missing} propert{missing === 1 ? 'y isn’t' : 'ies aren’t'} shown, {missing === 1 ? 'it has' : 'they have'} no saved location yet. Open{missing === 1 ? ' it' : ' one'} and re-save its address to add {missing === 1 ? 'it' : 'them'}.
+          {missing} {t(missing === 1 ? 'propertiesNotShownSingular' : 'propertiesNotShownPlural', lang)}
         </p>
       )}
     </div>

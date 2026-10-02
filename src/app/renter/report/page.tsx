@@ -19,14 +19,14 @@ import { useLanguage, t } from '@/lib/i18n'
 
 const MAX_AVAILABILITY_SLOTS = 3
 
-const EMERGENCY_EXAMPLES = [
-  'Active water leak or flooding',
-  'No heat in freezing weather',
-  'Gas smell',
-  'No working locks / broken entry door',
-  'Sewage backup',
-  'Exposed or sparking electrical wiring',
-]
+const EMERGENCY_EXAMPLE_KEYS = [
+  'emergencyExampleLeak',
+  'emergencyExampleNoHeat',
+  'emergencyExampleGas',
+  'emergencyExampleLocks',
+  'emergencyExampleSewage',
+  'emergencyExampleElectrical',
+] as const
 
 export default function ReportIssuePage() {
   const router = useRouter()
@@ -72,7 +72,7 @@ export default function ReportIssuePage() {
         : { data: null, error: null }
 
       if (tenancyError || !tenancyData) {
-        setError('No active unit found on your account. Contact your landlord if this seems wrong.')
+        setError(t('noActiveUnitError', lang))
         setLoading(false)
         return
       }
@@ -144,19 +144,19 @@ export default function ReportIssuePage() {
     e.preventDefault()
 
     if (!form.category) {
-      setError('Please select a category.')
+      setError(t('pleaseSelectACategory', lang))
       return
     }
     if (form.category === 'Other' && !form.categoryOther.trim()) {
-      setError('Please tell us what kind of issue this is.')
+      setError(t('pleaseTellUsIssueKind', lang))
       return
     }
     if (!form.description.trim()) {
-      setError('Please describe the issue.')
+      setError(t('pleaseDescribeTheIssue', lang))
       return
     }
     if (!unitId || !userId) {
-      setError('Could not identify your unit. Please try again.')
+      setError(t('couldNotIdentifyUnit', lang))
       return
     }
 
@@ -186,7 +186,7 @@ export default function ReportIssuePage() {
 
     if (insertError || !jobData) {
       console.error('Error creating job:', insertError)
-      setError('Could not submit report. Please try again.')
+      setError(t('couldNotSubmitReport', lang))
       setSubmitting(false)
       return
     }
@@ -232,7 +232,7 @@ export default function ReportIssuePage() {
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
         <Link href="/renter" className="text-white/50 hover:text-white text-sm transition">
-          ← Dashboard
+          {t('dashboard', lang)}
         </Link>
         <Link href="/renter" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
         <div className="w-20" />
@@ -255,7 +255,7 @@ export default function ReportIssuePage() {
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
         <Link href="/renter" className="text-white/50 hover:text-white text-sm transition">
-          ← Dashboard
+          {t('dashboard', lang)}
         </Link>
         <Link href="/renter" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
         <div className="w-20" />
@@ -278,23 +278,23 @@ export default function ReportIssuePage() {
                 required
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
               >
-                <option value="" className="bg-[#0C1A2E]">Select a category</option>
+                <option value="" className="bg-[#0C1A2E]">{t('selectACategory', lang)}</option>
                 {categoryOptions.map((cat) => (
                   <option key={cat} value={cat} className="bg-[#0C1A2E]">{cat}</option>
                 ))}
-                <option value="Other" className="bg-[#0C1A2E]">Other</option>
+                <option value="Other" className="bg-[#0C1A2E]">{t('otherCategoryOption', lang)}</option>
               </select>
             </div>
 
             {form.category === 'Other' && (
               <div>
-                <label className="text-white/70 text-sm block mb-1">What kind of issue is it?</label>
+                <label className="text-white/70 text-sm block mb-1">{t('whatKindOfIssueIsIt', lang)}</label>
                 <input
                   type="text"
                   name="categoryOther"
                   value={form.categoryOther}
                   onChange={handleChange}
-                  placeholder="e.g. Landscaping, Mold, Locksmith"
+                  placeholder={t('reportCategoryOtherPlaceholder', lang)}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
                 />
               </div>
@@ -302,14 +302,14 @@ export default function ReportIssuePage() {
 
             {form.category && systems.filter((s) => s.item_type?.toLowerCase() === form.category.toLowerCase()).length > 0 && (
               <div>
-                <label className="text-white/70 text-sm block mb-1">Related system (optional)</label>
+                <label className="text-white/70 text-sm block mb-1">{t('relatedSystemOptionalLabel', lang)}</label>
                 <select
                   name="maintenance_item_id"
                   value={form.maintenance_item_id}
                   onChange={handleChange}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
                 >
-                  <option value="" className="bg-[#0C1A2E]">Not sure / none</option>
+                  <option value="" className="bg-[#0C1A2E]">{t('notSureNoneOption', lang)}</option>
                   {systems
                     .filter((s) => s.item_type?.toLowerCase() === form.category.toLowerCase())
                     .map((s) => (
@@ -334,23 +334,23 @@ export default function ReportIssuePage() {
 
             {!form.is_emergency && (
               <div>
-                <label className="text-white/70 text-sm block mb-1">Urgency</label>
+                <label className="text-white/70 text-sm block mb-1">{t('urgencyLabel', lang)}</label>
                 <select
                   name="urgency"
                   value={form.urgency}
                   onChange={handleChange}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
                 >
-                  <option value="low" className="bg-[#0C1A2E]">Low</option>
-                  <option value="normal" className="bg-[#0C1A2E]">Normal</option>
-                  <option value="high" className="bg-[#0C1A2E]">High</option>
+                  <option value="low" className="bg-[#0C1A2E]">{t('lowOption', lang)}</option>
+                  <option value="normal" className="bg-[#0C1A2E]">{t('normalOption', lang)}</option>
+                  <option value="high" className="bg-[#0C1A2E]">{t('highOption', lang)}</option>
                 </select>
               </div>
             )}
 
             <div>
-              <label className="text-white/70 text-sm block mb-1">Photos or videos (optional)</label>
-              <p className="text-white/40 text-xs mb-2">A short video helps a lot for things a photo can't show: a strange sound, a slow drip, a flickering light.</p>
+              <label className="text-white/70 text-sm block mb-1">{t('photosOrVideosOptionalLabel', lang)}</label>
+              <p className="text-white/40 text-xs mb-2">{t('videoHelpsHint', lang)}</p>
               <p className="text-white/40 text-xs mb-2">{t('videoLengthHint', lang)}</p>
               <label className="block mb-3">
                 <input
@@ -361,7 +361,7 @@ export default function ReportIssuePage() {
                   className="hidden"
                 />
                 <span className="inline-block bg-white/8 text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-white/12 transition cursor-pointer">
-                  {files.length > 0 ? `+ Add more` : '+ Add photos or videos'}
+                  {files.length > 0 ? t('addMoreBtn', lang) : t('addPhotosOrVideosPlain', lang)}
                 </span>
               </label>
               {files.length > 0 && (
@@ -391,8 +391,8 @@ export default function ReportIssuePage() {
             </div>
 
             <div>
-              <label className="text-white/70 text-sm block mb-1">When are you around? (optional)</label>
-              <p className="text-white/40 text-xs mb-2">Give a few windows that work, and the contractor can pick one directly instead of going back and forth with you.</p>
+              <label className="text-white/70 text-sm block mb-1">{t('whenAreYouAroundLabel', lang)}</label>
+              <p className="text-white/40 text-xs mb-2">{t('availabilityHint', lang)}</p>
               {availabilitySlots.map((slot, i) => (
                 <div key={i} className="flex gap-2 mb-2">
                   <input
@@ -426,7 +426,7 @@ export default function ReportIssuePage() {
                   onClick={addAvailabilitySlot}
                   className="text-[#12A5A9] text-xs font-semibold hover:underline"
                 >
-                  + Add a time you're free
+                  {t('addTimeFreeBtn', lang)}
                 </button>
               )}
             </div>
@@ -497,30 +497,30 @@ export default function ReportIssuePage() {
       {showEmergencyInfo && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
           <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
-            <h3 className="text-white font-semibold mb-3">Is this really an emergency?</h3>
-            <p className="text-white/50 text-sm mb-3">Emergencies are for things like:</p>
+            <h3 className="text-white font-semibold mb-3">{t('emergencyModalTitle', lang)}</h3>
+            <p className="text-white/50 text-sm mb-3">{t('emergencyModalSubtitle', lang)}</p>
             <ul className="space-y-1.5 mb-5">
-              {EMERGENCY_EXAMPLES.map((ex) => (
-                <li key={ex} className="text-white/70 text-sm flex items-start gap-2">
-                  <span className="text-red-400">•</span> {ex}
+              {EMERGENCY_EXAMPLE_KEYS.map((key) => (
+                <li key={key} className="text-white/70 text-sm flex items-start gap-2">
+                  <span className="text-red-400">•</span> {t(key, lang)}
                 </li>
               ))}
             </ul>
             <p className="text-white/50 text-xs mb-5">
-              Marking non-urgent issues as emergencies slows down response times for everyone.
+              {t('emergencyModalWarning', lang)}
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setShowEmergencyInfo(false)}
                 className="flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-white/12 transition"
               >
-                Not an emergency
+                {t('notAnEmergencyBtn', lang)}
               </button>
               <button
                 onClick={confirmEmergency}
                 className="flex-1 bg-red-500/20 text-red-400 text-sm font-semibold py-2.5 rounded-xl hover:bg-red-500/30 transition"
               >
-                Yes, it's urgent
+                {t('yesItsUrgentBtn', lang)}
               </button>
             </div>
           </div>

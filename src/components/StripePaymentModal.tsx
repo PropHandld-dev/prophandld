@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js'
 import { getStripeClient } from '@/lib/stripeClient'
 import { RippleButton } from '@/components/RippleButton'
+import { useLanguage, t } from '@/lib/i18n'
 
 export type PaymentOutcome = 'succeeded' | 'processing'
 // What a `verify` call can come back with: 'ok' means show the normal
@@ -25,6 +26,7 @@ function PaymentForm({
   onConfirmed: (outcome: PaymentOutcome) => void
   onClose: () => void
 }) {
+  const lang = useLanguage()
   const stripe = useStripe()
   const elements = useElements()
   const [submitting, setSubmitting] = useState(false)
@@ -43,7 +45,7 @@ function PaymentForm({
     })
 
     if (confirmError) {
-      setError(confirmError.message || 'Payment failed. Please try again.')
+      setError(confirmError.message || t('paymentFailedTryAgain', lang))
       setSubmitting(false)
       return
     }
@@ -53,7 +55,7 @@ function PaymentForm({
       return
     }
 
-    setError('Payment could not be completed.')
+    setError(t('paymentCouldNotComplete', lang))
     setSubmitting(false)
   }
 
@@ -62,7 +64,7 @@ function PaymentForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="flex items-baseline justify-between">
-        <span className="text-white/50 text-sm">Amount</span>
+        <span className="text-white/50 text-sm">{t('amountLabel', lang)}</span>
         <span className="text-white font-bold text-xl">${amount.toFixed(2)}</span>
       </div>
       {note && <p className="text-white/60 text-xs">{note}</p>}
@@ -83,7 +85,7 @@ function PaymentForm({
           disabled={!stripe || busy}
           className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
         >
-          {verifying ? 'Confirming...' : submitting ? 'Processing...' : `Pay $${amount.toFixed(2)}`}
+          {verifying ? t('confirmingDots', lang) : submitting ? t('processingDots', lang) : `${t('payAmountBtnPrefix', lang)}${amount.toFixed(2)}`}
         </RippleButton>
         <button
           type="button"
@@ -91,7 +93,7 @@ function PaymentForm({
           disabled={busy}
           className="text-white/50 hover:text-white text-sm transition disabled:opacity-50"
         >
-          Cancel
+          {t('cancel', lang)}
         </button>
       </div>
     </form>
@@ -109,6 +111,7 @@ function SuccessView({
   message?: string
   onDone: () => void
 }) {
+  const lang = useLanguage()
   const paid = outcome === 'succeeded'
 
   return (
@@ -144,19 +147,19 @@ function SuccessView({
         </div>
       </div>
 
-      <h3 className="text-white font-bold text-xl">{paid ? 'Payment complete' : 'Payment on its way'}</h3>
+      <h3 className="text-white font-bold text-xl">{paid ? t('paymentCompleteTitle', lang) : t('paymentOnItsWayTitle', lang)}</h3>
       <p className="text-white text-3xl font-bold mt-2 tabular-nums">${amount.toFixed(2)}</p>
       <p className="text-white/60 text-sm mt-3 max-w-xs mx-auto">
         {paid
-          ? (message ?? 'Your payment went through. A receipt is saved in the app.')
-          : 'Your bank payment has started. Bank transfers usually take 1 to 3 business days to clear. We’ll email you when it’s done.'}
+          ? (message ?? t('paymentWentThroughDefault', lang))
+          : t('bankPaymentStartedMessage', lang)}
       </p>
 
       <RippleButton
         onClick={onDone}
         className="w-full mt-6 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90"
       >
-        Done
+        {t('doneBtn', lang)}
       </RippleButton>
     </div>
   )
@@ -168,6 +171,7 @@ function SuccessView({
 // not styled like an error: the payment attempt itself wasn't the visitor's
 // mistake in any way that matters, they just need to try a different method.
 function RejectedView({ message, onDone }: { message: string; onDone: () => void }) {
+  const lang = useLanguage()
   return (
     <div className="text-center py-2" role="status" aria-live="polite">
       <div className="w-20 h-20 mx-auto mb-5 rounded-full bg-gradient-to-br from-yellow-600 to-yellow-400 shadow-[0_10px_40px_-8px_rgba(234,179,8,0.5)] flex items-center justify-center motion-safe:animate-[popIn_0.45s_cubic-bezier(0.34,1.56,0.64,1)_both]">
@@ -177,13 +181,13 @@ function RejectedView({ message, onDone }: { message: string; onDone: () => void
           <circle cx="12" cy="16" r="0.5" fill="white" />
         </svg>
       </div>
-      <h3 className="text-white font-bold text-xl">That didn't go through</h3>
+      <h3 className="text-white font-bold text-xl">{t('thatDidntGoThroughTitle', lang)}</h3>
       <p className="text-white/60 text-sm mt-3 max-w-xs mx-auto">{message}</p>
       <RippleButton
         onClick={onDone}
         className="w-full mt-6 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90"
       >
-        Got it
+        {t('gotItBtn', lang)}
       </RippleButton>
     </div>
   )

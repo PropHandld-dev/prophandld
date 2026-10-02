@@ -151,15 +151,15 @@ export default function PropertyDocumentsPage() {
     e.preventDefault()
 
     if (!form.document_type) {
-      setError('Please select a document type.')
+      setError(t('pleaseSelectDocumentType', lang))
       return
     }
     if (form.document_type === 'Other' && !form.custom_document_type.trim()) {
-      setError('Please enter a document type.')
+      setError(t('pleaseEnterDocumentType', lang))
       return
     }
     if (files.length === 0) {
-      setError('Please choose at least one file.')
+      setError(t('pleaseChooseOneFile', lang))
       return
     }
     for (const file of files) {
@@ -188,7 +188,7 @@ export default function PropertyDocumentsPage() {
 
       if (uploadError) {
         console.error('Error uploading document:', uploadError)
-        setError('One or more files failed to upload.')
+        setError(t('filesFailedToUpload', lang))
         continue
       }
 
@@ -207,7 +207,7 @@ export default function PropertyDocumentsPage() {
 
       if (insertError) {
         console.error('Error saving document record:', insertError)
-        setError('One or more files failed to save.')
+        setError(t('filesFailedToSave', lang))
       }
     }
 
@@ -218,7 +218,7 @@ export default function PropertyDocumentsPage() {
   }
 
   const handleDelete = async (doc: any) => {
-    if (!window.confirm(`Remove "${doc.filename}"?`)) return
+    if (!window.confirm(`${t('removeAttachmentConfirmPrefix', lang)}${doc.filename}${t('removeAttachmentConfirmSuffix', lang)}`)) return
 
     const { error: storageError } = await supabase.storage.from('documents').remove([doc.file_url])
     if (storageError) {
@@ -228,7 +228,7 @@ export default function PropertyDocumentsPage() {
     const { error: deleteError } = await supabase.from('documents').delete().eq('id', doc.id)
     if (deleteError) {
       console.error('Error deleting document record:', deleteError)
-      setError('Could not delete document.')
+      setError(t('couldNotDeleteDocument', lang))
       return
     }
 
@@ -279,7 +279,7 @@ export default function PropertyDocumentsPage() {
       URL.revokeObjectURL(url)
     } catch (err) {
       console.error('Error building document archive:', err)
-      setError('Could not build the download. Try again.')
+      setError(t('couldNotBuildDownload', lang))
     }
     setDownloadingAll(false)
   }

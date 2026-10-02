@@ -50,6 +50,45 @@ const STRINGS = {
   delete: { en: 'Delete', es: 'Eliminar' },
   viewAll: { en: 'View all', es: 'Ver todo' },
   dashboard: { en: '← Dashboard', es: '← Panel principal' },
+  backArrowPlain: { en: '← Back', es: '← Atrás' },
+  showAllPrefix: { en: 'Show all ', es: 'Mostrar todos (' },
+  showAllSuffix: { en: '', es: ')' },
+  closeTourAriaLabel: { en: 'Close tour', es: 'Cerrar recorrido' },
+  neverShowAgain: { en: 'Never show again', es: 'No volver a mostrar' },
+  skipBtn: { en: 'Skip', es: 'Omitir' },
+  letsGoBtn: { en: "Let's go", es: 'Vamos' },
+  nextArrowBtn: { en: 'Next →', es: 'Siguiente →' },
+  removeVideoConfirm: { en: 'Remove this video?', es: '¿Eliminar este video?' },
+  removePhotoConfirm: { en: 'Remove this photo?', es: '¿Eliminar esta foto?' },
+
+  // StripePaymentModal (shared)
+  amountLabel: { en: 'Amount', es: 'Monto' },
+  paymentFailedTryAgain: { en: 'Payment failed. Please try again.', es: 'El pago no se pudo procesar. Inténtalo de nuevo.' },
+  paymentCouldNotComplete: { en: 'Payment could not be completed.', es: 'El pago no se pudo completar.' },
+  confirmingDots: { en: 'Confirming...', es: 'Confirmando...' },
+  processingDots: { en: 'Processing...', es: 'Procesando...' },
+  payAmountBtnPrefix: { en: 'Pay $', es: 'Pagar $' },
+  paymentCompleteTitle: { en: 'Payment complete', es: 'Pago completado' },
+  paymentOnItsWayTitle: { en: 'Payment on its way', es: 'El pago está en camino' },
+  paymentWentThroughDefault: { en: 'Your payment went through. A receipt is saved in the app.', es: 'Tu pago se procesó correctamente. Hay un recibo guardado en la app.' },
+  bankPaymentStartedMessage: {
+    en: "Your bank payment has started. Bank transfers usually take 1 to 3 business days to clear. We'll email you when it's done.",
+    es: 'Tu pago bancario ya se inició. Las transferencias bancarias suelen tardar de 1 a 3 días hábiles en procesarse. Te enviaremos un correo cuando esté listo.',
+  },
+  doneBtn: { en: 'Done', es: 'Listo' },
+  thatDidntGoThroughTitle: { en: "That didn't go through", es: 'Eso no se procesó' },
+  gotItBtn: { en: 'Got it', es: 'Entendido' },
+
+  // RaiseDisputeButton (shared)
+  raiseADisputeBtn: { en: 'Raise a dispute', es: 'Presentar una disputa' },
+  raiseDisputeExplain: {
+    en: "This pauses the job and brings in Prophandld to review. Explain what's wrong.",
+    es: 'Esto pausa el trabajo y hace que Prophandld lo revise. Explica qué está mal.',
+  },
+  whatHappenedPlaceholder: { en: 'What happened?', es: '¿Qué pasó?' },
+  pleaseExplainTheIssue: { en: 'Please explain the issue.', es: 'Por favor explica el problema.' },
+  couldNotRaiseDispute: { en: 'Could not raise a dispute.', es: 'No se pudo presentar la disputa.' },
+  submitDisputeBtn: { en: 'Submit dispute', es: 'Enviar disputa' },
 
   // Report an issue (renter)
   reportTitle: { en: 'Report an issue', es: 'Reportar un problema' },
@@ -69,6 +108,42 @@ const STRINGS = {
   marked: { en: 'Marked ✓', es: 'Marcado ✓' },
   submitReport: { en: 'Submit report', es: 'Enviar reporte' },
   submitting: { en: 'Submitting...', es: 'Enviando...' },
+  noActiveUnitError: {
+    en: 'No active unit found on your account. Contact your landlord if this seems wrong.',
+    es: 'No se encontró una unidad activa en tu cuenta. Contacta a tu propietario si esto no parece correcto.',
+  },
+  pleaseTellUsIssueKind: { en: 'Please tell us what kind of issue this is.', es: 'Por favor dinos qué tipo de problema es.' },
+  couldNotIdentifyUnit: { en: 'Could not identify your unit. Please try again.', es: 'No se pudo identificar tu unidad. Inténtalo de nuevo.' },
+  couldNotSubmitReport: { en: 'Could not submit report. Please try again.', es: 'No se pudo enviar el reporte. Inténtalo de nuevo.' },
+  whatKindOfIssueIsIt: { en: 'What kind of issue is it?', es: '¿Qué tipo de problema es?' },
+  reportCategoryOtherPlaceholder: { en: 'e.g. Landscaping, Mold, Locksmith', es: 'ej. Jardinería, Moho, Cerrajería' },
+  relatedSystemOptionalLabel: { en: 'Related system (optional)', es: 'Sistema relacionado (opcional)' },
+  notSureNoneOption: { en: 'Not sure / none', es: 'No estoy seguro / ninguno' },
+  otherCategoryOption: { en: 'Other', es: 'Otro' },
+  videoHelpsHint: {
+    en: "A short video helps a lot for things a photo can't show: a strange sound, a slow drip, a flickering light.",
+    es: 'Un video corto ayuda mucho con cosas que una foto no puede mostrar: un ruido extraño, una gotera lenta, una luz que parpadea.',
+  },
+  whenAreYouAroundLabel: { en: 'When are you around? (optional)', es: '¿Cuándo estás disponible? (opcional)' },
+  availabilityHint: {
+    en: 'Give a few windows that work, and the contractor can pick one directly instead of going back and forth with you.',
+    es: 'Da algunos horarios que te funcionen, y el contratista podrá elegir uno directamente en vez de ir y venir contigo.',
+  },
+  addTimeFreeBtn: { en: "+ Add a time you're free", es: '+ Agregar un horario en que estés disponible' },
+  emergencyModalTitle: { en: 'Is this really an emergency?', es: '¿Esto realmente es una emergencia?' },
+  emergencyModalSubtitle: { en: 'Emergencies are for things like:', es: 'Las emergencias son para cosas como:' },
+  emergencyModalWarning: {
+    en: 'Marking non-urgent issues as emergencies slows down response times for everyone.',
+    es: 'Marcar problemas no urgentes como emergencias retrasa los tiempos de respuesta para todos.',
+  },
+  notAnEmergencyBtn: { en: 'Not an emergency', es: 'No es una emergencia' },
+  yesItsUrgentBtn: { en: "Yes, it's urgent", es: 'Sí, es urgente' },
+  emergencyExampleLeak: { en: 'Active water leak or flooding', es: 'Fuga de agua activa o inundación' },
+  emergencyExampleNoHeat: { en: 'No heat in freezing weather', es: 'Sin calefacción en clima helado' },
+  emergencyExampleGas: { en: 'Gas smell', es: 'Olor a gas' },
+  emergencyExampleLocks: { en: 'No working locks / broken entry door', es: 'Cerraduras que no funcionan / puerta de entrada rota' },
+  emergencyExampleSewage: { en: 'Sewage backup', es: 'Retroceso de aguas negras' },
+  emergencyExampleElectrical: { en: 'Exposed or sparking electrical wiring', es: 'Cableado eléctrico expuesto o con chispas' },
 
   // Landlord dashboard
   landlordDashboardLabel: { en: 'Landlord Dashboard', es: 'Panel del propietario' },
@@ -103,6 +178,55 @@ const STRINGS = {
   documentsCardDesc: { en: 'Open a property to upload and manage its documents', es: 'Abre una propiedad para subir y administrar sus documentos' },
   complianceCardTitle: { en: 'Compliance tracking', es: 'Seguimiento de cumplimiento' },
   complianceCardDesc: { en: 'Open a property to manage compliance items', es: 'Abre una propiedad para administrar los elementos de cumplimiento' },
+  noPropertiesOnMapYet: {
+    en: 'None of your properties have a saved location yet. Open one and re-save its address to add it to the map.',
+    es: 'Ninguna de tus propiedades tiene una ubicación guardada todavía. Abre una y vuelve a guardar su dirección para agregarla al mapa.',
+  },
+  loadingMapEllipsis: { en: 'Loading map…', es: 'Cargando mapa…' },
+  viewPropertyArrow: { en: 'View property →', es: 'Ver propiedad →' },
+  propertiesNotShownSingular: {
+    en: "property isn’t shown, it has no saved location yet. Open it and re-save its address to add it.",
+    es: 'propiedad no se muestra, aún no tiene una ubicación guardada. Ábrela y vuelve a guardar su dirección para agregarla.',
+  },
+  propertiesNotShownPlural: {
+    en: "properties aren’t shown, they have no saved location yet. Open one and re-save its address to add them.",
+    es: 'propiedades no se muestran, aún no tienen una ubicación guardada. Abre una y vuelve a guardar su dirección para agregarlas.',
+  },
+  tourLandlordWelcomeTitle: { en: 'Welcome to your Landlord Dashboard', es: 'Bienvenido a tu Panel del propietario' },
+  tourLandlordWelcomeBody: {
+    en: "Everything about your properties, tenants, and maintenance lives here. Let's take a quick look around.",
+    es: 'Todo sobre tus propiedades, inquilinos y mantenimiento vive aquí. Vamos a echar un vistazo rápido.',
+  },
+  tourLandlordStatsTitle: { en: 'Your portfolio at a glance', es: 'Tu portafolio de un vistazo' },
+  tourLandlordStatsBody: {
+    en: 'Property count, units, occupancy, and your monthly rent roll, updated live as things change.',
+    es: 'Cantidad de propiedades, unidades, ocupación y tu renta mensual total, actualizado en vivo a medida que cambian las cosas.',
+  },
+  tourLandlordPipelineTitle: { en: 'What needs you', es: 'Lo que necesita tu atención' },
+  tourLandlordPipelineBody: {
+    en: 'Jobs waiting on your approval, currently in progress, and bids ready for you to review: the three things worth checking daily.',
+    es: 'Trabajos esperando tu aprobación, los que están en progreso y las ofertas listas para revisar: las tres cosas que vale la pena revisar a diario.',
+  },
+  tourLandlordPropertiesTitle: { en: 'Your properties', es: 'Tus propiedades' },
+  tourLandlordPropertiesBody: {
+    en: 'Add a property to get started, or open one to manage units and tenants.',
+    es: 'Agrega una propiedad para empezar, o abre una para administrar unidades e inquilinos.',
+  },
+  tourLandlordQuicklinksTitle: { en: 'Rent, documents & compliance', es: 'Renta, documentos y cumplimiento' },
+  tourLandlordQuicklinksBody: {
+    en: 'Rent collection, your document vault (leases, deeds, inspections), and compliance tracking (licenses, certs, detectors) all live inside each property. Open one to get to them.',
+    es: 'El cobro de renta, tu bóveda de documentos (contratos, escrituras, inspecciones) y el seguimiento de cumplimiento (licencias, certificados, detectores) viven dentro de cada propiedad. Abre una para acceder a ellos.',
+  },
+  tourLandlordMessagesTitle: { en: 'Message anyone, anytime', es: 'Envía mensajes a cualquiera, en cualquier momento' },
+  tourLandlordMessagesBody: {
+    en: "Tap here to message an active tenant or a contractor you've worked with before. No open job required.",
+    es: 'Toca aquí para enviar un mensaje a un inquilino activo o a un contratista con quien hayas trabajado antes. No se necesita un trabajo abierto.',
+  },
+  tourLandlordDoneTitle: { en: "You're all set", es: 'Ya estás listo' },
+  tourLandlordDoneBody: {
+    en: 'Home, Properties, Jobs, Calendar, and your Profile are always one tap away down here.',
+    es: 'Inicio, Propiedades, Trabajos, Calendario y tu Perfil siempre están a un toque de distancia aquí abajo.',
+  },
 
   // Alert badges (shared across dashboards)
   badgeNew: { en: 'New', es: 'Nuevo' },
@@ -156,6 +280,33 @@ const STRINGS = {
   newTimeProposedByOther: { en: 'New time proposed by the other side', es: 'Nuevo horario propuesto por la otra parte' },
   pickATimeAlert: { en: 'Your landlord wants you to pick a time', es: 'Tu propietario quiere que elijas un horario' },
   newTimeProposedAlert: { en: 'New time proposed', es: 'Nuevo horario propuesto' },
+  tourRenterWelcomeTitle: { en: 'Welcome to your Renter Dashboard', es: 'Bienvenido a tu Panel del inquilino' },
+  tourRenterWelcomeBody: {
+    en: "This is where you'll report issues, message your landlord, and pay rent. Quick look around?",
+    es: 'Aquí es donde reportarás problemas, le enviarás mensajes a tu propietario y pagarás la renta. ¿Un vistazo rápido?',
+  },
+  tourRenterReportTitle: { en: 'Something broken?', es: '¿Algo dañado?' },
+  tourRenterReportBody: {
+    en: 'A category, a photo, a short description. Your landlord is notified right away.',
+    es: 'Una categoría, una foto, una breve descripción. Tu propietario recibe una notificación de inmediato.',
+  },
+  tourRenterIssuesTitle: { en: 'Your issues', es: 'Tus reportes' },
+  tourRenterIssuesBody: { en: "See the status of everything you've reported, at a glance.", es: 'Ve el estado de todo lo que has reportado, de un vistazo.' },
+  tourRenterDocumentsTitle: { en: 'Your documents', es: 'Tus documentos' },
+  tourRenterDocumentsBody: {
+    en: 'Your lease and any other paperwork your landlord has shared, all in one place.',
+    es: 'Tu contrato de arrendamiento y cualquier otro documento que tu propietario haya compartido, todo en un solo lugar.',
+  },
+  tourRenterMessagesTitle: { en: 'Message your landlord anytime', es: 'Envía mensajes a tu propietario en cualquier momento' },
+  tourRenterMessagesBody: {
+    en: 'No need to wait for an open issue. Reach out directly whenever you need to.',
+    es: 'No necesitas esperar a tener un reporte abierto. Comunícate directamente cuando lo necesites.',
+  },
+  tourRenterDoneTitle: { en: "You're all set", es: 'Ya estás listo' },
+  tourRenterDoneBody: {
+    en: 'Home, Report, Calendar, and your Profile are always one tap away down here.',
+    es: 'Inicio, Reportar, Calendario y tu Perfil siempre están a un toque de distancia aquí abajo.',
+  },
 
   // Contractor dashboard
   contractorDashboardLabel: { en: 'Contractor Dashboard', es: 'Panel del contratista' },
@@ -196,6 +347,36 @@ const STRINGS = {
   filterArchived: { en: 'Archived', es: 'Archivados' },
   noPastJobsView: { en: 'No past jobs in this view.', es: 'No hay trabajos anteriores en esta vista.' },
   viewEarningsLink: { en: 'View earnings, receipts & tax history →', es: 'Ver ganancias, recibos e historial fiscal →' },
+  tourContractorWelcomeTitle: { en: 'Welcome to your Contractor Dashboard', es: 'Bienvenido a tu Panel del contratista' },
+  tourContractorWelcomeBody: {
+    en: "This is where you'll find jobs, track your bids, and manage everything you've worked on. Quick look around?",
+    es: 'Aquí es donde encontrarás trabajos, seguirás tus ofertas y administrarás todo en lo que has trabajado. ¿Un vistazo rápido?',
+  },
+  tourContractorStatsTitle: { en: 'Your work at a glance', es: 'Tu trabajo de un vistazo' },
+  tourContractorStatsBody: {
+    en: "New jobs matching your service area, active jobs you've won, and your total earnings, all live.",
+    es: 'Nuevos trabajos que coinciden con tu área de servicio, trabajos activos que has ganado y tus ganancias totales, todo en vivo.',
+  },
+  tourContractorPastJobsTitle: { en: 'Past jobs', es: 'Trabajos anteriores' },
+  tourContractorPastJobsBody: {
+    en: "Everything you've completed, filterable by status. Your Earnings page has the full breakdown with receipts, by year.",
+    es: 'Todo lo que has completado, filtrable por estado. Tu página de Ganancias tiene el desglose completo con recibos, por año.',
+  },
+  tourContractorSettingsTitle: { en: 'Payouts & verification', es: 'Pagos y verificación' },
+  tourContractorSettingsBody: {
+    en: 'Connect a payout account to get paid, and optionally upload your license and insurance for a "Verified" badge landlords can see.',
+    es: 'Conecta una cuenta de pagos para que te paguen, y opcionalmente sube tu licencia y seguro para obtener una insignia de "Verificado" que los propietarios pueden ver.',
+  },
+  tourContractorMessagesTitle: { en: 'Message anyone, anytime', es: 'Envía mensajes a cualquiera, en cualquier momento' },
+  tourContractorMessagesBody: {
+    en: "Reach a landlord you've worked with before directly, no open job required. Handy for asking about new work.",
+    es: 'Contacta directamente a un propietario con quien hayas trabajado antes, no se necesita un trabajo abierto. Útil para preguntar sobre nuevos trabajos.',
+  },
+  tourContractorDoneTitle: { en: "You're all set", es: 'Ya estás listo' },
+  tourContractorDoneBody: {
+    en: 'Home, Calendar, Settings, and your Profile are always one tap away down here.',
+    es: 'Inicio, Calendario, Configuración y tu Perfil siempre están a un toque de distancia aquí abajo.',
+  },
 
   // Profile
   profileSettings: { en: 'Profile settings', es: 'Configuración del perfil' },
@@ -251,6 +432,20 @@ const STRINGS = {
   deleting: { en: 'Deleting…', es: 'Eliminando…' },
   signOut: { en: 'Sign out', es: 'Cerrar sesión' },
   passwordUpdatedToast: { en: 'Password updated', es: 'Contraseña actualizada' },
+  passwordUpdatedSuccessfully: { en: 'Password updated successfully.', es: 'Contraseña actualizada correctamente.' },
+  addPhoneBeforeTextAlerts: { en: 'Add a phone number above before enabling text alerts.', es: 'Agrega un número de teléfono arriba antes de activar las alertas por mensaje de texto.' },
+  couldNotUpdateTextAlertPrefix: { en: 'Could not update text alert preference: ', es: 'No se pudo actualizar la preferencia de alertas por mensaje de texto: ' },
+  couldNotUpdateEmailPrefPrefix: { en: 'Could not update email preference: ', es: 'No se pudo actualizar la preferencia de correo: ' },
+  couldNotUpdatePushPrefPrefix: { en: 'Could not update push preference: ', es: 'No se pudo actualizar la preferencia de notificaciones push: ' },
+  publicProfileSyncFailedPrefix: {
+    en: 'Your login info was updated, but your public profile (visible to others) failed to sync: ',
+    es: 'Tu información de acceso se actualizó, pero tu perfil público (visible para otros) no se pudo sincronizar: ',
+  },
+  enterCurrentPassword: { en: 'Enter your current password.', es: 'Ingresa tu contraseña actual.' },
+  passwordsDoNotMatch: { en: 'Passwords do not match.', es: 'Las contraseñas no coinciden.' },
+  passwordMinLength: { en: 'Password must be at least 8 characters.', es: 'La contraseña debe tener al menos 8 caracteres.' },
+  currentPasswordIncorrect: { en: 'Current password is incorrect.', es: 'La contraseña actual es incorrecta.' },
+  couldNotDeleteAccountPlain: { en: 'Could not delete account', es: 'No se pudo eliminar la cuenta' },
 
   // Calendar (shared)
   calendarTitle: { en: 'Calendar', es: 'Calendario' },
@@ -310,6 +505,29 @@ const STRINGS = {
   expiredStatus: { en: 'Expired', es: 'Vencido' },
   expiringSoonStatus: { en: 'Expiring soon', es: 'Vence pronto' },
   currentStatus: { en: 'Current', es: 'Vigente' },
+  unitHasActiveTenancyError: { en: 'This unit has an active tenancy. End the tenancy before removing it.', es: 'Esta unidad tiene un contrato activo. Finaliza el contrato antes de eliminarla.' },
+  removeUnitConfirm: { en: 'Remove this unit? This cannot be undone.', es: '¿Eliminar esta unidad? Esto no se puede deshacer.' },
+  couldNotRemoveUnitPrefix: { en: 'Could not remove unit: ', es: 'No se pudo eliminar la unidad: ' },
+  tourAddUnitTitle: { en: 'Add a unit', es: 'Agregar una unidad' },
+  tourAddUnitBody: {
+    en: 'Every property starts with at least one unit. Add more here if this property has several, like a duplex or an apartment building.',
+    es: 'Cada propiedad empieza con al menos una unidad. Agrega más aquí si esta propiedad tiene varias, como un dúplex o un edificio de apartamentos.',
+  },
+  tourYourUnitsTitle: { en: 'Your units', es: 'Tus unidades' },
+  tourYourUnitsBody: {
+    en: 'Click into any unit to link a tenant, track rent, start an inspection, or see its job history.',
+    es: 'Entra a cualquier unidad para vincular un inquilino, registrar la renta, iniciar una inspección o ver su historial de trabajos.',
+  },
+  tourDocumentsTitle: { en: 'Documents', es: 'Documentos' },
+  tourDocumentsBody: {
+    en: 'Leases, deeds, insurance, inspection reports: upload anything worth keeping on file for this property.',
+    es: 'Contratos, escrituras, seguros, informes de inspección: sube todo lo que valga la pena guardar para esta propiedad.',
+  },
+  tourComplianceTitle: { en: 'Compliance tracking', es: 'Seguimiento de cumplimiento' },
+  tourComplianceBody: {
+    en: "Rental license, lead certification, smoke detectors: track expiry dates here and you'll get a dashboard alert before anything lapses.",
+    es: 'Licencia de alquiler, certificación de plomo, detectores de humo: registra las fechas de vencimiento aquí y recibirás una alerta en el panel antes de que algo vence.',
+  },
 
   // Rent pages (landlord unit rent + renter rent)
   unitBack: { en: '← Unit', es: '← Unidad' },
@@ -333,6 +551,62 @@ const STRINGS = {
   creditToNextMonth: { en: 'Credit to next month', es: 'Aplicar como crédito al próximo mes' },
   refundedAnotherWay: { en: 'Refunded another way', es: 'Reembolsado de otra forma' },
   working: { en: 'Working…', es: 'Procesando…' },
+
+  // RentMonthEditor (landlord rent page)
+  editMonthPrefix: { en: 'Edit ', es: 'Editar ' },
+  rentEditSavedNote: { en: 'Changes are saved with a dated note so you can see what changed later.', es: 'Los cambios se guardan con una nota con fecha para que puedas ver qué cambió más adelante.' },
+  rentForTheMonthLabel: { en: 'Rent for the month', es: 'Renta del mes' },
+  waterBillOptionalLabel: { en: 'Water bill (optional)', es: 'Factura de agua (opcional)' },
+  periodBillCoversLabel: { en: 'Period the bill covers (optional)', es: 'Período que cubre la factura (opcional)' },
+  fromLabel: { en: 'From', es: 'Desde' },
+  toLabel: { en: 'To', es: 'Hasta' },
+  endDateBeforeStartDate: { en: 'The end date is before the start date.', es: 'La fecha de fin es anterior a la fecha de inicio.' },
+  uploadingEllipsis: { en: 'Uploading…', es: 'Subiendo…' },
+  replaceBillFile: { en: 'Replace bill file', es: 'Reemplazar archivo de la factura' },
+  attachBillFile: { en: 'Attach bill file', es: 'Adjuntar archivo de la factura' },
+  viewCurrentArrow: { en: 'View current →', es: 'Ver actual →' },
+  reasonOptionalLabel: { en: 'Reason (optional)', es: 'Motivo (opcional)' },
+  rentEditReasonPlaceholder: { en: 'e.g. Rent increase, repair credit', es: 'ej. Aumento de renta, crédito por reparación' },
+  includesLateFeePrefix: { en: 'Includes a ', es: 'Incluye un cargo por atraso de ' },
+  includesLateFeeSuffix: { en: ' late fee, which stays as it is.', es: ', que se mantiene igual.' },
+  enterAmountsToSeeTotal: { en: 'Enter the amounts to see the new total.', es: 'Ingresa los montos para ver el nuevo total.' },
+  newTotalPrefix: { en: 'New total ', es: 'Nuevo total ' },
+  alreadyPaidOwesMoreMiddle: { en: '. Already paid ', es: '. Ya se pagó ' },
+  owesMoreSuffix: { en: ', so the tenant will owe ', es: ', así que el inquilino deberá ' },
+  moreSuffix: { en: ' more.', es: ' más.' },
+  tenantOwesInFullSuffix: { en: '. The tenant owes it in full.', es: '. El inquilino lo debe en su totalidad.' },
+  alreadyPaidTooMuchMiddle: { en: '. Already paid ', es: '. Ya se pagó ' },
+  thatsTooMuchPrefix: { en: ": that's ", es: ': eso es ' },
+  tooMuchSuffix: {
+    en: ' too much. After saving you can refund it or credit it to next month.',
+    es: ' de más. Después de guardar puedes reembolsarlo o aplicarlo como crédito al próximo mes.',
+  },
+  fullyPaidNothingMore: { en: '. Fully paid, nothing more to collect.', es: '. Pagado por completo, no hay nada más que cobrar.' },
+  savingChangesDots: { en: 'Saving...', es: 'Guardando...' },
+  couldNotUploadWaterBill: { en: 'Could not upload the water bill file.', es: 'No se pudo subir el archivo de la factura de agua.' },
+  couldNotSaveWaterBill: { en: 'Could not save the water bill.', es: 'No se pudo guardar la factura de agua.' },
+  couldNotAttachWaterBill: { en: 'Could not attach the water bill to this month.', es: 'No se pudo adjuntar la factura de agua a este mes.' },
+  couldNotSaveTryAgain: { en: 'Could not save. Please try again.', es: 'No se pudo guardar. Inténtalo de nuevo.' },
+  couldNotSavePrefix: { en: 'Could not save: ', es: 'No se pudo guardar: ' },
+  couldNotSettleOverpayment: { en: 'Could not settle the overpayment.', es: 'No se pudo resolver el pago en exceso.' },
+  monthAlreadyExists: { en: 'That month already exists. Tap Edit on it to change the amount instead.', es: 'Ese mes ya existe. Toca Editar en él para cambiar el monto en su lugar.' },
+  couldNotAddEntry: { en: 'Could not add entry. Please try again.', es: 'No se pudo agregar la entrada. Inténtalo de nuevo.' },
+  monthPaidOnlineCannotDelete: { en: 'This month was paid online, so it can’t be deleted. Use Edit to correct it instead.', es: 'Este mes se pagó en línea, así que no se puede eliminar. Usa Editar para corregirlo en su lugar.' },
+  refundToTenantStripeConfirmPrefix: { en: 'Refund ', es: '¿Reembolsar ' },
+  refundToTenantStripeConfirmSuffix: {
+    en: " to the tenant's original payment method through Stripe? It is taken back from your Stripe balance.",
+    es: ' al método de pago original del inquilino a través de Stripe? Se descuenta de tu saldo de Stripe.',
+  },
+  applyCreditNextMonthConfirmPrefix: { en: 'Apply ', es: '¿Aplicar ' },
+  applyCreditNextMonthConfirmSuffix: { en: " as credit toward next month's rent?", es: ' como crédito para la renta del próximo mes?' },
+  recordRefundedOutsideConfirmPrefix: { en: 'Record that you already refunded ', es: '¿Ya reembolsaste ' },
+  recordRefundedOutsideConfirmSuffix: { en: ' to the tenant outside the app?', es: ' al inquilino fuera de la app?' },
+  monthHasRecordedPaidConfirmPrefix: { en: 'This month has ', es: 'Este mes tiene ' },
+  monthHasRecordedPaidConfirmSuffix: {
+    en: ' recorded as paid. Removing it also removes its receipt. Continue?',
+    es: ' registrado como pagado. Eliminarlo también elimina su recibo. ¿Continuar?',
+  },
+  removeThisEntryConfirm: { en: 'Remove this entry?', es: '¿Eliminar esta entrada?' },
 
   // Renter rent page
   backArrow: { en: '← Back', es: '← Atrás' },
@@ -395,6 +669,13 @@ const STRINGS = {
   myLandlordAndOthers: { en: 'My landlord and anyone else on my unit', es: 'Mi propietario y cualquier otra persona en mi unidad' },
   noDocumentsAvailableYet: { en: 'No documents available yet.', es: 'Aún no hay documentos disponibles.' },
   uploadedByYou: { en: 'Uploaded by you', es: 'Subido por ti' },
+  pleaseSelectDocumentType: { en: 'Please select a document type.', es: 'Por favor selecciona un tipo de documento.' },
+  pleaseEnterDocumentType: { en: 'Please enter a document type.', es: 'Por favor ingresa un tipo de documento.' },
+  pleaseChooseOneFile: { en: 'Please choose at least one file.', es: 'Por favor elige al menos un archivo.' },
+  filesFailedToUpload: { en: 'One or more files failed to upload.', es: 'Uno o más archivos no se pudieron subir.' },
+  filesFailedToSave: { en: 'One or more files failed to save.', es: 'Uno o más archivos no se pudieron guardar.' },
+  couldNotDeleteDocument: { en: 'Could not delete document.', es: 'No se pudo eliminar el documento.' },
+  couldNotBuildDownload: { en: 'Could not build the download. Try again.', es: 'No se pudo preparar la descarga. Inténtalo de nuevo.' },
 
   // Landlord jobs list
   jobsTitle: { en: 'Jobs', es: 'Trabajos' },
@@ -1259,7 +1540,7 @@ const STRINGS = {
   skipForNowBtn: { en: 'Skip for now', es: 'Omitir por ahora' },
   rateAnytimeMsg: { en: 'You can rate this contractor anytime from this job.', es: 'Puedes calificar a este contratista cuando quieras desde este trabajo.' },
   rateNowBtn: { en: 'Rate now', es: 'Calificar ahora' },
-  inclCardFeePrefix: { en: 'incl.', es: 'incl.' },
+  inclCardFeePrefix: { en: 'incl.', es: 'incluye' },
   cardFeeSuffix: { en: 'card fee', es: 'cargo de tarjeta' },
 
   // Landlord rent roll page
@@ -1340,6 +1621,30 @@ const STRINGS = {
   // Renter rent page: payment history year filter + total
   totalPaidPrefix: { en: 'Total:', es: 'Total:' },
   allYearsOption: { en: 'All years', es: 'Todos los años' },
+
+  // Reset password page (reachable with an active recovery session, unlike
+  // login/signup/forgot-password, which have no session yet and so no way
+  // to know the visitor's language preference — see i18n note in AGENTS
+  // translation sweep).
+  almostThereHeadline: { en: 'Almost there.', es: 'Ya casi.' },
+  pickNewPasswordSubtext: { en: "Pick a new password and you're back in business.", es: 'Elige una nueva contraseña y estarás de vuelta en marcha.' },
+  resetLinkInvalidOrExpired: {
+    en: 'This reset link is invalid or has expired. Please request a new one.',
+    es: 'Este enlace para restablecer la contraseña no es válido o venció. Por favor solicita uno nuevo.',
+  },
+  resetPasswordsDoNotMatch: { en: 'Passwords do not match.', es: 'Las contraseñas no coinciden.' },
+  resetPasswordMinLength: { en: 'Password must be at least 8 characters.', es: 'La contraseña debe tener al menos 8 caracteres.' },
+  requestNewResetLink: { en: 'Request a new reset link', es: 'Solicitar un nuevo enlace' },
+  verifyingResetLink: { en: 'Verifying reset link...', es: 'Verificando el enlace...' },
+  setNewPasswordHeading: { en: 'Set new password', es: 'Establece una nueva contraseña' },
+  chooseStrongPassword: { en: 'Choose a strong password.', es: 'Elige una contraseña segura.' },
+  passwordUpdatedBang: { en: 'Password updated!', es: '¡Contraseña actualizada!' },
+  redirectingToLogin: { en: 'Redirecting to login...', es: 'Redirigiendo al inicio de sesión...' },
+  newPasswordLabel: { en: 'New password', es: 'Nueva contraseña' },
+  min8CharsPlaceholder: { en: 'Min. 8 characters', es: 'Mín. 8 caracteres' },
+  confirmPasswordLabel: { en: 'Confirm password', es: 'Confirmar contraseña' },
+  reenterPasswordPlaceholder: { en: 'Re-enter your password', es: 'Vuelve a escribir tu contraseña' },
+  updatingDots: { en: 'Updating...', es: 'Actualizando...' },
 } satisfies Record<string, Record<Lang, string>>
 
 // The three schedule windows (`morning`/`afternoon`/`evening`) show up

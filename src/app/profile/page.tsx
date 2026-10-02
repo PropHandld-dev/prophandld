@@ -139,7 +139,7 @@ export default function ProfilePage() {
     if (!user) return
 
     if (!smsOptIn && !form.phone.trim()) {
-      setError('Add a phone number above before enabling text alerts.')
+      setError(t('addPhoneBeforeTextAlerts', lang))
       return
     }
 
@@ -150,7 +150,7 @@ export default function ProfilePage() {
 
     if (updateError) {
       console.error('Error updating sms_opt_in:', updateError)
-      setError('Could not update text alert preference: ' + updateError.message)
+      setError(t('couldNotUpdateTextAlertPrefix', lang) + updateError.message)
       setSmsSaving(false)
       return
     }
@@ -167,7 +167,7 @@ export default function ProfilePage() {
     const { error: updateError } = await supabase.from('users').update({ email_notifications_enabled: next }).eq('id', user.id)
     if (updateError) {
       console.error('Error updating email_notifications_enabled:', updateError)
-      setError('Could not update email preference: ' + updateError.message)
+      setError(t('couldNotUpdateEmailPrefPrefix', lang) + updateError.message)
       setEmailNotifSaving(false)
       return
     }
@@ -183,7 +183,7 @@ export default function ProfilePage() {
     const { error: updateError } = await supabase.from('users').update({ push_notifications_enabled: next }).eq('id', user.id)
     if (updateError) {
       console.error('Error updating push_notifications_enabled:', updateError)
-      setError('Could not update push preference: ' + updateError.message)
+      setError(t('couldNotUpdatePushPrefPrefix', lang) + updateError.message)
       setPushNotifSaving(false)
       return
     }
@@ -235,7 +235,7 @@ export default function ProfilePage() {
 
       if (publicUpdateError) {
         console.error('Error updating public.users:', publicUpdateError)
-        setError('Your login info was updated, but your public profile (visible to others) failed to sync: ' + publicUpdateError.message)
+        setError(t('publicProfileSyncFailedPrefix', lang) + publicUpdateError.message)
         setSaving(false)
         return
       }
@@ -264,17 +264,17 @@ export default function ProfilePage() {
     setSuccess(null)
 
     if (!passwordForm.current_password) {
-      setError('Enter your current password.')
+      setError(t('enterCurrentPassword', lang))
       return
     }
 
     if (passwordForm.new_password !== passwordForm.confirm_password) {
-      setError('Passwords do not match.')
+      setError(t('passwordsDoNotMatch', lang))
       return
     }
 
     if (passwordForm.new_password.length < 8) {
-      setError('Password must be at least 8 characters.')
+      setError(t('passwordMinLength', lang))
       return
     }
 
@@ -290,7 +290,7 @@ export default function ProfilePage() {
     })
 
     if (verifyError) {
-      setError('Current password is incorrect.')
+      setError(t('currentPasswordIncorrect', lang))
       setSaving(false)
       return
     }
@@ -305,7 +305,7 @@ export default function ProfilePage() {
       return
     }
 
-    setSuccess('Password updated successfully.')
+    setSuccess(t('passwordUpdatedSuccessfully', lang))
     setShowPasswordToast(true)
     setTimeout(() => setShowPasswordToast(false), 3000)
     setPasswordForm({ current_password: '', new_password: '', confirm_password: '' })
@@ -333,7 +333,7 @@ export default function ProfilePage() {
     const data = await res.json().catch(() => ({}))
 
     if (!res.ok) {
-      setError('Could not delete account' + (data.error ? ': ' + data.error : '.'))
+      setError(t('couldNotDeleteAccountPlain', lang) + (data.error ? ': ' + data.error : '.'))
       setDeletingAccount(false)
       return
     }

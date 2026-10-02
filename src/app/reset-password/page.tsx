@@ -7,9 +7,11 @@ import { RippleButton } from '@/components/RippleButton'
 import { AuthLayout } from '@/components/AuthLayout'
 import { AuthInput } from '@/components/AuthInput'
 import { LockIcon, CheckCircleIcon } from '@/components/icons'
+import { useLanguage, t } from '@/lib/i18n'
 
 export default function ResetPasswordPage() {
   const router = useRouter()
+  const lang = useLanguage()
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [loading, setLoading] = useState(false)
@@ -31,7 +33,7 @@ export default function ResetPasswordPage() {
       if (attempts < 10) {
         setTimeout(checkSession, 400)
       } else {
-        setError('This reset link is invalid or has expired. Please request a new one.')
+        setError(t('resetLinkInvalidOrExpired', lang))
       }
     }
 
@@ -52,12 +54,12 @@ export default function ResetPasswordPage() {
     setError(null)
 
     if (password !== confirm) {
-      setError('Passwords do not match.')
+      setError(t('resetPasswordsDoNotMatch', lang))
       return
     }
 
     if (password.length < 8) {
-      setError('Password must be at least 8 characters.')
+      setError(t('resetPasswordMinLength', lang))
       return
     }
 
@@ -78,54 +80,54 @@ export default function ResetPasswordPage() {
 
   return (
     <AuthLayout
-      headline="Almost there."
-      subtext="Pick a new password and you're back in business."
+      headline={t('almostThereHeadline', lang)}
+      subtext={t('pickNewPasswordSubtext', lang)}
     >
       <div className="text-center mb-8 lg:text-left">
-        <h1 className="text-2xl font-bold text-white">Set new password</h1>
-        <p className="text-white/50 text-sm mt-1">Choose a strong password.</p>
+        <h1 className="text-2xl font-bold text-white">{t('setNewPasswordHeading', lang)}</h1>
+        <p className="text-white/50 text-sm mt-1">{t('chooseStrongPassword', lang)}</p>
       </div>
 
       {done ? (
         <div className="bg-[#0A7B7E]/15 border border-[#12A5A9]/30 rounded-xl px-6 py-5 text-center">
           <CheckCircleIcon className="w-6 h-6 text-[#12A5A9] mx-auto mb-2" />
-          <p className="text-[#12A5A9] font-medium">Password updated!</p>
-          <p className="text-white/50 text-sm mt-1">Redirecting to login...</p>
+          <p className="text-[#12A5A9] font-medium">{t('passwordUpdatedBang', lang)}</p>
+          <p className="text-white/50 text-sm mt-1">{t('redirectingToLogin', lang)}</p>
         </div>
       ) : error && !ready ? (
         <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm text-center">
           {error}
           <a href="/forgot-password" className="block mt-3 text-[#12A5A9] hover:underline">
-            Request a new reset link
+            {t('requestNewResetLink', lang)}
           </a>
         </div>
       ) : !ready ? (
         <div className="bg-[#0A7B7E]/15 border border-[#12A5A9]/30 rounded-xl px-6 py-5 text-center">
-          <p className="text-white/50 text-sm">Verifying reset link...</p>
+          <p className="text-white/50 text-sm">{t('verifyingResetLink', lang)}</p>
         </div>
       ) : (
         <form onSubmit={handleReset} className="space-y-4">
           <div>
-            <label className="text-white/70 text-sm block mb-1">New password</label>
+            <label className="text-white/70 text-sm block mb-1">{t('newPasswordLabel', lang)}</label>
             <AuthInput
               icon={LockIcon}
               type="password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Min. 8 characters"
+              placeholder={t('min8CharsPlaceholder', lang)}
             />
           </div>
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">Confirm password</label>
+            <label className="text-white/70 text-sm block mb-1">{t('confirmPasswordLabel', lang)}</label>
             <AuthInput
               icon={LockIcon}
               type="password"
               required
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
-              placeholder="Re-enter your password"
+              placeholder={t('reenterPasswordPlaceholder', lang)}
             />
           </div>
 
@@ -140,7 +142,7 @@ export default function ResetPasswordPage() {
             disabled={loading}
             className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
           >
-            {loading ? 'Updating...' : 'Update password'}
+            {loading ? t('updatingDots', lang) : t('updatePassword', lang)}
           </RippleButton>
         </form>
       )}

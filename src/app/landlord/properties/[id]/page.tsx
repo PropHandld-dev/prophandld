@@ -15,14 +15,16 @@ import { ProductTour, type TourStep } from '@/components/ProductTour'
 import { usePropertyTourVisibility } from '@/lib/usePropertyTourVisibility'
 import { AddressLink } from '@/components/AddressLink'
 import { StreetView } from '@/components/StreetView'
-import { useLanguage, t } from '@/lib/i18n'
+import { useLanguage, t, type Lang } from '@/lib/i18n'
 
-const TOUR_STEPS: TourStep[] = [
-  { target: '[data-tour="addunit"]', title: 'Add a unit', body: "Every property starts with at least one unit. Add more here if this property has several, like a duplex or an apartment building." },
-  { target: '[data-tour="units"]', title: 'Your units', body: 'Click into any unit to link a tenant, track rent, start an inspection, or see its job history.' },
-  { target: '[data-tour="documents"]', title: 'Documents', body: 'Leases, deeds, insurance, inspection reports: upload anything worth keeping on file for this property.' },
-  { target: '[data-tour="compliance"]', title: 'Compliance tracking', body: "Rental license, lead certification, smoke detectors: track expiry dates here and you'll get a dashboard alert before anything lapses." },
-]
+function getTourSteps(lang: Lang): TourStep[] {
+  return [
+    { target: '[data-tour="addunit"]', title: t('tourAddUnitTitle', lang), body: t('tourAddUnitBody', lang) },
+    { target: '[data-tour="units"]', title: t('tourYourUnitsTitle', lang), body: t('tourYourUnitsBody', lang) },
+    { target: '[data-tour="documents"]', title: t('tourDocumentsTitle', lang), body: t('tourDocumentsBody', lang) },
+    { target: '[data-tour="compliance"]', title: t('tourComplianceTitle', lang), body: t('tourComplianceBody', lang) },
+  ]
+}
 
 export default function PropertyDetailPage() {
   const router = useRouter()
@@ -166,11 +168,11 @@ export default function PropertyDetailPage() {
 
   const removeUnit = async (unitId: string, isOccupied: boolean) => {
     if (isOccupied) {
-      setUnitError('This unit has an active tenancy. End the tenancy before removing it.')
+      setUnitError(t('unitHasActiveTenancyError', lang))
       return
     }
 
-    const confirmed = window.confirm('Remove this unit? This cannot be undone.')
+    const confirmed = window.confirm(t('removeUnitConfirm', lang))
     if (!confirmed) return
 
     const { error: deleteError } = await supabase
@@ -180,7 +182,7 @@ export default function PropertyDetailPage() {
 
     if (deleteError) {
       console.error('Error deleting unit:', deleteError)
-      setUnitError('Could not remove unit: ' + deleteError.message)
+      setUnitError(t('couldNotRemoveUnitPrefix', lang) + deleteError.message)
       return
     }
 
@@ -516,7 +518,7 @@ export default function PropertyDetailPage() {
 
       <BottomTabBar tabs={LANDLORD_TABS} />
       {tour.show && units.length > 0 && (
-        <ProductTour steps={TOUR_STEPS} onDone={tour.dismiss} onNeverAskAgain={tour.dismiss} />
+        <ProductTour steps={getTourSteps(lang)} onDone={tour.dismiss} onNeverAskAgain={tour.dismiss} />
       )}
     </div>
   )

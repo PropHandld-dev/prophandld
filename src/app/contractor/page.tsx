@@ -27,16 +27,18 @@ import {
 import { CONTRACTOR_TABS } from '@/lib/navTabs'
 import { ProductTour, type TourStep } from '@/components/ProductTour'
 import { useTourVisibility } from '@/lib/useTourVisibility'
-import { useLanguage, t, windowLabel } from '@/lib/i18n'
+import { useLanguage, t, windowLabel, type Lang } from '@/lib/i18n'
 
-const TOUR_STEPS: TourStep[] = [
-  { target: '[data-tour="welcome"]', title: 'Welcome to your Contractor Dashboard', body: "This is where you'll find jobs, track your bids, and manage everything you've worked on. Quick look around?" },
-  { target: '[data-tour="stats"]', title: 'Your work at a glance', body: 'New jobs matching your service area, active jobs you\'ve won, and your total earnings, all live.' },
-  { target: '[data-tour="pastjobs"]', title: 'Past jobs', body: 'Everything you\'ve completed, filterable by status. Your Earnings page has the full breakdown with receipts, by year.' },
-  { target: '[data-tour="settings"]', title: 'Payouts & verification', body: 'Connect a payout account to get paid, and optionally upload your license and insurance for a "Verified" badge landlords can see.' },
-  { target: '[data-tour="messages"]', title: 'Message anyone, anytime', body: 'Reach a landlord you\'ve worked with before directly, no open job required. Handy for asking about new work.' },
-  { target: '[data-tour="bottomtabs"]', title: "You're all set", body: 'Home, Calendar, Settings, and your Profile are always one tap away down here.' },
-]
+function getTourSteps(lang: Lang): TourStep[] {
+  return [
+    { target: '[data-tour="welcome"]', title: t('tourContractorWelcomeTitle', lang), body: t('tourContractorWelcomeBody', lang) },
+    { target: '[data-tour="stats"]', title: t('tourContractorStatsTitle', lang), body: t('tourContractorStatsBody', lang) },
+    { target: '[data-tour="pastjobs"]', title: t('tourContractorPastJobsTitle', lang), body: t('tourContractorPastJobsBody', lang) },
+    { target: '[data-tour="settings"]', title: t('tourContractorSettingsTitle', lang), body: t('tourContractorSettingsBody', lang) },
+    { target: '[data-tour="messages"]', title: t('tourContractorMessagesTitle', lang), body: t('tourContractorMessagesBody', lang) },
+    { target: '[data-tour="bottomtabs"]', title: t('tourContractorDoneTitle', lang), body: t('tourContractorDoneBody', lang) },
+  ]
+}
 
 export default function ContractorDashboard() {
   const router = useRouter()
@@ -552,7 +554,7 @@ export default function ContractorDashboard() {
       </main>
 
       <BottomTabBar tabs={CONTRACTOR_TABS} />
-      {tour.show && hasProfile && <ProductTour steps={TOUR_STEPS} onDone={tour.dismiss} onNeverAskAgain={tour.dismissForever} />}
+      {tour.show && hasProfile && <ProductTour steps={getTourSteps(lang)} onDone={tour.dismiss} onNeverAskAgain={tour.dismissForever} />}
     </div>
   )
 }

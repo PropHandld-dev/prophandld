@@ -159,7 +159,7 @@ export default function UnitRentPage() {
     const { error: uploadError } = await supabase.storage.from('documents').upload(filePath, file)
     if (uploadError) {
       console.error('Error uploading water bill:', uploadError)
-      setError('Could not upload the water bill file.')
+      setError(t('couldNotUploadWaterBill', lang))
       setUploadingWaterBillId(null)
       return
     }
@@ -179,7 +179,7 @@ export default function UnitRentPage() {
 
     if (docError || !doc) {
       console.error('Error saving water bill document record:', docError)
-      setError('Could not save the water bill.')
+      setError(t('couldNotSaveWaterBill', lang))
       setUploadingWaterBillId(null)
       return
     }
@@ -191,7 +191,7 @@ export default function UnitRentPage() {
 
     if (updateError) {
       console.error('Error linking water bill to rent payment:', updateError)
-      setError('Could not attach the water bill to this month.')
+      setError(t('couldNotAttachWaterBill', lang))
       setUploadingWaterBillId(null)
       return
     }
@@ -214,7 +214,7 @@ export default function UnitRentPage() {
 
     if (updateError) {
       console.error('Error marking rent received:', updateError)
-      setError('Could not save. Please try again.')
+      setError(t('couldNotSaveTryAgain', lang))
       setSavingId(null)
       return
     }
@@ -266,7 +266,7 @@ export default function UnitRentPage() {
 
     if (updateError) {
       console.error('Error saving rent month:', updateError)
-      setEditError('Could not save: ' + updateError.message)
+      setEditError(t('couldNotSavePrefix', lang) + updateError.message)
       setSavingId(null)
       return
     }
@@ -281,10 +281,10 @@ export default function UnitRentPage() {
   const handleResolve = async (payment: any, mode: 'stripe_refund' | 'external_refund' | 'apply_to_next', overpaid: number) => {
     const question =
       mode === 'stripe_refund'
-        ? `Refund ${money(overpaid)} to the tenant's original payment method through Stripe? It is taken back from your Stripe balance.`
+        ? `${t('refundToTenantStripeConfirmPrefix', lang)}${money(overpaid)}${t('refundToTenantStripeConfirmSuffix', lang)}`
         : mode === 'apply_to_next'
-          ? `Apply ${money(overpaid)} as credit toward next month's rent?`
-          : `Record that you already refunded ${money(overpaid)} to the tenant outside the app?`
+          ? `${t('applyCreditNextMonthConfirmPrefix', lang)}${money(overpaid)}${t('applyCreditNextMonthConfirmSuffix', lang)}`
+          : `${t('recordRefundedOutsideConfirmPrefix', lang)}${money(overpaid)}${t('recordRefundedOutsideConfirmSuffix', lang)}`
     if (!window.confirm(question)) return
 
     setResolvingId(payment.id)
@@ -296,9 +296,9 @@ export default function UnitRentPage() {
         body: JSON.stringify({ rentPaymentId: payment.id, mode, amount: overpaid }),
       })
       const data = await res.json()
-      if (!res.ok) setError(data.error || 'Could not settle the overpayment.')
+      if (!res.ok) setError(data.error || t('couldNotSettleOverpayment', lang))
     } catch {
-      setError('Could not settle the overpayment.')
+      setError(t('couldNotSettleOverpayment', lang))
     }
     await loadPayments(payment.tenancy_id)
     setResolvingId(null)
@@ -309,7 +309,7 @@ export default function UnitRentPage() {
     if (!addForm.month || !addForm.expected_amount || !tenancy) return
 
     if (payments.some((p) => p.month.slice(0, 7) === addForm.month)) {
-      setError('That month already exists. Tap Edit on it to change the amount instead.')
+      setError(t('monthAlreadyExists', lang))
       return
     }
 
@@ -324,7 +324,7 @@ export default function UnitRentPage() {
 
     if (insertError) {
       console.error('Error adding rent entry:', insertError)
-      setError(insertError.code === '23505' ? 'That month already exists. Tap Edit on it to change the amount instead.' : 'Could not add entry. Please try again.')
+      setError(insertError.code === '23505' ? t('monthAlreadyExists', lang) : t('couldNotAddEntry', lang))
       setSavingId(null)
       return
     }
@@ -338,19 +338,19 @@ export default function UnitRentPage() {
   const handleDelete = async (paymentId: string) => {
     const target = payments.find((p) => p.id === paymentId)
     if (target?.stripe_status === 'succeeded') {
-      setError('This month was paid online, so it can’t be deleted. Use Edit to correct it instead.')
+      setError(t('monthPaidOnlineCannotDelete', lang))
       return
     }
     const recorded = Number(target?.actual_amount || 0)
     const message = recorded > 0
-      ? `This month has ${money(recorded)} recorded as paid. Removing it also removes its receipt. Continue?`
-      : 'Remove this entry?'
+      ? `${t('monthHasRecordedPaidConfirmPrefix', lang)}${money(recorded)}${t('monthHasRecordedPaidConfirmSuffix', lang)}`
+      : t('removeThisEntryConfirm', lang)
     if (!window.confirm(message)) return
 
     const { error: deleteError } = await supabase.from('rent_payments').delete().eq('id', paymentId)
     if (deleteError) {
       console.error('Error deleting rent entry:', deleteError)
-      setError('Could not delete entry.')
+      setError(t('couldNotDeleteEntry', lang))
       return
     }
 

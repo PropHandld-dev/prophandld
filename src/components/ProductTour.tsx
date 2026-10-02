@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useLanguage, t } from '@/lib/i18n'
 
 export type TourStep = {
   target: string
@@ -23,6 +24,7 @@ export function ProductTour({
   onDone: () => void
   onNeverAskAgain?: () => void
 }) {
+  const lang = useLanguage()
   const [index, setIndex] = useState(0)
   const [rect, setRect] = useState<DOMRect | null>(null)
 
@@ -121,7 +123,7 @@ export function ProductTour({
               />
             ))}
           </div>
-          <button onClick={onDone} aria-label="Close tour" className="text-white/50 hover:text-white text-sm leading-none transition">
+          <button onClick={onDone} aria-label={t('closeTourAriaLabel', lang)} className="text-white/50 hover:text-white text-sm leading-none transition">
             ×
           </button>
         </div>
@@ -133,7 +135,7 @@ export function ProductTour({
             disabled={index === 0}
             className="text-white/60 hover:text-white text-xs font-semibold disabled:opacity-0 disabled:pointer-events-none transition shrink-0"
           >
-            ← Back
+            {t('backArrowPlain', lang)}
           </button>
           <div className="flex items-center gap-3 shrink-0">
             {onNeverAskAgain && (
@@ -141,20 +143,20 @@ export function ProductTour({
                 onClick={onNeverAskAgain}
                 className="text-white/50 hover:text-white/70 text-[11px] font-medium underline underline-offset-2 transition whitespace-nowrap"
               >
-                Never show again
+                {t('neverShowAgain', lang)}
               </button>
             )}
             <button
               onClick={onDone}
               className="text-white/50 hover:text-white text-xs font-semibold transition whitespace-nowrap"
             >
-              Skip
+              {t('skipBtn', lang)}
             </button>
             <button
               onClick={next}
               className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold rounded-full px-4 py-2 hover:opacity-90 transition shrink-0"
             >
-              {index === steps.length - 1 ? "Let's go" : 'Next →'}
+              {index === steps.length - 1 ? t('letsGoBtn', lang) : t('nextArrowBtn', lang)}
             </button>
           </div>
         </div>

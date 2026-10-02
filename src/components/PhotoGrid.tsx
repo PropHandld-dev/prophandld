@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { isVideoPath } from '@/lib/mediaValidation'
+import { useLanguage, t } from '@/lib/i18n'
 
 interface Photo {
   id: string
@@ -23,13 +24,14 @@ export function PhotoGrid({
   currentUserId?: string
   onDelete?: (photo: Photo) => void
 }) {
+  const lang = useLanguage()
   const [zoomed, setZoomed] = useState<{ url: string; video: boolean } | null>(null)
 
   const colClass = columns === 2 ? 'grid-cols-2' : columns === 4 ? 'grid-cols-4' : 'grid-cols-3'
 
   const handleDelete = (e: React.MouseEvent, photo: Photo) => {
     e.stopPropagation()
-    if (window.confirm(isVideoPath(photo.photo_url) ? 'Remove this video?' : 'Remove this photo?')) {
+    if (window.confirm(isVideoPath(photo.photo_url) ? t('removeVideoConfirm', lang) : t('removePhotoConfirm', lang))) {
       onDelete?.(photo)
     }
   }

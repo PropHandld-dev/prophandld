@@ -20,16 +20,18 @@ import { getUnreadJobIds } from '@/lib/messageReads'
 import { ShowMoreList } from '@/components/ShowMoreList'
 import { ProductTour, type TourStep } from '@/components/ProductTour'
 import { useTourVisibility } from '@/lib/useTourVisibility'
-import { useLanguage, t } from '@/lib/i18n'
+import { useLanguage, t, type Lang } from '@/lib/i18n'
 
-const TOUR_STEPS: TourStep[] = [
-  { target: '[data-tour="welcome"]', title: 'Welcome to your Renter Dashboard', body: "This is where you'll report issues, message your landlord, and pay rent. Quick look around?" },
-  { target: '[data-tour="report"]', title: 'Something broken?', body: 'A category, a photo, a short description. Your landlord is notified right away.' },
-  { target: '[data-tour="issues"]', title: 'Your issues', body: 'See the status of everything you\'ve reported, at a glance.' },
-  { target: '[data-tour="documents"]', title: 'Your documents', body: 'Your lease and any other paperwork your landlord has shared, all in one place.' },
-  { target: '[data-tour="messages"]', title: 'Message your landlord anytime', body: "No need to wait for an open issue. Reach out directly whenever you need to." },
-  { target: '[data-tour="bottomtabs"]', title: "You're all set", body: 'Home, Report, Calendar, and your Profile are always one tap away down here.' },
-]
+function getTourSteps(lang: Lang): TourStep[] {
+  return [
+    { target: '[data-tour="welcome"]', title: t('tourRenterWelcomeTitle', lang), body: t('tourRenterWelcomeBody', lang) },
+    { target: '[data-tour="report"]', title: t('tourRenterReportTitle', lang), body: t('tourRenterReportBody', lang) },
+    { target: '[data-tour="issues"]', title: t('tourRenterIssuesTitle', lang), body: t('tourRenterIssuesBody', lang) },
+    { target: '[data-tour="documents"]', title: t('tourRenterDocumentsTitle', lang), body: t('tourRenterDocumentsBody', lang) },
+    { target: '[data-tour="messages"]', title: t('tourRenterMessagesTitle', lang), body: t('tourRenterMessagesBody', lang) },
+    { target: '[data-tour="bottomtabs"]', title: t('tourRenterDoneTitle', lang), body: t('tourRenterDoneBody', lang) },
+  ]
+}
 
 export default function RenterDashboard() {
   const router = useRouter()
@@ -364,7 +366,7 @@ export default function RenterDashboard() {
       </main>
 
       <BottomTabBar tabs={RENTER_TABS} />
-      {tour.show && <ProductTour steps={TOUR_STEPS} onDone={tour.dismiss} onNeverAskAgain={tour.dismissForever} />}
+      {tour.show && <ProductTour steps={getTourSteps(lang)} onDone={tour.dismiss} onNeverAskAgain={tour.dismissForever} />}
     </div>
   )
 }
