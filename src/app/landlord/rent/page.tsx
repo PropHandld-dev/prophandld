@@ -13,68 +13,24 @@ import { LANDLORD_TABS } from '@/lib/navTabs'
 import { fetchAllPagesOrEmpty } from '@/lib/pagedQuery'
 import { useLanguage, t } from '@/lib/i18n'
 
-// A custom range is capped rather than unbounded — a portfolio can run
-// years of history, and a 2-year-wide table is already about as much as
-// this layout can usefully show at once before search/scroll do more work
-// than the extra columns are worth.
-const MAX_CUSTOM_MONTHS = 24
-const CURRENT_YEAR = new Date().getFullYear()
-const YEAR_OPTIONS = [CURRENT_YEAR, CURRENT_YEAR - 1, CURRENT_YEAR - 2, CURRENT_YEAR - 3]
-
-type RangeValue = 'recent3' | 'recent6' | 'recent12' | `year-${number}` | 'custom'
-
-// 'YYYY-MM' for the last `count` months, oldest first, ending at the
-// current month.
-function recentMonthKeys(count: number): string[] {
-  const out: string[] = []
+function currentMonthKey(): string {
   const d = new Date()
-  d.setDate(1)
-  for (let i = count - 1; i >= 0; i--) {
-    const m = new Date(d.getFullYear(), d.getMonth() - i, 1)
-    out.push(`${m.getFullYear()}-${String(m.getMonth() + 1).padStart(2, '0')}`)
-  }
-  return out
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
-function yearMonthKeys(year: number): string[] {
-  return Array.from({ length: 12 }, (_, i) => `${year}-${String(i + 1).padStart(2, '0')}`)
+type Row = {
+  unitId: string
+  propertyId: string
+  unitLabel: string
+  tenantName: string | null
+  hasTenancy: boolean
+  expected: number
+  actual: number
+  paid: boolean
+  processing: boolean
+  daysLate: number
+  dueLabel: string
 }
-
-// Inclusive 'YYYY-MM' range, oldest first. A reversed or absurd input just
-// comes back empty/capped rather than hanging or erroring — this only ever
-// feeds a date filter and a table width, nothing structural depends on it.
-function customRangeKeys(from: string, to: string): string[] {
-  if (!from || !to) return []
-  const [fy, fm] = from.split('-').map(Number)
-  const [ty, tm] = to.split('-').map(Number)
-  if (!fy || !fm || !ty || !tm) return []
-  const out: string[] = []
-  let y = fy
-  let m = fm
-  while ((y < ty || (y === ty && m <= tm)) && out.length < MAX_CUSTOM_MONTHS) {
-    out.push(`${y}-${String(m).padStart(2, '0')}`)
-    m++
-    if (m > 12) {
-      m = 1
-      y++
-    }
-  }
-  return out
-}
-
-function monthsForRange(range: RangeValue, customFrom: string, customTo: string): string[] {
-  if (range === 'custom') return customRangeKeys(customFrom, customTo)
-  if (range.startsWith('year-')) return yearMonthKeys(Number(range.slice(5)))
-  return recentMonthKeys(range === 'recent3' ? 3 : range === 'recent12' ? 12 : 6)
-}
-
-const monthLabel = (key: string, lang: 'en' | 'es', withYear = false) => {
-  const [y, m] = key.split('-').map(Number)
-  return new Date(y, m - 1, 1).toLocaleDateString(lang === 'es' ? 'es-ES' : undefined, withYear ? { month: 'short', year: '2-digit' } : { month: 'short' })
-}
-
-type Cell = { status: 'paid' | 'partial' | 'unpaid' | 'no-tenant'; expected?: number; actual?: number; paymentId?: string }
-type Row = { unitId: string; propertyId: string; label: string; hasTenancy: boolean; cells: Record<string, Cell> }
 
 export default function RentRollPage() {
   const router = useRouter()
@@ -82,24 +38,8 @@ export default function RentRollPage() {
   const [loading, setLoading] = useState(true)
   const [rows, setRows] = useState<Row[]>([])
   const [search, setSearch] = useState('')
-  const [range, setRange] = useState<RangeValue>('recent6')
-  const [customFrom, setCustomFrom] = useState('')
-  const [customTo, setCustomTo] = useState('')
-
-  const months = useMemo(() => monthsForRange(range, customFrom, customTo), [range, customFrom, customTo])
-  // A year spans past and future months alike — showing a year's worth of
-  // columns needs the year, not just "Jan/Feb/…", to stay readable months
-  // after the fact. Everything else is close enough to "now" that the
-  // month alone reads fine.
-  const showYearInHeader = range.startsWith('year-') || range === 'custom'
 
   useEffect(() => {
-    if (months.length === 0) {
-      setRows([])
-      setLoading(false)
-      return
-    }
-
     const init = async () => {
       setLoading(true)
       const { data: { user } } = await supabase.auth.getUser()
@@ -109,14 +49,11 @@ export default function RentRollPage() {
       }
 
       // Paged rather than one query each: Supabase silently caps a single
-      // response at 1000 rows and drops the rest with no error. The top
-      // pricing tier now goes to 500+ units, and rent_payments alone can
-      // mean up to 500 tenancies × up to 24 months in one request — well
-      // past that cap on a wide custom range for a large portfolio.
+      // response at 1000 rows and drops the rest with no error — the top
+      // pricing tier now goes to 500+ units.
       const properties = await fetchAllPagesOrEmpty<{ id: string; address: string }>((from, to) =>
         supabase.from('properties').select('id, address').eq('owner_user_id', user.id).eq('archived', false).order('address').range(from, to)
       )
-
       const propertyIds = properties.map((p) => p.id)
       if (propertyIds.length === 0) {
         setRows([])
@@ -128,7 +65,6 @@ export default function RentRollPage() {
       const units = await fetchAllPagesOrEmpty<{ id: string; unit_number: string; property_id: string }>((from, to) =>
         supabase.from('units').select('id, unit_number, property_id').in('property_id', propertyIds).order('unit_number').range(from, to)
       )
-
       const unitIds = units.map((u) => u.id)
       if (unitIds.length === 0) {
         setRows([])
@@ -136,99 +72,116 @@ export default function RentRollPage() {
         return
       }
 
-      const tenancies = await fetchAllPagesOrEmpty<{ id: string; unit_id: string; rent_amount: number }>((from, to) =>
-        supabase.from('tenancies').select('id, unit_id, rent_amount').in('unit_id', unitIds).eq('ended', false).range(from, to)
+      const tenancies = await fetchAllPagesOrEmpty<{ id: string; unit_id: string; rent_amount: number; rent_due_day: number | null; renter_user_id: string }>((from, to) =>
+        supabase
+          .from('tenancies')
+          .select('id, unit_id, rent_amount, rent_due_day, renter_user_id')
+          .in('unit_id', unitIds)
+          .eq('ended', false)
+          .range(from, to)
       )
+      const tenancyByUnit = new Map(tenancies.map((tn) => [tn.unit_id, tn]))
+      const tenancyIds = tenancies.map((tn) => tn.id)
 
-      const tenancyByUnit = new Map(tenancies.map((t) => [t.unit_id, t]))
-      const tenancyIds = tenancies.map((t) => t.id)
+      const renterIds = Array.from(new Set(tenancies.map((tn) => tn.renter_user_id).filter(Boolean)))
+      const { data: renters } = renterIds.length
+        ? await supabase.rpc('get_users_by_ids', { user_ids_input: renterIds })
+        : { data: [] as any[] }
+      const renterById = new Map<string, string | null>((renters || []).map((r: any) => [r.id as string, r.full_name as string | null]))
 
-      const earliestMonth = `${months[0]}-01`
-      const latestMonth = `${months[months.length - 1]}-01`
+      const thisMonth = currentMonthKey()
       const payments = tenancyIds.length
-        ? await fetchAllPagesOrEmpty<{ id: string; tenancy_id: string; month: string; expected_amount: number; actual_amount: number }>((from, to) =>
+        ? await fetchAllPagesOrEmpty<{ tenancy_id: string; month: string; expected_amount: number; actual_amount: number; stripe_status: string | null }>((from, to) =>
             supabase
               .from('rent_payments')
-              .select('id, tenancy_id, month, expected_amount, actual_amount')
+              .select('tenancy_id, month, expected_amount, actual_amount, stripe_status')
               .in('tenancy_id', tenancyIds)
-              .gte('month', earliestMonth)
-              .lte('month', latestMonth)
+              .gte('month', `${thisMonth}-01`)
+              .lte('month', `${thisMonth}-28`)
               .range(from, to)
           )
         : []
+      const paymentByTenancy = new Map(payments.map((p) => [p.tenancy_id, p]))
 
-      const paymentsByTenancyMonth = new Map<string, any>()
-      for (const p of payments) {
-        const key = `${p.tenancy_id}:${String(p.month).slice(0, 7)}`
-        paymentsByTenancyMonth.set(key, p)
-      }
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
 
       const builtRows: Row[] = units.map((unit) => {
         const property = propertyById.get(unit.property_id)
         const tenancy = tenancyByUnit.get(unit.id)
-        const cells: Record<string, Cell> = {}
-        for (const m of months) {
-          if (!tenancy) {
-            cells[m] = { status: 'no-tenant' }
-            continue
-          }
-          const payment = paymentsByTenancyMonth.get(`${tenancy.id}:${m}`)
-          if (!payment) {
-            cells[m] = { status: 'no-tenant' } // no row generated for this month yet
-            continue
-          }
-          const expected = Number(payment.expected_amount || 0)
-          const actual = Number(payment.actual_amount || 0)
-          cells[m] = {
-            status: actual >= expected && expected > 0 ? 'paid' : actual > 0 ? 'partial' : 'unpaid',
-            expected,
-            actual,
-            paymentId: payment.id,
-          }
+        const unitLabel = `${property?.address || t('unknownLabel', lang)} · ${unit.unit_number}`
+
+        if (!tenancy) {
+          return { unitId: unit.id, propertyId: unit.property_id, unitLabel, tenantName: null, hasTenancy: false, expected: 0, actual: 0, paid: false, processing: false, daysLate: 0, dueLabel: '' }
         }
+
+        const payment = paymentByTenancy.get(tenancy.id)
+        const expected = Number(payment?.expected_amount ?? tenancy.rent_amount ?? 0)
+        const actual = Number(payment?.actual_amount || 0)
+        const paid = expected > 0 && actual >= expected
+        const processing = !paid && payment?.stripe_status === 'processing'
+
+        const [y, m] = thisMonth.split('-').map(Number)
+        const dueDate = new Date(y, m - 1, tenancy.rent_due_day || 1)
+        const daysLate = Math.round((today.getTime() - dueDate.getTime()) / 86400000)
+        const dueLabel = dueDate.toLocaleDateString(lang === 'es' ? 'es-ES' : undefined, { month: 'short', day: 'numeric' })
+
         return {
           unitId: unit.id,
           propertyId: unit.property_id,
-          label: `${property?.address || t('unknownLabel', lang)} · ${unit.unit_number}`,
-          hasTenancy: !!tenancy,
-          cells,
+          unitLabel,
+          tenantName: renterById.get(tenancy.renter_user_id) || null,
+          hasTenancy: true,
+          expected,
+          actual,
+          paid,
+          processing,
+          daysLate,
+          dueLabel,
         }
+      })
+
+      // Tenants needing attention first (late, then due, then processing),
+      // paid tenants after, vacant units last — this is a "what do I need
+      // to look at" list, not an alphabetical directory.
+      builtRows.sort((a, b) => {
+        const rank = (r: Row) => (!r.hasTenancy ? 3 : r.paid ? 2 : r.processing ? 1 : 0)
+        const ra = rank(a)
+        const rb = rank(b)
+        if (ra !== rb) return ra - rb
+        if (ra === 0) return b.daysLate - a.daysLate
+        return a.unitLabel.localeCompare(b.unitLabel)
       })
 
       setRows(builtRows)
       setLoading(false)
     }
     init()
-  }, [router, months.join(',')])
+  }, [router])
 
   const filteredRows = useMemo(() => {
     const q = search.trim().toLowerCase()
     if (!q) return rows
-    return rows.filter((r) => r.label.toLowerCase().includes(q))
+    return rows.filter((r) => r.unitLabel.toLowerCase().includes(q) || r.tenantName?.toLowerCase().includes(q))
   }, [rows, search])
 
-  // Stats follow the same filter the table does — "what am I looking at
-  // right now", not a separate portfolio-wide figure that wouldn't match
-  // the rows on screen.
-  const statsMonth = months[months.length - 1]
   const stats = useMemo(() => {
-    if (!statsMonth) return { expected: 0, collected: 0, pct: 0 }
     let expected = 0
     let collected = 0
     for (const row of filteredRows) {
-      const cell = row.cells[statsMonth]
-      if (!cell || cell.status === 'no-tenant') continue
-      expected += cell.expected || 0
-      collected += cell.actual || 0
+      if (!row.hasTenancy) continue
+      expected += row.expected
+      collected += row.actual
     }
     return { expected, collected, pct: expected > 0 ? Math.round((collected / expected) * 100) : 0 }
-  }, [filteredRows, statsMonth])
+  }, [filteredRows])
 
-  const cellStyle = (status: Cell['status']) => {
-    if (status === 'paid') return 'bg-[#12A5A9]/15 text-[#12A5A9]'
-    if (status === 'partial') return 'bg-yellow-500/15 text-yellow-400'
-    if (status === 'unpaid') return 'bg-red-500/10 text-red-400'
-    return 'bg-white/3 text-white/25'
+  const pillFor = (row: Row) => {
+    if (!row.hasTenancy) return { text: t('noTenantLabel', lang), style: 'bg-white/5 text-white/35' }
+    if (row.paid) return { text: t('paidStatus', lang), style: 'bg-[#0A7B7E]/20 text-[#12A5A9]' }
+    if (row.processing) return { text: t('bankPaymentProcessing', lang), style: 'bg-yellow-500/15 text-yellow-400' }
+    if (row.daysLate > 0) return { text: `${row.daysLate} ${t('dayLateSuffix', lang)}`, style: 'bg-red-500/15 text-red-400' }
+    return { text: `${t('dueDatePrefix', lang)} ${row.dueLabel}`, style: 'bg-white/8 text-white/60' }
   }
 
   return (
@@ -241,59 +194,26 @@ export default function RentRollPage() {
         <div className="w-20" />
       </nav>
 
-      <main className="max-w-5xl mx-auto px-6 py-10 pb-28">
+      <main className="max-w-2xl mx-auto px-6 py-10 pb-28">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-white">{t('rentRollHeading', lang)}</h1>
           <p className="text-white/50 text-sm mt-1">{t('rentRollSubtitle', lang)}</p>
         </div>
 
-        <div className="flex items-center gap-3 flex-wrap mb-6">
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={t('searchPropertyOrUnit', lang)}
-            className="flex-1 min-w-[180px] bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder-white/40 focus:outline-none focus:border-[#12A5A9] transition"
-          />
-          <select
-            value={range}
-            onChange={(e) => setRange(e.target.value as RangeValue)}
-            className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#12A5A9] transition"
-          >
-            <option value="recent3" className="bg-[#0C1A2E]">{t('last3MonthsOption', lang)}</option>
-            <option value="recent6" className="bg-[#0C1A2E]">{t('last6MonthsOption', lang)}</option>
-            <option value="recent12" className="bg-[#0C1A2E]">{t('last12MonthsOption', lang)}</option>
-            {YEAR_OPTIONS.map((y) => (
-              <option key={y} value={`year-${y}`} className="bg-[#0C1A2E]">{y}</option>
-            ))}
-            <option value="custom" className="bg-[#0C1A2E]">{t('customRangeOption', lang)}</option>
-          </select>
-          {range === 'custom' && (
-            <div className="flex items-center gap-2">
-              <input
-                type="month"
-                value={customFrom}
-                onChange={(e) => setCustomFrom(e.target.value)}
-                className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#12A5A9] transition [color-scheme:dark]"
-              />
-              <span className="text-white/40 text-sm">{t('toWord', lang)}</span>
-              <input
-                type="month"
-                value={customTo}
-                onChange={(e) => setCustomTo(e.target.value)}
-                className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#12A5A9] transition [color-scheme:dark]"
-              />
-            </div>
-          )}
-        </div>
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={t('searchPropertyOrUnit', lang)}
+          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder-white/40 focus:outline-none focus:border-[#12A5A9] transition mb-6"
+        />
 
-        {!loading && months.length > 0 && rows.length > 0 && (
+        {!loading && rows.length > 0 && (
           <ScrollReveal>
-            <div className="grid grid-cols-3 gap-3 mb-6">
+            <div className="grid grid-cols-3 gap-3 mb-8">
               <div className="bg-white/3 border border-white/8 rounded-2xl p-4">
                 <div className="flex items-center gap-2 mb-1">
                   <DollarSignIcon className="w-4 h-4 text-white/50" />
-                  <span className="text-white/50 text-xs">{monthLabel(statsMonth, lang, showYearInHeader)}</span>
                 </div>
                 <p className="text-white/60 text-xs">{t('expectedStatLabel', lang)}</p>
                 <CountUp value={Math.round(stats.expected)} className="text-xl font-bold text-white tabular-nums" />
@@ -301,7 +221,6 @@ export default function RentRollPage() {
               <div className="bg-white/3 border border-white/8 rounded-2xl p-4">
                 <div className="flex items-center gap-2 mb-1">
                   <CheckCircleIcon className="w-4 h-4 text-[#12A5A9]" />
-                  <span className="text-white/50 text-xs">{monthLabel(statsMonth, lang, showYearInHeader)}</span>
                 </div>
                 <p className="text-white/60 text-xs">{t('collectedStatLabel', lang)}</p>
                 <CountUp value={Math.round(stats.collected)} className="text-xl font-bold text-[#12A5A9] tabular-nums" />
@@ -319,12 +238,9 @@ export default function RentRollPage() {
 
         {loading ? (
           <div className="space-y-3">
-            <Skeleton className="h-10" />
-            <Skeleton className="h-64" />
-          </div>
-        ) : months.length === 0 ? (
-          <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
-            <p className="text-white/50 text-sm">{t('pickACustomRangeMsg', lang)}</p>
+            <Skeleton className="h-20" />
+            <Skeleton className="h-20" />
+            <Skeleton className="h-20" />
           </div>
         ) : rows.length === 0 ? (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
@@ -336,63 +252,26 @@ export default function RentRollPage() {
           </div>
         ) : (
           <ScrollReveal>
-            <div className="overflow-x-auto bg-white/3 border border-white/8 rounded-2xl">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="border-b border-white/8">
-                    <th className="sticky left-0 z-10 bg-[#101f36] text-left text-white/50 text-xs font-medium uppercase tracking-wide px-4 py-3 min-w-[180px]">
-                      {t('unitColumnHeading', lang)}
-                    </th>
-                    {months.map((m) => (
-                      <th key={m} className="text-center text-white/50 text-xs font-medium uppercase tracking-wide px-2 py-3 min-w-[56px]">
-                        {monthLabel(m, lang, showYearInHeader)}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredRows.map((row) => (
-                    <tr key={row.unitId} className="border-b border-white/5 last:border-0">
-                      <td className="sticky left-0 z-10 bg-[#0c1a2e] px-4 py-3">
-                        <Link
-                          href={`/landlord/properties/${row.propertyId}/units/${row.unitId}/rent`}
-                          className="text-white text-sm hover:text-[#12A5A9] transition truncate block max-w-[220px]"
-                        >
-                          {row.label}
-                        </Link>
-                        {!row.hasTenancy && <span className="text-white/30 text-xs">{t('noTenantLabel', lang)}</span>}
-                      </td>
-                      {months.map((m) => {
-                        // row.cells was built for whichever range was
-                        // selected when this row last loaded — for the one
-                        // render between picking a new range and the
-                        // refetch actually landing, `months` has already
-                        // moved on to the new range's keys but this row
-                        // hasn't yet, so a lookup here can genuinely come
-                        // back undefined. Never trust it blindly.
-                        const cell = row.cells[m] ?? { status: 'no-tenant' as const }
-                        return (
-                          <td key={m} className="px-2 py-3 text-center">
-                            <Link
-                              href={`/landlord/properties/${row.propertyId}/units/${row.unitId}/rent`}
-                              className={`inline-flex items-center justify-center w-14 h-9 rounded-lg text-xs font-semibold transition hover:opacity-80 ${cellStyle(cell.status)}`}
-                              title={cell.expected ? `${t('expectedDollarPrefix', lang)}${cell.expected} ${t('paidDollarPrefix', lang)}${cell.actual}` : undefined}
-                            >
-                              {cell.status === 'paid' ? '✓' : cell.status === 'partial' ? '½' : cell.status === 'unpaid' ? '✕' : '—'}
-                            </Link>
-                          </td>
-                        )
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="flex items-center gap-4 text-xs text-white/50 flex-wrap mt-4">
-              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-[#12A5A9]/40" /> {t('paidLegend', lang)}</span>
-              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-yellow-500/40" /> {t('partialLegend', lang)}</span>
-              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-red-500/40" /> {t('unpaidLegend', lang)}</span>
-              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-white/10" /> {t('noTenantNoRecordLegend', lang)}</span>
+            <div className="space-y-2.5">
+              {filteredRows.map((row) => {
+                const pill = pillFor(row)
+                return (
+                  <Link
+                    key={row.unitId}
+                    href={`/landlord/properties/${row.propertyId}/units/${row.unitId}/rent`}
+                    className={`flex items-center justify-between gap-4 bg-white/3 border border-white/8 rounded-2xl px-5 py-4 transition hover:bg-white/5 hover:border-white/15 ${!row.hasTenancy ? 'opacity-60' : ''}`}
+                  >
+                    <div className="min-w-0">
+                      <p className="text-white font-semibold truncate">{row.tenantName || row.unitLabel}</p>
+                      {row.tenantName && <p className="text-white/40 text-xs truncate mt-0.5">{row.unitLabel}</p>}
+                    </div>
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      {row.hasTenancy && <span className="text-white text-sm font-semibold tabular-nums hidden sm:inline">${row.expected.toLocaleString()}</span>}
+                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${pill.style}`}>{pill.text}</span>
+                    </div>
+                  </Link>
+                )
+              })}
             </div>
           </ScrollReveal>
         )}
