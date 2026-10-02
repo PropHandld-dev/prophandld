@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from 'next/server'
 // ever gets served FROM that host for a crawler to index in the first
 // place, and any link already indexed there now lands on the real site
 // instead of a dead end.
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const host = request.headers.get('host') || ''
   if (host.endsWith('.vercel.app')) {
     const url = new URL(request.nextUrl.pathname + request.nextUrl.search, 'https://www.prophandld.com')
