@@ -16,7 +16,7 @@ export async function GET() {
   if (!user) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
-  if (user.user_metadata?.role !== 'contractor') {
+  if (user.app_metadata?.role !== 'contractor') {
     return NextResponse.json({ error: 'Only contractors have requirements' }, { status: 403 })
   }
 

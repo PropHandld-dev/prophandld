@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
   if (!user) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
-  if (user.user_metadata?.role !== 'contractor') {
+  if (user.app_metadata?.role !== 'contractor') {
     return NextResponse.json({ error: 'Only contractors submit credentials' }, { status: 403 })
   }
 

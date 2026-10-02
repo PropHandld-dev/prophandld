@@ -17,7 +17,7 @@ export async function POST() {
   }
 
   const userId = user.id
-  const role = user.user_metadata?.role
+  const role = user.app_metadata?.role
   const supabaseAdmin = getSupabaseAdmin()
 
   // The database rows were always fully cleaned up here; the actual files
