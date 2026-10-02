@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
   if (!user) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
-  if (user.user_metadata?.role !== 'landlord') {
+  if (user.app_metadata?.role !== 'landlord') {
     return NextResponse.json({ error: 'Only landlords can invite contractors' }, { status: 403 })
   }
 
