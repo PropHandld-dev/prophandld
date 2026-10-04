@@ -172,6 +172,15 @@ export async function POST() {
       ])
       await supabaseAdmin.from('contractor_verifications').delete().eq('contractor_user_id', userId)
       await supabaseAdmin.from('contractor_credentials').delete().eq('contractor_user_id', userId)
+      // A contractor doesn't own the job they photographed — the landlord
+      // or renter does — so the job_id-scoped job_photos cleanup in those
+      // two branches above never reaches a photo this contractor uploaded
+      // to someone else's still-open job (e.g. the required after-photo on
+      // completion). Left behind, it blocks the users delete below the
+      // same way the comment further down already warns about.
+      const { data: contractorPhotos } = await supabaseAdmin.from('job_photos').select('photo_url').eq('uploaded_by', userId)
+      await removeStorageFiles('job-photos', (contractorPhotos || []).map((p) => p.photo_url))
+      await supabaseAdmin.from('job_photos').delete().eq('uploaded_by', userId)
     }
 
     // Common to every role
