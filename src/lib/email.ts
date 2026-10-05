@@ -266,6 +266,33 @@ export async function sendRenterInviteEmail({
 }
 
 // Same reasoning as sendRenterInviteEmail: pre-signup, no known preference.
+// Unlike the primary-tenant invite, this doesn't carry lease terms and
+// doesn't auto-link anything on signup — a co-renter has no separate
+// lease of their own, so once they have an account the landlord adds
+// them from the unit page the normal way (now that that path correctly
+// checks their account is actually a renter).
+export async function sendCoRenterInviteEmail({
+  to,
+  landlordName,
+  unitLabel,
+}: {
+  to: string
+  landlordName: string
+  unitLabel: string
+}) {
+  const html = baseTemplate({
+    lang: 'en',
+    eyebrow: 'Invite',
+    heading: `${escapeHtml(landlordName)} invited you to Prophandld`,
+    bodyHtml: `You've been added as a co-renter for <strong>${escapeHtml(unitLabel)}</strong>. Sign up as a renter with this same email address, then let ${escapeHtml(landlordName)} know — they'll add you to the unit so you can report issues and see documents, just like the primary tenant.`,
+    ctaLabel: 'Create your account',
+    ctaUrl: `${SITE_URL}/signup?role=renter`,
+    footerText: `You're receiving this because ${escapeHtml(landlordName)} invited you to Prophandld.`,
+  })
+  return sendEmail({ to, subject: `${landlordName} invited you to Prophandld`, html })
+}
+
+// Same reasoning as sendRenterInviteEmail: pre-signup, no known preference.
 export async function sendContractorInviteEmail({
   to,
   landlordName,

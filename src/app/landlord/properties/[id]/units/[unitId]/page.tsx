@@ -37,6 +37,9 @@ export default function UnitDetailPage() {
   const [coRenterEmail, setCoRenterEmail] = useState('')
   const [addingCoRenter, setAddingCoRenter] = useState(false)
   const [coRenterError, setCoRenterError] = useState<string | null>(null)
+  const [coRenterNoAccount, setCoRenterNoAccount] = useState(false)
+  const [sendingCoRenterInvite, setSendingCoRenterInvite] = useState(false)
+  const [coRenterInviteSent, setCoRenterInviteSent] = useState(false)
   const [messagingTenant, setMessagingTenant] = useState(false)
   const [loading, setLoading] = useState(true)
   const [showMoveOutForm, setShowMoveOutForm] = useState(false)
@@ -111,38 +114,34 @@ export default function UnitDetailPage() {
     if (!tenancy || !coRenterEmail.trim()) return
     setAddingCoRenter(true)
     setCoRenterError(null)
+    setCoRenterNoAccount(false)
+    setCoRenterInviteSent(false)
 
-    // Co-renters (this unit's primary tenant plus everyone added here)
-    // are capped at the occupant count the landlord set for the lease —
-    // that number already represents how many people actually live
-    // there, so co-renter accounts shouldn't be able to exceed it.
-    // Falls back to a sane default when no occupant count was set.
-    const maxCoRenters = tenancy.occupants ? Math.max(tenancy.occupants - 1, 0) : 5
-    if (coOccupants.length >= maxCoRenters) {
-      setCoRenterError(
-        tenancy.occupants
-          ? `${t('leaseSetForOccupantsPrefix', lang)} ${tenancy.occupants} ${tenancy.occupants === 1 ? t('occupantSingular', lang) : t('occupantPlural', lang)}${t('leaseSetForOccupantsSuffix', lang)}`
-          : `${t('reachedDefaultLimitPrefix', lang)} ${maxCoRenters} ${t('reachedDefaultLimitSuffix', lang)}`
-      )
-      setAddingCoRenter(false)
-      return
-    }
+    // Role is only readable server-side (it lives in app_metadata), and
+    // the occupant cap + ownership checks need to be trustworthy too —
+    // see /api/co-renter/add for why this moved off a direct client-side
+    // RPC + insert, which had no role check at all.
+    const res = await fetch('/api/co-renter/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tenancyId: tenancy.id, email: coRenterEmail.trim() }),
+    })
+    const data = await res.json().catch(() => ({}))
 
-    const { data: renterId, error: lookupError } = await supabase
-      .rpc('get_user_id_by_email', { email_input: coRenterEmail.trim().toLowerCase() })
-
-    if (lookupError || !renterId) {
-      setCoRenterError(t('noAccountFoundEmail', lang))
-      setAddingCoRenter(false)
-      return
-    }
-
-    const { error: insertError } = await supabase
-      .from('tenancy_occupants')
-      .insert({ tenancy_id: tenancy.id, renter_user_id: renterId })
-
-    if (insertError) {
-      setCoRenterError(insertError.code === '23505' ? t('alreadyCoRenter', lang) : t('couldNotAddCoRenterColon', lang) + insertError.message)
+    if (!res.ok) {
+      if (data.error === 'no_account_found') {
+        setCoRenterNoAccount(true)
+      } else if (data.error === 'already_co_renter') {
+        setCoRenterError(t('alreadyCoRenter', lang))
+      } else if (data.error === 'occupant_limit_reached') {
+        setCoRenterError(
+          tenancy.occupants
+            ? `${t('leaseSetForOccupantsPrefix', lang)} ${tenancy.occupants} ${tenancy.occupants === 1 ? t('occupantSingular', lang) : t('occupantPlural', lang)}${t('leaseSetForOccupantsSuffix', lang)}`
+            : `${t('reachedDefaultLimitPrefix', lang)} ${data.maxCoRenters} ${t('reachedDefaultLimitSuffix', lang)}`
+        )
+      } else {
+        setCoRenterError(data.error || t('couldNotAddCoRenterColon', lang))
+      }
       setAddingCoRenter(false)
       return
     }
@@ -150,6 +149,25 @@ export default function UnitDetailPage() {
     setCoRenterEmail('')
     await loadCoOccupants(tenancy.id)
     setAddingCoRenter(false)
+  }
+
+  const handleSendCoRenterInvite = async () => {
+    if (!tenancy || !coRenterEmail.trim()) return
+    setSendingCoRenterInvite(true)
+    const res = await fetch('/api/co-renter/invite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tenancyId: tenancy.id, email: coRenterEmail.trim() }),
+    })
+    if (res.ok) {
+      setCoRenterNoAccount(false)
+      setCoRenterInviteSent(true)
+      setCoRenterEmail('')
+    } else {
+      const data = await res.json().catch(() => ({}))
+      setCoRenterError(data.error || t('couldNotAddCoRenterColon', lang))
+    }
+    setSendingCoRenterInvite(false)
   }
 
   const handleRemoveCoRenter = async (occupantId: string) => {
@@ -694,6 +712,19 @@ export default function UnitDetailPage() {
                     </button>
                   </div>
                   {coRenterError && <p className="text-red-400 text-xs mt-2">{coRenterError}</p>}
+                  {coRenterNoAccount && (
+                    <div className="mt-2">
+                      <p className="text-red-400 text-xs mb-1.5">{t('noAccountFoundEmail', lang)}</p>
+                      <button
+                        onClick={handleSendCoRenterInvite}
+                        disabled={sendingCoRenterInvite}
+                        className="text-[#12A5A9] text-xs font-semibold hover:underline disabled:opacity-50"
+                      >
+                        {sendingCoRenterInvite ? t('sendingDots', lang) : t('sendCoRenterInviteBtn', lang)}
+                      </button>
+                    </div>
+                  )}
+                  {coRenterInviteSent && <p className="text-[#12A5A9] text-xs mt-2">{t('coRenterInviteSentMsg', lang)}</p>}
                 </div>
               )}
 

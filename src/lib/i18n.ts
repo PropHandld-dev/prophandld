@@ -1438,6 +1438,8 @@ const STRINGS = {
   reachedDefaultLimitSuffix: { en: 'co-renters. Set an occupant count on the lease to raise it.', es: 'co-inquilinos. Establece una cantidad de ocupantes en el contrato para aumentarlo.' },
   noAccountFoundEmail: { en: 'No Prophandld account found with that email. They need to sign up first.', es: 'No se encontró ninguna cuenta de Prophandld con ese correo. Necesitan registrarse primero.' },
   alreadyCoRenter: { en: "They're already a co-renter on this unit.", es: 'Ya son co-inquilinos de esta unidad.' },
+  sendCoRenterInviteBtn: { en: 'Send them an invite instead', es: 'Enviarles una invitación' },
+  coRenterInviteSentMsg: { en: "Invite sent. Once they sign up as a renter, add them here the same way.", es: 'Invitación enviada. Una vez que se registren como inquilinos, agrégalos aquí de la misma manera.' },
   couldNotAddCoRenterColon: { en: 'Could not add co-renter: ', es: 'No se pudo agregar al co-inquilino: ' },
   removeCoRenterConfirm: { en: "Remove this co-renter? They'll lose access to this unit.", es: '¿Eliminar a este co-inquilino? Perderá el acceso a esta unidad.' },
   ifTheyDontAnswer: { en: "If they don't answer", es: 'Si no contestan' },
@@ -1562,6 +1564,10 @@ const STRINGS = {
 
   // Receipt pages (rent + job payment) and the shared ReceiptCard chrome
   printSaveAsPdfBtn: { en: 'Print / Save as PDF', es: 'Imprimir / Guardar como PDF' },
+  printOpenedInBrowserHint: {
+    en: "Printing doesn't work inside the installed app — opened this receipt in your browser instead. Use Print or Share → Save as PDF from there.",
+    es: 'Imprimir no funciona dentro de la app instalada — abrimos este recibo en tu navegador en su lugar. Usa Imprimir o Compartir → Guardar como PDF desde ahí.',
+  },
   receiptNumberPrefix: { en: 'No.', es: 'No.' },
   loadingEllipsisPlain: { en: 'Loading...', es: 'Cargando...' },
   receiptNotFound: { en: 'Receipt not found.', es: 'Recibo no encontrado.' },

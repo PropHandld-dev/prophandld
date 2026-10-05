@@ -1,9 +1,23 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { Logo } from '@/components/Logo'
 import { RippleButton } from '@/components/RippleButton'
 import { useLanguage, t } from '@/lib/i18n'
+
+// window.print() is a documented silent no-op in iOS Safari's installed
+// home-screen (standalone) mode, and in most in-app browsers (a link
+// opened from an email or push notification) — this app is explicitly
+// built to be installed to the home screen, so a contractor or landlord
+// hitting this from there sees a button that does nothing, no error, no
+// feedback. Opening the same page in a real browser tab escapes that
+// context; on iOS this reliably lands in Safari proper, where print
+// actually works.
+function isStandaloneContext() {
+  if (typeof window === 'undefined') return false
+  return window.matchMedia?.('(display-mode: standalone)').matches || (window.navigator as any).standalone === true
+}
 
 export type ReceiptRow = { label: string; value: string }
 
@@ -30,6 +44,16 @@ export function ReceiptCard({
 }) {
   const lang = useLanguage()
   const refNumber = receiptId.replace(/-/g, '').slice(0, 12).toUpperCase()
+  const [showBrowserHint, setShowBrowserHint] = useState(false)
+
+  const handlePrint = () => {
+    if (isStandaloneContext()) {
+      setShowBrowserHint(true)
+      window.open(window.location.href, '_blank')
+      return
+    }
+    window.print()
+  }
 
   return (
     <div className="min-h-screen bg-[#0C1A2E] py-10 px-6 print:bg-white print:py-0">
@@ -45,12 +69,18 @@ export function ReceiptCard({
           {t('backArrow', lang)}
         </Link>
         <RippleButton
-          onClick={() => window.print()}
+          onClick={handlePrint}
           className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition"
         >
           {t('printSaveAsPdfBtn', lang)}
         </RippleButton>
       </nav>
+
+      {showBrowserHint && (
+        <div className="max-w-md mx-auto mb-6 no-print bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3 text-amber-300 text-sm">
+          {t('printOpenedInBrowserHint', lang)}
+        </div>
+      )}
 
       <div className="max-w-md mx-auto pb-4">
         <div className="receipt-torn-edge bg-[#faf9f6] rounded-t-md shadow-[0_30px_80px_-30px_rgba(0,0,0,0.6)] print:shadow-none">
