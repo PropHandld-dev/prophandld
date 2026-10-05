@@ -45,6 +45,7 @@ export default function RenterDashboard() {
   const [contactsLoading, setContactsLoading] = useState(true)
   const [landlordBackupContacts, setLandlordBackupContacts] = useState<any[]>([])
   const [jobs, setJobs] = useState<any[]>([])
+  const [acceptedBidJobIds, setAcceptedBidJobIds] = useState<Set<string>>(new Set())
   const [unreadJobIds, setUnreadJobIds] = useState<Set<string>>(new Set())
   const [pickTimeAlerts, setPickTimeAlerts] = useState<any[]>([])
   const [scheduleAlerts, setScheduleAlerts] = useState<any[]>([])
@@ -103,6 +104,21 @@ export default function RenterDashboard() {
         const jobsList = jobsData || []
         setJobs(jobsList)
         getUnreadJobIds(jobsList.map((j) => j.id), user.id).then(setUnreadJobIds)
+
+        // Same distinction statusLabel() needs below: bid_selected covers
+        // both "a real contractor was chosen through bidding" and "the
+        // landlord is handling this themselves" (DIY), and a direct
+        // SELECT on bids from the tenant's own session is blocked by the
+        // sealed-bidding RLS policy — see job_has_accepted_bid() and the
+        // same fix on the job detail page for the full story.
+        const bidSelectedIds = jobsList.filter((j) => j.status === 'bid_selected').map((j) => j.id)
+        if (bidSelectedIds.length > 0) {
+          Promise.all(
+            bidSelectedIds.map((id) => supabase.rpc('job_has_accepted_bid', { target_job_id: id }).then(({ data }) => ({ id, has: !!data })))
+          ).then((results) => {
+            setAcceptedBidJobIds(new Set(results.filter((r) => r.has).map((r) => r.id)))
+          })
+        }
         setPickTimeAlerts(
           jobsList.filter((j) => j.schedule_ask_tenant && !j.proposed_date)
         )
@@ -143,8 +159,17 @@ export default function RenterDashboard() {
   if (job.proposed_date && !job.schedule_confirmed) {
     return job.proposed_by === 'renter' ? t('newTimeProposedByYou', lang) : t('newTimeProposedByOther', lang)
   }
-  if (['pending_approval', 'approved', 'bidding', 'bid_selected'].includes(job.status)) {
+  // pending_approval/approved used to both show "Landlord is finding a
+  // contractor" — premature by a stage or two, confirmed in testing: a
+  // job showed this before the landlord had even acknowledged it.
+  if (['pending_approval', 'approved'].includes(job.status)) {
+    return t('statusWaitingOnLandlordReview', lang)
+  }
+  if (job.status === 'bidding') {
     return t('statusLandlordFinding', lang)
+  }
+  if (job.status === 'bid_selected') {
+    return acceptedBidJobIds.has(job.id) ? t('statusContractorSelected', lang) : t('statusLandlordDiy', lang)
   }
   if (job.status === 'scheduled') {
     return t('statusScheduled', lang)

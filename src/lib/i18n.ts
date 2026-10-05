@@ -277,6 +277,8 @@ const STRINGS = {
   theirBackupContact: { en: 'Their backup contact', es: 'Su contacto de respaldo' },
   statusLandlordFinding: { en: 'Landlord is finding a contractor', es: 'El propietario está buscando un contratista' },
   statusLandlordDiy: { en: 'Your landlord is handling this themselves', es: 'Tu propietario se está encargando de esto' },
+  statusWaitingOnLandlordReview: { en: "You reported this — waiting for your landlord to review it", es: 'Reportaste esto — esperando a que tu propietario lo revise' },
+  statusContractorSelected: { en: 'A contractor has been selected', es: 'Se ha seleccionado un contratista' },
   statusScheduled: { en: 'Scheduled', es: 'Programado' },
   statusWorkInProgress: { en: 'Work in progress', es: 'Trabajo en progreso' },
   statusWorkCompleteWaiting: { en: 'Work complete, waiting on landlord', es: 'Trabajo terminado, esperando al propietario' },

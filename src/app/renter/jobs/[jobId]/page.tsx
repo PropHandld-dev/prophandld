@@ -60,14 +60,18 @@ export default function RenterJobDetailPage() {
     // keyed only on jobId — so they load together instead of one after
     // another (same fix already applied on the landlord/contractor job
     // pages).
-    const [{ data: jobData, error: jobError }, { data: photosData }, { data: acceptedBidData }] = await Promise.all([
+    const [{ data: jobData, error: jobError }, { data: photosData }, { data: hasAcceptedBidData }] = await Promise.all([
       supabase.from('jobs').select('*').eq('id', jobId).maybeSingle(),
       supabase.from('job_photos').select('*').eq('job_id', jobId).order('created_at', { ascending: false }),
       // Only used to tell a DIY job (landlord handling it themselves, no
       // contractor) apart from a normal one for status copy — see
-      // statusLabel() below. Same fix already applied on the landlord's
-      // own job and unit pages.
-      supabase.from('bids').select('id').eq('job_id', jobId).eq('status', 'accepted').maybeSingle(),
+      // statusLabel() below. Goes through a boolean-only RPC rather than
+      // a direct SELECT on bids: a direct query here was confirmed in
+      // testing to silently come back empty even for a job with a real
+      // accepted bid, almost certainly blocked by the sealed-bidding RLS
+      // policy that keeps bid amounts and contractor identity hidden
+      // from the tenant — this reveals nothing except yes/no.
+      supabase.rpc('job_has_accepted_bid', { target_job_id: jobId }),
     ])
 
     if (jobError || !jobData) {
@@ -78,7 +82,7 @@ export default function RenterJobDetailPage() {
     }
 
     setJob(jobData)
-    setHasAcceptedBid(!!acceptedBidData)
+    setHasAcceptedBid(!!hasAcceptedBidData)
 
     if (photosData && photosData.length > 0) {
       const enriched = await Promise.all(
@@ -220,13 +224,23 @@ export default function RenterJobDetailPage() {
     }
     // bid_selected on a DIY job means the landlord chose to handle it
     // themselves, not that one is still being found — same fix already
-    // applied on the landlord's own job and unit pages.
-    if (status === 'bid_selected' && !hasAcceptedBid) return t('statusLandlordDiy', lang)
+    // applied on the landlord's own job and unit pages. For an ordinary
+    // bid_selected job (a real contractor chosen through bidding), this
+    // used to fall through to the same "finding a contractor" label
+    // below as every earlier stage — confirmed in testing against the
+    // landlord's own view of the identical job, which correctly said
+    // "Contractor selected."
+    if (status === 'bid_selected') return hasAcceptedBid ? t('statusContractorSelected', lang) : t('statusLandlordDiy', lang)
     const labels: Record<string, string> = {
-      pending_approval: t('statusLandlordFinding', lang),
-      approved: t('statusLandlordFinding', lang),
+      // pending_approval/approved used to both show "Landlord is finding
+      // a contractor" — premature by a full stage or two: at
+      // pending_approval nobody has even looked at the report yet, and
+      // at approved (acknowledged) the landlord hasn't opened it to
+      // bidding yet either. Confirmed in testing: a job showed this to
+      // the tenant before the landlord had even acknowledged it.
+      pending_approval: t('statusWaitingOnLandlordReview', lang),
+      approved: t('statusWaitingOnLandlordReview', lang),
       bidding: t('statusLandlordFinding', lang),
-      bid_selected: t('statusLandlordFinding', lang),
       scheduled: t('statusScheduledFull', lang),
       in_progress: t('statusWorkInProgress', lang),
       pending_review: t('statusWorkCompleteWaiting', lang),
