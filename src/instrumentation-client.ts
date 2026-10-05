@@ -32,11 +32,18 @@ export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
 
 import posthog from "posthog-js";
 
-posthog.init(process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN!, {
-  api_host: "/ingest",
-  ui_host: "https://us.posthog.com",
-  defaults: "2026-01-30",
-  capture_exceptions: true,
-  disable_session_recording: true,
-  debug: process.env.NODE_ENV === "development",
-});
+// Confirmed in testing: this was firing "PostHog was initialized without
+// a token" on every single page load in production — NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN
+// isn't set there, so no analytics events have actually been captured.
+// Skipping init entirely when it's missing stops the noisy warning; the
+// var itself still needs adding in Vercel for analytics to actually work.
+if (process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN) {
+  posthog.init(process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN, {
+    api_host: "/ingest",
+    ui_host: "https://us.posthog.com",
+    defaults: "2026-01-30",
+    capture_exceptions: true,
+    disable_session_recording: true,
+    debug: process.env.NODE_ENV === "development",
+  });
+}

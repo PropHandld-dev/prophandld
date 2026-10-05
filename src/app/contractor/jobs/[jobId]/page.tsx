@@ -458,6 +458,11 @@ export default function ContractorJobDetailPage() {
 
   const statusLabel = (status: string) => {
     const labels: Record<string, string> = {
+      // Used to have no entry here at all, so this fell through to the
+      // raw DB value "bidding" — confirmed in testing, inconsistent with
+      // the landlord's own "Getting bids" wording for the identical
+      // status.
+      bidding: t('statusBidding', lang),
       bid_selected: t('statusSelected', lang),
       scheduled: t('statusScheduledFull', lang),
       in_progress: t('statusInProgressFull', lang),

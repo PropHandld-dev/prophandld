@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 
-export function CountUp({ value, duration = 700, className }: { value: number; duration?: number; className?: string }) {
+export function CountUp({ value, duration = 700, className, format }: { value: number; duration?: number; className?: string; format?: (n: number) => string }) {
   const [display, setDisplay] = useState(0)
   const prevValue = useRef(0)
 
@@ -32,5 +32,5 @@ export function CountUp({ value, duration = 700, className }: { value: number; d
     return () => cancelAnimationFrame(frame)
   }, [value, duration])
 
-  return <span className={className}>{display}</span>
+  return <span className={className}>{format ? format(display) : display}</span>
 }
