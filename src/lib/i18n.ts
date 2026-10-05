@@ -809,6 +809,8 @@ const STRINGS = {
   noMessagesYet: { en: 'No messages yet. Say hello.', es: 'Aún no hay mensajes. Saluda.' },
   youLabel: { en: 'You', es: 'Tú' },
   sentLabel: { en: 'Sent', es: 'Enviado' },
+  seeTranslationBtn: { en: 'See translation', es: 'Ver traducción' },
+  translatingDots: { en: 'Translating…', es: 'Traduciendo…' },
   confirmThisTime: { en: 'Confirm this time', es: 'Confirmar este horario' },
   proposeATimeChat: { en: 'Propose a time', es: 'Proponer un horario' },
   sendProposal: { en: 'Send proposal', es: 'Enviar propuesta' },

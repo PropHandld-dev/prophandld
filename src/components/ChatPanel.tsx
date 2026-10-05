@@ -72,6 +72,31 @@ export function ChatPanel({
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showSchedule, setShowSchedule] = useState(false)
+  // Per-message, on tap only — see /api/translate for why this isn't
+  // automatic. Cached here so tapping a message twice doesn't call the
+  // API again; cleared implicitly whenever this component remounts for a
+  // different conversation (new jobId/threadId), since it's keyed by
+  // message id, not conversation.
+  const [translations, setTranslations] = useState<Record<string, { loading: boolean; text?: string; error?: string }>>({})
+  const handleTranslate = async (messageId: string, body: string) => {
+    if (translations[messageId]?.text || translations[messageId]?.loading) return
+    setTranslations((prev) => ({ ...prev, [messageId]: { loading: true } }))
+    try {
+      const res = await fetch('/api/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: body, target: lang }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setTranslations((prev) => ({ ...prev, [messageId]: { loading: false, error: data.error || 'Could not translate this message' } }))
+        return
+      }
+      setTranslations((prev) => ({ ...prev, [messageId]: { loading: false, text: data.translated } }))
+    } catch {
+      setTranslations((prev) => ({ ...prev, [messageId]: { loading: false, error: 'Could not translate this message' } }))
+    }
+  }
   const [scheduleDate, setScheduleDate] = useState('')
   const [scheduleTime, setScheduleTime] = useState('')
   const listRef = useRef<HTMLDivElement>(null)
@@ -344,7 +369,21 @@ export function ChatPanel({
                       }
                     >
                       <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{m.body}</p>
+                      {translations[m.id]?.text && (
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap break-words mt-1.5 pt-1.5 border-t border-white/15 italic opacity-90">
+                          {translations[m.id].text}
+                        </p>
+                      )}
                     </div>
+                    {!isMine && !translations[m.id]?.text && (
+                      <button
+                        onClick={() => handleTranslate(m.id, m.body)}
+                        disabled={translations[m.id]?.loading}
+                        className="text-white/40 hover:text-white/70 text-[11px] mt-1 transition disabled:opacity-50"
+                      >
+                        {translations[m.id]?.loading ? t('translatingDots', lang) : translations[m.id]?.error ? translations[m.id]?.error : t('seeTranslationBtn', lang)}
+                      </button>
+                    )}
                     <p className={`text-[10px] text-white/50 mt-1 ${isMine ? 'text-right' : 'text-left'}`}>
                       {formatTimestamp(m.created_at)}
                       {isMine && ` · ✓ ${t('sentLabel', lang)}`}
