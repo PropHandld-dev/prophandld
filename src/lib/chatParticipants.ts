@@ -23,6 +23,16 @@ export async function loadChatParticipants(admin: any, ref: { jobId?: string | n
     const property = (job.units as any)?.properties
     if (property?.owner_user_id) participants.push({ userId: property.owner_user_id, role: 'landlord' })
 
+    // Accepted contractor pushed before tenants/occupants, deliberately: the
+    // de-dup below keeps whichever role for a given user id was pushed
+    // first, and a user's real role (from account signup) never changes —
+    // if the same id also turns up as a tenancy occupant (stale data from
+    // before co-renter adds were validated against the real account role),
+    // that's the wrong/stale tag and shouldn't be allowed to win just by
+    // being pushed first.
+    const { data: bid } = await admin.from('bids').select('contractor_user_id').eq('job_id', job.id).eq('status', 'accepted').maybeSingle()
+    if (bid?.contractor_user_id) participants.push({ userId: bid.contractor_user_id, role: 'contractor' })
+
     const { data: tenancies } = await admin.from('tenancies').select('id, renter_user_id').eq('unit_id', job.unit_id).eq('ended', false)
     for (const t of tenancies || []) participants.push({ userId: t.renter_user_id, role: 'renter' })
     if ((tenancies || []).length > 0) {
@@ -32,9 +42,6 @@ export async function loadChatParticipants(admin: any, ref: { jobId?: string | n
         .in('tenancy_id', (tenancies || []).map((t: any) => t.id))
       for (const o of occupants || []) participants.push({ userId: o.renter_user_id, role: 'renter' })
     }
-
-    const { data: bid } = await admin.from('bids').select('contractor_user_id').eq('job_id', job.id).eq('status', 'accepted').maybeSingle()
-    if (bid?.contractor_user_id) participants.push({ userId: bid.contractor_user_id, role: 'contractor' })
 
     context = `About the ${job.category} job${property?.address ? ` at ${property.address}` : ''}`
     path = (role) => `/${role}/jobs/${job.id}#chat`
