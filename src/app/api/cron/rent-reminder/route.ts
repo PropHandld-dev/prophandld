@@ -150,12 +150,24 @@ export async function GET(request: NextRequest) {
   // "now late" emails back to back, in the same batch, before the renter had
   // any real chance to pay. A grace period is measured from having actually
   // been notified once, not from the row's mere existence.
+  //
+  // The late-notice email and the late-fee charge are two separate things
+  // that used to share one gate (reminder_sent_at) — which meant a landlord
+  // who set a late fee only *after* a tenant was already flagged late (a very
+  // normal order of events) would have it silently never apply for that
+  // month: the one-time email had already fired, so this whole block would
+  // never run again. The email stays one-time; the fee now applies on any
+  // run where it's configured and not yet applied, independent of whether
+  // the email already went out.
   let lateNotifications = 0
   const lateCandidates = tenancies.filter((tenancy) => {
     if (createdTenancyIds.has(tenancy.id)) return false
     const rentPayment = paymentByTenancy.get(tenancy.id)
-    if (!rentPayment || rentPayment.reminder_sent_at) return false
+    if (!rentPayment) return false
     if (Number(rentPayment.actual_amount || 0) >= Number(rentPayment.expected_amount || 0)) return false
+    const alreadyNotified = !!rentPayment.reminder_sent_at
+    const feeCouldStillApply = tenancy.late_fee_amount && !rentPayment.late_fee_applied
+    if (alreadyNotified && !feeCouldStillApply) return false
     const dueDate = new Date(firstDate.getFullYear(), firstDate.getMonth(), tenancy.rent_due_day ?? 1)
     const daysSinceDue = Math.floor((Date.now() - dueDate.getTime()) / (24 * 60 * 60 * 1000))
     return daysSinceDue >= (tenancy.grace_period_days ?? 5)
@@ -165,9 +177,11 @@ export async function GET(request: NextRequest) {
     const rentPayment = paymentByTenancy.get(tenancy.id)
     const landlordUserId = tenancy.units?.properties?.owner_user_id
     const unitLabel = unitLabelOf(tenancy)
+    const isFirstNotice = !rentPayment.reminder_sent_at
 
     let lateFeeAdded: number | null = null
-    const updates: Record<string, unknown> = { reminder_sent_at: new Date().toISOString() }
+    const updates: Record<string, unknown> = {}
+    if (isFirstNotice) updates.reminder_sent_at = new Date().toISOString()
 
     if (tenancy.late_fee_amount && !rentPayment.late_fee_applied) {
       lateFeeAdded = Number(tenancy.late_fee_amount)
@@ -176,6 +190,15 @@ export async function GET(request: NextRequest) {
     }
 
     await supabaseAdmin.from('rent_payments').update(updates).eq('id', rentPayment.id)
+
+    // Only send the late-notice emails/push on the first notice for this
+    // month — a late fee added on a later run (after the tenant was already
+    // notified once) updates the amount silently rather than re-notifying,
+    // since the whole point of reminder_sent_at was to make this one-time.
+    if (!isFirstNotice) {
+      lateNotifications++
+      return
+    }
 
     if (tenancy.renter_user_id) {
       const renter = userById.get(tenancy.renter_user_id)

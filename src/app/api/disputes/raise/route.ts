@@ -73,7 +73,10 @@ export async function POST(request: NextRequest) {
 
   if (insertError) {
     console.error('disputes/raise: error inserting dispute', insertError)
-    return NextResponse.json({ error: 'Could not raise dispute' }, { status: 500 })
+    // Temporary: surface the real DB error so this can be diagnosed from the
+    // network response instead of needing direct log access — remove the
+    // `detail` field once this is confirmed fixed.
+    return NextResponse.json({ error: 'Could not raise dispute', detail: insertError.message, code: insertError.code }, { status: 500 })
   }
 
   const { error: updateError } = await supabaseAdmin.from('jobs').update({ status: 'disputed' }).eq('id', jobId)
