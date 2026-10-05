@@ -107,14 +107,14 @@ using (
 );
 
 -- ============================================================
--- 5. Disputes: raising one has been 500ing every single time in
---    testing. /api/disputes/raise uses the service-role client (not
---    a user session), so this is NOT an RLS gap like the two above —
---    something is rejecting the insert at the database level itself,
---    and the route was swallowing the real error. A code change
---    (already pushed) now returns the real Postgres error in the API
---    response so this can be diagnosed directly. Once you see that
---    error, paste it back and the real fix (most likely a check
---    constraint or a NOT NULL column with no default on the disputes
---    table) can be written precisely instead of guessed at here.
+-- 5. Disputes: raising one 500'd every single time in testing. With
+--    the diagnostic change live, the real error came back as
+--    "permission denied for table disputes" (Postgres 42501) — not an
+--    RLS violation (that gives a different message) and not a check
+--    constraint. This is a straight missing GRANT: the disputes table
+--    was never given the standard privileges Supabase normally sets
+--    up automatically, so even the service-role client (which bypasses
+--    RLS entirely) still can't touch it. Same category of gotcha
+--    that's bitten this project before with newly-created tables.
 -- ============================================================
+grant select, insert, update, delete on disputes to service_role, authenticated;
