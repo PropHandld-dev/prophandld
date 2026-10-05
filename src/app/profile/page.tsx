@@ -14,6 +14,7 @@ import { TABS_BY_ROLE } from '@/lib/navTabs'
 import { StripeConnectCard } from '@/components/StripeConnectCard'
 import { BillingSection } from '@/components/BillingSection'
 import { Switch } from '@/components/Switch'
+import { TwoFactorAuthCard } from '@/components/TwoFactorAuthCard'
 import { usePushSubscription } from '@/lib/usePushSubscription'
 import { useLanguage, t } from '@/lib/i18n'
 
@@ -612,6 +613,8 @@ export default function ProfilePage() {
             </form>
           </div>
         )}
+
+        <TwoFactorAuthCard />
 
         {/* Replay tour */}
         <Link

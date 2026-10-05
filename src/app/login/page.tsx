@@ -89,6 +89,15 @@ function LoginForm() {
     email: '',
     password: '',
   })
+  // MFA is opt-in for every role (unlike admin, where it's mandatory) — set
+  // up from Profile settings. A password-only account never sees any of
+  // this; it only activates for someone who already enrolled a verified
+  // authenticator, same check the admin login page already does.
+  const [mfaFactorId, setMfaFactorId] = useState<string | null>(null)
+  const [mfaUser, setMfaUser] = useState<User | null>(null)
+  const [mfaCode, setMfaCode] = useState('')
+  const [mfaVerifying, setMfaVerifying] = useState(false)
+  const [mfaError, setMfaError] = useState<string | null>(null)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -245,16 +254,96 @@ function LoginForm() {
       // show the "Email verified!" screen and re-fire the welcome-email
       // check for a login that has nothing to do with either.
       consumeFreshSignIn()
+
+      // Optional MFA: only a password alone proves nothing more if this
+      // account enrolled an authenticator — same check the admin login
+      // page already does, just not mandatory here. A session's AAL
+      // already reflects this challenge for as long as the session lasts,
+      // so this only ever runs right after a fresh password sign-in, not
+      // on every page load.
+      const { data: factorsData } = await supabase.auth.mfa.listFactors()
+      const verifiedTotp = factorsData?.totp?.find((f) => f.status === 'verified')
+      if (verifiedTotp) {
+        const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId: verifiedTotp.id })
+        if (challengeError || !challenge) {
+          setError('Could not start the authenticator check. Try again.')
+          setLoading(false)
+          return
+        }
+        setMfaFactorId(verifiedTotp.id)
+        setMfaUser(data.user)
+        setLoading(false)
+        return
+      }
+
       await completeSignIn(data.user)
     }
 
     setLoading(false)
   }
 
+  const handleMfaVerify = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!mfaFactorId || !mfaUser || mfaCode.trim().length === 0) return
+    setMfaVerifying(true)
+    setMfaError(null)
+
+    const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId: mfaFactorId })
+    if (challengeError || !challenge) {
+      setMfaError('Could not verify that code. Try again.')
+      setMfaVerifying(false)
+      return
+    }
+    const { error: verifyError } = await supabase.auth.mfa.verify({ factorId: mfaFactorId, challengeId: challenge.id, code: mfaCode.trim() })
+    if (verifyError) {
+      setMfaError("That code didn't match. Check your authenticator app and try again.")
+      setMfaVerifying(false)
+      return
+    }
+
+    await completeSignIn(mfaUser)
+    setMfaVerifying(false)
+  }
+
   const handleContinue = async () => {
     if (!justVerifiedUser || continuing) return
     setContinuing(true)
     await completeSignIn(justVerifiedUser, true)
+  }
+
+  if (mfaUser) {
+    return (
+      <AuthLayout headline="One more step." subtext="Confirm it's you with your authenticator app.">
+        <div className="text-center mb-8 lg:text-left">
+          <h1 className="text-2xl font-bold text-white">Enter your authenticator code</h1>
+          <p className="text-white/50 text-sm mt-1">From the app you set up for this account.</p>
+        </div>
+        <form onSubmit={handleMfaVerify} className="space-y-4">
+          <AuthInput
+            type="text"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={6}
+            value={mfaCode}
+            onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+            placeholder="123456"
+            className="text-center text-lg tracking-[0.3em] font-semibold"
+          />
+          {mfaError && (
+            <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">
+              {mfaError}
+            </div>
+          )}
+          <RippleButton
+            type="submit"
+            disabled={mfaVerifying || mfaCode.length === 0}
+            className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
+          >
+            {mfaVerifying ? 'Verifying...' : 'Verify'}
+          </RippleButton>
+        </form>
+      </AuthLayout>
+    )
   }
 
   if (checkingSession) {
