@@ -1523,7 +1523,9 @@ export default function JobDetailPage() {
               <div>
                 <h3 className="text-white font-semibold">{t('payContractorHeading', lang)}</h3>
                 <p className="text-white/60 text-sm mt-1">
-                  ${acceptedBid.amount} {t('sentTo', lang).toLowerCase()} {acceptedBid.contractor?.full_name}
+                  ${acceptedBid.amount}{' '}
+                  {(acceptedBid.payment_status === 'paid' || paidBanner === 'succeeded' ? t('sentTo', lang) : t('owedTo', lang)).toLowerCase()}{' '}
+                  {acceptedBid.contractor?.full_name}
                 </p>
               </div>
               {paidBanner === 'processing' && acceptedBid.payment_status !== 'paid' ? (

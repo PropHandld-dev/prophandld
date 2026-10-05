@@ -603,6 +603,9 @@ export default function ProfilePage() {
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
               />
               {backupError && <p className="text-red-400 text-xs">{backupError}</p>}
+              {!backupError && !savingBackupContact && (!backupForm.name.trim() || !backupForm.phone.trim()) && (backupForm.name || backupForm.relationship || backupForm.phone) && (
+                <p className="text-white/40 text-xs">{t('backupContactNeedsNameAndPhone', lang)}</p>
+              )}
               <RippleButton
                 type="submit"
                 disabled={savingBackupContact || !backupForm.name.trim() || !backupForm.phone.trim()}
