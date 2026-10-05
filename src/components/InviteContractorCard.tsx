@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { RippleButton } from '@/components/RippleButton'
 import { WrenchIcon, CheckCircleIcon } from '@/components/icons'
@@ -19,6 +19,25 @@ export function InviteContractorCard() {
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [sent, setSent] = useState(false)
+  // localStorage, not sessionStorage — same reasoning as the "Turn on
+  // notifications" card's own dismissal: this needs to survive past one
+  // tab/session, or hiding it only lasts until the next login.
+  const [dismissed, setDismissed] = useState(false)
+
+  useEffect(() => {
+    try {
+      setDismissed(localStorage.getItem('invite-contractor-card-dismissed') === '1')
+    } catch {}
+  }, [])
+
+  const handleDismiss = () => {
+    try {
+      localStorage.setItem('invite-contractor-card-dismissed', '1')
+    } catch {}
+    setDismissed(true)
+  }
+
+  if (dismissed) return null
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -46,7 +65,14 @@ export function InviteContractorCard() {
 
   return (
     <div className="relative overflow-hidden bg-gradient-to-br from-[#0A7B7E]/15 via-white/3 to-white/3 border border-[#12A5A9]/25 rounded-2xl p-5 mb-6">
-      <div className="flex items-start gap-4">
+      <button
+        onClick={handleDismiss}
+        aria-label={t('dismissBtn', lang)}
+        className="absolute top-3 right-3 text-white/40 hover:text-white text-lg leading-none w-6 h-6 flex items-center justify-center rounded-full hover:bg-white/10 transition"
+      >
+        ×
+      </button>
+      <div className="flex items-start gap-4 pr-6">
         <div className="w-10 h-10 rounded-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] flex items-center justify-center shrink-0">
           <WrenchIcon className="w-5 h-5 text-white" />
         </div>

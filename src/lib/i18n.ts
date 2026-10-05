@@ -1372,6 +1372,7 @@ const STRINGS = {
   inviteSentToDotPrefix: { en: 'Invite sent to ', es: 'Invitación enviada a ' },
   joinedStatus: { en: 'Joined', es: 'Se unió' },
   inviteCardHeading: { en: 'Already have a contractor you trust?', es: '¿Ya tienes un contratista de confianza?' },
+  dismissBtn: { en: 'Dismiss', es: 'Descartar' },
   inviteCardDesc: { en: "Invite them directly, no bidding required. Free for them, forever, and everything stays organized in one place.", es: 'Invítalo directamente, sin necesidad de ofertas. Gratis para él, para siempre, y todo queda organizado en un solo lugar.' },
   inviteCardSendBtn: { en: 'Invite', es: 'Invitar' },
   inviteCardSent: { en: 'Invite sent!', es: '¡Invitación enviada!' },
