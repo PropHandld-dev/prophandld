@@ -301,7 +301,11 @@ export default function LandlordDashboard() {
       const pendingReviewList = byStatus('pending_review')
 
       const reviewedJobIds = new Set(reviewedJobRows.map((r: any) => r.job_id))
-      const needsRatingList = completedJobs.filter((j) => !reviewedJobIds.has(j.id))
+      // self_completed jobs ("Handle it myself") have no contractor at all —
+      // there's structurally nothing to rate, so this nudge used to fire on
+      // them forever with no way to clear it. Confirmed in testing by
+      // tracking one such job start to finish.
+      const needsRatingList = completedJobs.filter((j) => !reviewedJobIds.has(j.id) && !j.self_completed)
 
       // Only bids still open count, so a job reopened after a contractor
       // cancelled doesn't show its old declined bids as "N bids".

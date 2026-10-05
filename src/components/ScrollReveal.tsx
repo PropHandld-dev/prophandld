@@ -29,7 +29,21 @@ export function ScrollReveal({
       { threshold: 0.15 }
     )
     observer.observe(el)
-    return () => observer.disconnect()
+
+    // Confirmed in testing: content that mounts already inside the
+    // viewport (common for anything near the top of a page, especially
+    // once it fills in after an async data load) can end up permanently
+    // stuck at opacity-0 — the landlord dashboard's own property list did
+    // exactly this, rendering as blank space where real data should have
+    // been. A reveal animation should never be able to hide real content
+    // forever, so this is a hard backstop regardless of why the observer
+    // didn't fire.
+    const fallback = setTimeout(() => setVisible(true), 1200)
+
+    return () => {
+      observer.disconnect()
+      clearTimeout(fallback)
+    }
   }, [])
 
   return (
