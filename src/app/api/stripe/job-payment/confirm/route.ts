@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
 
   const { data: bid, error: bidError } = await supabaseAdmin
     .from('bids')
-    .select('id, status, payment_status, stripe_payment_intent_id, contractor_user_id, jobs(units(properties(owner_user_id)))')
+    .select('id, job_id, status, payment_status, stripe_payment_intent_id, contractor_user_id, jobs(units(properties(owner_user_id)))')
     .eq('id', bidId)
     .maybeSingle()
 
@@ -69,14 +69,27 @@ export async function POST(request: NextRequest) {
       const cardSurcharge = paymentIntent.metadata?.prophandld_card_surcharge
         ? Number(paymentIntent.metadata.prophandld_card_surcharge)
         : 0
-      const { error } = await supabaseAdmin
+      const { data: updatedBid, error } = await supabaseAdmin
         .from('bids')
         .update({ payment_status: 'paid', paid_at: paymentPaidAt(paymentIntent), card_surcharge_amount: cardSurcharge })
         .eq('id', bid.id)
         .neq('payment_status', 'paid')
+        .select('id')
       if (error) {
         console.error('job-payment/confirm: could not mark bid paid', error)
         return NextResponse.json({ error: 'Could not record payment' }, { status: 500 })
+      }
+      // Only post the job-chat "payment released" message if this call is
+      // the one that actually flipped the status (same dedup signal the
+      // webhook uses) — otherwise the webhook either already posted it, or
+      // will when it arrives, and this would double it up.
+      if (updatedBid && updatedBid.length > 0 && bid.job_id && landlordUserId) {
+        const { error: messageError } = await supabaseAdmin.from('messages').insert({
+          job_id: bid.job_id,
+          sender_user_id: landlordUserId,
+          body: '✓ Payment released',
+        })
+        if (messageError) console.error('job-payment/confirm: payment-released message insert failed', messageError)
       }
       return NextResponse.json({ status: 'paid' })
     }

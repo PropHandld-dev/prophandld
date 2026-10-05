@@ -276,7 +276,7 @@ export async function POST(request: NextRequest) {
 
             const { data: bid } = await supabaseAdmin
               .from('bids')
-              .select('contractor_user_id, jobs(category, units(properties(address, owner_user_id)))')
+              .select('job_id, contractor_user_id, jobs(category, units(properties(address, owner_user_id)))')
               .eq('id', bidId)
               .maybeSingle()
 
@@ -331,6 +331,20 @@ export async function POST(request: NextRequest) {
                 body: `$${baseAmountPaid.toFixed(2)} for ${job?.category || 'your job'}`,
                 url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/receipts/job/${bidId}`,
               }).catch((err) => console.error('stripe webhook: sendPush (job payment) failed', err))
+            }
+
+            // The job chat's "payment released" message belongs here, not
+            // at the moment the landlord clicks Approve — confirmed in
+            // testing that it used to fire before the charge existed,
+            // let alone succeeded. This is the one place that only runs
+            // once Stripe has actually confirmed the money moved.
+            if (bid?.job_id && landlordId) {
+              const { error: messageError } = await supabaseAdmin.from('messages').insert({
+                job_id: bid.job_id,
+                sender_user_id: landlordId,
+                body: '✓ Payment released',
+              })
+              if (messageError) console.error('stripe webhook: payment-released message insert failed', messageError)
             }
           }
         }

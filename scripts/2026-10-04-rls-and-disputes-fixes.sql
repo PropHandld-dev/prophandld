@@ -1,5 +1,6 @@
 -- Run this whole script once in the Supabase SQL editor.
--- Fixes two confirmed bugs from today's agent-run testing.
+-- Fixes four confirmed bugs from today's agent-run testing, plus a
+-- note on the one that still needs a live-logs check (section 5).
 
 -- ============================================================
 -- 1. Landlord-direct job creation was completely broken: creating a
@@ -76,7 +77,37 @@ $$;
 grant execute on function job_has_accepted_bid(uuid) to authenticated;
 
 -- ============================================================
--- 4. Disputes: raising one has been 500ing every single time in
+-- 4. Contractor couldn't see the tenant's reported photos while
+--    bidding — confirmed in testing by checking the actual bid page's
+--    text directly, zero mention of "photo" anywhere. The bid-page
+--    code itself already fetches and renders job_photos correctly
+--    (same logic the post-selection job page uses, which does work) —
+--    so this is almost certainly the job_photos SELECT policy only
+--    granting access to someone already a participant on the job
+--    (the landlord, the tenant, or a contractor who already has a
+--    bid/was selected), which a contractor simply evaluating whether
+--    to bid doesn't qualify as yet. This adds the missing case: any
+--    contractor can see photos for a job that's genuinely open for
+--    bidding right now. Not a meaningful exposure — an open-bidding
+--    job is already visible (category, address, description) to every
+--    contractor in range who got notified about it; this just lets
+--    them actually see what they're bidding on, same as the landlord
+--    already can.
+-- ============================================================
+create policy "contractors can view photos on jobs open for bidding"
+on job_photos for select
+to authenticated
+using (
+  (auth.jwt() -> 'app_metadata' ->> 'role') = 'contractor'
+  and exists (
+    select 1 from jobs
+    where jobs.id = job_photos.job_id
+    and jobs.status = 'bidding'
+  )
+);
+
+-- ============================================================
+-- 5. Disputes: raising one has been 500ing every single time in
 --    testing. /api/disputes/raise uses the service-role client (not
 --    a user session), so this is NOT an RLS gap like the two above —
 --    something is rejecting the insert at the database level itself,

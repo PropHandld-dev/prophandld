@@ -789,7 +789,14 @@ export default function JobDetailPage() {
       setError(`${t('couldNotApproveCompletion', lang)} ${updateError.message}`)
     } else {
       notify('job_completed', jobId)
-      if (userId) postJobStatusMessage(jobId, userId, '✓ Job approved, payment released')
+      // "Payment released" doesn't belong here — approving the job and
+      // the Stripe charge actually succeeding are two different events,
+      // and this used to claim the second one before it happened: the
+      // "Pay now" card below still shows a live, unclicked button right
+      // after this message posts. The real "payment released" message
+      // now posts from handlePayContractor/the payment-confirm flow,
+      // once Stripe actually confirms the charge.
+      if (userId) postJobStatusMessage(jobId, userId, '✓ Job approved')
     }
 
     setShowApproveModal(false)
