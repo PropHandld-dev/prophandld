@@ -107,7 +107,21 @@ export async function POST() {
         if (unitIds.length) {
           await supabaseAdmin.from('units').delete().in('property_id', propertyIds)
         }
-        await supabaseAdmin.from('properties').delete().in('id', propertyIds)
+        // Checked, not fire-and-forget: a leftover properties row has no
+        // FK back to public.users/auth.users, so nothing later in this
+        // route would ever notice it failed to delete. Left unchecked,
+        // "delete my account" would report success while the address
+        // stays registered to a user that no longer exists — permanently
+        // blocking anyone else from ever claiming it, with no account
+        // left to log into and finish the job.
+        const { error: propertiesDeleteError } = await supabaseAdmin.from('properties').delete().in('id', propertyIds)
+        if (propertiesDeleteError) {
+          console.error('account delete: could not delete properties', { userId, propertyIds, propertiesDeleteError })
+          return NextResponse.json(
+            { error: "Something is still linked to one of your properties that we didn't expect. Contact admin@prophandld.com and we'll clear it manually." },
+            { status: 500 }
+          )
+        }
       }
       // Cancel the real Stripe subscription before dropping our own record
       // of it — deleting only the local row would leave it billing forever
