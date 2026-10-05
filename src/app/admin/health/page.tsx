@@ -18,6 +18,7 @@ type Health = {
   twilio: { accountSidPresent: boolean; authTokenPresent: boolean; phoneNumberPresent: boolean }
   resend: { apiKeyPresent: boolean }
   frozenPayoutAccounts: { id: string; name: string; email: string; frozenUntil: string }[]
+  stuckProcessingPayments: { bidId: string; jobId: string; stripePaymentIntentId: string | null; createdAt: string }[]
 }
 
 function StatusDot({ ok }: { ok: boolean }) {
@@ -140,6 +141,32 @@ export default function AdminHealthPage() {
               )}
               <p className="text-white/40 text-xs mt-3">
                 A landlord or contractor lands here for 48 hours after their Stripe payout bank account changes — routine fraud guard, not necessarily a problem.
+              </p>
+            </div>
+          </ScrollReveal>
+
+          <ScrollReveal>
+            <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mt-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-white font-semibold text-sm">Payments stuck processing (1h+)</h2>
+                <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${data.stuckProcessingPayments.length === 0 ? 'bg-white/8 text-white/50' : 'bg-red-500/15 text-red-400'}`}>
+                  {data.stuckProcessingPayments.length}
+                </span>
+              </div>
+              {data.stuckProcessingPayments.length === 0 ? (
+                <p className="text-white/40 text-sm">None — every job payment has resolved within an hour.</p>
+              ) : (
+                <div className="space-y-2">
+                  {data.stuckProcessingPayments.map((p) => (
+                    <div key={p.bidId} className="flex items-center justify-between text-sm">
+                      <span className="text-white/80 font-mono text-xs">{p.stripePaymentIntentId || '(no payment intent)'}</span>
+                      <span className="text-red-400 text-xs" suppressHydrationWarning>since {new Date(p.createdAt).toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <p className="text-white/40 text-xs mt-3">
+                A job payment should settle in seconds, not hours. This almost always means the live/test Stripe key in use now doesn&apos;t match the mode the payment was created under — check the Vercel logs for &quot;job-payment/confirm&quot; for the exact Stripe error.
               </p>
             </div>
           </ScrollReveal>

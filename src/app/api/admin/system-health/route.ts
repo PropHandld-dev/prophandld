@@ -72,6 +72,26 @@ export async function GET() {
     console.error('system-health: frozen accounts query failed', frozenError)
   }
 
+  // A job payment stuck on "processing" for more than an hour is never
+  // normal Stripe latency — found during testing that this is exactly
+  // what a STRIPE_SECRET_KEY live/test mode switch after a payment
+  // started looks like (the PaymentIntent becomes permanently
+  // unreachable, confirm/job-payment logs "No such payment_intent").
+  // Surfacing the count here means it shows up on this page instead of
+  // only being found by a contractor noticing they were never paid.
+  const staleProcessingSince = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+  const { data: stuckBids, error: stuckBidsError } = await admin
+    .from('bids')
+    .select('id, job_id, stripe_payment_intent_id, created_at')
+    .eq('payment_status', 'processing')
+    .lt('created_at', staleProcessingSince)
+    .order('created_at', { ascending: true })
+    .limit(50)
+
+  if (stuckBidsError) {
+    console.error('system-health: stuck bids query failed', stuckBidsError)
+  }
+
   return NextResponse.json({
     stripe: {
       keyPresent: stripeKeyPresent,
@@ -90,6 +110,12 @@ export async function GET() {
       name: u.full_name || 'Unknown',
       email: u.email,
       frozenUntil: u.payout_frozen_until,
+    })),
+    stuckProcessingPayments: (stuckBids || []).map((b) => ({
+      bidId: b.id,
+      jobId: b.job_id,
+      stripePaymentIntentId: b.stripe_payment_intent_id,
+      createdAt: b.created_at,
     })),
   })
 }

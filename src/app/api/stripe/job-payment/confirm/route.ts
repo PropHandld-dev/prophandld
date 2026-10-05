@@ -82,8 +82,22 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ status: paymentIntent.status === 'processing' ? 'processing' : 'unpaid' })
-  } catch (err) {
-    console.error('job-payment/confirm: unhandled error', err)
+  } catch (err: any) {
+    // Stripe's "No such payment_intent" here almost always means the
+    // active STRIPE_SECRET_KEY is in a different mode (test/live) than
+    // whatever key created this PaymentIntent — the two modes are
+    // entirely separate object namespaces, so a mode switch after a
+    // payment was started leaves it permanently unreachable through this
+    // route, which is why this is logged distinctly from any other
+    // Stripe failure here.
+    const looksLikeModeMismatch = err?.code === 'resource_missing' || /No such payment_intent/i.test(err?.message || '')
+    console.error('job-payment/confirm: unhandled error', {
+      bidId: bid.id,
+      stripePaymentIntentId: bid.stripe_payment_intent_id,
+      stripeKeyMode: process.env.STRIPE_SECRET_KEY?.startsWith('sk_live_') ? 'live' : 'test',
+      looksLikeModeMismatch,
+      err,
+    })
     return NextResponse.json({ error: 'Could not check payment' }, { status: 500 })
   }
 }

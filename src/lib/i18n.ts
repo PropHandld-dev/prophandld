@@ -144,6 +144,10 @@ const STRINGS = {
   emergencyExampleLocks: { en: 'No working locks / broken entry door', es: 'Cerraduras que no funcionan / puerta de entrada rota' },
   emergencyExampleSewage: { en: 'Sewage backup', es: 'Retroceso de aguas negras' },
   emergencyExampleElectrical: { en: 'Exposed or sparking electrical wiring', es: 'Cableado eléctrico expuesto o con chispas' },
+  notAMaintenanceIssueWarning: {
+    en: "This doesn't sound like something a contractor can fix. For theft, break-ins, violence, or any safety threat, contact the police (call 911 for an emergency) or your landlord directly — this form is for property maintenance requests. You can still submit this if you want it on record, but no contractor will be able to help with it.",
+    es: 'Esto no parece algo que un contratista pueda arreglar. Para robos, allanamientos, violencia o cualquier amenaza a la seguridad, contacta a la policía (llama al 911 en una emergencia) o a tu arrendador directamente — este formulario es para solicitudes de mantenimiento de la propiedad. Aún puedes enviar esto si quieres que quede registrado, pero ningún contratista podrá ayudar con esto.',
+  },
 
   // Landlord dashboard
   landlordDashboardLabel: { en: 'Landlord Dashboard', es: 'Panel del propietario' },

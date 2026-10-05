@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -28,6 +28,22 @@ const EMERGENCY_EXAMPLE_KEYS = [
   'emergencyExampleElectrical',
 ] as const
 
+// A soft nudge, not a block — these are things no contractor can act on
+// (crime, violence, safety threats), so a tenant typing one of these
+// words anywhere in the category or description sees a pointer to the
+// police/landlord instead. Checked against the selected category too,
+// not just "Other", since a custom category like "Theft" can get typed
+// and reused by someone else without ever touching the "Other" field.
+const NOT_MAINTENANCE_KEYWORDS = [
+  'theft', 'stolen', 'steal', 'robbery', 'robbed', 'burglar', 'break-in', 'break in', 'broke in',
+  'assault', 'violence', 'domestic', 'harassment', 'threat', 'weapon', 'gun', 'knife', 'stalking',
+]
+
+function mentionsNonMaintenanceIssue(...texts: string[]): boolean {
+  const combined = texts.join(' ').toLowerCase()
+  return NOT_MAINTENANCE_KEYWORDS.some((word) => combined.includes(word))
+}
+
 export default function ReportIssuePage() {
   const router = useRouter()
   const lang = useLanguage()
@@ -38,6 +54,16 @@ export default function ReportIssuePage() {
   const [error, setError] = useState<string | null>(null)
   const [showEmergencyInfo, setShowEmergencyInfo] = useState(false)
   const [files, setFiles] = useState<File[]>([])
+  // Stable per-file preview URLs — recomputed only when the file list
+  // itself changes, not on every keystroke elsewhere on the page. Without
+  // this, a URL.createObjectURL(file) called inline in the render was
+  // generating a brand-new blob URL on every render (e.g. every character
+  // typed into access notes), which made an attached video's <video>
+  // element reload and visibly flicker.
+  const filePreviewUrls = useMemo(() => files.map((file) => URL.createObjectURL(file)), [files])
+  useEffect(() => {
+    return () => { filePreviewUrls.forEach((url) => URL.revokeObjectURL(url)) }
+  }, [filePreviewUrls])
   const [systems, setSystems] = useState<any[]>([])
   // Optional — picking a few windows here up front is what lets a
   // contractor propose a time by just tapping one of these instead of a
@@ -332,6 +358,13 @@ export default function ReportIssuePage() {
               />
             </div>
 
+            {mentionsNonMaintenanceIssue(form.category, form.categoryOther, form.description) && (
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3 text-amber-300 text-sm flex items-start gap-2">
+                <AlertTriangleIcon className="w-4 h-4 mt-0.5 shrink-0" />
+                <span>{t('notAMaintenanceIssueWarning', lang)}</span>
+              </div>
+            )}
+
             {!form.is_emergency && (
               <div>
                 <label className="text-white/70 text-sm block mb-1">{t('urgencyLabel', lang)}</label>
@@ -369,10 +402,10 @@ export default function ReportIssuePage() {
                   {files.map((file, i) => (
                     <div key={i} className="relative aspect-square rounded-lg overflow-hidden bg-white/5">
                       {isVideoFile(file) ? (
-                        <video src={URL.createObjectURL(file)} className="w-full h-full object-cover" muted playsInline />
+                        <video src={filePreviewUrls[i]} className="w-full h-full object-cover" muted playsInline />
                       ) : (
                         <img
-                          src={URL.createObjectURL(file)}
+                          src={filePreviewUrls[i]}
                           alt={`Selected ${i + 1}`}
                           className="w-full h-full object-cover"
                         />

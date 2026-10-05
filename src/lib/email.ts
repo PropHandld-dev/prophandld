@@ -716,7 +716,7 @@ function pushCopy(type: NotifyType, role: NotifyRole, rawInfo: NotifyJobInfo): {
         body: `${cat} · ${where}. Tap to approve or decline.`,
       }
     case 'price_change_approved':
-      return { title: 'Price change approved', body: `${cat} · ${where}. You can carry on.` }
+      return { title: 'Price change approved', body: `${cat} · ${where}. Carry on, and mark it complete once you're done.` }
     case 'price_change_rejected':
       return { title: 'Price change declined', body: `${cat} · ${where}. The original price stands.` }
     case 'clarification_requested':
@@ -1169,7 +1169,7 @@ export function buildNotificationEmail(type: NotifyType, role: NotifyRole, rawIn
           lang,
           eyebrow: 'Aprobado',
           heading: 'Tu nuevo precio fue aprobado',
-          bodyHtml: `El arrendador aprobó tu nuevo precio para el trabajo de <strong>${cat}</strong> en ${at}. Puedes continuar.`,
+          bodyHtml: `El arrendador aprobó tu nuevo precio para el trabajo de <strong>${cat}</strong> en ${at}. Puedes continuar, y marca el trabajo como completado en cuanto termines.`,
           preheader: info.amount != null ? `Nuevo precio: ${money(info.amount)}. Puedes continuar.` : 'Puedes continuar.',
           stage: 3,
           facts: compact([info.amount != null && { label: fl('New price', lang), value: money(info.amount) }, jobFact, whereFact, unitFact]),
@@ -1182,7 +1182,7 @@ export function buildNotificationEmail(type: NotifyType, role: NotifyRole, rawIn
           lang,
           eyebrow: 'Approved',
           heading: 'Your new price was approved',
-          bodyHtml: `The landlord approved your new price for the <strong>${cat}</strong> job at ${at}. You're clear to continue.`,
+          bodyHtml: `The landlord approved your new price for the <strong>${cat}</strong> job at ${at}. You're clear to continue — mark the job complete once you're done.`,
           preheader: info.amount != null ? `New price: ${money(info.amount)}. You can carry on.` : 'You can carry on.',
           stage: 3,
           facts: compact([info.amount != null && { label: fl('New price', lang), value: money(info.amount) }, jobFact, whereFact, unitFact]),
