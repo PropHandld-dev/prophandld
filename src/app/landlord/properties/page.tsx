@@ -38,7 +38,14 @@ export default function PropertiesPage() {
     } catch {}
   }
 
-  const fetchProperties = async (includeArchived: boolean) => {
+  // Always fetches the whole portfolio (archived included) — the active/
+  // archived counts need every row regardless of which view is showing,
+  // same reasoning as the search-filter comment below. Previously this
+  // only fetched active rows unless showArchived was already on, which
+  // meant the "Archived" stat always read 0 until a landlord happened to
+  // open that view first — a real bug found by live testing, not a style
+  // preference.
+  const fetchProperties = async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       router.replace('/login')
@@ -49,22 +56,21 @@ export default function PropertiesPage() {
     // drops the rest — the top pricing tier now goes to 500+ units, and a
     // portfolio that large plausibly has enough properties to approach
     // that on its own, let alone alongside everything else on this page.
-    const data = await fetchAllPagesOrEmpty<any>((from, to) => {
-      let query = supabase
+    const data = await fetchAllPagesOrEmpty<any>((from, to) =>
+      supabase
         .from('properties')
         .select('*')
         .eq('owner_user_id', user.id)
         .order('created_at', { ascending: false })
-      if (!includeArchived) query = query.eq('archived', false)
-      return query.range(from, to)
-    })
+        .range(from, to)
+    )
     setProperties(data)
     setLoading(false)
   }
 
   useEffect(() => {
-    fetchProperties(showArchived)
-  }, [showArchived])
+    fetchProperties()
+  }, [])
 
   const handleArchiveToggle = async (propertyId: string, currentlyArchived: boolean) => {
     const { error } = await supabase
@@ -77,7 +83,7 @@ export default function PropertiesPage() {
       return
     }
 
-    await fetchProperties(showArchived)
+    await fetchProperties()
   }
 
   const activeCount = properties.filter((p) => !p.archived).length
@@ -87,12 +93,13 @@ export default function PropertiesPage() {
   // shown, not what's counted, same as the rent roll's stats follow its
   // own filter but these totals describe the whole portfolio regardless.
   const filteredProperties = useMemo(() => {
+    const byArchived = properties.filter((p) => (showArchived ? true : !p.archived))
     const q = search.trim().toLowerCase()
-    if (!q) return properties
-    return properties.filter((p) =>
+    if (!q) return byArchived
+    return byArchived.filter((p) =>
       [p.address, p.city, p.state, p.zip, p.property_type].filter(Boolean).some((v) => String(v).toLowerCase().includes(q))
     )
-  }, [properties, search])
+  }, [properties, search, showArchived])
 
   return (
     <div className="min-h-screen bg-[#0C1A2E]">
