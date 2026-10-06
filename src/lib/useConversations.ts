@@ -217,15 +217,16 @@ export function useConversations(userId: string | null) {
     }
   }, [userId, load])
 
-  // Safety net alongside realtime — polls every 60s while the tab is visible and refreshes the
-  // instant the tab regains focus, so a missed/delayed realtime event
-  // (or a badge left stale from another device) self-corrects without
-  // requiring a manual page reload.
+  // Confirmed live (2026-10-06): the postgres_changes INSERT event this
+  // channel subscribes to doesn't actually reach an already-open tab (same
+  // gap as ChatPanel/useJobRealtime). This poll is the real delivery
+  // mechanism for new-message badges right now, not just a rare safety
+  // net, hence 15s rather than a true fallback's longer interval.
   useEffect(() => {
     if (!userId) return
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') load()
-    }, 60000)
+    }, 15000)
     const onVisible = () => {
       if (document.visibilityState === 'visible') load()
     }

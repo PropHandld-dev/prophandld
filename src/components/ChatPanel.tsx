@@ -175,8 +175,12 @@ export function ChatPanel({
       )
       .subscribe()
 
-    // Live updates can miss a message (a dropped connection, a phone that was
-    // asleep), so quietly re-check the conversation while it is on screen.
+    // Confirmed live (2026-10-06, timed test with two open sessions): the
+    // postgres_changes INSERT event for this table doesn't actually reach
+    // an already-open tab — subscribes fine, never fires. This poll is the
+    // real delivery mechanism right now, not just a rare safety net for a
+    // dropped connection, hence the shorter interval than a true fallback
+    // would need. See useJobRealtime.ts for the matching gap on jobs/bids.
     const refetch = async () => {
       if (document.visibilityState !== 'visible' || !currentUserId) return
       const { data } = await buildMessagesQuery()
@@ -190,7 +194,7 @@ export function ChatPanel({
       })
       markRead(currentUserId)
     }
-    const timer = setInterval(refetch, 30000)
+    const timer = setInterval(refetch, 15000)
     document.addEventListener('visibilitychange', refetch)
 
     return () => {
