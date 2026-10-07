@@ -14,6 +14,7 @@ import { RippleButton } from '@/components/RippleButton'
 // status, not paying, so there's no reason to ship that into every
 // visit's own JS chunk.
 const StripePaymentModal = dynamic(() => import('@/components/StripePaymentModal').then((m) => m.StripePaymentModal), { ssr: false })
+import { DwollaBankLinkModal } from '@/components/DwollaBankLinkModal'
 import { CheckCircleIcon, CalendarIcon, FileTextIcon } from '@/components/icons'
 import { RENTER_TABS } from '@/lib/navTabs'
 import { ensureCurrentMonthRentPayment, ensureNextMonthRentPayment } from '@/lib/rentAutomation'
@@ -49,6 +50,8 @@ export default function RenterRentPage() {
   const [payingId, setPayingId] = useState<string | null>(null)
   const [modal, setModal] = useState<{ clientSecret: string; amount: number; rentPaymentId: string } | null>(null)
   const [methodChoicePayment, setMethodChoicePayment] = useState<any>(null)
+  const [bankLinkPayment, setBankLinkPayment] = useState<any>(null)
+  const [transferStarted, setTransferStarted] = useState(false)
   // 'all' by default — a tenant's own history rarely spans enough years for
   // filtering to matter the way it does for a landlord's whole portfolio,
   // so this defaults open rather than defaulting to "this year" and hiding
@@ -164,6 +167,34 @@ export default function RenterRentPage() {
     })
   }, [payments, tenancy])
 
+  // The Dwolla twin of the self-heal effect above — ACH transfers settle
+  // over a few business days via webhook, so this catches any row the
+  // webhook hasn't reached yet.
+  const syncedDwollaIds = useRef<Set<string>>(new Set())
+  useEffect(() => {
+    if (!tenancy) return
+    const open = payments
+      .filter((p) => p.dwolla_transfer_id && p.dwolla_status === 'pending' && !syncedDwollaIds.current.has(p.id))
+      .slice(0, 3)
+    if (open.length === 0) return
+    open.forEach((p) => syncedDwollaIds.current.add(p.id))
+
+    Promise.all(
+      open.map((p) =>
+        fetch('/api/dwolla/rent-payment/confirm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rentPaymentId: p.id }),
+        })
+          .then((res) => res.json())
+          .catch(() => null)
+      )
+    ).then((results) => {
+      const changed = open.some((p, i) => ['paid', 'already_paid', 'failed'].includes(results[i]?.status))
+      if (changed) loadPayments(tenancy.id)
+    })
+  }, [payments, tenancy])
+
   // Opens the "how do you want to pay" choice first — the PaymentIntent
   // itself can't be created until a method is picked, since a card payment
   // adds a visible processing-fee surcharge that a bank payment never has,
@@ -179,9 +210,31 @@ export default function RenterRentPage() {
 
   const handleChooseMethod = async (payment: any, method: 'bank' | 'card') => {
     setMethodChoicePayment(null)
-    setPayingId(payment.id)
     setError(null)
 
+    // Bank transfer for rent runs on Dwolla now — a renter links their bank
+    // account once (not per payment, unlike Stripe's card-entry-every-time
+    // Payment Element), then every subsequent "Pay" just starts a transfer
+    // against that same funding source.
+    if (method === 'bank') {
+      setPayingId(payment.id)
+      try {
+        const statusRes = await fetch('/api/dwolla/customer/status')
+        const statusData = await statusRes.json().catch(() => ({}))
+        if (statusData.customerStatus !== 'active' || statusData.fundingSourceStatus !== 'verified') {
+          setBankLinkPayment(payment)
+          setPayingId(null)
+          return
+        }
+        await startDwollaTransfer(payment)
+      } catch {
+        setError(t('couldNotStartPayment', lang))
+        setPayingId(null)
+      }
+      return
+    }
+
+    setPayingId(payment.id)
     try {
       const res = await fetch('/api/stripe/rent/create-payment-intent', {
         method: 'POST',
@@ -208,6 +261,29 @@ export default function RenterRentPage() {
     setPayingId(null)
   }
 
+  const startDwollaTransfer = async (payment: any) => {
+    const res = await fetch('/api/dwolla/rent/create-transfer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rentPaymentId: payment.id }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      setError(data.error || t('couldNotStartPayment', lang))
+      setPayingId(null)
+      return
+    }
+    setTransferStarted(true)
+    if (tenancy) await loadPayments(tenancy.id)
+    setPayingId(null)
+  }
+
+  const handleBankLinked = async () => {
+    const payment = bankLinkPayment
+    setBankLinkPayment(null)
+    if (payment) await startDwollaTransfer(payment)
+  }
+
   const handlePaymentSuccess = async () => {
     setModal(null)
     if (tenancy) await loadPayments(tenancy.id)
@@ -218,8 +294,9 @@ export default function RenterRentPage() {
     return expected > 0 && Number(payment.actual_amount || 0) >= expected
   }
 
-  // A bank payment that has started but not cleared yet.
-  const isProcessing = (payment: any) => payment.stripe_status === 'processing' && !isPaid(payment)
+  // A bank payment that has started but not cleared yet — either rail.
+  const isProcessing = (payment: any) =>
+    !isPaid(payment) && (payment.stripe_status === 'processing' || payment.dwolla_status === 'pending')
 
   const getDueDate = (payment: any) => {
     const monthDate = new Date(payment.month + 'T00:00:00')
@@ -612,6 +689,29 @@ export default function RenterRentPage() {
           }}
           onSuccess={handlePaymentSuccess}
         />
+      )}
+
+      {bankLinkPayment && (
+        <DwollaBankLinkModal
+          onClose={() => setBankLinkPayment(null)}
+          onLinked={handleBankLinked}
+        />
+      )}
+
+      {transferStarted && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-30">
+          <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full text-center">
+            <CheckCircleIcon className="w-10 h-10 text-[#12A5A9] mx-auto mb-3" />
+            <h3 className="text-white font-semibold mb-1">{t('transferStartedTitle', lang)}</h3>
+            <p className="text-white/50 text-sm mb-5">{t('transferStartedBody', lang)}</p>
+            <RippleButton
+              onClick={() => setTransferStarted(false)}
+              className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl hover:opacity-90 transition"
+            >
+              {t('done', lang)}
+            </RippleButton>
+          </div>
+        </div>
       )}
 
       <BottomTabBar tabs={RENTER_TABS} />

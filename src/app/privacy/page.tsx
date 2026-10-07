@@ -55,7 +55,8 @@ export default function PrivacyPage() {
             </p>
             <ul>
               <li><strong className="text-white/80">Supabase:</strong> our database, authentication, and file storage provider. Nearly everything you enter is stored here.</li>
-              <li><strong className="text-white/80">Stripe:</strong> processes rent and job payments, and contractor payouts. Stripe handles your card and bank account details directly; Prophandld never sees or stores them.</li>
+              <li><strong className="text-white/80">Stripe:</strong> processes job payments, contractor payouts, and rent paid by debit card. Stripe handles your card and bank account details directly; Prophandld never sees or stores them.</li>
+              <li><strong className="text-white/80">Dwolla:</strong> processes rent paid by bank transfer, and lets landlords link a bank account to receive rent. Dwolla handles your bank account details directly; Prophandld never sees or stores them.</li>
               <li><strong className="text-white/80">Twilio:</strong> sends text message alerts if you opt in to SMS notifications.</li>
               <li><strong className="text-white/80">Resend:</strong> sends transactional emails (job notifications, invites, password resets) on our behalf.</li>
               <li><strong className="text-white/80">PostHog:</strong> product analytics, so we can see which features are actually being used.</li>

@@ -15,14 +15,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
 
+  // Debit-card-only now — bank transfer for rent moved to Dwolla (see
+  // /api/dwolla/rent/create-transfer). paymentMethod is still accepted so
+  // an old cached client build calling with 'bank' fails with a clear
+  // message instead of a confusing Stripe error further down.
   const { rentPaymentId, paymentMethod } = (await request.json()) as { rentPaymentId?: string; paymentMethod?: 'bank' | 'card' }
   if (!rentPaymentId) {
     return NextResponse.json({ error: 'Missing rentPaymentId' }, { status: 400 })
   }
-  // Anything other than an explicit 'card' choice is treated as 'bank' —
-  // the safe default (free to the tenant, no surcharge) if this ever gets
-  // called without a method for some reason.
-  const method: 'bank' | 'card' = paymentMethod === 'card' ? 'card' : 'bank'
+  if (paymentMethod === 'bank') {
+    return NextResponse.json({ error: 'Bank transfer for rent has moved — refresh the page and try again.' }, { status: 400 })
+  }
 
   const supabaseAdmin = getSupabaseAdmin()
 
@@ -90,21 +93,15 @@ export async function POST(request: NextRequest) {
 
   const stripe = getStripe()
 
-  // Bank transfers stay genuinely free to the tenant — Prophandld absorbs
-  // that smaller, capped ACH fee itself. A card payment adds Stripe's real
-  // processing fee on top as a visible surcharge, and application_fee_amount
-  // retains exactly that surcharge for Prophandld, so the landlord still
-  // receives the full rent amount either way and the platform stops paying
-  // Stripe's cut out of its own pocket on every card payment. Restricting
-  // payment_method_types to the one chosen method (rather than offering
-  // both on one PaymentIntent) is what makes a method-specific amount
-  // possible in the first place — the amount has to be fixed before the
-  // PaymentIntent is created, which means the method has to be picked first.
-  const surcharge = method === 'card' ? cardProcessingFee(amountDue) : 0
+  // A card payment adds Stripe's real processing fee on top as a visible
+  // surcharge, and application_fee_amount retains exactly that surcharge
+  // for Prophandld, so the landlord still receives the full rent amount
+  // and the platform doesn't pay Stripe's cut out of its own pocket.
+  const surcharge = cardProcessingFee(amountDue)
   const chargeAmount = amountDue + surcharge
   const amountCents = Math.round(chargeAmount * 100)
-  const applicationFeeCents = method === 'card' ? Math.round(surcharge * 100) : undefined
-  const paymentMethodTypes = method === 'card' ? ['card'] : ['us_bank_account']
+  const applicationFeeCents = Math.round(surcharge * 100)
+  const paymentMethodTypes = ['card']
 
   // An earlier attempt may still be open, or a bank payment may be clearing.
   // Ask Stripe first so the renter can neither pay twice nor get stuck

@@ -71,13 +71,14 @@ export default function TermsPage() {
           <section>
             <h2>5. Payments</h2>
             <p>
-              Rent (debit card or bank transfer) and contractor job payments are processed through
-              Stripe, our third-party payment processor. Prophandld does not hold or custody your
-              funds. Money moves directly from the paying party to the recipient through Stripe's
+              Rent paid by debit card, and contractor job payments, are processed through Stripe.
+              Rent paid by bank transfer is processed through Dwolla. Both are third-party payment
+              processors; Prophandld does not hold or custody your funds either way. Money moves
+              directly from the paying party to the recipient through Stripe's or Dwolla's
               infrastructure. Landlords separately pay Prophandld a flat monthly platform fee based
               on how many units they manage; this fee is unrelated to and not deducted from any
               individual rent or job payment. Prophandld never sees or stores your card or bank
-              account details; that information is handled entirely by Stripe.
+              account details; that information is handled entirely by Stripe or Dwolla.
             </p>
           </section>
 

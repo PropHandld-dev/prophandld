@@ -34,7 +34,7 @@ export default function RentReceiptPage() {
       const { data } = await supabase
         .from('rent_payments')
         .select(
-          'id, month, expected_amount, actual_amount, card_surcharge_amount, water_amount, paid_date, payment_method, stripe_status, tenancies(renter_user_id, units(unit_number, properties(address, city, state, owner_user_id)))'
+          'id, month, expected_amount, actual_amount, card_surcharge_amount, water_amount, paid_date, payment_method, stripe_status, dwolla_transfer_id, dwolla_status, tenancies(renter_user_id, units(unit_number, properties(address, city, state, owner_user_id)))'
         )
         .eq('id', rentPaymentId)
         .maybeSingle()

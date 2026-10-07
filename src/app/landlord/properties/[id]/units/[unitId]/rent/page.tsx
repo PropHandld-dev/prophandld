@@ -118,6 +118,33 @@ export default function UnitRentPage() {
     })
   }, [payments, tenancy])
 
+  // The Dwolla twin of the self-heal effect above, for rent's bank-transfer
+  // leg — see src/app/renter/rent/page.tsx for the matching renter-side one.
+  const syncedDwollaIds = useRef<Set<string>>(new Set())
+  useEffect(() => {
+    if (!tenancy) return
+    const open = payments
+      .filter((p) => p.dwolla_transfer_id && p.dwolla_status === 'pending' && !syncedDwollaIds.current.has(p.id))
+      .slice(0, 3)
+    if (open.length === 0) return
+    open.forEach((p) => syncedDwollaIds.current.add(p.id))
+
+    Promise.all(
+      open.map((p) =>
+        fetch('/api/dwolla/rent-payment/confirm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rentPaymentId: p.id }),
+        })
+          .then((res) => res.json())
+          .catch(() => null)
+      )
+    ).then((results) => {
+      const changed = open.some((p, i) => ['paid', 'already_paid', 'failed'].includes(results[i]?.status))
+      if (changed) loadPayments(tenancy.id)
+    })
+  }, [payments, tenancy])
+
   const loadPayments = async (tenancyId: string) => {
     const { data: paymentsData, error: paymentsError } = await supabase
       .from('rent_payments')
@@ -450,7 +477,7 @@ export default function UnitRentPage() {
                             <span className={`text-xs rounded-full px-2.5 py-0.5 ${status.color}`}>
                               {status.label}
                             </span>
-                            {!isPaid && payment.stripe_status === 'processing' && (
+                            {!isPaid && (payment.stripe_status === 'processing' || payment.dwolla_status === 'pending') && (
                               <span className="text-xs bg-yellow-500/15 text-yellow-400 rounded-full px-2.5 py-0.5">
                                 {t('bankPaymentProcessing', lang)}
                               </span>

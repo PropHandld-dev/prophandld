@@ -1,6 +1,7 @@
 import type Stripe from 'stripe'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { paymentPaidAt } from '@/lib/stripe'
+import { getTransfer, dwollaTransferUrl } from '@/lib/dwolla'
 
 export type RentSyncStatus = 'none' | 'paid' | 'already_paid' | 'processing' | 'unpaid' | 'refunded_credit_card'
 
@@ -108,6 +109,71 @@ export async function syncRentPayment(
     })
     .eq('id', rent.id)
     .neq('stripe_status', 'succeeded')
+    .select('id')
+
+  if (!updated || updated.length === 0) return 'already_paid'
+
+  return 'paid'
+}
+
+export type DwollaRentSyncStatus = 'none' | 'paid' | 'already_paid' | 'processing' | 'unpaid' | 'failed'
+
+/**
+ * The Dwolla twin of syncRentPayment() above — same idempotency shape
+ * (status-guarded update, 'already_paid' on a lost race), same chokepoint
+ * called from both the Dwolla webhook and the confirm route. No credit-card
+ * branch: Dwolla funding sources are real bank accounts only, so there's
+ * nothing equivalent to refund here.
+ */
+export async function syncDwollaRentPayment(
+  admin: SupabaseClient,
+  rentPaymentId: string
+): Promise<DwollaRentSyncStatus> {
+  const { data: rent } = await admin
+    .from('rent_payments')
+    .select('id, actual_amount, dwolla_transfer_id, dwolla_status')
+    .eq('id', rentPaymentId)
+    .maybeSingle()
+
+  if (!rent?.dwolla_transfer_id) return 'none'
+  if (rent.dwolla_status === 'processed') return 'already_paid'
+  if (rent.dwolla_status === 'failed' || rent.dwolla_status === 'cancelled') return 'failed'
+
+  const transfer = await getTransfer(dwollaTransferUrl(rent.dwolla_transfer_id))
+
+  // Never trust a transfer that doesn't belong to this rent month.
+  if (transfer.correlationId && transfer.correlationId !== rent.id) return 'none'
+
+  if (transfer.status === 'pending') {
+    if (rent.dwolla_status !== 'pending') {
+      await admin.from('rent_payments').update({ dwolla_status: 'pending' }).eq('id', rent.id)
+    }
+    return 'processing'
+  }
+
+  if (transfer.status === 'cancelled' || transfer.status === 'failed') {
+    await admin.from('rent_payments').update({ dwolla_status: transfer.status }).eq('id', rent.id)
+    return 'failed'
+  }
+
+  if (transfer.status !== 'processed') return 'unpaid'
+
+  const amount = Number(transfer.amount.value)
+
+  // Same race-safety guard as syncRentPayment: only the first caller to
+  // win this update reports 'paid', so a redelivered webhook landing next
+  // to a renter-triggered /confirm call never double-sends the landlord's
+  // "rent paid" notification.
+  const { data: updated } = await admin
+    .from('rent_payments')
+    .update({
+      actual_amount: Number(rent.actual_amount || 0) + amount,
+      paid_date: new Date().toISOString().slice(0, 10),
+      payment_method: 'bank',
+      dwolla_status: 'processed',
+    })
+    .eq('id', rent.id)
+    .neq('dwolla_status', 'processed')
     .select('id')
 
   if (!updated || updated.length === 0) return 'already_paid'
