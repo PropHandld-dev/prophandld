@@ -500,6 +500,20 @@ export default function ProfilePage() {
           </>
         )}
 
+        {/* Contractor payouts — previously only reachable at the very
+            bottom of Settings, after the full licenses/credentials
+            checklist. Landlords already get their payout card right here
+            on Profile; a contractor shouldn't have to scroll past
+            everything else to find the same thing. Settings keeps its own
+            copy too (removing it there would be a bigger, separate change
+            to how that page is organized) — this just adds a second,
+            easier-to-reach entry point. */}
+        {role === 'contractor' && (
+          <div className="mb-6">
+            <StripeConnectCard purpose="jobs" />
+          </div>
+        )}
+
         {/* Notification preferences */}
         <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
           <h2 className="text-white font-semibold mb-2">{t('notificationPreferences', lang)}</h2>
