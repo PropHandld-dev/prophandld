@@ -418,7 +418,7 @@ const STRINGS = {
   pushNeedsBrowserSetupIos: { en: 'On iPhone, add Prophandld to your Home Screen first, then turn this on from there.', es: 'En iPhone, primero agrega Prophandld a tu pantalla de inicio y luego actívalo desde ahí.' },
   enableInThisBrowser: { en: 'Enable in this browser', es: 'Activar en este navegador' },
   textAlerts: { en: 'Text alerts', es: 'Alertas por mensaje de texto' },
-  textAlertsDesc: { en: 'Urgent updates only: emergencies, scheduling, review needed', es: 'Solo actualizaciones urgentes: emergencias, horarios, revisiones pendientes' },
+  textAlertsDesc: { en: 'Urgent updates only: emergencies, scheduling, review needed. Message & data rates may apply. Reply STOP to opt out, HELP for help.', es: 'Solo actualizaciones urgentes: emergencias, horarios, revisiones pendientes. Pueden aplicar tarifas de mensajes y datos. Responde STOP para cancelar, HELP para ayuda.' },
   notifPrefFootnote: { en: "Some emails always go out regardless of this setting: your welcome email, invites, and support replies.", es: 'Algunos correos siempre se envían sin importar esta preferencia: tu correo de bienvenida, invitaciones y respuestas de soporte.' },
   backupContact: { en: 'Backup contact', es: 'Contacto de respaldo' },
   backupContactDescLandlord: { en: "A family member or friend your tenant can reach if you don't answer.", es: 'Un familiar o amigo al que tu inquilino pueda contactar si no respondes.' },
