@@ -19,7 +19,7 @@ export default function TermsPage() {
 
       <main className="max-w-3xl mx-auto px-6 py-16">
         <h1 className="text-3xl font-bold mb-2">Terms of Service</h1>
-        <p className="text-white/60 text-sm mb-12">Last updated September 14, 2026</p>
+        <p className="text-white/60 text-sm mb-12">Last updated October 7, 2026</p>
 
         <div className="space-y-10 text-white/60 text-sm leading-relaxed [&_h2]:text-white [&_h2]:font-semibold [&_h2]:text-lg [&_h2]:mb-3 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5">
 
@@ -115,6 +115,13 @@ export default function TermsPage() {
               needs. Prophandld is not responsible for the quality of maintenance work performed,
               disputes between landlords/renters/contractors, or losses arising from your use of the
               platform, to the fullest extent permitted by law.
+            </p>
+            <p>
+              Where Prophandld staff review and resolve a dispute between users (for example, to
+              decide whether a job payment should release), that decision is a platform and payment
+              administration tool only. It is not a legal finding of fault or liability, is not
+              binding arbitration, and does not waive or limit any party's other legal rights or
+              remedies.
             </p>
           </section>
 
