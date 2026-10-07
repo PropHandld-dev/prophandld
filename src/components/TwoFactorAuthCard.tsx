@@ -41,7 +41,12 @@ export function TwoFactorAuthCard() {
     // Clean up any half-finished enrollment from a previous attempt
     // (closed the tab before scanning/verifying) — same reasoning as the
     // admin login page, so re-enrolling doesn't collide with a stale
-    // unverified factor.
+    // unverified factor. listFactors() reads from the cached session/JWT,
+    // not a live server query, so a factor created after this session's
+    // last refresh is invisible to it unless we refresh first — without
+    // this, the cleanup silently finds nothing and enroll() below fails
+    // every time with a 422 mfa_factor_name_conflict.
+    await supabase.auth.refreshSession()
     const { data: factorsData } = await supabase.auth.mfa.listFactors()
     const unverified = factorsData?.totp?.filter((f) => f.status !== 'verified') || []
     for (const f of unverified) {
