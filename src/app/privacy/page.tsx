@@ -125,7 +125,7 @@ export default function PrivacyPage() {
 
       <footer className="border-t border-white/8 py-8">
         <div className="max-w-3xl mx-auto px-6 flex items-center justify-between text-sm text-white/60">
-          <span>© 2026 Prophandld</span>
+          <span>© 2026 Prophandld LLC</span>
           <Link href="/terms" className="hover:text-white transition">Terms of Service</Link>
         </div>
       </footer>

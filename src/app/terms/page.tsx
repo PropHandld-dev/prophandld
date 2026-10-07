@@ -31,6 +31,9 @@ export default function TermsPage() {
               and tenants; renters report maintenance issues; contractors submit sealed bids on jobs
               and get selected by landlords. By creating an account, you agree to these terms.
             </p>
+            <p>
+              Prophandld is operated by Prophandld LLC, a Pennsylvania limited liability company.
+            </p>
           </section>
 
           <section>
@@ -154,7 +157,7 @@ export default function TermsPage() {
 
       <footer className="border-t border-white/8 py-8">
         <div className="max-w-3xl mx-auto px-6 flex items-center justify-between text-sm text-white/60">
-          <span>© 2026 Prophandld</span>
+          <span>© 2026 Prophandld LLC</span>
           <Link href="/privacy" className="hover:text-white transition">Privacy Policy</Link>
         </div>
       </footer>
