@@ -12,6 +12,7 @@ import { PasswordInput } from '@/components/PasswordInput'
 import { LogOutIcon } from '@/components/icons'
 import { TABS_BY_ROLE } from '@/lib/navTabs'
 import { StripeConnectCard } from '@/components/StripeConnectCard'
+import { DwollaConnectCard } from '@/components/DwollaConnectCard'
 import { BillingSection } from '@/components/BillingSection'
 import { Switch } from '@/components/Switch'
 import { TwoFactorAuthCard } from '@/components/TwoFactorAuthCard'
@@ -495,7 +496,7 @@ export default function ProfilePage() {
               <BillingSection />
             </div>
             <div className="mb-6">
-              <StripeConnectCard purpose="rent" />
+              <DwollaConnectCard />
             </div>
           </>
         )}

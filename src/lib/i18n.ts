@@ -1046,6 +1046,18 @@ const STRINGS = {
   couldNotStartPayoutSetup: { en: 'Could not start payout setup.', es: 'No se pudo iniciar la configuración de pagos.' },
   managePayoutAccount: { en: 'Manage payout account', es: 'Administrar cuenta de pagos' },
   redirecting: { en: 'Redirecting...', es: 'Redirigiendo...' },
+
+  // DwollaConnectCard (landlord rent payouts)
+  getPaidRentDwollaBody: { en: 'Link a bank account so rent payments made through Prophandld go straight to you.', es: 'Conecta una cuenta bancaria para que los pagos de renta hechos a través de Prophandld vayan directo a ti.' },
+  linkBankAccount: { en: 'Link bank account', es: 'Conectar cuenta bancaria' },
+  routingNumberLabel: { en: 'Routing number', es: 'Número de ruta' },
+  accountNumberLabel: { en: 'Account number', es: 'Número de cuenta' },
+  accountTypeLabel: { en: 'Account type', es: 'Tipo de cuenta' },
+  checkingOption: { en: 'Checking', es: 'Corriente' },
+  savingsOption: { en: 'Savings', es: 'Ahorros' },
+  bankAccountNameLabel: { en: 'Name on account', es: 'Nombre en la cuenta' },
+  saveBankAccount: { en: 'Save bank account', es: 'Guardar cuenta bancaria' },
+  couldNotAddBankAccount: { en: 'Could not add bank account.', es: 'No se pudo agregar la cuenta bancaria.' },
   billingHeading: { en: 'Billing', es: 'Facturación' },
   youHaveUnitsPlanIs: { en: 'You have', es: 'Tienes' },
   soYourPlanIs: { en: 'so your plan is', es: 'así que tu plan es' },
