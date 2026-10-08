@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { verifyDwollaWebhookSignature } from '@/lib/dwolla'
 import { syncDwollaRentPayment } from '@/lib/rentPaymentSync'
-import { sendRentPaymentReceivedEmail, sendBankTransferFailedEmail } from '@/lib/email'
+import { sendRentPaymentReceivedEmail, sendBankTransferFailedEmail, sendLandlordBankTransferFailedEmail } from '@/lib/email'
 import { sendPush } from '@/lib/push'
 import { emailAllowed } from '@/lib/notificationPrefs'
 
@@ -56,23 +56,26 @@ export async function POST(request: NextRequest) {
       if (synced === 'failed') {
         const { data: failedRentPayment } = await supabaseAdmin
           .from('rent_payments')
-          .select('expected_amount, actual_amount, tenancies(renter_user_id, units(unit_number, properties(address)))')
+          .select('expected_amount, actual_amount, tenancies(renter_user_id, units(unit_number, properties(address, owner_user_id)))')
           .eq('id', rentPayment.id)
           .maybeSingle()
 
         const renterUserId = (failedRentPayment?.tenancies as any)?.renter_user_id
         const failedUnit = (failedRentPayment?.tenancies as any)?.units
+        const landlordUserId = failedUnit?.properties?.owner_user_id
         const failedAmount = Number(failedRentPayment?.expected_amount || 0) - Number(failedRentPayment?.actual_amount || 0)
+        const failedUnitLabel = failedUnit?.properties?.address
+          ? `${failedUnit.properties.address}${failedUnit.unit_number ? `, Unit ${failedUnit.unit_number}` : ''}`
+          : null
 
+        let renterName: string | null = null
         if (renterUserId) {
           const { data: renter } = await supabaseAdmin
             .from('users')
             .select('email, full_name, preferred_language, email_notifications_enabled')
             .eq('id', renterUserId)
             .maybeSingle()
-          const failedUnitLabel = failedUnit?.properties?.address
-            ? `${failedUnit.properties.address}${failedUnit.unit_number ? `, Unit ${failedUnit.unit_number}` : ''}`
-            : null
+          renterName = renter?.full_name || null
           if (renter?.email && emailAllowed(renter)) {
             await sendBankTransferFailedEmail({
               to: renter.email,
@@ -87,6 +90,33 @@ export async function POST(request: NextRequest) {
             body: 'Rent is still due. Try again or use a debit card instead.',
             url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/renter/rent`,
           }).catch((err) => console.error('dwolla webhook: sendPush (transfer failed) failed', err))
+        }
+
+        // The landlord's own half of this — a payment that looked like it
+        // was processing bouncing days later used to leave them with no
+        // explanation, just rent quietly reverting to unpaid on their rent
+        // roll. See sendLandlordBankTransferFailedEmail for the reasoning.
+        if (landlordUserId) {
+          const { data: landlord } = await supabaseAdmin
+            .from('users')
+            .select('email, full_name, preferred_language, email_notifications_enabled')
+            .eq('id', landlordUserId)
+            .maybeSingle()
+          if (landlord?.email && emailAllowed(landlord)) {
+            await sendLandlordBankTransferFailedEmail({
+              to: landlord.email,
+              landlordName: landlord.full_name || 'there',
+              renterName,
+              amount: failedAmount > 0 ? failedAmount : null,
+              unitLabel: failedUnitLabel,
+              lang: landlord.preferred_language === 'es' ? 'es' : 'en',
+            })
+          }
+          await sendPush(landlordUserId, {
+            title: "A rent bank transfer didn't go through",
+            body: failedUnitLabel ? `${renterName || 'Your tenant'}'s payment for ${failedUnitLabel} bounced.` : `${renterName || 'Your tenant'}'s payment bounced.`,
+            url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/landlord`,
+          }).catch((err) => console.error('dwolla webhook: sendPush (landlord transfer failed) failed', err))
         }
 
         return NextResponse.json({ ok: true })

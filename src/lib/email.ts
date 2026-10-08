@@ -1863,6 +1863,51 @@ export async function sendBankTransferFailedEmail({
   return sendEmail({ to, subject: lang === 'es' ? 'Tu transferencia bancaria no se completó' : "Your bank transfer didn't go through", html })
 }
 
+// The landlord's half of the notification above — a bank transfer that
+// looked like it was on its way can still bounce days later (insufficient
+// funds, a closed account). Without this, the landlord's only signal was
+// rent quietly reverting to unpaid/late on their own rent roll, with no
+// explanation of why a payment that seemed to be processing never arrived.
+export async function sendLandlordBankTransferFailedEmail({
+  to,
+  landlordName,
+  renterName,
+  amount,
+  unitLabel,
+  lang = 'en',
+}: {
+  to: string
+  landlordName: string
+  renterName?: string | null
+  amount?: number | null
+  unitLabel?: string | null
+  lang?: Lang
+}) {
+  const amountFact: EmailFact | null = amount != null ? { label: fl('Amount', lang), value: `$${amount.toFixed(2)}` } : null
+  const unitFact: EmailFact | null = unitLabel ? { label: fl('Unit', lang), value: unitLabel } : null
+  const renterLabel = renterName || (lang === 'es' ? 'Tu inquilino' : 'Your tenant')
+  const html = lang === 'es' ? baseTemplate({
+    lang,
+    eyebrow: 'Pago',
+    heading: 'Una transferencia bancaria de renta no se completó',
+    bodyHtml: `Hola ${escapeHtml(landlordName)}, el pago de renta de <strong>${escapeHtml(renterLabel)}</strong>${unitLabel ? ` para <strong>${escapeHtml(unitLabel)}</strong>` : ''} no se pudo completar (por ejemplo, fondos insuficientes o una cuenta cerrada). La renta sigue pendiente y ya se le notificó para que intente de nuevo. No necesitas hacer nada por ahora.`,
+    preheader: 'Una transferencia bancaria de renta no se completó. La renta sigue pendiente.',
+    facts: [amountFact, unitFact].filter((f): f is EmailFact => !!f),
+    ctaLabel: 'Ver estado de renta',
+    ctaUrl: `${SITE_URL}/landlord`,
+  }) : baseTemplate({
+    lang,
+    eyebrow: 'Payment',
+    heading: "A rent bank transfer didn't go through",
+    bodyHtml: `Hi ${escapeHtml(landlordName)}, ${escapeHtml(renterLabel)}'s rent payment${unitLabel ? ` for <strong>${escapeHtml(unitLabel)}</strong>` : ''} couldn't be completed (for example, insufficient funds or a closed account). Rent is still due, and they've already been notified to try again. No action needed from you right now.`,
+    preheader: "A rent bank transfer didn't go through. Rent is still due.",
+    facts: [amountFact, unitFact].filter((f): f is EmailFact => !!f),
+    ctaLabel: 'View rent status',
+    ctaUrl: `${SITE_URL}/landlord`,
+  })
+  return sendEmail({ to, subject: lang === 'es' ? 'Una transferencia bancaria de renta no se completó' : "A rent bank transfer didn't go through", html })
+}
+
 export async function sendRentDueEmail({ to, landlordName, unitLabels, lang = 'en' }: { to: string; landlordName: string; unitLabels: string[]; lang?: Lang }) {
   const monthLabel = new Date().toLocaleDateString(lang === 'es' ? 'es-ES' : undefined, { month: 'long', year: 'numeric' })
   const list = lang === 'es'
