@@ -60,7 +60,7 @@ const FAQS: Record<Role, { q: string; a: string }[]> = {
   renter: [
     {
       q: 'Is paying rent through Prophandld safe?',
-      a: 'Yes, rent is paid by debit card or bank transfer through Stripe, the same payment processor used by most major platforms. Prophandld never sees or stores your card details. Credit cards aren\'t accepted for rent, on purpose, so you\'re not tempted into card debt to make rent.',
+      a: 'Yes. Debit card payments run through Stripe, and bank transfers run through Dwolla, both the kind of payment infrastructure banks and major platforms rely on. Prophandld never sees or stores your full card or account number. Credit cards aren\'t accepted for rent, on purpose, so you\'re not tempted into card debt to make rent.',
     },
     {
       q: 'How do I report a maintenance issue?',
