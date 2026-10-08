@@ -105,8 +105,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ ok: true })
   } catch (err: any) {
+    // Same reasoning as the create-transfer route: a failure here is
+    // backend/account-state territory (e.g. "A customer with the specified
+    // email already exists" from a stale prior setup), not a mistake the
+    // user can see or fix from this form. Never forward Dwolla's internal
+    // text verbatim.
     console.error('dwolla/customer/create: dwolla call failed', err?.body || err)
-    const dwollaMessage = err?.body?._embedded?.errors?.[0]?.message
-    return NextResponse.json({ error: dwollaMessage || 'Could not start bank account setup' }, { status: 500 })
+    return NextResponse.json({ error: 'Could not start bank account setup. Please try again, or contact support if this keeps happening.' }, { status: 500 })
   }
 }

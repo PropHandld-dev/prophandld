@@ -102,8 +102,14 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ ok: true, amount: amountDue })
   } catch (err: any) {
+    // A failure here is always an account-state/platform issue (the two
+    // funding sources already passed their own checks above), never
+    // something the renter did wrong on this screen — Dwolla's own error
+    // text (e.g. "Receiver cannot receive from sender") is internal jargon
+    // that would only confuse someone paying rent. Log the real reason,
+    // show a generic one. Same fix already applied to every Stripe-calling
+    // route after the 2026-10-01 incident; this route was missed then.
     console.error('dwolla/rent/create-transfer: dwolla call failed', err?.body || err)
-    const dwollaMessage = err?.body?._embedded?.errors?.[0]?.message
-    return NextResponse.json({ error: dwollaMessage || 'Could not start the bank transfer' }, { status: 500 })
+    return NextResponse.json({ error: 'Could not start the bank transfer. Please try again, or contact your landlord if this keeps happening.' }, { status: 500 })
   }
 }
