@@ -109,15 +109,16 @@ export default function ContractorEarningsPage() {
   const thisYearTotal = (byYear.get(thisYear) || []).reduce((sum, b) => sum + (b.amount || 0), 0)
   const rangeTotal = paid.reduce((sum, b) => sum + (b.amount || 0), 0)
 
+  const rangeLabel = `${new Date(range.from + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} – ${new Date(range.to + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`
+
   const exportCsv = () => {
     downloadCsv(
       `prophandld-earnings-${range.from}-to-${range.to}.csv`,
       [t('dateHeader', lang), t('categoryHeader', lang), t('propertyLabel', lang), t('amountHeader', lang)],
-      paid.map((b) => [(b.paid_at || b.created_at).slice(0, 10), b.jobs?.category || '', jobLocation(b, lang), (b.amount || 0).toFixed(2)])
+      paid.map((b) => [(b.paid_at || b.created_at).slice(0, 10), b.jobs?.category || '', jobLocation(b, lang), (b.amount || 0).toFixed(2)]),
+      { heading: `Prophandld — ${t('pastJobsEarnings', lang)}`, subheading: `${contractorName || ''} · ${rangeLabel}` }
     )
   }
-
-  const rangeLabel = `${new Date(range.from + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} – ${new Date(range.to + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`
 
   return (
     <div className="min-h-screen bg-[#0C1A2E] print:bg-white">
@@ -282,12 +283,16 @@ export default function ContractorEarningsPage() {
 
       {/* Printable statement */}
       <div className="print-statement hidden bg-white text-[#171717] max-w-2xl mx-auto px-10 py-10">
+        <div className="h-1.5 -mx-10 -mt-10 mb-8" style={{ background: 'linear-gradient(90deg, #0A7B7E, #12A5A9)' }} />
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-md bg-[#0C1A2E] flex items-center justify-center">
+            <div className="w-7 h-7 rounded-md flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #0A7B7E, #12A5A9)' }}>
               <Logo className="w-4 h-4" />
             </div>
-            <span className="font-bold text-sm tracking-tight">Prophandld</span>
+            <div>
+              <span className="font-bold text-sm tracking-tight block leading-tight">Prophandld</span>
+              <span className="text-black/35 text-[10px] leading-tight">Your Property. Handled.</span>
+            </div>
           </div>
           <span className="text-xs text-black/40">{new Date().toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}</span>
         </div>
@@ -297,7 +302,7 @@ export default function ContractorEarningsPage() {
 
         <div className="border-y border-black/10 py-4 mb-8">
           <p className="text-black/40 text-[10px] uppercase tracking-wide mb-1">{t('allTime', lang)}: {rangeLabel}</p>
-          <p className="font-mono font-semibold text-lg">${rangeTotal.toFixed(2)}</p>
+          <p className="font-mono font-semibold text-lg" style={{ color: '#0A7B7E' }}>${rangeTotal.toFixed(2)}</p>
         </div>
 
         <table className="w-full text-xs font-mono mb-8">
@@ -321,7 +326,10 @@ export default function ContractorEarningsPage() {
           </tbody>
         </table>
 
-        <p className="text-black/30 text-[10px] text-center pt-4 border-t border-black/10">{t('reportFooterNote', lang)}</p>
+        <div className="pt-4 border-t border-black/10 text-center">
+          <p className="text-black/30 text-[10px]">{t('reportFooterNote', lang)}</p>
+          <p className="text-black/25 text-[10px] mt-1">prophandld.com</p>
+        </div>
       </div>
     </div>
   )

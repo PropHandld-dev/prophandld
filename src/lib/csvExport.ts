@@ -9,15 +9,23 @@ function csvCell(value: string | number | null | undefined): string {
   return str
 }
 
-export function toCsv(headers: string[], rows: (string | number | null | undefined)[][]): string {
-  const lines = [headers.map(csvCell).join(','), ...rows.map((row) => row.map(csvCell).join(','))]
+// `title` prepends a couple of branded lines before the real header row —
+// ragged rows (fewer populated cells than the data below) are completely
+// valid CSV and Excel/Sheets render them as plain text above the real
+// table, same as any statement export. Small thing, but it's the one
+// export in the app a landlord is likely to actually forward to someone
+// else (an accountant, a business partner), so it's worth it saying who
+// it's from before the raw numbers start.
+export function toCsv(headers: string[], rows: (string | number | null | undefined)[][], title?: { heading: string; subheading?: string }): string {
+  const preamble = title ? [csvCell(title.heading), ...(title.subheading ? [csvCell(title.subheading)] : []), ''] : []
+  const lines = [...preamble, headers.map(csvCell).join(','), ...rows.map((row) => row.map(csvCell).join(','))]
   // Leading BOM so Excel (still the most common opener) detects UTF-8
   // instead of guessing a legacy codepage and mangling an accented name.
   return '﻿' + lines.join('\r\n')
 }
 
-export function downloadCsv(filename: string, headers: string[], rows: (string | number | null | undefined)[][]) {
-  const csv = toCsv(headers, rows)
+export function downloadCsv(filename: string, headers: string[], rows: (string | number | null | undefined)[][], title?: { heading: string; subheading?: string }) {
+  const csv = toCsv(headers, rows, title)
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')

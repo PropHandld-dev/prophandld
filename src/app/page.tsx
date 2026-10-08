@@ -54,6 +54,38 @@ function RotatingHeroPhrase() {
   )
 }
 
+// Structured data for search engines — purely additive, invisible to a
+// visitor, and free in the literal sense (no ad spend). Only states facts
+// the rest of the page already claims: no price (not finalized/public yet,
+// matches the pricing section's own "finalizing before launch" copy) and
+// no aggregateRating/review (would be fabricated — nothing like that
+// exists pre-launch, same reasoning the team already applied to the trust
+// section below instead of fake testimonials).
+const STRUCTURED_DATA = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id': 'https://www.prophandld.com/#organization',
+      name: 'Prophandld',
+      url: 'https://www.prophandld.com',
+      logo: 'https://www.prophandld.com/icon-192.png',
+      slogan: 'Your Property. Handled.',
+    },
+    {
+      '@type': 'SoftwareApplication',
+      name: 'Prophandld',
+      applicationCategory: 'BusinessApplication',
+      operatingSystem: 'Web',
+      description: 'Mini property management for landlords who own a few places, not a few hundred. Track properties and tenants, get contractor bids through sealed bidding, and collect rent online.',
+      url: 'https://www.prophandld.com',
+      publisher: { '@id': 'https://www.prophandld.com/#organization' },
+      areaServed: { '@type': 'City', name: 'Philadelphia' },
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD', description: 'Free for a single rental unit' },
+    },
+  ],
+}
+
 export default function LandingPage() {
   const router = useRouter()
 
@@ -74,6 +106,7 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-[#0C1A2E] text-white relative">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(STRUCTURED_DATA) }} />
 
       {/* Nav */}
       <nav className="border-b border-white/8 px-6 pb-4 pt-[calc(1rem+env(safe-area-inset-top))] flex items-center justify-between sticky top-0 bg-[#0C1A2E]/90 backdrop-blur-sm z-10">

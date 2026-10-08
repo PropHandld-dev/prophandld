@@ -211,22 +211,24 @@ export default function LandlordReportsPage() {
   }, [range.from, range.to])
   const estimatedSubscriptionCost = unitCount > 1 ? graduatedMonthlyAmount(unitCount) * monthsInRange : 0
 
+  const rangeLabel = `${new Date(range.from + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} – ${new Date(range.to + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`
+
   const exportRent = () => {
     downloadCsv(
       `prophandld-rent-collected-${range.from}-to-${range.to}.csv`,
       [t('dateHeader', lang), t('propertyLabel', lang), t('amountHeader', lang), t('methodLabelReceipt', lang)],
-      filteredRent.map((r) => [r.date, r.place, r.amount.toFixed(2), r.method === 'bank' ? t('bankTransferValue', lang) : t('debitCardValue', lang)])
+      filteredRent.map((r) => [r.date, r.place, r.amount.toFixed(2), r.method === 'bank' ? t('bankTransferValue', lang) : t('debitCardValue', lang)]),
+      { heading: `Prophandld — ${t('rentCollectedLabel', lang)}`, subheading: `${landlordName || ''} · ${rangeLabel}` }
     )
   }
   const exportJobs = () => {
     downloadCsv(
       `prophandld-contractor-payments-${range.from}-to-${range.to}.csv`,
       [t('dateHeader', lang), t('propertyLabel', lang), t('categoryHeader', lang), t('contractorHeader', lang), t('amountHeader', lang)],
-      filteredJobs.map((r) => [r.date, r.place, r.category, r.contractorName, r.amount.toFixed(2)])
+      filteredJobs.map((r) => [r.date, r.place, r.category, r.contractorName, r.amount.toFixed(2)]),
+      { heading: `Prophandld — ${t('paidToContractorsLabel', lang)}`, subheading: `${landlordName || ''} · ${rangeLabel}` }
     )
   }
-
-  const rangeLabel = `${new Date(range.from + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} – ${new Date(range.to + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`
   const propertyLabel = propertyFilter === 'all' ? t('allPropertiesLabel', lang) : properties.find((p) => p.id === propertyFilter)?.address || ''
 
   return (
@@ -436,12 +438,16 @@ export default function LandlordReportsPage() {
 
       {/* Printable statement — hidden on screen, shown only by @media print above */}
       <div className="print-statement hidden bg-white text-[#171717] max-w-2xl mx-auto px-10 py-10">
+        <div className="h-1.5 -mx-10 -mt-10 mb-8" style={{ background: 'linear-gradient(90deg, #0A7B7E, #12A5A9)' }} />
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-md bg-[#0C1A2E] flex items-center justify-center">
+            <div className="w-7 h-7 rounded-md flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #0A7B7E, #12A5A9)' }}>
               <Logo className="w-4 h-4" />
             </div>
-            <span className="font-bold text-sm tracking-tight">Prophandld</span>
+            <div>
+              <span className="font-bold text-sm tracking-tight block leading-tight">Prophandld</span>
+              <span className="text-black/35 text-[10px] leading-tight">Your Property. Handled.</span>
+            </div>
           </div>
           <span className="text-xs text-black/40">{new Date().toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}</span>
         </div>
@@ -461,7 +467,7 @@ export default function LandlordReportsPage() {
           </div>
           <div>
             <p className="text-black/40 text-[10px] uppercase tracking-wide mb-1">{t('netLabel', lang)}</p>
-            <p className="font-mono font-semibold">${net.toFixed(2)}</p>
+            <p className="font-mono font-semibold" style={{ color: '#0A7B7E' }}>${net.toFixed(2)}</p>
           </div>
         </div>
 
@@ -513,7 +519,10 @@ export default function LandlordReportsPage() {
           <p className="text-black/40 text-[11px] mb-6">{t('estimatedSubscriptionNote', lang)} ${estimatedSubscriptionCost.toFixed(2)} {t('estimatedSubscriptionNoteSuffix', lang)}</p>
         )}
 
-        <p className="text-black/30 text-[10px] text-center pt-4 border-t border-black/10">{t('reportFooterNote', lang)}</p>
+        <div className="pt-4 border-t border-black/10 text-center">
+          <p className="text-black/30 text-[10px]">{t('reportFooterNote', lang)}</p>
+          <p className="text-black/25 text-[10px] mt-1">prophandld.com</p>
+        </div>
       </div>
     </div>
   )
