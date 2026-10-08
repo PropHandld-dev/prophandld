@@ -1058,6 +1058,10 @@ const STRINGS = {
   bankAccountNameLabel: { en: 'Name on account', es: 'Nombre en la cuenta' },
   saveBankAccount: { en: 'Save bank account', es: 'Guardar cuenta bancaria' },
   couldNotAddBankAccount: { en: 'Could not add bank account.', es: 'No se pudo agregar la cuenta bancaria.' },
+  identityVerificationNotice: { en: 'Dwolla requires identity verification to receive rent payments directly from tenants. This is the same information Stripe already asks for when setting up payouts — it’s handled securely by Dwolla and never stored by Prophandld.', es: 'Dwolla requiere verificación de identidad para recibir pagos de renta directamente de los inquilinos. Es la misma información que Stripe ya solicita al configurar los pagos; Dwolla la maneja de forma segura y Prophandld nunca la almacena.' },
+  statePlaceholder: { en: 'e.g. PA', es: 'ej. PA' },
+  dateOfBirthLabel: { en: 'Date of birth', es: 'Fecha de nacimiento' },
+  ssnLast4Label: { en: 'Last 4 digits of SSN', es: 'Últimos 4 dígitos del SSN' },
 
   // DwollaBankLinkModal (renter-side rent payment)
   linkBankToPayRentTitle: { en: 'Link your bank account', es: 'Conecta tu cuenta bancaria' },

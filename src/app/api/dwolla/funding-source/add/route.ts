@@ -27,10 +27,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing routing number, account number, or account type' }, { status: 400 })
   }
 
+  const role = user.app_metadata?.role
+
   const supabaseAdmin = getSupabaseAdmin()
   const { data: userRow, error: userRowError } = await supabaseAdmin
     .from('users')
-    .select('dwolla_customer_id, dwolla_customer_type')
+    .select('dwolla_customer_id')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -47,12 +49,14 @@ export async function POST(request: NextRequest) {
       name: name?.trim() || 'Bank account',
     })
 
-    // Receive-only customers (landlords) don't need to verify to start
-    // receiving — flip them active immediately. Sending customers
-    // (renters) need the micro-deposit round trip before they can pay, so
-    // kick that off now and leave status at 'pending' until verified.
-    const isReceiveOnly = userRow.dwolla_customer_type === 'receive-only'
-    if (!isReceiveOnly) {
+    // A funding source can RECEIVE transfers immediately even while
+    // unverified — only SENDING requires the micro-deposit round trip.
+    // Landlords only ever receive rent here (Prophandld's facilitator
+    // account creates the transfer; the landlord's funding source is just
+    // the destination), so they skip straight to active regardless of
+    // their Dwolla Customer type. Renters send, so they always need it.
+    const onlyReceives = role === 'landlord'
+    if (!onlyReceives) {
       await initiateMicroDeposits(fundingSource.url)
     }
 
@@ -60,8 +64,8 @@ export async function POST(request: NextRequest) {
       .from('users')
       .update({
         dwolla_funding_source_id: fundingSource.id,
-        dwolla_funding_source_status: isReceiveOnly ? 'verified' : 'pending',
-        dwolla_customer_status: isReceiveOnly ? 'active' : 'pending',
+        dwolla_funding_source_status: onlyReceives ? 'verified' : 'pending',
+        dwolla_customer_status: onlyReceives ? 'active' : 'pending',
       })
       .eq('id', user.id)
 
@@ -70,7 +74,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Could not save bank account' }, { status: 500 })
     }
 
-    return NextResponse.json({ ok: true, needsMicroDepositVerification: !isReceiveOnly })
+    return NextResponse.json({ ok: true, needsMicroDepositVerification: !onlyReceives })
   } catch (err: any) {
     console.error('dwolla/funding-source/add: dwolla call failed', err?.body || err)
     const dwollaMessage = err?.body?._embedded?.errors?.[0]?.message

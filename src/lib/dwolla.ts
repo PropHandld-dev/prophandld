@@ -35,27 +35,51 @@ type DwollaCustomer = {
   status: string
 }
 
-// Landlords only ever receive rent — the lightest Dwolla Customer type
-// (name + email only, no SSN/EIN) is the correct fit, not an
-// under-verification of a sending party.
-export async function createReceiveOnlyCustomer({
+// Landlords receive rent. Receive-only (name + email only) was the first
+// choice here since landlords never send — but Dwolla's transfer rules
+// turned out to block an Unverified sender (the renter) from reaching a
+// Receive-Only recipient at all ("Receiver cannot receive from sender"),
+// confirmed against a real sandbox transfer attempt. Verified Customer is
+// the type that can actually receive from an Unverified sender, so
+// landlords go through full identity verification instead — the same
+// SSN/DOB/address Stripe Connect Express already collects from them
+// today, not a new category of data being asked for.
+export async function createVerifiedPersonalCustomer({
   firstName,
   lastName,
   email,
+  address1,
+  city,
+  state,
+  postalCode,
+  dateOfBirth,
+  ssnLast4,
 }: {
   firstName: string
   lastName: string
   email: string
+  address1: string
+  city: string
+  state: string
+  postalCode: string
+  dateOfBirth: string
+  ssnLast4: string
 }): Promise<DwollaCustomer> {
   const dwolla = getDwollaClient()
   const res = await dwolla.post('customers', {
     firstName,
     lastName,
     email,
-    type: 'receive-only',
+    type: 'personal',
+    address1,
+    city,
+    state,
+    postalCode,
+    dateOfBirth,
+    ssn: ssnLast4,
   })
   const url = res.headers.get('location')!
-  return { id: url.split('/').pop()!, url, type: 'receive-only', status: 'unverified' }
+  return { id: url.split('/').pop()!, url, type: 'verified', status: 'unverified' }
 }
 
 // Renters send rent. 'unverified' is deliberate, not a corner cut — rent

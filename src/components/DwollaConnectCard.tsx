@@ -10,10 +10,12 @@ type CustomerStatus = 'not_started' | 'pending' | 'active' | 'suspended'
 
 // Landlord-facing rent-payout setup via Dwolla — replaces
 // <StripeConnectCard purpose="rent" /> only (contractors' job payouts stay
-// on Stripe, untouched). Unlike Stripe Connect's hosted redirect, this is
-// a simple inline form: a landlord only ever receives here, so there's no
-// identity-verification walkthrough to send them through, just routing +
-// account number.
+// on Stripe, untouched). Dwolla requires landlords to be Verified
+// Customers (not the lighter Receive-Only type originally planned) since
+// an Unverified renter can't send to a Receive-Only recipient at all —
+// confirmed against a real sandbox transfer attempt. That means a short
+// identity form (address, DOB, last 4 of SSN) alongside the bank details,
+// the same information Stripe Connect already collects for job payouts.
 export function DwollaConnectCard() {
   const lang = useLanguage()
   const [status, setStatus] = useState<CustomerStatus | null>(null)
@@ -25,6 +27,12 @@ export function DwollaConnectCard() {
   const [accountNumber, setAccountNumber] = useState('')
   const [bankAccountType, setBankAccountType] = useState<'checking' | 'savings'>('checking')
   const [accountName, setAccountName] = useState('')
+  const [address1, setAddress1] = useState('')
+  const [city, setCity] = useState('')
+  const [state, setState] = useState('')
+  const [postalCode, setPostalCode] = useState('')
+  const [dateOfBirth, setDateOfBirth] = useState('')
+  const [ssnLast4, setSsnLast4] = useState('')
 
   const load = async () => {
     try {
@@ -43,11 +51,26 @@ export function DwollaConnectCard() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!routingNumber.trim() || !accountNumber.trim() || !accountName.trim()) return
+    if (
+      !routingNumber.trim() || !accountNumber.trim() || !accountName.trim() ||
+      !address1.trim() || !city.trim() || !state.trim() || !postalCode.trim() ||
+      !dateOfBirth || ssnLast4.trim().length !== 4
+    ) return
     setSubmitting(true)
     setError(null)
 
-    const createRes = await fetch('/api/dwolla/customer/create', { method: 'POST' })
+    const createRes = await fetch('/api/dwolla/customer/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        address1: address1.trim(),
+        city: city.trim(),
+        state: state.trim(),
+        postalCode: postalCode.trim(),
+        dateOfBirth,
+        ssnLast4: ssnLast4.trim(),
+      }),
+    })
     const createData = await createRes.json().catch(() => ({}))
     if (!createRes.ok) {
       setError(createData.error || t('couldNotStartPayoutSetup', lang))
@@ -77,6 +100,12 @@ export function DwollaConnectCard() {
     setRoutingNumber('')
     setAccountNumber('')
     setAccountName('')
+    setAddress1('')
+    setCity('')
+    setState('')
+    setPostalCode('')
+    setDateOfBirth('')
+    setSsnLast4('')
     await load()
   }
 
@@ -125,6 +154,9 @@ export function DwollaConnectCard() {
 
       {showForm && (
         <form onSubmit={handleSubmit} className="mt-4 space-y-3">
+          <p className="text-white/40 text-xs bg-white/5 border border-white/10 rounded-xl px-3 py-2.5">
+            {t('identityVerificationNotice', lang)}
+          </p>
           <div>
             <label htmlFor="dwollaAccountName" className="text-white/70 text-sm block mb-1">{t('bankAccountNameLabel', lang)}</label>
             <input
@@ -171,6 +203,82 @@ export function DwollaConnectCard() {
               <option value="checking" className="bg-[#0C1A2E]">{t('checkingOption', lang)}</option>
               <option value="savings" className="bg-[#0C1A2E]">{t('savingsOption', lang)}</option>
             </select>
+          </div>
+          <div>
+            <label htmlFor="dwollaAddress1" className="text-white/70 text-sm block mb-1">{t('streetAddressLabel', lang)}</label>
+            <input
+              id="dwollaAddress1"
+              type="text"
+              value={address1}
+              onChange={(e) => setAddress1(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-[#12A5A9] transition"
+              required
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="dwollaCity" className="text-white/70 text-sm block mb-1">{t('cityLabel', lang)}</label>
+              <input
+                id="dwollaCity"
+                type="text"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-[#12A5A9] transition"
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="dwollaState" className="text-white/70 text-sm block mb-1">{t('stateLabel', lang)}</label>
+              <input
+                id="dwollaState"
+                type="text"
+                maxLength={2}
+                placeholder={t('statePlaceholder', lang)}
+                value={state}
+                onChange={(e) => setState(e.target.value.toUpperCase())}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-[#12A5A9] transition"
+                required
+              />
+            </div>
+          </div>
+          <div>
+            <label htmlFor="dwollaZip" className="text-white/70 text-sm block mb-1">{t('zipCodeLabel', lang)}</label>
+            <input
+              id="dwollaZip"
+              type="text"
+              inputMode="numeric"
+              maxLength={5}
+              value={postalCode}
+              onChange={(e) => setPostalCode(e.target.value.replace(/\D/g, ''))}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-[#12A5A9] transition"
+              required
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="dwollaDob" className="text-white/70 text-sm block mb-1">{t('dateOfBirthLabel', lang)}</label>
+              <input
+                id="dwollaDob"
+                type="date"
+                value={dateOfBirth}
+                onChange={(e) => setDateOfBirth(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-[#12A5A9] transition"
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="dwollaSsn" className="text-white/70 text-sm block mb-1">{t('ssnLast4Label', lang)}</label>
+              <input
+                id="dwollaSsn"
+                type="password"
+                inputMode="numeric"
+                maxLength={4}
+                value={ssnLast4}
+                onChange={(e) => setSsnLast4(e.target.value.replace(/\D/g, ''))}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-[#12A5A9] transition"
+                required
+              />
+            </div>
           </div>
           <RippleButton
             type="submit"
