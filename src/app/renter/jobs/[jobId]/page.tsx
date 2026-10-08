@@ -19,7 +19,7 @@ import { JobChatCard, scrollToChat } from '@/components/JobChatCard'
 import { getUnreadJobIds } from '@/lib/messageReads'
 import { useJobRealtime } from '@/lib/useJobRealtime'
 import { RENTER_TABS } from '@/lib/navTabs'
-import { TIME_WINDOWS, validateScheduleTime, lateRescheduleWarning } from '@/lib/scheduleWindows'
+import { TIME_WINDOWS, validateScheduleTime, lateRescheduleWarning, shortNoticeWarning } from '@/lib/scheduleWindows'
 import { useLanguage, t, windowLabel } from '@/lib/i18n'
 
 export default function RenterJobDetailPage() {
@@ -437,6 +437,9 @@ export default function RenterJobDetailPage() {
                   {new Date(job.proposed_date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })} · {windowLabel(job.proposed_window, lang)}
                   {job.proposed_time && ` · ${job.proposed_time}`}
                 </p>
+                {shortNoticeWarning(job.proposed_date, job.proposed_window, job.proposed_time, job.is_emergency) && (
+                  <p className="text-yellow-400/70 text-xs mt-2 leading-relaxed">{shortNoticeWarning(job.proposed_date, job.proposed_window, job.proposed_time, job.is_emergency)}</p>
+                )}
                 {isMyTurnToRespond ? (
                   <div className="flex items-center gap-3 mt-3">
                     <RippleButton
@@ -511,6 +514,12 @@ export default function RenterJobDetailPage() {
             {job.schedule_confirmed && job.proposed_date && lateRescheduleWarning(job.proposed_date) && (
               <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl px-4 py-3 mb-4">
                 <p className="text-yellow-400/90 text-xs leading-relaxed">{lateRescheduleWarning(job.proposed_date)}</p>
+              </div>
+            )}
+
+            {shortNoticeWarning(scheduleDate, scheduleWindow, scheduleTime, job.is_emergency) && (
+              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl px-4 py-3 mb-4">
+                <p className="text-yellow-400/90 text-xs leading-relaxed">{shortNoticeWarning(scheduleDate, scheduleWindow, scheduleTime, job.is_emergency)}</p>
               </div>
             )}
 

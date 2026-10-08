@@ -42,6 +42,41 @@ export function lateRescheduleWarning(confirmedDate: string): string | null {
   return `Heads up: the current appointment is ${label}, very soon. The other side will get an urgent alert the moment you propose a new time, so let them know to check as soon as they can.`
 }
 
+// Most states expect a landlord (or anyone acting for them, including a
+// contractor) to give a tenant meaningful advance notice before entering
+// their home for non-emergency work — commonly cited around 24 hours.
+// This is a best-practice default, not a citation of any one state's exact
+// statute (those vary), which is also why this nudges rather than hard-
+// blocks: the same reasoning the team already landed on for
+// RESCHEDULE_LOCKOUT_DAYS above — the real protection is that the other
+// side still has to explicitly confirm, not that the app refuses to let a
+// time be proposed at all. A genuinely urgent job is the standard
+// exception in every version of this rule, so it's excluded entirely.
+export const ENTRY_NOTICE_HOURS = 24
+
+// `time` is an <input type="time"> value ("HH:MM") or null/empty — when no
+// specific time was given, the window's own start hour is the earliest the
+// visit could realistically happen, so that's what gets checked.
+export function hoursUntilProposed(date: string, window: string, time: string | null): number {
+  const win = TIME_WINDOWS.find((w) => w.value === window)
+  const [hours, minutes] = time ? time.split(':').map(Number) : [win?.startHour ?? 8, 0]
+  const proposed = new Date(date + 'T00:00:00')
+  proposed.setHours(hours, minutes, 0, 0)
+  return (proposed.getTime() - Date.now()) / (60 * 60 * 1000)
+}
+
+// Shown next to the date/time fields while proposing or confirming a time —
+// same spirit as lateRescheduleWarning just above: inform, don't block.
+// Never shown for an emergency job, where same-day access is the norm, not
+// an exception.
+export function shortNoticeWarning(date: string, window: string, time: string | null, isEmergency: boolean): string | null {
+  if (isEmergency || !date) return null
+  const hoursUntil = hoursUntilProposed(date, window, time)
+  if (hoursUntil >= ENTRY_NOTICE_HOURS) return null
+  if (hoursUntil < 0) return null // a past/same-moment date is caught elsewhere, not this check's job
+  return `Heads up: this is less than ${ENTRY_NOTICE_HOURS} hours' notice. Most places expect at least a day's notice before entering a tenant's home for non-emergency work — fine if everyone's genuinely OK with it, but worth a quick check before you send it.`
+}
+
 // `time` is an <input type="time"> value ("HH:MM", 24h). Returns an
 // error message if it falls outside the chosen window, else null.
 export function validateScheduleTime(window: string, time: string): string | null {
