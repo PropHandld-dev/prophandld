@@ -10,6 +10,7 @@ import { DollarSignIcon, AlertTriangleIcon, FileTextIcon, WrenchIcon, CalendarIc
 import { Logo } from '@/components/Logo'
 import { BrandLink } from '@/components/BrandLink'
 import { RoleShowcase } from '@/components/RoleShowcase'
+import { FeatureTourCarousel } from '@/components/FeatureTourCarousel'
 import { HowItWorksTracker, NotificationPreview } from '@/components/LandingTracker'
 import { BellIcon, ReceiptIcon } from '@/components/icons'
 import { LandingHelpWidget } from '@/components/LandingHelpWidget'
@@ -236,67 +237,12 @@ export default function LandingPage() {
         </ScrollReveal>
       </section>
 
-      {/* Features */}
+      {/* Feature tour */}
       <section className="max-w-5xl mx-auto px-6 py-16">
         <ScrollReveal>
-        <h2 className="text-3xl font-bold text-center mb-12 text-white">Everything you need. None of the group texts.</h2>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white/3 border border-white/8 rounded-2xl p-7 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all duration-200">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 border border-[#12A5A9]/30 flex items-center justify-center mb-5">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#12A5A9" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="5" y="11" width="14" height="9" rx="2" />
-                <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-              </svg>
-            </div>
-            <h3 className="text-white font-bold text-lg mb-2">Sealed bidding</h3>
-            <p className="text-white/50 text-sm leading-relaxed">
-              Contractors bid without seeing each other&apos;s numbers. You get
-              real competition, not inflated quotes.
-            </p>
-          </div>
-          <div className="bg-white/3 border border-white/8 rounded-2xl p-7 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all duration-200">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 border border-[#12A5A9]/30 flex items-center justify-center mb-5">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#12A5A9" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z" />
-                <path d="M9 12l2 2 4-4" />
-              </svg>
-            </div>
-            <h3 className="text-white font-bold text-lg mb-2">No surprise costs</h3>
-            <p className="text-white/50 text-sm leading-relaxed">
-              If a contractor needs to adjust the price after starting, you
-              see the labor and parts breakdown and approve it before they
-              move forward.
-            </p>
-          </div>
-          <div className="bg-white/3 border border-white/8 rounded-2xl p-7 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all duration-200">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 border border-[#12A5A9]/30 flex items-center justify-center mb-5">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#12A5A9" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 8a2 2 0 0 1 2-2h1l1.5-2h7L17 6h1a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8z" />
-                <circle cx="12" cy="13" r="4" />
-              </svg>
-            </div>
-            <h3 className="text-white font-bold text-lg mb-2">Photo-verified work</h3>
-            <p className="text-white/50 text-sm leading-relaxed">
-              Every job wraps up with before-and-after photos, so you can see
-              exactly what was done before you sign off.
-            </p>
-          </div>
-          <div className="bg-white/3 border border-white/8 rounded-2xl p-7 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all duration-200">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 border border-[#12A5A9]/30 flex items-center justify-center mb-5">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#12A5A9" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 3l7 3v6c0 4.86-3.14 8.53-7 9.93C8.14 17.53 5 13.86 5 9V6l7-3z" />
-                <path d="M12 8v4.5" />
-                <circle cx="12" cy="15.5" r="0.5" fill="#12A5A9" />
-              </svg>
-            </div>
-            <h3 className="text-white font-bold text-lg mb-2">Compliance, on autopilot</h3>
-            <p className="text-white/50 text-sm leading-relaxed">
-              Rental licenses, certificates, inspections. Add the expiry date
-              once and get warned weeks out, not the day an inspector or a
-              lawsuit tells you it already lapsed.
-            </p>
-          </div>
-        </div>
+          <h2 className="text-3xl font-bold text-center mb-3 text-white">See what you actually get</h2>
+          <p className="text-white/50 text-center max-w-xl mx-auto mb-10">A real feature tour, not a highlight reel. Switch between landlord and contractor to see it from either side.</p>
+          <FeatureTourCarousel />
         </ScrollReveal>
       </section>
 
