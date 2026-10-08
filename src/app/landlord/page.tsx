@@ -19,7 +19,7 @@ import { Logo } from '@/components/Logo'
 import { fetchAllPagesOrEmpty } from '@/lib/pagedQuery'
 import {
   BuildingIcon, WrenchIcon, CalendarIcon, ClipboardListIcon,
-  DollarSignIcon, FileTextIcon, AlertTriangleIcon, CheckCircleIcon, UserIcon,
+  DollarSignIcon, FileTextIcon, AlertTriangleIcon, CheckCircleIcon, UserIcon, ReceiptIcon,
 } from '@/components/icons'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 import { ProductTour, type TourStep } from '@/components/ProductTour'
@@ -727,6 +727,11 @@ export default function LandlordDashboard() {
                 <ClipboardListIcon className="w-5 h-5 text-[#12A5A9] mb-2" />
                 <h3 className="text-white font-semibold mb-1">{t('complianceCardTitle', lang)}</h3>
                 <p className="text-white/60 text-sm">{t('complianceCardDesc', lang)}</p>
+              </Link>
+              <Link href="/landlord/reports" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
+                <ReceiptIcon className="w-5 h-5 text-[#12A5A9] mb-2" />
+                <h3 className="text-white font-semibold mb-1">{t('reportsCardTitle', lang)}</h3>
+                <p className="text-white/60 text-sm">{t('reportsCardDesc', lang)}</p>
               </Link>
             </div>
           </>
