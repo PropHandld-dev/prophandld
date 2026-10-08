@@ -1047,6 +1047,19 @@ const STRINGS = {
   managePayoutAccount: { en: 'Manage payout account', es: 'Administrar cuenta de pagos' },
   redirecting: { en: 'Redirecting...', es: 'Redirigiendo...' },
 
+  // BankTrustNotice (shared reassurance block shown on both bank-linking wizards)
+  trustNoticeHeading: { en: 'Your information is safe', es: 'Tu información está segura' },
+  trustPointEncrypted: { en: "Sent directly and securely to Dwolla, a licensed U.S. payments company — it never touches Prophandld's own servers.", es: 'Se envía directa y de forma segura a Dwolla, una empresa de pagos autorizada en EE. UU.; nunca pasa por los servidores de Prophandld.' },
+  trustPointPartialNumber: { en: 'We only ever see the last 4 digits of your account. Never the full number.', es: 'Solo vemos los últimos 4 dígitos de tu cuenta. Nunca el número completo.' },
+  trustPointNeverSell: { en: 'We will never sell or share your information. Ever.', es: 'Nunca venderemos ni compartiremos tu información. Nunca.' },
+  trustPointRenterPrivacy: { en: 'Your landlord never sees your bank details — only that rent was paid.', es: 'Tu arrendador nunca ve los detalles de tu cuenta bancaria, solo que la renta fue pagada.' },
+
+  // Shared bank-link wizard navigation
+  backBtn: { en: 'Back', es: 'Atrás' },
+  continueBtn: { en: 'Continue', es: 'Continuar' },
+  getStartedBtn: { en: 'Get started', es: 'Comenzar' },
+  dwollaSuccessTitle: { en: "You're all set!", es: '¡Todo listo!' },
+
   // DwollaConnectCard (landlord rent payouts)
   getPaidRentDwollaBody: { en: 'Link a bank account so rent payments made through Prophandld go straight to you.', es: 'Conecta una cuenta bancaria para que los pagos de renta hechos a través de Prophandld vayan directo a ti.' },
   linkBankAccount: { en: 'Link bank account', es: 'Conectar cuenta bancaria' },
@@ -1056,12 +1069,28 @@ const STRINGS = {
   checkingOption: { en: 'Checking', es: 'Corriente' },
   savingsOption: { en: 'Savings', es: 'Ahorros' },
   bankAccountNameLabel: { en: 'Name on account', es: 'Nombre en la cuenta' },
+  bankAccountNameHelper: { en: 'Usually your own name, exactly as it appears on your bank statement', es: 'Normalmente tu propio nombre, igual que aparece en tu estado de cuenta' },
+  routingNumberHelper: { en: "Usually 9 digits — find it on a check or in your bank's app", es: 'Normalmente 9 dígitos — lo encuentras en un cheque o en la app de tu banco' },
+  accountNumberHelper: { en: "Find this on a check or in your bank's app too", es: 'También lo encuentras en un cheque o en la app de tu banco' },
   saveBankAccount: { en: 'Save bank account', es: 'Guardar cuenta bancaria' },
   couldNotAddBankAccount: { en: 'Could not add bank account.', es: 'No se pudo agregar la cuenta bancaria.' },
   identityVerificationNotice: { en: 'Dwolla requires identity verification to receive rent payments directly from tenants. This is the same information Stripe already asks for when setting up payouts — it’s handled securely by Dwolla and never stored by Prophandld.', es: 'Dwolla requiere verificación de identidad para recibir pagos de renta directamente de los inquilinos. Es la misma información que Stripe ya solicita al configurar los pagos; Dwolla la maneja de forma segura y Prophandld nunca la almacena.' },
   statePlaceholder: { en: 'e.g. PA', es: 'ej. PA' },
   dateOfBirthLabel: { en: 'Date of birth', es: 'Fecha de nacimiento' },
   ssnLast4Label: { en: 'Last 4 digits of SSN', es: 'Últimos 4 dígitos del SSN' },
+  ssnLast4Helper: { en: 'Only the last 4 digits — never your full Social Security number', es: 'Solo los últimos 4 dígitos — nunca tu número de Seguro Social completo' },
+  dwollaLandlordIntroTitle: { en: 'Get paid for rent, automatically', es: 'Recibe el pago de la renta automáticamente' },
+  dwollaLandlordIntroBody: { en: 'Link a bank account once, and every rent payment made through Prophandld goes straight into it — no more chasing checks.', es: 'Conecta una cuenta bancaria una vez, y cada pago de renta hecho a través de Prophandld llegará directo a ella, sin más persecución de cheques.' },
+  bankDetailsStepTitle: { en: 'Step 1 of 2: Your bank account', es: 'Paso 1 de 2: Tu cuenta bancaria' },
+  identityStepTitle: { en: "Step 2 of 2: Confirm it's you", es: 'Paso 2 de 2: Confirma que eres tú' },
+  identityStepBody: { en: 'Banking rules require we confirm your identity before you can receive payments. This is the same information Stripe already asks for — handled securely by Dwolla, never stored by Prophandld.', es: 'Las normas bancarias requieren que confirmemos tu identidad antes de que puedas recibir pagos. Es la misma información que Stripe ya solicita; Dwolla la maneja de forma segura y Prophandld nunca la almacena.' },
+  reviewAndFinishBtn: { en: 'Review and finish', es: 'Revisar y finalizar' },
+  reviewStepTitle: { en: 'Double-check everything', es: 'Revisa todo una vez más' },
+  reviewBankLabel: { en: 'Bank account', es: 'Cuenta bancaria' },
+  reviewAddressLabel: { en: 'Address', es: 'Dirección' },
+  accountEndingIn: { en: 'account ending in', es: 'cuenta terminada en' },
+  confirmAndLinkBtn: { en: 'Confirm and link account', es: 'Confirmar y conectar cuenta' },
+  dwollaLandlordSuccessBody: { en: "We'll email you as soon as you're ready to receive rent payments this way.", es: 'Te enviaremos un correo en cuanto puedas recibir pagos de renta de esta forma.' },
 
   // DwollaBankLinkModal (renter-side rent payment)
   linkBankToPayRentTitle: { en: 'Link your bank account', es: 'Conecta tu cuenta bancaria' },
@@ -1076,6 +1105,11 @@ const STRINGS = {
   transferStartedTitle: { en: 'Payment started', es: 'Pago iniciado' },
   transferStartedBody: { en: 'Your bank transfer is on its way. It usually takes 1 to 3 business days to clear.', es: 'Tu transferencia bancaria está en camino. Normalmente tarda de 1 a 3 días hábiles en procesarse.' },
   done: { en: 'Done', es: 'Listo' },
+  dwollaRenterIntroTitle: { en: 'Pay rent straight from your bank', es: 'Paga la renta directo desde tu banco' },
+  dwollaRenterIntroBody: { en: 'Link your bank account once, and paying rent is as easy as tapping a button — no card fees, no checks.', es: 'Conecta tu cuenta bancaria una vez, y pagar la renta será tan fácil como tocar un botón, sin comisiones de tarjeta ni cheques.' },
+  linkMyBankBtn: { en: 'Link my bank account', es: 'Conectar mi cuenta bancaria' },
+  verifyStepIntro: { en: 'Almost done! Check your bank account or app for two small deposits from Dwolla or Prophandld, usually within 1-2 business days. Come back here and enter the two amounts.', es: '¡Casi listo! Revisa tu cuenta bancaria o app en busca de dos pequeños depósitos de Dwolla o Prophandld, normalmente en 1-2 días hábiles. Vuelve aquí e ingresa los dos montos.' },
+  dwollaRenterSuccessBody: { en: 'You can now pay rent straight from your bank account.', es: 'Ahora puedes pagar la renta directo desde tu cuenta bancaria.' },
   billingHeading: { en: 'Billing', es: 'Facturación' },
   youHaveUnitsPlanIs: { en: 'You have', es: 'Tienes' },
   soYourPlanIs: { en: 'so your plan is', es: 'así que tu plan es' },
@@ -1728,7 +1762,9 @@ export function roleLabel(role: string, lang: Lang): string {
   return role
 }
 
-export function t(key: keyof typeof STRINGS, lang: Lang): string {
+export type TranslationKey = keyof typeof STRINGS
+
+export function t(key: TranslationKey, lang: Lang): string {
   return STRINGS[key][lang]
 }
 
