@@ -190,7 +190,7 @@ export default function RenterRentPage() {
           .catch(() => null)
       )
     ).then((results) => {
-      const changed = open.some((p, i) => ['paid', 'already_paid', 'failed'].includes(results[i]?.status))
+      const changed = open.some((p, i) => ['paid', 'already_paid', 'failed', 'already_failed'].includes(results[i]?.status))
       if (changed) loadPayments(tenancy.id)
     })
   }, [payments, tenancy])

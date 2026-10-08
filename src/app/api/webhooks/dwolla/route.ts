@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { verifyDwollaWebhookSignature } from '@/lib/dwolla'
 import { syncDwollaRentPayment } from '@/lib/rentPaymentSync'
-import { sendRentPaymentReceivedEmail } from '@/lib/email'
+import { sendRentPaymentReceivedEmail, sendBankTransferFailedEmail } from '@/lib/email'
 import { sendPush } from '@/lib/push'
 import { emailAllowed } from '@/lib/notificationPrefs'
 
@@ -48,10 +48,55 @@ export async function POST(request: NextRequest) {
 
       const synced = await syncDwollaRentPayment(supabaseAdmin, rentPayment.id)
 
-      // 'already_paid' means an earlier call (a prior delivery of this same
-      // event, a page poll, etc) already credited and notified for this row
-      // — stop here so a redelivered webhook never re-sends the "rent paid"
-      // email/push/chat message. Same guard as the Stripe rent branch.
+      // A bank transfer that failed or was cancelled (insufficient funds, a
+      // closed account, etc) used to notify no one — the renter would only
+      // find out by noticing rent was still unpaid later. 'failed' is the
+      // fresh transition only (see syncDwollaRentPayment's race guard), so
+      // this never double-sends on a redelivered webhook.
+      if (synced === 'failed') {
+        const { data: failedRentPayment } = await supabaseAdmin
+          .from('rent_payments')
+          .select('expected_amount, actual_amount, tenancies(renter_user_id, units(unit_number, properties(address)))')
+          .eq('id', rentPayment.id)
+          .maybeSingle()
+
+        const renterUserId = (failedRentPayment?.tenancies as any)?.renter_user_id
+        const failedUnit = (failedRentPayment?.tenancies as any)?.units
+        const failedAmount = Number(failedRentPayment?.expected_amount || 0) - Number(failedRentPayment?.actual_amount || 0)
+
+        if (renterUserId) {
+          const { data: renter } = await supabaseAdmin
+            .from('users')
+            .select('email, full_name, preferred_language, email_notifications_enabled')
+            .eq('id', renterUserId)
+            .maybeSingle()
+          const failedUnitLabel = failedUnit?.properties?.address
+            ? `${failedUnit.properties.address}${failedUnit.unit_number ? `, Unit ${failedUnit.unit_number}` : ''}`
+            : null
+          if (renter?.email && emailAllowed(renter)) {
+            await sendBankTransferFailedEmail({
+              to: renter.email,
+              renterName: renter.full_name || 'there',
+              amount: failedAmount > 0 ? failedAmount : null,
+              unitLabel: failedUnitLabel,
+              lang: renter.preferred_language === 'es' ? 'es' : 'en',
+            })
+          }
+          await sendPush(renterUserId, {
+            title: "Bank transfer didn't go through",
+            body: 'Rent is still due. Try again or use a debit card instead.',
+            url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/renter/rent`,
+          }).catch((err) => console.error('dwolla webhook: sendPush (transfer failed) failed', err))
+        }
+
+        return NextResponse.json({ ok: true })
+      }
+
+      // 'already_paid'/'already_failed' means an earlier call (a prior
+      // delivery of this same event, a page poll, etc) already credited or
+      // notified for this row — stop here so a redelivered webhook never
+      // re-sends the "rent paid" or "bank transfer failed" notification.
+      // Same guard as the Stripe rent branch.
       if (synced !== 'paid') {
         return NextResponse.json({ ok: true })
       }

@@ -116,7 +116,7 @@ export async function syncRentPayment(
   return 'paid'
 }
 
-export type DwollaRentSyncStatus = 'none' | 'paid' | 'already_paid' | 'processing' | 'unpaid' | 'failed'
+export type DwollaRentSyncStatus = 'none' | 'paid' | 'already_paid' | 'processing' | 'unpaid' | 'failed' | 'already_failed'
 
 /**
  * The Dwolla twin of syncRentPayment() above — same idempotency shape
@@ -137,7 +137,12 @@ export async function syncDwollaRentPayment(
 
   if (!rent?.dwolla_transfer_id) return 'none'
   if (rent.dwolla_status === 'processed') return 'already_paid'
-  if (rent.dwolla_status === 'failed' || rent.dwolla_status === 'cancelled') return 'failed'
+  // Already recorded as failed by an earlier call — distinct from the
+  // fresh-transition 'failed' below, so a redelivered webhook event (or a
+  // renter-triggered /confirm landing right after it) never re-sends the
+  // "bank transfer didn't go through" email a second time for the same
+  // failure. Same shape as 'already_paid' above.
+  if (rent.dwolla_status === 'failed' || rent.dwolla_status === 'cancelled') return 'already_failed'
 
   const transfer = await getTransfer(dwollaTransferUrl(rent.dwolla_transfer_id))
 
@@ -152,8 +157,18 @@ export async function syncDwollaRentPayment(
   }
 
   if (transfer.status === 'cancelled' || transfer.status === 'failed') {
-    await admin.from('rent_payments').update({ dwolla_status: transfer.status }).eq('id', rent.id)
-    return 'failed'
+    // Same atomic-update race guard as the 'paid' path below — only the
+    // first caller to actually flip the status away from its prior value
+    // reports the fresh 'failed' transition and sends the notification;
+    // a concurrent second caller sees 0 rows updated and reports
+    // 'already_failed' instead.
+    const { data: updated } = await admin
+      .from('rent_payments')
+      .update({ dwolla_status: transfer.status })
+      .eq('id', rent.id)
+      .neq('dwolla_status', transfer.status)
+      .select('id')
+    return updated && updated.length > 0 ? 'failed' : 'already_failed'
   }
 
   if (transfer.status !== 'processed') return 'unpaid'

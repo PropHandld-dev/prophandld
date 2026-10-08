@@ -1819,6 +1819,50 @@ export async function sendCreditCardRejectedEmail({
   return sendEmail({ to, subject: lang === 'es' ? 'Tu pago de renta fue reembolsado' : 'Your rent payment was refunded', html })
 }
 
+// The Dwolla twin of sendCreditCardRejectedEmail — a renter's bank-transfer
+// rent payment failed (insufficient funds, a closed account, any other real
+// ACH return reason), discovered only once the renter's own page or the
+// Dwolla webhook polls the transfer status days after it looked pending.
+// Without this, a renter would have no idea their payment bounced until
+// rent quietly shows unpaid again — the exact silent-failure gap the
+// credit-card path already closed for its own failure case.
+export async function sendBankTransferFailedEmail({
+  to,
+  renterName,
+  amount,
+  unitLabel,
+  lang = 'en',
+}: {
+  to: string
+  renterName: string
+  amount?: number | null
+  unitLabel?: string | null
+  lang?: Lang
+}) {
+  const amountFact: EmailFact | null = amount != null ? { label: fl('Amount', lang), value: `$${amount.toFixed(2)}` } : null
+  const unitFact: EmailFact | null = unitLabel ? { label: fl('Unit', lang), value: unitLabel } : null
+  const html = lang === 'es' ? baseTemplate({
+    lang,
+    eyebrow: 'Pago',
+    heading: 'La transferencia bancaria no se completó',
+    bodyHtml: `Hola ${escapeHtml(renterName)}, tu transferencia bancaria para la renta no se pudo completar (por ejemplo, fondos insuficientes o una cuenta cerrada). La renta sigue pendiente. Por favor intenta de nuevo o usa una tarjeta de débito en su lugar.`,
+    preheader: 'Tu transferencia bancaria no se completó. La renta sigue pendiente.',
+    facts: [amountFact, unitFact].filter((f): f is EmailFact => !!f),
+    ctaLabel: 'Intentar de nuevo',
+    ctaUrl: `${SITE_URL}/renter/rent`,
+  }) : baseTemplate({
+    lang,
+    eyebrow: 'Payment',
+    heading: "Your bank transfer didn't go through",
+    bodyHtml: `Hi ${escapeHtml(renterName)}, your bank transfer for rent couldn't be completed (for example, insufficient funds or a closed account). Rent is still due. Please try again or use a debit card instead.`,
+    preheader: "Your bank transfer didn't go through. Rent is still due.",
+    facts: [amountFact, unitFact].filter((f): f is EmailFact => !!f),
+    ctaLabel: 'Try again',
+    ctaUrl: `${SITE_URL}/renter/rent`,
+  })
+  return sendEmail({ to, subject: lang === 'es' ? 'Tu transferencia bancaria no se completó' : "Your bank transfer didn't go through", html })
+}
+
 export async function sendRentDueEmail({ to, landlordName, unitLabels, lang = 'en' }: { to: string; landlordName: string; unitLabels: string[]; lang?: Lang }) {
   const monthLabel = new Date().toLocaleDateString(lang === 'es' ? 'es-ES' : undefined, { month: 'long', year: 'numeric' })
   const list = lang === 'es'
