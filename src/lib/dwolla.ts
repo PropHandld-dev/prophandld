@@ -54,6 +54,7 @@ export async function createVerifiedPersonalCustomer({
   postalCode,
   dateOfBirth,
   ssnLast4,
+  idempotencyKey,
 }: {
   firstName: string
   lastName: string
@@ -64,20 +65,28 @@ export async function createVerifiedPersonalCustomer({
   postalCode: string
   dateOfBirth: string
   ssnLast4: string
+  idempotencyKey: string
 }): Promise<DwollaCustomer> {
   const dwolla = getDwollaClient()
-  const res = await dwolla.post('customers', {
-    firstName,
-    lastName,
-    email,
-    type: 'personal',
-    address1,
-    city,
-    state,
-    postalCode,
-    dateOfBirth,
-    ssn: ssnLast4,
-  })
+  const res = await dwolla.post(
+    'customers',
+    {
+      firstName,
+      lastName,
+      email,
+      type: 'personal',
+      address1,
+      city,
+      state,
+      postalCode,
+      dateOfBirth,
+      ssn: ssnLast4,
+    },
+    // Keyed on the caller's own user id — a double-click or a retried
+    // request reuses the same key, so Dwolla returns the same customer
+    // instead of creating a second one.
+    { 'Idempotency-Key': idempotencyKey }
+  )
   const url = res.headers.get('location')!
   return { id: url.split('/').pop()!, url, type: 'verified', status: 'unverified' }
 }
@@ -92,20 +101,26 @@ export async function createSendingCustomer({
   lastName,
   email,
   ipAddress,
+  idempotencyKey,
 }: {
   firstName: string
   lastName: string
   email: string
   ipAddress: string
+  idempotencyKey: string
 }): Promise<DwollaCustomer> {
   const dwolla = getDwollaClient()
-  const res = await dwolla.post('customers', {
-    firstName,
-    lastName,
-    email,
-    type: 'unverified',
-    ipAddress,
-  })
+  const res = await dwolla.post(
+    'customers',
+    {
+      firstName,
+      lastName,
+      email,
+      type: 'unverified',
+      ipAddress,
+    },
+    { 'Idempotency-Key': idempotencyKey }
+  )
   const url = res.headers.get('location')!
   return { id: url.split('/').pop()!, url, type: 'unverified', status: 'unverified' }
 }

@@ -74,6 +74,7 @@ export async function POST(request: NextRequest) {
         postalCode,
         dateOfBirth,
         ssnLast4,
+        idempotencyKey: user.id,
       })
     } else {
       customer = await createSendingCustomer({
@@ -84,6 +85,7 @@ export async function POST(request: NextRequest) {
         // signal at signup — same header the support-escalate route
         // already uses for its own IP logging.
         ipAddress: (request.headers.get('x-forwarded-for') || '127.0.0.1').split(',')[0].trim(),
+        idempotencyKey: user.id,
       })
     }
 
