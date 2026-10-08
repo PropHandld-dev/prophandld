@@ -371,7 +371,9 @@ export function DwollaConnectCard() {
                 </div>
                 <div>
                   <p className="text-white/40 text-[13px]">{t('dateOfBirthLabel', lang)}</p>
-                  <p className="text-white text-[15px] font-medium">{dateOfBirth}</p>
+                  <p className="text-white text-[15px] font-medium">
+                    {dateOfBirth && new Date(dateOfBirth + 'T00:00:00').toLocaleDateString(lang === 'es' ? 'es' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                  </p>
                 </div>
               </div>
               <div className="flex gap-3 pt-1">
