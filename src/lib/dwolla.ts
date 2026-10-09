@@ -186,6 +186,90 @@ export async function getFundingSource(fundingSourceUrl: string) {
   return res.body as { id: string; status: 'unverified' | 'verified'; removed: boolean; name: string }
 }
 
+type ExchangePartner = { id: string; href: string; name: string }
+
+// Looked up by name every call rather than hardcoded, since a partner's id
+// differs between sandbox and production — this works unmodified across
+// both.
+export async function getExchangePartnerByName(name: string): Promise<ExchangePartner> {
+  const dwolla = getDwollaClient()
+  const res = await dwolla.get('exchange-partners')
+  const partners = (res.body._embedded?.['exchange-partners'] || []) as Array<{
+    id: string
+    name: string
+    _links: { self: { href: string } }
+  }>
+  const match = partners.find((p) => p.name.toLowerCase() === name.toLowerCase())
+  if (!match) {
+    throw new Error(`Exchange partner "${name}" not found or not enabled on this Dwolla account`)
+  }
+  return { id: match.id, href: match._links.self.href, name: match.name }
+}
+
+// Instant bank verification (Plaid, via Dwolla's Exchange Sessions / Open
+// Banking) — skips the 1-2 day micro-deposit wait entirely. Dwolla brokers
+// the whole Plaid relationship; no separate Plaid API key is needed here.
+// Exchange sessions are single-use: a fresh one is created every time a
+// renter opens the bank-link flow.
+export async function createExchangeSession(customerUrl: string, exchangePartnerHref: string): Promise<string> {
+  const dwolla = getDwollaClient()
+  const res = await dwolla.post(`${customerUrl}/exchange-sessions`, {
+    _links: { 'exchange-partner': { href: exchangePartnerHref } },
+  })
+  return res.headers.get('location')!
+}
+
+// The externalProviderSessionToken is Plaid's own Link token — handed
+// straight to react-plaid-link's usePlaidLink({ token }) on the client.
+export async function getExchangeSessionLinkToken(exchangeSessionUrl: string): Promise<string> {
+  const dwolla = getDwollaClient()
+  const res = await dwolla.get(exchangeSessionUrl)
+  const token = res.body.externalProviderSessionToken as string | undefined
+  if (!token) throw new Error('Exchange session did not return a Plaid link token')
+  return token
+}
+
+// Plaid Link's onSuccess hands back a publicToken; this converts it into a
+// Dwolla "exchange" resource, which createFundingSourceFromExchange below
+// then turns into an already-verified funding source — no micro-deposits.
+export async function createExchangeFromPlaidPublicToken({
+  customerUrl,
+  exchangePartnerHref,
+  publicToken,
+}: {
+  customerUrl: string
+  exchangePartnerHref: string
+  publicToken: string
+}): Promise<string> {
+  const dwolla = getDwollaClient()
+  const res = await dwolla.post(`${customerUrl}/exchanges`, {
+    _links: { 'exchange-partner': { href: exchangePartnerHref } },
+    plaid: { publicToken },
+  })
+  return res.headers.get('location')!
+}
+
+export async function createFundingSourceFromExchange({
+  customerUrl,
+  exchangeUrl,
+  bankAccountType,
+  name,
+}: {
+  customerUrl: string
+  exchangeUrl: string
+  bankAccountType: 'checking' | 'savings'
+  name: string
+}): Promise<DwollaFundingSource> {
+  const dwolla = getDwollaClient()
+  const res = await dwolla.post(`${customerUrl}/funding-sources`, {
+    _links: { exchange: { href: exchangeUrl } },
+    bankAccountType,
+    name,
+  })
+  const url = res.headers.get('location')!
+  return { id: url.split('/').pop()!, url, status: 'verified' }
+}
+
 export async function getFundingSourcesForCustomer(customerUrl: string) {
   const dwolla = getDwollaClient()
   const res = await dwolla.get(`${customerUrl}/funding-sources`)

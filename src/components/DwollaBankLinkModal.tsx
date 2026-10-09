@@ -1,26 +1,21 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { usePlaidLink } from 'react-plaid-link'
 import { RippleButton } from '@/components/RippleButton'
 import { BankTrustNotice } from '@/components/BankTrustNotice'
 import { CheckCircleIcon } from '@/components/icons'
 import { useLanguage, t } from '@/lib/i18n'
 
 type Status = { customerStatus: string; fundingSourceStatus: string }
-type Step = 'intro' | 'bank' | 'verify' | 'success'
+type Step = 'intro' | 'connecting' | 'manual' | 'verify' | 'success'
 
-// Renter-side bank linking for paying rent via Dwolla. Unlike the
-// landlord's DwollaConnectCard (receive-only, skips verification entirely),
-// a renter's funding source has to actually verify before it can SEND —
-// this always goes through the micro-deposit round trip for now (instant
-// verification is pending Dwolla enabling it on the account).
-//
-// Same one-thing-at-a-time wizard shape as the landlord side: a trust/intro
-// screen before asking for routing and account numbers, then the bank
-// details, then (when needed) a plain-language micro-deposit explainer and
-// the verify step. Most renters linking a bank account here have never
-// used anything like Dwolla before, so each screen only ever asks for one
-// thing and says why.
+// Renter-side bank linking for paying rent via Dwolla. Primary path is
+// instant verification (Plaid, via Dwolla's Exchange Sessions) — the
+// funding source comes back already verified, no waiting. A manual
+// routing/account-number entry (then the old micro-deposit round trip)
+// stays as a fallback for a bank Plaid can't reach, or if instant
+// verification errors out.
 export function DwollaBankLinkModal({
   onClose,
   onLinked,
@@ -32,6 +27,7 @@ export function DwollaBankLinkModal({
   const [loading, setLoading] = useState(true)
   const [status, setStatus] = useState<Status | null>(null)
   const [step, setStep] = useState<Step>('intro')
+  const [viaInstant, setViaInstant] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [routingNumber, setRoutingNumber] = useState('')
@@ -48,9 +44,9 @@ export function DwollaBankLinkModal({
       const next: Status = res.ok ? data : { customerStatus: 'not_started', fundingSourceStatus: 'none' }
       setStatus(next)
       // A returning renter whose funding source is already mid-verification
-      // (they linked, closed the modal, and came back a day later with the
-      // deposit amounts in hand) should land straight on the verify step,
-      // not be sent back through the intro/bank screens again.
+      // (they linked manually, closed the modal, and came back a day later
+      // with the deposit amounts in hand) should land straight on the
+      // verify step, not be sent back through earlier screens again.
       if (next.fundingSourceStatus === 'pending') setStep('verify')
     } catch {
       setStatus({ customerStatus: 'not_started', fundingSourceStatus: 'none' })
@@ -63,6 +59,69 @@ export function DwollaBankLinkModal({
   }, [])
 
   const bankDetailsValid = routingNumber.trim() && accountNumber.trim() && accountName.trim()
+
+  // --- Instant verification (Plaid via Dwolla Exchange Sessions) ---
+  const [linkToken, setLinkToken] = useState<string | null>(null)
+  const [plaidError, setPlaidError] = useState<string | null>(null)
+  const [exchanging, setExchanging] = useState(false)
+
+  const [connectAttempt, setConnectAttempt] = useState(0)
+
+  useEffect(() => {
+    if (step !== 'connecting' || linkToken || exchanging) return
+    setPlaidError(null)
+    fetch('/api/dwolla/exchange-session/create', { method: 'POST' })
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(data.error || t('couldNotAddBankAccount', lang))
+        setLinkToken(data.linkToken as string)
+      })
+      .catch((err) => setPlaidError(err.message))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, connectAttempt])
+
+  const onPlaidSuccess = useCallback(
+    async (publicToken: string | null, metadata: { institution: { name: string } | null; accounts: Array<{ name: string; subtype: string }> }) => {
+      if (!publicToken) return
+      setExchanging(true)
+      setPlaidError(null)
+      const account = metadata.accounts?.[0]
+      const resolvedType: 'checking' | 'savings' = account?.subtype === 'savings' ? 'savings' : 'checking'
+      const name = account ? `${metadata.institution?.name || 'Bank'} · ${account.name}` : 'Bank account'
+
+      const res = await fetch('/api/dwolla/exchange/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ publicToken, bankAccountType: resolvedType, name }),
+      })
+      const data = await res.json().catch(() => ({}))
+      setExchanging(false)
+      if (!res.ok) {
+        setPlaidError(data.error || t('couldNotAddBankAccount', lang))
+        return
+      }
+      setViaInstant(true)
+      await load()
+      setStep('success')
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [lang]
+  )
+
+  const onPlaidExit = useCallback((plaidErr: { display_message: string | null } | null) => {
+    setLinkToken(null)
+    if (plaidErr?.display_message) setPlaidError(plaidErr.display_message)
+  }, [])
+
+  const { open: openPlaid, ready: plaidReady } = usePlaidLink({
+    token: linkToken || '',
+    onSuccess: onPlaidSuccess,
+    onExit: onPlaidExit,
+  })
+
+  useEffect(() => {
+    if (plaidReady && linkToken) openPlaid()
+  }, [plaidReady, linkToken, openPlaid])
 
   const handleLinkAccount = async () => {
     setSubmitting(true)
@@ -141,7 +200,7 @@ export function DwollaBankLinkModal({
                 <p className="text-white/60 text-[15px] leading-relaxed">{t('dwollaRenterIntroBody', lang)}</p>
                 <BankTrustNotice extraPoint="trustPointRenterPrivacy" />
                 <RippleButton
-                  onClick={() => setStep('bank')}
+                  onClick={() => setStep('connecting')}
                   className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-[15px] font-semibold py-3 rounded-xl hover:opacity-90 transition"
                 >
                   {t('linkMyBankBtn', lang)}
@@ -149,7 +208,42 @@ export function DwollaBankLinkModal({
               </>
             )}
 
-            {step === 'bank' && (
+            {step === 'connecting' && (
+              <>
+                <h3 className="text-white font-semibold text-lg">{t('instantLinkTitle', lang)}</h3>
+                <p className="text-white/60 text-[15px] leading-relaxed">{t('instantLinkBody', lang)}</p>
+                {plaidError && (
+                  <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">
+                    {plaidError}
+                  </div>
+                )}
+                <div className="flex flex-col items-center py-4 gap-3">
+                  <div className="w-8 h-8 border-2 border-[#12A5A9]/30 border-t-[#12A5A9] rounded-full animate-spin" />
+                  <p className="text-white/40 text-[13px]">
+                    {exchanging ? t('finishingUp', lang) : t('connectingToYourBank', lang)}
+                  </p>
+                </div>
+                <RippleButton
+                  onClick={() => {
+                    setLinkToken(null)
+                    setPlaidError(null)
+                    setConnectAttempt((n) => n + 1)
+                  }}
+                  disabled={submitting || exchanging}
+                  className="w-full bg-white/5 border border-white/10 text-white text-[15px] font-semibold py-3 rounded-xl hover:bg-white/8 transition disabled:opacity-40"
+                >
+                  {t('tryAgainBtn', lang)}
+                </RippleButton>
+                <button
+                  onClick={() => setStep('manual')}
+                  className="w-full text-center text-white/50 hover:text-white text-sm transition"
+                >
+                  {t('enterManuallyInstead', lang)}
+                </button>
+              </>
+            )}
+
+            {step === 'manual' && (
               <>
                 <h3 className="text-white font-semibold text-lg">{t('linkBankToPayRentTitle', lang)}</h3>
                 <p className="text-white/40 text-[13px]">{t('microDepositsExplainer', lang)}</p>
@@ -206,7 +300,7 @@ export function DwollaBankLinkModal({
                 </div>
                 <div className="flex gap-3 pt-1">
                   <RippleButton
-                    onClick={() => setStep('intro')}
+                    onClick={() => setStep('connecting')}
                     disabled={submitting}
                     className="flex-1 bg-white/5 border border-white/10 text-white/60 text-[15px] font-semibold py-3 rounded-xl hover:bg-white/8 transition disabled:opacity-40"
                   >
@@ -274,7 +368,9 @@ export function DwollaBankLinkModal({
                     <CheckCircleIcon className="w-7 h-7 text-[#12A5A9]" />
                   </div>
                   <h3 className="text-white font-semibold text-lg">{t('dwollaSuccessTitle', lang)}</h3>
-                  <p className="text-white/60 text-[15px] mt-1">{t('dwollaRenterSuccessBody', lang)}</p>
+                  <p className="text-white/60 text-[15px] mt-1">
+                    {t(viaInstant ? 'dwollaRenterSuccessBodyInstant' : 'dwollaRenterSuccessBody', lang)}
+                  </p>
                 </div>
                 <RippleButton
                   onClick={onLinked}
