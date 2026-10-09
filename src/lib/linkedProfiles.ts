@@ -98,12 +98,18 @@ export async function createLinkedProfile(
     return { error: `You already have a ${newRole} profile` }
   }
 
-  // Supabase requires a unique auth.users.email — a real second signup
-  // with the identical address isn't possible at the auth layer. This
-  // technical alias is never used to contact anyone: email_confirm is set
-  // true below (no confirmation email sent), and public.users.email for
-  // the new row is the person's real address, so every actual
-  // notification for this profile still reaches their real inbox.
+  // Both auth.users.email AND public.users.email are unique-constrained
+  // (confirmed live: 23505 on a real attempt to reuse the real address) —
+  // so the new profile can't literally share the primary's email value in
+  // either table, not just the auth layer. This alias is used for both.
+  // Standard email subaddressing (RFC 5233) means it still lands in the
+  // same inbox on every major provider (Gmail, Outlook/Microsoft 365,
+  // iCloud, Fastmail, ProtonMail all honor the "+" convention) — the real
+  // gap is a provider that doesn't, where this profile's own notification
+  // emails would bounce silently while push and in-app chat still work.
+  // Good enough for now; a dedicated contact-email column decoupled from
+  // the auth email would remove this gap entirely but touches every
+  // email-sending call site in the app, out of scope for this pass.
   if (!fromEmail.includes('@')) return { error: 'Missing email' }
   const aliasEmail = fromEmail.replace('@', `+${newRole}@`)
 
@@ -134,7 +140,7 @@ export async function createLinkedProfile(
   const { error: upsertError } = await admin.from('users').upsert(
     {
       id: created.user.id,
-      email: fromEmail,
+      email: aliasEmail,
       full_name: fromFullName,
       phone: fromPhone,
       preferred_language: fromPreferredLanguage || 'en',
