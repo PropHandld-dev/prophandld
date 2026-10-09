@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   BuildingIcon,
   AlertTriangleIcon,
@@ -62,16 +62,60 @@ const CONTRACTOR_CREDENTIALS = [
   { icon: ShieldIcon, tone: 'teal', title: 'Insurance', subtitle: 'General liability', badge: 'Verified' },
 ] as const
 
+// A restrained 3D tilt + cursor-follow glare — desktop/fine-pointer only
+// (touch devices never fire mousemove, so this is naturally inert there),
+// and off entirely under prefers-reduced-motion. The rotation range is
+// deliberately small (max ~6deg) so it reads as "this card has weight and
+// responds to you" rather than a gimmick fighting the content inside it.
 function WindowChrome({ path, children }: { path: string; children: React.ReactNode }) {
+  const [tilt, setTilt] = useState({ rx: 0, ry: 0, mx: 50, my: 50 })
+  const [reducedMotion, setReducedMotion] = useState(true)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    setReducedMotion(window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+  }, [])
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (reducedMotion || !ref.current) return
+    const rect = ref.current.getBoundingClientRect()
+    const px = (e.clientX - rect.left) / rect.width
+    const py = (e.clientY - rect.top) / rect.height
+    setTilt({ rx: (0.5 - py) * 10, ry: (px - 0.5) * 10, mx: px * 100, my: py * 100 })
+  }
+
+  const handleMouseLeave = () => setTilt({ rx: 0, ry: 0, mx: 50, my: 50 })
+
   return (
-    <div className="relative rounded-3xl border border-white/10 bg-[#0F2138] shadow-[0_40px_120px_-40px_rgba(18,165,169,0.35)] overflow-hidden">
-      <div className="flex items-center gap-2 px-5 py-3.5 border-b border-white/8 bg-white/[0.02]">
-        <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
-        <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
-        <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
-        <span className="ml-3 text-white/50 text-xs">{path}</span>
+    <div style={{ perspective: '1600px' }}>
+      <div
+        ref={ref}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        style={{
+          transform: `rotateX(${tilt.rx}deg) rotateY(${tilt.ry}deg)`,
+          transition: 'transform 0.4s cubic-bezier(0.22, 1, 0.36, 1)',
+          transformStyle: 'preserve-3d',
+        }}
+        className="relative rounded-3xl border border-white/10 bg-[#0F2138] shadow-[0_40px_120px_-40px_rgba(18,165,169,0.35)] overflow-hidden"
+      >
+        {!reducedMotion && (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-300 z-10"
+            style={{
+              background: `radial-gradient(500px circle at ${tilt.mx}% ${tilt.my}%, rgba(18,165,169,0.12), transparent 60%)`,
+            }}
+          />
+        )}
+        <div className="flex items-center gap-2 px-5 py-3.5 border-b border-white/8 bg-white/[0.02]">
+          <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
+          <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
+          <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
+          <span className="ml-3 text-white/50 text-xs">{path}</span>
+        </div>
+        <div className="p-6 sm:p-8 text-left min-h-[420px]">{children}</div>
       </div>
-      <div className="p-6 sm:p-8 text-left min-h-[420px]">{children}</div>
     </div>
   )
 }
