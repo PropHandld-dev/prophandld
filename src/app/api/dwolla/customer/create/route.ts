@@ -64,23 +64,49 @@ export async function POST(request: NextRequest) {
       if (!address1 || !city || !state || !postalCode || !dateOfBirth || !ssnLast4) {
         return NextResponse.json({ error: 'Missing identity details' }, { status: 400 })
       }
-      // An existing customer (a pre-fix 'receive-only' landlord) has to be
-      // upgraded in place — Dwolla customers are unique per email, so
-      // calling plain create again for the same person 409s with
-      // "A customer with the specified email already exists."
+      // An existing customer (a pre-fix 'receive-only' landlord) needs to
+      // become a Verified Customer. Dwolla's upgrade-in-place endpoint
+      // turns out to only support unverified -> verified, not
+      // receive-only -> verified — confirmed live, it 400s with "Type
+      // value not allowed" on a real receive-only account. Fall back to
+      // creating a brand-new Verified Customer with a plus-addressed
+      // variant of the same email (standard, RFC 5233 email
+      // subaddressing — still delivers to the same inbox): Dwolla
+      // customers are unique per email, so the original email is already
+      // claimed by the old receive-only customer. This field is never
+      // shown to the landlord or used to email them (Prophandld's own
+      // facilitator account initiates every transfer), so the suffix is
+      // invisible in practice.
       if (userRow?.dwolla_customer_id) {
-        customer = await upgradeToVerifiedPersonal({
-          customerUrl: dwollaCustomerUrl(userRow.dwolla_customer_id),
-          firstName,
-          lastName,
-          email,
-          address1,
-          city,
-          state,
-          postalCode,
-          dateOfBirth,
-          ssnLast4,
-        })
+        try {
+          customer = await upgradeToVerifiedPersonal({
+            customerUrl: dwollaCustomerUrl(userRow.dwolla_customer_id),
+            firstName,
+            lastName,
+            email,
+            address1,
+            city,
+            state,
+            postalCode,
+            dateOfBirth,
+            ssnLast4,
+          })
+        } catch (upgradeErr: any) {
+          console.error('dwolla/customer/create: upgrade-in-place failed, falling back to a fresh Verified Customer', JSON.stringify(upgradeErr?.body?._embedded?.errors || upgradeErr?.body || upgradeErr))
+          const disambiguatedEmail = email.includes('@') ? email.replace('@', '+dwolla@') : email
+          customer = await createVerifiedPersonalCustomer({
+            firstName,
+            lastName,
+            email: disambiguatedEmail,
+            address1,
+            city,
+            state,
+            postalCode,
+            dateOfBirth,
+            ssnLast4,
+            idempotencyKey: user.id,
+          })
+        }
       } else {
         customer = await createVerifiedPersonalCustomer({
           firstName,
