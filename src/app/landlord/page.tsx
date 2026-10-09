@@ -496,7 +496,7 @@ export default function LandlordDashboard() {
         </div>
         <div className="flex items-center gap-1.5">
           <MessagesButton role="landlord" userId={user?.id ?? null} />
-          <ProfileButton name={user?.user_metadata?.full_name} />
+          <ProfileButton name={user?.user_metadata?.full_name} currentRole="landlord" />
         </div>
       </nav>
 

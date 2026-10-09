@@ -18,6 +18,22 @@ export function HomeIcon({ className }: IconProps) {
   )
 }
 
+export function ChevronDownIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M6 9l6 6 6-6" />
+    </svg>
+  )
+}
+
+export function PlusIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  )
+}
+
 export function BuildingIcon({ className }: IconProps) {
   return (
     <svg {...base} className={className}>

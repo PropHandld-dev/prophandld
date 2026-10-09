@@ -302,7 +302,7 @@ export default function ContractorDashboard() {
         </div>
         <div className="flex items-center gap-1.5">
           <MessagesButton role="contractor" userId={user?.id ?? null} />
-          <ProfileButton name={user?.user_metadata?.full_name} />
+          <ProfileButton name={user?.user_metadata?.full_name} currentRole="contractor" />
         </div>
       </nav>
 

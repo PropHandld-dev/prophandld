@@ -43,6 +43,15 @@ function SignupForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [alreadyRegistered, setAlreadyRegistered] = useState(false)
+  // Set when the email they just tried belongs to an existing account of a
+  // DIFFERENT role — offers linking a new profile to it instead of the
+  // plain "already registered" dead end. Same-role duplicates (the much
+  // more common case — someone just forgot they already signed up) still
+  // get the plain error with "log in instead", not this.
+  const [linkOffer, setLinkOffer] = useState<{ existingRole: Role } | null>(null)
+  const [linkPassword, setLinkPassword] = useState('')
+  const [linkSubmitting, setLinkSubmitting] = useState(false)
+  const [linkError, setLinkError] = useState<string | null>(null)
   // Set once signUp() comes back with no session — Supabase's signal that
   // this project requires clicking a confirmation link before the account
   // is real, rather than the account being usable the instant someone
@@ -126,6 +135,19 @@ function SignupForm() {
     // landlord, renter, or contractor, so this check runs before the
     // role-specific branches below, not inside any of them.
     if (data.user.identities && data.user.identities.length === 0) {
+      const checkRes = await fetch('/api/profiles/check-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: form.email }),
+      }).catch(() => null)
+      const checkData = await checkRes?.json().catch(() => null)
+
+      if (checkData?.exists && checkData.role && checkData.role !== role) {
+        setLinkOffer({ existingRole: checkData.role as Role })
+        setLoading(false)
+        return
+      }
+
       setAlreadyRegistered(true)
       setError('This email is already registered.')
       setLoading(false)
@@ -202,6 +224,38 @@ function SignupForm() {
       }
     } catch (err) {
       console.error('Error checking pending invite:', err)
+    }
+  }
+
+  const handleLinkSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!linkOffer || !role) return
+    setLinkSubmitting(true)
+    setLinkError(null)
+    try {
+      const res = await fetch('/api/profiles/add-with-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: form.email, password: linkPassword, newRole: role }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setLinkError(data.error || 'Could not add that profile.')
+        setLinkSubmitting(false)
+        return
+      }
+      if (data.tokenHash) {
+        const { error: verifyError } = await supabase.auth.verifyOtp({ token_hash: data.tokenHash, type: 'email' })
+        if (verifyError) {
+          setLinkError('Profile created, but switching to it failed. Try signing in.')
+          setLinkSubmitting(false)
+          return
+        }
+      }
+      window.location.href = role === 'landlord' ? '/landlord' : role === 'renter' ? '/renter' : '/contractor'
+    } catch {
+      setLinkError('Could not add that profile.')
+      setLinkSubmitting(false)
     }
   }
 
@@ -542,6 +596,61 @@ function SignupForm() {
         </p>
 
       </form>
+
+      {linkOffer && role && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-30">
+          <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
+            <h3 className="text-white font-semibold text-lg mb-1.5">This email already has an account</h3>
+            <p className="text-white/60 text-[15px] leading-relaxed mb-4">
+              <span className="text-white font-medium">{form.email}</span> already belongs to a{' '}
+              <span className="text-white font-medium">
+                {linkOffer.existingRole.charAt(0).toUpperCase() + linkOffer.existingRole.slice(1)}
+              </span>{' '}
+              account. Want to add a{' '}
+              <span className="text-white font-medium">{role.charAt(0).toUpperCase() + role.slice(1)}</span>{' '}
+              profile to it instead? You'll be able to switch between them anytime, no extra password to remember.
+            </p>
+            <form onSubmit={handleLinkSubmit} className="space-y-4">
+              <div>
+                <label htmlFor="linkPassword" className="text-white/70 text-[15px] block mb-1">
+                  Confirm your {linkOffer.existingRole} account's password
+                </label>
+                <input
+                  id="linkPassword"
+                  type="password"
+                  value={linkPassword}
+                  onChange={(e) => setLinkPassword(e.target.value)}
+                  autoFocus
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-[16px] focus:outline-none focus:border-[#12A5A9] transition"
+                  required
+                />
+              </div>
+              {linkError && (
+                <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">
+                  {linkError}
+                </div>
+              )}
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => { setLinkOffer(null); setLinkPassword(''); setLinkError(null) }}
+                  disabled={linkSubmitting}
+                  className="flex-1 bg-white/5 border border-white/10 text-white/60 text-[15px] font-semibold py-3 rounded-xl hover:bg-white/8 transition disabled:opacity-40"
+                >
+                  Cancel
+                </button>
+                <RippleButton
+                  type="submit"
+                  disabled={linkSubmitting || !linkPassword}
+                  className="flex-[2] bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-[15px] font-semibold py-3 rounded-xl hover:opacity-90 transition disabled:opacity-40"
+                >
+                  {linkSubmitting ? 'Adding profile…' : 'Add profile and switch'}
+                </RippleButton>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </AuthLayout>
   )
 }

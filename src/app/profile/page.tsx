@@ -13,6 +13,7 @@ import { LogOutIcon } from '@/components/icons'
 import { TABS_BY_ROLE } from '@/lib/navTabs'
 import { StripeConnectCard } from '@/components/StripeConnectCard'
 import { DwollaConnectCard } from '@/components/DwollaConnectCard'
+import { LinkedProfilesSection } from '@/components/LinkedProfilesSection'
 import { BillingSection } from '@/components/BillingSection'
 import { Switch } from '@/components/Switch'
 import { TwoFactorAuthCard } from '@/components/TwoFactorAuthCard'
@@ -367,6 +368,12 @@ export default function ProfilePage() {
         ) : (
         <>
         <h1 className="text-2xl font-bold text-white mb-8">{t('profileSettings', lang)}</h1>
+
+        {(role === 'landlord' || role === 'renter' || role === 'contractor') && (
+          <div className="mb-6">
+            <LinkedProfilesSection currentRole={role as 'landlord' | 'renter' | 'contractor'} />
+          </div>
+        )}
 
         {/* Profile form */}
         <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
