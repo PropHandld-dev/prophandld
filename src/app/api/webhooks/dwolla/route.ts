@@ -19,7 +19,13 @@ const FUNDING_SOURCE_VERIFIED_TOPIC = 'customer_funding_source_verified'
 const FUNDING_SOURCE_REMOVED_TOPIC = 'customer_funding_source_removed'
 
 export async function POST(request: NextRequest) {
-  const signature = request.headers.get('x-request-signature-sha256')
+  // Dwolla's real header is "X-Request-Signature-SHA-256" (hyphen before
+  // 256) — confirmed against a live delivery's actual headers. The lookup
+  // here was missing that hyphen, which is a different header name
+  // entirely (not a case-sensitivity issue — Headers.get() already
+  // normalizes case), so this always returned null and every real
+  // delivery was rejected before the signature was ever even checked.
+  const signature = request.headers.get('x-request-signature-sha-256')
   // Raw text, never JSON.parse()'d before verifying — Dwolla warns the body
   // must not be re-encoded, since any formatting difference (key order,
   // whitespace) breaks the HMAC comparison even for a genuine request.
