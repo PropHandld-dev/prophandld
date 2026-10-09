@@ -16,7 +16,13 @@ export async function POST(request: NextRequest) {
   }
 
   const admin = getSupabaseAdmin()
-  const { data } = await admin.from('users').select('role').eq('email', email).maybeSingle()
+  const { data } = await admin.from('users').select('id').eq('email', email).maybeSingle()
+  if (!data) {
+    return NextResponse.json({ exists: false, role: null })
+  }
 
-  return NextResponse.json({ exists: !!data, role: data?.role || null })
+  // role lives only in auth.users.app_metadata, never a public.users
+  // column.
+  const { data: authUser } = await admin.auth.admin.getUserById(data.id)
+  return NextResponse.json({ exists: true, role: authUser?.user?.app_metadata?.role || null })
 }

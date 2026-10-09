@@ -21,6 +21,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid role' }, { status: 400 })
   }
 
+  const fromRole = user.app_metadata?.role
+  if (!fromRole || !ALL_ROLES.includes(fromRole)) {
+    return NextResponse.json({ error: 'Could not determine your current role' }, { status: 400 })
+  }
+
   const admin = getSupabaseAdmin()
   const { data: row } = await admin
     .from('users')
@@ -35,6 +40,7 @@ export async function POST(request: NextRequest) {
 
   const result = await createLinkedProfile(admin, {
     fromUserId: user.id,
+    fromRole,
     fromEmail: email,
     fromFullName: row?.full_name || null,
     fromPhone: row?.phone || null,

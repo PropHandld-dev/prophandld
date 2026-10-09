@@ -38,6 +38,11 @@ export async function POST(request: NextRequest) {
   }
 
   const existingUserId = signInData.user.id
+  const fromRole = signInData.user.app_metadata?.role
+  if (!fromRole || !ALL_ROLES.includes(fromRole)) {
+    return NextResponse.json({ error: 'Could not determine that account\'s role' }, { status: 400 })
+  }
+
   const admin = getSupabaseAdmin()
   const { data: row } = await admin
     .from('users')
@@ -47,6 +52,7 @@ export async function POST(request: NextRequest) {
 
   const result = await createLinkedProfile(admin, {
     fromUserId: existingUserId,
+    fromRole,
     fromEmail: row?.email || email,
     fromFullName: row?.full_name || null,
     fromPhone: row?.phone || null,

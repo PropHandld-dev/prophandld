@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
   const admin = getSupabaseAdmin()
   const [{ data: self }, { data: target }] = await Promise.all([
     admin.from('users').select('linked_group_id').eq('id', user.id).maybeSingle(),
-    admin.from('users').select('id, linked_group_id, role').eq('id', targetUserId).maybeSingle(),
+    admin.from('users').select('id, linked_group_id').eq('id', targetUserId).maybeSingle(),
   ])
 
   if (!self?.linked_group_id || !target || target.linked_group_id !== self.linked_group_id) {
@@ -37,6 +37,8 @@ export async function POST(request: NextRequest) {
   // value across every one of their linked profiles, on purpose, so
   // notifications always land in one inbox) — not the per-profile alias
   // auth.users.email that generateLink needs to find the right account.
+  // role lives only in app_metadata too, never a public.users column, so
+  // this same call covers both.
   const { data: targetAuth, error: targetAuthError } = await admin.auth.admin.getUserById(targetUserId)
   if (targetAuthError || !targetAuth?.user?.email) {
     console.error('profiles/switch: could not load target auth user', targetAuthError)
@@ -48,5 +50,5 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: tokenResult.error }, { status: 500 })
   }
 
-  return NextResponse.json({ ok: true, tokenHash: tokenResult.hashedToken, role: target.role })
+  return NextResponse.json({ ok: true, tokenHash: tokenResult.hashedToken, role: targetAuth.user.app_metadata?.role })
 }

@@ -10,17 +10,19 @@ export type LinkedProfile = {
   full_name: string | null
 }
 
-// Deliberately NOT one account with multiple roles — users.role is
-// permanently immutable per auth user (see api/auth/set-role's own
-// comment on why), and role-specific columns (stripe_connect_account_id,
-// dwolla_customer_id, address/SSN fields) are flat on users, one value
-// per row. A landlord-you and a contractor-you would collide on all of
-// that under one row. Instead: every role stays a fully separate auth
-// user and public.users row, exactly as today, linked only by a shared
+// Deliberately NOT one account with multiple roles — role lives only in
+// auth.users.app_metadata (never a public.users column — confirmed: no
+// other code anywhere in this app queries one), permanently immutable per
+// auth user (see api/auth/set-role's own comment on why), and
+// role-specific columns (stripe_connect_account_id, dwolla_customer_id,
+// address/SSN fields) are flat on public.users, one value per row. A
+// landlord-you and a contractor-you would collide on all of that under
+// one row. Instead: every role stays a fully separate auth user and
+// public.users row, exactly as today, linked only by a shared
 // linked_group_id — so RLS, route guards, and every payment integration
-// keep working completely unchanged. "Switching profiles" is really
-// "swap which of your own separate sessions is active," made to feel
-// instant via mintSessionTokenForUser below.
+// keep working completely unchanged. "Switching profiles" is really "swap
+// which of your own separate sessions is active," made to feel instant
+// via mintSessionTokenForEmail below.
 
 export async function getLinkedProfiles(admin: SupabaseClient, userId: string): Promise<LinkedProfile[]> {
   const { data: self } = await admin.from('users').select('linked_group_id').eq('id', userId).maybeSingle()
@@ -28,11 +30,23 @@ export async function getLinkedProfiles(admin: SupabaseClient, userId: string): 
 
   const { data: rows } = await admin
     .from('users')
-    .select('id, role, full_name')
+    .select('id, full_name')
     .eq('linked_group_id', self.linked_group_id)
     .neq('id', userId)
+  if (!rows || rows.length === 0) return []
 
-  return (rows || []) as LinkedProfile[]
+  // role only exists in each account's own auth.users.app_metadata, not a
+  // public.users column — no batch "get many users by id" in the admin
+  // API, so this is one call per linked profile. Realistically 1-2 at a
+  // time, not a real cost.
+  const profiles = await Promise.all(
+    rows.map(async (row) => {
+      const { data: authUser } = await admin.auth.admin.getUserById(row.id)
+      const role = authUser?.user?.app_metadata?.role as Role | undefined
+      return role ? { id: row.id, role, full_name: row.full_name } : null
+    })
+  )
+  return profiles.filter((p): p is LinkedProfile => p !== null)
 }
 
 // The one-time "add a profile" action, called either from an already
@@ -43,6 +57,7 @@ export async function createLinkedProfile(
   admin: SupabaseClient,
   {
     fromUserId,
+    fromRole,
     fromEmail,
     fromFullName,
     fromPhone,
@@ -50,6 +65,7 @@ export async function createLinkedProfile(
     newRole,
   }: {
     fromUserId: string
+    fromRole: Role
     fromEmail: string
     fromFullName: string | null
     fromPhone: string | null
@@ -57,16 +73,17 @@ export async function createLinkedProfile(
     newRole: Role
   }
 ): Promise<{ newUserId: string } | { error: string }> {
+  if (fromRole === newRole) return { error: `You already have a ${newRole} profile` }
+
   const { data: fromRow, error: fromRowError } = await admin
     .from('users')
-    .select('role, linked_group_id')
+    .select('linked_group_id')
     .eq('id', fromUserId)
     .maybeSingle()
   if (fromRowError || !fromRow) {
     console.error('createLinkedProfile: could not load fromRow', fromRowError, 'fromUserId:', fromUserId)
     return { error: 'Could not load your account' }
   }
-  if (fromRow.role === newRole) return { error: `You already have a ${newRole} profile` }
 
   // The group anchor is the FIRST account's own id, stamped once. Every
   // profile added after that just joins the same group.
@@ -76,8 +93,10 @@ export async function createLinkedProfile(
   }
 
   // Already has this role linked? Don't create a duplicate.
-  const { data: existing } = await admin.from('users').select('id').eq('linked_group_id', groupId).eq('role', newRole).maybeSingle()
-  if (existing) return { error: `You already have a ${newRole} profile` }
+  const existingLinked = await getLinkedProfiles(admin, fromUserId)
+  if (existingLinked.some((p) => p.role === newRole)) {
+    return { error: `You already have a ${newRole} profile` }
+  }
 
   // Supabase requires a unique auth.users.email — a real second signup
   // with the identical address isn't possible at the auth layer. This
@@ -95,15 +114,9 @@ export async function createLinkedProfile(
     password: randomPassword,
     email_confirm: true,
     app_metadata: { provider: 'email', providers: ['email'], role: newRole },
-    // role included here too, mirroring exactly what a normal signUp()
-    // call passes in options.data — public.users.role is populated by a
-    // DB trigger off auth.users that reads from here, the same trigger
-    // ordinary signup relies on. app_metadata.role above is still the
-    // only value any server-side authorization check ever trusts.
     user_metadata: {
       full_name: fromFullName,
       phone: fromPhone,
-      role: newRole,
       preferred_language: fromPreferredLanguage || 'en',
     },
   })
@@ -112,12 +125,12 @@ export async function createLinkedProfile(
     return { error: 'Could not create the new profile' }
   }
 
-  // The trigger has already created the public.users row by the time
-  // createUser() resolves (Postgres triggers run inside the same
-  // transaction as the auth.users insert) — but with the alias email and
-  // without linked_group_id, which the trigger has no way to know about.
-  // upsert rather than a plain update as a defensive fallback, in case
-  // that assumption is ever wrong.
+  // The trigger that mirrors auth.users into public.users has already run
+  // by the time createUser() resolves (Postgres triggers run inside the
+  // same transaction as the auth.users insert) — but with the alias email
+  // and without linked_group_id, which the trigger has no way to know
+  // about. upsert rather than a plain update as a defensive fallback, in
+  // case that assumption is ever wrong. No role column here — it isn't one.
   const { error: upsertError } = await admin.from('users').upsert(
     {
       id: created.user.id,
@@ -125,7 +138,6 @@ export async function createLinkedProfile(
       full_name: fromFullName,
       phone: fromPhone,
       preferred_language: fromPreferredLanguage || 'en',
-      role: newRole,
       linked_group_id: groupId,
     },
     { onConflict: 'id' }
