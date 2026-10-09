@@ -3,10 +3,9 @@ import Stripe from 'stripe'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { getStripe, isPayoutReady } from '@/lib/stripe'
 import { syncRentPayment } from '@/lib/rentPaymentSync'
-import { sendRentPaymentReceivedEmail, sendCreditCardRejectedEmail, sendPayoutDetailsChangedEmail } from '@/lib/email'
-import { sendPush } from '@/lib/push'
-import { emailAllowed } from '@/lib/notificationPrefs'
+import { sendPayoutDetailsChangedEmail } from '@/lib/email'
 import { sendJobPaymentNotifications } from '@/lib/jobPaymentNotify'
+import { sendRentPaymentReceivedNotifications, sendRentCreditCardRejectedNotifications } from '@/lib/rentPaymentNotify'
 
 export const maxDuration = 30
 
@@ -144,34 +143,10 @@ export async function POST(request: NextRequest) {
             const synced = await syncRentPayment(supabaseAdmin, stripe, rentPaymentId)
 
             if (synced === 'refunded_credit_card') {
-              const { data: rentPaymentForRefund } = await supabaseAdmin
-                .from('rent_payments')
-                .select('tenancies(renter_user_id, units(unit_number, properties(address)))')
-                .eq('id', rentPaymentId)
-                .maybeSingle()
-
-              const renterUserId = (rentPaymentForRefund?.tenancies as any)?.renter_user_id
-              const refundedUnits = (rentPaymentForRefund?.tenancies as any)?.units
-              const refundedUnitLabel = refundedUnits
-                ? `${refundedUnits.properties?.address || 'your property'}${refundedUnits.unit_number ? `, Unit ${refundedUnits.unit_number}` : ''}`
-                : null
-              if (renterUserId) {
-                const { data: renter } = await supabaseAdmin.from('users').select('email, full_name, preferred_language, email_notifications_enabled').eq('id', renterUserId).maybeSingle()
-                if (renter?.email && emailAllowed(renter)) {
-                  await sendCreditCardRejectedEmail({
-                    to: renter.email,
-                    renterName: renter.full_name || 'there',
-                    amount: paymentIntent.amount / 100,
-                    unitLabel: refundedUnitLabel,
-                    lang: renter.preferred_language === 'es' ? 'es' : 'en',
-                  })
-                }
-                await sendPush(renterUserId, {
-                  title: 'Payment refunded',
-                  body: "Credit cards aren't accepted for rent. Use a debit card or bank account instead.",
-                  url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/renter/rent`,
-                }).catch((err) => console.error('stripe webhook: sendPush (credit rejected) failed', err))
-              }
+              await sendRentCreditCardRejectedNotifications(supabaseAdmin, {
+                rentPaymentId,
+                amount: paymentIntent.amount / 100,
+              }).catch((err) => console.error('stripe webhook: notification failed', err))
               break
             }
 
@@ -181,14 +156,6 @@ export async function POST(request: NextRequest) {
             // "rent paid" email/push/chat message.
             if (synced !== 'paid') break
 
-            const { data: rentPayment } = await supabaseAdmin
-              .from('rent_payments')
-              .select('expected_amount, actual_amount, month, tenancies(unit_id, renter_user_id, units(unit_number, properties(address, owner_user_id)))')
-              .eq('id', rentPaymentId)
-              .maybeSingle()
-
-            const unit = (rentPayment?.tenancies as any)?.units
-            const landlordUserId = unit?.properties?.owner_user_id
             // A card payment's PaymentIntent amount includes Prophandld's
             // processing-fee surcharge — never rent itself. Landlord-facing
             // amounts (email, push, the chat receipt) always mean rent, so
@@ -197,53 +164,9 @@ export async function POST(request: NextRequest) {
             const baseAmountPaid = paymentIntent.metadata?.prophandld_base_amount
               ? Number(paymentIntent.metadata.prophandld_base_amount)
               : paymentIntent.amount / 100
-            if (landlordUserId) {
-              const monthLabel = rentPayment?.month
-                ? new Date(rentPayment.month + 'T00:00:00').toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
-                : 'this month'
-              const unitLabel = unit?.properties?.address
-                ? `${unit.properties.address}${unit.unit_number ? `, Unit ${unit.unit_number}` : ''}`
-                : 'your unit'
-
-              const { data: landlord } = await supabaseAdmin
-                .from('users')
-                .select('email, full_name, preferred_language, email_notifications_enabled')
-                .eq('id', landlordUserId)
-                .maybeSingle()
-              if (landlord?.email && emailAllowed(landlord)) {
-                await sendRentPaymentReceivedEmail({
-                  to: landlord.email,
-                  landlordName: landlord.full_name || 'there',
-                  amount: baseAmountPaid,
-                  monthLabel,
-                  unitLabel,
-                  lang: landlord.preferred_language === 'es' ? 'es' : 'en',
-                })
-              }
-              await sendPush(landlordUserId, {
-                title: 'Rent payment received',
-                body: `$${baseAmountPaid.toFixed(2)} for ${unitLabel}`,
-                url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/landlord`,
-              }).catch((err) => console.error('stripe webhook: sendPush (rent) failed', err))
-
-              const renterUserId = (rentPayment?.tenancies as any)?.renter_user_id
-              if (renterUserId) {
-                const { data: threadId, error: threadError } = await supabaseAdmin.rpc('start_landlord_tenant_thread', {
-                  p_landlord_user_id: landlordUserId,
-                  p_renter_user_id: renterUserId,
-                })
-                if (threadError) {
-                  console.error('stripe webhook: start_landlord_tenant_thread failed', threadError)
-                } else if (threadId) {
-                  const { error: messageError } = await supabaseAdmin.from('messages').insert({
-                    thread_id: threadId,
-                    sender_user_id: renterUserId,
-                    body: `✓ Rent paid: $${baseAmountPaid.toFixed(2)} for ${monthLabel}`,
-                  })
-                  if (messageError) console.error('stripe webhook: rent-paid message insert failed', messageError)
-                }
-              }
-            }
+            await sendRentPaymentReceivedNotifications(supabaseAdmin, { rentPaymentId, amount: baseAmountPaid }).catch((err) =>
+              console.error('stripe webhook: notification failed', err)
+            )
           }
         }
 
@@ -289,22 +212,36 @@ export async function POST(request: NextRequest) {
         const paymentIntent = event.data.object as Stripe.PaymentIntent
         const type = paymentIntent.metadata?.prophandld_type
 
+        // A PaymentIntent can see multiple failed confirmation attempts
+        // before eventually succeeding, and Stripe doesn't guarantee webhook
+        // delivery order — so a late payment_failed for an earlier attempt
+        // can arrive after the succeeded event already marked this row
+        // paid. Guard the same way every succeeded branch above does
+        // (.neq on the paid/succeeded value) and also require this exact
+        // PaymentIntent to still be the row's current one, so a stale event
+        // for a PI the row has since moved on from can't touch it either.
         if (type === 'rent_payment') {
           const rentPaymentId = paymentIntent.metadata?.prophandld_rent_payment_id
           if (rentPaymentId) {
-            await supabaseAdmin
+            const { error } = await supabaseAdmin
               .from('rent_payments')
               .update({ stripe_status: 'failed' })
               .eq('id', rentPaymentId)
+              .eq('stripe_payment_intent_id', paymentIntent.id)
+              .neq('stripe_status', 'succeeded')
+            if (error) console.error('stripe webhook: rent payment_intent.payment_failed failed', error)
           }
         }
         if (type === 'job_payment') {
           const bidId = paymentIntent.metadata?.prophandld_bid_id
           if (bidId) {
-            await supabaseAdmin
+            const { error } = await supabaseAdmin
               .from('bids')
               .update({ payment_status: 'unpaid' })
               .eq('id', bidId)
+              .eq('stripe_payment_intent_id', paymentIntent.id)
+              .neq('payment_status', 'paid')
+            if (error) console.error('stripe webhook: job payment_intent.payment_failed failed', error)
           }
         }
         break

@@ -39,11 +39,12 @@ export async function GET() {
       .limit(500),
     admin
       .from('bids')
-      .select('id, job_id, contractor_user_id, amount, payment_status, paid_at, stripe_payment_intent_id, jobs(category, units(unit_number, properties(address, city, owner_user_id)))')
+      .select('id, job_id, contractor_user_id, amount, payment_status, paid_at, created_at, stripe_payment_intent_id, jobs(category, units(unit_number, properties(address, city, owner_user_id)))')
       .not('payment_status', 'is', null)
+      .order('created_at', { ascending: false })
       .limit(500),
-    admin.from('landlord_subscriptions').select('landlord_user_id, tier, unit_count, status, updated_at, stripe_subscription_id'),
-    admin.from('users').select('stripe_connect_status').not('stripe_connect_account_id', 'is', null),
+    admin.from('landlord_subscriptions').select('landlord_user_id, tier, unit_count, status, updated_at, stripe_subscription_id').order('updated_at', { ascending: false }).limit(1000),
+    admin.from('users').select('stripe_connect_status').not('stripe_connect_account_id', 'is', null).limit(1000),
   ])
 
   for (const [name, res] of [['rent', rentRes], ['jobs', jobRes], ['subscriptions', subRes]] as const) {

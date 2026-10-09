@@ -420,7 +420,7 @@ export default function LandingPage() {
               </div>
               <h3 className="text-white font-semibold mb-1.5">Payments run through Stripe &amp; Dwolla</h3>
               <p className="text-white/50 text-sm leading-relaxed">
-                The same infrastructure banks and major platforms rely on. Every payment goes straight to the recipient&apos;s bank account, never held by Prophandld.
+                The same infrastructure banks and major platforms rely on. Every payment goes straight to the recipient&apos;s bank account, never held by Prophandld. Linking your bank takes seconds, not the multi-day microdeposit wait you&apos;re used to.
               </p>
             </div>
             <div className="bg-white/3 border border-white/8 rounded-2xl p-6">
@@ -508,6 +508,7 @@ export default function LandingPage() {
               { q: 'Is Prophandld available in my area?', a: "We're currently onboarding beta landlords in the Philadelphia area, with more markets opening soon." },
               { q: "What is Philadelphia's Safe Healthy Homes Act?", a: "A new city law taking effect November 1, 2026. It requires cited violations to be fixed within 30 days, ties rent collection directly to having a valid rental license, and gives tenants the right to sue for $1,000 or more per unresolved violation. Prophandld's compliance tracking is built to keep your licenses and certificates from ever lapsing without you knowing." },
               { q: 'Does it work in Spanish?', a: 'The whole app does, not a translated homepage that quietly drops you back into English the moment you sign in. Switch anytime from your profile.' },
+              { q: 'Can I use Prophandld as more than one role?', a: "Yes. If you're a landlord who also does contract work, or a renter who's also a landlord, link a second profile from your account menu and switch between dashboards instantly, no second signup, no second password." },
             ].map((item) => (
               <details key={item.q} className="group bg-white/3 border border-white/8 rounded-2xl px-5 py-4 open:border-[#12A5A9]/30 open:bg-white/5 transition-colors">
                 <summary className="flex items-center justify-between gap-4 cursor-pointer list-none text-white font-semibold [&::-webkit-details-marker]:hidden">

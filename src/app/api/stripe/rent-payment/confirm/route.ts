@@ -3,6 +3,7 @@ import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { getStripe } from '@/lib/stripe'
 import { syncRentPayment } from '@/lib/rentPaymentSync'
+import { sendRentPaymentReceivedNotifications, sendRentCreditCardRejectedNotifications } from '@/lib/rentPaymentNotify'
 
 export const maxDuration = 15
 
@@ -53,7 +54,39 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const status = await syncRentPayment(admin, getStripe(), rent.id)
+    const stripe = getStripe()
+    const status = await syncRentPayment(admin, stripe, rent.id)
+
+    // The webhook sends the "rent paid"/"card rejected" notification when
+    // IT wins the race to apply a payment — but the renter's own browser
+    // calling this route right after a successful charge usually wins
+    // instead, and until now that path sent nothing at all. 'paid' and
+    // 'refunded_credit_card' are both fresh-transition-only results (see
+    // syncRentPayment's status guard), so this can never double-send on a
+    // page poll or a retry.
+    if (status === 'paid' || status === 'refunded_credit_card') {
+      const { data: freshRent } = await admin
+        .from('rent_payments')
+        .select('stripe_payment_intent_id')
+        .eq('id', rent.id)
+        .maybeSingle()
+      if (freshRent?.stripe_payment_intent_id) {
+        try {
+          const paymentIntent = await stripe.paymentIntents.retrieve(freshRent.stripe_payment_intent_id)
+          if (status === 'paid') {
+            const amount = paymentIntent.metadata?.prophandld_base_amount
+              ? Number(paymentIntent.metadata.prophandld_base_amount)
+              : paymentIntent.amount / 100
+            await sendRentPaymentReceivedNotifications(admin, { rentPaymentId: rent.id, amount })
+          } else {
+            await sendRentCreditCardRejectedNotifications(admin, { rentPaymentId: rent.id, amount: paymentIntent.amount / 100 })
+          }
+        } catch (notifyErr) {
+          console.error('rent-payment/confirm: notification failed', notifyErr)
+        }
+      }
+    }
+
     return NextResponse.json({ status })
   } catch (err) {
     console.error('rent-payment/confirm: unhandled error', err)

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { syncDwollaRentPayment } from '@/lib/rentPaymentSync'
+import { sendRentPaymentReceivedNotifications, sendRentBankTransferFailedNotifications } from '@/lib/rentPaymentNotify'
+import { getTransfer, dwollaTransferUrl } from '@/lib/dwolla'
 
 export const maxDuration = 15
 
@@ -51,6 +53,39 @@ export async function POST(request: NextRequest) {
 
   try {
     const status = await syncDwollaRentPayment(admin, rent.id)
+
+    // Same gap as the Stripe confirm route (see that file's comment): the
+    // webhook used to be the only caller that ever notified, but the
+    // renter's own browser calling this right after linking/transferring
+    // usually wins the race to apply the payment. 'paid'/'failed' are both
+    // fresh-transition-only (see syncDwollaRentPayment's status guard), so
+    // this can't double-send.
+    if (status === 'paid') {
+      const { data: freshRent } = await admin
+        .from('rent_payments')
+        .select('dwolla_transfer_id')
+        .eq('id', rent.id)
+        .maybeSingle()
+      // actual_amount on the row is a running total across every payment
+      // this month (rent can be split across a partial card payment plus a
+      // bank transfer, for example) — re-reading the transfer itself gives
+      // the exact amount THIS payment added, not the month's cumulative
+      // total. Same reasoning as the Stripe confirm route reading the
+      // PaymentIntent directly instead of trusting the row.
+      if (freshRent?.dwolla_transfer_id) {
+        try {
+          const transfer = await getTransfer(dwollaTransferUrl(freshRent.dwolla_transfer_id))
+          await sendRentPaymentReceivedNotifications(admin, { rentPaymentId: rent.id, amount: Number(transfer.amount.value) })
+        } catch (notifyErr) {
+          console.error('dwolla/rent-payment/confirm: notification failed', notifyErr)
+        }
+      }
+    } else if (status === 'failed') {
+      await sendRentBankTransferFailedNotifications(admin, { rentPaymentId: rent.id }).catch((err) =>
+        console.error('dwolla/rent-payment/confirm: notification failed', err)
+      )
+    }
+
     return NextResponse.json({ status })
   } catch (err) {
     console.error('dwolla/rent-payment/confirm: unhandled error', err)
