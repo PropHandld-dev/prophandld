@@ -645,11 +645,16 @@ export default function JobDetailPage() {
       return
     }
 
-    const { error: declineOthersError } = await expectRow(supabase
+    // Not expectRow here on purpose — unlike the accept step above, zero
+    // matching rows is a completely normal, expected outcome (a job with
+    // only one bid total has no "other" bids to decline), not a failure.
+    // expectRow treating that as an error used to log a false alarm on
+    // every single-bid job, the most common case there is.
+    const { error: declineOthersError } = await supabase
       .from('bids')
       .update({ status: 'declined' })
       .eq('job_id', jobId)
-      .neq('id', selectedBidId))
+      .neq('id', selectedBidId)
 
     if (declineOthersError) {
       console.error('Error declining other bids:', declineOthersError)
