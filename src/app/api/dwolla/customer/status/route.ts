@@ -26,6 +26,5 @@ export async function GET() {
   return NextResponse.json({
     customerStatus: userRow?.dwolla_customer_status || 'not_started',
     fundingSourceStatus: userRow?.dwolla_funding_source_status || 'none',
-    customerType: userRow?.dwolla_customer_type || null,
   })
 }

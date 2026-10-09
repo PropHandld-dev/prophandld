@@ -91,6 +91,56 @@ export async function createVerifiedPersonalCustomer({
   return { id: url.split('/').pop()!, url, type: 'verified', status: 'unverified' }
 }
 
+// Upgrades an EXISTING customer (the pre-fix 'receive-only' landlords from
+// before Verified Customer became the right type — see above) in place,
+// rather than creating a second Dwolla Customer resource. Necessary
+// because Dwolla customers are unique per email: calling the plain create
+// endpoint again for the same landlord fails with
+// `{"code":"Duplicate","message":"A customer with the specified email
+// already exists."}`, confirmed against a real sandbox account stuck in
+// exactly this state. This is a different HTTP verb/shape than creation —
+// POST to the existing customer's own URL, 200 with a JSON body (not a
+// 201 + empty body + Location header).
+export async function upgradeToVerifiedPersonal({
+  customerUrl,
+  firstName,
+  lastName,
+  email,
+  address1,
+  city,
+  state,
+  postalCode,
+  dateOfBirth,
+  ssnLast4,
+}: {
+  customerUrl: string
+  firstName: string
+  lastName: string
+  email: string
+  address1: string
+  city: string
+  state: string
+  postalCode: string
+  dateOfBirth: string
+  ssnLast4: string
+}): Promise<DwollaCustomer> {
+  const dwolla = getDwollaClient()
+  const res = await dwolla.post(customerUrl, {
+    firstName,
+    lastName,
+    email,
+    type: 'personal',
+    address1,
+    city,
+    state,
+    postalCode,
+    dateOfBirth,
+    ssn: ssnLast4,
+  })
+  const body = res.body as { id: string; status: string }
+  return { id: body.id, url: customerUrl, type: 'verified', status: body.status }
+}
+
 // Renters send rent. 'unverified' is deliberate, not a corner cut — rent
 // payments are always well under Dwolla's $5,000/week Unverified send
 // limit, and it avoids ever collecting a renter's SSN just to pay rent.

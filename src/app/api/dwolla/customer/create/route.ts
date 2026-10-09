@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
-import { createVerifiedPersonalCustomer, createSendingCustomer } from '@/lib/dwolla'
+import { createVerifiedPersonalCustomer, createSendingCustomer, upgradeToVerifiedPersonal, dwollaCustomerUrl } from '@/lib/dwolla'
 
 export const maxDuration = 20
 
@@ -64,18 +64,37 @@ export async function POST(request: NextRequest) {
       if (!address1 || !city || !state || !postalCode || !dateOfBirth || !ssnLast4) {
         return NextResponse.json({ error: 'Missing identity details' }, { status: 400 })
       }
-      customer = await createVerifiedPersonalCustomer({
-        firstName,
-        lastName,
-        email,
-        address1,
-        city,
-        state,
-        postalCode,
-        dateOfBirth,
-        ssnLast4,
-        idempotencyKey: user.id,
-      })
+      // An existing customer (a pre-fix 'receive-only' landlord) has to be
+      // upgraded in place — Dwolla customers are unique per email, so
+      // calling plain create again for the same person 409s with
+      // "A customer with the specified email already exists."
+      if (userRow?.dwolla_customer_id) {
+        customer = await upgradeToVerifiedPersonal({
+          customerUrl: dwollaCustomerUrl(userRow.dwolla_customer_id),
+          firstName,
+          lastName,
+          email,
+          address1,
+          city,
+          state,
+          postalCode,
+          dateOfBirth,
+          ssnLast4,
+        })
+      } else {
+        customer = await createVerifiedPersonalCustomer({
+          firstName,
+          lastName,
+          email,
+          address1,
+          city,
+          state,
+          postalCode,
+          dateOfBirth,
+          ssnLast4,
+          idempotencyKey: user.id,
+        })
+      }
     } else {
       customer = await createSendingCustomer({
         firstName,
