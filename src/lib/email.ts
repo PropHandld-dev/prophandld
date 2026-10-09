@@ -377,7 +377,7 @@ const WELCOME_CONTENT: Record<'landlord' | 'renter' | 'contractor', Record<Lang,
     es: {
       heading: 'Ya estás dentro',
       bodyHtml: 'Qué bueno tenerte aquí. Mantenimiento, documentos del contrato y renta, todo en un solo lugar en vez de repartido entre mensajes de texto y cajones.' + stepsHtml([
-        'Reporta un problema en pocos toques, con fotos o video, sin buscar entre mensajes antiguos el número de tu arrendador',
+        'Reporta un problema en pocos toques, con fotos o video, sin buscar entre mensajes antiguos el número de tu propietario',
         'Ve los documentos de tu contrato en cualquier momento',
         'Paga la renta directamente desde aquí, sin cheques ni efectivo',
       ]),
@@ -398,7 +398,7 @@ const WELCOME_CONTENT: Record<'landlord' | 'renter' | 'contractor', Record<Lang,
     },
     es: {
       heading: 'Bienvenido a Prophandld',
-      bodyHtml: 'Bienvenido a bordo. Trabajos reales cerca de ti, ofertas selladas, y te pagan en el momento en que un arrendador confirma que el trabajo está terminado, sin costo por cliente potencial, sin comisión, nunca.' + stepsHtml([
+      bodyHtml: 'Bienvenido a bordo. Trabajos reales cerca de ti, ofertas selladas, y te pagan en el momento en que un propietario confirma que el trabajo está terminado, sin costo por cliente potencial, sin comisión, nunca.' + stepsHtml([
         'Configura tu área de servicio y oficios en Ajustes, para que los trabajos correctos te encuentren',
         'Agrega tu licencia y seguro para obtener una insignia de "Verificado" que los propietarios pueden ver',
         'Oferta de forma sellada en trabajos reales cerca de ti, nunca tendrás que adivinar cuánto cotizar',
@@ -495,8 +495,8 @@ export async function sendCredentialExpiryEmail({
     bodyHtml: lang === 'es'
       ? `Hola ${escapeHtml(contractorName)}, ${
           anyExpired
-            ? 'los arrendadores ya no ven las credenciales vencidas junto a tus ofertas. Sube la renovación y la revisaremos.'
-            : 'sube la renovación antes de que venza para que los arrendadores sigan viéndola junto a tus ofertas.'
+            ? 'los propietarios ya no ven las credenciales vencidas junto a tus ofertas. Sube la renovación y la revisaremos.'
+            : 'sube la renovación antes de que venza para que los propietarios sigan viéndola junto a tus ofertas.'
         }`
       : `Hi ${escapeHtml(contractorName)}, ${
           anyExpired
@@ -544,7 +544,7 @@ export async function sendComplianceReminderEmail({
     eyebrow: lang === 'es' ? 'Verificación' : 'Verification',
     heading: lang === 'es' ? 'Faltan credenciales en tu perfil' : 'Your profile is missing a required credential',
     bodyHtml: lang === 'es'
-      ? `Hola ${escapeHtml(contractorName)}, según tu zona de servicio y oficios, tu perfil necesita lo siguiente que aún no está en el expediente.${note ? ` ${escapeHtml(note)}` : ''} Súbelo cuando puedas para que los arrendadores lo vean junto a tus ofertas.`
+      ? `Hola ${escapeHtml(contractorName)}, según tu zona de servicio y oficios, tu perfil necesita lo siguiente que aún no está en el expediente.${note ? ` ${escapeHtml(note)}` : ''} Súbelo cuando puedas para que los propietarios lo vean junto a tus ofertas.`
       : `Hi ${escapeHtml(contractorName)}, based on your service area and trades, your profile needs the following, which isn't on file yet.${note ? ` ${escapeHtml(note)}` : ''} Upload it when you get a chance so landlords see it next to your bids.`,
     preheader: missingNames.length === 1 ? missingNames[0] : `${missingNames.length} items needed`,
     facts,
@@ -821,8 +821,8 @@ export function buildNotificationEmail(type: NotifyType, role: NotifyRole, rawIn
           lang,
           eyebrow: info.isEmergency ? 'Trabajo de emergencia' : 'Nuevo trabajo cerca de ti',
           heading: `Trabajo de ${cat} abierto para ofertas`,
-          bodyHtml: `Un arrendador cerca de ti acaba de abrir este trabajo para ofertas${info.isEmergency ? ' y lo marcó como <strong>emergencia</strong>' : ''}. Tu oferta es sellada: otros contratistas no pueden verla.`,
-          preheader: `${info.city || jobLocation(info)}. Ofertas selladas, solo el arrendador ve tu precio.`,
+          bodyHtml: `Un propietario cerca de ti acaba de abrir este trabajo para ofertas${info.isEmergency ? ' y lo marcó como <strong>emergencia</strong>' : ''}. Tu oferta es sellada: otros contratistas no pueden verla.`,
+          preheader: `${info.city || jobLocation(info)}. Ofertas selladas, solo el propietario ve tu precio.`,
           stage: 1,
           facts: compact([jobFact, whereFact, unitFact, info.isEmergency ? { label: fl('Urgency', lang), value: fl('Emergency', lang) } : null]),
           ctaLabel: 'Ver trabajo y ofertar',
@@ -917,7 +917,7 @@ export function buildNotificationEmail(type: NotifyType, role: NotifyRole, rawIn
           lang,
           eyebrow: 'Fuiste seleccionado',
           heading: 'Obtuviste el trabajo',
-          bodyHtml: `El arrendador eligió tu oferta para un trabajo de <strong>${cat}</strong>. Siguiente paso: acuerda un horario que le funcione al inquilino.`,
+          bodyHtml: `El propietario eligió tu oferta para un trabajo de <strong>${cat}</strong>. Siguiente paso: acuerda un horario que le funcione al inquilino.`,
           preheader: `${jobLocation(info)}. Toca para elegir un horario.`,
           stage: 2,
           facts: compact([jobFact, whereFact, unitFact, info.amount != null && { label: fl('Your price', lang), value: money(info.amount) }]),
@@ -1054,10 +1054,10 @@ export function buildNotificationEmail(type: NotifyType, role: NotifyRole, rawIn
       if (lang === 'es') {
         const contractorHeading = paid ? 'Tu trabajo fue aprobado y pagado' : 'Tu trabajo fue aprobado'
         const contractorBody = paid
-          ? `El arrendador aprobó tu trabajo de <strong>${cat}</strong> en ${at}, y el pago está en camino. Revisa Ganancias para el recibo.`
+          ? `El propietario aprobó tu trabajo de <strong>${cat}</strong> en ${at}, y el pago está en camino. Revisa Ganancias para el recibo.`
           : processing
-            ? `El arrendador aprobó tu trabajo de <strong>${cat}</strong> en ${at}. El pago comenzó y se está procesando, eso normalmente toma de 1 a 3 días hábiles.`
-            : `El arrendador aprobó tu trabajo de <strong>${cat}</strong> en ${at}. El pago es lo siguiente, te avisaremos por correo en cuanto se envíe.`
+            ? `El propietario aprobó tu trabajo de <strong>${cat}</strong> en ${at}. El pago comenzó y se está procesando, eso normalmente toma de 1 a 3 días hábiles.`
+            : `El propietario aprobó tu trabajo de <strong>${cat}</strong> en ${at}. El pago es lo siguiente, te avisaremos por correo en cuanto se envíe.`
         return {
           subject: `Trabajo cerrado: ${info.category}`,
           html: baseTemplate({
@@ -1113,8 +1113,8 @@ export function buildNotificationEmail(type: NotifyType, role: NotifyRole, rawIn
         html: baseTemplate({
           lang,
           eyebrow: 'Actualización de reporte',
-          heading: 'Tu arrendador rechazó este reporte',
-          bodyHtml: `Tu arrendador rechazó el reporte de <strong>${cat}</strong> en ${at}. Abre el trabajo para ver cualquier nota que haya dejado. Puedes escribirle desde ahí.`,
+          heading: 'Tu propietario rechazó este reporte',
+          bodyHtml: `Tu propietario rechazó el reporte de <strong>${cat}</strong> en ${at}. Abre el trabajo para ver cualquier nota que haya dejado. Puedes escribirle desde ahí.`,
           preheader: `${jobLocation(info)}. Abre el trabajo para ver por qué.`,
           facts: compact([jobFact, whereFact, unitFact]),
           ctaLabel: 'Ver los detalles',
@@ -1196,7 +1196,7 @@ export function buildNotificationEmail(type: NotifyType, role: NotifyRole, rawIn
           lang,
           eyebrow: 'Aprobado',
           heading: 'Tu nuevo precio fue aprobado',
-          bodyHtml: `El arrendador aprobó tu nuevo precio para el trabajo de <strong>${cat}</strong> en ${at}. Puedes continuar, y marca el trabajo como completado en cuanto termines.`,
+          bodyHtml: `El propietario aprobó tu nuevo precio para el trabajo de <strong>${cat}</strong> en ${at}. Puedes continuar, y marca el trabajo como completado en cuanto termines.`,
           preheader: info.amount != null ? `Nuevo precio: ${money(info.amount)}. Puedes continuar.` : 'Puedes continuar.',
           stage: 3,
           facts: compact([info.amount != null && { label: fl('New price', lang), value: money(info.amount) }, jobFact, whereFact, unitFact]),
@@ -1224,7 +1224,7 @@ export function buildNotificationEmail(type: NotifyType, role: NotifyRole, rawIn
           lang,
           eyebrow: 'Rechazado',
           heading: 'Tu cambio de precio fue rechazado',
-          bodyHtml: `El arrendador rechazó el nuevo precio para el trabajo de <strong>${cat}</strong> en ${at}. El precio original sigue vigente.`,
+          bodyHtml: `El propietario rechazó el nuevo precio para el trabajo de <strong>${cat}</strong> en ${at}. El precio original sigue vigente.`,
           preheader: info.amount != null ? `El precio original de ${money(info.amount)} se mantiene.` : 'El precio original se mantiene.',
           stage: 3,
           facts: compact([info.amount != null && { label: fl('Price', lang), value: money(info.amount) }, jobFact, whereFact, unitFact]),
@@ -1247,12 +1247,12 @@ export function buildNotificationEmail(type: NotifyType, role: NotifyRole, rawIn
       }
     case 'clarification_requested':
       return lang === 'es' ? {
-        subject: `El arrendador tiene una pregunta: ${info.category}`,
+        subject: `El propietario tiene una pregunta: ${info.category}`,
         html: baseTemplate({
           lang,
           eyebrow: 'Pregunta',
-          heading: 'El arrendador tiene una pregunta',
-          bodyHtml: `Antes de aprobar el trabajo de <strong>${cat}</strong> en ${at}, el arrendador pidió más detalles. Responde en el chat del trabajo.`,
+          heading: 'El propietario tiene una pregunta',
+          bodyHtml: `Antes de aprobar el trabajo de <strong>${cat}</strong> en ${at}, el propietario pidió más detalles. Responde en el chat del trabajo.`,
           preheader: 'Responde en el chat del trabajo para que puedan aprobar.',
           stage: 4,
           facts: compact([jobFact, whereFact, unitFact]),
@@ -1311,8 +1311,8 @@ export function buildNotificationEmail(type: NotifyType, role: NotifyRole, rawIn
           bodyHtml:
             role === 'landlord'
               ? `El contratista de tu trabajo de <strong>${cat}</strong> en ${at} ya no puede hacerlo. El trabajo está abierto de nuevo para ofertas selladas, y se avisó a contratistas cercanos.`
-              : `El contratista del trabajo de <strong>${cat}</strong> en ${at} ya no puede hacerlo. El arrendador está buscando un reemplazo. No se necesita nada de tu parte.`,
-          preheader: role === 'landlord' ? 'Abierto de nuevo para ofertas. Se avisó a contratistas cercanos.' : 'El arrendador está buscando un reemplazo.',
+              : `El contratista del trabajo de <strong>${cat}</strong> en ${at} ya no puede hacerlo. El propietario está buscando un reemplazo. No se necesita nada de tu parte.`,
+          preheader: role === 'landlord' ? 'Abierto de nuevo para ofertas. Se avisó a contratistas cercanos.' : 'El propietario está buscando un reemplazo.',
           stage: 1,
           facts: compact([jobFact, whereFact, unitFact]),
           ctaLabel: 'Ver trabajo',
@@ -1704,7 +1704,7 @@ export async function sendRentMarkedReceivedEmail({
     lang,
     eyebrow: 'Renta',
     heading: 'Tu renta fue registrada como pagada',
-    bodyHtml: `Hola ${escapeHtml(renterName)}, tu arrendador registró <strong>$${amount.toFixed(2)}</strong> de ${escapeHtml(monthLabel)} como recibido para <strong>${escapeHtml(unitLabel)}</strong>.`,
+    bodyHtml: `Hola ${escapeHtml(renterName)}, tu propietario registró <strong>$${amount.toFixed(2)}</strong> de ${escapeHtml(monthLabel)} como recibido para <strong>${escapeHtml(unitLabel)}</strong>.`,
     preheader: `${monthLabel} · ${unitLabel} · $${amount.toFixed(2)}`,
     facts: [
       { label: fl('Amount', lang), value: `$${amount.toFixed(2)}` },
@@ -1748,7 +1748,7 @@ export async function sendContractorVerificationDecisionEmail({
     eyebrow: 'Verificación',
     heading: approved ? 'Estás verificado ✓' : 'Actualización de verificación',
     bodyHtml: approved
-      ? `Hola ${escapeHtml(contractorName)}, tu licencia y seguro fueron revisados y aprobados. Los arrendadores ahora verán una insignia de "Verificado" en tus ofertas.`
+      ? `Hola ${escapeHtml(contractorName)}, tu licencia y seguro fueron revisados y aprobados. Los propietarios ahora verán una insignia de "Verificado" en tus ofertas.`
       : `Hola ${escapeHtml(contractorName)}, tu solicitud de verificación no fue aprobada.${notes ? ` Nota de nuestro equipo: ${escapeHtml(notes)}` : ''} Puedes actualizar tus documentos y volver a enviarlos cuando quieras.`,
     ctaLabel: 'Ver configuración',
     ctaUrl: `${SITE_URL}/contractor/settings`,
@@ -1805,6 +1805,44 @@ export async function sendPayoutDetailsChangedEmail({
   })
 }
 
+// A new linked profile is a brand-new login into this person's account
+// data, created without a password of its own (see createLinkedProfile) —
+// sent to the alias inbox too via the primary's own email subaddressing,
+// so whoever actually controls that inbox sees it regardless of which
+// profile they're signed into.
+export async function sendLinkedProfileAddedEmail({
+  to,
+  name,
+  newRoleLabel,
+  lang = 'en',
+}: {
+  to: string
+  name: string
+  newRoleLabel: string
+  lang?: Lang
+}) {
+  const html = lang === 'es' ? baseTemplate({
+    lang,
+    eyebrow: 'Alerta de seguridad',
+    heading: 'Se añadió un perfil a tu cuenta',
+    bodyHtml: `Hola ${escapeHtml(name)}, se creó un nuevo perfil de <strong>${escapeHtml(newRoleLabel)}</strong> vinculado a tu cuenta de Prophandld. Puedes cambiar entre tus perfiles en cualquier momento desde el menú de tu cuenta.<br><br><strong>Si no hiciste esto, contáctanos de inmediato</strong> en admin@prophandld.com.`,
+    ctaLabel: 'Ver mis perfiles',
+    ctaUrl: `${SITE_URL}/profile`,
+  }) : baseTemplate({
+    lang,
+    eyebrow: 'Security alert',
+    heading: 'A profile was added to your account',
+    bodyHtml: `Hi ${escapeHtml(name)}, a new <strong>${escapeHtml(newRoleLabel)}</strong> profile was just linked to your Prophandld account. You can switch between your profiles anytime from your account menu.<br><br><strong>If you didn't do this, contact us immediately</strong> at admin@prophandld.com.`,
+    ctaLabel: 'View my profiles',
+    ctaUrl: `${SITE_URL}/profile`,
+  })
+  return sendEmail({
+    to,
+    subject: lang === 'es' ? 'Alerta de seguridad: se añadió un perfil a tu cuenta' : 'Security alert: a profile was added to your account',
+    html,
+  })
+}
+
 // Internal, always English.
 export async function sendDisputeRaisedAdminEmail({
   jobCategory,
@@ -1836,7 +1874,7 @@ const DISPUTE_OUTCOME_LABEL: Record<Lang, Record<string, string>> = {
     contractor: 'in favor of the contractor',
   },
   es: {
-    landlord: 'a favor del arrendador',
+    landlord: 'a favor del propietario',
     contractor: 'a favor del contratista',
   },
 }

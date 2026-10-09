@@ -12,6 +12,9 @@ import { RolePicker, type Role } from '@/components/RolePicker'
 import { AddressAutocomplete, type AutocompletePlace } from '@/components/AddressAutocomplete'
 import { SITE_URL } from '@/lib/site'
 import { setAppMetadataRole } from '@/lib/setAppMetadataRole'
+import { t, type Lang } from '@/lib/i18n'
+
+const ROLE_LABEL_KEY = { landlord: 'landlordLabel', renter: 'renterLabel', contractor: 'contractorLabel' } as const
 
 const ROLE_CONTENT: Record<Role, { headline: string; subtext: string; checklist: string[] }> = {
   landlord: {
@@ -239,22 +242,24 @@ function SignupForm() {
         body: JSON.stringify({ email: form.email, password: linkPassword, newRole: role }),
       })
       const data = await res.json()
+      const lang = (form.preferred_language === 'es' ? 'es' : 'en') as Lang
       if (!res.ok) {
-        setLinkError(data.error || 'Could not add that profile.')
+        setLinkError(data.error === 'Incorrect password for that email.' ? t('incorrectPasswordTryAgain', lang) : data.error || t('couldNotCreateProfile', lang))
         setLinkSubmitting(false)
         return
       }
       if (data.tokenHash) {
         const { error: verifyError } = await supabase.auth.verifyOtp({ token_hash: data.tokenHash, type: 'email' })
         if (verifyError) {
-          setLinkError('Profile created, but switching to it failed. Try signing in.')
+          setLinkError(t('couldNotSwitchProfile', lang))
           setLinkSubmitting(false)
           return
         }
       }
       window.location.href = role === 'landlord' ? '/landlord' : role === 'renter' ? '/renter' : '/contractor'
     } catch {
-      setLinkError('Could not add that profile.')
+      const lang = (form.preferred_language === 'es' ? 'es' : 'en') as Lang
+      setLinkError(t('couldNotCreateProfile', lang))
       setLinkSubmitting(false)
     }
   }
@@ -597,60 +602,60 @@ function SignupForm() {
 
       </form>
 
-      {linkOffer && role && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-30">
-          <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
-            <h3 className="text-white font-semibold text-lg mb-1.5">This email already has an account</h3>
-            <p className="text-white/60 text-[15px] leading-relaxed mb-4">
-              <span className="text-white font-medium">{form.email}</span> already belongs to a{' '}
-              <span className="text-white font-medium">
-                {linkOffer.existingRole.charAt(0).toUpperCase() + linkOffer.existingRole.slice(1)}
-              </span>{' '}
-              account. Want to add a{' '}
-              <span className="text-white font-medium">{role.charAt(0).toUpperCase() + role.slice(1)}</span>{' '}
-              profile to it instead? You'll be able to switch between them anytime, no extra password to remember.
-            </p>
-            <form onSubmit={handleLinkSubmit} className="space-y-4">
-              <div>
-                <label htmlFor="linkPassword" className="text-white/70 text-[15px] block mb-1">
-                  Confirm your {linkOffer.existingRole} account's password
-                </label>
-                <input
-                  id="linkPassword"
-                  type="password"
-                  value={linkPassword}
-                  onChange={(e) => setLinkPassword(e.target.value)}
-                  autoFocus
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-[16px] focus:outline-none focus:border-[#12A5A9] transition"
-                  required
-                />
-              </div>
-              {linkError && (
-                <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">
-                  {linkError}
+      {linkOffer && role && (() => {
+        const lang = (form.preferred_language === 'es' ? 'es' : 'en') as Lang
+        const existingRoleLabel = t(ROLE_LABEL_KEY[linkOffer.existingRole], lang)
+        const newRoleLabel = t(ROLE_LABEL_KEY[role], lang)
+        const body = t('emailAlreadyLinkedBody', lang).replace('{role}', existingRoleLabel).replace('{newRole}', newRoleLabel)
+        return (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-30">
+            <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
+              <h3 className="text-white font-semibold text-lg mb-1.5">{t('emailAlreadyLinkedTitle', lang)}</h3>
+              <p className="text-white/60 text-[15px] leading-relaxed mb-4">
+                <span className="text-white font-medium">{form.email}</span> {body}
+              </p>
+              <form onSubmit={handleLinkSubmit} className="space-y-4">
+                <div>
+                  <label htmlFor="linkPassword" className="text-white/70 text-[15px] block mb-1">
+                    {t('confirmPasswordToLink', lang)}
+                  </label>
+                  <input
+                    id="linkPassword"
+                    type="password"
+                    value={linkPassword}
+                    onChange={(e) => setLinkPassword(e.target.value)}
+                    autoFocus
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-[16px] focus:outline-none focus:border-[#12A5A9] transition"
+                    required
+                  />
                 </div>
-              )}
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => { setLinkOffer(null); setLinkPassword(''); setLinkError(null) }}
-                  disabled={linkSubmitting}
-                  className="flex-1 bg-white/5 border border-white/10 text-white/60 text-[15px] font-semibold py-3 rounded-xl hover:bg-white/8 transition disabled:opacity-40"
-                >
-                  Cancel
-                </button>
-                <RippleButton
-                  type="submit"
-                  disabled={linkSubmitting || !linkPassword}
-                  className="flex-[2] bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-[15px] font-semibold py-3 rounded-xl hover:opacity-90 transition disabled:opacity-40"
-                >
-                  {linkSubmitting ? 'Adding profile…' : 'Add profile and switch'}
-                </RippleButton>
-              </div>
-            </form>
+                {linkError && (
+                  <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">
+                    {linkError}
+                  </div>
+                )}
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => { setLinkOffer(null); setLinkPassword(''); setLinkError(null) }}
+                    disabled={linkSubmitting}
+                    className="flex-1 bg-white/5 border border-white/10 text-white/60 text-[15px] font-semibold py-3 rounded-xl hover:bg-white/8 transition disabled:opacity-40"
+                  >
+                    {t('cancelBtn', lang)}
+                  </button>
+                  <RippleButton
+                    type="submit"
+                    disabled={linkSubmitting || !linkPassword}
+                    className="flex-[2] bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-[15px] font-semibold py-3 rounded-xl hover:opacity-90 transition disabled:opacity-40"
+                  >
+                    {linkSubmitting ? t('creatingProfileDots', lang) : t('addProfileAndSwitchBtn', lang)}
+                  </RippleButton>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
     </AuthLayout>
   )
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { MapPinIcon } from '@/components/icons'
+import { useLanguage, t } from '@/lib/i18n'
 
 // A web app can't ask the phone "open this in whatever maps app you prefer"
 // the way a native app can — there's no such setting to read. The honest
@@ -14,6 +15,7 @@ function isApplePlatform() {
 }
 
 export function AddressLink({ address, city, className = '' }: { address: string; city?: string | null; className?: string }) {
+  const lang = useLanguage()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const [showApple, setShowApple] = useState(false)
@@ -53,7 +55,7 @@ export function AddressLink({ address, city, className = '' }: { address: string
             onClick={() => setOpen(false)}
             className="block px-4 py-2.5 text-sm text-white hover:bg-white/5 transition"
           >
-            Open in Google Maps
+            {t('openInGoogleMaps', lang)}
           </a>
           {showApple && (
             <a
@@ -61,7 +63,7 @@ export function AddressLink({ address, city, className = '' }: { address: string
               onClick={() => setOpen(false)}
               className="block px-4 py-2.5 text-sm text-white hover:bg-white/5 transition border-t border-white/8"
             >
-              Open in Apple Maps
+              {t('openInAppleMaps', lang)}
             </a>
           )}
         </div>

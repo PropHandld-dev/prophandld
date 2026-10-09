@@ -1,8 +1,41 @@
 import crypto from 'crypto'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { sendLinkedProfileAddedEmail } from '@/lib/email'
+import { sendPush } from '@/lib/push'
 
 export type Role = 'landlord' | 'renter' | 'contractor'
 export const ALL_ROLES: Role[] = ['landlord', 'renter', 'contractor']
+
+const ROLE_LABEL: Record<Role, { en: string; es: string }> = {
+  landlord: { en: 'Landlord', es: 'Propietario' },
+  renter: { en: 'Renter', es: 'Inquilino' },
+  contractor: { en: 'Contractor', es: 'Contratista' },
+}
+
+// A new linked profile is a brand-new login into this account's data,
+// created with no password of its own — a security-relevant event the
+// primary account should always hear about, same as a payout bank account
+// changing (sendPayoutDetailsChangedEmail). Unconditional like that one,
+// not gated on the notification-preferences toggle. Called from both
+// /api/profiles/add (already signed in) and /api/profiles/add-with-password
+// (the signup-page link flow) after a successful createLinkedProfile.
+export function notifyLinkedProfileAdded(
+  primaryUserId: string,
+  { email, fullName, preferredLanguage, newRole }: { email: string | null; fullName: string | null; preferredLanguage: string | null; newRole: Role }
+) {
+  const lang = preferredLanguage === 'es' ? 'es' : 'en'
+  const roleLabel = ROLE_LABEL[newRole][lang]
+  if (email) {
+    sendLinkedProfileAddedEmail({ to: email, name: fullName || 'there', newRoleLabel: roleLabel, lang }).catch((err) =>
+      console.error('notifyLinkedProfileAdded: email failed', err)
+    )
+  }
+  sendPush(primaryUserId, {
+    title: 'Profile added',
+    body: `A ${roleLabel} profile was added to your account.`,
+    url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/profile`,
+  }).catch((err) => console.error('notifyLinkedProfileAdded: push failed', err))
+}
 
 export type LinkedProfile = {
   id: string

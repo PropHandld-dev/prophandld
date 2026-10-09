@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { RippleButton } from '@/components/RippleButton'
+import { useLanguage, t } from '@/lib/i18n'
 
 // Optional MFA for any role — admin already has this mandatory
 // (src/app/admin/login/page.tsx), this is the same Supabase Auth TOTP
@@ -12,6 +13,7 @@ import { RippleButton } from '@/components/RippleButton'
 type Status = 'loading' | 'off' | 'enrolling' | 'on'
 
 export function TwoFactorAuthCard() {
+  const lang = useLanguage()
   const [status, setStatus] = useState<Status>('loading')
   const [factorId, setFactorId] = useState<string | null>(null)
   const [qrCode, setQrCode] = useState<string | null>(null)
@@ -55,7 +57,7 @@ export function TwoFactorAuthCard() {
 
     const { data: enrolled, error: enrollError } = await supabase.auth.mfa.enroll({ factorType: 'totp' })
     if (enrollError || !enrolled) {
-      setError('Could not start authenticator setup. Try again.')
+      setError(t('twoFactorEnrollError', lang))
       return
     }
     setFactorId(enrolled.id)
@@ -73,13 +75,13 @@ export function TwoFactorAuthCard() {
 
     const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId })
     if (challengeError || !challenge) {
-      setError('Could not verify that code. Try again.')
+      setError(t('twoFactorVerifyChallengeError', lang))
       setVerifying(false)
       return
     }
     const { error: verifyError } = await supabase.auth.mfa.verify({ factorId, challengeId: challenge.id, code: code.trim() })
     if (verifyError) {
-      setError("That code didn't match. Check your authenticator app and try again.")
+      setError(t('twoFactorCodeMismatchError', lang))
       setVerifying(false)
       return
     }
@@ -90,12 +92,12 @@ export function TwoFactorAuthCard() {
 
   const handleDisable = async () => {
     if (!factorId) return
-    if (!window.confirm('Turn off two-factor authentication? Your account will only need a password to sign in from then on.')) return
+    if (!window.confirm(t('twoFactorDisableConfirm', lang))) return
     setDisabling(true)
     setError(null)
     const { error: unenrollError } = await supabase.auth.mfa.unenroll({ factorId })
     if (unenrollError) {
-      setError('Could not turn off two-factor authentication. Try again.')
+      setError(t('twoFactorDisableError', lang))
       setDisabling(false)
       return
     }
@@ -108,9 +110,9 @@ export function TwoFactorAuthCard() {
 
   return (
     <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
-      <h2 className="text-white font-semibold mb-2">Two-factor authentication</h2>
+      <h2 className="text-white font-semibold mb-2">{t('twoFactorAuthTitle', lang)}</h2>
       <p className="text-white/60 text-sm mb-4">
-        Add a second step at sign-in with an authenticator app (Google Authenticator, Authy, or similar) — optional, on top of your password.
+        {t('twoFactorAuthDesc', lang)}
       </p>
 
       {status === 'off' && (
@@ -118,33 +120,33 @@ export function TwoFactorAuthCard() {
           onClick={handleEnable}
           className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-5 py-3 rounded-xl hover:opacity-90 transition"
         >
-          Set up two-factor authentication
+          {t('setUpTwoFactorBtn', lang)}
         </RippleButton>
       )}
 
       {status === 'on' && (
         <div className="flex items-center justify-between gap-3">
-          <p className="text-[#12A5A9] text-sm font-medium">Enabled</p>
+          <p className="text-[#12A5A9] text-sm font-medium">{t('twoFactorEnabled', lang)}</p>
           <button
             onClick={handleDisable}
             disabled={disabling}
             className="text-white/60 hover:text-red-400 text-xs font-semibold transition disabled:opacity-50"
           >
-            {disabling ? 'Turning off…' : 'Turn off'}
+            {disabling ? t('turningOffDots', lang) : t('turnOffBtn', lang)}
           </button>
         </div>
       )}
 
       {status === 'enrolling' && (
         <div>
-          <p className="text-white/50 text-sm mb-4">Scan this with your authenticator app, then enter the 6-digit code it shows.</p>
+          <p className="text-white/50 text-sm mb-4">{t('twoFactorScanInstructions', lang)}</p>
           {qrCode && (
             <div className="bg-white rounded-xl p-3 inline-block mb-3">
-              <img src={qrCode} alt="Scan with your authenticator app" className="w-36 h-36" />
+              <img src={qrCode} alt={t('twoFactorScanInstructions', lang)} className="w-36 h-36" />
             </div>
           )}
           {secret && (
-            <p className="text-white/40 text-xs mb-4 break-all">Can&apos;t scan? Enter this key manually: {secret}</p>
+            <p className="text-white/40 text-xs mb-4 break-all">{t('twoFactorManualKey', lang)} {secret}</p>
           )}
           <form onSubmit={handleVerify} className="flex gap-2 items-start">
             <input
@@ -162,7 +164,7 @@ export function TwoFactorAuthCard() {
               disabled={verifying || code.length === 0}
               className="shrink-0 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-5 py-3 rounded-xl hover:opacity-90 transition disabled:opacity-50"
             >
-              {verifying ? 'Verifying…' : 'Confirm'}
+              {verifying ? t('verifyingDots', lang) : t('confirmBtn', lang)}
             </RippleButton>
           </form>
         </div>

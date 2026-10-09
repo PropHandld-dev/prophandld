@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
-import { createLinkedProfile, mintSessionTokenForEmail, ALL_ROLES } from '@/lib/linkedProfiles'
+import { createLinkedProfile, mintSessionTokenForEmail, notifyLinkedProfileAdded, ALL_ROLES } from '@/lib/linkedProfiles'
 
 export const maxDuration = 20
 
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
   const admin = getSupabaseAdmin()
   const { data: row } = await admin
     .from('users')
-    .select('email, full_name, phone, preferred_language')
+    .select('email, full_name, phone, preferred_language, email_notifications_enabled')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -50,6 +50,13 @@ export async function POST(request: NextRequest) {
   if ('error' in result) {
     return NextResponse.json({ error: result.error }, { status: 400 })
   }
+
+  notifyLinkedProfileAdded(user.id, {
+    email,
+    fullName: row?.full_name || null,
+    preferredLanguage: row?.preferred_language || null,
+    newRole: newRole as any,
+  })
 
   const { data: newAuthUser, error: newAuthUserError } = await admin.auth.admin.getUserById(result.newUserId)
   if (newAuthUserError || !newAuthUser?.user?.email) {
