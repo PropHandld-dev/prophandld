@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { getStripe, paymentPaidAt } from '@/lib/stripe'
+import { sendJobPaymentNotifications } from '@/lib/jobPaymentNotify'
 
 export const maxDuration = 15
 
@@ -69,6 +70,9 @@ export async function POST(request: NextRequest) {
       const cardSurcharge = paymentIntent.metadata?.prophandld_card_surcharge
         ? Number(paymentIntent.metadata.prophandld_card_surcharge)
         : 0
+      const baseAmountPaid = paymentIntent.metadata?.prophandld_base_amount
+        ? Number(paymentIntent.metadata.prophandld_base_amount)
+        : paymentIntent.amount / 100
       const { data: updatedBid, error } = await supabaseAdmin
         .from('bids')
         .update({ payment_status: 'paid', paid_at: paymentPaidAt(paymentIntent), card_surcharge_amount: cardSurcharge })
@@ -79,17 +83,16 @@ export async function POST(request: NextRequest) {
         console.error('job-payment/confirm: could not mark bid paid', error)
         return NextResponse.json({ error: 'Could not record payment' }, { status: 500 })
       }
-      // Only post the job-chat "payment released" message if this call is
-      // the one that actually flipped the status (same dedup signal the
-      // webhook uses) — otherwise the webhook either already posted it, or
-      // will when it arrives, and this would double it up.
-      if (updatedBid && updatedBid.length > 0 && bid.job_id && landlordUserId) {
-        const { error: messageError } = await supabaseAdmin.from('messages').insert({
-          job_id: bid.job_id,
-          sender_user_id: landlordUserId,
-          body: '✓ Payment released',
-        })
-        if (messageError) console.error('job-payment/confirm: payment-released message insert failed', messageError)
+      // Only send the receipt/email/push and post the job-chat "payment
+      // released" message if this call is the one that actually flipped
+      // the status (same dedup signal the webhook uses) — otherwise the
+      // webhook either already sent them, or will when it arrives, and
+      // this would double everything up. This confirm route usually wins
+      // that race (it runs the instant the landlord's own browser sees
+      // Stripe confirm the charge), so this is the common path these
+      // notifications actually go out on, not a rare fallback.
+      if (updatedBid && updatedBid.length > 0) {
+        await sendJobPaymentNotifications(supabaseAdmin, { bidId: bid.id, baseAmountPaid, cardSurcharge })
       }
       return NextResponse.json({ status: 'paid' })
     }

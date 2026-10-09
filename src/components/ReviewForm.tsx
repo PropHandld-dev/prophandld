@@ -122,6 +122,17 @@ export function ReviewForm({
       return
     }
 
+    // Only notify on a first-time review, not an edit of an existing one.
+    if (!existingReview) {
+      const ratingValues = categories.map((c) => ratings[c.key]).filter(Boolean)
+      const averageRating = ratingValues.reduce((a, b) => a + b, 0) / ratingValues.length
+      fetch('/api/review-submitted', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId, contractorUserId, averageRating }),
+      }).catch((err) => console.error('Error notifying contractor of review:', err))
+    }
+
     setExistingReview(saved)
     setSaving(false)
     onSubmitted?.(saved)

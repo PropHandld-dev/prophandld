@@ -19,6 +19,7 @@ import { WrenchIcon, CheckCircleIcon, MessageCircleIcon } from '@/components/ico
 import { LANDLORD_TABS } from '@/lib/navTabs'
 import { ReviewForm } from '@/components/ReviewForm'
 import type { PaymentOutcome } from '@/components/StripePaymentModal'
+import { PaymentTrustBadge } from '@/components/PaymentTrustBadge'
 // Pulls in @stripe/react-stripe-js, only ever needed once a payment
 // actually starts — most visits to a job's page are just checking
 // status, not paying, so there's no reason to ship that into every
@@ -2153,10 +2154,11 @@ export default function JobDetailPage() {
               </div>
               <button
                 onClick={() => setShowPaymentMethodChoice(false)}
-                className="w-full text-center text-white/50 hover:text-white text-sm mt-4 transition"
+                className="w-full text-center text-white/50 hover:text-white text-sm mt-4 mb-3 transition"
               >
                 {t('cancel', lang)}
               </button>
+              <PaymentTrustBadge provider="stripe" />
             </div>
           </div>
         )

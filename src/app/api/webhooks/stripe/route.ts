@@ -3,9 +3,10 @@ import Stripe from 'stripe'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { getStripe, isPayoutReady } from '@/lib/stripe'
 import { syncRentPayment } from '@/lib/rentPaymentSync'
-import { sendRentPaymentReceivedEmail, sendJobPaymentSentEmail, sendJobPaymentReceiptEmail, sendCreditCardRejectedEmail, sendPayoutDetailsChangedEmail } from '@/lib/email'
+import { sendRentPaymentReceivedEmail, sendCreditCardRejectedEmail, sendPayoutDetailsChangedEmail } from '@/lib/email'
 import { sendPush } from '@/lib/push'
 import { emailAllowed } from '@/lib/notificationPrefs'
+import { sendJobPaymentNotifications } from '@/lib/jobPaymentNotify'
 
 export const maxDuration = 30
 
@@ -274,78 +275,11 @@ export async function POST(request: NextRequest) {
             // the contractor's "you've been paid" email/push on every retry.
             if (!error && (!updatedBid || updatedBid.length === 0)) break
 
-            const { data: bid } = await supabaseAdmin
-              .from('bids')
-              .select('job_id, contractor_user_id, jobs(category, units(properties(address, owner_user_id)))')
-              .eq('id', bidId)
-              .maybeSingle()
-
-            // Landlord's receipt: an emailed copy of what's also saved on the job.
-            const receiptJob = bid?.jobs as any
-            const landlordId = receiptJob?.units?.properties?.owner_user_id
-            if (bid?.contractor_user_id && landlordId) {
-              const [{ data: landlord }, { data: payee }] = await Promise.all([
-                supabaseAdmin.from('users').select('email, full_name, preferred_language, email_notifications_enabled').eq('id', landlordId).maybeSingle(),
-                supabaseAdmin.from('users').select('full_name').eq('id', bid.contractor_user_id).maybeSingle(),
-              ])
-              if (landlord?.email && emailAllowed(landlord)) {
-                await sendJobPaymentReceiptEmail({
-                  to: landlord.email,
-                  landlordName: landlord.full_name || 'there',
-                  contractorName: payee?.full_name || 'your contractor',
-                  amount: baseAmountPaid,
-                  fee: cardSurcharge,
-                  category: receiptJob?.category || 'your job',
-                  propertyLabel: receiptJob?.units?.properties?.address || 'the property',
-                  bidId,
-                  lang: landlord.preferred_language === 'es' ? 'es' : 'en',
-                }).catch((err) => console.error('stripe webhook: landlord job receipt email failed', err))
-              }
-              await sendPush(landlordId, {
-                title: 'Payment sent',
-                body: `$${baseAmountPaid.toFixed(2)} to ${payee?.full_name || 'your contractor'} for ${receiptJob?.category || 'the job'}`,
-                url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/receipts/job/${bidId}`,
-              }).catch((err) => console.error('stripe webhook: sendPush (landlord receipt) failed', err))
-            }
-
-            if (bid?.contractor_user_id) {
-              const job = bid.jobs as any
-              const { data: contractor } = await supabaseAdmin
-                .from('users')
-                .select('email, full_name, preferred_language, email_notifications_enabled')
-                .eq('id', bid.contractor_user_id)
-                .maybeSingle()
-              if (contractor?.email && emailAllowed(contractor)) {
-                await sendJobPaymentSentEmail({
-                  to: contractor.email,
-                  contractorName: contractor.full_name || 'there',
-                  amount: baseAmountPaid,
-                  category: job?.category || 'your job',
-                  propertyLabel: job?.units?.properties?.address || 'the property',
-                  bidId,
-                  lang: contractor.preferred_language === 'es' ? 'es' : 'en',
-                })
-              }
-              await sendPush(bid.contractor_user_id, {
-                title: "You've been paid",
-                body: `$${baseAmountPaid.toFixed(2)} for ${job?.category || 'your job'}`,
-                url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/receipts/job/${bidId}`,
-              }).catch((err) => console.error('stripe webhook: sendPush (job payment) failed', err))
-            }
-
-            // The job chat's "payment released" message belongs here, not
-            // at the moment the landlord clicks Approve — confirmed in
-            // testing that it used to fire before the charge existed,
-            // let alone succeeded. This is the one place that only runs
-            // once Stripe has actually confirmed the money moved.
-            if (bid?.job_id && landlordId) {
-              const { error: messageError } = await supabaseAdmin.from('messages').insert({
-                job_id: bid.job_id,
-                sender_user_id: landlordId,
-                body: '✓ Payment released',
-              })
-              if (messageError) console.error('stripe webhook: payment-released message insert failed', messageError)
-            }
+            // Shared with /api/stripe/job-payment/confirm, whichever call
+            // actually wins the race to flip payment_status to 'paid' (the
+            // .neq('payment_status','paid') guard above is what makes this
+            // safe either way).
+            await sendJobPaymentNotifications(supabaseAdmin, { bidId, baseAmountPaid, cardSurcharge })
           }
         }
         break

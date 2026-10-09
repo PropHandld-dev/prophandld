@@ -124,7 +124,7 @@ export function DwollaConnectCard() {
   return (
     <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6">
       <div className="flex items-center justify-between mb-2">
-        <h2 className="text-white font-semibold">{t('getPaidRentTitle', lang)}</h2>
+        <h2 className="text-white font-semibold">{t('getPaidRentBankTitle', lang)}</h2>
         {!loading && status && (
           <span className={
             status === 'active'

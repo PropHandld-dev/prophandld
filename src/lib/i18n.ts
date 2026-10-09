@@ -1053,6 +1053,9 @@ const STRINGS = {
   trustPointPartialNumber: { en: 'We only ever see the last 4 digits of your account. Never the full number.', es: 'Solo vemos los últimos 4 dígitos de tu cuenta. Nunca el número completo.' },
   trustPointNeverSell: { en: 'We will never sell or share your information. Ever.', es: 'Nunca venderemos ni compartiremos tu información. Nunca.' },
   trustPointRenterPrivacy: { en: 'Your landlord never sees your bank details — only that rent was paid.', es: 'Tu arrendador nunca ve los detalles de tu cuenta bancaria, solo que la renta fue pagada.' },
+  paymentTrustStripe: { en: 'Powered by Stripe. Prophandld never sees or stores your card number.', es: 'Con tecnología de Stripe. Prophandld nunca ve ni guarda el número de tu tarjeta.' },
+  paymentTrustDwolla: { en: 'Powered by Dwolla. Prophandld never sees or stores your bank account number.', es: 'Con tecnología de Dwolla. Prophandld nunca ve ni guarda el número de tu cuenta bancaria.' },
+  paymentTrustBoth: { en: 'Powered by Stripe and Dwolla. Prophandld never sees or stores your card or bank account number.', es: 'Con tecnología de Stripe y Dwolla. Prophandld nunca ve ni guarda el número de tu tarjeta o cuenta bancaria.' },
 
   // Shared bank-link wizard navigation
   backBtn: { en: 'Back', es: 'Atrás' },
@@ -1062,6 +1065,10 @@ const STRINGS = {
 
   // DwollaConnectCard (landlord rent payouts)
   getPaidRentDwollaBody: { en: 'Link a bank account so rent payments made through Prophandld go straight to you.', es: 'Conecta una cuenta bancaria para que los pagos de renta hechos a través de Prophandld vayan directo a ti.' },
+  getPaidRentSectionIntro: { en: 'Set up how rent reaches you. Bank transfer is free and the default; debit card is there for a tenant who needs to pay right now.', es: 'Configura cómo recibes la renta. La transferencia bancaria es gratis y la opción predeterminada; la tarjeta de débito está ahí para un inquilino que necesite pagar de inmediato.' },
+  getPaidRentBankTitle: { en: 'Bank transfer', es: 'Transferencia bancaria' },
+  getPaidRentCardTitle: { en: 'Debit card (instant)', es: 'Tarjeta de débito (instantáneo)' },
+  getPaidRentCardBody: { en: "For a tenant who needs to pay right now instead of waiting on a bank transfer. They pay a small card fee, shown to them up front — you're never charged for it.", es: 'Para un inquilino que necesita pagar de inmediato en lugar de esperar una transferencia bancaria. Ellos pagan una pequeña comisión por tarjeta, mostrada por adelantado; a ti nunca se te cobra.' },
   linkBankAccount: { en: 'Link bank account', es: 'Conectar cuenta bancaria' },
   routingNumberLabel: { en: 'Routing number', es: 'Número de ruta' },
   accountNumberLabel: { en: 'Account number', es: 'Número de cuenta' },

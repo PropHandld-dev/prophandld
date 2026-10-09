@@ -5,6 +5,7 @@ import { RippleButton } from '@/components/RippleButton'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { CheckCircleIcon } from '@/components/icons'
 import { goToStripe } from '@/lib/externalTab'
+import { PaymentTrustBadge } from '@/components/PaymentTrustBadge'
 import { useLanguage, t } from '@/lib/i18n'
 
 type ConnectStatus = 'not_started' | 'onboarding' | 'active'
@@ -54,8 +55,8 @@ export function StripeConnectCard({ purpose }: { purpose: 'rent' | 'jobs' }) {
 
   const copy = purpose === 'rent'
     ? {
-        title: t('getPaidRentTitle', lang),
-        body: t('getPaidRentBody', lang),
+        title: t('getPaidRentCardTitle', lang),
+        body: t('getPaidRentCardBody', lang),
       }
     : {
         title: t('getPaidJobsTitle', lang),
@@ -90,13 +91,18 @@ export function StripeConnectCard({ purpose }: { purpose: 'rent' | 'jobs' }) {
       {loading ? (
         <div className="h-10 w-40 bg-white/5 rounded-xl animate-pulse" />
       ) : status !== 'active' ? (
-        <RippleButton
-          onClick={handleSetup}
-          disabled={redirecting}
-          className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
-        >
-          {redirecting ? t('redirecting', lang) : status === 'onboarding' ? t('finishSetup', lang) : t('setUpPayouts', lang)}
-        </RippleButton>
+        <>
+          <RippleButton
+            onClick={handleSetup}
+            disabled={redirecting}
+            className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
+          >
+            {redirecting ? t('redirecting', lang) : status === 'onboarding' ? t('finishSetup', lang) : t('setUpPayouts', lang)}
+          </RippleButton>
+          <div className="mt-3">
+            <PaymentTrustBadge provider="stripe" />
+          </div>
+        </>
       ) : (
         <RippleButton
           onClick={handleSetup}

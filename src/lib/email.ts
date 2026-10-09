@@ -1630,6 +1630,106 @@ export async function sendJobPaymentSentEmail({
   return sendEmail({ to, subject: lang === 'es' ? `Te pagaron $${amount.toFixed(2)}: ${category}` : `You've been paid $${amount.toFixed(2)}: ${category}`, html })
 }
 
+export async function sendReviewReceivedEmail({
+  to,
+  contractorName,
+  reviewerRole,
+  averageRating,
+  category,
+  propertyLabel,
+  lang = 'en',
+}: {
+  to: string
+  contractorName: string
+  reviewerRole: 'landlord' | 'renter'
+  averageRating: number
+  category: string
+  propertyLabel: string
+  lang?: Lang
+}) {
+  const stars = '★'.repeat(Math.round(averageRating)) + '☆'.repeat(5 - Math.round(averageRating))
+  const html = lang === 'es' ? baseTemplate({
+    lang,
+    eyebrow: 'Reseña',
+    heading: 'Recibiste una nueva reseña',
+    bodyHtml: `Hola ${escapeHtml(contractorName)}, ${reviewerRole === 'landlord' ? 'el propietario' : 'el inquilino'} te dejó una reseña por el trabajo de <strong>${escapeHtml(category)}</strong> en ${escapeHtml(propertyLabel)}: <strong>${stars}</strong>.`,
+    preheader: `${stars} por ${category}`,
+    facts: [
+      { label: fl('Calificación', lang), value: stars },
+      { label: fl('Trabajo', lang), value: category },
+      { label: fl('Dónde', lang), value: propertyLabel },
+    ],
+    ctaLabel: 'Ver tus reseñas',
+    ctaUrl: `${SITE_URL}/contractor/settings`,
+    note: 'Las reseñas ayudan a que te elijan en futuras ofertas selladas.',
+  }) : baseTemplate({
+    lang,
+    eyebrow: 'Review',
+    heading: 'You got a new review',
+    bodyHtml: `Hi ${escapeHtml(contractorName)}, the ${reviewerRole === 'landlord' ? 'landlord' : 'tenant'} left you a review for the <strong>${escapeHtml(category)}</strong> job at ${escapeHtml(propertyLabel)}: <strong>${stars}</strong>.`,
+    preheader: `${stars} for ${category}`,
+    facts: [
+      { label: fl('Rating', lang), value: stars },
+      { label: fl('Job', lang), value: category },
+      { label: fl('Where', lang), value: propertyLabel },
+    ],
+    ctaLabel: 'View your reviews',
+    ctaUrl: `${SITE_URL}/contractor/settings`,
+    note: 'Reviews help you get picked on future sealed bids.',
+  })
+  return sendEmail({ to, subject: lang === 'es' ? `Nueva reseña: ${stars}` : `New review: ${stars}`, html })
+}
+
+// Renter-facing — for the manual "mark received" path (cash, check, or any
+// payment made outside the app), not the automatic Dwolla/Stripe one
+// (sendRentPaymentReceivedEmail, above, is the landlord-facing twin of that
+// automatic path). Without this, a renter who paid rent by check had no way
+// to know their landlord actually recorded it.
+export async function sendRentMarkedReceivedEmail({
+  to,
+  renterName,
+  amount,
+  monthLabel,
+  unitLabel,
+  lang = 'en',
+}: {
+  to: string
+  renterName: string
+  amount: number
+  monthLabel: string
+  unitLabel: string
+  lang?: Lang
+}) {
+  const html = lang === 'es' ? baseTemplate({
+    lang,
+    eyebrow: 'Renta',
+    heading: 'Tu renta fue registrada como pagada',
+    bodyHtml: `Hola ${escapeHtml(renterName)}, tu arrendador registró <strong>$${amount.toFixed(2)}</strong> de ${escapeHtml(monthLabel)} como recibido para <strong>${escapeHtml(unitLabel)}</strong>.`,
+    preheader: `${monthLabel} · ${unitLabel} · $${amount.toFixed(2)}`,
+    facts: [
+      { label: fl('Amount', lang), value: `$${amount.toFixed(2)}` },
+      { label: fl('For', lang), value: monthLabel },
+      { label: fl('Unit', lang), value: unitLabel },
+    ],
+    ctaLabel: 'Ver historial de renta',
+    ctaUrl: `${SITE_URL}/renter/rent`,
+  }) : baseTemplate({
+    lang,
+    eyebrow: 'Rent',
+    heading: 'Your rent was marked as paid',
+    bodyHtml: `Hi ${escapeHtml(renterName)}, your landlord recorded <strong>$${amount.toFixed(2)}</strong> for ${escapeHtml(monthLabel)} as received for <strong>${escapeHtml(unitLabel)}</strong>.`,
+    preheader: `${monthLabel} · ${unitLabel} · $${amount.toFixed(2)}`,
+    facts: [
+      { label: fl('Amount', lang), value: `$${amount.toFixed(2)}` },
+      { label: fl('For', lang), value: monthLabel },
+      { label: fl('Unit', lang), value: unitLabel },
+    ],
+    ctaLabel: 'View rent history',
+    ctaUrl: `${SITE_URL}/renter/rent`,
+  })
+  return sendEmail({ to, subject: lang === 'es' ? `Renta registrada: $${amount.toFixed(2)} para ${monthLabel}` : `Rent recorded: $${amount.toFixed(2)} for ${monthLabel}`, html })
+}
+
 export async function sendContractorVerificationDecisionEmail({
   to,
   contractorName,

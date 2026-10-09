@@ -495,8 +495,15 @@ export default function ProfilePage() {
             <div id="billing" className="scroll-mt-6">
               <BillingSection />
             </div>
-            <div className="mb-6">
+            <div className="mb-2">
+              <h2 className="text-white font-semibold mb-1">{t('getPaidRentTitle', lang)}</h2>
+              <p className="text-white/50 text-sm mb-4">{t('getPaidRentSectionIntro', lang)}</p>
+            </div>
+            <div className="mb-4">
               <DwollaConnectCard />
+            </div>
+            <div className="mb-6">
+              <StripeConnectCard purpose="rent" />
             </div>
           </>
         )}

@@ -9,6 +9,7 @@ import { BottomTabBar } from '@/components/BottomTabBar'
 import { Skeleton } from '@/components/Skeleton'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
+import { PaymentTrustBadge } from '@/components/PaymentTrustBadge'
 // Pulls in @stripe/react-stripe-js, only ever needed once a payment
 // actually starts — most visits to this page are just checking rent
 // status, not paying, so there's no reason to ship that into every
@@ -656,10 +657,11 @@ export default function RenterRentPage() {
               </div>
               <button
                 onClick={() => setMethodChoicePayment(null)}
-                className="w-full text-center text-white/50 hover:text-white text-sm mt-4 transition"
+                className="w-full text-center text-white/50 hover:text-white text-sm mt-4 mb-3 transition"
               >
                 {t('cancel', lang)}
               </button>
+              <PaymentTrustBadge provider="both" />
             </div>
           </div>
         )

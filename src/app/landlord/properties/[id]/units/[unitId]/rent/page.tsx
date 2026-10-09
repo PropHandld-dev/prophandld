@@ -250,6 +250,12 @@ export default function UnitRentPage() {
     setAdjustAmount('')
     await loadPayments(payment.tenancy_id)
     setSavingId(null)
+
+    fetch('/api/rent/mark-received-notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rentPaymentId: payment.id }),
+    }).catch((err) => console.error('Error notifying renter of marked-received rent:', err))
   }
 
   const money = (n: number) =>

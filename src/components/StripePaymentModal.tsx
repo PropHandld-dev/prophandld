@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js'
 import { getStripeClient } from '@/lib/stripeClient'
 import { RippleButton } from '@/components/RippleButton'
+import { PaymentTrustBadge } from '@/components/PaymentTrustBadge'
 import { useLanguage, t } from '@/lib/i18n'
 
 export type PaymentOutcome = 'succeeded' | 'processing'
@@ -96,6 +97,7 @@ function PaymentForm({
           {t('cancel', lang)}
         </button>
       </div>
+      <PaymentTrustBadge provider="stripe" />
     </form>
   )
 }
