@@ -62,7 +62,10 @@ export async function createLinkedProfile(
     .select('role, linked_group_id')
     .eq('id', fromUserId)
     .maybeSingle()
-  if (fromRowError || !fromRow) return { error: 'Could not load your account' }
+  if (fromRowError || !fromRow) {
+    console.error('createLinkedProfile: could not load fromRow', fromRowError, 'fromUserId:', fromUserId)
+    return { error: 'Could not load your account' }
+  }
   if (fromRow.role === newRole) return { error: `You already have a ${newRole} profile` }
 
   // The group anchor is the FIRST account's own id, stamped once. Every
