@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
     // email already exists" from a stale prior setup), not a mistake the
     // user can see or fix from this form. Never forward Dwolla's internal
     // text verbatim.
-    console.error('dwolla/customer/create: dwolla call failed', err?.body || err)
+    console.error('dwolla/customer/create: dwolla call failed', JSON.stringify(err?.body?._embedded?.errors || err?.body || err))
     return NextResponse.json({ error: 'Could not start bank account setup. Please try again, or contact support if this keeps happening.' }, { status: 500 })
   }
 }
