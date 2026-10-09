@@ -5,6 +5,7 @@ import { requireAdminAal2 } from '@/lib/adminAccess'
 import { sendComplianceReminderEmail } from '@/lib/email'
 import { sendPush } from '@/lib/push'
 import { logAdminAudit } from '@/lib/auditLog'
+import { emailAllowed } from '@/lib/notificationPrefs'
 
 // Manual nudge from the admin roster — email and push today; SMS is
 // deliberately left out until Twilio is actually confirmed live in
@@ -25,7 +26,7 @@ export async function POST(request: Request) {
   const admin = getSupabaseAdmin()
   const { data: contractor, error } = await admin
     .from('users')
-    .select('email, full_name, preferred_language')
+    .select('email, full_name, preferred_language, email_notifications_enabled')
     .eq('id', contractorUserId)
     .maybeSingle()
 
@@ -35,14 +36,19 @@ export async function POST(request: Request) {
   }
 
   const lang = contractor.preferred_language === 'es' ? 'es' : 'en'
-  const result = await sendComplianceReminderEmail({
-    to: contractor.email,
-    contractorName: contractor.full_name || 'there',
-    missingNames,
-    lang,
-  })
-  if (!result.ok) {
-    return NextResponse.json({ error: 'Email failed to send' }, { status: 500 })
+  // Goes to the contractor, not admin@ — not covered by the documented
+  // "admin-facing emails stay unconditional" exemption, so it should
+  // respect their notification preference like any other routine email.
+  if (emailAllowed(contractor)) {
+    const result = await sendComplianceReminderEmail({
+      to: contractor.email,
+      contractorName: contractor.full_name || 'there',
+      missingNames,
+      lang,
+    })
+    if (!result.ok) {
+      return NextResponse.json({ error: 'Email failed to send' }, { status: 500 })
+    }
   }
 
   await sendPush(contractorUserId, {

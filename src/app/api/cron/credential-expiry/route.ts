@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { requirementById } from '@/lib/credentialRequirements'
 import { sendCredentialExpiryEmail, type CredentialExpiryItem } from '@/lib/email'
 import { sendPush } from '@/lib/push'
+import { emailAllowed } from '@/lib/notificationPrefs'
 
 export const maxDuration = 60
 
@@ -57,16 +58,16 @@ export async function GET(request: NextRequest) {
   }
 
   const contractorIds = Array.from(due.keys())
-  const people = new Map<string, { email: string | null; full_name: string | null; preferred_language: string | null }>()
+  const people = new Map<string, { email: string | null; full_name: string | null; preferred_language: string | null; email_notifications_enabled?: boolean | null }>()
   for (let i = 0; i < contractorIds.length; i += CHUNK) {
-    const { data } = await admin.from('users').select('id, email, full_name, preferred_language').in('id', contractorIds.slice(i, i + CHUNK))
+    const { data } = await admin.from('users').select('id, email, full_name, preferred_language, email_notifications_enabled').in('id', contractorIds.slice(i, i + CHUNK))
     for (const u of data || []) people.set(u.id, u)
   }
 
   let emailsSent = 0
   for (const [contractorId, entries] of due) {
     const person = people.get(contractorId)
-    if (!person?.email) continue
+    if (!person?.email || !emailAllowed(person)) continue
     const result = await sendCredentialExpiryEmail({
       to: person.email,
       contractorName: person.full_name || 'there',

@@ -5,6 +5,7 @@ import { requireAdminAal2 } from '@/lib/adminAccess'
 import { sendPropertyComplianceReminderEmail } from '@/lib/email'
 import { sendPush } from '@/lib/push'
 import { logAdminAudit } from '@/lib/auditLog'
+import { emailAllowed } from '@/lib/notificationPrefs'
 
 // Same manual-nudge pattern as send-compliance-reminder (contractors):
 // email + push today, SMS left out until Twilio is confirmed live.
@@ -33,7 +34,7 @@ export async function POST(request: Request) {
 
   const { data: owner, error: ownerError } = await admin
     .from('users')
-    .select('email, full_name, preferred_language')
+    .select('email, full_name, preferred_language, email_notifications_enabled')
     .eq('id', property.owner_user_id)
     .maybeSingle()
   if (ownerError || !owner?.email) {
@@ -44,16 +45,20 @@ export async function POST(request: Request) {
   const lang = owner.preferred_language === 'es' ? 'es' : 'en'
   const address = property.city ? `${property.address}, ${property.city}` : property.address
 
-  const result = await sendPropertyComplianceReminderEmail({
-    to: owner.email,
-    landlordName: owner.full_name || 'there',
-    propertyId,
-    propertyAddress: address,
-    items,
-    lang,
-  })
-  if (!result.ok) {
-    return NextResponse.json({ error: 'Email failed to send' }, { status: 500 })
+  // Goes to the landlord, not admin@ — not covered by the documented
+  // "admin-facing emails stay unconditional" exemption.
+  if (emailAllowed(owner)) {
+    const result = await sendPropertyComplianceReminderEmail({
+      to: owner.email,
+      landlordName: owner.full_name || 'there',
+      propertyId,
+      propertyAddress: address,
+      items,
+      lang,
+    })
+    if (!result.ok) {
+      return NextResponse.json({ error: 'Email failed to send' }, { status: 500 })
+    }
   }
 
   await sendPush(property.owner_user_id, {

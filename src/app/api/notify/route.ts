@@ -16,6 +16,7 @@ const RECIPIENTS: Record<NotifyType, Role[]> = {
   contractor_selected: ['contractor'],
   schedule_proposed: ['landlord', 'renter', 'contractor'],
   schedule_confirmed: ['landlord', 'renter', 'contractor'],
+  job_started: ['landlord', 'renter'],
   job_pending_review: ['landlord'],
   job_completed: ['renter', 'contractor'],
   job_declined: ['renter'],

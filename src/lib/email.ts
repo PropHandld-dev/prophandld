@@ -265,6 +265,42 @@ export async function sendRenterInviteEmail({
   return sendEmail({ to, subject: `${landlordName} invited you to Prophandld`, html })
 }
 
+// The landlord side of sendRenterInviteEmail — previously the invite just
+// silently flipped to 'accepted' with no signal back to whoever sent it,
+// so the only way to know it worked was to recheck the pending-invites
+// list later. The landlord has a known account/preference by now, unlike
+// the pre-signup invite email above.
+export async function sendRenterInviteAcceptedEmail({
+  to,
+  landlordName,
+  renterName,
+  unitLabel,
+  lang = 'en',
+}: {
+  to: string
+  landlordName: string
+  renterName: string
+  unitLabel: string
+  lang?: Lang
+}) {
+  const html = lang === 'es' ? baseTemplate({
+    lang,
+    eyebrow: 'Invitación',
+    heading: 'Tu inquilino se unió a Prophandld',
+    bodyHtml: `Hola ${escapeHtml(landlordName)}, <strong>${escapeHtml(renterName)}</strong> aceptó tu invitación y ya está vinculado a <strong>${escapeHtml(unitLabel)}</strong>. Ya puede reportar problemas de mantenimiento y pagar la renta.`,
+    ctaLabel: 'Ver propiedad',
+    ctaUrl: `${SITE_URL}/landlord`,
+  }) : baseTemplate({
+    lang,
+    eyebrow: 'Invite',
+    heading: 'Your tenant joined Prophandld',
+    bodyHtml: `Hi ${escapeHtml(landlordName)}, <strong>${escapeHtml(renterName)}</strong> accepted your invite and is now linked to <strong>${escapeHtml(unitLabel)}</strong>. They can now report maintenance issues and pay rent.`,
+    ctaLabel: 'View property',
+    ctaUrl: `${SITE_URL}/landlord`,
+  })
+  return sendEmail({ to, subject: lang === 'es' ? `${renterName} se unió a Prophandld` : `${renterName} joined Prophandld`, html })
+}
+
 // Same reasoning as sendRenterInviteEmail: pre-signup, no known preference.
 // Unlike the primary-tenant invite, this doesn't carry lease terms and
 // doesn't auto-link anything on signup — a co-renter has no separate
@@ -312,6 +348,37 @@ export async function sendContractorInviteEmail({
     footerText: `You're receiving this because ${escapeHtml(landlordName)} invited you to Prophandld.`,
   })
   return sendEmail({ to, subject: `${landlordName} invited you to Prophandld`, html })
+}
+
+// The landlord side of sendContractorInviteEmail — previously the invite
+// just silently flipped to 'accepted' with no signal back to the landlord.
+export async function sendContractorInviteAcceptedEmail({
+  to,
+  landlordName,
+  contractorName,
+  lang = 'en',
+}: {
+  to: string
+  landlordName: string
+  contractorName: string
+  lang?: Lang
+}) {
+  const html = lang === 'es' ? baseTemplate({
+    lang,
+    eyebrow: 'Invitación',
+    heading: 'Tu contratista se unió a Prophandld',
+    bodyHtml: `Hola ${escapeHtml(landlordName)}, <strong>${escapeHtml(contractorName)}</strong> aceptó tu invitación y ya está en Prophandld. Verán tus trabajos cuando estén dentro de su zona de servicio y oficio.`,
+    ctaLabel: 'Ver trabajos',
+    ctaUrl: `${SITE_URL}/landlord/jobs`,
+  }) : baseTemplate({
+    lang,
+    eyebrow: 'Invite',
+    heading: 'Your contractor joined Prophandld',
+    bodyHtml: `Hi ${escapeHtml(landlordName)}, <strong>${escapeHtml(contractorName)}</strong> accepted your invite and is now on Prophandld. They'll see your jobs whenever they're in their service area and trade.`,
+    ctaLabel: 'View jobs',
+    ctaUrl: `${SITE_URL}/landlord/jobs`,
+  })
+  return sendEmail({ to, subject: lang === 'es' ? `${contractorName} se unió a Prophandld` : `${contractorName} joined Prophandld`, html })
 }
 
 function escapeHtml(value: string) {
@@ -613,6 +680,7 @@ export type NotifyType =
   | 'contractor_selected'
   | 'schedule_proposed'
   | 'schedule_confirmed'
+  | 'job_started'
   | 'job_pending_review'
   | 'job_completed'
   | 'job_declined'
@@ -718,6 +786,8 @@ function pushCopy(type: NotifyType, role: NotifyRole, rawInfo: NotifyJobInfo): {
           : info.when ? `Confirmed: ${info.when}` : 'Visit confirmed',
         body: `${cat} · ${where}.`,
       }
+    case 'job_started':
+      return { title: `${who} started the ${cat} work`, body: `${where}.` }
     case 'job_pending_review':
       return { title: `${who} finished the ${cat} work`, body: `${where}. Review and approve. It auto-approves in 3 days.` }
     case 'job_completed': {
@@ -1002,6 +1072,34 @@ export function buildNotificationEmail(type: NotifyType, role: NotifyRole, rawIn
           ctaLabel: 'View job',
           ctaUrl,
           note: 'Need to change it? Open the job and propose a new time.',
+        }),
+      }
+    case 'job_started':
+      return lang === 'es' ? {
+        subject: `${info.contractorName || 'El contratista'} empezó el trabajo de ${info.category}`,
+        html: baseTemplate({
+          lang,
+          eyebrow: 'En progreso',
+          heading: 'El trabajo comenzó',
+          bodyHtml: `${info.contractorName ? `<strong>${who}</strong> marcó` : 'El contratista marcó'} el trabajo de <strong>${cat}</strong> como en progreso.`,
+          preheader: jobLocation(info),
+          stage: 3,
+          facts: compact([info.contractorName ? { label: fl('Contractor', lang), value: info.contractorName } : null, jobFact, whereFact, unitFact]),
+          ctaLabel: 'Ver trabajo',
+          ctaUrl,
+        }),
+      } : {
+        subject: `${info.contractorName || 'The contractor'} started the ${info.category} job`,
+        html: baseTemplate({
+          lang,
+          eyebrow: 'In progress',
+          heading: 'Work has started',
+          bodyHtml: `${info.contractorName ? `<strong>${who}</strong> marked` : 'The contractor marked'} the <strong>${cat}</strong> job as in progress.`,
+          preheader: jobLocation(info),
+          stage: 3,
+          facts: compact([info.contractorName ? { label: fl('Contractor', lang), value: info.contractorName } : null, jobFact, whereFact, unitFact]),
+          ctaLabel: 'View job',
+          ctaUrl,
         }),
       }
     case 'job_pending_review':
@@ -1866,6 +1964,44 @@ export async function sendDisputeRaisedAdminEmail({
     ctaUrl: `${SITE_URL}/admin/disputes`,
   })
   return sendToAdmins(`Dispute raised: ${jobCategory} (job ${jobId.slice(0, 8)})`, html)
+}
+
+// Told to the two participants who did NOT raise the dispute — the person
+// who raised it already knows. Previously only sendDisputeRaisedAdminEmail
+// (internal, admin@) fired here, so a contractor or landlord could have a
+// dispute opened against them and find out only once it was already
+// resolved, with no chance to add context before that happened.
+export async function sendDisputeRaisedEmail({
+  to,
+  jobCategory,
+  propertyLabel,
+  role,
+  jobId,
+  lang = 'en',
+}: {
+  to: string
+  jobCategory: string
+  propertyLabel: string
+  role: 'landlord' | 'renter' | 'contractor'
+  jobId: string
+  lang?: Lang
+}) {
+  const html = lang === 'es' ? baseTemplate({
+    lang,
+    eyebrow: 'Disputa',
+    heading: 'Se abrió una disputa en un trabajo',
+    bodyHtml: `Se abrió una disputa sobre el trabajo de <strong>${escapeHtml(jobCategory)}</strong> en ${escapeHtml(propertyLabel)}. El equipo de Prophandld la está revisando — puedes agregar contexto desde el chat del trabajo mientras tanto.`,
+    ctaLabel: 'Ver trabajo',
+    ctaUrl: `${SITE_URL}/${role}/jobs/${jobId}`,
+  }) : baseTemplate({
+    lang,
+    eyebrow: 'Dispute',
+    heading: 'A dispute was opened on a job',
+    bodyHtml: `A dispute was opened on the <strong>${escapeHtml(jobCategory)}</strong> job at ${escapeHtml(propertyLabel)}. The Prophandld team is reviewing it — you can add context from the job chat in the meantime.`,
+    ctaLabel: 'View job',
+    ctaUrl: `${SITE_URL}/${role}/jobs/${jobId}`,
+  })
+  return sendEmail({ to, subject: lang === 'es' ? `Disputa abierta: ${jobCategory}` : `Dispute opened: ${jobCategory}`, html })
 }
 
 const DISPUTE_OUTCOME_LABEL: Record<Lang, Record<string, string>> = {

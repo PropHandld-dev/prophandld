@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
+import { sendRenterInviteAcceptedEmail } from '@/lib/email'
+import { emailAllowed } from '@/lib/notificationPrefs'
+import { sendPush } from '@/lib/push'
 
 // Auto-links a just-signed-up renter to their pending tenancy invite.
 // Runs server-side with the service role key because the newly-created
@@ -65,6 +68,32 @@ export async function POST() {
   if (updateError) {
     console.error('link-invite: error marking invite accepted', updateError)
     return NextResponse.json({ error: updateError.message }, { status: 500 })
+  }
+
+  // The landlord who sent this used to get no signal it ever worked, short
+  // of manually rechecking their pending-invites list.
+  if (invite.landlord_user_id) {
+    const [{ data: landlord }, { data: unitRow }, { data: renterRow }] = await Promise.all([
+      supabaseAdmin.from('users').select('email, full_name, preferred_language, email_notifications_enabled').eq('id', invite.landlord_user_id).maybeSingle(),
+      supabaseAdmin.from('units').select('unit_number, properties(address)').eq('id', invite.unit_id).maybeSingle(),
+      supabaseAdmin.from('users').select('full_name').eq('id', user.id).maybeSingle(),
+    ])
+    const unitLabel = unitRow ? `${(unitRow.properties as any)?.address || 'your property'}${unitRow.unit_number ? `, Unit ${unitRow.unit_number}` : ''}` : 'your property'
+    const renterName = renterRow?.full_name || user.email
+    if (landlord?.email && emailAllowed(landlord)) {
+      sendRenterInviteAcceptedEmail({
+        to: landlord.email,
+        landlordName: landlord.full_name || 'there',
+        renterName,
+        unitLabel,
+        lang: landlord.preferred_language === 'es' ? 'es' : 'en',
+      }).catch((err) => console.error('link-invite: notification email failed', err))
+    }
+    sendPush(invite.landlord_user_id, {
+      title: 'Tenant joined',
+      body: `${renterName} accepted your invite for ${unitLabel}.`,
+      url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/landlord`,
+    }).catch((err) => console.error('link-invite: notification push failed', err))
   }
 
   return NextResponse.json({ ok: true, linked: true })

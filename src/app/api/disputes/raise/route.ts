@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
-import { sendDisputeRaisedAdminEmail } from '@/lib/email'
+import { sendDisputeRaisedAdminEmail, sendDisputeRaisedEmail } from '@/lib/email'
+import { emailAllowed } from '@/lib/notificationPrefs'
+import { sendPush } from '@/lib/push'
 
 export async function POST(request: NextRequest) {
   const authClient = await createClient()
@@ -91,6 +93,37 @@ export async function POST(request: NextRequest) {
     reason: reason.trim(),
     jobId,
   }).catch((err) => console.error('disputes/raise: sendEmail failed', err))
+
+  // The other two participants used to find out only once the dispute was
+  // already resolved (sendDisputeResolvedEmail) — they had no idea one was
+  // even open, and no chance to add their own context before a decision
+  // was made. Only admin was ever told at raise time, via the email above.
+  const propertyLabel = property?.address || 'the property'
+  const otherRecipients: { userId: string; role: 'landlord' | 'renter' | 'contractor' }[] = []
+  if (!isLandlord && property?.owner_user_id) otherRecipients.push({ userId: property.owner_user_id, role: 'landlord' })
+  if (!isRenter && tenancy?.renter_user_id) otherRecipients.push({ userId: tenancy.renter_user_id, role: 'renter' })
+  if (!isContractor && acceptedBid?.contractor_user_id) otherRecipients.push({ userId: acceptedBid.contractor_user_id, role: 'contractor' })
+
+  await Promise.allSettled(
+    otherRecipients.map(async ({ userId, role }) => {
+      const { data: recipient } = await supabaseAdmin.from('users').select('email, preferred_language, email_notifications_enabled').eq('id', userId).maybeSingle()
+      if (recipient?.email && emailAllowed(recipient)) {
+        await sendDisputeRaisedEmail({
+          to: recipient.email,
+          jobCategory: job.category,
+          propertyLabel,
+          role,
+          jobId,
+          lang: recipient.preferred_language === 'es' ? 'es' : 'en',
+        })
+      }
+      await sendPush(userId, {
+        title: 'Dispute opened',
+        body: `${job.category} at ${propertyLabel}`,
+        url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/${role}/jobs/${jobId}`,
+      }).catch((err) => console.error('disputes/raise: sendPush failed', { userId, err }))
+    })
+  )
 
   return NextResponse.json({ ok: true })
 }

@@ -255,6 +255,7 @@ export default function ContractorJobDetailPage() {
     // "Job not found or not accessible" some contractors hit here from
     // fetchJob()'s own query racing right behind this write.
     setJob((prev: any) => (prev ? { ...prev, status: 'in_progress' } : prev))
+    notify('job_started', jobId, 'contractor')
     setActioning(false)
   }
 
