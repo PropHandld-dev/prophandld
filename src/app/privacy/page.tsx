@@ -19,7 +19,7 @@ export default function PrivacyPage() {
 
       <main className="max-w-3xl mx-auto px-6 py-16">
         <h1 className="text-3xl font-bold mb-2">Privacy Policy</h1>
-        <p className="text-white/60 text-sm mb-12">Last updated October 7, 2026</p>
+        <p className="text-white/60 text-sm mb-12">Last updated October 9, 2026</p>
 
         <div className="space-y-10 text-white/60 text-sm leading-relaxed [&_h2]:text-white [&_h2]:font-semibold [&_h2]:text-lg [&_h2]:mb-3 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5">
 
@@ -27,7 +27,7 @@ export default function PrivacyPage() {
             <h2>1. What we collect</h2>
             <p>To run the platform, we collect:</p>
             <ul>
-              <li><strong className="text-white/80">Account info:</strong> name, email, phone number, role (landlord/renter/contractor), preferred language</li>
+              <li><strong className="text-white/80">Account info:</strong> name, email, phone number, role (landlord/renter/contractor), preferred language. If you choose to link more than one role to your identity, each linked profile shares this same contact info so notifications for any of them reach you.</li>
               <li><strong className="text-white/80">Property data:</strong> addresses, unit details, tenancy terms, rent amounts, entered by landlords</li>
               <li><strong className="text-white/80">Job data:</strong> maintenance descriptions, categories, bids, photos, and documents you upload</li>
               <li><strong className="text-white/80">Contractor verification:</strong> license numbers, license/insurance documents, if you submit them for review</li>

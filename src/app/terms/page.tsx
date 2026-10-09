@@ -19,7 +19,7 @@ export default function TermsPage() {
 
       <main className="max-w-3xl mx-auto px-6 py-16">
         <h1 className="text-3xl font-bold mb-2">Terms of Service</h1>
-        <p className="text-white/60 text-sm mb-12">Last updated October 7, 2026</p>
+        <p className="text-white/60 text-sm mb-12">Last updated October 9, 2026</p>
 
         <div className="space-y-10 text-white/60 text-sm leading-relaxed [&_h2]:text-white [&_h2]:font-semibold [&_h2]:text-lg [&_h2]:mb-3 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5">
 
@@ -44,6 +44,14 @@ export default function TermsPage() {
               responsible for keeping your login credentials secure and for the accuracy of the
               information you provide, including your contact details and (for contractors) license
               and insurance information.
+            </p>
+            <p>
+              If you genuinely act in more than one role — for example, you're a landlord who also
+              does contracting work — you can link a second role profile to the same identity and
+              switch between them. You're responsible for how every profile linked to you is used.
+              Using linked profiles to bid on, select, or review your own jobs, or otherwise gain an
+              advantage no other user could have, isn't allowed, whether or not our systems happen
+              to block a specific attempt.
             </p>
           </section>
 
