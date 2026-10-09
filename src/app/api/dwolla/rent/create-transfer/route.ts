@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
     // that would only confuse someone paying rent. Log the real reason,
     // show a generic one. Same fix already applied to every Stripe-calling
     // route after the 2026-10-01 incident; this route was missed then.
-    console.error('dwolla/rent/create-transfer: dwolla call failed', err?.body || err)
+    console.error('dwolla/rent/create-transfer: dwolla call failed', JSON.stringify(err?.body?._embedded?.errors || err?.body || err))
     return NextResponse.json({ error: 'Could not start the bank transfer. Please try again, or contact your landlord if this keeps happening.' }, { status: 500 })
   }
 }
