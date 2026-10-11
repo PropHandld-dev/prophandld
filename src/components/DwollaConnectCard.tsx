@@ -1,14 +1,16 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabase'
 import { RippleButton } from '@/components/RippleButton'
 import { ScrollReveal } from '@/components/ScrollReveal'
-import { CheckCircleIcon } from '@/components/icons'
+import { CheckCircleIcon, LockIcon } from '@/components/icons'
 import { BankTrustNotice } from '@/components/BankTrustNotice'
+import { PaymentTrustBadge } from '@/components/PaymentTrustBadge'
 import { useLanguage, t } from '@/lib/i18n'
 
 type CustomerStatus = 'not_started' | 'pending' | 'active' | 'suspended'
-type Step = 'intro' | 'bank' | 'identity' | 'review' | 'success'
+type Step = 'reauth' | 'intro' | 'bank' | 'identity' | 'review' | 'success'
 
 // Landlord-facing rent-payout setup via Dwolla — replaces
 // <StripeConnectCard purpose="rent" /> only (contractors' job payouts stay
@@ -41,6 +43,8 @@ export function DwollaConnectCard() {
   const [postalCode, setPostalCode] = useState('')
   const [dateOfBirth, setDateOfBirth] = useState('')
   const [ssnLast4, setSsnLast4] = useState('')
+  const [reauthPassword, setReauthPassword] = useState('')
+  const [reauthSubmitting, setReauthSubmitting] = useState(false)
 
   const load = async () => {
     try {
@@ -69,6 +73,34 @@ export function DwollaConnectCard() {
     setPostalCode('')
     setDateOfBirth('')
     setSsnLast4('')
+    setReauthPassword('')
+  }
+
+  // Re-linking an already-active payout account is the one action in this
+  // card that can redirect real money to a new destination — worth the
+  // extra step of re-proving it's actually the account owner typing,
+  // same bar as changing your password (see profile/page.tsx), before even
+  // opening the bank-details form. First-time setup skips this: there's
+  // nothing to hijack yet.
+  const handleReauth = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setReauthSubmitting(true)
+    setError(null)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user?.email) {
+      setError(t('couldNotStartPayoutSetup', lang))
+      setReauthSubmitting(false)
+      return
+    }
+    const { error: verifyError } = await supabase.auth.signInWithPassword({ email: user.email, password: reauthPassword })
+    if (verifyError) {
+      setError(t('currentPasswordIncorrect', lang))
+      setReauthSubmitting(false)
+      return
+    }
+    setReauthSubmitting(false)
+    setReauthPassword('')
+    setStep('bank')
   }
 
   const bankDetailsValid = routingNumber.trim() && accountNumber.trim() && accountName.trim()
@@ -145,7 +177,7 @@ export function DwollaConnectCard() {
       ) : step === null ? (
         status === 'active' ? (
           <RippleButton
-            onClick={() => setStep('bank')}
+            onClick={() => setStep('reauth')}
             className="bg-white/5 border border-white/10 text-white/70 text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-white/8 transition"
           >
             {t('managePayoutAccount', lang)}
@@ -160,6 +192,46 @@ export function DwollaConnectCard() {
         )
       ) : (
         <div className="mt-4 space-y-4">
+          {step === 'reauth' && (
+            <form onSubmit={handleReauth} className="space-y-4">
+              <h3 className="text-white font-semibold text-lg">{t('reauthToManagePayoutTitle', lang)}</h3>
+              <p className="text-white/60 text-[14px] leading-relaxed">{t('reauthToManagePayoutBody', lang)}</p>
+              {error && <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">{error}</div>}
+              <div>
+                <label htmlFor="dwollaReauthPassword" className="text-white/70 text-[15px] block mb-1 flex items-center gap-1.5">
+                  <LockIcon className="w-3.5 h-3.5" />
+                  {t('currentPassword', lang)}
+                </label>
+                <input
+                  id="dwollaReauthPassword"
+                  type="password"
+                  value={reauthPassword}
+                  onChange={(e) => setReauthPassword(e.target.value)}
+                  autoFocus
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-[16px] focus:outline-none focus:border-[#12A5A9] transition"
+                  required
+                />
+              </div>
+              <div className="flex gap-3 pt-1">
+                <RippleButton
+                  type="button"
+                  onClick={resetForm}
+                  disabled={reauthSubmitting}
+                  className="flex-1 bg-white/5 border border-white/10 text-white/60 text-[15px] font-semibold py-3 rounded-xl hover:bg-white/8 transition disabled:opacity-40"
+                >
+                  {t('cancel', lang)}
+                </RippleButton>
+                <RippleButton
+                  type="submit"
+                  disabled={reauthSubmitting || !reauthPassword}
+                  className="flex-[2] bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-[15px] font-semibold py-3 rounded-xl hover:opacity-90 transition disabled:opacity-40"
+                >
+                  {reauthSubmitting ? t('verifyingDots', lang) : t('continueBtn', lang)}
+                </RippleButton>
+              </div>
+            </form>
+          )}
+
           {step === 'intro' && (
             <>
               <h3 className="text-white font-semibold text-lg">{t('dwollaLandlordIntroTitle', lang)}</h3>
@@ -251,6 +323,7 @@ export function DwollaConnectCard() {
                   {t('continueBtn', lang)}
                 </RippleButton>
               </div>
+              <PaymentTrustBadge provider="dwolla" />
             </>
           )}
 
@@ -351,6 +424,7 @@ export function DwollaConnectCard() {
                   {t('reviewAndFinishBtn', lang)}
                 </RippleButton>
               </div>
+              <PaymentTrustBadge provider="dwolla" />
             </>
           )}
 
@@ -392,6 +466,7 @@ export function DwollaConnectCard() {
                   {submitting ? t('redirecting', lang) : t('confirmAndLinkBtn', lang)}
                 </RippleButton>
               </div>
+              <PaymentTrustBadge provider="dwolla" />
             </>
           )}
 

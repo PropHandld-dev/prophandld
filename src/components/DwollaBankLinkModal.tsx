@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { usePlaidLink } from 'react-plaid-link'
 import { RippleButton } from '@/components/RippleButton'
 import { BankTrustNotice } from '@/components/BankTrustNotice'
+import { PaymentTrustBadge } from '@/components/PaymentTrustBadge'
 import { CheckCircleIcon } from '@/components/icons'
 import { useLanguage, t } from '@/lib/i18n'
 
@@ -314,6 +315,7 @@ export function DwollaBankLinkModal({
                     {submitting ? t('redirecting', lang) : t('saveBankAccount', lang)}
                   </RippleButton>
                 </div>
+                <PaymentTrustBadge provider="dwolla" />
               </>
             )}
 

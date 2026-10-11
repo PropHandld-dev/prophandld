@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
+import { supabase, consumeAuthError } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { RippleButton } from '@/components/RippleButton'
 import { AuthLayout } from '@/components/AuthLayout'
@@ -20,6 +20,25 @@ export default function ResetPasswordPage() {
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
+    // A rejected recovery link (expired, or already used — including by an
+    // email client's own link-prescan/safe-link check silently visiting it
+    // before the person ever clicks) redirects back with the real reason in
+    // the URL hash, captured by consumeAuthError() the instant this module
+    // loads. This used to go unread here — unlike /login, which already
+    // reads it the same way — so a rejected link always fell through to a
+    // 4-second poll timeout and the same generic message regardless of
+    // what actually happened, with no way to tell "already used" apart
+    // from anything else.
+    const authError = consumeAuthError()
+    if (authError) {
+      setError(
+        authError.code === 'otp_expired'
+          ? t('resetLinkAlreadyUsed', lang)
+          : authError.description?.replace(/\+/g, ' ') || t('resetLinkInvalidOrExpired', lang)
+      )
+      return
+    }
+
     let attempts = 0
 
     const checkSession = async () => {

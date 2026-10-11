@@ -301,6 +301,42 @@ export async function sendRenterInviteAcceptedEmail({
   return sendEmail({ to, subject: lang === 'es' ? `${renterName} se unió a Prophandld` : `${renterName} joined Prophandld`, html })
 }
 
+// The renter's own side of the same moment — previously only the landlord
+// got told the link worked (sendRenterInviteAcceptedEmail above); the
+// renter who just signed in and got auto-linked had no confirmation of
+// their own that it actually happened, beyond just landing on their
+// dashboard and inferring it from what they saw there.
+export async function sendRenterTenancyLinkedEmail({
+  to,
+  renterName,
+  landlordName,
+  unitLabel,
+  lang = 'en',
+}: {
+  to: string
+  renterName: string
+  landlordName: string
+  unitLabel: string
+  lang?: Lang
+}) {
+  const html = lang === 'es' ? baseTemplate({
+    lang,
+    eyebrow: 'Vinculado',
+    heading: 'Ya estás vinculado a tu unidad',
+    bodyHtml: `Hola ${escapeHtml(renterName)}, tu cuenta ya está vinculada a <strong>${escapeHtml(unitLabel)}</strong>, administrada por <strong>${escapeHtml(landlordName)}</strong>. Ya puedes reportar problemas de mantenimiento y pagar la renta desde Prophandld.`,
+    ctaLabel: 'Ir a mi panel',
+    ctaUrl: `${SITE_URL}/renter`,
+  }) : baseTemplate({
+    lang,
+    eyebrow: 'Linked',
+    heading: "You're linked to your unit",
+    bodyHtml: `Hi ${escapeHtml(renterName)}, your account is now linked to <strong>${escapeHtml(unitLabel)}</strong>, managed by <strong>${escapeHtml(landlordName)}</strong>. You can now report maintenance issues and pay rent right from Prophandld.`,
+    ctaLabel: 'Go to my dashboard',
+    ctaUrl: `${SITE_URL}/renter`,
+  })
+  return sendEmail({ to, subject: lang === 'es' ? `Ya estás vinculado a ${unitLabel}` : `You're linked to ${unitLabel}`, html })
+}
+
 // Same reasoning as sendRenterInviteEmail: pre-signup, no known preference.
 // Unlike the primary-tenant invite, this doesn't carry lease terms and
 // doesn't auto-link anything on signup — a co-renter has no separate

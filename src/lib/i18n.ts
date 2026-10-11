@@ -1119,6 +1119,8 @@ const STRINGS = {
   dateOfBirthLabel: { en: 'Date of birth', es: 'Fecha de nacimiento' },
   ssnLast4Label: { en: 'Last 4 digits of SSN', es: 'Últimos 4 dígitos del SSN' },
   ssnLast4Helper: { en: 'Only the last 4 digits — never your full Social Security number', es: 'Solo los últimos 4 dígitos — nunca tu número de Seguro Social completo' },
+  reauthToManagePayoutTitle: { en: 'Confirm it’s you', es: 'Confirma que eres tú' },
+  reauthToManagePayoutBody: { en: 'Changing your payout bank account is a sensitive action. Enter your password to continue.', es: 'Cambiar tu cuenta bancaria de pagos es una acción sensible. Ingresa tu contraseña para continuar.' },
   dwollaLandlordIntroTitle: { en: 'Get paid for rent, automatically', es: 'Recibe el pago de la renta automáticamente' },
   dwollaLandlordIntroBody: { en: 'Link a bank account once, and every rent payment made through Prophandld goes straight into it — no more chasing checks.', es: 'Conecta una cuenta bancaria una vez, y cada pago de renta hecho a través de Prophandld llegará directo a ella, sin más persecución de cheques.' },
   bankDetailsStepTitle: { en: 'Step 1 of 2: Your bank account', es: 'Paso 1 de 2: Tu cuenta bancaria' },
@@ -1778,6 +1780,10 @@ const STRINGS = {
   resetLinkInvalidOrExpired: {
     en: 'This reset link is invalid or has expired. Please request a new one.',
     es: 'Este enlace para restablecer la contraseña no es válido o venció. Por favor solicita uno nuevo.',
+  },
+  resetLinkAlreadyUsed: {
+    en: "This reset link has already been used or has expired — sometimes an email app checks links automatically before you even click, which uses it up. Request a new one below and use it right away.",
+    es: 'Este enlace ya fue usado o venció — a veces la app de correo revisa los enlaces automáticamente antes de que hagas clic, lo que lo consume. Solicita uno nuevo abajo y úsalo de inmediato.',
   },
   resetPasswordsDoNotMatch: { en: 'Passwords do not match.', es: 'Las contraseñas no coinciden.' },
   resetPasswordMinLength: { en: 'Password must be at least 8 characters.', es: 'La contraseña debe tener al menos 8 caracteres.' },

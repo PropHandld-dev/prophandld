@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
 
   const [{ data: payerRow }, { data: landlordRow }] = await Promise.all([
     supabaseAdmin.from('users').select('dwolla_funding_source_id, dwolla_funding_source_status').eq('id', user.id).maybeSingle(),
-    supabaseAdmin.from('users').select('dwolla_funding_source_id, dwolla_customer_status').eq('id', landlordUserId).maybeSingle(),
+    supabaseAdmin.from('users').select('dwolla_funding_source_id, dwolla_customer_status, payout_frozen_until').eq('id', landlordUserId).maybeSingle(),
   ])
 
   if (!payerRow?.dwolla_funding_source_id || payerRow.dwolla_funding_source_status !== 'verified') {
@@ -80,6 +80,13 @@ export async function POST(request: NextRequest) {
   }
   if (!landlordRow?.dwolla_funding_source_id || landlordRow.dwolla_customer_status !== 'active') {
     return NextResponse.json({ error: "Your landlord hasn't set up rent payouts yet." }, { status: 400 })
+  }
+  // Same 48h freeze as the Stripe rent/job-payment routes already enforce
+  // after a payout bank account changes — Dwolla's funding-source/add
+  // route sets this, but nothing here checked it, so the freeze was
+  // decorative on this rail until now.
+  if (landlordRow.payout_frozen_until && new Date(landlordRow.payout_frozen_until) > new Date()) {
+    return NextResponse.json({ error: "Your landlord's payout account recently changed. Rent transfers are paused for a short security hold — try again soon." }, { status: 400 })
   }
 
   try {

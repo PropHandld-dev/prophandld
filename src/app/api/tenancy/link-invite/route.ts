@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
-import { sendRenterInviteAcceptedEmail } from '@/lib/email'
+import { sendRenterInviteAcceptedEmail, sendRenterTenancyLinkedEmail } from '@/lib/email'
 import { emailAllowed } from '@/lib/notificationPrefs'
 import { sendPush } from '@/lib/push'
 
@@ -70,13 +70,14 @@ export async function POST() {
     return NextResponse.json({ error: updateError.message }, { status: 500 })
   }
 
-  // The landlord who sent this used to get no signal it ever worked, short
-  // of manually rechecking their pending-invites list.
+  // Neither side used to get any signal this ever worked — the landlord
+  // only by manually rechecking their pending-invites list, the renter not
+  // at all, beyond inferring it from what they saw on their own dashboard.
   if (invite.landlord_user_id) {
     const [{ data: landlord }, { data: unitRow }, { data: renterRow }] = await Promise.all([
       supabaseAdmin.from('users').select('email, full_name, preferred_language, email_notifications_enabled').eq('id', invite.landlord_user_id).maybeSingle(),
       supabaseAdmin.from('units').select('unit_number, properties(address)').eq('id', invite.unit_id).maybeSingle(),
-      supabaseAdmin.from('users').select('full_name').eq('id', user.id).maybeSingle(),
+      supabaseAdmin.from('users').select('full_name, preferred_language, email_notifications_enabled').eq('id', user.id).maybeSingle(),
     ])
     const unitLabel = unitRow ? `${(unitRow.properties as any)?.address || 'your property'}${unitRow.unit_number ? `, Unit ${unitRow.unit_number}` : ''}` : 'your property'
     const renterName = renterRow?.full_name || user.email
@@ -87,13 +88,23 @@ export async function POST() {
         renterName,
         unitLabel,
         lang: landlord.preferred_language === 'es' ? 'es' : 'en',
-      }).catch((err) => console.error('link-invite: notification email failed', err))
+      }).catch((err) => console.error('link-invite: landlord notification email failed', err))
     }
     sendPush(invite.landlord_user_id, {
       title: 'Tenant joined',
       body: `${renterName} accepted your invite for ${unitLabel}.`,
       url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/landlord`,
-    }).catch((err) => console.error('link-invite: notification push failed', err))
+    }).catch((err) => console.error('link-invite: landlord notification push failed', err))
+
+    if (emailAllowed(renterRow)) {
+      sendRenterTenancyLinkedEmail({
+        to: user.email,
+        renterName,
+        landlordName: landlord?.full_name || 'your landlord',
+        unitLabel,
+        lang: renterRow?.preferred_language === 'es' ? 'es' : 'en',
+      }).catch((err) => console.error('link-invite: renter notification email failed', err))
+    }
   }
 
   return NextResponse.json({ ok: true, linked: true })
