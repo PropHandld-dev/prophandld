@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { sendWelcomeEmail } from '@/lib/email'
+import { getAccountRole } from '@/lib/accountRole'
 
 // Called from /login whenever it thinks someone just activated — but that
 // client-side signal turned out not to be trustworthy on its own (Supabase's
@@ -20,7 +21,7 @@ export async function POST() {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
 
-  const role = user.user_metadata?.role
+  const role = getAccountRole(user)
   if (role !== 'landlord' && role !== 'renter' && role !== 'contractor') {
     return NextResponse.json({ ok: true, sent: false })
   }

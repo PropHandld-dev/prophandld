@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { supabase, consumeFreshSignIn, consumeAuthError } from '@/lib/supabase'
 import { setAppMetadataRole } from '@/lib/setAppMetadataRole'
+import { getAccountRole } from '@/lib/accountRole'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { RippleButton } from '@/components/RippleButton'
@@ -115,7 +116,18 @@ function LoginForm() {
     try {
       sessionStorage.setItem('ph_just_signed_in', '1')
     } catch {}
-    const accountRole = user.user_metadata?.role
+    // getAccountRole() prefers app_metadata.role (authoritative, server-set)
+    // and only falls back to user_metadata.role for the one case where
+    // app_metadata genuinely doesn't exist yet: a brand-new account's very
+    // first activation, right here, before setAppMetadataRole below has
+    // ever run for this user. A real report confirmed this used to read
+    // user_metadata.role only, with no fallback — any already-active
+    // account whose user_metadata.role was ever missing or stale had
+    // nowhere to land and fell through to the final `else` (the plain
+    // landing page) below, with no way to self-heal on a later visit
+    // either, since the landing page's own redirect had the same gap
+    // (see accountRole.ts for the full story).
+    const accountRole = getAccountRole(user)
     if (isFirstActivation && (accountRole === 'landlord' || accountRole === 'renter' || accountRole === 'contractor')) {
       sendWelcomeEmailWithRetry()
       // Same "first activation" moment signup couldn't use directly (no

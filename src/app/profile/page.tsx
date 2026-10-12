@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { getAccountRole } from '@/lib/accountRole'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
@@ -64,7 +65,7 @@ export default function ProfilePage() {
         router.replace('/login')
         return
       }
-      setRole(user.user_metadata?.role || '')
+      setRole(getAccountRole(user) || '')
       const loadedLanguage = user.user_metadata?.preferred_language === 'es' ? 'es' : 'en'
       setForm({
         full_name: user.user_metadata?.full_name || '',

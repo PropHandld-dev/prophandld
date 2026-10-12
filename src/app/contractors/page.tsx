@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { getAccountRole } from '@/lib/accountRole'
 import { MagneticLink } from '@/components/MagneticLink'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { Logo } from '@/components/Logo'
@@ -52,7 +53,7 @@ export default function ContractorsLandingPage() {
   // whether to forward it to their own contractor is a real, good use case.
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user?.user_metadata?.role === 'contractor') router.replace('/contractor')
+      if (getAccountRole(session?.user) === 'contractor') router.replace('/contractor')
     })
   }, [router])
 

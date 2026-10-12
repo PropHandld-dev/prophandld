@@ -3,7 +3,9 @@
 import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
+import type { User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
+import { getAccountRole } from '@/lib/accountRole'
 import { useConversations } from '@/lib/useConversations'
 import { ChatPanel } from '@/components/ChatPanel'
 import { NewConversationPicker, type StartedConversation } from '@/components/NewConversationPicker'
@@ -32,9 +34,9 @@ export function FloatingChatWidget() {
   const [active, setActive] = useState<ActivePanel | null>(null)
 
   useEffect(() => {
-    const applyUser = (user: { id: string; user_metadata?: { role?: string } } | null | undefined) => {
+    const applyUser = (user: User | null | undefined) => {
       setUserId(user?.id ?? null)
-      const r = user?.user_metadata?.role
+      const r = getAccountRole(user)
       setRole(r === 'landlord' || r === 'renter' || r === 'contractor' ? r : null)
       // Sign-out: clear any open panel so a stale conversation can't
       // resurface if this component is ever revived from the browser's

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
+import { getAccountRole } from '@/lib/accountRole'
 
 const HOME_BY_ROLE: Record<string, string> = {
   landlord: '/landlord',
@@ -14,7 +15,7 @@ const HOME_BY_ROLE: Record<string, string> = {
 // Signed out → the landing page. Signed in → that person's own dashboard.
 function homeFor(user: User | null | undefined): string {
   if (!user) return '/'
-  const fromRole = HOME_BY_ROLE[user.user_metadata?.role as string]
+  const fromRole = HOME_BY_ROLE[getAccountRole(user) as string]
   if (fromRole) return fromRole
   if (user.email?.endsWith('@prophandld.com')) return '/admin'
   return '/'

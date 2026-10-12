@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { getAccountRole } from '@/lib/accountRole'
 import { MagneticLink } from '@/components/MagneticLink'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { DollarSignIcon, AlertTriangleIcon, FileTextIcon, WrenchIcon, CalendarIcon, CheckCircleIcon, MessageCircleIcon, LockIcon, StarIcon, GlobeIcon, ShieldIcon } from '@/components/icons'
@@ -98,7 +99,7 @@ export default function LandingPage() {
   // signed in at all, who this redirect never touches.
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      const role = session?.user?.user_metadata?.role
+      const role = getAccountRole(session?.user)
       if (role === 'landlord') router.replace('/landlord')
       else if (role === 'renter') router.replace('/renter')
       else if (role === 'contractor') router.replace('/contractor')
