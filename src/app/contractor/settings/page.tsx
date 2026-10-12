@@ -14,7 +14,7 @@ import { StripeConnectCard } from '@/components/StripeConnectCard'
 import { ContractorCredentials } from '@/components/ContractorCredentials'
 import { ContractorReviewsList } from '@/components/ContractorReviewsList'
 import { Switch } from '@/components/Switch'
-import { useCategoryOptions, saveCustomCategory } from '@/lib/categories'
+import { useGroupedCategoryOptions } from '@/lib/categories'
 import { useLanguage, t } from '@/lib/i18n'
 
 export default function ContractorSettingsPage() {
@@ -25,7 +25,6 @@ export default function ContractorSettingsPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
-  const [otherCategoryText, setOtherCategoryText] = useState('')
   const [zip, setZip] = useState('')
   const [radiusMiles, setRadiusMiles] = useState(25)
   const [licensed, setLicensed] = useState(false)
@@ -36,7 +35,7 @@ export default function ContractorSettingsPage() {
   // day one; a contractor narrows this once they have enough leads in
   // their actual trade to want fewer, more relevant alerts.
   const [notifyAllCategories, setNotifyAllCategories] = useState(true)
-  const [categoryOptions, addCategoryOption] = useCategoryOptions()
+  const categoryGroups = useGroupedCategoryOptions()
 
   const [userId, setUserId] = useState<string | null>(null)
   const [credentialsKey, setCredentialsKey] = useState(0)
@@ -94,11 +93,6 @@ export default function ContractorSettingsPage() {
       setSaving(false)
       return
     }
-    if (selectedCategories.includes('Other') && !otherCategoryText.trim()) {
-      setError(t('tellUsOtherService', lang))
-      setSaving(false)
-      return
-    }
     if (!zip.trim()) {
       setError(t('enterZipYouService', lang))
       setSaving(false)
@@ -112,19 +106,10 @@ export default function ContractorSettingsPage() {
       return
     }
 
-    let finalCategories = selectedCategories
-    if (selectedCategories.includes('Other')) {
-      const customName = await saveCustomCategory(otherCategoryText, user.id)
-      finalCategories = selectedCategories.map((c) => (c === 'Other' ? customName : c))
-      addCategoryOption(customName)
-      setSelectedCategories(finalCategories)
-      setOtherCategoryText('')
-    }
-
     const { error: updateError } = await supabase
       .from('users')
       .update({
-        service_categories: finalCategories,
+        service_categories: selectedCategories,
         service_zip: zip.trim(),
         service_radius_miles: radiusMiles,
         licensed,
@@ -176,36 +161,38 @@ export default function ContractorSettingsPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="text-white/70 text-sm block mb-2">{t('categoriesYouService', lang)}</label>
-            <div className="flex flex-wrap gap-2">
-              {[...categoryOptions, 'Other'].map((cat) => {
-                const selected = selectedCategories.includes(cat)
-                return (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => toggleCategory(cat)}
-                    aria-pressed={selected}
-                    className={
-                      selected
-                        ? 'inline-flex items-center gap-1.5 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-medium rounded-full px-4 py-2 transition'
-                        : 'inline-flex items-center gap-1.5 bg-white/5 border border-white/10 text-white/60 text-sm font-medium rounded-full px-4 py-2 hover:bg-white/8 hover:text-white transition'
-                    }
-                  >
-                    {selected && <CheckCircleIcon className="w-3.5 h-3.5" />}
-                    {cat}
-                  </button>
-                )
-              })}
+            {/* Grouped into sections instead of one flat wall of ~60 chips —
+                direct feedback that a comparable competitor's equally
+                comprehensive list was unwieldy as a single undifferentiated
+                list; grouping is the fix, not staying shallow. */}
+            <div className="space-y-4">
+              {categoryGroups.map((group) => (
+                <div key={group.label}>
+                  <p className="text-white/40 text-xs font-semibold uppercase tracking-wide mb-1.5">{group.label}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {group.categories.map((cat) => {
+                      const selected = selectedCategories.includes(cat)
+                      return (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => toggleCategory(cat)}
+                          aria-pressed={selected}
+                          className={
+                            selected
+                              ? 'inline-flex items-center gap-1.5 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-medium rounded-full px-4 py-2 transition'
+                              : 'inline-flex items-center gap-1.5 bg-white/5 border border-white/10 text-white/60 text-sm font-medium rounded-full px-4 py-2 hover:bg-white/8 hover:text-white transition'
+                          }
+                        >
+                          {selected && <CheckCircleIcon className="w-3.5 h-3.5" />}
+                          {cat}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
-            {selectedCategories.includes('Other') && (
-              <input
-                type="text"
-                value={otherCategoryText}
-                onChange={(e) => setOtherCategoryText(e.target.value)}
-                placeholder={t('whatServiceOffer', lang)}
-                className="w-full mt-2 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
-              />
-            )}
           </div>
 
           <div className="flex items-center justify-between gap-3 bg-white/3 border border-white/8 rounded-xl p-4">

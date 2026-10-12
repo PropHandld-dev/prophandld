@@ -3,20 +3,98 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
-// The original fixed set, minus "Other" — "Other" is appended separately
-// by callers since it's a UI action (opens a text field), not a real
-// category value to ever store on a job or a contractor's service list.
-export const FIXED_CATEGORIES = [
-  'Plumbing', 'Electrical', 'HVAC', 'Appliance',
-  'Structural', 'Pest', 'Turnover',
+// Comprehensive, grouped home-maintenance taxonomy — one list shared by
+// renters reporting an issue, contractors picking what they service, and
+// landlords creating a job directly. Replaced the original 7 broad buckets
+// (Plumbing, Electrical, HVAC, Appliance, Structural, Pest, Turnover) after
+// direct feedback that a comparable competitor's list ("Bozzuto") was
+// comprehensive but unwieldy as one flat wall of options — the fix here is
+// grouping (CATEGORY_GROUPS below), not staying shallow. Specific enough
+// that "Other" shouldn't be needed for a real, common household issue —
+// the last group's "Something else" is a normal list entry instead of a
+// special free-text branch, since every report already has its own
+// required description field for anything a category name can't capture.
+//
+// A contractor's existing service_categories or a job's stored category
+// value is never rewritten by this list changing — both are plain text,
+// matched by exact string, not a foreign key. Expanding "Appliance" into
+// five specific entries means an already-active contractor who only ever
+// selected the old broad "Appliance" keeps matching jobs already posted
+// under that value, but won't automatically match a NEW job posted under
+// one of the specific replacements until they revisit Settings and
+// reselect — a one-time, expected transition cost, not a bug.
+export const CATEGORY_GROUPS: { label: string; categories: string[] }[] = [
+  {
+    label: 'Plumbing',
+    categories: ['Leaky Faucet or Pipe', 'Clogged Drain or Toilet', 'Running or Broken Toilet', 'No Hot Water', 'Water Heater', 'Low Water Pressure', 'Garbage Disposal', 'Sump Pump'],
+  },
+  {
+    label: 'Electrical',
+    categories: ['Outlet or Switch', 'Light Fixture', 'Circuit Breaker or Power Outage', 'Ceiling Fan', 'Smoke or CO Detector'],
+  },
+  {
+    label: 'Heating & Cooling',
+    categories: ['No Heat', 'No A/C', 'Thermostat', 'Air Filter or Ventilation', 'HVAC Noise or Smell'],
+  },
+  {
+    label: 'Appliances',
+    categories: ['Refrigerator', 'Oven or Stove', 'Dishwasher', 'Washer or Dryer', 'Microwave'],
+  },
+  {
+    label: 'Structural & Carpentry',
+    categories: ['Drywall or Wall Damage', 'Ceiling', 'Cabinet or Countertop', 'Flooring', 'Foundation or Structural'],
+  },
+  {
+    label: 'Doors, Windows & Locks',
+    categories: ['Door Won’t Open or Close', 'Lock or Deadbolt', 'Window Won’t Open or Close', 'Window Screen', 'Garage Door'],
+  },
+  {
+    label: 'Exterior & Grounds',
+    categories: ['Roof or Gutter Leak', 'Siding', 'Deck or Patio', 'Fence', 'Landscaping or Lawn', 'Snow or Ice Removal'],
+  },
+  {
+    label: 'Pest & Safety',
+    categories: ['Pest or Rodent Control', 'Mold or Mildew', 'Water Damage or Leak'],
+  },
+  {
+    label: 'Painting',
+    categories: ['Interior Painting', 'Exterior Painting'],
+  },
+  {
+    label: 'Cleaning & Turnover',
+    categories: ['Move-Out Cleaning', 'Turnover or Make-Ready'],
+  },
+  {
+    label: 'General',
+    categories: ['General Handyman', 'Something Else'],
+  },
 ]
 
-// Anyone (renter reporting an issue, landlord creating a job, contractor
-// setting up their service categories) who types a category under "Other"
-// gets it saved here so it becomes a real, selectable option for
-// everyone else from then on — the category list grows with real usage
-// instead of "Other" being a dead end.
-export function useCategoryOptions(): [string[], (name: string) => void] {
+export const FIXED_CATEGORIES = CATEGORY_GROUPS.flatMap((g) => g.categories)
+
+// A reported job's category used to double as a unit's tracked-system
+// item_type (plumbing/electrical/hvac/appliance/structural/other, see
+// systems/page.tsx's own separate ITEM_TYPES) by direct string equality —
+// worked only because the old category list happened to literally be those
+// same six words. Splitting "Appliance" into five specific entries (etc.)
+// broke that coincidence, so this maps each specific category back to the
+// item_type bucket it belongs to, for "is there a tracked system for this
+// job's category" lookups (see renter/report/page.tsx).
+export const CATEGORY_TO_ITEM_TYPE: Record<string, string> = Object.fromEntries([
+  ...CATEGORY_GROUPS[0].categories.map((c) => [c, 'plumbing']),
+  ...CATEGORY_GROUPS[1].categories.map((c) => [c, 'electrical']),
+  ...CATEGORY_GROUPS[2].categories.map((c) => [c, 'hvac']),
+  ...CATEGORY_GROUPS[3].categories.map((c) => [c, 'appliance']),
+  ...CATEGORY_GROUPS[4].categories.map((c) => [c, 'structural']),
+])
+
+// The comprehensive list above is specific enough that none of the three
+// callers (renter report, contractor settings, landlord job creation)
+// offer "Other" as a UI option anymore — but anyone who picked it before
+// this list grew is real historical data in custom_categories, not
+// something to silently drop. Surfaced here as one more group so it stays
+// visible and selectable instead of disappearing.
+function useCustomCategories(): string[] {
   const [customCategories, setCustomCategories] = useState<string[]>([])
 
   useEffect(() => {
@@ -26,40 +104,28 @@ export function useCategoryOptions(): [string[], (name: string) => void] {
       .order('name')
       .then(({ data, error }) => {
         if (error) {
-          console.error('useCategoryOptions: could not load custom categories', error)
+          console.error('useCustomCategories: could not load custom categories', error)
           return
         }
         setCustomCategories((data || []).map((row) => row.name))
       })
   }, [])
 
-  // Called right after saveCustomCategory resolves, so a category typed
-  // under "Other" shows up as its own real option immediately — without
-  // this, the caller would have to wait for a full page reload to see it
-  // reflected back (the table write already happened, this just updates
-  // what's rendered on this page).
-  const addLocalCategory = (name: string) => {
-    setCustomCategories((prev) => (prev.includes(name) ? prev : [...prev, name].sort()))
-  }
-
-  return [[...FIXED_CATEGORIES, ...customCategories], addLocalCategory]
+  return customCategories
 }
 
-// Saves a new custom category (case-insensitive de-duped by the table's
-// unique constraint) and returns the canonical name to actually store on
-// the job/service-list — trims whitespace, title-cases nothing (kept
-// exactly as typed so e.g. "HVAC-adjacent" stays intentional).
-export async function saveCustomCategory(name: string, userId: string | null): Promise<string> {
-  const trimmed = name.trim()
-  if (!trimmed) return trimmed
+// Flat list, for callers that just need every selectable value (matching
+// logic, validation) without caring about display grouping.
+export function useCategoryOptions(): [string[]] {
+  const customCategories = useCustomCategories()
+  return [[...FIXED_CATEGORIES, ...customCategories]]
+}
 
-  const { error } = await supabase
-    .from('custom_categories')
-    .upsert({ name: trimmed, created_by: userId }, { onConflict: 'name', ignoreDuplicates: true })
-
-  if (error) {
-    console.error('saveCustomCategory: could not save', error)
-  }
-
-  return trimmed
+// Grouped for display — CATEGORY_GROUPS as-is, plus a trailing "Previously
+// added" group only when real custom-category history exists, so a fresh
+// install with an empty custom_categories table never shows an empty group.
+export function useGroupedCategoryOptions(): { label: string; categories: string[] }[] {
+  const customCategories = useCustomCategories()
+  if (customCategories.length === 0) return CATEGORY_GROUPS
+  return [...CATEGORY_GROUPS, { label: 'Previously added', categories: customCategories }]
 }

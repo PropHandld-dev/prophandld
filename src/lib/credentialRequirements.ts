@@ -41,6 +41,73 @@ export const LICENSE_TRADES = {
 } as const
 
 const T = LICENSE_TRADES
+
+// Every requirement below is scoped to one of the seven broad trades above
+// via appliesTo — but a contractor's real service_categories (see
+// lib/categories.ts) are specific, granular issue types ("Leaky Faucet or
+// Pipe", "Refrigerator", etc.), not these seven words. This maps each
+// specific category back to the broad trade it's legally governed under,
+// so "does this contractor's selected work require a plumbing license"
+// still resolves correctly. A category genuinely outside any of these
+// seven (lawn care, snow removal, interior painting in most states, a
+// fully generic "Something Else" report) deliberately maps to nothing —
+// it still gets the 'all'-scoped base requirements (liability insurance,
+// workers' comp) and nothing more, which is legally accurate: those
+// trades aren't subject to a trade-specific license the way the seven
+// above are.
+const CATEGORY_TO_LICENSE_TRADE: Record<string, string> = {
+  'Leaky Faucet or Pipe': T.plumbing,
+  'Clogged Drain or Toilet': T.plumbing,
+  'Running or Broken Toilet': T.plumbing,
+  'No Hot Water': T.plumbing,
+  'Water Heater': T.plumbing,
+  'Low Water Pressure': T.plumbing,
+  'Garbage Disposal': T.plumbing,
+  'Sump Pump': T.plumbing,
+  'Outlet or Switch': T.electrical,
+  'Light Fixture': T.electrical,
+  'Circuit Breaker or Power Outage': T.electrical,
+  'Ceiling Fan': T.electrical,
+  'Smoke or CO Detector': T.electrical,
+  'No Heat': T.hvac,
+  'No A/C': T.hvac,
+  'Thermostat': T.hvac,
+  'Air Filter or Ventilation': T.hvac,
+  'HVAC Noise or Smell': T.hvac,
+  'Refrigerator': T.appliance,
+  'Oven or Stove': T.appliance,
+  'Dishwasher': T.appliance,
+  'Washer or Dryer': T.appliance,
+  'Microwave': T.appliance,
+  'Drywall or Wall Damage': T.structural,
+  'Ceiling': T.structural,
+  'Cabinet or Countertop': T.structural,
+  'Flooring': T.structural,
+  'Foundation or Structural': T.structural,
+  'Door Won’t Open or Close': T.structural,
+  'Garage Door': T.structural,
+  'Roof or Gutter Leak': T.structural,
+  'Siding': T.structural,
+  'Deck or Patio': T.structural,
+  'Pest or Rodent Control': T.pest,
+  'Move-Out Cleaning': T.turnover,
+  'Turnover or Make-Ready': T.turnover,
+  'General Handyman': T.structural,
+  // An already-active contractor's service_categories may still hold the
+  // old broad values (the list changing never rewrites stored data — see
+  // lib/categories.ts) until they revisit Settings — these keep their
+  // license requirements resolving correctly in the meantime, since this
+  // is a legal/compliance feature where silently showing nothing would be
+  // the wrong failure mode.
+  [T.plumbing]: T.plumbing,
+  [T.electrical]: T.electrical,
+  [T.hvac]: T.hvac,
+  [T.appliance]: T.appliance,
+  [T.structural]: T.structural,
+  [T.pest]: T.pest,
+  [T.turnover]: T.turnover,
+}
+
 const HOME_IMPROVEMENT_TRADES = [T.plumbing, T.electrical, T.hvac, T.structural, T.turnover]
 
 export const REQUIREMENTS: Record<string, Requirement> = {
@@ -398,10 +465,18 @@ export function requirementsFor({
     ;(CITY_REQUIREMENTS[key] || []).forEach((id) => add(id, city))
   }
 
+  // categories holds a contractor's real, specific service_categories
+  // (e.g. "Leaky Faucet or Pipe") — map each back to the broad trade
+  // appliesTo is actually scoped to (see CATEGORY_TO_LICENSE_TRADE above)
+  // before matching. A category with no mapping (lawn care, painting,
+  // "Something Else") contributes nothing beyond the 'all'-scoped base
+  // requirements already included above, which is correct.
+  const tradeSet = new Set(categories.map((c) => CATEGORY_TO_LICENSE_TRADE[c]).filter((t): t is string => !!t))
+
   const requirements = Array.from(regionsById.entries())
     .map(([id, regions]) => ({ ...REQUIREMENTS[id], regions: Array.from(regions) }))
     .filter((r): r is ScopedRequirement => !!r.id)
-    .filter((r) => r.appliesTo === 'all' || r.appliesTo.some((t) => categories.includes(t)))
+    .filter((r) => r.appliesTo === 'all' || r.appliesTo.some((t) => tradeSet.has(t)))
 
   return { requirements, unmappedStates }
 }

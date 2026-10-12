@@ -13,7 +13,7 @@ import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { AlertTriangleIcon } from '@/components/icons'
 import { RENTER_TABS } from '@/lib/navTabs'
-import { useCategoryOptions, saveCustomCategory } from '@/lib/categories'
+import { useGroupedCategoryOptions, CATEGORY_TO_ITEM_TYPE } from '@/lib/categories'
 import { TIME_WINDOWS } from '@/lib/scheduleWindows'
 import { useLanguage, t } from '@/lib/i18n'
 
@@ -72,14 +72,13 @@ export default function ReportIssuePage() {
 
   const [form, setForm] = useState({
     category: '',
-    categoryOther: '',
     urgency: 'normal',
     description: '',
     is_emergency: false,
     maintenance_item_id: '',
     access_notes: '',
   })
-  const [categoryOptions] = useCategoryOptions()
+  const categoryGroups = useGroupedCategoryOptions()
 
   useEffect(() => {
     const init = async () => {
@@ -173,10 +172,6 @@ export default function ReportIssuePage() {
       setError(t('pleaseSelectACategory', lang))
       return
     }
-    if (form.category === 'Other' && !form.categoryOther.trim()) {
-      setError(t('pleaseTellUsIssueKind', lang))
-      return
-    }
     if (!form.description.trim()) {
       setError(t('pleaseDescribeTheIssue', lang))
       return
@@ -189,16 +184,12 @@ export default function ReportIssuePage() {
     setSubmitting(true)
     setError(null)
 
-    const finalCategory = form.category === 'Other'
-      ? await saveCustomCategory(form.categoryOther, userId)
-      : form.category
-
     const { data: jobData, error: insertError } = await supabase
       .from('jobs')
       .insert({
         unit_id: unitId,
         reported_by: userId,
-        category: finalCategory,
+        category: form.category,
         urgency: form.is_emergency ? 'emergency' : form.urgency,
         description: form.description.trim(),
         is_emergency: form.is_emergency,
@@ -305,28 +296,17 @@ export default function ReportIssuePage() {
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
               >
                 <option value="" className="bg-[#0C1A2E]">{t('selectACategory', lang)}</option>
-                {categoryOptions.map((cat) => (
-                  <option key={cat} value={cat} className="bg-[#0C1A2E]">{cat}</option>
+                {categoryGroups.map((group) => (
+                  <optgroup key={group.label} label={group.label} className="bg-[#0C1A2E]">
+                    {group.categories.map((cat) => (
+                      <option key={cat} value={cat} className="bg-[#0C1A2E]">{cat}</option>
+                    ))}
+                  </optgroup>
                 ))}
-                <option value="Other" className="bg-[#0C1A2E]">{t('otherCategoryOption', lang)}</option>
               </select>
             </div>
 
-            {form.category === 'Other' && (
-              <div>
-                <label className="text-white/70 text-sm block mb-1">{t('whatKindOfIssueIsIt', lang)}</label>
-                <input
-                  type="text"
-                  name="categoryOther"
-                  value={form.categoryOther}
-                  onChange={handleChange}
-                  placeholder={t('reportCategoryOtherPlaceholder', lang)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
-                />
-              </div>
-            )}
-
-            {form.category && systems.filter((s) => s.item_type?.toLowerCase() === form.category.toLowerCase()).length > 0 && (
+            {form.category && systems.filter((s) => s.item_type === CATEGORY_TO_ITEM_TYPE[form.category]).length > 0 && (
               <div>
                 <label className="text-white/70 text-sm block mb-1">{t('relatedSystemOptionalLabel', lang)}</label>
                 <select
@@ -337,7 +317,7 @@ export default function ReportIssuePage() {
                 >
                   <option value="" className="bg-[#0C1A2E]">{t('notSureNoneOption', lang)}</option>
                   {systems
-                    .filter((s) => s.item_type?.toLowerCase() === form.category.toLowerCase())
+                    .filter((s) => s.item_type === CATEGORY_TO_ITEM_TYPE[form.category])
                     .map((s) => (
                       <option key={s.id} value={s.id} className="bg-[#0C1A2E]">{s.name}</option>
                     ))}
@@ -358,7 +338,7 @@ export default function ReportIssuePage() {
               />
             </div>
 
-            {mentionsNonMaintenanceIssue(form.category, form.categoryOther, form.description) && (
+            {mentionsNonMaintenanceIssue(form.category, form.description) && (
               <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3 text-amber-300 text-sm flex items-start gap-2">
                 <AlertTriangleIcon className="w-4 h-4 mt-0.5 shrink-0" />
                 <span>{t('notAMaintenanceIssueWarning', lang)}</span>

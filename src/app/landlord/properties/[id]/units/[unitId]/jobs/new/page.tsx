@@ -11,7 +11,7 @@ import { AlertTriangleIcon } from '@/components/icons'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
-import { useCategoryOptions, saveCustomCategory } from '@/lib/categories'
+import { useGroupedCategoryOptions } from '@/lib/categories'
 import { useLanguage, t } from '@/lib/i18n'
 
 export default function NewLandlordJobPage() {
@@ -33,12 +33,11 @@ export default function NewLandlordJobPage() {
 
   const [form, setForm] = useState({
     category: '',
-    categoryOther: '',
     urgency: 'normal',
     description: '',
     is_emergency: false,
   })
-  const [categoryOptions] = useCategoryOptions()
+  const categoryGroups = useGroupedCategoryOptions()
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLTextAreaElement | HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -71,10 +70,6 @@ export default function NewLandlordJobPage() {
       setError(t('pleaseSelectACategory', lang))
       return
     }
-    if (form.category === 'Other' && !form.categoryOther.trim()) {
-      setError(t('pleaseTellUsKindOfJob', lang))
-      return
-    }
     if (!form.description.trim()) {
       setError(t('pleaseDescribeTheIssue', lang))
       return
@@ -90,17 +85,13 @@ export default function NewLandlordJobPage() {
       return
     }
 
-    const finalCategory = form.category === 'Other'
-      ? await saveCustomCategory(form.categoryOther, user.id)
-      : form.category
-
     // Landlord-created jobs skip approval — they're already self-approved
     const { data: jobData, error: insertError } = await supabase
       .from('jobs')
       .insert({
         unit_id: unitId,
         reported_by: user.id,
-        category: finalCategory,
+        category: form.category,
         urgency: form.is_emergency ? 'emergency' : form.urgency,
         description: form.description.trim(),
         is_emergency: form.is_emergency,
@@ -194,26 +185,15 @@ export default function NewLandlordJobPage() {
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
             >
               <option value="" className="bg-[#0C1A2E]">{t('selectACategory', lang)}</option>
-              {categoryOptions.map((cat) => (
-                <option key={cat} value={cat} className="bg-[#0C1A2E]">{cat}</option>
+              {categoryGroups.map((group) => (
+                <optgroup key={group.label} label={group.label} className="bg-[#0C1A2E]">
+                  {group.categories.map((cat) => (
+                    <option key={cat} value={cat} className="bg-[#0C1A2E]">{cat}</option>
+                  ))}
+                </optgroup>
               ))}
-              <option value="Other" className="bg-[#0C1A2E]">{t('itemTypeOther', lang)}</option>
             </select>
           </div>
-
-          {form.category === 'Other' && (
-            <div>
-              <label className="text-white/70 text-sm block mb-1">{t('whatKindOfJobIsIt', lang)}</label>
-              <input
-                type="text"
-                name="categoryOther"
-                value={form.categoryOther}
-                onChange={handleChange}
-                placeholder={t('categoryOtherPlaceholder', lang)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
-              />
-            </div>
-          )}
 
           <div>
             <label className="text-white/70 text-sm block mb-1">{t('description', lang)}</label>

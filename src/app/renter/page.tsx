@@ -7,12 +7,10 @@ import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { AlertsList, type AlertItem } from '@/components/AlertsList'
 import { Skeleton } from '@/components/Skeleton'
-import { ScrollReveal } from '@/components/ScrollReveal'
-import { MagneticLink } from '@/components/MagneticLink'
 import { Logo } from '@/components/Logo'
 import { ProfileButton } from '@/components/ProfileButton'
 import { MessagesButton } from '@/components/MessagesButton'
-import { CalendarIcon, DollarSignIcon, CheckCircleIcon, FileTextIcon, MessageCircleIcon } from '@/components/icons'
+import { CalendarIcon, DollarSignIcon, CheckCircleIcon, FileTextIcon, MessageCircleIcon, WrenchIcon } from '@/components/icons'
 import { RENTER_TABS } from '@/lib/navTabs'
 import { EnableNotificationsCard } from '@/components/EnableNotificationsCard'
 import { UnreadDot } from '@/components/UnreadDot'
@@ -241,6 +239,36 @@ export default function RenterDashboard() {
               <p className="text-white/50 mt-1">{t('renterDashboardSubtitle', lang)}</p>
             </div>
 
+            {/* Bozzuto-style top-level quick actions — direct feedback from a
+                renter who'd used Bozzuto's portal and found it much simpler:
+                "Pay rent" and "Report an issue" as the very first thing you
+                see, not two cards buried after scrolling past "Your home."
+                Replaces the separate Pay rent link card and the big gradient
+                Report-an-issue CTA that used to sit lower on this page — one
+                entry point per action now, not two. */}
+            {unit && (
+              <div className="grid grid-cols-2 gap-3 mb-6" data-tour="report">
+                <Link
+                  href="/renter/rent"
+                  className="flex flex-col items-center justify-center gap-2 bg-white/3 border border-white/8 rounded-2xl py-6 px-3 text-center hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all"
+                >
+                  <div className="w-10 h-10 rounded-full bg-[#0A7B7E]/20 flex items-center justify-center">
+                    <DollarSignIcon className="w-5 h-5 text-[#12A5A9]" />
+                  </div>
+                  <span className="text-white font-semibold text-sm">{t('payRent', lang)}</span>
+                </Link>
+                <Link
+                  href="/renter/report"
+                  className="flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-[#0A7B7E]/20 to-[#12A5A9]/10 border border-[#12A5A9]/30 rounded-2xl py-6 px-3 text-center hover:opacity-90 hover:-translate-y-0.5 transition-all"
+                >
+                  <div className="w-10 h-10 rounded-full bg-[#12A5A9]/20 flex items-center justify-center">
+                    <WrenchIcon className="w-5 h-5 text-[#12A5A9]" />
+                  </div>
+                  <span className="text-white font-semibold text-sm">{t('reportTitle', lang)}</span>
+                </Link>
+              </div>
+            )}
+
             <AlertsList items={alertItems} />
             <EnableNotificationsCard />
 
@@ -267,30 +295,6 @@ export default function RenterDashboard() {
                 <p className="text-white/60 text-sm mt-1">{t('documentsDescRenter', lang)}</p>
               </Link>
             )}
-
-            {unit && (
-              <Link
-                href="/renter/rent"
-                className="block bg-white/3 border border-white/8 rounded-2xl p-6 mb-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all"
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <DollarSignIcon className="w-4 h-4 text-white/60" />
-                  <h3 className="text-white font-semibold">{t('payRent', lang)}</h3>
-                </div>
-                <p className="text-white/60 text-sm mt-1">{t('payRentDesc', lang)}</p>
-              </Link>
-            )}
-
-            <ScrollReveal className="bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/10 border border-[#12A5A9]/30 rounded-2xl p-6 mb-6" data-tour="report">
-              <h3 className="text-white font-semibold mb-1">{t('reportTitle', lang)}</h3>
-              <p className="text-white/50 text-sm mb-4">{t('reportAnIssueDesc', lang)}</p>
-              <MagneticLink
-                href="/renter/report"
-                className="inline-block bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-6 py-2.5 rounded-xl text-sm hover:opacity-90 transition"
-              >
-                {t('reportNow', lang)}
-              </MagneticLink>
-            </ScrollReveal>
 
             <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6" data-tour="issues">
               <h3 className="text-white font-semibold mb-4">{t('yourIssues', lang)}</h3>
