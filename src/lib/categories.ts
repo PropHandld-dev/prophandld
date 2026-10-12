@@ -1,8 +1,5 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
-
 // Comprehensive, grouped home-maintenance taxonomy — one list shared by
 // renters reporting an issue, contractors picking what they service, and
 // landlords creating a job directly. Replaced the original 7 broad buckets
@@ -88,44 +85,14 @@ export const CATEGORY_TO_ITEM_TYPE: Record<string, string> = Object.fromEntries(
   ...CATEGORY_GROUPS[4].categories.map((c) => [c, 'structural']),
 ])
 
-// The comprehensive list above is specific enough that none of the three
-// callers (renter report, contractor settings, landlord job creation)
-// offer "Other" as a UI option anymore — but anyone who picked it before
-// this list grew is real historical data in custom_categories, not
-// something to silently drop. Surfaced here as one more group so it stays
-// visible and selectable instead of disappearing.
-function useCustomCategories(): string[] {
-  const [customCategories, setCustomCategories] = useState<string[]>([])
-
-  useEffect(() => {
-    supabase
-      .from('custom_categories')
-      .select('name')
-      .order('name')
-      .then(({ data, error }) => {
-        if (error) {
-          console.error('useCustomCategories: could not load custom categories', error)
-          return
-        }
-        setCustomCategories((data || []).map((row) => row.name))
-      })
-  }, [])
-
-  return customCategories
-}
-
-// Flat list, for callers that just need every selectable value (matching
-// logic, validation) without caring about display grouping.
-export function useCategoryOptions(): [string[]] {
-  const customCategories = useCustomCategories()
-  return [[...FIXED_CATEGORIES, ...customCategories]]
-}
-
-// Grouped for display — CATEGORY_GROUPS as-is, plus a trailing "Previously
-// added" group only when real custom-category history exists, so a fresh
-// install with an empty custom_categories table never shows an empty group.
+// A short-lived "Previously added" trailing group (surfacing old
+// custom_categories entries, from back when "Other" existed) shipped
+// alongside the comprehensive list above and was removed the same day on
+// direct feedback — the new list is comprehensive enough on its own, and
+// showing ungroomed historical entries (some literal leftover security-
+// test strings) back on the picker undercut exactly the "no Other needed"
+// cleanup this whole taxonomy change was for. Grouped display only now —
+// CATEGORY_GROUPS is already the complete, final list.
 export function useGroupedCategoryOptions(): { label: string; categories: string[] }[] {
-  const customCategories = useCustomCategories()
-  if (customCategories.length === 0) return CATEGORY_GROUPS
-  return [...CATEGORY_GROUPS, { label: 'Previously added', categories: customCategories }]
+  return CATEGORY_GROUPS
 }

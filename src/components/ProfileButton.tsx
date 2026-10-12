@@ -43,7 +43,11 @@ export function ProfileButton({ name, currentRole }: { name?: string | null; cur
       .join('') || '?'
 
   useEffect(() => {
-    if (!open || loaded) return
+    // Loads on mount, not gated on opening the menu — the little dot on the
+    // avatar (below) needs to know "does this person have other profiles"
+    // before they've ever opened this button, or it can never do its job
+    // of making the feature discoverable in the first place. One light
+    // GET per dashboard load in exchange for that.
     fetch('/api/profiles/list')
       .then((res) => res.json())
       .then((data) => {
@@ -52,7 +56,7 @@ export function ProfileButton({ name, currentRole }: { name?: string | null; cur
         setLoaded(true)
       })
       .catch(() => setLoaded(true))
-  }, [open, loaded])
+  }, [])
 
   useEffect(() => {
     if (!open) return
@@ -124,8 +128,21 @@ export function ProfileButton({ name, currentRole }: { name?: string | null; cur
         className="group flex items-center gap-1.5 rounded-full transition active:scale-[0.97] motion-reduce:active:scale-100"
       >
         {label && <span className="hidden sm:block text-white/60 text-sm transition group-hover:text-white">{label}</span>}
-        <span className="w-8 h-8 rounded-full bg-gradient-to-br from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-bold flex items-center justify-center ring-1 ring-white/10 transition group-hover:ring-[#12A5A9]/60">
-          {initials}
+        <span className="relative">
+          <span className="w-8 h-8 rounded-full bg-gradient-to-br from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-bold flex items-center justify-center ring-1 ring-white/10 transition group-hover:ring-[#12A5A9]/60">
+            {initials}
+          </span>
+          {/* Visible before ever opening the menu — a person with more than
+              one linked profile has a real reason to open this button
+              beyond "sign out," and nothing on the collapsed button itself
+              used to hint that. Loads lazily with the rest of the list
+              (not blocking first paint), so it appears a beat after the
+              page does rather than holding up the nav bar. */}
+          {loaded && linked.length > 0 && (
+            <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-[#0C1A2E] flex items-center justify-center">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#12A5A9] ring-1 ring-[#0C1A2E]" />
+            </span>
+          )}
         </span>
         <ChevronDownIcon className={`w-3.5 h-3.5 text-white/40 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
@@ -167,12 +184,21 @@ export function ProfileButton({ name, currentRole }: { name?: string | null; cur
             <>
               {(linked.length > 0 || currentRole) && (
                 <div className="p-2 border-b border-white/8">
-                  <p className="text-white/40 text-[10px] font-semibold uppercase tracking-wide px-2.5 py-1.5">{t('yourProfiles', lang)}</p>
+                  <p className="text-white/40 text-[10px] font-semibold uppercase tracking-wide px-2.5 pt-1.5 pb-1">{t('yourProfiles', lang)}</p>
+                  {/* Only shown once there's actually more than one profile
+                      to explain — someone with just the one gets the plain,
+                      uncluttered list they had before. */}
+                  {linked.length > 0 && (
+                    <p className="text-white/40 text-[11px] leading-snug px-2.5 pb-2">{t('profileSwitcherExplainer', lang)}</p>
+                  )}
                   {currentRole && (
                     <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl">
                       {(() => { const Icon = ROLE_ICON[currentRole]; return <Icon className="w-4 h-4 text-[#12A5A9] shrink-0" /> })()}
                       <span className="text-white text-sm font-medium flex-1">{roleLabel(currentRole, lang)}</span>
-                      <CheckCircleIcon className="w-4 h-4 text-[#12A5A9]" />
+                      <span className="inline-flex items-center gap-1 text-[#12A5A9] text-[11px] font-semibold bg-[#12A5A9]/10 rounded-full px-2 py-0.5">
+                        <CheckCircleIcon className="w-3 h-3" />
+                        {t('currentProfileBadge', lang)}
+                      </span>
                     </div>
                   )}
                   {linked.map((p) => {
@@ -187,8 +213,8 @@ export function ProfileButton({ name, currentRole }: { name?: string | null; cur
                       >
                         <Icon className="w-4 h-4 text-white/50 shrink-0" />
                         <span className="text-white/80 text-sm flex-1">{roleLabel(p.role, lang)}</span>
-                        <span className="text-[#12A5A9] text-xs font-semibold">
-                          {switching ? t('switchingDots', lang) : t('switchToProfile', lang)}
+                        <span className="inline-flex items-center text-[#12A5A9] text-xs font-semibold bg-[#12A5A9]/10 rounded-full px-2.5 py-1">
+                          {switching ? t('switchingDots', lang) : t('switchBtn', lang)}
                         </span>
                       </button>
                     )

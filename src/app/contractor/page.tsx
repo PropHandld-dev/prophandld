@@ -13,6 +13,7 @@ import { ScrollReveal } from '@/components/ScrollReveal'
 import { MagneticLink } from '@/components/MagneticLink'
 import { Logo } from '@/components/Logo'
 import { ProfileButton } from '@/components/ProfileButton'
+import { ProfileSwitchedBanner } from '@/components/ProfileSwitchedBanner'
 import { MessagesButton } from '@/components/MessagesButton'
 import { CountUp } from '@/components/CountUp'
 import { EnableNotificationsCard } from '@/components/EnableNotificationsCard'
@@ -328,6 +329,8 @@ export default function ContractorDashboard() {
               </h1>
               <p className="text-white/50 mt-1">{t('contractorDashboardSubtitle', lang)}</p>
             </div>
+
+            <ProfileSwitchedBanner />
 
             {!hasProfile ? (
               <div className="bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/10 border border-[#12A5A9]/30 rounded-2xl p-6 mb-6">

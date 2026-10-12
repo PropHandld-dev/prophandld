@@ -24,3 +24,16 @@ where id in (
   '738b6bb7-bf42-4e4f-adfa-46214d801e87',
   'e1a4fa69-130d-450b-9045-9b4d67b4b511'
 );
+
+-- 3. The full job-lifecycle test job from the 2026-10-09/10-11 regression
+-- pass ("QA regression loop: kitchen faucet drips..."), including the chat
+-- messages it generated (selection notice, rent/job system messages) and
+-- Jose's test bid on it.
+delete from public.messages
+where job_id = 'c7bde07a-822b-4587-9858-94965dbc15db';
+
+delete from public.bids
+where job_id = 'c7bde07a-822b-4587-9858-94965dbc15db';
+
+delete from public.jobs
+where id = 'c7bde07a-822b-4587-9858-94965dbc15db';

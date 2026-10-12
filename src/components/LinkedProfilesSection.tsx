@@ -88,13 +88,20 @@ export function LinkedProfilesSection({ currentRole }: { currentRole: Role }) {
 
   return (
     <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6">
-      <h2 className="text-white font-semibold mb-4">{t('yourProfiles', lang)}</h2>
+      <h2 className="text-white font-semibold mb-1">{t('yourProfiles', lang)}</h2>
+      {linked.length > 0 && (
+        <p className="text-white/40 text-[13px] leading-snug mb-4">{t('profileSwitcherExplainer', lang)}</p>
+      )}
+      {linked.length === 0 && <div className="mb-4" />}
 
       <div className="space-y-2 mb-2">
         <div className="flex items-center gap-3 bg-white/5 rounded-xl px-4 py-3">
           {(() => { const Icon = ROLE_ICON[currentRole]; return <Icon className="w-4 h-4 text-[#12A5A9] shrink-0" /> })()}
           <span className="text-white text-sm font-medium flex-1">{roleLabel(currentRole, lang)}</span>
-          <CheckCircleIcon className="w-4 h-4 text-[#12A5A9]" />
+          <span className="inline-flex items-center gap-1 text-[#12A5A9] text-[11px] font-semibold bg-[#12A5A9]/10 rounded-full px-2 py-0.5">
+            <CheckCircleIcon className="w-3 h-3" />
+            {t('currentProfileBadge', lang)}
+          </span>
         </div>
         {linked.map((p) => {
           const Icon = ROLE_ICON[p.role]
@@ -108,8 +115,8 @@ export function LinkedProfilesSection({ currentRole }: { currentRole: Role }) {
             >
               <Icon className="w-4 h-4 text-white/50 shrink-0" />
               <span className="text-white/80 text-sm flex-1">{roleLabel(p.role, lang)}</span>
-              <span className="text-[#12A5A9] text-xs font-semibold">
-                {switching ? t('switchingDots', lang) : t('switchToProfile', lang)}
+              <span className="inline-flex items-center text-[#12A5A9] text-xs font-semibold bg-[#12A5A9]/10 rounded-full px-2.5 py-1">
+                {switching ? t('switchingDots', lang) : t('switchBtn', lang)}
               </span>
             </button>
           )

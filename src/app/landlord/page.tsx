@@ -13,6 +13,7 @@ import { BillingReminder } from '@/components/BillingReminder'
 import { InviteContractorCard } from '@/components/InviteContractorCard'
 import { MagneticLink } from '@/components/MagneticLink'
 import { ProfileButton } from '@/components/ProfileButton'
+import { ProfileSwitchedBanner } from '@/components/ProfileSwitchedBanner'
 import { MessagesButton } from '@/components/MessagesButton'
 import { CountUp } from '@/components/CountUp'
 import { Logo } from '@/components/Logo'
@@ -526,6 +527,7 @@ export default function LandlordDashboard() {
               <p className="text-white/50 mt-2">{t('portfolioStateNow', lang)}</p>
             </div>
 
+            <ProfileSwitchedBanner />
             <AlertsList items={alertItems} />
 
             <InviteContractorCard />

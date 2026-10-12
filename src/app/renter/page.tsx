@@ -9,6 +9,7 @@ import { AlertsList, type AlertItem } from '@/components/AlertsList'
 import { Skeleton } from '@/components/Skeleton'
 import { Logo } from '@/components/Logo'
 import { ProfileButton } from '@/components/ProfileButton'
+import { ProfileSwitchedBanner } from '@/components/ProfileSwitchedBanner'
 import { MessagesButton } from '@/components/MessagesButton'
 import { CalendarIcon, DollarSignIcon, CheckCircleIcon, FileTextIcon, MessageCircleIcon, WrenchIcon } from '@/components/icons'
 import { RENTER_TABS } from '@/lib/navTabs'
@@ -269,6 +270,7 @@ export default function RenterDashboard() {
               </div>
             )}
 
+            <ProfileSwitchedBanner />
             <AlertsList items={alertItems} />
             <EnableNotificationsCard />
 

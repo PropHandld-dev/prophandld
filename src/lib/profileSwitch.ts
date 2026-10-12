@@ -17,6 +17,11 @@ export async function applySessionToken(tokenHash: string, role?: string) {
     console.error('applySessionToken: verifyOtp failed', error)
     return false
   }
-  window.location.href = role && ROLE_HOME[role] ? ROLE_HOME[role] : '/'
+  // ?switched=role is read once by ProfileSwitchedBanner on the landing
+  // dashboard and stripped from the URL immediately — the only way a hard
+  // navigation like this one can confirm "that worked as intended" instead
+  // of leaving someone looking at a different-looking dashboard wondering
+  // if something went wrong.
+  window.location.href = role && ROLE_HOME[role] ? `${ROLE_HOME[role]}?switched=${role}` : '/'
   return true
 }

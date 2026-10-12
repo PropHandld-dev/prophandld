@@ -406,6 +406,17 @@ function LoginForm() {
           </div>
         )}
 
+        {/* InactivityGuard (layout.tsx) redirects here with ?reason=inactive
+            after signing someone out for not opening the app in a long
+            time — without this, that would just look like an unexplained,
+            possibly alarming forced sign-out. Neutral styling on purpose:
+            this is expected, routine behavior, not an error. */}
+        {searchParams.get('reason') === 'inactive' && (
+          <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white/60 text-sm mb-6">
+            You were signed out after a long period of inactivity, as a security precaution. Sign in again to continue.
+          </div>
+        )}
+
         <RolePicker onSelect={setRole} />
 
         <p className="text-center text-white/60 text-sm mt-6">
