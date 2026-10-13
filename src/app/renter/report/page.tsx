@@ -14,6 +14,7 @@ import { RippleButton } from '@/components/RippleButton'
 import { AlertTriangleIcon } from '@/components/icons'
 import { RENTER_TABS } from '@/lib/navTabs'
 import { useGroupedCategoryOptions, CATEGORY_TO_ITEM_TYPE } from '@/lib/categories'
+import { LOCATION_OPTIONS } from '@/lib/jobLocations'
 import { TIME_WINDOWS } from '@/lib/scheduleWindows'
 import { useLanguage, t } from '@/lib/i18n'
 
@@ -72,6 +73,7 @@ export default function ReportIssuePage() {
 
   const [form, setForm] = useState({
     category: '',
+    location: '',
     urgency: 'normal',
     description: '',
     is_emergency: false,
@@ -190,6 +192,7 @@ export default function ReportIssuePage() {
         unit_id: unitId,
         reported_by: userId,
         category: form.category,
+        location: form.location || null,
         urgency: form.is_emergency ? 'emergency' : form.urgency,
         description: form.description.trim(),
         is_emergency: form.is_emergency,
@@ -302,6 +305,21 @@ export default function ReportIssuePage() {
                       <option key={cat} value={cat} className="bg-[#0C1A2E]">{cat}</option>
                     ))}
                   </optgroup>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-white/70 text-sm block mb-1">{t('locationOptional', lang)}</label>
+              <select
+                name="location"
+                value={form.location}
+                onChange={handleChange}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
+              >
+                <option value="" className="bg-[#0C1A2E]">{t('selectALocation', lang)}</option>
+                {LOCATION_OPTIONS.map((loc) => (
+                  <option key={loc} value={loc} className="bg-[#0C1A2E]">{loc}</option>
                 ))}
               </select>
             </div>

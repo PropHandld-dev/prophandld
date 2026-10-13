@@ -97,6 +97,8 @@ const STRINGS = {
     es: 'Avísale a tu propietario lo que está pasando. Agrega fotos o un video corto si puedes, ayuda a conseguir al contratista correcto.',
   },
   category: { en: 'Category', es: 'Categoría' },
+  locationOptional: { en: 'Location (optional)', es: 'Ubicación (opcional)' },
+  selectALocation: { en: "Not sure, or doesn't apply", es: 'No estoy seguro, o no aplica' },
   description: { en: 'Description', es: 'Descripción' },
   descriptionPlaceholder: { en: "What's going on? Be as specific as you can.", es: '¿Qué está pasando? Sea lo más específico posible.' },
   thisIsEmergency: { en: 'This is an emergency', es: 'Esto es una emergencia' },

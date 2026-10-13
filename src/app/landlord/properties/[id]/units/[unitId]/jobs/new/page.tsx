@@ -12,6 +12,7 @@ import { LANDLORD_TABS } from '@/lib/navTabs'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { useGroupedCategoryOptions } from '@/lib/categories'
+import { LOCATION_OPTIONS } from '@/lib/jobLocations'
 import { useLanguage, t } from '@/lib/i18n'
 
 export default function NewLandlordJobPage() {
@@ -33,6 +34,7 @@ export default function NewLandlordJobPage() {
 
   const [form, setForm] = useState({
     category: '',
+    location: '',
     urgency: 'normal',
     description: '',
     is_emergency: false,
@@ -92,6 +94,7 @@ export default function NewLandlordJobPage() {
         unit_id: unitId,
         reported_by: user.id,
         category: form.category,
+        location: form.location || null,
         urgency: form.is_emergency ? 'emergency' : form.urgency,
         description: form.description.trim(),
         is_emergency: form.is_emergency,
@@ -191,6 +194,21 @@ export default function NewLandlordJobPage() {
                     <option key={cat} value={cat} className="bg-[#0C1A2E]">{cat}</option>
                   ))}
                 </optgroup>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-white/70 text-sm block mb-1">{t('locationOptional', lang)}</label>
+            <select
+              name="location"
+              value={form.location}
+              onChange={handleChange}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
+            >
+              <option value="" className="bg-[#0C1A2E]">{t('selectALocation', lang)}</option>
+              {LOCATION_OPTIONS.map((loc) => (
+                <option key={loc} value={loc} className="bg-[#0C1A2E]">{loc}</option>
               ))}
             </select>
           </div>

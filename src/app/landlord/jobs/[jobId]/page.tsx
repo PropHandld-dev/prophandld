@@ -15,7 +15,7 @@ import { BottomTabBar } from '@/components/BottomTabBar'
 import { Skeleton } from '@/components/Skeleton'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
-import { WrenchIcon, CheckCircleIcon, MessageCircleIcon } from '@/components/icons'
+import { WrenchIcon, CheckCircleIcon, MessageCircleIcon, MapPinIcon } from '@/components/icons'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 import { ReviewForm } from '@/components/ReviewForm'
 import type { PaymentOutcome } from '@/components/StripePaymentModal'
@@ -1076,6 +1076,12 @@ export default function JobDetailPage() {
                 <AddressLink address={job.units?.properties?.address} city={job.units?.properties?.city} />
                 {' '}· Unit {job.units?.unit_number}
               </p>
+              {job.location && (
+                <p className="text-white/50 text-xs mt-1 flex items-center gap-1">
+                  <MapPinIcon className="w-3 h-3" />
+                  {job.location}
+                </p>
+              )}
               {job.maintenance_items && (
                 <p className="text-[#12A5A9] text-xs mt-1 flex items-center gap-1">
                   <WrenchIcon className="w-3 h-3" />

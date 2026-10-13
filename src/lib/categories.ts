@@ -39,15 +39,15 @@ export const CATEGORY_GROUPS: { label: string; categories: string[] }[] = [
   },
   {
     label: 'Structural & Carpentry',
-    categories: ['Drywall or Wall Damage', 'Ceiling', 'Cabinet or Countertop', 'Flooring', 'Foundation or Structural'],
+    categories: ['Drywall or Wall Damage', 'Ceiling', 'Cabinet or Countertop', 'Flooring', 'Foundation or Structural', 'Fireplace', 'Hardware'],
   },
   {
     label: 'Doors, Windows & Locks',
-    categories: ['Door Won’t Open or Close', 'Lock or Deadbolt', 'Window Won’t Open or Close', 'Window Screen', 'Garage Door'],
+    categories: ['Door Won’t Open or Close', 'Lock or Deadbolt', 'Window Won’t Open or Close', 'Window Screen', 'Garage Door', 'Blinds'],
   },
   {
     label: 'Exterior & Grounds',
-    categories: ['Roof or Gutter Leak', 'Siding', 'Deck or Patio', 'Fence', 'Landscaping or Lawn', 'Snow or Ice Removal'],
+    categories: ['Roof or Gutter Leak', 'Siding', 'Deck or Patio', 'Fence', 'Landscaping or Lawn', 'Snow or Ice Removal', 'Amenity (Pool, Gym, etc.)'],
   },
   {
     label: 'Pest & Safety',
@@ -59,11 +59,11 @@ export const CATEGORY_GROUPS: { label: string; categories: string[] }[] = [
   },
   {
     label: 'Cleaning & Turnover',
-    categories: ['Move-Out Cleaning', 'Turnover or Make-Ready'],
+    categories: ['Cleaning', 'Move-Out Cleaning', 'Move-In or Move-Out Inspection', 'Turnover or Make-Ready'],
   },
   {
     label: 'General',
-    categories: ['General Handyman', 'Something Else'],
+    categories: ['Renovation', 'Warranty Item', 'Common Area Issue', 'General Handyman', 'Something Else'],
   },
 ]
 

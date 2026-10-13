@@ -89,9 +89,15 @@ const CATEGORY_TO_LICENSE_TRADE: Record<string, string> = {
   'Roof or Gutter Leak': T.structural,
   'Siding': T.structural,
   'Deck or Patio': T.structural,
+  'Fireplace': T.structural,
+  'Hardware': T.structural,
+  'Blinds': T.structural,
   'Pest or Rodent Control': T.pest,
+  'Cleaning': T.turnover,
   'Move-Out Cleaning': T.turnover,
+  'Move-In or Move-Out Inspection': T.turnover,
   'Turnover or Make-Ready': T.turnover,
+  'Renovation': T.structural,
   'General Handyman': T.structural,
   // An already-active contractor's service_categories may still hold the
   // old broad values (the list changing never rewrites stored data — see

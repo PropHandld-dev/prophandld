@@ -14,7 +14,7 @@ import { BottomTabBar } from '@/components/BottomTabBar'
 import { Skeleton } from '@/components/Skeleton'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
-import { WrenchIcon, CheckCircleIcon, MessageCircleIcon } from '@/components/icons'
+import { WrenchIcon, CheckCircleIcon, MessageCircleIcon, MapPinIcon } from '@/components/icons'
 import { AddressLink } from '@/components/AddressLink'
 import { StreetView } from '@/components/StreetView'
 import { RaiseDisputeButton } from '@/components/RaiseDisputeButton'
@@ -550,6 +550,12 @@ export default function ContractorJobDetailPage() {
             )}
             {' '}· Unit {job.units?.unit_number}
           </p>
+          {job.location && (
+            <p className="text-white/50 text-xs mt-1 flex items-center gap-1">
+              <MapPinIcon className="w-3 h-3" />
+              {job.location}
+            </p>
+          )}
           {myBid?.status === 'accepted' && job.units?.properties?.address && (
             <div className="mt-3">
               <StreetView address={job.units.properties.address} city={job.units.properties.city} />

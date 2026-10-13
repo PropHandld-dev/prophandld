@@ -12,7 +12,7 @@ import { BottomTabBar } from '@/components/BottomTabBar'
 import { Skeleton } from '@/components/Skeleton'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
-import { CheckCircleIcon, MessageCircleIcon } from '@/components/icons'
+import { CheckCircleIcon, MessageCircleIcon, MapPinIcon } from '@/components/icons'
 import { RaiseDisputeButton } from '@/components/RaiseDisputeButton'
 import { UnreadDot } from '@/components/UnreadDot'
 import { JobChatCard, scrollToChat } from '@/components/JobChatCard'
@@ -314,6 +314,12 @@ export default function RenterJobDetailPage() {
               </span>
             )}
           </div>
+          {job.location && (
+            <p className="text-white/50 text-xs mt-1 flex items-center gap-1">
+              <MapPinIcon className="w-3 h-3" />
+              {job.location}
+            </p>
+          )}
         </div>
 
         <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
