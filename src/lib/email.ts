@@ -242,6 +242,49 @@ function baseTemplate({
 </html>`
 }
 
+// Replaces Supabase's own default, unstyled password-reset email (plain
+// "Reset your password" + one link, no Prophandld branding at all — see
+// the screenshot that prompted this). Carries both a typed code and a
+// fallback link, same two-ways-in pattern already proven reliable for
+// signup confirmation: a code is immune to whatever caused real, repeated
+// reports of the link alone failing on the first click (most plausibly an
+// email client's own link-prescanning silently consuming a single-use
+// link before a human ever clicks it — a typed code has nothing for a
+// scanner to consume). code is generateLink's own email_otp, the same
+// value tied to the same recovery token the link uses, not a second
+// independent secret.
+export async function sendPasswordResetEmail({
+  to,
+  code,
+  actionLink,
+  lang = 'en',
+}: {
+  to: string
+  code: string
+  actionLink: string
+  lang?: Lang
+}) {
+  const codeBlockHtml = `<div style="text-align:center;margin:4px 0 22px;"><span style="display:inline-block;background:#0C1A2E;border:1px solid #1B2F48;border-radius:14px;padding:16px 28px;color:#ffffff;font-size:28px;font-weight:700;letter-spacing:0.35em;font-family:ui-monospace,'SF Mono',Menlo,monospace;">${escapeHtml(code)}</span></div>`
+  const html = lang === 'es' ? baseTemplate({
+    lang,
+    eyebrow: 'Restablecer contraseña',
+    heading: 'Restablece tu contraseña',
+    bodyHtml: `Recibimos una solicitud para restablecer tu contraseña. Ingresa este código donde lo pide la app, o usa el botón de abajo.${codeBlockHtml}Si no solicitaste esto, puedes ignorar este correo con tranquilidad — tu contraseña no cambiará.`,
+    ctaLabel: 'Restablecer contraseña',
+    ctaUrl: actionLink,
+    footerText: 'Recibes esto porque se solicitó un restablecimiento de contraseña para tu cuenta de Prophandld.',
+  }) : baseTemplate({
+    lang,
+    eyebrow: 'Password reset',
+    heading: 'Reset your password',
+    bodyHtml: `We received a request to reset your password. Enter this code wherever the app asks for it, or use the button below.${codeBlockHtml}If you didn't request this, you can safely ignore this email — your password won't change.`,
+    ctaLabel: 'Reset password',
+    ctaUrl: actionLink,
+    footerText: "You're receiving this because a password reset was requested for your Prophandld account.",
+  })
+  return sendEmail({ to, subject: lang === 'es' ? 'Restablece tu contraseña' : 'Reset your password', html })
+}
+
 // Sent before the recipient has an account, so there's no saved language
 // preference to read yet — English only, by design, not an oversight.
 export async function sendRenterInviteEmail({
