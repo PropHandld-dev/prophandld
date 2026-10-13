@@ -812,6 +812,7 @@ const STRINGS = {
   sentLabel: { en: 'Sent', es: 'Enviado' },
   seeTranslationBtn: { en: 'See translation', es: 'Ver traducción' },
   translatingDots: { en: 'Translating…', es: 'Traduciendo…' },
+  couldNotTranslateMessage: { en: "Couldn't translate this message. Try again later.", es: 'No se pudo traducir este mensaje. Intenta más tarde.' },
   confirmThisTime: { en: 'Confirm this time', es: 'Confirmar este horario' },
   proposeATimeChat: { en: 'Propose a time', es: 'Proponer un horario' },
   sendProposal: { en: 'Send proposal', es: 'Enviar propuesta' },

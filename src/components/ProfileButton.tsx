@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { BuildingIcon, HomeIcon, WrenchIcon, ChevronDownIcon, PlusIcon, CheckCircleIcon } from '@/components/icons'
+import { BuildingIcon, HomeIcon, WrenchIcon, ChevronDownIcon, CheckCircleIcon } from '@/components/icons'
 import { applySessionToken } from '@/lib/profileSwitch'
 import { useLanguage, t, roleLabel } from '@/lib/i18n'
 import type { Role } from '@/lib/linkedProfiles'
@@ -16,20 +16,24 @@ const ROLE_ICON: Record<Role, (p: { className?: string }) => React.ReactElement>
 }
 
 // Top-right corner of the dashboards: the signed-in person's initials (and
-// name on wider screens). Doubles as the profile switcher — a person with
-// more than one linked profile (landlord + contractor, say) gets a
-// dropdown instead of a plain link straight to /profile, so switching is
-// one tap from wherever they already are, not a detour through Profile
-// settings first.
+// name on wider screens). A person with linked profiles gets a dropdown to
+// switch from wherever they already are; everyone else (the large
+// majority — most people only ever have the one role) gets exactly what
+// this was before linked profiles existed: a plain link straight to
+// /profile, no popup, nothing to dismiss.
+//
+// "Add a profile" deliberately does NOT live here anymore — direct
+// feedback that surfacing it in the one menu everyone opens constantly
+// (even people who will never use it) was more exposure than a genuinely
+// uncommon action warrants. It's still fully available, just moved to
+// LinkedProfilesSection on the Profile page — the right home for a
+// deliberate, infrequent action, not a quick-access corner menu.
 export function ProfileButton({ name, currentRole }: { name?: string | null; currentRole?: Role }) {
   const lang = useLanguage()
   const [open, setOpen] = useState(false)
   const [linked, setLinked] = useState<LinkedProfile[]>([])
-  const [availableRoles, setAvailableRoles] = useState<Role[]>([])
   const [loaded, setLoaded] = useState(false)
   const [switchingId, setSwitchingId] = useState<string | null>(null)
-  const [confirmingRole, setConfirmingRole] = useState<Role | null>(null)
-  const [creating, setCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -52,7 +56,6 @@ export function ProfileButton({ name, currentRole }: { name?: string | null; cur
       .then((res) => res.json())
       .then((data) => {
         setLinked(data.linked || [])
-        setAvailableRoles(data.availableRoles || [])
         setLoaded(true)
       })
       .catch(() => setLoaded(true))
@@ -63,7 +66,6 @@ export function ProfileButton({ name, currentRole }: { name?: string | null; cur
     const handleClickOutside = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setOpen(false)
-        setConfirmingRole(null)
         setError(null)
       }
     }
@@ -93,30 +95,33 @@ export function ProfileButton({ name, currentRole }: { name?: string | null; cur
     }
   }
 
-  const handleCreate = async (newRole: Role) => {
-    setCreating(true)
-    setError(null)
-    try {
-      const res = await fetch('/api/profiles/add', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ newRole }),
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        setError(data.error || t('couldNotCreateProfile', lang))
-        setCreating(false)
-        return
-      }
-      if (data.tokenHash) {
-        await applySessionToken(data.tokenHash, newRole)
-      } else {
-        window.location.href = '/profile'
-      }
-    } catch {
-      setError(t('couldNotCreateProfile', lang))
-      setCreating(false)
-    }
+  const avatar = (
+    <span className="relative">
+      <span className="w-8 h-8 rounded-full bg-gradient-to-br from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-bold flex items-center justify-center ring-1 ring-white/10 transition group-hover:ring-[#12A5A9]/60">
+        {initials}
+      </span>
+      {loaded && linked.length > 0 && (
+        <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-[#0C1A2E] flex items-center justify-center">
+          <span className="w-2.5 h-2.5 rounded-full bg-[#12A5A9] ring-1 ring-[#0C1A2E]" />
+        </span>
+      )}
+    </span>
+  )
+
+  // No linked profiles (or still loading — defaults to the common case so
+  // this never flashes a dropdown open for most people) — the plain,
+  // pre-feature link. Nothing to switch, so nothing to ask about.
+  if (loaded && linked.length === 0) {
+    return (
+      <Link
+        href="/profile"
+        aria-label="Your profile"
+        className="group flex items-center gap-1.5 rounded-full transition active:scale-[0.97] motion-reduce:active:scale-100"
+      >
+        {label && <span className="hidden sm:block text-white/60 text-sm transition group-hover:text-white">{label}</span>}
+        {avatar}
+      </Link>
+    )
   }
 
   return (
@@ -128,22 +133,7 @@ export function ProfileButton({ name, currentRole }: { name?: string | null; cur
         className="group flex items-center gap-1.5 rounded-full transition active:scale-[0.97] motion-reduce:active:scale-100"
       >
         {label && <span className="hidden sm:block text-white/60 text-sm transition group-hover:text-white">{label}</span>}
-        <span className="relative">
-          <span className="w-8 h-8 rounded-full bg-gradient-to-br from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-bold flex items-center justify-center ring-1 ring-white/10 transition group-hover:ring-[#12A5A9]/60">
-            {initials}
-          </span>
-          {/* Visible before ever opening the menu — a person with more than
-              one linked profile has a real reason to open this button
-              beyond "sign out," and nothing on the collapsed button itself
-              used to hint that. Loads lazily with the rest of the list
-              (not blocking first paint), so it appears a beat after the
-              page does rather than holding up the nav bar. */}
-          {loaded && linked.length > 0 && (
-            <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-[#0C1A2E] flex items-center justify-center">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#12A5A9] ring-1 ring-[#0C1A2E]" />
-            </span>
-          )}
-        </span>
+        {avatar}
         <ChevronDownIcon className={`w-3.5 h-3.5 text-white/40 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
 
@@ -154,88 +144,40 @@ export function ProfileButton({ name, currentRole }: { name?: string | null; cur
               <div className="h-10 bg-white/5 rounded-xl animate-pulse" />
               <div className="h-10 bg-white/5 rounded-xl animate-pulse" />
             </div>
-          ) : confirmingRole ? (
-            <div className="p-4">
-              <h4 className="text-white font-semibold text-sm mb-1.5">
-                {t('createProfileConfirmTitle', lang).replace('{role}', roleLabel(confirmingRole, lang))}
-              </h4>
-              <p className="text-white/50 text-xs leading-relaxed mb-3">
-                {t('createProfileConfirmBody', lang).replace('{role}', roleLabel(confirmingRole, lang))}
-              </p>
-              {error && <p className="text-red-400 text-xs mb-2">{error}</p>}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => { setConfirmingRole(null); setError(null) }}
-                  disabled={creating}
-                  className="flex-1 bg-white/5 border border-white/10 text-white/60 text-xs font-semibold py-2.5 rounded-xl hover:bg-white/8 transition disabled:opacity-40"
-                >
-                  {t('cancel', lang)}
-                </button>
-                <button
-                  onClick={() => handleCreate(confirmingRole)}
-                  disabled={creating}
-                  className="flex-[1.5] bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
-                >
-                  {creating ? t('creatingProfileDots', lang) : t('createProfileBtn', lang)}
-                </button>
-              </div>
-            </div>
           ) : (
             <>
-              {(linked.length > 0 || currentRole) && (
-                <div className="p-2 border-b border-white/8">
-                  <p className="text-white/40 text-[10px] font-semibold uppercase tracking-wide px-2.5 pt-1.5 pb-1">{t('yourProfiles', lang)}</p>
-                  {/* Only shown once there's actually more than one profile
-                      to explain — someone with just the one gets the plain,
-                      uncluttered list they had before. */}
-                  {linked.length > 0 && (
-                    <p className="text-white/40 text-[11px] leading-snug px-2.5 pb-2">{t('profileSwitcherExplainer', lang)}</p>
-                  )}
-                  {currentRole && (
-                    <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl">
-                      {(() => { const Icon = ROLE_ICON[currentRole]; return <Icon className="w-4 h-4 text-[#12A5A9] shrink-0" /> })()}
-                      <span className="text-white text-sm font-medium flex-1">{roleLabel(currentRole, lang)}</span>
-                      <span className="inline-flex items-center gap-1 text-[#12A5A9] text-[11px] font-semibold bg-[#12A5A9]/10 rounded-full px-2 py-0.5">
-                        <CheckCircleIcon className="w-3 h-3" />
-                        {t('currentProfileBadge', lang)}
-                      </span>
-                    </div>
-                  )}
-                  {linked.map((p) => {
-                    const Icon = ROLE_ICON[p.role]
-                    const switching = switchingId === p.id
-                    return (
-                      <button
-                        key={p.id}
-                        onClick={() => handleSwitch(p.id)}
-                        disabled={switching}
-                        className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl hover:bg-white/5 transition disabled:opacity-50 text-left"
-                      >
-                        <Icon className="w-4 h-4 text-white/50 shrink-0" />
-                        <span className="text-white/80 text-sm flex-1">{roleLabel(p.role, lang)}</span>
-                        <span className="inline-flex items-center text-[#12A5A9] text-xs font-semibold bg-[#12A5A9]/10 rounded-full px-2.5 py-1">
-                          {switching ? t('switchingDots', lang) : t('switchBtn', lang)}
-                        </span>
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
-
-              {availableRoles.length > 0 && (
-                <div className="p-2 border-b border-white/8">
-                  {availableRoles.map((r) => (
+              <div className="p-2 border-b border-white/8">
+                <p className="text-white/40 text-[10px] font-semibold uppercase tracking-wide px-2.5 pt-1.5 pb-1">{t('yourProfiles', lang)}</p>
+                <p className="text-white/40 text-[11px] leading-snug px-2.5 pb-2">{t('profileSwitcherExplainer', lang)}</p>
+                {currentRole && (
+                  <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl">
+                    {(() => { const Icon = ROLE_ICON[currentRole]; return <Icon className="w-4 h-4 text-[#12A5A9] shrink-0" /> })()}
+                    <span className="text-white text-sm font-medium flex-1">{roleLabel(currentRole, lang)}</span>
+                    <span className="inline-flex items-center gap-1 text-[#12A5A9] text-[11px] font-semibold bg-[#12A5A9]/10 rounded-full px-2 py-0.5">
+                      <CheckCircleIcon className="w-3 h-3" />
+                      {t('currentProfileBadge', lang)}
+                    </span>
+                  </div>
+                )}
+                {linked.map((p) => {
+                  const Icon = ROLE_ICON[p.role]
+                  const switching = switchingId === p.id
+                  return (
                     <button
-                      key={r}
-                      onClick={() => setConfirmingRole(r)}
-                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl hover:bg-white/5 transition text-left"
+                      key={p.id}
+                      onClick={() => handleSwitch(p.id)}
+                      disabled={switching}
+                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl hover:bg-white/5 transition disabled:opacity-50 text-left"
                     >
-                      <PlusIcon className="w-4 h-4 text-white/40 shrink-0" />
-                      <span className="text-white/70 text-sm">{t('addProfileRole', lang)} {roleLabel(r, lang)}</span>
+                      <Icon className="w-4 h-4 text-white/50 shrink-0" />
+                      <span className="text-white/80 text-sm flex-1">{roleLabel(p.role, lang)}</span>
+                      <span className="inline-flex items-center text-[#12A5A9] text-xs font-semibold bg-[#12A5A9]/10 rounded-full px-2.5 py-1">
+                        {switching ? t('switchingDots', lang) : t('switchBtn', lang)}
+                      </span>
                     </button>
-                  ))}
-                </div>
-              )}
+                  )
+                })}
+              </div>
 
               {error && <p className="text-red-400 text-xs px-4 py-2">{error}</p>}
 

@@ -2292,8 +2292,24 @@ export async function sendRentDueEmail({ to, landlordName, unitLabels, lang = 'e
   return sendEmail({ to, subject: lang === 'es' ? `Renta vence: ${monthLabel}` : `Rent due: ${monthLabel}`, html })
 }
 
-export async function sendRentDueRenterEmail({ to, unitLabel, amount, lang = 'en' }: { to: string; unitLabel: string; amount: number; lang?: Lang }) {
-  const monthLabel = new Date().toLocaleDateString(lang === 'es' ? 'es-ES' : undefined, { month: 'long', year: 'numeric' })
+export async function sendRentDueRenterEmail({
+  to,
+  unitLabel,
+  amount,
+  monthDate,
+  lang = 'en',
+}: {
+  to: string
+  unitLabel: string
+  amount: number
+  // Defaults to today's month — correct for the cron's own use (it only
+  // ever creates the current month's row), but a landlord manually adding
+  // a charge for a different month (past or future) needs to say so, not
+  // silently claim it's for "this month" when it isn't.
+  monthDate?: Date
+  lang?: Lang
+}) {
+  const monthLabel = (monthDate || new Date()).toLocaleDateString(lang === 'es' ? 'es-ES' : undefined, { month: 'long', year: 'numeric' })
   const html = lang === 'es' ? baseTemplate({
     lang,
     eyebrow: 'Pago',

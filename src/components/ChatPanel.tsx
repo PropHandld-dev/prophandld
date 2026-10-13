@@ -89,12 +89,17 @@ export function ChatPanel({
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setTranslations((prev) => ({ ...prev, [messageId]: { loading: false, error: data.error || 'Could not translate this message' } }))
+        // The server's own error text (e.g. "Translation is not configured
+        // yet") is a developer-facing fact about env var setup, not
+        // something a renter/landlord/contractor can act on — always show
+        // the same plain, translated message instead, regardless of which
+        // specific reason the server gave.
+        setTranslations((prev) => ({ ...prev, [messageId]: { loading: false, error: t('couldNotTranslateMessage', lang) } }))
         return
       }
       setTranslations((prev) => ({ ...prev, [messageId]: { loading: false, text: data.translated } }))
     } catch {
-      setTranslations((prev) => ({ ...prev, [messageId]: { loading: false, error: 'Could not translate this message' } }))
+      setTranslations((prev) => ({ ...prev, [messageId]: { loading: false, error: t('couldNotTranslateMessage', lang) } }))
     }
   }
   const [scheduleDate, setScheduleDate] = useState('')

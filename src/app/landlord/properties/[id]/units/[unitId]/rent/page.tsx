@@ -349,11 +349,15 @@ export default function UnitRentPage() {
     setSavingId('add')
     setError(null)
 
-    const { error: insertError } = await supabase.from('rent_payments').insert({
-      tenancy_id: tenancy.id,
-      month: `${addForm.month}-01`,
-      expected_amount: parseFloat(addForm.expected_amount),
-    })
+    const { data: inserted, error: insertError } = await supabase
+      .from('rent_payments')
+      .insert({
+        tenancy_id: tenancy.id,
+        month: `${addForm.month}-01`,
+        expected_amount: parseFloat(addForm.expected_amount),
+      })
+      .select('id')
+      .single()
 
     if (insertError) {
       console.error('Error adding rent entry:', insertError)
@@ -366,6 +370,16 @@ export default function UnitRentPage() {
     setShowAddMonth(false)
     await loadPayments(tenancy.id)
     setSavingId(null)
+
+    // Previously notified no one — confirmed gap, see month-added-notify's
+    // own comment for why the daily cron doesn't catch this either.
+    if (inserted?.id) {
+      fetch('/api/rent/month-added-notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rentPaymentId: inserted.id }),
+      }).catch((err) => console.error('Error notifying renter of new rent entry:', err))
+    }
   }
 
   const handleDelete = async (paymentId: string) => {
