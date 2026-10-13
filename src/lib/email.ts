@@ -264,7 +264,12 @@ export async function sendPasswordResetEmail({
   actionLink: string
   lang?: Lang
 }) {
-  const codeBlockHtml = `<div style="text-align:center;margin:4px 0 22px;"><span style="display:inline-block;background:#0C1A2E;border:1px solid #1B2F48;border-radius:14px;padding:16px 28px;color:#ffffff;font-size:28px;font-weight:700;letter-spacing:0.35em;font-family:ui-monospace,'SF Mono',Menlo,monospace;">${escapeHtml(code)}</span></div>`
+  // Plain selectable text, not an image — but the original 0.35em
+  // letter-spacing (purely cosmetic, same digits either way) made it
+  // genuinely hard to tap-select and copy on mobile mail apps, confirmed
+  // by a real report. Pulled back to a much smaller gap, still visually
+  // distinct as a "code" without fighting text selection.
+  const codeBlockHtml = `<div style="text-align:center;margin:4px 0 22px;"><span style="display:inline-block;background:#0C1A2E;border:1px solid #1B2F48;border-radius:14px;padding:16px 28px;color:#ffffff;font-size:28px;font-weight:700;letter-spacing:0.08em;font-family:ui-monospace,'SF Mono',Menlo,monospace;user-select:all;-webkit-user-select:all;">${escapeHtml(code)}</span></div>`
   const html = lang === 'es' ? baseTemplate({
     lang,
     eyebrow: 'Restablecer contraseña',
