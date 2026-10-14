@@ -287,9 +287,22 @@ function LandlordJobsList() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t('searchJobsPlaceholder', lang)}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder-white/40 focus:outline-none focus:border-[#12A5A9] transition mb-6"
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder-white/40 focus:outline-none focus:border-[#12A5A9] transition mb-3"
           />
         )}
+
+        {/* Deliberately not a card, not dismissible, not gated on anything —
+            the dashboard's InviteContractorCard is the loud version of this
+            pitch and can be hidden forever per device; this is the quiet
+            version that's always reachable from wherever a landlord actually
+            manages jobs, so dismissing the dashboard card never costs them
+            the feature itself, just that one shortcut. */}
+        <Link
+          href="/landlord/contractors/invite"
+          className="block text-white/40 hover:text-[#12A5A9] text-xs mb-6 transition"
+        >
+          {t('jobsListInviteLine', lang)}
+        </Link>
 
         {error && (
           <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm mb-6">
