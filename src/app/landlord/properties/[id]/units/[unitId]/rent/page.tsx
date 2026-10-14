@@ -37,6 +37,15 @@ export default function UnitRentPage() {
   const [uploadingWaterBillId, setUploadingWaterBillId] = useState<string | null>(null)
   const [showAddMonth, setShowAddMonth] = useState(false)
   const [addForm, setAddForm] = useState({ month: '', expected_amount: '' })
+  // A ref, not state: two clicks dispatched in the same tick (a fast real
+  // double-click, or a double-tap on mobile) can both read savingId as
+  // still-null before React's first setSavingId() re-render lands, so the
+  // disabled={savingId === payment.id} guard alone isn't airtight. A ref
+  // updates synchronously, closing that gap. Matters here specifically
+  // because mark-received-notify (unlike the Stripe/Dwolla sync path) has
+  // no server-side dedup of its own — a second call would email the renter
+  // "rent marked as paid" twice for one real event.
+  const markReceivedInFlightRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
     const init = async () => {
@@ -228,6 +237,8 @@ export default function UnitRentPage() {
   }
 
   const handleMarkReceived = async (payment: any, amount?: number) => {
+    if (markReceivedInFlightRef.current.has(payment.id)) return
+    markReceivedInFlightRef.current.add(payment.id)
     setSavingId(payment.id)
     setError(null)
 
@@ -243,6 +254,7 @@ export default function UnitRentPage() {
       console.error('Error marking rent received:', updateError)
       setError(t('couldNotSaveTryAgain', lang))
       setSavingId(null)
+      markReceivedInFlightRef.current.delete(payment.id)
       return
     }
 
@@ -250,6 +262,7 @@ export default function UnitRentPage() {
     setAdjustAmount('')
     await loadPayments(payment.tenancy_id)
     setSavingId(null)
+    markReceivedInFlightRef.current.delete(payment.id)
 
     fetch('/api/rent/mark-received-notify', {
       method: 'POST',
