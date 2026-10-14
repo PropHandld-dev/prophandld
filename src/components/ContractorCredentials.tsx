@@ -161,6 +161,7 @@ export function ContractorCredentials({ userId }: { userId: string }) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ requirementId: req.id }),
+      keepalive: true,
     }).catch(() => {})
 
     setOpenId(null)

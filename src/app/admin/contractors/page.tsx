@@ -381,6 +381,7 @@ export default function AdminContractorsPage() {
         approved: status === 'verified',
         notes: notes[id] || null,
       }),
+      keepalive: true,
     }).catch((err) => console.error('Failed to send verification decision email:', err))
 
     await load()
@@ -420,6 +421,7 @@ export default function AdminContractorsPage() {
         approved: status === 'verified',
         notes: [requirementName, notes[row.id]].filter(Boolean).join(': '),
       }),
+      keepalive: true,
     }).catch((err) => console.error('Failed to send verification decision email:', err))
 
     await load()

@@ -131,6 +131,7 @@ export default function NewTenancyPage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ inviteId: invite.id }),
+      keepalive: true,
     }).catch((err) => console.error('invite-renter fetch failed:', err))
 
     setInviteSent(true)

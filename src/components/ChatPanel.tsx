@@ -263,6 +263,7 @@ export function ChatPanel({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ messageId: inserted.id }),
+          keepalive: true,
         }).catch((err) => console.error('Failed to send chat notification:', err))
       }
     }
@@ -283,6 +284,7 @@ export function ChatPanel({
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ threadId, text, kind }),
+      keepalive: true,
     }).catch((err) => console.error('Failed to send schedule notification email:', err))
   }
 

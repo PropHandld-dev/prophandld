@@ -141,6 +141,7 @@ export default function NewLandlordJobPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ threadId: nudgeThreadId, jobId: jobData.id }),
+        keepalive: true,
       }).catch((err) => console.error('Failed to send job invite email:', err))
       router.push(`/landlord/messages/${nudgeThreadId}`)
       return

@@ -255,6 +255,7 @@ export default function UnitRentPage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ rentPaymentId: payment.id }),
+      keepalive: true,
     }).catch((err) => console.error('Error notifying renter of marked-received rent:', err))
   }
 
@@ -378,6 +379,7 @@ export default function UnitRentPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rentPaymentId: inserted.id }),
+        keepalive: true,
       }).catch((err) => console.error('Error notifying renter of new rent entry:', err))
     }
   }

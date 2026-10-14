@@ -130,6 +130,7 @@ export function ReviewForm({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ jobId, contractorUserId, averageRating }),
+        keepalive: true,
       }).catch((err) => console.error('Error notifying contractor of review:', err))
     }
 
