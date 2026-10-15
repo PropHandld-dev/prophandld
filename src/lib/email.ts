@@ -678,6 +678,66 @@ export async function sendCredentialExpiryEmail({
   })
 }
 
+export type ComplianceAutoReminderItem = { name: string; expiryDate: string; expired: boolean }
+
+// The automated twin of sendPropertyComplianceReminderEmail further down
+// (that one is admin's own manual "Send reminder" click; this is the
+// landlord's own reminder_days threshold firing on its own via the cron).
+// Same name-collision-avoidance reasoning as sendComplianceReminderEmail's
+// comment above this one.
+export async function sendPropertyComplianceAutoReminderEmail({
+  to,
+  landlordName,
+  propertyAddress,
+  propertyId,
+  items,
+  lang = 'en',
+}: {
+  to: string
+  landlordName: string
+  propertyAddress: string
+  propertyId: string
+  items: ComplianceAutoReminderItem[]
+  lang?: Lang
+}) {
+  const anyExpired = items.some((i) => i.expired)
+  const locale = lang === 'es' ? 'es-ES' : 'en-US'
+  const itemFacts: EmailFact[] = items.map((i) => {
+    const date = new Date(i.expiryDate + 'T00:00:00').toLocaleDateString(locale, { month: 'long', day: 'numeric', year: 'numeric' })
+    const when = lang === 'es'
+      ? (i.expired ? `Venció el ${date}` : `Vence el ${date}`)
+      : (i.expired ? `Expired ${date}` : `Expires ${date}`)
+    return { label: i.name, value: when }
+  })
+  const ctaUrl = `${SITE_URL}/landlord/properties/${propertyId}/compliance`
+  const html = baseTemplate({
+    lang,
+    eyebrow: lang === 'es' ? (anyExpired ? 'Vencido' : 'Vence pronto') : (anyExpired ? 'Expired' : 'Expiring soon'),
+    heading: lang === 'es'
+      ? (anyExpired ? 'Un elemento de cumplimiento venció' : 'Un elemento de cumplimiento vence pronto')
+      : (anyExpired ? 'A compliance item has expired' : 'A compliance item is expiring soon'),
+    bodyHtml: lang === 'es'
+      ? `Hola ${escapeHtml(landlordName)}, en <strong>${escapeHtml(propertyAddress)}</strong>: ${items.length === 1 ? 'esto necesita' : 'estos necesitan'} tu atención.`
+      : `Hi ${escapeHtml(landlordName)}, at <strong>${escapeHtml(propertyAddress)}</strong>: ${items.length === 1 ? 'this needs' : 'these need'} your attention.`,
+    preheader: items.length === 1
+      ? `${items[0].name} — ${lang === 'es' ? (items[0].expired ? 'venció' : 'vence pronto') : (items[0].expired ? 'expired' : 'expiring soon')}`
+      : lang === 'es' ? `${items.length} elementos necesitan atención` : `${items.length} items need attention`,
+    facts: itemFacts,
+    ctaLabel: lang === 'es' ? 'Ver cumplimiento' : 'View compliance',
+    ctaUrl,
+    footerText: lang === 'es'
+      ? 'Enviado porque configuraste un recordatorio para este elemento de cumplimiento.'
+      : 'Sent because you set a reminder for this compliance item.',
+  })
+  return sendEmail({
+    to,
+    subject: lang === 'es'
+      ? (anyExpired ? `Venció: ${items.length === 1 ? items[0].name : `${items.length} elementos`} en ${propertyAddress}` : `Vence pronto: ${items.length === 1 ? items[0].name : `${items.length} elementos`} en ${propertyAddress}`)
+      : (anyExpired ? `Expired: ${items.length === 1 ? items[0].name : `${items.length} items`} at ${propertyAddress}` : `Expiring soon: ${items.length === 1 ? items[0].name : `${items.length} items`} at ${propertyAddress}`),
+    html,
+  })
+}
+
 // Distinct from sendCredentialExpiryEmail above: that one counts down an
 // expiry date on something already submitted. This is for a requirement
 // the admin roster shows as never submitted at all — nothing to count

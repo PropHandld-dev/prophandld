@@ -61,7 +61,17 @@ export default function PropertyCompliancePage() {
     custom_item_type: '',
     expiry_date: '',
     reminder_days: '30',
+    reminder_channels: ['email', 'push'] as string[],
   })
+
+  const toggleReminderChannel = (channel: string) => {
+    setForm((f) => ({
+      ...f,
+      reminder_channels: f.reminder_channels.includes(channel)
+        ? f.reminder_channels.filter((c) => c !== channel)
+        : [...f.reminder_channels, channel],
+    }))
+  }
   const [file, setFile] = useState<File | null>(null)
 
   const [renewingId, setRenewingId] = useState<string | null>(null)
@@ -229,6 +239,7 @@ export default function PropertyCompliancePage() {
         item_type: itemType,
         expiry_date: form.expiry_date || null,
         reminder_days: form.reminder_days ? parseInt(form.reminder_days) : 30,
+        reminder_channels: form.reminder_channels,
       })
       .select()
       .single()
@@ -244,7 +255,7 @@ export default function PropertyCompliancePage() {
       await uploadComplianceDocument(newItem.id, itemType, file)
     }
 
-    setForm({ item_type: '', custom_item_type: '', expiry_date: '', reminder_days: '30' })
+    setForm({ item_type: '', custom_item_type: '', expiry_date: '', reminder_days: '30', reminder_channels: ['email', 'push'] })
     setFile(null)
     await loadItems()
     setSaving(false)
@@ -269,7 +280,7 @@ export default function PropertyCompliancePage() {
 
     const { error: updateError } = await supabase
       .from('compliance_items')
-      .update({ expiry_date: renewDate })
+      .update({ expiry_date: renewDate, last_reminder_status: null })
       .eq('id', itemId)
 
     if (updateError) {
@@ -390,6 +401,23 @@ export default function PropertyCompliancePage() {
                 min={0}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
               />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-white/70 text-sm block mb-1">{t('remindMeViaLabel', lang)}</label>
+            <div className="flex gap-4">
+              {(['email', 'push', 'sms'] as const).map((channel) => (
+                <label key={channel} className="flex items-center gap-1.5 text-white/70 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={form.reminder_channels.includes(channel)}
+                    onChange={() => toggleReminderChannel(channel)}
+                    className="accent-[#12A5A9]"
+                  />
+                  {channel === 'email' ? t('emailLabel', lang) : channel === 'push' ? t('pushLabel', lang) : t('smsLabel', lang)}
+                </label>
+              ))}
             </div>
           </div>
 

@@ -512,6 +512,27 @@ export default function UnitDetailPage() {
     return next
   }
 
+  // A suggestion, never an auto-change: rent never moves without the
+  // landlord explicitly saving the form. Only surfaces within a 30-day
+  // window around the most recent escalation boundary that's already
+  // passed — deliberately not trying to compound across multiple
+  // long-unaccounted cycles, since this has no record of whether an
+  // earlier cycle was already applied through a normal rent edit.
+  const escalationSuggestion = () => {
+    if (!tenancy.escalation_percent || !tenancy.escalation_frequency_months || !tenancy.lease_start || !tenancy.rent_amount) return null
+    const next = nextEscalationDate(tenancy.lease_start, tenancy.escalation_frequency_months)
+    if (!next) return null
+    const previous = new Date(next)
+    previous.setMonth(previous.getMonth() - tenancy.escalation_frequency_months)
+    const start = new Date(tenancy.lease_start + 'T00:00:00')
+    if (previous <= start) return null // no cycle has actually passed yet
+    const daysSince = Math.round((Date.now() - previous.getTime()) / (24 * 60 * 60 * 1000))
+    if (daysSince < 0 || daysSince > 30) return null
+    const suggested = Math.round(Number(tenancy.rent_amount) * (1 + Number(tenancy.escalation_percent) / 100) * 100) / 100
+    if (suggested <= Number(tenancy.rent_amount)) return null
+    return { date: previous, suggested }
+  }
+
   // A DIY job passes through bid_selected/scheduled too (reusing the
   // contractor job's own propose/confirm mechanism), but "Contractor
   // selected" is simply false when there's no contractor on it at all —
@@ -768,6 +789,24 @@ export default function UnitDetailPage() {
                       />
                     </div>
                   </div>
+                  {(() => {
+                    const suggestion = escalationSuggestion()
+                    if (!suggestion) return null
+                    return (
+                      <div className="bg-[#12A5A9]/10 border border-[#12A5A9]/25 rounded-lg px-3 py-2.5 flex items-center justify-between gap-3">
+                        <p className="text-white/70 text-xs">
+                          {t('escalationSuggestionPrefix', lang)} {suggestion.date.toLocaleDateString()} — {t('escalationSuggestionSuggested', lang)} <strong className="text-white">${suggestion.suggested.toFixed(2)}</strong>
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setEditForm((f) => ({ ...f, rent_amount: suggestion.suggested.toString() }))}
+                          className="shrink-0 text-[#12A5A9] text-xs font-semibold hover:underline"
+                        >
+                          {t('useThisAmountBtn', lang)}
+                        </button>
+                      </div>
+                    )
+                  })()}
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="text-white/70 text-xs block mb-1">{t('escalationPercentLabelShort', lang)}</label>
