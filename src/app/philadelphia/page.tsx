@@ -13,9 +13,9 @@ import { ShieldIcon, BellIcon, FileTextIcon, CalendarIcon, CheckCircleIcon, Doll
 
 // A dedicated, dated landing page rather than rewriting the homepage hero
 // around this: the Nov 1, 2026 deadline is Philadelphia-specific and
-// time-limited, and the homepage headline ("mini property management")
-// is a portfolio-size claim meant to stay true in every market Prophandld
-// is ever in. This page carries the urgency; the homepage stays evergreen.
+// time-limited, while the homepage headline stays a general claim meant
+// to hold in every market Prophandld is ever in, at any portfolio size.
+// This page carries the urgency; the homepage stays evergreen.
 // Facts below are the same ones already verified on the homepage's own
 // Safe Healthy Homes Act section (30-day cure window, license suspension
 // blocking rent collection, $1,000-per-violation private right of
@@ -169,7 +169,7 @@ export default function PhiladelphiaLandingPage() {
         <ScrollReveal>
           <h2 className="text-3xl font-bold text-center mb-3 text-white">While you&apos;re here, it runs the rest too</h2>
           <p className="text-white/50 text-center max-w-2xl mx-auto mb-12">
-            Compliance tracking is one part of a full mini property-management app, not a standalone tool you&apos;d bolt onto something else.
+            Compliance tracking is one part of a full property-management platform, not a standalone tool you&apos;d bolt onto something else.
           </p>
           <div className="grid sm:grid-cols-3 gap-6">
             <div className="bg-white/3 border border-white/8 rounded-2xl p-6">

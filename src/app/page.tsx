@@ -79,7 +79,7 @@ const STRUCTURED_DATA = {
       name: 'Prophandld',
       applicationCategory: 'BusinessApplication',
       operatingSystem: 'Web',
-      description: 'Mini property management for landlords who own a few places, not a few hundred. Track properties and tenants, get contractor bids through sealed bidding, and collect rent online.',
+      description: 'The tools a property-management company would use, without hiring one. Track properties and tenants, get contractor bids through sealed bidding, and collect rent online.',
       url: 'https://www.prophandld.com',
       publisher: { '@id': 'https://www.prophandld.com/#organization' },
       areaServed: { '@type': 'City', name: 'Philadelphia' },
@@ -163,10 +163,11 @@ export default function LandingPage() {
           <RotatingHeroPhrase />
         </h1>
         <p className="text-lg text-white/50 max-w-2xl mx-auto mb-10">
-          Prophandld is mini property management built for landlords who own
-          a few places, not a few hundred. Track your properties and tenants,
-          get competitive contractor bids through sealed bidding, and collect
-          rent online, all in one place.
+          Prophandld gives you the tools a property-management company would
+          use, without hiring one — simple enough to start with a couple of
+          units, built to keep up as your portfolio grows. Track your
+          properties and tenants, get competitive contractor bids through
+          sealed bidding, and collect rent online, all in one place.
         </p>
         <div className="flex items-center justify-center gap-4">
           <MagneticLink
@@ -419,7 +420,7 @@ export default function LandingPage() {
               <div className="w-10 h-10 rounded-full bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 border border-[#12A5A9]/30 flex items-center justify-center mb-4">
                 <LockIcon className="w-4 h-4 text-[#12A5A9]" />
               </div>
-              <h3 className="text-white font-semibold mb-1.5">Payments run through Stripe &amp; Dwolla</h3>
+              <h3 className="text-white font-semibold mb-1.5">Payments run through Stripe</h3>
               <p className="text-white/50 text-sm leading-relaxed">
                 The same infrastructure banks and major platforms rely on. Every payment goes straight to the recipient&apos;s bank account, never held by Prophandld. Linking your bank takes seconds, not the multi-day microdeposit wait you&apos;re used to.
               </p>
@@ -501,7 +502,7 @@ export default function LandingPage() {
               { q: 'How does sealed bidding actually work?', a: "Contractors near the property are alerted when you open a job for bids. They submit their price privately and never see what anyone else bid. You choose who you trust, not just the lowest number. No bidding wars, no “my cousin quoted less”." },
               { q: 'Do I have to use a contractor?', a: "No. For anything small enough to handle yourself, mark it fixed directly, no bidding required. Contractors are there for when you want one, not a requirement for every repair." },
               { q: "What if the contractor's price changes?", a: 'If a contractor needs to adjust their price once work has started, they show you the new labor and parts breakdown, and you approve it before they move forward. No surprise invoices.' },
-              { q: 'How do rent and contractor payments work?', a: "Renters pay rent by bank transfer or debit card, not credit cards, so nobody goes into card debt to make rent. Landlords pay contractors when they approve a finished job, by bank transfer or card. Card payments and contractor payouts run through Stripe, rent bank transfers run through Dwolla, and either way the money goes straight to the person being paid, never held by Prophandld." },
+              { q: 'How do rent and contractor payments work?', a: "Renters pay rent by bank transfer or debit card, not credit cards, so nobody goes into card debt to make rent. Landlords pay contractors when they approve a finished job, by bank transfer or card. Everything runs through Stripe, the same infrastructure banks and major platforms rely on, and either way the money goes straight to the person being paid, never held by Prophandld." },
               { q: 'How will I know when something happens?', a: "You get an email for each step: a bid arrives, a time is proposed or confirmed, work is ready for review. Add Prophandld to your phone's Home Screen and you get instant alerts too." },
               { q: 'Do I get receipts and records?', a: 'Yes. Every rent payment and every contractor payment gets a receipt, emailed to you and saved on the job or rent record, so finding one later is a lookup, not a hunt.' },
               { q: 'What if a contractor cancels?', a: "The job reopens for sealed bids, nearby contractors are alerted again, and the landlord and renter are told. Photos, notes, and other bids stay put." },

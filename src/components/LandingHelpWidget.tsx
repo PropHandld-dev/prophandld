@@ -16,7 +16,7 @@ const FAQS: Record<Role, { q: string; a: string }[]> = {
   general: [
     {
       q: 'What is Prophandld?',
-      a: 'Mini property management for landlords who own a few units, not a few hundred, plus the tenants and contractors connected to those properties. One place to track properties, handle maintenance through sealed bidding, and collect rent.',
+      a: 'The tools a property-management company would use, without hiring one — for you and the tenants and contractors connected to your properties. One place to track properties, handle maintenance through sealed bidding, and collect rent, whether you manage a couple of units or a growing portfolio.',
     },
     {
       q: 'How will I know when something happens?',
@@ -60,7 +60,7 @@ const FAQS: Record<Role, { q: string; a: string }[]> = {
   renter: [
     {
       q: 'Is paying rent through Prophandld safe?',
-      a: 'Yes. Debit card payments run through Stripe, and bank transfers run through Dwolla, both the kind of payment infrastructure banks and major platforms rely on. Prophandld never sees or stores your full card or account number. Credit cards aren\'t accepted for rent, on purpose, so you\'re not tempted into card debt to make rent.',
+      a: 'Yes. Both debit card payments and bank transfers run through Stripe, the kind of payment infrastructure banks and major platforms rely on. Prophandld never sees or stores your full card or account number. Credit cards aren\'t accepted for rent, on purpose, so you\'re not tempted into card debt to make rent.',
     },
     {
       q: 'How do I report a maintenance issue?',

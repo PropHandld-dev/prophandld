@@ -13,7 +13,6 @@ import { PasswordInput } from '@/components/PasswordInput'
 import { LogOutIcon } from '@/components/icons'
 import { TABS_BY_ROLE } from '@/lib/navTabs'
 import { StripeConnectCard } from '@/components/StripeConnectCard'
-import { DwollaConnectCard } from '@/components/DwollaConnectCard'
 import { LinkedProfilesSection } from '@/components/LinkedProfilesSection'
 import { BillingSection } from '@/components/BillingSection'
 import { Switch } from '@/components/Switch'
@@ -506,9 +505,6 @@ export default function ProfilePage() {
             <div className="mb-2">
               <h2 className="text-white font-semibold mb-1">{t('getPaidRentTitle', lang)}</h2>
               <p className="text-white/50 text-sm mb-4">{t('getPaidRentSectionIntro', lang)}</p>
-            </div>
-            <div className="mb-4">
-              <DwollaConnectCard />
             </div>
             <div className="mb-6">
               <StripeConnectCard purpose="rent" />

@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 const SITE_TITLE = "Prophandld | Property Management Without the Spreadsheet";
-const SITE_DESCRIPTION = "Prophandld is mini property management for small landlords. Track every property and tenant, get honest contractor bids through sealed bidding, and collect rent, all in one place.";
+const SITE_DESCRIPTION = "Prophandld gives landlords the tools a property-management company would use, without hiring one. Track every property and tenant, get honest contractor bids through sealed bidding, and collect rent, all in one place.";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.prophandld.com"),
