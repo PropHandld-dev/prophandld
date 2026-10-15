@@ -99,25 +99,26 @@ export function TwoFactorAuthCard() {
 
   // Turning off 2FA is exactly the kind of action worth a deliberate
   // re-auth step, not just a dismissible browser confirm() — this is a
-  // security downgrade on the account, so it re-verifies the current
-  // password (via a throwaway signInWithPassword call, not a new session)
-  // before actually unenrolling, same spirit as the payout-change re-auth
-  // elsewhere in the app.
+  // security downgrade on the account. The password check runs through
+  // /api/auth/verify-password rather than calling signInWithPassword
+  // directly here: that call overwrites the browser's own session via
+  // _saveSession, dropping it back to aal1 — which then makes the
+  // unenroll call below fail outright, since unenrolling a verified
+  // factor requires aal2. Routing the check server-side keeps this
+  // session (and its aal2) untouched.
   const handleConfirmDisable = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!factorId || disablePassword.trim().length === 0) return
     setDisabling(true)
     setError(null)
 
-    const { data: userData } = await supabase.auth.getUser()
-    const email = userData?.user?.email
-    if (!email) {
-      setError(t('twoFactorDisableError', lang))
-      setDisabling(false)
-      return
-    }
-    const { error: reauthError } = await supabase.auth.signInWithPassword({ email, password: disablePassword })
-    if (reauthError) {
+    const res = await fetch('/api/auth/verify-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: disablePassword }),
+    })
+    const { valid } = await res.json().catch(() => ({ valid: false }))
+    if (!valid) {
       setError(t('incorrectPasswordTryAgain', lang))
       setDisabling(false)
       return

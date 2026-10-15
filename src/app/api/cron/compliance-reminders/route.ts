@@ -88,6 +88,21 @@ export async function GET(request: NextRequest) {
     for (const u of data || []) people.set(u.id, u)
   }
 
+  // sendPush() is fire-and-forget (used by 15+ call sites that way) and
+  // never signals success — it always resolves undefined, whether it
+  // actually dispatched a payload or silently no-opped (no subscription,
+  // push disabled, etc). Checking its return value can't tell us anything,
+  // so to log an honest "sent" row to notification_log we check for a real
+  // subscription ourselves, up front, same batching as the people lookup.
+  const landlordsWithPush = new Set<string>()
+  for (let i = 0; i < landlordIds.length; i += CHUNK) {
+    const { data } = await admin
+      .from('push_subscriptions')
+      .select('user_id')
+      .in('user_id', landlordIds.slice(i, i + CHUNK))
+    for (const row of data || []) landlordsWithPush.add(row.user_id)
+  }
+
   let remindersSent = 0
   for (const entry of dueByLandlordProperty.values()) {
     const person = people.get(entry.landlordUserId)
@@ -123,15 +138,17 @@ export async function GET(request: NextRequest) {
 
     if (wantsPush) {
       const anyExpired = entry.items.some((i) => i.status === 'expired')
-      const pushResult = await sendPush(entry.landlordUserId, {
+      await sendPush(entry.landlordUserId, {
         title: anyExpired ? 'A compliance item has expired' : 'A compliance item is expiring soon',
         body: entry.items.length === 1 ? `${entry.items[0].name} — ${entry.address}` : `${entry.items.length} items at ${entry.address}`,
         url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/landlord/properties/${entry.propertyId}/compliance`,
-      }).catch((err) => { console.error('cron/compliance-reminders: sendPush failed', { landlordUserId: entry.landlordUserId, err }); return null })
-      sentAny = true
-      // No "delivered"/"opened" signal for push — logged as sent-only, by
-      // design (see 2026-10-15-notification-log.sql's comment on why).
-      if (pushResult !== null) {
+      }).catch((err) => console.error('cron/compliance-reminders: sendPush failed', { landlordUserId: entry.landlordUserId, err }))
+      // Only count/log this as sent when a real subscription exists — no
+      // "delivered"/"opened" signal for push either way (see
+      // 2026-10-15-notification-log.sql), but a landlord with zero
+      // registered devices got nothing, and the admin panel should say so.
+      if (landlordsWithPush.has(entry.landlordUserId)) {
+        sentAny = true
         logRows.push({ notification_type: 'compliance_reminder', channel: 'push', recipient_user_id: entry.landlordUserId, external_id: null, resource_type: 'property_compliance', resource_id: entry.propertyId })
       }
     }

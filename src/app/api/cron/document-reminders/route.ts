@@ -71,6 +71,20 @@ export async function GET(request: NextRequest) {
     })
   )
 
+  // sendPush() is fire-and-forget and never signals success (see the same
+  // check in cron/compliance-reminders) — someone who picked push as their
+  // only channel but has no registered device would otherwise have this
+  // silently marked "sent" and never get a reminder on any channel for
+  // this status transition.
+  const usersWithPush = new Set<string>()
+  for (let i = 0; i < userIds.length; i += CHUNK) {
+    const { data } = await admin
+      .from('push_subscriptions')
+      .select('user_id')
+      .in('user_id', userIds.slice(i, i + CHUNK))
+    for (const row of data || []) usersWithPush.add(row.user_id)
+  }
+
   let remindersSent = 0
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'
 
@@ -107,7 +121,7 @@ export async function GET(request: NextRequest) {
         body: docName,
         url: ctaUrl,
       }).catch((err) => console.error('cron/document-reminders: sendPush failed', { userId: row.user_id, err }))
-      sentAny = true
+      if (usersWithPush.has(row.user_id)) sentAny = true
     }
 
     if (channels.includes('sms') && person.sms_opt_in && person.phone) {
