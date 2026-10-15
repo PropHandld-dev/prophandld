@@ -139,14 +139,22 @@ export default function ForgotPasswordPage() {
             {resendState === 'sent' ? '✓ Sent again' : resendState === 'sending' ? 'Sending...' : "Didn't get either? Resend"}
           </RippleButton>
 
-          <div className="mt-8">
+          <div className="mt-8 space-y-2">
             <button
               type="button"
               onClick={() => { setSent(false); setOtpCode(''); setOtpError(null); setResendState('idle') }}
-              className="text-white/50 text-xs hover:text-white transition"
+              className="block mx-auto text-white/50 text-xs hover:text-white transition"
             >
               Wrong email? Go back
             </button>
+            {/* Shown unconditionally, regardless of whether this email actually
+                has an account — same reason the page never confirms or denies
+                that either way. Without this, someone who genuinely has no
+                account gets stuck here forever: no code ever arrives, and
+                nothing on this screen points them toward signing up instead. */}
+            <Link href="/signup" className="block text-center text-white/50 text-xs hover:text-white transition">
+              Don&apos;t have an account? Create one
+            </Link>
           </div>
         </div>
       </AuthLayout>
