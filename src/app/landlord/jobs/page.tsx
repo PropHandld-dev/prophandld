@@ -299,7 +299,7 @@ function LandlordJobsList() {
             the feature itself, just that one shortcut. */}
         <Link
           href="/landlord/contractors/invite"
-          className="block text-white/40 hover:text-[#12A5A9] text-xs mb-6 transition"
+          className="block text-white/60 hover:text-[#12A5A9] text-sm font-medium mb-6 transition"
         >
           {t('jobsListInviteLine', lang)}
         </Link>
