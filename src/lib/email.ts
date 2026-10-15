@@ -34,6 +34,13 @@ export async function sendEmail({ to, subject, html }: { to: string; subject: st
       to,
       subject,
       html,
+      // Gmail/Yahoo weigh the presence of a List-Unsubscribe header as a
+      // trust signal for a sending domain's reputation, independent of
+      // SPF/DKIM. Points at the existing notification toggle on /profile
+      // rather than a dedicated one-click endpoint (which would need an
+      // unauthenticated POST route of its own) — still a real, working
+      // unsubscribe control, just not RFC 8058 one-click.
+      headers: { 'List-Unsubscribe': `<${SITE_URL}/profile>` },
     })
     if (error) {
       console.error('Resend error sending to', to, 'from', fromAddress, error)
