@@ -15,16 +15,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
 
-  // Debit-card-only now — bank transfer for rent moved to Dwolla (see
-  // /api/dwolla/rent/create-transfer). paymentMethod is still accepted so
-  // an old cached client build calling with 'bank' fails with a clear
-  // message instead of a confusing Stripe error further down.
+  // Reverted to Stripe ACH for bank transfers (was briefly moved to Dwolla —
+  // see /api/dwolla/rent/create-transfer, left in place but unused). Dwolla
+  // declined to quote production pricing for an account at this volume, and
+  // the suggested alternatives didn't clearly beat what's already here, so
+  // this is back to being the only working bank-transfer rail for rent.
   const { rentPaymentId, paymentMethod } = (await request.json()) as { rentPaymentId?: string; paymentMethod?: 'bank' | 'card' }
   if (!rentPaymentId) {
     return NextResponse.json({ error: 'Missing rentPaymentId' }, { status: 400 })
-  }
-  if (paymentMethod === 'bank') {
-    return NextResponse.json({ error: 'Bank transfer for rent has moved — refresh the page and try again.' }, { status: 400 })
   }
 
   const supabaseAdmin = getSupabaseAdmin()
@@ -96,12 +94,14 @@ export async function POST(request: NextRequest) {
   // A card payment adds Stripe's real processing fee on top as a visible
   // surcharge, and application_fee_amount retains exactly that surcharge
   // for Prophandld, so the landlord still receives the full rent amount
-  // and the platform doesn't pay Stripe's cut out of its own pocket.
-  const surcharge = cardProcessingFee(amountDue)
+  // and the platform doesn't pay Stripe's cut out of its own pocket. Bank
+  // transfers are never surcharged — Prophandld absorbs that cost itself,
+  // same as the Dwolla rail was designed to.
+  const surcharge = paymentMethod === 'bank' ? 0 : cardProcessingFee(amountDue)
   const chargeAmount = amountDue + surcharge
   const amountCents = Math.round(chargeAmount * 100)
   const applicationFeeCents = Math.round(surcharge * 100)
-  const paymentMethodTypes = ['card']
+  const paymentMethodTypes = paymentMethod === 'bank' ? ['us_bank_account'] : ['card']
 
   // An earlier attempt may still be open, or a bank payment may be clearing.
   // Ask Stripe first so the renter can neither pay twice nor get stuck

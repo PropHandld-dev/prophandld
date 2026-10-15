@@ -213,28 +213,10 @@ export default function RenterRentPage() {
     setMethodChoicePayment(null)
     setError(null)
 
-    // Bank transfer for rent runs on Dwolla now — a renter links their bank
-    // account once (not per payment, unlike Stripe's card-entry-every-time
-    // Payment Element), then every subsequent "Pay" just starts a transfer
-    // against that same funding source.
-    if (method === 'bank') {
-      setPayingId(payment.id)
-      try {
-        const statusRes = await fetch('/api/dwolla/customer/status')
-        const statusData = await statusRes.json().catch(() => ({}))
-        if (statusData.customerStatus !== 'active' || statusData.fundingSourceStatus !== 'verified') {
-          setBankLinkPayment(payment)
-          setPayingId(null)
-          return
-        }
-        await startDwollaTransfer(payment)
-      } catch {
-        setError(t('couldNotStartPayment', lang))
-        setPayingId(null)
-      }
-      return
-    }
-
+    // Bank transfer runs back through Stripe ACH now (was briefly on
+    // Dwolla — see startDwollaTransfer below, left in place but unused).
+    // Same PaymentElement flow as card, just a different payment_method_types
+    // on the intent (decided server-side), so no special-casing needed here.
     setPayingId(payment.id)
     try {
       const res = await fetch('/api/stripe/rent/create-payment-intent', {
@@ -661,7 +643,7 @@ export default function RenterRentPage() {
               >
                 {t('cancel', lang)}
               </button>
-              <PaymentTrustBadge provider="both" />
+              <PaymentTrustBadge provider="stripe" />
             </div>
           </div>
         )
