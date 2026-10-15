@@ -13,6 +13,8 @@ export default function AdminCompliancePage() {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [sendingId, setSendingId] = useState<string | null>(null)
   const [sentIds, setSentIds] = useState<Set<string>>(new Set())
+  const [logEntries, setLogEntries] = useState<any[] | null>(null)
+  const [logLoading, setLogLoading] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -32,6 +34,14 @@ export default function AdminCompliancePage() {
     }
     load()
   }, [])
+
+  const loadLog = async () => {
+    setLogLoading(true)
+    const res = await fetch('/api/admin/compliance-reminder-log')
+    const data = await res.json()
+    setLogEntries(data.entries || [])
+    setLogLoading(false)
+  }
 
   const sendReminder = async (property: any) => {
     const items = property.items
@@ -145,6 +155,43 @@ export default function AdminCompliancePage() {
                   )
                 })}
               </div>
+            )}
+
+            <div className="flex items-center justify-between mb-3 mt-10">
+              <h2 className="text-white/70 font-semibold text-sm">Automated reminder activity</h2>
+              <RippleButton
+                onClick={loadLog}
+                disabled={logLoading}
+                className="text-xs font-semibold px-3 py-1.5 rounded-full bg-white/5 text-white/70 hover:bg-white/8 transition disabled:opacity-50"
+              >
+                {logLoading ? 'Checking delivery status...' : logEntries === null ? 'Check delivery status' : 'Refresh'}
+              </RippleButton>
+            </div>
+            <p className="text-white/40 text-xs mb-3 max-w-2xl">
+              The last 50 automated compliance reminders (the daily cron, not the manual button above), with live delivery status pulled directly from Resend/Twilio — not our own guess. Push has no reliable &quot;opened&quot; signal, so push rows only ever show &quot;sent.&quot;
+            </p>
+            {logEntries !== null && (
+              logEntries.length === 0 ? (
+                <p className="text-white/50 text-sm mb-8">No automated reminders have gone out yet.</p>
+              ) : (
+                <div className="bg-white/3 border border-white/8 rounded-2xl divide-y divide-white/5 mb-8 overflow-hidden">
+                  {logEntries.map((e) => (
+                    <div key={e.id} className="flex items-center justify-between gap-4 px-5 py-3 text-xs">
+                      <div className="min-w-0">
+                        <p className="text-white truncate">{e.landlordName} · {e.propertyAddress}</p>
+                        <p className="text-white/40">{new Date(e.sentAt).toLocaleString()} · {e.channel.toUpperCase()}</p>
+                      </div>
+                      <span className={
+                        ['delivered', 'sent', 'opened', 'clicked'].includes(e.status) ? 'shrink-0 font-semibold text-[#12A5A9]' :
+                        ['bounced', 'failed', 'undelivered'].includes(e.status) ? 'shrink-0 font-semibold text-red-400' :
+                        'shrink-0 font-semibold text-white/40'
+                      }>
+                        {e.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )
             )}
           </ScrollReveal>
         </>

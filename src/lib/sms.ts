@@ -3,7 +3,7 @@ import { isPreviewDeployment } from '@/lib/env'
 
 let twilioClient: ReturnType<typeof Twilio> | null = null
 
-function getTwilioClient() {
+export function getTwilioClient() {
   if (!twilioClient) {
     // .trim() here for the same reason it's on the Stripe client — a
     // trailing newline/space from pasting into Vercel's env var UI is a

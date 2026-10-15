@@ -28,6 +28,8 @@ import {
 import { CONTRACTOR_TABS } from '@/lib/navTabs'
 import { ProductTour, type TourStep } from '@/components/ProductTour'
 import { useTourVisibility } from '@/lib/useTourVisibility'
+import { useMfaPromptVisibility } from '@/lib/useMfaPromptVisibility'
+import { MfaPromptModal } from '@/components/MfaPromptModal'
 import { useLanguage, t, windowLabel, type Lang } from '@/lib/i18n'
 
 function getTourSteps(lang: Lang): TourStep[] {
@@ -57,6 +59,7 @@ export default function ContractorDashboard() {
   // (hasProfile still resolving) burns the flag before the tour is ever
   // allowed to render, and it silently never shows again this session.
   const tour = useTourVisibility(user?.id ?? null, hasProfile === true)
+  const mfaPrompt = useMfaPromptVisibility(user?.id ?? null)
   const [availableJobs, setAvailableJobs] = useState<any[]>([])
   const [myBids, setMyBids] = useState<any[]>([])
   const [pickTimeAlerts, setPickTimeAlerts] = useState<any[]>([])
@@ -558,6 +561,7 @@ export default function ContractorDashboard() {
 
       <BottomTabBar tabs={CONTRACTOR_TABS} />
       {tour.show && hasProfile && <ProductTour steps={getTourSteps(lang)} onDone={tour.dismiss} onNeverAskAgain={tour.dismissForever} />}
+      {!tour.show && hasProfile && mfaPrompt.show && <MfaPromptModal onDismiss={mfaPrompt.dismiss} />}
     </div>
   )
 }

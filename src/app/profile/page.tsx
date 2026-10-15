@@ -648,7 +648,9 @@ export default function ProfilePage() {
           </div>
         )}
 
-        <TwoFactorAuthCard />
+        <div id="two-factor" className="scroll-mt-6">
+          <TwoFactorAuthCard />
+        </div>
 
         {/* Replay tour */}
         <Link

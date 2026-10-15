@@ -19,6 +19,8 @@ import { getUnreadJobIds } from '@/lib/messageReads'
 import { ShowMoreList } from '@/components/ShowMoreList'
 import { ProductTour, type TourStep } from '@/components/ProductTour'
 import { useTourVisibility } from '@/lib/useTourVisibility'
+import { useMfaPromptVisibility } from '@/lib/useMfaPromptVisibility'
+import { MfaPromptModal } from '@/components/MfaPromptModal'
 import { useLanguage, t, type Lang } from '@/lib/i18n'
 
 function getTourSteps(lang: Lang): TourStep[] {
@@ -38,6 +40,7 @@ export default function RenterDashboard() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const tour = useTourVisibility(user?.id ?? null)
+  const mfaPrompt = useMfaPromptVisibility(user?.id ?? null)
   const [unit, setUnit] = useState<any>(null)
   const [property, setProperty] = useState<any>(null)
   const [contacts, setContacts] = useState<any[]>([])
@@ -398,6 +401,7 @@ export default function RenterDashboard() {
 
       <BottomTabBar tabs={RENTER_TABS} />
       {tour.show && <ProductTour steps={getTourSteps(lang)} onDone={tour.dismiss} onNeverAskAgain={tour.dismissForever} />}
+      {!tour.show && mfaPrompt.show && <MfaPromptModal onDismiss={mfaPrompt.dismiss} />}
     </div>
   )
 }

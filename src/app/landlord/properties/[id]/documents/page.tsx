@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { Skeleton } from '@/components/Skeleton'
 import { FileTextIcon } from '@/components/icons'
+import { DocumentReminderToggle } from '@/components/DocumentReminderToggle'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
@@ -503,6 +504,7 @@ export default function PropertyDocumentsPage() {
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-2 shrink-0">
+                    {doc.expiry_date && userId && <DocumentReminderToggle documentId={doc.id} userId={userId} />}
                     {doc.viewUrl && (
                       <a
                         href={doc.viewUrl}

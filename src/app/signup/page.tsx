@@ -200,6 +200,7 @@ function SignupForm() {
 
     try {
       sessionStorage.setItem('ph_just_signed_in', '1')
+      sessionStorage.setItem('ph_just_signed_up', '1')
     } catch {}
 
     if (role === 'landlord') {
@@ -334,6 +335,7 @@ function SignupForm() {
     // fact instead of a race — set here, read and cleared once on arrival.
     try {
       sessionStorage.setItem('ph_just_activated', '1')
+      sessionStorage.setItem('ph_just_signed_up', '1')
     } catch {}
 
     router.replace('/login')

@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/Skeleton'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { FileTextIcon } from '@/components/icons'
+import { DocumentReminderToggle } from '@/components/DocumentReminderToggle'
 import { RENTER_TABS } from '@/lib/navTabs'
 import { useLanguage, t } from '@/lib/i18n'
 import { validateDocumentFile } from '@/lib/mediaValidation'
@@ -399,6 +400,7 @@ export default function RenterDocumentsPage() {
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-2 shrink-0">
+                    {doc.expiry_date && userId && <DocumentReminderToggle documentId={doc.id} userId={userId} />}
                     {doc.viewUrl && (
                       <a
                         href={doc.viewUrl}

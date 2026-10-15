@@ -11,7 +11,7 @@ export type Lang = 'en' | 'es'
 
 let resendClient: Resend | null = null
 
-function getResendClient() {
+export function getResendClient() {
   if (!resendClient) {
     // .trim() for the same reason as the Stripe and Twilio clients — a
     // trailing newline/space pasted into Vercel's env var UI makes the
@@ -734,6 +734,52 @@ export async function sendPropertyComplianceAutoReminderEmail({
     subject: lang === 'es'
       ? (anyExpired ? `Venció: ${items.length === 1 ? items[0].name : `${items.length} elementos`} en ${propertyAddress}` : `Vence pronto: ${items.length === 1 ? items[0].name : `${items.length} elementos`} en ${propertyAddress}`)
       : (anyExpired ? `Expired: ${items.length === 1 ? items[0].name : `${items.length} items`} at ${propertyAddress}` : `Expiring soon: ${items.length === 1 ? items[0].name : `${items.length} items`} at ${propertyAddress}`),
+    html,
+  })
+}
+
+// A document's own expiry reminder — distinct from the compliance one
+// above (compliance_items vs documents are different tables, and this one
+// is opt-in per viewer via document_reminders rather than landlord-only).
+export async function sendDocumentExpiryReminderEmail({
+  to,
+  recipientName,
+  documentName,
+  expiryDate,
+  ctaUrl,
+  expired,
+  lang = 'en',
+}: {
+  to: string
+  recipientName: string
+  documentName: string
+  expiryDate: string
+  ctaUrl: string
+  expired: boolean
+  lang?: Lang
+}) {
+  const locale = lang === 'es' ? 'es-ES' : 'en-US'
+  const date = new Date(expiryDate + 'T00:00:00').toLocaleDateString(locale, { month: 'long', day: 'numeric', year: 'numeric' })
+  const html = baseTemplate({
+    lang,
+    eyebrow: lang === 'es' ? (expired ? 'Vencido' : 'Vence pronto') : (expired ? 'Expired' : 'Expiring soon'),
+    heading: lang === 'es'
+      ? (expired ? 'Un documento venció' : 'Un documento vence pronto')
+      : (expired ? 'A document has expired' : 'A document is expiring soon'),
+    bodyHtml: lang === 'es'
+      ? `Hola ${escapeHtml(recipientName)}, pediste que te avisáramos sobre <strong>${escapeHtml(documentName)}</strong>.`
+      : `Hi ${escapeHtml(recipientName)}, you asked to be reminded about <strong>${escapeHtml(documentName)}</strong>.`,
+    preheader: expired ? `${lang === 'es' ? 'Venció' : 'Expired'} ${date}` : `${lang === 'es' ? 'Vence' : 'Expires'} ${date}`,
+    facts: [{ label: fl('Expires', lang), value: date }],
+    ctaLabel: lang === 'es' ? 'Ver documento' : 'View document',
+    ctaUrl,
+    footerText: lang === 'es' ? 'Enviado porque configuraste un recordatorio para este documento.' : 'Sent because you set a reminder for this document.',
+  })
+  return sendEmail({
+    to,
+    subject: lang === 'es'
+      ? (expired ? `Venció: ${documentName}` : `Vence pronto: ${documentName}`)
+      : (expired ? `Expired: ${documentName}` : `Expiring soon: ${documentName}`),
     html,
   })
 }

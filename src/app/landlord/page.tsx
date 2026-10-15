@@ -25,6 +25,8 @@ import {
 import { LANDLORD_TABS } from '@/lib/navTabs'
 import { ProductTour, type TourStep } from '@/components/ProductTour'
 import { useTourVisibility } from '@/lib/useTourVisibility'
+import { useMfaPromptVisibility } from '@/lib/useMfaPromptVisibility'
+import { MfaPromptModal } from '@/components/MfaPromptModal'
 import { useLanguage, t, type Lang } from '@/lib/i18n'
 
 function getTourSteps(lang: Lang): TourStep[] {
@@ -46,6 +48,7 @@ export default function LandlordDashboard() {
   const [now] = useState(() => Date.now())
   const [loading, setLoading] = useState(true)
   const tour = useTourVisibility(user?.id ?? null)
+  const mfaPrompt = useMfaPromptVisibility(user?.id ?? null)
   const [stats, setStats] = useState({
     properties: 0,
     totalUnits: 0,
@@ -742,6 +745,7 @@ export default function LandlordDashboard() {
 
       <BottomTabBar tabs={LANDLORD_TABS} />
       {tour.show && <ProductTour steps={getTourSteps(lang)} onDone={tour.dismiss} onNeverAskAgain={tour.dismissForever} />}
+      {!tour.show && mfaPrompt.show && <MfaPromptModal onDismiss={mfaPrompt.dismiss} />}
     </div>
   )
 }

@@ -10,7 +10,7 @@ import { useLanguage, t } from '@/lib/i18n'
 // API, just opt-in and managed from Profile instead of forced at every
 // sign-in. Login-time enforcement lives in src/app/login/page.tsx: it
 // only ever challenges an account that has a verified factor here.
-type Status = 'loading' | 'off' | 'enrolling' | 'on'
+type Status = 'loading' | 'off' | 'enrolling' | 'on' | 'confirming_disable'
 
 export function TwoFactorAuthCard() {
   const lang = useLanguage()
@@ -21,6 +21,7 @@ export function TwoFactorAuthCard() {
   const [code, setCode] = useState('')
   const [verifying, setVerifying] = useState(false)
   const [disabling, setDisabling] = useState(false)
+  const [disablePassword, setDisablePassword] = useState('')
   const [error, setError] = useState<string | null>(null)
 
   const refreshStatus = async () => {
@@ -90,11 +91,38 @@ export function TwoFactorAuthCard() {
     setStatus('on')
   }
 
-  const handleDisable = async () => {
-    if (!factorId) return
-    if (!window.confirm(t('twoFactorDisableConfirm', lang))) return
+  const handleDisableClick = () => {
+    setError(null)
+    setDisablePassword('')
+    setStatus('confirming_disable')
+  }
+
+  // Turning off 2FA is exactly the kind of action worth a deliberate
+  // re-auth step, not just a dismissible browser confirm() — this is a
+  // security downgrade on the account, so it re-verifies the current
+  // password (via a throwaway signInWithPassword call, not a new session)
+  // before actually unenrolling, same spirit as the payout-change re-auth
+  // elsewhere in the app.
+  const handleConfirmDisable = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!factorId || disablePassword.trim().length === 0) return
     setDisabling(true)
     setError(null)
+
+    const { data: userData } = await supabase.auth.getUser()
+    const email = userData?.user?.email
+    if (!email) {
+      setError(t('twoFactorDisableError', lang))
+      setDisabling(false)
+      return
+    }
+    const { error: reauthError } = await supabase.auth.signInWithPassword({ email, password: disablePassword })
+    if (reauthError) {
+      setError(t('incorrectPasswordTryAgain', lang))
+      setDisabling(false)
+      return
+    }
+
     const { error: unenrollError } = await supabase.auth.mfa.unenroll({ factorId })
     if (unenrollError) {
       setError(t('twoFactorDisableError', lang))
@@ -102,6 +130,7 @@ export function TwoFactorAuthCard() {
       return
     }
     setFactorId(null)
+    setDisablePassword('')
     setDisabling(false)
     setStatus('off')
   }
@@ -128,11 +157,39 @@ export function TwoFactorAuthCard() {
         <div className="flex items-center justify-between gap-3">
           <p className="text-[#12A5A9] text-sm font-medium">{t('twoFactorEnabled', lang)}</p>
           <button
-            onClick={handleDisable}
-            disabled={disabling}
-            className="text-white/60 hover:text-red-400 text-xs font-semibold transition disabled:opacity-50"
+            onClick={handleDisableClick}
+            className="text-white/60 hover:text-red-400 text-xs font-semibold transition"
           >
-            {disabling ? t('turningOffDots', lang) : t('turnOffBtn', lang)}
+            {t('turnOffBtn', lang)}
+          </button>
+        </div>
+      )}
+
+      {status === 'confirming_disable' && (
+        <div>
+          <p className="text-yellow-400 text-sm mb-3">{t('twoFactorDisableConfirm', lang)}</p>
+          <form onSubmit={handleConfirmDisable} className="flex gap-2 items-start">
+            <input
+              type="password"
+              autoComplete="current-password"
+              value={disablePassword}
+              onChange={(e) => setDisablePassword(e.target.value)}
+              placeholder={t('currentPasswordPlaceholder', lang)}
+              className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 text-sm focus:outline-none focus:border-[#12A5A9] transition"
+            />
+            <RippleButton
+              type="submit"
+              disabled={disabling || disablePassword.trim().length === 0}
+              className="shrink-0 bg-red-500/15 text-red-400 text-sm font-semibold px-5 py-3 rounded-xl hover:bg-red-500/25 transition disabled:opacity-50"
+            >
+              {disabling ? t('turningOffDots', lang) : t('turnOffBtn', lang)}
+            </RippleButton>
+          </form>
+          <button
+            onClick={() => setStatus('on')}
+            className="text-white/50 hover:text-white text-xs mt-2 transition"
+          >
+            {t('cancel', lang)}
           </button>
         </div>
       )}
