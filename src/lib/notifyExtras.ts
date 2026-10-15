@@ -84,7 +84,12 @@ export async function loadNotifyExtras(admin: SupabaseClient, jobId: string): Pr
       if (accepted) extras.paymentStatus = (accepted.payment_status as any) ?? 'unpaid'
       if (bid.contractor_user_id) {
         const { data: person } = await admin.from('users').select('full_name').eq('id', bid.contractor_user_id).maybeSingle()
-        if (person?.full_name) extras.contractorName = person.full_name
+        // .trim() + collapse: a name with stray whitespace (e.g. a trailing
+        // space from how it was originally entered) was showing up as a
+        // visible double space in every push/SMS/email that mentions this
+        // contractor — fixed once here since every channel reads from this
+        // same NotifyJobInfo.contractorName.
+        if (person?.full_name) extras.contractorName = person.full_name.trim().replace(/\s+/g, ' ')
       }
     }
   } catch (err) {
