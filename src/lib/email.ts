@@ -880,7 +880,9 @@ function pushCopy(type: NotifyType, role: NotifyRole, rawInfo: NotifyJobInfo): {
     case 'job_started':
       return { title: `${who} started the ${cat} work`, body: `${where}.` }
     case 'job_pending_review':
-      return { title: `${who} finished the ${cat} work`, body: `${where}. Review and approve. It auto-approves in 3 days.` }
+      return role === 'renter'
+        ? { title: `${who} finished the ${cat} work`, body: `${where}. Your landlord will review it shortly.` }
+        : { title: `${who} finished the ${cat} work`, body: `${where}. Review and approve. It auto-approves in 3 days.` }
     case 'job_completed': {
       const paidPush = info.paymentStatus === 'paid'
       return {
@@ -1194,6 +1196,35 @@ export function buildNotificationEmail(type: NotifyType, role: NotifyRole, rawIn
         }),
       }
     case 'job_pending_review':
+      if (role === 'renter') {
+        return lang === 'es' ? {
+          subject: `${info.contractorName || 'El contratista'} terminó el trabajo de ${info.category}`,
+          html: baseTemplate({
+            lang,
+            eyebrow: 'Actualización',
+            heading: 'El trabajo está terminado',
+            bodyHtml: `${info.contractorName ? `<strong>${who}</strong> marcó` : 'El contratista marcó'} el trabajo de <strong>${cat}</strong> como completo. Tu propietario lo revisará en breve.`,
+            preheader: `Tu propietario lo revisará en breve.`,
+            stage: 4,
+            facts: compact([info.contractorName ? { label: fl('Contractor', lang), value: info.contractorName } : null, jobFact, whereFact, unitFact]),
+            ctaLabel: 'Ver trabajo',
+            ctaUrl,
+          }),
+        } : {
+          subject: `${info.contractorName || 'Your contractor'} finished the ${info.category} work`,
+          html: baseTemplate({
+            lang,
+            eyebrow: 'Update',
+            heading: 'The work is finished',
+            bodyHtml: `${info.contractorName ? `<strong>${who}</strong> marked` : 'The contractor marked'} the <strong>${cat}</strong> job as complete. Your landlord will review it shortly.`,
+            preheader: `Your landlord will review it shortly.`,
+            stage: 4,
+            facts: compact([info.contractorName ? { label: fl('Contractor', lang), value: info.contractorName } : null, jobFact, whereFact, unitFact]),
+            ctaLabel: 'View job',
+            ctaUrl,
+          }),
+        }
+      }
       return lang === 'es' ? {
         subject: `${info.contractorName || 'Tu contratista'} terminó el trabajo de ${info.category}`,
         html: baseTemplate({
@@ -1572,6 +1603,58 @@ export async function sendRentPaymentReceivedEmail({
     note: 'Your bank sets the final arrival time.',
   })
   return sendEmail({ to, subject: lang === 'es' ? `Renta recibida: $${amount.toFixed(2)} para ${unitLabel}` : `Rent received: $${amount.toFixed(2)} for ${unitLabel}`, html })
+}
+
+// The renter-facing twin of sendRentPaymentReceivedEmail above — the renter
+// previously only got an in-app success screen at the moment of payment and
+// an auto-posted chat message, nothing they could find again in their inbox
+// afterward (for their own records, a dispute, move-out, taxes, etc).
+export async function sendRentPaymentConfirmationEmail({
+  to,
+  renterName,
+  amount,
+  monthLabel,
+  unitLabel,
+  rentPaymentId,
+  lang = 'en',
+}: {
+  to: string
+  renterName: string
+  amount: number
+  monthLabel: string
+  unitLabel: string
+  rentPaymentId: string
+  lang?: Lang
+}) {
+  const receiptUrl = `${SITE_URL}/receipts/rent/${rentPaymentId}`
+  const html = lang === 'es' ? baseTemplate({
+    lang,
+    eyebrow: 'Pago',
+    heading: 'Tu pago de renta se procesó',
+    bodyHtml: `Hola ${escapeHtml(renterName)}, tu pago de renta de <strong>$${amount.toFixed(2)}</strong> por ${escapeHtml(monthLabel)} para <strong>${escapeHtml(unitLabel)}</strong> se procesó correctamente.`,
+    preheader: `${monthLabel} · ${unitLabel}. Recibo guardado en tu cuenta.`,
+    facts: [
+      { label: fl('Amount', lang), value: `$${amount.toFixed(2)}` },
+      { label: fl('For', lang), value: monthLabel },
+      { label: fl('Unit', lang), value: unitLabel },
+    ],
+    ctaLabel: 'Ver recibo',
+    ctaUrl: receiptUrl,
+  }) : baseTemplate({
+    lang,
+    eyebrow: 'Payment',
+    heading: 'Your rent payment went through',
+    bodyHtml: `Hi ${escapeHtml(renterName)}, your rent payment of <strong>$${amount.toFixed(2)}</strong> for ${escapeHtml(monthLabel)} on <strong>${escapeHtml(unitLabel)}</strong> went through successfully.`,
+    preheader: `${monthLabel} · ${unitLabel}. Receipt saved to your account.`,
+    facts: [
+      { label: fl('Amount', lang), value: `$${amount.toFixed(2)}` },
+      { label: fl('For', lang), value: monthLabel },
+      { label: fl('Unit', lang), value: unitLabel },
+    ],
+    ctaLabel: 'View receipt',
+    ctaUrl: receiptUrl,
+  })
+  return sendEmail({ to, subject: lang === 'es' ? `Recibo: $${amount.toFixed(2)} de renta para ${unitLabel}` : `Receipt: $${amount.toFixed(2)} rent for ${unitLabel}`, html })
 }
 
 export async function sendChatMessageEmail({

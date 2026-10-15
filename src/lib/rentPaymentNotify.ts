@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
   sendRentPaymentReceivedEmail,
+  sendRentPaymentConfirmationEmail,
   sendCreditCardRejectedEmail,
   sendBankTransferFailedEmail,
   sendLandlordBankTransferFailedEmail,
@@ -62,6 +63,23 @@ export async function sendRentPaymentReceivedNotifications(
 
   const renterUserId = tenancy?.renter_user_id
   if (renterUserId) {
+    const { data: renter } = await supabaseAdmin
+      .from('users')
+      .select('email, full_name, preferred_language, email_notifications_enabled')
+      .eq('id', renterUserId)
+      .maybeSingle()
+    if (renter?.email && emailAllowed(renter)) {
+      await sendRentPaymentConfirmationEmail({
+        to: renter.email,
+        renterName: renter.full_name || 'there',
+        amount,
+        monthLabel,
+        unitLabel,
+        rentPaymentId,
+        lang: renter.preferred_language === 'es' ? 'es' : 'en',
+      }).catch((err) => console.error('sendRentPaymentReceivedNotifications: renter email failed', err))
+    }
+
     const { data: threadId, error: threadError } = await supabaseAdmin.rpc('start_landlord_tenant_thread', {
       p_landlord_user_id: landlordUserId,
       p_renter_user_id: renterUserId,

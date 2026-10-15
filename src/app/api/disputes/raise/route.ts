@@ -94,6 +94,27 @@ export async function POST(request: NextRequest) {
     jobId,
   }).catch((err) => console.error('disputes/raise: sendEmail failed', err))
 
+  // Confirms the raiser's own submission actually went through — previously
+  // only the other two participants and admin were ever told a dispute
+  // existed; the person who just raised it got nothing to keep beyond the
+  // in-app status change, which they'd miss entirely if they navigated away
+  // right after submitting.
+  const { data: raiserRow } = await supabaseAdmin
+    .from('users')
+    .select('email, preferred_language, email_notifications_enabled')
+    .eq('id', user.id)
+    .maybeSingle()
+  if (raiserRow?.email && emailAllowed(raiserRow)) {
+    await sendDisputeRaisedEmail({
+      to: raiserRow.email,
+      jobCategory: job.category,
+      propertyLabel: property?.address || 'the property',
+      role: raisedByRole,
+      jobId,
+      lang: raiserRow.preferred_language === 'es' ? 'es' : 'en',
+    }).catch((err) => console.error('disputes/raise: raiser confirmation email failed', err))
+  }
+
   // The other two participants used to find out only once the dispute was
   // already resolved (sendDisputeResolvedEmail) — they had no idea one was
   // even open, and no chance to add their own context before a decision
