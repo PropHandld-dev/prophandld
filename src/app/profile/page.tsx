@@ -574,6 +574,11 @@ export default function ProfilePage() {
               <div>
                 <p className="text-white text-sm font-medium">{t('textAlerts', lang)}</p>
                 <p className="text-white/60 text-xs">{t('textAlertsDesc', lang)}</p>
+                <p className="text-white/50 text-xs mt-1">
+                  {form.phone.trim()
+                    ? `${t('textAlertsPhoneLine', lang)} ${form.phone}`
+                    : t('textAlertsNoPhone', lang)}
+                </p>
               </div>
               <Switch checked={smsOptIn} onChange={() => !smsSaving && handleToggleSms()} label={t('textAlerts', lang)} />
             </div>

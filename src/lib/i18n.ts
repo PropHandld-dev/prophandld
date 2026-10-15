@@ -421,6 +421,8 @@ const STRINGS = {
   enableInThisBrowser: { en: 'Enable in this browser', es: 'Activar en este navegador' },
   textAlerts: { en: 'Text alerts', es: 'Alertas por mensaje de texto' },
   textAlertsDesc: { en: 'Urgent updates only: emergencies, scheduling, review needed. Message & data rates may apply. Reply STOP to opt out, HELP for help.', es: 'Solo actualizaciones urgentes: emergencias, horarios, revisiones pendientes. Pueden aplicar tarifas de mensajes y datos. Responde STOP para cancelar, HELP para ayuda.' },
+  textAlertsPhoneLine: { en: 'Texts go to', es: 'Los mensajes de texto se envían a' },
+  textAlertsNoPhone: { en: 'Add a phone number above to turn this on.', es: 'Agrega un número de teléfono arriba para activar esto.' },
   notifPrefFootnote: { en: "Some emails always go out regardless of this setting: your welcome email, invites, and support replies.", es: 'Algunos correos siempre se envían sin importar esta preferencia: tu correo de bienvenida, invitaciones y respuestas de soporte.' },
   backupContact: { en: 'Backup contact', es: 'Contacto de respaldo' },
   backupContactDescLandlord: { en: "A family member or friend your tenant can reach if you don't answer.", es: 'Un familiar o amigo al que tu inquilino pueda contactar si no respondes.' },
