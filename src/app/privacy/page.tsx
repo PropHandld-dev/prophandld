@@ -19,7 +19,7 @@ export default function PrivacyPage() {
 
       <main className="max-w-3xl mx-auto px-6 py-16">
         <h1 className="text-3xl font-bold mb-2">Privacy Policy</h1>
-        <p className="text-white/60 text-sm mb-12">Last updated October 13, 2026</p>
+        <p className="text-white/60 text-sm mb-12">Last updated October 15, 2026</p>
 
         <div className="space-y-10 text-white/60 text-sm leading-relaxed [&_h2]:text-white [&_h2]:font-semibold [&_h2]:text-lg [&_h2]:mb-3 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5">
 
@@ -57,7 +57,7 @@ export default function PrivacyPage() {
               <li><strong className="text-white/80">Supabase:</strong> our database, authentication, and file storage provider. Nearly everything you enter is stored here.</li>
               <li><strong className="text-white/80">Stripe:</strong> processes job payments, contractor payouts, and rent paid by debit card. Stripe handles your card and bank account details directly; Prophandld never sees or stores them.</li>
               <li><strong className="text-white/80">Dwolla:</strong> processes rent paid by bank transfer, and lets landlords link a bank account to receive rent. Dwolla handles your bank account details directly; Prophandld never sees or stores them.</li>
-              <li><strong className="text-white/80">Twilio:</strong> sends text message alerts if you opt in to SMS notifications.</li>
+              <li><strong className="text-white/80">Twilio:</strong> sends text message alerts if you opt in to SMS notifications. We do not sell or share your SMS opt-in data or personal information with third parties for marketing purposes.</li>
               <li><strong className="text-white/80">Resend:</strong> sends transactional emails (job notifications, invites, password resets) on our behalf.</li>
               <li><strong className="text-white/80">PostHog:</strong> product analytics, so we can see which features are actually being used.</li>
               <li><strong className="text-white/80">Sentry:</strong> error tracking, so we know when something breaks.</li>

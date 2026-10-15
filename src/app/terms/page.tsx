@@ -19,7 +19,7 @@ export default function TermsPage() {
 
       <main className="max-w-3xl mx-auto px-6 py-16">
         <h1 className="text-3xl font-bold mb-2">Terms of Service</h1>
-        <p className="text-white/60 text-sm mb-12">Last updated October 9, 2026</p>
+        <p className="text-white/60 text-sm mb-12">Last updated October 15, 2026</p>
 
         <div className="space-y-10 text-white/60 text-sm leading-relaxed [&_h2]:text-white [&_h2]:font-semibold [&_h2]:text-lg [&_h2]:mb-3 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5">
 
@@ -161,7 +161,24 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2>12. Contact</h2>
+            <h2>12. SMS Terms</h2>
+            <p>
+              Prophandld offers optional text message alerts for time-sensitive job and scheduling
+              updates: a new maintenance job opening near a contractor, an emergency issue reported by
+              a tenant, a proposed or confirmed appointment time, and a completed job ready for a
+              landlord's review. These are account notifications, not marketing messages.
+            </p>
+            <p>
+              Text alerts are off by default. You opt in from the Notifications section of your
+              account settings by turning on "Text alerts," and you can turn them off there at any
+              time. Message frequency varies with your account activity. Message and data rates may
+              apply. Reply STOP to opt out at any time, or HELP for help. Carriers are not liable for
+              delayed or undelivered messages. This SMS program is operated by Prophandld LLC.
+            </p>
+          </section>
+
+          <section>
+            <h2>13. Contact</h2>
             <p>
               Questions about these terms? Reach out at{' '}
               <a href="mailto:admin@prophandld.com" className="text-[#12A5A9] hover:underline">admin@prophandld.com</a>.
