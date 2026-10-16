@@ -14,10 +14,12 @@ import { InviteContractorCard } from '@/components/InviteContractorCard'
 import { MagneticLink } from '@/components/MagneticLink'
 import { ProfileButton } from '@/components/ProfileButton'
 import { ProfileSwitchedBanner } from '@/components/ProfileSwitchedBanner'
+import { CoOwnerInviteBanner } from '@/components/CoOwnerInviteBanner'
 import { MessagesButton } from '@/components/MessagesButton'
 import { CountUp } from '@/components/CountUp'
 import { Logo } from '@/components/Logo'
 import { fetchAllPagesOrEmpty } from '@/lib/pagedQuery'
+import { getLandlordIds } from '@/lib/landlordIds'
 import {
   BuildingIcon, WrenchIcon, CalendarIcon, ClipboardListIcon,
   DollarSignIcon, FileTextIcon, AlertTriangleIcon, CheckCircleIcon, UserIcon, ReceiptIcon,
@@ -120,6 +122,8 @@ export default function LandlordDashboard() {
       }
       setUser(user)
 
+      const landlordIds = await getLandlordIds(supabase, user.id)
+
       // Paged: Supabase silently caps a single response at 1000 rows and
       // drops the rest with no error. The top pricing tier now goes to
       // 500+ units, and a dashboard silently showing a wrong (too-low)
@@ -131,7 +135,7 @@ export default function LandlordDashboard() {
         supabase
           .from('properties')
           .select('*')
-          .eq('owner_user_id', user.id)
+          .in('owner_user_id', landlordIds)
           .eq('archived', false)
           .order('created_at', { ascending: false })
           .range(from, to)
@@ -531,6 +535,7 @@ export default function LandlordDashboard() {
             </div>
 
             <ProfileSwitchedBanner />
+            <CoOwnerInviteBanner />
             <AlertsList items={alertItems} />
 
             <InviteContractorCard />

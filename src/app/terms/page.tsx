@@ -53,6 +53,15 @@ export default function TermsPage() {
               advantage no other user could have, isn't allowed, whether or not our systems happen
               to block a specific attempt.
             </p>
+            <p>
+              A landlord can also invite a co-owner — a separate person, such as a business partner
+              or property manager, with their own login — to manage their properties alongside them.
+              A co-owner gets the same access to your properties, units, tenants, jobs, rent, and
+              compliance tracking that you have; they can't see or change your subscription billing,
+              and can't permanently delete a property. You're responsible for who you invite and for
+              their use of that access, and you can remove a co-owner's access at any time from your
+              profile.
+            </p>
           </section>
 
           <section>

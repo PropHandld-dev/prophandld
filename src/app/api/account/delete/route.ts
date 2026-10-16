@@ -141,6 +141,15 @@ export async function POST() {
         }
       }
       await supabaseAdmin.from('landlord_subscriptions').delete().eq('landlord_user_id', userId)
+
+      // Both directions this account's id can appear in co-ownership: as
+      // the primary (any co-owners simply lose access — no special
+      // handling needed, they just stop resolving into anyone's
+      // my_landlord_ids()) and as a co-owner of someone else's portfolio
+      // (only this account's own row goes, the primary's properties are
+      // untouched).
+      await supabaseAdmin.from('landlord_co_owners').delete().eq('primary_landlord_user_id', userId)
+      await supabaseAdmin.from('landlord_co_owners').delete().eq('co_owner_user_id', userId)
     }
 
     if (role === 'renter') {

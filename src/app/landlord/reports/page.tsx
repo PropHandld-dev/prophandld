@@ -14,6 +14,7 @@ import { fetchAllPagesOrEmpty } from '@/lib/pagedQuery'
 import { downloadCsv } from '@/lib/csvExport'
 import { graduatedMonthlyAmount } from '@/lib/pricingTiers'
 import { useLanguage, t } from '@/lib/i18n'
+import { getLandlordIds } from '@/lib/landlordIds'
 
 type Property = { id: string; address: string; city: string | null; state: string | null }
 type Unit = { id: string; unit_number: string; property_id: string }
@@ -82,8 +83,9 @@ export default function LandlordReportsPage() {
       }
       setLandlordName((user.user_metadata as any)?.full_name || '')
 
+      const landlordIds = await getLandlordIds(supabase, user.id)
       const props = await fetchAllPagesOrEmpty<Property>((from, to) =>
-        supabase.from('properties').select('id, address, city, state').eq('owner_user_id', user.id).eq('archived', false).order('address').range(from, to)
+        supabase.from('properties').select('id, address, city, state').in('owner_user_id', landlordIds).eq('archived', false).order('address').range(from, to)
       )
       setProperties(props)
       const propertyIds = props.map((p) => p.id)

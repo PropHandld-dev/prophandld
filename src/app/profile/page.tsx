@@ -14,6 +14,7 @@ import { LogOutIcon } from '@/components/icons'
 import { TABS_BY_ROLE } from '@/lib/navTabs'
 import { StripeConnectCard } from '@/components/StripeConnectCard'
 import { LinkedProfilesSection } from '@/components/LinkedProfilesSection'
+import { CoOwnersSection } from '@/components/CoOwnersSection'
 import { BillingSection } from '@/components/BillingSection'
 import { Switch } from '@/components/Switch'
 import { TwoFactorAuthCard } from '@/components/TwoFactorAuthCard'
@@ -372,6 +373,12 @@ export default function ProfilePage() {
         {(role === 'landlord' || role === 'renter' || role === 'contractor') && (
           <div className="mb-6">
             <LinkedProfilesSection currentRole={role as 'landlord' | 'renter' | 'contractor'} />
+          </div>
+        )}
+
+        {role === 'landlord' && (
+          <div className="mb-6">
+            <CoOwnersSection />
           </div>
         )}
 

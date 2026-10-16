@@ -223,7 +223,14 @@ function SignupForm() {
     } catch {}
 
     if (role === 'landlord') {
-      router.replace('/landlord/properties/new?onboarding=1')
+      // A landlord who signed up from a co-owner invite link is about to
+      // co-manage someone else's existing portfolio, not start their own
+      // — sending them to "add your first property" would be wrong (and
+      // would attribute that new property to them, not the primary,
+      // before they've even accepted the invite). Their dashboard shows
+      // the pending-invite banner instead.
+      const linkedCoOwnership = await linkPendingCoOwnerInvite()
+      router.replace(linkedCoOwnership ? '/landlord' : '/landlord/properties/new?onboarding=1')
     } else if (role === 'renter') {
       await linkPendingInvite()
       router.replace('/renter')
@@ -247,6 +254,24 @@ function SignupForm() {
       }
     } catch (err) {
       console.error('Error checking pending invite:', err)
+    }
+  }
+
+  // Returns whether a pending co-owner invite actually linked — the
+  // caller uses this to decide whether to skip "add your first property"
+  // onboarding. See /api/co-owner/link-invite.
+  const linkPendingCoOwnerInvite = async (): Promise<boolean> => {
+    try {
+      const res = await fetch('/api/co-owner/link-invite', { method: 'POST' })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        console.error('Error auto-linking invited co-ownership:', data.error)
+        return false
+      }
+      return !!data.linked
+    } catch (err) {
+      console.error('Error checking pending co-owner invite:', err)
+      return false
     }
   }
 

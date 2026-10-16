@@ -14,6 +14,7 @@ import { CountUp } from '@/components/CountUp'
 import { PropertiesMap } from '@/components/PropertiesMap'
 import { fetchAllPagesOrEmpty } from '@/lib/pagedQuery'
 import { useLanguage, t } from '@/lib/i18n'
+import { getLandlordIds } from '@/lib/landlordIds'
 
 export default function PropertiesPage() {
   const router = useRouter()
@@ -56,11 +57,12 @@ export default function PropertiesPage() {
     // drops the rest — the top pricing tier now goes to 500+ units, and a
     // portfolio that large plausibly has enough properties to approach
     // that on its own, let alone alongside everything else on this page.
+    const landlordIds = await getLandlordIds(supabase, user.id)
     const data = await fetchAllPagesOrEmpty<any>((from, to) =>
       supabase
         .from('properties')
         .select('*')
-        .eq('owner_user_id', user.id)
+        .in('owner_user_id', landlordIds)
         .order('created_at', { ascending: false })
         .range(from, to)
     )

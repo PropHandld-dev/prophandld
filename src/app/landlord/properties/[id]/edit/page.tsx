@@ -12,6 +12,7 @@ import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { AddressAutocomplete, type AutocompletePlace } from '@/components/AddressAutocomplete'
 import { useLanguage, t } from '@/lib/i18n'
+import { getLandlordIds } from '@/lib/landlordIds'
 
 export default function EditPropertyPage() {
   const router = useRouter()
@@ -45,11 +46,12 @@ export default function EditPropertyPage() {
         return
       }
 
+      const landlordIds = await getLandlordIds(supabase, user.id)
       const { data: propertyData, error: propertyError } = await supabase
         .from('properties')
         .select('*')
         .eq('id', propertyId)
-        .eq('owner_user_id', user.id)
+        .in('owner_user_id', landlordIds)
         .single()
 
       if (propertyError || !propertyData) {

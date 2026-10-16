@@ -11,6 +11,7 @@ import { LANDLORD_TABS } from '@/lib/navTabs'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { useLanguage, t, type Lang } from '@/lib/i18n'
+import { getLandlordIds } from '@/lib/landlordIds'
 import { validateDocumentFile } from '@/lib/mediaValidation'
 import { getComplianceStatus } from '@/lib/complianceStatus'
 
@@ -87,11 +88,12 @@ export default function PropertyCompliancePage() {
       }
       setUserId(user.id)
 
+      const landlordIds = await getLandlordIds(supabase, user.id)
       const { data: propertyData, error: propertyError } = await supabase
         .from('properties')
         .select('*')
         .eq('id', propertyId)
-        .eq('owner_user_id', user.id)
+        .in('owner_user_id', landlordIds)
         .single()
 
       if (propertyError || !propertyData) {

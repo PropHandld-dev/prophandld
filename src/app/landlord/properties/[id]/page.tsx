@@ -16,6 +16,7 @@ import { usePropertyTourVisibility } from '@/lib/usePropertyTourVisibility'
 import { AddressLink } from '@/components/AddressLink'
 import { StreetView } from '@/components/StreetView'
 import { useLanguage, t, type Lang } from '@/lib/i18n'
+import { getLandlordIds } from '@/lib/landlordIds'
 
 function getTourSteps(lang: Lang): TourStep[] {
   return [
@@ -54,11 +55,12 @@ export default function PropertyDetailPage() {
       }
       setUserId(user.id)
 
+      const landlordIds = await getLandlordIds(supabase, user.id)
       const { data: propertyData, error: propertyError } = await supabase
         .from('properties')
         .select('*')
         .eq('id', propertyId)
-        .eq('owner_user_id', user.id)
+        .in('owner_user_id', landlordIds)
         .single()
 
       if (propertyError || !propertyData) {

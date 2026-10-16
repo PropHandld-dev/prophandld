@@ -1,6 +1,7 @@
 import { sendJobPaymentSentEmail, sendJobPaymentReceiptEmail } from '@/lib/email'
 import { sendPush } from '@/lib/push'
 import { emailAllowed } from '@/lib/notificationPrefs'
+import { notifyLandlordIds } from '@/lib/landlordCoOwners'
 
 // The landlord's receipt, the contractor's "you've been paid" email/push,
 // and the job-chat "Payment released" message — shared by the Stripe
@@ -25,28 +26,34 @@ export async function sendJobPaymentNotifications(
   const landlordId = job?.units?.properties?.owner_user_id
 
   if (bid?.contractor_user_id && landlordId) {
-    const [{ data: landlord }, { data: payee }] = await Promise.all([
-      supabaseAdmin.from('users').select('email, full_name, preferred_language, email_notifications_enabled').eq('id', landlordId).maybeSingle(),
+    const [landlordIds, { data: payee }] = await Promise.all([
+      notifyLandlordIds(supabaseAdmin, landlordId),
       supabaseAdmin.from('users').select('full_name').eq('id', bid.contractor_user_id).maybeSingle(),
     ])
-    if (landlord?.email && emailAllowed(landlord)) {
-      await sendJobPaymentReceiptEmail({
-        to: landlord.email,
-        landlordName: landlord.full_name || 'there',
-        contractorName: payee?.full_name || 'your contractor',
-        amount: baseAmountPaid,
-        fee: cardSurcharge,
-        category: job?.category || 'your job',
-        propertyLabel: job?.units?.properties?.address || 'the property',
-        bidId,
-        lang: landlord.preferred_language === 'es' ? 'es' : 'en',
-      }).catch((err) => console.error('sendJobPaymentNotifications: landlord receipt email failed', err))
+    const { data: landlords } = await supabaseAdmin
+      .from('users')
+      .select('id, email, full_name, preferred_language, email_notifications_enabled')
+      .in('id', landlordIds)
+    for (const landlord of landlords || []) {
+      if (landlord?.email && emailAllowed(landlord)) {
+        await sendJobPaymentReceiptEmail({
+          to: landlord.email,
+          landlordName: landlord.full_name || 'there',
+          contractorName: payee?.full_name || 'your contractor',
+          amount: baseAmountPaid,
+          fee: cardSurcharge,
+          category: job?.category || 'your job',
+          propertyLabel: job?.units?.properties?.address || 'the property',
+          bidId,
+          lang: landlord.preferred_language === 'es' ? 'es' : 'en',
+        }).catch((err) => console.error('sendJobPaymentNotifications: landlord receipt email failed', err))
+      }
+      await sendPush(landlord.id, {
+        title: 'Payment sent',
+        body: `$${baseAmountPaid.toFixed(2)} to ${payee?.full_name || 'your contractor'} for ${job?.category || 'the job'}`,
+        url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/receipts/job/${bidId}`,
+      }).catch((err) => console.error('sendJobPaymentNotifications: sendPush (landlord receipt) failed', err))
     }
-    await sendPush(landlordId, {
-      title: 'Payment sent',
-      body: `$${baseAmountPaid.toFixed(2)} to ${payee?.full_name || 'your contractor'} for ${job?.category || 'the job'}`,
-      url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/receipts/job/${bidId}`,
-    }).catch((err) => console.error('sendJobPaymentNotifications: sendPush (landlord receipt) failed', err))
   }
 
   if (bid?.contractor_user_id) {

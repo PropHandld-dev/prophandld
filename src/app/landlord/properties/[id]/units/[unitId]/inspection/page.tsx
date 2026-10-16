@@ -14,6 +14,7 @@ import { ScrollReveal } from '@/components/ScrollReveal'
 import { MagneticLink } from '@/components/MagneticLink'
 import { RippleButton } from '@/components/RippleButton'
 import { useLanguage, t, roleLabel } from '@/lib/i18n'
+import { getLandlordIds } from '@/lib/landlordIds'
 
 export default function InspectionPage() {
   const router = useRouter()
@@ -64,7 +65,8 @@ export default function InspectionPage() {
         .eq('id', propertyId)
         .maybeSingle()
 
-      if (propertyData?.owner_user_id === user.id) {
+      const landlordIds = await getLandlordIds(supabase, user.id)
+      if (propertyData?.owner_user_id && landlordIds.includes(propertyData.owner_user_id)) {
         setUserRole('landlord')
       } else if (tenancyData.renter_user_id === user.id) {
         setUserRole('renter')

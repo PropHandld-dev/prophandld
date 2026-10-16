@@ -1,3 +1,5 @@
+import { notifyLandlordIds } from '@/lib/landlordCoOwners'
+
 export type ChatRole = 'landlord' | 'renter' | 'contractor'
 export type ChatParticipant = { userId: string; role: ChatRole }
 
@@ -21,7 +23,9 @@ export async function loadChatParticipants(admin: any, ref: { jobId?: string | n
     if (!job) return null
 
     const property = (job.units as any)?.properties
-    if (property?.owner_user_id) participants.push({ userId: property.owner_user_id, role: 'landlord' })
+    if (property?.owner_user_id) {
+      for (const id of await notifyLandlordIds(admin, property.owner_user_id)) participants.push({ userId: id, role: 'landlord' })
+    }
 
     // Accepted contractor pushed before tenants/occupants, deliberately: the
     // de-dup below keeps whichever role for a given user id was pushed
@@ -53,7 +57,7 @@ export async function loadChatParticipants(admin: any, ref: { jobId?: string | n
       .maybeSingle()
     if (!thread) return null
 
-    participants.push({ userId: thread.landlord_user_id, role: 'landlord' })
+    for (const id of await notifyLandlordIds(admin, thread.landlord_user_id)) participants.push({ userId: id, role: 'landlord' })
     participants.push({ userId: thread.other_user_id, role: thread.other_role as ChatRole })
     context = 'A direct message'
     path = (role) => `/${role}/messages/${ref.threadId}`

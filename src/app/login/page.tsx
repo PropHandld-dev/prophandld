@@ -13,6 +13,7 @@ import { Logo } from '@/components/Logo'
 import { AuthInput } from '@/components/AuthInput'
 import { MailIcon, LockIcon, CheckCircleIcon } from '@/components/icons'
 import { RolePicker, type Role } from '@/components/RolePicker'
+import { getLandlordIds } from '@/lib/landlordIds'
 
 // Purely cosmetic — sets which flavor of copy shows on the brand panel.
 // The actual post-login redirect always uses the account's real stored role.
@@ -174,10 +175,26 @@ function LoginForm() {
       // landlord who backs out of onboarding without adding one — they get
       // sent right back to it next time, instead of staying stuck on an
       // empty dashboard.
+      // Safe to call every login: a no-op once already linked, same
+      // reasoning as the renter tenancy-invite auto-link right below.
+      try {
+        const res = await fetch('/api/co-owner/link-invite', { method: 'POST' })
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}))
+          console.error('Error auto-linking invited co-ownership on login:', body.error)
+        }
+      } catch (err) {
+        console.error('Error checking pending co-owner invite on login:', err)
+      }
+
+      // A co-owner has no properties of their own — counting only their
+      // own owner_user_id rows would wrongly send them to "add your first
+      // property" even though the portfolio they co-manage has plenty.
+      const landlordIds = await getLandlordIds(supabase, user.id)
       const { count } = await supabase
         .from('properties')
         .select('id', { count: 'exact', head: true })
-        .eq('owner_user_id', user.id)
+        .in('owner_user_id', landlordIds)
       if (!count) router.replace('/landlord/properties/new?onboarding=1')
       else router.replace('/landlord')
     }

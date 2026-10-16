@@ -57,8 +57,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ownedByMe: false, ownedByOther: false })
   }
 
+  // A co-owner's "me" is the primary they co-manage for, not their own
+  // id — without this, a co-owner adding a property the primary already
+  // has would incorrectly see "registered to another landlord."
+  const { data: effectiveOwnerId } = await authClient.rpc('primary_landlord_id')
+  const myId = effectiveOwnerId ?? user.id
+
   return NextResponse.json({
-    ownedByMe: match.owner_user_id === user.id,
-    ownedByOther: match.owner_user_id !== user.id,
+    ownedByMe: match.owner_user_id === myId,
+    ownedByOther: match.owner_user_id !== myId,
   })
 }

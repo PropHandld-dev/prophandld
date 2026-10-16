@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { buildNotificationEmail, buildPushMessage, sendEmail, sendJobAutoApprovedPayNowEmail, type NotifyJobInfo, type Lang } from '@/lib/email'
 import { sendPush } from '@/lib/push'
 import { emailAllowed } from '@/lib/notificationPrefs'
+import { notifyLandlordIds } from '@/lib/landlordCoOwners'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const AUTO_APPROVE_AFTER_MS = 3 * DAY_MS
@@ -85,10 +86,12 @@ export async function autoApproveJobIfStale(admin: SupabaseClient, jobId: string
   const amount = Number(bid?.amount ?? 0)
   const propertyLabel = property?.address || 'the property'
 
-  const [{ data: landlord }, { data: contractor }, { data: renter }] = await Promise.all([
+  const [landlordRows, { data: contractor }, { data: renter }] = await Promise.all([
     landlordId
-      ? admin.from('users').select('email, full_name, preferred_language, email_notifications_enabled').eq('id', landlordId).maybeSingle()
-      : Promise.resolve({ data: null as any }),
+      ? notifyLandlordIds(admin, landlordId).then((ids) =>
+          admin.from('users').select('id, email, full_name, preferred_language, email_notifications_enabled').in('id', ids).then((r: any) => r.data || [])
+        )
+      : Promise.resolve([] as any[]),
     bid?.contractor_user_id
       ? admin.from('users').select('email, full_name, preferred_language, email_notifications_enabled').eq('id', bid.contractor_user_id).maybeSingle()
       : Promise.resolve({ data: null as any }),
@@ -98,21 +101,23 @@ export async function autoApproveJobIfStale(admin: SupabaseClient, jobId: string
   ])
 
   // Tell the landlord specifically: this is the one that matters, since
-  // they're the only person who can actually release payment.
-  if (landlord?.email && emailAllowed(landlord)) {
-    await sendJobAutoApprovedPayNowEmail({
-      to: landlord.email,
-      landlordName: landlord.full_name || 'there',
-      contractorName: contractor?.full_name || 'your contractor',
-      amount,
-      category: job.category,
-      propertyLabel,
-      jobId: job.id,
-      lang: langOf(landlord),
-    }).catch((err) => console.error('autoApproveJobIfStale: landlord email failed', { jobId, err }))
-  }
-  if (landlordId) {
-    await sendPush(landlordId, {
+  // they're the only person who can actually release payment. Any
+  // accepted co-owner gets the exact same notice — either of them can
+  // act on it.
+  for (const landlord of landlordRows) {
+    if (landlord?.email && emailAllowed(landlord)) {
+      await sendJobAutoApprovedPayNowEmail({
+        to: landlord.email,
+        landlordName: landlord.full_name || 'there',
+        contractorName: contractor?.full_name || 'your contractor',
+        amount,
+        category: job.category,
+        propertyLabel,
+        jobId: job.id,
+        lang: langOf(landlord),
+      }).catch((err) => console.error('autoApproveJobIfStale: landlord email failed', { jobId, err }))
+    }
+    await sendPush(landlord.id, {
       title: 'Action needed: pay your contractor',
       body: `$${amount.toFixed(2)} for ${job.category}, approved automatically after 3 days`,
       url: `${SITE_URL}/landlord/jobs/${job.id}`,

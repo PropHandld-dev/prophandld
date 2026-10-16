@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { Skeleton } from '@/components/Skeleton'
 import { BuildingIcon } from '@/components/icons'
 import { useLanguage, t } from '@/lib/i18n'
+import { getLandlordIds } from '@/lib/landlordIds'
 
 type Property = {
   id: string
@@ -32,12 +33,13 @@ export default function NewJobFromThreadPage() {
         return
       }
 
+      const landlordIds = await getLandlordIds(supabase, user.id)
       const [{ data: participants }, { data: propertiesData }] = await Promise.all([
         supabase.rpc('get_dm_thread_participants', { target_thread_id: threadId }),
         supabase
           .from('properties')
           .select('id, address, units(id, unit_number)')
-          .eq('owner_user_id', user.id)
+          .in('owner_user_id', landlordIds)
           .eq('archived', false)
           .order('created_at', { ascending: false }),
       ])

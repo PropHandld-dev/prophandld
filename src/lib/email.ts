@@ -419,6 +419,91 @@ export async function sendCoRenterInviteEmail({
   return sendEmail({ to, subject: `${landlordName} invited you to Prophandld`, html })
 }
 
+// Pre-signup, no known preference yet — same reasoning as
+// sendCoRenterInviteEmail just above.
+export async function sendCoOwnerInviteEmail({
+  to,
+  primaryLandlordName,
+}: {
+  to: string
+  primaryLandlordName: string
+}) {
+  const html = baseTemplate({
+    lang: 'en',
+    eyebrow: 'Invite',
+    heading: `${escapeHtml(primaryLandlordName)} invited you to co-manage their properties`,
+    bodyHtml: `You've been invited to co-manage <strong>${escapeHtml(primaryLandlordName)}'s</strong> properties on Prophandld — full access to the same properties, units, tenants, jobs, rent, and compliance tracking. Sign up as a landlord with this same email address, then accept the invite from your dashboard.`,
+    ctaLabel: 'Create your account',
+    ctaUrl: `${SITE_URL}/signup?role=landlord`,
+    footerText: `You're receiving this because ${escapeHtml(primaryLandlordName)} invited you to Prophandld.`,
+  })
+  return sendEmail({ to, subject: `${primaryLandlordName} invited you to co-manage their properties`, html })
+}
+
+// Distinct from sendCoOwnerInviteEmail above: that one is for someone with
+// no account yet ("sign up, then accept"), this is for an email that
+// already matched a real landlord account during /api/co-owner/invite —
+// they just need to log in and accept, not create anything. Previously
+// that route inserted the pending row and sent nothing at all, leaving
+// the invitee to find out only if they happened to open their dashboard.
+export async function sendCoOwnerInvitedExistingAccountEmail({
+  to,
+  primaryLandlordName,
+  lang = 'en',
+}: {
+  to: string
+  primaryLandlordName: string
+  lang?: Lang
+}) {
+  const html = lang === 'es' ? baseTemplate({
+    lang,
+    eyebrow: 'Invitación',
+    heading: `${escapeHtml(primaryLandlordName)} te invitó a co-administrar sus propiedades`,
+    bodyHtml: `<strong>${escapeHtml(primaryLandlordName)}</strong> te invitó a co-administrar sus propiedades en Prophandld — acceso completo a las mismas propiedades, unidades, inquilinos, trabajos, renta y cumplimiento. Inicia sesión y acepta la invitación desde tu panel.`,
+    ctaLabel: 'Ver invitación',
+    ctaUrl: `${SITE_URL}/landlord`,
+  }) : baseTemplate({
+    lang,
+    eyebrow: 'Invite',
+    heading: `${escapeHtml(primaryLandlordName)} invited you to co-manage their properties`,
+    bodyHtml: `<strong>${escapeHtml(primaryLandlordName)}</strong> invited you to co-manage their properties on Prophandld — full access to the same properties, units, tenants, jobs, rent, and compliance tracking. Log in and accept the invite from your dashboard.`,
+    ctaLabel: 'View invite',
+    ctaUrl: `${SITE_URL}/landlord`,
+  })
+  return sendEmail({ to, subject: lang === 'es' ? `${primaryLandlordName} te invitó a co-administrar sus propiedades` : `${primaryLandlordName} invited you to co-manage their properties`, html })
+}
+
+// Told to the primary once the co-owner actually accepts — mirrors
+// sendRenterInviteAcceptedEmail's "confirm it actually worked" reasoning.
+export async function sendCoOwnerAcceptedEmail({
+  to,
+  primaryLandlordName,
+  coOwnerName,
+  lang = 'en',
+}: {
+  to: string
+  primaryLandlordName: string
+  coOwnerName: string
+  lang?: Lang
+}) {
+  const html = lang === 'es' ? baseTemplate({
+    lang,
+    eyebrow: 'Invitación',
+    heading: 'Tu copropietario se unió a Prophandld',
+    bodyHtml: `Hola ${escapeHtml(primaryLandlordName)}, <strong>${escapeHtml(coOwnerName)}</strong> aceptó tu invitación y ahora tiene acceso completo para administrar tus propiedades junto a ti.`,
+    ctaLabel: 'Ver mi panel',
+    ctaUrl: `${SITE_URL}/landlord`,
+  }) : baseTemplate({
+    lang,
+    eyebrow: 'Invite',
+    heading: 'Your co-owner joined Prophandld',
+    bodyHtml: `Hi ${escapeHtml(primaryLandlordName)}, <strong>${escapeHtml(coOwnerName)}</strong> accepted your invite and now has full access to manage your properties alongside you.`,
+    ctaLabel: 'View my dashboard',
+    ctaUrl: `${SITE_URL}/landlord`,
+  })
+  return sendEmail({ to, subject: lang === 'es' ? 'Tu copropietario se unió a Prophandld' : 'Your co-owner joined Prophandld', html })
+}
+
 // Same reasoning as sendRenterInviteEmail: pre-signup, no known preference.
 export async function sendContractorInviteEmail({
   to,

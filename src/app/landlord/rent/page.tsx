@@ -12,6 +12,7 @@ import { DollarSignIcon, CheckCircleIcon } from '@/components/icons'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 import { fetchAllPagesOrEmpty } from '@/lib/pagedQuery'
 import { useLanguage, t } from '@/lib/i18n'
+import { getLandlordIds } from '@/lib/landlordIds'
 
 function currentMonthKey(): string {
   const d = new Date()
@@ -53,8 +54,9 @@ export default function RentRollPage() {
       // Paged rather than one query each: Supabase silently caps a single
       // response at 1000 rows and drops the rest with no error — the top
       // pricing tier now goes to 500+ units.
+      const landlordIds = await getLandlordIds(supabase, user.id)
       const properties = await fetchAllPagesOrEmpty<{ id: string; address: string }>((from, to) =>
-        supabase.from('properties').select('id, address').eq('owner_user_id', user.id).eq('archived', false).order('address').range(from, to)
+        supabase.from('properties').select('id, address').in('owner_user_id', landlordIds).eq('archived', false).order('address').range(from, to)
       )
       const propertyIds = properties.map((p) => p.id)
       if (propertyIds.length === 0) {

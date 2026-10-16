@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { ScheduleCalendar, eventState, CALENDAR_JOB_STATUSES, calendarHistoryStart, type CalendarEvent } from '@/components/ScheduleCalendar'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { useLanguage, t } from '@/lib/i18n'
+import { getLandlordIds } from '@/lib/landlordIds'
 
 const dateStr = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 
@@ -141,10 +142,11 @@ export default function LandlordCalendarPage() {
         return
       }
 
+      const landlordIds = await getLandlordIds(supabase, user.id)
       const { data: propertiesData } = await supabase
         .from('properties')
         .select('id')
-        .eq('owner_user_id', user.id)
+        .in('owner_user_id', landlordIds)
         .eq('archived', false)
 
       const propertyIds = (propertiesData || []).map((p) => p.id)

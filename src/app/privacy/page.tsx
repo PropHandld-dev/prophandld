@@ -68,7 +68,10 @@ export default function PrivacyPage() {
               For example, a landlord sees their renters' reported issues and contact info; a
               contractor with an accepted bid sees the property address and unit for that job.
               Tenant-facing views are deliberately limited. For instance, renters never see bid
-              amounts or other contractors' information during sealed bidding.
+              amounts or other contractors' information during sealed bidding. If a landlord invites
+              a co-owner to manage their properties, that co-owner can see the same tenant, job, rent,
+              and compliance data the landlord can — the landlord decides who they invite, and a
+              tenant's landlord-of-record doesn't change by adding one.
             </p>
           </section>
 

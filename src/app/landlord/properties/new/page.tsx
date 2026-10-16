@@ -139,10 +139,16 @@ function NewPropertyForm() {
     // ZIP-based geocoding if the address was typed manually.
     const geo = placeGeo ?? (form.zip ? await geocodeZip(form.zip) : null)
 
+    // A co-owner creating a property attributes it to the PRIMARY they
+    // co-manage for, not themselves — the portfolio stays single-owned
+    // for billing/payout purposes. Falls back to the signed-in user's own
+    // id for an ordinary landlord (the common case).
+    const { data: effectiveOwnerId } = await supabase.rpc('primary_landlord_id')
+
     const { data: property, error: propertyError } = await supabase
       .from('properties')
       .insert({
-        owner_user_id: user.id,
+        owner_user_id: effectiveOwnerId ?? user.id,
         address: form.address,
         city: form.city,
         state: form.state,

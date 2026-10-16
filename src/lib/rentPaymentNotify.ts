@@ -8,6 +8,7 @@ import {
 } from '@/lib/email'
 import { sendPush } from '@/lib/push'
 import { emailAllowed } from '@/lib/notificationPrefs'
+import { notifyLandlordIds } from '@/lib/landlordCoOwners'
 
 // Shared by both rails' webhooks AND both rails' /confirm routes — whichever
 // call actually wins the race to flip a rent row to paid/failed (the
@@ -40,26 +41,28 @@ export async function sendRentPaymentReceivedNotifications(
     ? `${unit.properties.address}${unit.unit_number ? `, Unit ${unit.unit_number}` : ''}`
     : 'your unit'
 
-  const { data: landlord } = await supabaseAdmin
+  const landlordIds = await notifyLandlordIds(supabaseAdmin, landlordUserId)
+  const { data: landlords } = await supabaseAdmin
     .from('users')
-    .select('email, full_name, preferred_language, email_notifications_enabled')
-    .eq('id', landlordUserId)
-    .maybeSingle()
-  if (landlord?.email && emailAllowed(landlord)) {
-    await sendRentPaymentReceivedEmail({
-      to: landlord.email,
-      landlordName: landlord.full_name || 'there',
-      amount,
-      monthLabel,
-      unitLabel,
-      lang: landlord.preferred_language === 'es' ? 'es' : 'en',
-    }).catch((err) => console.error('sendRentPaymentReceivedNotifications: landlord email failed', err))
+    .select('id, email, full_name, preferred_language, email_notifications_enabled')
+    .in('id', landlordIds)
+  for (const landlord of landlords || []) {
+    if (landlord?.email && emailAllowed(landlord)) {
+      await sendRentPaymentReceivedEmail({
+        to: landlord.email,
+        landlordName: landlord.full_name || 'there',
+        amount,
+        monthLabel,
+        unitLabel,
+        lang: landlord.preferred_language === 'es' ? 'es' : 'en',
+      }).catch((err) => console.error('sendRentPaymentReceivedNotifications: landlord email failed', err))
+    }
+    await sendPush(landlord.id, {
+      title: 'Rent payment received',
+      body: `$${amount.toFixed(2)} for ${unitLabel}`,
+      url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/landlord`,
+    }).catch((err) => console.error('sendRentPaymentReceivedNotifications: sendPush failed', err))
   }
-  await sendPush(landlordUserId, {
-    title: 'Rent payment received',
-    body: `$${amount.toFixed(2)} for ${unitLabel}`,
-    url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/landlord`,
-  }).catch((err) => console.error('sendRentPaymentReceivedNotifications: sendPush failed', err))
 
   const renterUserId = tenancy?.renter_user_id
   if (renterUserId) {
@@ -180,25 +183,27 @@ export async function sendRentBankTransferFailedNotifications(supabaseAdmin: Sup
   }
 
   if (landlordUserId) {
-    const { data: landlord } = await supabaseAdmin
+    const landlordIds = await notifyLandlordIds(supabaseAdmin, landlordUserId)
+    const { data: landlords } = await supabaseAdmin
       .from('users')
-      .select('email, full_name, preferred_language, email_notifications_enabled')
-      .eq('id', landlordUserId)
-      .maybeSingle()
-    if (landlord?.email && emailAllowed(landlord)) {
-      await sendLandlordBankTransferFailedEmail({
-        to: landlord.email,
-        landlordName: landlord.full_name || 'there',
-        renterName,
-        amount: failedAmount > 0 ? failedAmount : null,
-        unitLabel,
-        lang: landlord.preferred_language === 'es' ? 'es' : 'en',
-      }).catch((err) => console.error('sendRentBankTransferFailedNotifications: landlord email failed', err))
+      .select('id, email, full_name, preferred_language, email_notifications_enabled')
+      .in('id', landlordIds)
+    for (const landlord of landlords || []) {
+      if (landlord?.email && emailAllowed(landlord)) {
+        await sendLandlordBankTransferFailedEmail({
+          to: landlord.email,
+          landlordName: landlord.full_name || 'there',
+          renterName,
+          amount: failedAmount > 0 ? failedAmount : null,
+          unitLabel,
+          lang: landlord.preferred_language === 'es' ? 'es' : 'en',
+        }).catch((err) => console.error('sendRentBankTransferFailedNotifications: landlord email failed', err))
+      }
+      await sendPush(landlord.id, {
+        title: "A rent bank transfer didn't go through",
+        body: unitLabel ? `${renterName || 'Your tenant'}'s payment for ${unitLabel} bounced.` : `${renterName || 'Your tenant'}'s payment bounced.`,
+        url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/landlord`,
+      }).catch((err) => console.error('sendRentBankTransferFailedNotifications: landlord sendPush failed', err))
     }
-    await sendPush(landlordUserId, {
-      title: "A rent bank transfer didn't go through",
-      body: unitLabel ? `${renterName || 'Your tenant'}'s payment for ${unitLabel} bounced.` : `${renterName || 'Your tenant'}'s payment bounced.`,
-      url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/landlord`,
-    }).catch((err) => console.error('sendRentBankTransferFailedNotifications: landlord sendPush failed', err))
   }
 }
