@@ -420,7 +420,7 @@ const STRINGS = {
   pushNeedsBrowserSetupIos: { en: 'On iPhone, add Prophandld to your Home Screen first, then turn this on from there.', es: 'En iPhone, primero agrega Prophandld a tu pantalla de inicio y luego actívalo desde ahí.' },
   enableInThisBrowser: { en: 'Enable in this browser', es: 'Activar en este navegador' },
   textAlerts: { en: 'Text alerts', es: 'Alertas por mensaje de texto' },
-  textAlertsDesc: { en: 'Urgent updates only: emergencies, scheduling, review needed. Message & data rates may apply. Reply STOP to opt out, HELP for help.', es: 'Solo actualizaciones urgentes: emergencias, horarios, revisiones pendientes. Pueden aplicar tarifas de mensajes y datos. Responde STOP para cancelar, HELP para ayuda.' },
+  textAlertsDesc: { en: 'Key moments only: a new issue reported, a new job to bid on, scheduling, review needed. Message & data rates may apply. Reply STOP to opt out, HELP for help.', es: 'Solo momentos clave: un problema reportado, un nuevo trabajo para ofertar, horarios, revisiones pendientes. Pueden aplicar tarifas de mensajes y datos. Responde STOP para cancelar, HELP para ayuda.' },
   textAlertsPhoneLine: { en: 'Texts go to', es: 'Los mensajes de texto se envían a' },
   textAlertsNoPhone: { en: 'Add a phone number above to turn this on.', es: 'Agrega un número de teléfono arriba para activar esto.' },
   notifPrefFootnote: { en: "Some emails always go out regardless of this setting: your welcome email, invites, and support replies.", es: 'Algunos correos siempre se envían sin importar esta preferencia: tu correo de bienvenida, invitaciones y respuestas de soporte.' },

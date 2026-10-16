@@ -42,8 +42,8 @@ export default function SmsConsentPage() {
               given permission to receive texts:
             </p>
             <blockquote className="border-l-2 border-[#12A5A9]/50 pl-4 my-4 text-white/80">
-              Text alerts — Urgent updates only: emergencies, scheduling, review needed. Message &amp;
-              data rates may apply. Reply STOP to opt out, HELP for help.
+              Text alerts — Key moments only: a new issue reported, a new job to bid on, scheduling,
+              review needed. Message &amp; data rates may apply. Reply STOP to opt out, HELP for help.
               <br />
               Texts go to [the account&apos;s phone number]
             </blockquote>
@@ -83,12 +83,12 @@ export default function SmsConsentPage() {
           <section>
             <h2 className="text-white font-semibold text-lg mb-2">Message types and opt-out</h2>
             <p>
-              Opted-in users receive text alerts only for time-sensitive job and scheduling updates:
-              a new maintenance job opening near a contractor, an emergency issue reported by a
-              tenant, a proposed or confirmed appointment time, and a completed job ready for a
-              landlord&apos;s review. These are account notifications, not marketing messages. Reply STOP
-              to a Prophandld text at any time to opt out, or HELP for help. Message and data rates may
-              apply. This SMS program is operated by Prophandld LLC.
+              Opted-in users receive text alerts only for key job and scheduling updates: a new
+              maintenance job opening near a contractor, a new issue reported by a tenant, a proposed
+              or confirmed appointment time, and a completed job ready for a landlord&apos;s review.
+              These are account notifications, not marketing messages. Reply STOP to a Prophandld text
+              at any time to opt out, or HELP for help. Message and data rates may apply. This SMS
+              program is operated by Prophandld LLC.
             </p>
           </section>
         </div>
