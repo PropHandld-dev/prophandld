@@ -167,7 +167,14 @@ export async function POST(request: NextRequest) {
       const push = buildPushMessage(type, role, jobInfo)
       await sendPush(userId, push).catch((err) => console.error('notify: sendPush failed', { jobId, role, err }))
 
-      const smsAllowedForType = SMS_ENABLED_TYPES.includes(type) && (type !== 'job_reported' || jobInfo.isEmergency)
+      // job_reported used to only text for emergencies, on a volume
+      // concern (a landlord with several units could get a report several
+      // times a month, most of them routine) — but SMS is opt-in per
+      // landlord already, and the explicit decision is that opting in
+      // means every report, not just emergencies. buildSmsMessage()
+      // already reads fine either way (pushCopy only adds an "Emergency:"
+      // prefix when info.isEmergency is actually true).
+      const smsAllowedForType = SMS_ENABLED_TYPES.includes(type)
       if (smsAllowedForType && recipient.sms_opt_in && recipient.phone) {
         await sendSms(recipient.phone, buildSmsMessage(type, role, jobInfo)).catch((err) =>
           console.error('notify: sendSms failed', { jobId, role, err })
