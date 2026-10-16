@@ -6,6 +6,8 @@ import { logAdminAudit } from '@/lib/auditLog'
 import { sendDisputeResolvedEmail } from '@/lib/email'
 import { emailAllowed } from '@/lib/notificationPrefs'
 import { sendPush } from '@/lib/push'
+import { notifyLandlordIds } from '@/lib/landlordCoOwners'
+import { notifyRenterIds } from '@/lib/coRenters'
 
 export async function POST(request: NextRequest) {
   const authClient = await createClient()
@@ -78,17 +80,23 @@ export async function POST(request: NextRequest) {
   const jobCategory = job?.category || 'the job'
 
   const recipients: { userId: string; role: 'landlord' | 'renter' | 'contractor' }[] = []
-  if (property?.owner_user_id) recipients.push({ userId: property.owner_user_id, role: 'landlord' })
+  if (property?.owner_user_id) {
+    const landlordIds = await notifyLandlordIds(supabaseAdmin, property.owner_user_id)
+    for (const id of landlordIds) recipients.push({ userId: id, role: 'landlord' })
+  }
 
   const { data: tenancy } = await supabaseAdmin
     .from('tenancies')
-    .select('renter_user_id')
+    .select('id, renter_user_id')
     .eq('unit_id', job?.unit_id)
     .eq('ended', false)
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
-  if (tenancy?.renter_user_id) recipients.push({ userId: tenancy.renter_user_id, role: 'renter' })
+  if (tenancy?.renter_user_id) {
+    const renterIds = await notifyRenterIds(supabaseAdmin, tenancy.id, tenancy.renter_user_id)
+    for (const id of renterIds) recipients.push({ userId: id, role: 'renter' })
+  }
 
   const { data: acceptedBid } = await supabaseAdmin
     .from('bids')

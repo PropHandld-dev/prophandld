@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { buildNotificationEmail, buildPushMessage, sendEmail, sendAutoApprovalDigestAdminEmail, sendJobAutoApprovedPayNowEmail, type NotifyJobInfo, type Lang } from '@/lib/email'
 import { sendPush } from '@/lib/push'
 import { emailAllowed } from '@/lib/notificationPrefs'
+import { notifyLandlordIds } from '@/lib/landlordCoOwners'
 
 export const maxDuration = 60
 
@@ -121,6 +122,16 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  // "Pay your contractor" reaches every accepted co-owner too, same as the
+  // central /api/notify dispatcher — one owner_user_id per job expanded to
+  // that job's full landlord recipient list, deduped by unique primary.
+  const landlordRecipientsByPrimary = new Map<string, string[]>()
+  await Promise.all(
+    Array.from(new Set(Array.from(ownerByJob.values()))).map(async (ownerId) => {
+      landlordRecipientsByPrimary.set(ownerId, await notifyLandlordIds(supabaseAdmin, ownerId))
+    })
+  )
+
   const userIds = new Set<string>()
   for (const j of staleJobs) {
     const bid = bidByJob.get(j.id)
@@ -128,7 +139,9 @@ export async function GET(request: NextRequest) {
     const renterId = tenancyByUnit.get(j.unit_id)
     if (renterId) userIds.add(renterId)
     const ownerId = ownerByJob.get(j.id)
-    if (ownerId) userIds.add(ownerId)
+    if (ownerId) {
+      for (const id of landlordRecipientsByPrimary.get(ownerId) || [ownerId]) userIds.add(id)
+    }
   }
   const userById = new Map<string, { email: string | null; full_name: string | null; preferred_language: string | null; email_notifications_enabled: boolean | null }>()
   for (const ids of chunk(Array.from(userIds), ID_CHUNK)) {
@@ -178,26 +191,27 @@ export async function GET(request: NextRequest) {
     const renterId = tenancyByUnit.get(job.unit_id)
     const renter = renterId ? userById.get(renterId) : null
     const landlordId = ownerByJob.get(job.id)
-    const landlord = landlordId ? userById.get(landlordId) : null
+    const landlordRecipients = landlordId ? (landlordRecipientsByPrimary.get(landlordId) || [landlordId]) : []
     const amount = Number(bid.amount ?? 0)
     const propertyLabel = propRow?.address || 'the property'
 
-    // Tell the landlord specifically: this is the one that matters, since
-    // they're the only person who can actually release payment.
-    if (landlord?.email && emailAllowed(landlord)) {
-      await sendJobAutoApprovedPayNowEmail({
-        to: landlord.email,
-        landlordName: landlord.full_name || 'there',
-        contractorName: contractor?.full_name || 'your contractor',
-        amount,
-        category: job.category,
-        propertyLabel,
-        jobId: job.id,
-        lang: langOf(landlord),
-      }).catch((err) => console.error('cron/job-auto-approve: landlord email failed', { jobId: job.id, err }))
-    }
-    if (landlordId) {
-      await sendPush(landlordId, {
+    // Tell the landlord (and any accepted co-owner) specifically: this is
+    // the one that matters, since they're the ones who can release payment.
+    for (const recipientId of landlordRecipients) {
+      const landlord = userById.get(recipientId)
+      if (landlord?.email && emailAllowed(landlord)) {
+        await sendJobAutoApprovedPayNowEmail({
+          to: landlord.email,
+          landlordName: landlord.full_name || 'there',
+          contractorName: contractor?.full_name || 'your contractor',
+          amount,
+          category: job.category,
+          propertyLabel,
+          jobId: job.id,
+          lang: langOf(landlord),
+        }).catch((err) => console.error('cron/job-auto-approve: landlord email failed', { jobId: job.id, err }))
+      }
+      await sendPush(recipientId, {
         title: 'Action needed: pay your contractor',
         body: `$${amount.toFixed(2)} for ${job.category}, approved automatically after 3 days`,
         url: `${siteUrl}/landlord/jobs/${job.id}`,

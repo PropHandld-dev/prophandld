@@ -7,6 +7,8 @@ import { sendSms } from '@/lib/sms'
 import { notifyMatchingContractors } from '@/lib/openJobAlerts'
 import { loadNotifyExtras } from '@/lib/notifyExtras'
 import { emailAllowed } from '@/lib/notificationPrefs'
+import { notifyLandlordIds } from '@/lib/landlordCoOwners'
+import { notifyRenterIds } from '@/lib/coRenters'
 
 type Role = 'landlord' | 'renter' | 'contractor'
 
@@ -62,8 +64,14 @@ export async function POST(request: NextRequest) {
   const property = (job.units as any)?.properties
 
   // Only people who are part of this job may trigger notifications about it:
-  // the landlord, the tenant (or a co-renter), or a contractor who bid on it.
-  const isLandlord = property?.owner_user_id === user.id
+  // the landlord (or an accepted co-owner), the tenant (or a co-renter), or
+  // a contractor who bid on it. Fetched once here and reused below as the
+  // landlord recipient list — a co-owner acting on a shared property was
+  // previously blocked outright (owner_user_id match only), and even a
+  // genuine primary-owner action only ever notified themselves, never a
+  // co-owner who's supposed to have full access to the same jobs.
+  const landlordIds = property?.owner_user_id ? await notifyLandlordIds(supabaseAdmin, property.owner_user_id) : []
+  const isLandlord = landlordIds.includes(user.id)
   let allowed = isLandlord
   if (!allowed) {
     const { data: tenancies } = await supabaseAdmin.from('tenancies').select('id, renter_user_id').eq('unit_id', job.unit_id)
@@ -112,22 +120,27 @@ export async function POST(request: NextRequest) {
   }
 
   const roles = RECIPIENTS[type].filter((r) => r !== excludeRole)
-  const roleUserIds: Partial<Record<Role, string>> = {}
+  const roleUserIds: Partial<Record<Role, string[]>> = {}
 
-  if (roles.includes('landlord') && property?.owner_user_id) {
-    roleUserIds.landlord = property.owner_user_id
+  // landlordIds already includes any accepted co-owner (computed above for
+  // the auth check) — reused here so co-owners get the same job
+  // notifications the primary does, not just read access to the job itself.
+  if (roles.includes('landlord') && landlordIds.length > 0) {
+    roleUserIds.landlord = landlordIds
   }
 
   if (roles.includes('renter')) {
     const { data: tenancy } = await supabaseAdmin
       .from('tenancies')
-      .select('renter_user_id')
+      .select('id, renter_user_id')
       .eq('unit_id', job.unit_id)
       .eq('ended', false)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
-    if (tenancy?.renter_user_id) roleUserIds.renter = tenancy.renter_user_id
+    if (tenancy?.renter_user_id) {
+      roleUserIds.renter = await notifyRenterIds(supabaseAdmin, tenancy.id, tenancy.renter_user_id)
+    }
   }
 
   if (roles.includes('contractor')) {
@@ -137,11 +150,15 @@ export async function POST(request: NextRequest) {
       .eq('job_id', jobId)
       .eq('status', 'accepted')
       .maybeSingle()
-    if (bid?.contractor_user_id) roleUserIds.contractor = bid.contractor_user_id
+    if (bid?.contractor_user_id) roleUserIds.contractor = [bid.contractor_user_id]
   }
 
+  const sendTargets = (Object.entries(roleUserIds) as [Role, string[]][]).flatMap(([role, userIds]) =>
+    userIds.map((userId) => ({ role, userId }))
+  )
+
   const sends = await Promise.allSettled(
-    (Object.entries(roleUserIds) as [Role, string][]).map(async ([role, userId]) => {
+    sendTargets.map(async ({ role, userId }) => {
       const { data: recipient, error: recipientError } = await supabaseAdmin
         .from('users')
         .select('email, phone, sms_opt_in, preferred_language, email_notifications_enabled')

@@ -6,6 +6,7 @@ import { sendPropertyComplianceReminderEmail } from '@/lib/email'
 import { sendPush } from '@/lib/push'
 import { logAdminAudit } from '@/lib/auditLog'
 import { emailAllowed } from '@/lib/notificationPrefs'
+import { notifyLandlordIds } from '@/lib/landlordCoOwners'
 
 // Same manual-nudge pattern as send-compliance-reminder (contractors):
 // email + push today, SMS left out until Twilio is confirmed live.
@@ -66,6 +67,35 @@ export async function POST(request: Request) {
     body: address,
     url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/landlord/properties/${propertyId}/compliance`,
   }).catch((err) => console.error('send-property-compliance-reminder: sendPush failed', { propertyId, err }))
+
+  // Best-effort to any accepted co-owner too — compliance tracking is part
+  // of their full access. Kept separate from the primary-owner send above,
+  // which still fails the request on error (the admin's "did it work"
+  // signal); a co-owner's send never blocks that.
+  const coOwnerIds = (await notifyLandlordIds(admin, property.owner_user_id)).filter((id) => id !== property.owner_user_id)
+  if (coOwnerIds.length > 0) {
+    const { data: coOwners } = await admin
+      .from('users')
+      .select('id, email, full_name, preferred_language, email_notifications_enabled')
+      .in('id', coOwnerIds)
+    for (const coOwner of coOwners || []) {
+      if (coOwner.email && emailAllowed(coOwner)) {
+        await sendPropertyComplianceReminderEmail({
+          to: coOwner.email,
+          landlordName: coOwner.full_name || 'there',
+          propertyId,
+          propertyAddress: address,
+          items,
+          lang: coOwner.preferred_language === 'es' ? 'es' : 'en',
+        }).catch((err) => console.error('send-property-compliance-reminder: co-owner email failed', { propertyId, err }))
+      }
+      await sendPush(coOwner.id, {
+        title: items.length === 1 ? 'A compliance item needs attention' : `${items.length} compliance items need attention`,
+        body: address,
+        url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/landlord/properties/${propertyId}/compliance`,
+      }).catch((err) => console.error('send-property-compliance-reminder: co-owner push failed', { propertyId, err }))
+    }
+  }
 
   await logAdminAudit({
     actionType: 'property_compliance_reminder_sent',

@@ -6,6 +6,7 @@ import { sendPropertyComplianceAutoReminderEmail, type ComplianceAutoReminderIte
 import { sendPush } from '@/lib/push'
 import { sendSms } from '@/lib/sms'
 import { emailAllowed } from '@/lib/notificationPrefs'
+import { notifyLandlordIds } from '@/lib/landlordCoOwners'
 
 export const maxDuration = 60
 
@@ -78,7 +79,19 @@ export async function GET(request: NextRequest) {
     dueByLandlordProperty.set(mapKey, entry)
   }
 
-  const landlordIds = Array.from(new Set(Array.from(dueByLandlordProperty.values()).map((e) => e.landlordUserId)))
+  const primaryLandlordIds = Array.from(new Set(Array.from(dueByLandlordProperty.values()).map((e) => e.landlordUserId)))
+
+  // Compliance tracking is part of a co-owner's full access too (same
+  // promise the invite email itself makes) — expand each primary to
+  // include any accepted co-owner before building the recipient list.
+  const recipientsByPrimary = new Map<string, string[]>()
+  await Promise.all(
+    primaryLandlordIds.map(async (id) => {
+      recipientsByPrimary.set(id, await notifyLandlordIds(admin, id))
+    })
+  )
+  const landlordIds = Array.from(new Set(Array.from(recipientsByPrimary.values()).flat()))
+
   const people = new Map<string, { email: string | null; full_name: string | null; phone: string | null; preferred_language: string | null; email_notifications_enabled?: boolean | null; sms_opt_in?: boolean | null }>()
   for (let i = 0; i < landlordIds.length; i += CHUNK) {
     const { data } = await admin
@@ -105,77 +118,84 @@ export async function GET(request: NextRequest) {
 
   let remindersSent = 0
   for (const entry of dueByLandlordProperty.values()) {
-    const person = people.get(entry.landlordUserId)
-    if (!person) continue
-    const lang = person.preferred_language === 'es' ? 'es' : 'en'
+    const recipientIds = recipientsByPrimary.get(entry.landlordUserId) || [entry.landlordUserId]
+    let sentToAnyone = false
 
-    // Channel selection is per item, but items grouped into one send share
-    // the same property — union the channels across them so e.g. one item
-    // wanting SMS doesn't get silently dropped because another item on the
-    // same email only wanted email+push.
-    const wantsEmail = entry.items.some((i) => i.channels.includes('email'))
-    const wantsPush = entry.items.some((i) => i.channels.includes('push'))
-    const wantsSms = entry.items.some((i) => i.channels.includes('sms'))
+    for (const recipientId of recipientIds) {
+      const person = people.get(recipientId)
+      if (!person) continue
+      const lang = person.preferred_language === 'es' ? 'es' : 'en'
 
-    let sentAny = false
-    const logRows: { notification_type: string; channel: string; recipient_user_id: string; external_id: string | null; resource_type: string; resource_id: string }[] = []
+      // Channel selection is per item, but items grouped into one send share
+      // the same property — union the channels across them so e.g. one item
+      // wanting SMS doesn't get silently dropped because another item on the
+      // same email only wanted email+push.
+      const wantsEmail = entry.items.some((i) => i.channels.includes('email'))
+      const wantsPush = entry.items.some((i) => i.channels.includes('push'))
+      const wantsSms = entry.items.some((i) => i.channels.includes('sms'))
 
-    if (wantsEmail && person.email && emailAllowed(person)) {
-      const emailItems: ComplianceAutoReminderItem[] = entry.items.map((i) => ({ name: i.name, expiryDate: i.expiryDate, expired: i.status === 'expired' }))
-      const result = await sendPropertyComplianceAutoReminderEmail({
-        to: person.email,
-        landlordName: person.full_name || 'there',
-        propertyAddress: entry.address,
-        propertyId: entry.propertyId,
-        items: emailItems,
-        lang,
-      })
-      if (result.ok) {
-        sentAny = true
-        logRows.push({ notification_type: 'compliance_reminder', channel: 'email', recipient_user_id: entry.landlordUserId, external_id: result.id || null, resource_type: 'property_compliance', resource_id: entry.propertyId })
+      let sentAny = false
+      const logRows: { notification_type: string; channel: string; recipient_user_id: string; external_id: string | null; resource_type: string; resource_id: string }[] = []
+
+      if (wantsEmail && person.email && emailAllowed(person)) {
+        const emailItems: ComplianceAutoReminderItem[] = entry.items.map((i) => ({ name: i.name, expiryDate: i.expiryDate, expired: i.status === 'expired' }))
+        const result = await sendPropertyComplianceAutoReminderEmail({
+          to: person.email,
+          landlordName: person.full_name || 'there',
+          propertyAddress: entry.address,
+          propertyId: entry.propertyId,
+          items: emailItems,
+          lang,
+        })
+        if (result.ok) {
+          sentAny = true
+          logRows.push({ notification_type: 'compliance_reminder', channel: 'email', recipient_user_id: recipientId, external_id: result.id || null, resource_type: 'property_compliance', resource_id: entry.propertyId })
+        }
+      }
+
+      if (wantsPush) {
+        const anyExpired = entry.items.some((i) => i.status === 'expired')
+        await sendPush(recipientId, {
+          title: anyExpired ? 'A compliance item has expired' : 'A compliance item is expiring soon',
+          body: entry.items.length === 1 ? `${entry.items[0].name} — ${entry.address}` : `${entry.items.length} items at ${entry.address}`,
+          url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/landlord/properties/${entry.propertyId}/compliance`,
+        }).catch((err) => console.error('cron/compliance-reminders: sendPush failed', { recipientId, err }))
+        // Only count/log this as sent when a real subscription exists — no
+        // "delivered"/"opened" signal for push either way (see
+        // 2026-10-15-notification-log.sql), but a landlord with zero
+        // registered devices got nothing, and the admin panel should say so.
+        if (landlordsWithPush.has(recipientId)) {
+          sentAny = true
+          logRows.push({ notification_type: 'compliance_reminder', channel: 'push', recipient_user_id: recipientId, external_id: null, resource_type: 'property_compliance', resource_id: entry.propertyId })
+        }
+      }
+
+      // Same gating every other SMS type in the app already uses: this
+      // recipient's own account-level opt-in and a real phone on file, in
+      // addition to this item having asked for SMS specifically.
+      if (wantsSms && person.sms_opt_in && person.phone) {
+        const anyExpired = entry.items.some((i) => i.status === 'expired')
+        const body = entry.items.length === 1
+          ? `Prophandld: ${anyExpired ? 'Expired' : 'Expiring soon'}: ${entry.items[0].name} at ${entry.address}.`
+          : `Prophandld: ${entry.items.length} compliance items need attention at ${entry.address}.`
+        const smsResult = await sendSms(person.phone, body).catch((err) => { console.error('cron/compliance-reminders: sendSms failed', { recipientId, err }); return null })
+        if (smsResult?.ok) {
+          sentAny = true
+          logRows.push({ notification_type: 'compliance_reminder', channel: 'sms', recipient_user_id: recipientId, external_id: smsResult.id || null, resource_type: 'property_compliance', resource_id: entry.propertyId })
+        }
+      }
+
+      if (sentAny) sentToAnyone = true
+
+      if (logRows.length > 0) {
+        await admin.from('notification_log').insert(logRows).then(({ error }) => {
+          if (error) console.error('cron/compliance-reminders: notification_log insert failed', error)
+        })
       }
     }
 
-    if (wantsPush) {
-      const anyExpired = entry.items.some((i) => i.status === 'expired')
-      await sendPush(entry.landlordUserId, {
-        title: anyExpired ? 'A compliance item has expired' : 'A compliance item is expiring soon',
-        body: entry.items.length === 1 ? `${entry.items[0].name} — ${entry.address}` : `${entry.items.length} items at ${entry.address}`,
-        url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/landlord/properties/${entry.propertyId}/compliance`,
-      }).catch((err) => console.error('cron/compliance-reminders: sendPush failed', { landlordUserId: entry.landlordUserId, err }))
-      // Only count/log this as sent when a real subscription exists — no
-      // "delivered"/"opened" signal for push either way (see
-      // 2026-10-15-notification-log.sql), but a landlord with zero
-      // registered devices got nothing, and the admin panel should say so.
-      if (landlordsWithPush.has(entry.landlordUserId)) {
-        sentAny = true
-        logRows.push({ notification_type: 'compliance_reminder', channel: 'push', recipient_user_id: entry.landlordUserId, external_id: null, resource_type: 'property_compliance', resource_id: entry.propertyId })
-      }
-    }
-
-    // Same gating every other SMS type in the app already uses: the
-    // landlord's own account-level opt-in and a real phone on file, in
-    // addition to this item having asked for SMS specifically.
-    if (wantsSms && person.sms_opt_in && person.phone) {
-      const anyExpired = entry.items.some((i) => i.status === 'expired')
-      const body = entry.items.length === 1
-        ? `Prophandld: ${anyExpired ? 'Expired' : 'Expiring soon'}: ${entry.items[0].name} at ${entry.address}.`
-        : `Prophandld: ${entry.items.length} compliance items need attention at ${entry.address}.`
-      const smsResult = await sendSms(person.phone, body).catch((err) => { console.error('cron/compliance-reminders: sendSms failed', { landlordUserId: entry.landlordUserId, err }); return null })
-      if (smsResult?.ok) {
-        sentAny = true
-        logRows.push({ notification_type: 'compliance_reminder', channel: 'sms', recipient_user_id: entry.landlordUserId, external_id: smsResult.id || null, resource_type: 'property_compliance', resource_id: entry.propertyId })
-      }
-    }
-
-    if (!sentAny) continue
+    if (!sentToAnyone) continue
     remindersSent++
-
-    if (logRows.length > 0) {
-      await admin.from('notification_log').insert(logRows).then(({ error }) => {
-        if (error) console.error('cron/compliance-reminders: notification_log insert failed', error)
-      })
-    }
 
     for (const item of entry.items) {
       await admin.from('compliance_items').update({ last_reminder_status: item.status }).eq('id', item.id)

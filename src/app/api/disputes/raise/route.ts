@@ -4,6 +4,8 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { sendDisputeRaisedAdminEmail, sendDisputeRaisedEmail } from '@/lib/email'
 import { emailAllowed } from '@/lib/notificationPrefs'
 import { sendPush } from '@/lib/push'
+import { notifyLandlordIds } from '@/lib/landlordCoOwners'
+import { notifyRenterIds } from '@/lib/coRenters'
 
 export async function POST(request: NextRequest) {
   const authClient = await createClient()
@@ -30,17 +32,23 @@ export async function POST(request: NextRequest) {
   }
 
   const property = (job.units as any)?.properties
-  const isLandlord = property?.owner_user_id === user.id
+  // A co-owner or a co-renter is as much a participant on this job as the
+  // primary — same fan-out as /api/notify, needed here too since a co-owner
+  // raising a dispute was previously rejected outright as "not a
+  // participant" (owner_user_id match only).
+  const landlordIds = property?.owner_user_id ? await notifyLandlordIds(supabaseAdmin, property.owner_user_id) : []
+  const isLandlord = landlordIds.includes(user.id)
 
   const { data: tenancy } = await supabaseAdmin
     .from('tenancies')
-    .select('renter_user_id')
+    .select('id, renter_user_id')
     .eq('unit_id', job.unit_id)
     .eq('ended', false)
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
-  const isRenter = tenancy?.renter_user_id === user.id
+  const renterIds = tenancy?.renter_user_id ? await notifyRenterIds(supabaseAdmin, tenancy.id, tenancy.renter_user_id) : []
+  const isRenter = renterIds.includes(user.id)
 
   const { data: acceptedBid } = await supabaseAdmin
     .from('bids')
@@ -120,9 +128,12 @@ export async function POST(request: NextRequest) {
   // even open, and no chance to add their own context before a decision
   // was made. Only admin was ever told at raise time, via the email above.
   const propertyLabel = property?.address || 'the property'
+  // Excludes the raiser specifically (not their whole role group) — a
+  // co-owner raising a dispute should still notify the primary and any
+  // other co-owner, just not themselves.
   const otherRecipients: { userId: string; role: 'landlord' | 'renter' | 'contractor' }[] = []
-  if (!isLandlord && property?.owner_user_id) otherRecipients.push({ userId: property.owner_user_id, role: 'landlord' })
-  if (!isRenter && tenancy?.renter_user_id) otherRecipients.push({ userId: tenancy.renter_user_id, role: 'renter' })
+  for (const id of landlordIds) if (id !== user.id) otherRecipients.push({ userId: id, role: 'landlord' })
+  for (const id of renterIds) if (id !== user.id) otherRecipients.push({ userId: id, role: 'renter' })
   if (!isContractor && acceptedBid?.contractor_user_id) otherRecipients.push({ userId: acceptedBid.contractor_user_id, role: 'contractor' })
 
   await Promise.allSettled(

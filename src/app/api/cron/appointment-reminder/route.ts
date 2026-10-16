@@ -5,6 +5,8 @@ import { sendAppointmentReminderEmail, type Lang } from '@/lib/email'
 import { sendPush } from '@/lib/push'
 import { formatWhen } from '@/lib/notifyExtras'
 import { emailAllowed } from '@/lib/notificationPrefs'
+import { notifyLandlordIds } from '@/lib/landlordCoOwners'
+import { notifyRenterIds } from '@/lib/coRenters'
 
 export const maxDuration = 60
 
@@ -76,19 +78,40 @@ export async function GET(request: NextRequest) {
   }
 
   const tenancyByUnit = new Map<string, string>() // unit_id -> renter_user_id
+  const tenancyIdByUnit = new Map<string, string>() // unit_id -> tenancy id
   for (const ids of chunk(unitIds, ID_CHUNK)) {
-    const { data } = await admin.from('tenancies').select('unit_id, renter_user_id').in('unit_id', ids).eq('ended', false)
-    for (const t of data || []) if (!tenancyByUnit.has(t.unit_id)) tenancyByUnit.set(t.unit_id, t.renter_user_id)
+    const { data } = await admin.from('tenancies').select('id, unit_id, renter_user_id').in('unit_id', ids).eq('ended', false)
+    for (const t of data || []) {
+      if (!tenancyByUnit.has(t.unit_id)) {
+        tenancyByUnit.set(t.unit_id, t.renter_user_id)
+        tenancyIdByUnit.set(t.unit_id, t.id)
+      }
+    }
   }
+
+  // Reminds every co-owner and co-renter too, same full-access fan-out as
+  // the central /api/notify dispatcher — previously only the single
+  // property.owner_user_id and tenancy.renter_user_id ever got this.
+  const landlordRecipientsByOwner = new Map<string, string[]>()
+  const ownerIds = Array.from(new Set(dueJobs.map((j) => (j.units as any)?.properties?.owner_user_id).filter(Boolean)))
+  await Promise.all(ownerIds.map(async (id) => landlordRecipientsByOwner.set(id, await notifyLandlordIds(admin, id))))
+
+  const renterRecipientsByUnit = new Map<string, string[]>()
+  await Promise.all(
+    Array.from(tenancyByUnit.entries()).map(async ([unitId, renterId]) => {
+      const tenancyId = tenancyIdByUnit.get(unitId)
+      if (!tenancyId) return
+      renterRecipientsByUnit.set(unitId, await notifyRenterIds(admin, tenancyId, renterId))
+    })
+  )
 
   const userIds = new Set<string>()
   for (const j of dueJobs) {
     const bid = bidByJob.get(j.id)
     if (bid?.contractor_user_id) userIds.add(bid.contractor_user_id)
-    const renterId = tenancyByUnit.get(j.unit_id)
-    if (renterId) userIds.add(renterId)
+    for (const id of renterRecipientsByUnit.get(j.unit_id) || []) userIds.add(id)
     const ownerId = (j.units as any)?.properties?.owner_user_id
-    if (ownerId) userIds.add(ownerId)
+    if (ownerId) for (const id of landlordRecipientsByOwner.get(ownerId) || [ownerId]) userIds.add(id)
   }
   const userById = new Map<string, { email: string | null; full_name: string | null; preferred_language: string | null; email_notifications_enabled: boolean | null }>()
   for (const ids of chunk(Array.from(userIds), ID_CHUNK)) {
@@ -105,13 +128,14 @@ export async function GET(request: NextRequest) {
 
     const bid = bidByJob.get(job.id)
     const isDiy = !bid
-    const renterId = tenancyByUnit.get(job.unit_id)
+    const renterIds = renterRecipientsByUnit.get(job.unit_id) || []
     const landlordId = property?.owner_user_id
+    const landlordIds = landlordId ? (landlordRecipientsByOwner.get(landlordId) || [landlordId]) : []
 
     const recipients: { userId: string | undefined; role: 'renter' | 'contractor' | 'landlord' }[] = [
-      { userId: renterId, role: 'renter' },
+      ...renterIds.map((userId) => ({ userId, role: 'renter' as const })),
       { userId: bid?.contractor_user_id, role: 'contractor' },
-      { userId: landlordId, role: 'landlord' },
+      ...landlordIds.map((userId) => ({ userId, role: 'landlord' as const })),
     ]
 
     // Access notes only matter to the contractor — they're the one about

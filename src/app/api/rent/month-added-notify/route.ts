@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { sendRentDueRenterEmail } from '@/lib/email'
 import { sendPush } from '@/lib/push'
 import { emailAllowed } from '@/lib/notificationPrefs'
+import { notifyLandlordIds } from '@/lib/landlordCoOwners'
 
 // A landlord manually adding a rent entry (handleAddMonth on the unit rent
 // page — for a month the auto-generation cron missed, a back-dated charge,
@@ -38,7 +39,9 @@ export async function POST(request: NextRequest) {
 
   const tenancy = rent?.tenancies as any
   const unit = tenancy?.units
-  if (!rent || unit?.properties?.owner_user_id !== user.id) {
+  const ownerId = unit?.properties?.owner_user_id
+  const landlordIds = ownerId ? await notifyLandlordIds(supabaseAdmin, ownerId) : []
+  if (!rent || !landlordIds.includes(user.id)) {
     return NextResponse.json({ error: 'Rent payment not found' }, { status: 404 })
   }
 

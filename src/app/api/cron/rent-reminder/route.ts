@@ -5,6 +5,7 @@ import { rentMonthBounds } from '@/lib/rentAutomation'
 import { sendRentDueEmail, sendRentDueRenterEmail, sendRentLateRenterEmail, sendRentLateLandlordEmail, type Lang } from '@/lib/email'
 import { sendPush } from '@/lib/push'
 import { emailAllowed } from '@/lib/notificationPrefs'
+import { notifyLandlordIds } from '@/lib/landlordCoOwners'
 
 export const maxDuration = 60
 
@@ -106,11 +107,17 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // People we may need to email, in bulk.
+  // People we may need to email, in bulk. Rent is explicit in a co-owner's
+  // full-access promise, so every landlord-facing rent notice below reaches
+  // any accepted co-owner too, not just the primary owner_user_id.
   const renterIds = Array.from(new Set(tenancies.map((t) => t.renter_user_id).filter(Boolean)))
   const landlordIds = Array.from(new Set(tenancies.map((t) => t.units?.properties?.owner_user_id).filter(Boolean)))
+  const landlordRecipientsByOwner = new Map<string, string[]>()
+  await Promise.all(landlordIds.map(async (id) => landlordRecipientsByOwner.set(id, await notifyLandlordIds(supabaseAdmin, id))))
+  const allLandlordRecipientIds = Array.from(new Set(Array.from(landlordRecipientsByOwner.values()).flat()))
+
   const userById = new Map<string, { email: string | null; full_name: string | null; preferred_language: string | null; email_notifications_enabled: boolean | null }>()
-  for (const ids of chunk(Array.from(new Set([...renterIds, ...landlordIds])), ID_CHUNK)) {
+  for (const ids of chunk(Array.from(new Set([...renterIds, ...allLandlordRecipientIds])), ID_CHUNK)) {
     const { data } = await supabaseAdmin.from('users').select('id, email, full_name, preferred_language, email_notifications_enabled').in('id', ids)
     for (const u of data || []) userById.set(u.id, u)
   }
@@ -218,8 +225,8 @@ export async function GET(request: NextRequest) {
       }).catch((err) => console.error('cron/rent-reminder: sendPush (renter late) failed', err))
     }
 
-    if (landlordUserId) {
-      const landlord = userById.get(landlordUserId)
+    for (const recipientId of landlordUserId ? (landlordRecipientsByOwner.get(landlordUserId) || [landlordUserId]) : []) {
+      const landlord = userById.get(recipientId)
       if (landlord?.email && emailAllowed(landlord)) {
         await sendRentLateLandlordEmail({
           to: landlord.email,
@@ -230,7 +237,7 @@ export async function GET(request: NextRequest) {
           lang: langOf(landlord),
         })
       }
-      await sendPush(landlordUserId, {
+      await sendPush(recipientId, {
         title: 'Rent is late',
         body: lateFeeAdded ? `${unitLabel}: a $${lateFeeAdded.toFixed(2)} late fee was added.` : `${unitLabel} is past due.`,
         url: `${siteUrl}/landlord`,
@@ -240,17 +247,20 @@ export async function GET(request: NextRequest) {
     lateNotifications++
   })
 
-  // One digest per landlord for the newly created rows.
+  // One digest per landlord (and any accepted co-owner) for the newly
+  // created rows.
   await runInBatches(Object.entries(newlyCreatedByLandlord), async ([landlordUserId, unitLabels]) => {
-    const landlord = userById.get(landlordUserId)
-    if (landlord?.email && emailAllowed(landlord)) {
-      await sendRentDueEmail({ to: landlord.email, landlordName: landlord.full_name || 'there', unitLabels, lang: langOf(landlord) })
+    for (const recipientId of landlordRecipientsByOwner.get(landlordUserId) || [landlordUserId]) {
+      const landlord = userById.get(recipientId)
+      if (landlord?.email && emailAllowed(landlord)) {
+        await sendRentDueEmail({ to: landlord.email, landlordName: landlord.full_name || 'there', unitLabels, lang: langOf(landlord) })
+      }
+      await sendPush(recipientId, {
+        title: 'Rent due',
+        body: unitLabels.length === 1 ? `${unitLabels[0]}: mark it received once it's in.` : `${unitLabels.length} units: mark rent received once it's in.`,
+        url: `${siteUrl}/landlord`,
+      }).catch((err) => console.error('cron/rent-reminder: sendPush failed', err))
     }
-    await sendPush(landlordUserId, {
-      title: 'Rent due',
-      body: unitLabels.length === 1 ? `${unitLabels[0]}: mark it received once it's in.` : `${unitLabels.length} units: mark rent received once it's in.`,
-      url: `${siteUrl}/landlord`,
-    }).catch((err) => console.error('cron/rent-reminder: sendPush failed', err))
   })
 
   return NextResponse.json({

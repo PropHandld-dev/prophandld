@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { sendReviewReceivedEmail } from '@/lib/email'
 import { sendPush } from '@/lib/push'
 import { emailAllowed } from '@/lib/notificationPrefs'
+import { notifyLandlordIds } from '@/lib/landlordCoOwners'
 
 // Tells the contractor they got a new review. Called fire-and-forget after
 // ReviewForm's client-side insert into contractor_reviews succeeds, same
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Job not found' }, { status: 404 })
   }
   const property = (job.units as any)?.properties
-  let allowed = role === 'landlord' && property?.owner_user_id === user.id
+  let allowed = role === 'landlord' && property?.owner_user_id && (await notifyLandlordIds(supabaseAdmin, property.owner_user_id)).includes(user.id)
   if (!allowed && role === 'renter') {
     const { data: tenancy } = await supabaseAdmin
       .from('tenancies')
