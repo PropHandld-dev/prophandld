@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { BuildingIcon, HomeIcon, WrenchIcon, ChevronDownIcon, PlusIcon, CheckCircleIcon } from '@/components/icons'
+import { BuildingIcon, HomeIcon, WrenchIcon, ChevronDownIcon, PlusIcon } from '@/components/icons'
 import { applySessionToken } from '@/lib/profileSwitch'
 import { useLanguage, t, roleLabel } from '@/lib/i18n'
 import type { Role } from '@/lib/linkedProfiles'
@@ -207,18 +207,9 @@ export function ProfileButton({ name, currentRole }: { name?: string | null; cur
           ) : (
             <>
               <div className="p-2 border-b border-white/8">
-                <p className="text-white/40 text-[10px] font-semibold uppercase tracking-wide px-2.5 pt-1.5 pb-1">{t('yourProfiles', lang)}</p>
-                <p className="text-white/40 text-[11px] leading-snug px-2.5 pb-2">{t('profileSwitcherExplainer', lang)}</p>
-                {currentRole && (
-                  <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl">
-                    {(() => { const Icon = ROLE_ICON[currentRole]; return <Icon className="w-4 h-4 text-[#12A5A9] shrink-0" /> })()}
-                    <span className="text-white text-sm font-medium flex-1">{roleLabel(currentRole, lang)}</span>
-                    <span className="inline-flex items-center gap-1 text-[#12A5A9] text-[11px] font-semibold bg-[#12A5A9]/10 rounded-full px-2 py-0.5">
-                      <CheckCircleIcon className="w-3 h-3" />
-                      {t('currentProfileBadge', lang)}
-                    </span>
-                  </div>
-                )}
+                <p className="text-white/40 text-[10px] font-semibold uppercase tracking-wide px-2.5 pt-1.5 pb-1">
+                  {currentRole ? t('switchFromProfile', lang).replace('{role}', roleLabel(currentRole, lang)) : t('yourProfiles', lang)}
+                </p>
                 {linked.map((p) => {
                   const Icon = ROLE_ICON[p.role]
                   const switching = switchingId === p.id

@@ -897,6 +897,7 @@ const STRINGS = {
   viewProfileLink: { en: 'View profile', es: 'Ver perfil' },
   switchedToProfileBanner: { en: 'Switched to your {role} profile', es: 'Cambiaste a tu perfil de {role}' },
   profileSwitcherExplainer: { en: 'One login, every profile. Switch anytime — no extra password.', es: 'Un solo inicio de sesión, todos tus perfiles. Cambia cuando quieras, sin otra contraseña.' },
+  switchFromProfile: { en: 'Switch from {role}', es: 'Cambiar desde {role}' },
   switchBtn: { en: 'Switch', es: 'Cambiar' },
   currentProfileBadge: { en: 'Current', es: 'Actual' },
   emailAlreadyLinkedTitle: { en: 'This email already has an account', es: 'Este correo ya tiene una cuenta' },
