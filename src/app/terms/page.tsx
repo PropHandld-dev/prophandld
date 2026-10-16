@@ -19,7 +19,7 @@ export default function TermsPage() {
 
       <main className="max-w-3xl mx-auto px-6 py-16">
         <h1 className="text-3xl font-bold mb-2">Terms of Service</h1>
-        <p className="text-white/60 text-sm mb-12">Last updated October 15, 2026</p>
+        <p className="text-white/60 text-sm mb-12">Last updated October 16, 2026</p>
 
         <div className="space-y-10 text-white/60 text-sm leading-relaxed [&_h2]:text-white [&_h2]:font-semibold [&_h2]:text-lg [&_h2]:mb-3 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5">
 
@@ -65,7 +65,44 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2>3. Sealed bidding</h2>
+            <h2>3. Landlord responsibilities</h2>
+            <p>As a landlord, you agree to:</p>
+            <ul>
+              <li>Provide accurate information about your properties, units, and lease terms — address, rent amount, unit count, and who actually lives there</li>
+              <li>Keep required licenses, certifications, and inspections (for example, a rental license or lead certification where your jurisdiction requires one) current, and use the platform's compliance tracking as a tool, not a substitute for knowing your own legal obligations</li>
+              <li>Respond to reported maintenance issues in a reasonable time, and not use the platform to avoid habitability or repair obligations you have under applicable law</li>
+              <li>Pay contractors the full amount you approve for completed work, and pay your own Prophandld subscription fee on time</li>
+              <li>Respect a renter's privacy — only use their contact information and personal data for managing the tenancy, never for an unrelated purpose</li>
+              <li>Take responsibility for any co-owner you invite to help manage your properties, including their use of that access (see Section 2)</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2>4. Renter responsibilities</h2>
+            <p>As a renter, you agree to:</p>
+            <ul>
+              <li>Report maintenance issues honestly and provide a reasonably accurate description — including marking something an emergency only when it actually is one</li>
+              <li>Provide reasonable access for a scheduled contractor visit or inspection, or communicate promptly if a scheduled time no longer works</li>
+              <li>Pay rent on time through the method you and your landlord have set up, and not use the platform to misrepresent whether a payment was made</li>
+              <li>Keep any co-renter or backup contact information you provide accurate, and take responsibility for a co-renter you add to your unit</li>
+              <li>Not use any contact information you gain through a job (for example, a contractor's) for anything outside that job</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2>5. Contractor responsibilities</h2>
+            <p>As a contractor, you agree to:</p>
+            <ul>
+              <li>Submit accurate, current license and insurance information, and tell us promptly if either lapses or changes</li>
+              <li>Perform work you bid on professionally, safely, and to the applicable code for your trade — a "Verified" badge reflects document review, not a guarantee of your work (see Section 7)</li>
+              <li>Honor a sealed bid you submit, and not withdraw from or materially change a job's scope after a landlord selects you except through the platform's price-change process</li>
+              <li>Never attempt to see, infer, or coordinate on another contractor's bid, and never ask a landlord or renter what a competing bid was</li>
+              <li>Not solicit a landlord or renter to pay you directly, off-platform, for a job that started on Prophandld, in a way meant to avoid the platform's payment and dispute protections</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2>6. Sealed bidding</h2>
             <p>
               When a maintenance job goes out to bid, contractors submit their price privately.
               They can't see what anyone else has bid. Landlords choose who to select. Prophandld
@@ -75,7 +112,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2>4. Contractor verification</h2>
+            <h2>7. Contractor verification</h2>
             <p>
               Contractors may submit license and insurance information for review. A "Verified" badge
               means Prophandld has reviewed the documents a contractor submitted. It is not a
@@ -86,7 +123,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2>5. Payments</h2>
+            <h2>8. Payments</h2>
             <p>
               Rent (whether paid by debit card or bank transfer) and contractor job payments are
               processed through Stripe, a third-party payment processor; Prophandld does not hold
@@ -99,7 +136,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2>6. Content you upload</h2>
+            <h2>9. Content you upload</h2>
             <p>
               You may upload photos, documents, and other content (job photos, lease documents,
               inspection reports, license/insurance files). You keep ownership of what you upload,
@@ -114,7 +151,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2>7. Acceptable use</h2>
+            <h2>10. Acceptable use</h2>
             <p>You agree not to:</p>
             <ul>
               <li>Misrepresent your identity, role, or qualifications (especially licensing/insurance as a contractor)</li>
@@ -125,7 +162,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2>8. Disclaimers</h2>
+            <h2>11. Disclaimers</h2>
             <p>
               Prophandld is provided "as is." We do our best to keep it running and accurate, but we
               don't guarantee it will be uninterrupted, error-free, or that it will meet your specific
@@ -143,7 +180,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2>9. Termination</h2>
+            <h2>12. Termination</h2>
             <p>
               You can stop using Prophandld and delete your account at any time. We may suspend or
               terminate accounts that violate these terms or that we reasonably believe are being
@@ -152,7 +189,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2>10. Changes to these terms</h2>
+            <h2>13. Changes to these terms</h2>
             <p>
               We may update these terms as the platform evolves. For example, when new features like
               in-app rent payments launch. We'll update the date at the top of this page when we do.
@@ -161,7 +198,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2>11. Governing law</h2>
+            <h2>14. Governing law</h2>
             <p>
               These terms are governed by the laws of the Commonwealth of Pennsylvania, without
               regard to conflict of law principles.
@@ -169,12 +206,12 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2>12. SMS Terms</h2>
+            <h2>15. SMS Terms</h2>
             <p>
-              Prophandld offers optional text message alerts for time-sensitive job and scheduling
-              updates: a new maintenance job opening near a contractor, an emergency issue reported by
-              a tenant, a proposed or confirmed appointment time, and a completed job ready for a
-              landlord's review. These are account notifications, not marketing messages.
+              Prophandld offers optional text message alerts for key job and scheduling updates: a
+              new maintenance job opening near a contractor, an issue reported by a tenant, a
+              proposed or confirmed appointment time, and a completed job ready for a landlord's
+              review. These are account notifications, not marketing messages.
             </p>
             <p>
               Text alerts are off by default. You opt in from the Notifications section of your
@@ -186,7 +223,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2>13. Contact</h2>
+            <h2>16. Contact</h2>
             <p>
               Questions about these terms? Reach out at{' '}
               <a href="mailto:admin@prophandld.com" className="text-[#12A5A9] hover:underline">admin@prophandld.com</a>.

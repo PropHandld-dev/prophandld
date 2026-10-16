@@ -64,6 +64,7 @@ function SignupForm() {
   const [otpCode, setOtpCode] = useState('')
   const [verifyingCode, setVerifyingCode] = useState(false)
   const [otpError, setOtpError] = useState<string | null>(null)
+  const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [form, setForm] = useState({
     full_name: '',
     email: '',
@@ -87,6 +88,10 @@ function SignupForm() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!role) return
+    if (!agreedToTerms) {
+      setError('Please agree to the Terms of Service and Privacy Policy to continue.')
+      return
+    }
     setLoading(true)
     setError(null)
     setAlreadyRegistered(false)
@@ -624,20 +629,28 @@ function SignupForm() {
           </div>
         )}
 
+        <label className="flex items-start gap-2.5 text-white/60 text-xs cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={agreedToTerms}
+            onChange={(e) => setAgreedToTerms(e.target.checked)}
+            className="mt-0.5 w-4 h-4 shrink-0 rounded border-white/20 bg-white/5 accent-[#12A5A9]"
+          />
+          <span>
+            I agree to Prophandld's{' '}
+            <Link href="/terms" target="_blank" className="text-[#12A5A9]/80 hover:underline">Terms of Service</Link>
+            {' '}and{' '}
+            <Link href="/privacy" target="_blank" className="text-[#12A5A9]/80 hover:underline">Privacy Policy</Link>.
+          </span>
+        </label>
+
         <RippleButton
           type="submit"
-          disabled={loading}
+          disabled={loading || !agreedToTerms}
           className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50 mt-2"
         >
           {loading ? 'Creating account...' : 'Create account'}
         </RippleButton>
-
-        <p className="text-center text-white/50 text-xs">
-          By continuing, you agree to Prophandld's{' '}
-          <Link href="/terms" className="text-[#12A5A9]/80 hover:underline">Terms</Link>
-          {' '}and{' '}
-          <Link href="/privacy" className="text-[#12A5A9]/80 hover:underline">Privacy Policy</Link>.
-        </p>
 
         <p className="text-center text-white/60 text-sm">
           Already have an account?{' '}

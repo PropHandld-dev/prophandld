@@ -58,9 +58,9 @@ function RotatingHeroPhrase() {
 
 // Structured data for search engines — purely additive, invisible to a
 // visitor, and free in the literal sense (no ad spend). Only states facts
-// the rest of the page already claims: no price (not finalized/public yet,
-// matches the pricing section's own "finalizing before launch" copy) and
-// no aggregateRating/review (would be fabricated — nothing like that
+// the rest of the page already claims: the free-tier offer (real pricing
+// now lives at /pricing, matching pricingTiers.ts) and no
+// aggregateRating/review (would be fabricated — nothing like that
 // exists pre-launch, same reasoning the team already applied to the trust
 // section below instead of fake testimonials).
 const STRUCTURED_DATA = {
@@ -121,6 +121,7 @@ export default function LandingPage() {
         </div>
         <div className="flex items-center gap-6">
           <a href="#how-it-works" className="text-sm text-white/50 hover:text-white transition hidden sm:block">How it works</a>
+          <a href="#pricing" className="text-sm text-white/50 hover:text-white transition hidden sm:block">Pricing</a>
           <a href="#roles" className="text-sm text-white/50 hover:text-white transition hidden sm:block">Who it&apos;s for</a>
           <Link href="/contractors" className="text-sm text-white/50 hover:text-white transition hidden sm:block">For contractors</Link>
           <Link href="/login" className="text-sm font-medium text-white/70 hover:text-white transition">
@@ -456,35 +457,42 @@ export default function LandingPage() {
         </ScrollReveal>
       </section>
 
-      {/* Pricing teaser — final numbers aren't set yet (still being
-          confirmed before official launch), so this deliberately shows the
-          structure, not dollar figures: a real free tier, flat monthly
-          plans through 25 units, then a per-unit rate that steps DOWN as a
+      {/* Pricing teaser — real numbers, matches src/lib/pricingTiers.ts and
+          the full breakdown at /pricing exactly; keep both in sync if
+          those tiers ever change. A real free tier, flat monthly plans
+          through 25 units, then a per-unit rate that steps DOWN as a
           portfolio grows (26-100 / 101-500 / 500+ each get cheaper than
-          the last) — a volume discount, not a per-unit penalty. Matches
-          pricingTiers.ts exactly; keep this in sync if those tiers change. */}
-      <section className="max-w-5xl mx-auto px-6 py-16">
+          the last) — a volume discount, not a per-unit penalty. */}
+      <section id="pricing" className="max-w-5xl mx-auto px-6 py-16">
         <ScrollReveal>
           <div className="bg-white/3 border border-white/8 rounded-2xl p-8 sm:p-12 text-center">
             <div className="inline-flex items-center gap-2 bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 text-[#12A5A9] border border-[#12A5A9]/30 text-xs font-semibold px-3 py-1.5 rounded-full mb-5">
-              Pricing, finalizing before launch
+              Simple, graduated pricing
             </div>
             <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">Free to try. Simple after that.</h2>
-            <p className="text-white/50 max-w-xl mx-auto leading-relaxed mb-6">
-              Your first unit is free, full stop. Flat monthly plans through
-              25 units. Past that, a simple per-unit rate that gets cheaper
-              the bigger you grow, never more expensive.
-              We&apos;re confirming the exact numbers with a couple of advisors
-              before official launch, so nothing&apos;s posted here yet, but
-              the shape of it won&apos;t change: affordable for a landlord with
-              a few properties, not priced like enterprise software.
+            <p className="text-white/50 max-w-xl mx-auto leading-relaxed mb-2">
+              Your first unit is free, full stop. Then <strong className="text-white/80">$19.99/month</strong> for
+              2–4 units, <strong className="text-white/80">$39.99</strong> for 5–10, <strong className="text-white/80">$79.99</strong> for
+              11–25 — flat rates, not per-unit. Past 25 units, a simple per-unit rate that gets
+              cheaper the bigger you grow, never more expensive.
             </p>
-            <MagneticLink
-              href="/signup?role=landlord"
-              className="inline-block bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-6 py-3 rounded-full hover:opacity-90 transition"
-            >
-              Try it free →
-            </MagneticLink>
+            <p className="text-white/50 max-w-xl mx-auto leading-relaxed mb-6">
+              Renters and contractors never pay Prophandld anything, ever.
+            </p>
+            <div className="flex items-center justify-center gap-4 flex-wrap">
+              <MagneticLink
+                href="/signup?role=landlord"
+                className="inline-block bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-6 py-3 rounded-full hover:opacity-90 transition"
+              >
+                Try it free →
+              </MagneticLink>
+              <Link
+                href="/pricing"
+                className="text-[#12A5A9] text-sm font-semibold hover:underline"
+              >
+                See the full pricing breakdown →
+              </Link>
+            </div>
           </div>
         </ScrollReveal>
       </section>
@@ -498,7 +506,7 @@ export default function LandingPage() {
           <div className="space-y-3">
             {[
               { q: 'Is this just for finding contractors?', a: "No. Prophandld is built to replace the spreadsheet. Track every property, unit, and tenant, handle maintenance end to end with sealed bidding, and collect rent, all in one dashboard. Your spreadsheet can finally retire." },
-              { q: 'What does it cost?', a: "Your first unit is free. Flat monthly plans through 25 units, then a per-unit rate that gets cheaper the bigger you grow. We're confirming the exact numbers before official launch. Contractors never pay anything, ever, no signup fee, no monthly fee, no cut of a bid." },
+              { q: 'What does it cost?', a: "Your first unit is free. Then $19.99/month for 2–4 units, $39.99 for 5–10, $79.99 for 11–25 — flat rates, not per-unit. Past 25 units, a per-unit rate that gets cheaper the bigger you grow. See the full breakdown at /pricing. Contractors never pay anything, ever, no signup fee, no monthly fee, no cut of a bid." },
               { q: 'How does sealed bidding actually work?', a: "Contractors near the property are alerted when you open a job for bids. They submit their price privately and never see what anyone else bid. You choose who you trust, not just the lowest number. No bidding wars, no “my cousin quoted less”." },
               { q: 'Do I have to use a contractor?', a: "No. For anything small enough to handle yourself, mark it fixed directly, no bidding required. Contractors are there for when you want one, not a requirement for every repair." },
               { q: "What if the contractor's price changes?", a: 'If a contractor needs to adjust their price once work has started, they show you the new labor and parts breakdown, and you approve it before they move forward. No surprise invoices.' },
