@@ -57,7 +57,7 @@ function PushBanner({ title, body, time }: { title: string; body: string; time: 
 
 export function NotificationPreview() {
   return (
-    <div className="grid lg:grid-cols-2 gap-6 items-start">
+    <div className="grid lg:grid-cols-3 gap-6 items-start">
       {/* Phone alerts */}
       <div className="rounded-3xl border border-white/10 bg-[#0F2138] p-5 sm:p-6">
         <div className="flex items-center gap-2 text-[#12A5A9] text-xs font-semibold uppercase tracking-wide mb-4">
@@ -68,7 +68,23 @@ export function NotificationPreview() {
           <PushBanner title="Confirmed: Tue, Sep 22 · Morning" body="Plumbing · 123 Maple St, Philadelphia" time="2m ago" />
           <PushBanner title="Jordan L. finished the Plumbing work" body="Review and approve. It auto-approves in 3 days." time="1h ago" />
         </div>
-        <p className="text-white/40 text-xs mt-4">Example alerts. Add Prophandld to your Home Screen to get them, and retire the "any update?" texts.</p>
+        <p className="text-white/40 text-xs mt-4">Example alerts. Add Prophandld to your Home Screen to get them.</p>
+      </div>
+
+      {/* Text */}
+      <div className="rounded-3xl border border-white/10 bg-[#0F2138] p-5 sm:p-6">
+        <div className="flex items-center gap-2 text-[#12A5A9] text-xs font-semibold uppercase tracking-wide mb-4">
+          <BellIcon className="w-4 h-4" /> By text
+        </div>
+        <div className="space-y-2.5">
+          <div className="bg-[#132A45] rounded-2xl rounded-tl-sm px-4 py-2.5 max-w-[88%]">
+            <p className="text-white text-[13px] leading-snug">Prophandld: New Plumbing job near you at 123 Maple St. Tap to bid.</p>
+          </div>
+          <div className="bg-[#132A45] rounded-2xl rounded-tl-sm px-4 py-2.5 max-w-[88%]">
+            <p className="text-white text-[13px] leading-snug">Prophandld: Jordan L. finished the Plumbing job. Review and approve.</p>
+          </div>
+        </div>
+        <p className="text-white/40 text-xs mt-4">Example texts. Opt in from Notifications settings — retire the "any update?" texts, too.</p>
       </div>
 
       {/* Email */}

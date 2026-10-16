@@ -15,6 +15,7 @@ import { TABS_BY_ROLE } from '@/lib/navTabs'
 import { StripeConnectCard } from '@/components/StripeConnectCard'
 import { LinkedProfilesSection } from '@/components/LinkedProfilesSection'
 import { CoOwnersSection } from '@/components/CoOwnersSection'
+import { CoRentersSection } from '@/components/CoRentersSection'
 import { BillingSection } from '@/components/BillingSection'
 import { Switch } from '@/components/Switch'
 import { TwoFactorAuthCard } from '@/components/TwoFactorAuthCard'
@@ -45,6 +46,10 @@ export default function ProfilePage() {
   const [showLanguageToast, setShowLanguageToast] = useState(false)
   const [smsOptIn, setSmsOptIn] = useState(false)
   const [smsSaving, setSmsSaving] = useState(false)
+  const [phoneVerified, setPhoneVerified] = useState(false)
+  const [verifyStep, setVerifyStep] = useState<'idle' | 'sending' | 'code' | 'verifying'>('idle')
+  const [verifyCode, setVerifyCode] = useState('')
+  const [verifyError, setVerifyError] = useState<string | null>(null)
   const [emailNotifEnabled, setEmailNotifEnabled] = useState(true)
   const [emailNotifSaving, setEmailNotifSaving] = useState(false)
   const [pushNotifEnabled, setPushNotifEnabled] = useState(true)
@@ -77,12 +82,18 @@ export default function ProfilePage() {
 
       const { data: userRow } = await supabase
         .from('users')
-        .select('sms_opt_in, email_notifications_enabled, push_notifications_enabled')
+        .select('sms_opt_in, email_notifications_enabled, push_notifications_enabled, phone, phone_verified_at')
         .eq('id', user.id)
         .maybeSingle()
       setSmsOptIn(!!userRow?.sms_opt_in)
       setEmailNotifEnabled(userRow?.email_notifications_enabled !== false)
       setPushNotifEnabled(userRow?.push_notifications_enabled !== false)
+      // A previously-verified number stops counting as verified the
+      // moment it changes (see the clear-on-change trigger) — comparing
+      // against the phone actually on file (same source form.phone was
+      // just set from, read directly since the setForm above hasn't
+      // actually landed in this closure's `form` yet).
+      setPhoneVerified(!!userRow?.phone_verified_at && userRow.phone === (user.user_metadata?.phone || ''))
 
       await loadBackupContacts(user.id)
 
@@ -147,6 +158,30 @@ export default function ProfilePage() {
       return
     }
 
+    // Turning SMS ON for the first time on an unverified number starts
+    // the OTP flow instead of flipping the preference straight away —
+    // turning it OFF never needs verification. Re-verification is also
+    // needed if the number on file has quietly drifted out of sync with
+    // phoneVerified (e.g. the clear-on-change trigger fired since this
+    // page loaded).
+    if (!smsOptIn && !phoneVerified) {
+      setVerifyError(null)
+      setVerifyStep('sending')
+      const res = await fetch('/api/phone/send-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: form.phone }),
+      }).catch(() => null)
+      const data = await res?.json().catch(() => ({}))
+      if (!res?.ok) {
+        setVerifyError(data?.error || t('couldNotSendCode', lang))
+        setVerifyStep('idle')
+        return
+      }
+      setVerifyStep('code')
+      return
+    }
+
     setSmsSaving(true)
     setError(null)
     const next = !smsOptIn
@@ -160,6 +195,34 @@ export default function ProfilePage() {
     }
 
     setSmsOptIn(next)
+    setSmsSaving(false)
+  }
+
+  const handleVerifyCodeSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!verifyCode.trim()) return
+    setVerifyStep('verifying')
+    setVerifyError(null)
+    const res = await fetch('/api/phone/verify-code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: verifyCode }),
+    }).catch(() => null)
+    const data = await res?.json().catch(() => ({}))
+    if (!res?.ok) {
+      setVerifyError(data?.error || t('couldNotVerifyCode', lang))
+      setVerifyStep('code')
+      return
+    }
+    setPhoneVerified(true)
+    setVerifyStep('idle')
+    setVerifyCode('')
+    // Now that the number is verified, actually turn SMS on.
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    setSmsSaving(true)
+    const { error: updateError } = await supabase.from('users').update({ sms_opt_in: true }).eq('id', user.id)
+    if (!updateError) setSmsOptIn(true)
     setSmsSaving(false)
   }
 
@@ -382,6 +445,8 @@ export default function ProfilePage() {
           </div>
         )}
 
+        {role === 'renter' && <CoRentersSection />}
+
         {/* Profile form */}
         <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
           <h2 className="text-white font-semibold mb-6">{t('personalInformation', lang)}</h2>
@@ -583,8 +648,42 @@ export default function ProfilePage() {
                     : t('textAlertsNoPhone', lang)}
                 </p>
               </div>
-              <Switch checked={smsOptIn} onChange={() => !smsSaving && handleToggleSms()} label={t('textAlerts', lang)} />
+              <Switch checked={smsOptIn} onChange={() => !smsSaving && (verifyStep === 'idle') && handleToggleSms()} label={t('textAlerts', lang)} />
             </div>
+            {verifyStep === 'sending' && (
+              <p className="text-white/50 text-xs mt-2">{t('sendingCodeDots', lang)}</p>
+            )}
+            {(verifyStep === 'code' || verifyStep === 'verifying') && (
+              <form onSubmit={handleVerifyCodeSubmit} className="bg-white/5 border border-white/10 rounded-xl p-4 mt-3">
+                <p className="text-white text-sm font-medium mb-1">{t('verifyPhoneTitle', lang)}</p>
+                <p className="text-white/50 text-xs mb-3">{t('verifyPhoneBody', lang).replace('{phone}', form.phone)}</p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={verifyCode}
+                    onChange={(e) => setVerifyCode(e.target.value)}
+                    placeholder={t('enterCodePlaceholder', lang)}
+                    className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder-white/40 focus:outline-none focus:border-[#12A5A9] transition"
+                  />
+                  <RippleButton
+                    type="submit"
+                    disabled={verifyStep === 'verifying' || !verifyCode.trim()}
+                    className="shrink-0 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
+                  >
+                    {verifyStep === 'verifying' ? t('verifyingDots', lang) : t('verifyBtn', lang)}
+                  </RippleButton>
+                </div>
+                {verifyError && <p className="text-red-400 text-xs mt-2">{verifyError}</p>}
+                <button
+                  type="button"
+                  onClick={() => { setVerifyStep('idle'); setVerifyCode(''); setVerifyError(null) }}
+                  className="text-white/50 hover:text-white text-xs mt-2 transition"
+                >
+                  {t('cancel', lang)}
+                </button>
+              </form>
+            )}
           </div>
           <p className="text-white/40 text-xs mt-6 pt-4 border-t border-white/8">{t('notifPrefFootnote', lang)}</p>
         </div>
