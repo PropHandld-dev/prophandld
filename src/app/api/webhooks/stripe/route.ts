@@ -3,7 +3,7 @@ import Stripe from 'stripe'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { getStripe, isPayoutReady } from '@/lib/stripe'
 import { syncRentPayment } from '@/lib/rentPaymentSync'
-import { sendPayoutDetailsChangedEmail } from '@/lib/email'
+import { sendPayoutDetailsChangedEmail, sendDuplicateLandlordBankAccountAdminEmail } from '@/lib/email'
 import { sendJobPaymentNotifications } from '@/lib/jobPaymentNotify'
 import { sendRentPaymentReceivedNotifications, sendRentCreditCardRejectedNotifications } from '@/lib/rentPaymentNotify'
 
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
           .from('users')
           .update(updates)
           .eq('stripe_connect_account_id', account.id)
-          .select('email, full_name, preferred_language')
+          .select('id, email, full_name, preferred_language')
           .maybeSingle()
         if (error) console.error('stripe webhook: account.updated update failed', error)
         if (bankDetailsChanged && !alreadyFrozen && updatedUser?.email) {
@@ -76,6 +76,25 @@ export async function POST(request: NextRequest) {
             name: updatedUser.full_name || 'there',
             lang: updatedUser.preferred_language === 'es' ? 'es' : 'en',
           }).catch((err) => console.error('stripe webhook: payout-changed alert email failed', err))
+        }
+        // The other half of the free-tier-loophole fix (see
+        // check-landlord-phone/route.ts): Stripe's hosted Express
+        // onboarding collects the actual bank account directly, never
+        // through our server, so this is the only point we can ever learn
+        // what bank account is really behind a landlord's payouts. Every
+        // bank account gets a Stripe-assigned `fingerprint` that's
+        // identical across connected accounts when it's genuinely the
+        // same real bank account — two different "landlord" signups
+        // paying out to the same fingerprint is exactly the signal this
+        // loophole produces. This only flags for admin review (via
+        // sendDuplicateLandlordBankAccountAdminEmail) — billing isn't
+        // enforced yet (NEXT_PUBLIC_BILLING_ENFORCE is off until launch),
+        // and an automatic hard block here could strand real rent a
+        // legitimate landlord is mid-collecting.
+        if (bankDetailsChanged && updatedUser?.id) {
+          checkDuplicateLandlordBankAccount(stripe, supabaseAdmin, account.id, updatedUser.id, updatedUser.email, updatedUser.full_name).catch((err) =>
+            console.error('stripe webhook: duplicate-bank-account check failed', err)
+          )
         }
         break
       }
@@ -256,4 +275,44 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ received: true })
+}
+
+// See the account.updated case above for why this exists and why it only
+// flags rather than blocks. Only landlords — a contractor sharing a real
+// bank account with a landlord (e.g. the same person genuinely doing
+// both, via a linked profile) is a completely different, already-handled
+// case (self-dealing guard), not this loophole.
+async function checkDuplicateLandlordBankAccount(
+  stripe: Stripe,
+  supabaseAdmin: ReturnType<typeof getSupabaseAdmin>,
+  stripeAccountId: string,
+  userId: string,
+  userEmail: string | null,
+  userFullName: string | null
+) {
+  const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(userId)
+  if (authUser?.user?.app_metadata?.role !== 'landlord') return
+
+  // Express accounts typically carry one payout bank account at a time,
+  // but nothing guarantees exactly one is listed — check every fingerprint
+  // actually on file rather than assuming index 0 is the only one.
+  const externalAccounts = await stripe.accounts.listExternalAccounts(stripeAccountId, { object: 'bank_account', limit: 10 })
+  const fingerprints = externalAccounts.data.map((a) => (a as Stripe.BankAccount).fingerprint).filter((f): f is string => !!f)
+  if (fingerprints.length === 0) return
+
+  const { data: matches } = await supabaseAdmin
+    .from('users')
+    .select('id, email, full_name')
+    .in('payout_bank_fingerprint', fingerprints)
+    .neq('id', userId)
+
+  await supabaseAdmin.from('users').update({ payout_bank_fingerprint: fingerprints[0] }).eq('id', userId)
+
+  const match = matches?.[0]
+  if (match) {
+    sendDuplicateLandlordBankAccountAdminEmail({
+      accountA: { email: userEmail, name: userFullName },
+      accountB: { email: match.email, name: match.full_name },
+    }).catch((err) => console.error('stripe webhook: duplicate-bank-account admin alert failed', err))
+  }
 }

@@ -91,6 +91,25 @@ function SignupForm() {
     setError(null)
     setAlreadyRegistered(false)
 
+    // Pre-flight, before an account can exist at all — closes the
+    // free-tier loophole where someone signs up as a landlord repeatedly
+    // with different emails to keep every property on a separate free
+    // account instead of one real paid one. See
+    // /api/signup/check-landlord-phone for the matching/role-scoping
+    // logic; the Stripe Connect bank-fingerprint check is the other half.
+    if (role === 'landlord' && form.phone.trim()) {
+      const dupeCheck = await fetch('/api/signup/check-landlord-phone', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: form.phone }),
+      }).then((r) => r.json()).catch(() => ({ duplicate: false }))
+      if (dupeCheck.duplicate) {
+        setError('This phone number is already on a landlord account. If that\'s you and you\'re managing more properties, sign in and add them to your existing account instead of creating a new one. If it isn\'t you, use a different phone number.')
+        setLoading(false)
+        return
+      }
+    }
+
     const { data, error: signupError } = await supabase.auth.signUp({
       email: form.email,
       password: form.password,

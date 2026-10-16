@@ -2183,6 +2183,33 @@ export async function sendPayoutDetailsChangedEmail({
   })
 }
 
+// Flags the free-tier loophole Joshua raised — two separate "landlord"
+// signups whose payout bank account resolves to the same Stripe
+// fingerprint, meaning one real bank account (very likely one real
+// person) behind two accounts staying on the free tier instead of paying
+// for one real multi-unit account. See checkDuplicateLandlordBankAccount
+// in webhooks/stripe/route.ts. This only alerts admin for a manual
+// look — billing isn't enforced yet, so there's nothing to auto-block,
+// and a false positive here (e.g. a shared family bank account between
+// two genuinely different landlords) shouldn't cut anyone off on its own.
+export async function sendDuplicateLandlordBankAccountAdminEmail({
+  accountA,
+  accountB,
+}: {
+  accountA: { email: string | null; name: string | null }
+  accountB: { email: string | null; name: string | null }
+}) {
+  const html = baseTemplate({
+    lang: 'en',
+    eyebrow: 'Billing',
+    heading: 'Two landlord accounts share one payout bank account',
+    bodyHtml: `<strong>${escapeHtml(accountA.name || accountA.email || 'Account A')}</strong> (${escapeHtml(accountA.email || 'no email')}) and <strong>${escapeHtml(accountB.name || accountB.email || 'Account B')}</strong> (${escapeHtml(accountB.email || 'no email')}) just linked the same real bank account for rent payouts. Worth a manual look — this is the signature of one person running multiple free-tier accounts instead of one paid one, but could also be two people who genuinely share a bank account.`,
+    ctaLabel: 'Review in admin',
+    ctaUrl: `${SITE_URL}/admin/users`,
+  })
+  return sendToAdmins('Billing: two landlord accounts, one payout bank account', html)
+}
+
 // A new linked profile is a brand-new login into this person's account
 // data, created without a password of its own (see createLinkedProfile) —
 // sent to the alias inbox too via the primary's own email subaddressing,
