@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
+import { sendCoRenterAddedEmail } from '@/lib/email'
+import { emailAllowed } from '@/lib/notificationPrefs'
+import { sendPush } from '@/lib/push'
+import { sendSms } from '@/lib/sms'
 
 // Adding a co-renter used to go straight from the browser: look up the
 // email, insert into tenancy_occupants, done — with no check at all that
@@ -10,11 +14,34 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 // which only a service-role client can read (see invite-contractor for
 // the same pattern), so this has to be a server route, not a client-side
 // RPC call.
+//
+// Rate-limited the same way /api/co-owner/invite is: this now fires a
+// real SMS at whoever the email resolves to, which is an abuse surface
+// (spam an arbitrary phone number via repeated add/remove) regardless of
+// how small the resulting blast radius is.
+const RATE_LIMIT = 5
+const RATE_WINDOW_MS = 60_000
+const hits = new Map<string, number[]>()
+
+function rateLimited(key: string): boolean {
+  const now = Date.now()
+  const recent = (hits.get(key) || []).filter((t) => now - t < RATE_WINDOW_MS)
+  recent.push(now)
+  hits.set(key, recent)
+  if (hits.size > 5000) {
+    for (const [k, v] of hits) if (v.every((t) => now - t >= RATE_WINDOW_MS)) hits.delete(k)
+  }
+  return recent.length > RATE_LIMIT
+}
+
 export async function POST(request: NextRequest) {
   const authClient = await createClient()
   const { data: { user } } = await authClient.auth.getUser()
   if (!user) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+  }
+  if (rateLimited(user.id)) {
+    return NextResponse.json({ error: 'Too many attempts, try again shortly' }, { status: 429 })
   }
 
   const { tenancyId, email } = (await request.json()) as { tenancyId?: string; email?: string }
@@ -77,6 +104,39 @@ export async function POST(request: NextRequest) {
     }
     console.error('co-renter/add: insert failed', insertError)
     return NextResponse.json({ error: 'Could not add co-renter' }, { status: 500 })
+  }
+
+  // Previously silent — the added co-renter had no way to know they'd been
+  // linked into someone else's tenancy until they happened to check their
+  // own Profile. Email, push, and SMS are equal channels here, same as
+  // every other invite-style notification in the app, not email-first.
+  const unit = tenancy.units as any
+  const unitLabel = `${property?.address || 'a unit'}${unit?.unit_number ? `, Unit ${unit.unit_number}` : ''}`
+  const [{ data: landlordRow }, { data: inviteeRow }] = await Promise.all([
+    supabaseAdmin.from('users').select('full_name').eq('id', user.id).maybeSingle(),
+    supabaseAdmin.from('users').select('email, phone, sms_opt_in, preferred_language, email_notifications_enabled').eq('id', existingUserId).maybeSingle(),
+  ])
+  const landlordName = landlordRow?.full_name || 'Your landlord'
+  const inviteeLang = inviteeRow?.preferred_language === 'es' ? 'es' : 'en'
+
+  if (inviteeRow?.email && emailAllowed(inviteeRow)) {
+    sendCoRenterAddedEmail({
+      to: inviteeRow.email,
+      landlordName,
+      unitLabel,
+      lang: inviteeLang,
+    }).catch((err) => console.error('co-renter/add: notification email failed', err))
+  }
+  sendPush(existingUserId, {
+    title: 'Added as co-renter',
+    body: `${landlordName} added you as a co-renter for ${unitLabel}.`,
+    url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/profile`,
+  }).catch((err) => console.error('co-renter/add: notification push failed', err))
+  if (inviteeRow?.sms_opt_in && inviteeRow?.phone) {
+    sendSms(
+      inviteeRow.phone,
+      `Prophandld: ${landlordName} added you as a co-renter for ${unitLabel}.`
+    ).catch((err) => console.error('co-renter/add: notification sms failed', err))
   }
 
   return NextResponse.json({ ok: true })

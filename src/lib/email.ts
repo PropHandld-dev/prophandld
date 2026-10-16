@@ -419,6 +419,42 @@ export async function sendCoRenterInviteEmail({
   return sendEmail({ to, subject: `${landlordName} invited you to Prophandld`, html })
 }
 
+// Distinct from sendCoRenterInviteEmail above: that one is for someone with
+// no account yet, this is for an email that already matched a real renter
+// account during /api/co-renter/add — they're linked immediately (no
+// accept step, unlike co-owner), so this is a straight "this happened"
+// notice, not an invite to act on. Previously that route inserted the row
+// and sent nothing at all, so the person had no way to know they'd been
+// linked into someone else's tenancy.
+export async function sendCoRenterAddedEmail({
+  to,
+  landlordName,
+  unitLabel,
+  lang = 'en',
+}: {
+  to: string
+  landlordName: string
+  unitLabel: string
+  lang?: Lang
+}) {
+  const html = lang === 'es' ? baseTemplate({
+    lang,
+    eyebrow: 'Notificación',
+    heading: `${escapeHtml(landlordName)} te agregó como co-inquilino`,
+    bodyHtml: `Ahora tienes acceso como co-inquilino de <strong>${escapeHtml(unitLabel)}</strong> — puedes reportar problemas y ver documentos, igual que el inquilino principal.`,
+    ctaLabel: 'Ver mi cuenta',
+    ctaUrl: `${SITE_URL}/profile`,
+  }) : baseTemplate({
+    lang,
+    eyebrow: 'Notice',
+    heading: `${escapeHtml(landlordName)} added you as a co-renter`,
+    bodyHtml: `You now have co-renter access to <strong>${escapeHtml(unitLabel)}</strong> — you can report issues and see documents, just like the primary tenant.`,
+    ctaLabel: 'View my account',
+    ctaUrl: `${SITE_URL}/profile`,
+  })
+  return sendEmail({ to, subject: lang === 'es' ? `${landlordName} te agregó como co-inquilino` : `${landlordName} added you as a co-renter`, html })
+}
+
 // Pre-signup, no known preference yet — same reasoning as
 // sendCoRenterInviteEmail just above.
 export async function sendCoOwnerInviteEmail({
