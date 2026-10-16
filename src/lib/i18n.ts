@@ -450,7 +450,7 @@ const STRINGS = {
   noCoRentersYet: { en: "No co-renters yet — your landlord can add one from the unit page.", es: 'Aún no hay co-inquilinos — tu arrendador puede agregar uno desde la página de la unidad.' },
   sendingCodeDots: { en: 'Sending code…', es: 'Enviando código…' },
   verifyPhoneTitle: { en: 'Verify your phone number', es: 'Verifica tu número de teléfono' },
-  verifyPhoneBody: { en: 'We sent a 6-digit code to {phone}. Enter it to turn on text alerts.', es: 'Enviamos un código de 6 dígitos a {phone}. Ingrésalo para activar las alertas de texto.' },
+  verifyPhoneBody: { en: 'We sent a 6-digit code to {phone}. Enter it to turn on text alerts. Msg & data rates may apply.', es: 'Enviamos un código de 6 dígitos a {phone}. Ingrésalo para activar las alertas de texto. Pueden aplicar tarifas de mensajes y datos.' },
   enterCodePlaceholder: { en: '6-digit code', es: 'Código de 6 dígitos' },
   verifyBtn: { en: 'Verify', es: 'Verificar' },
   couldNotSendCode: { en: 'Could not send a code. Check the number and try again.', es: 'No se pudo enviar el código. Verifica el número e intenta de nuevo.' },
