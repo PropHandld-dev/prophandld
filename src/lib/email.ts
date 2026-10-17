@@ -1188,7 +1188,11 @@ export const SMS_ENABLED_TYPES: NotifyType[] = [
 // role, same as every other copy-building function here does.
 export function buildSmsMessage(type: NotifyType, role: NotifyRole, info: NotifyJobInfo) {
   const { title } = pushCopy(type, role, info)
-  return `Prophandld: ${title}. ${info.category} at ${jobLocation(info)}.`
+  // "Reply STOP to opt out." is literal text in every sample message on the
+  // approved A2P campaign — the real outgoing text needs to match exactly
+  // what carriers vetted, not just rely on the Messaging Service's implicit
+  // opt-out handling.
+  return `Prophandld: ${title}. ${info.category} at ${jobLocation(info)}. Reply STOP to opt out.`
 }
 
 export function buildNotificationEmail(type: NotifyType, role: NotifyRole, rawInfo: NotifyJobInfo, lang: Lang = 'en') {
