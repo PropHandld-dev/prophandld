@@ -15,23 +15,36 @@ export function getTwilioClient() {
   return twilioClient
 }
 
-export async function sendSms(to: string, body: string) {
+// Two separate Twilio numbers, each tied to its own approved A2P 10DLC
+// campaign: TWILIO_PHONE_NUMBER is registered for 2FA only (phone
+// verification codes), TWILIO_PHONE_NUMBER_ALERTS for general account
+// notifications (job alerts, co-owner/co-renter invites, compliance
+// reminders). Sending the wrong content from the wrong number is exactly
+// what got the original campaign rejected — these two helpers keep that
+// split enforced in code rather than relying on every call site to pass
+// the right number itself. sendAlertSms fails closed (never falls back to
+// the OTP number) if TWILIO_PHONE_NUMBER_ALERTS isn't configured yet.
+async function sendSmsFrom(fromNumber: string | undefined, to: string, body: string) {
   if (isPreviewDeployment()) {
     console.log('[staging] sms suppressed', { to })
     return { ok: true, id: 'suppressed-on-preview' }
   }
-  if (!process.env.TWILIO_ACCOUNT_SID?.trim() || !process.env.TWILIO_AUTH_TOKEN?.trim() || !process.env.TWILIO_PHONE_NUMBER?.trim()) {
+  if (!process.env.TWILIO_ACCOUNT_SID?.trim() || !process.env.TWILIO_AUTH_TOKEN?.trim() || !fromNumber) {
     return { ok: false, error: 'SMS not configured' }
   }
   try {
-    const message = await getTwilioClient().messages.create({
-      to,
-      from: process.env.TWILIO_PHONE_NUMBER.trim(),
-      body,
-    })
+    const message = await getTwilioClient().messages.create({ to, from: fromNumber, body })
     return { ok: true, id: message.sid }
   } catch (err) {
     console.error('Failed to send SMS to', to, err)
     return { ok: false, error: err }
   }
+}
+
+export function sendSms(to: string, body: string) {
+  return sendSmsFrom(process.env.TWILIO_PHONE_NUMBER?.trim(), to, body)
+}
+
+export function sendAlertSms(to: string, body: string) {
+  return sendSmsFrom(process.env.TWILIO_PHONE_NUMBER_ALERTS?.trim(), to, body)
 }

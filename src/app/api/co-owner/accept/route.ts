@@ -4,7 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { sendCoOwnerAcceptedEmail } from '@/lib/email'
 import { emailAllowed } from '@/lib/notificationPrefs'
 import { sendPush } from '@/lib/push'
-import { sendSms } from '@/lib/sms'
+import { sendAlertSms } from '@/lib/sms'
 
 // Accept runs server-side (not a bare client-side RLS update) so the
 // primary's confirmation email+push can be sent in the same request —
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
   // /api/co-owner/invite) — this is as time-sensitive and high-value an
   // event as that one.
   if (primary?.sms_opt_in && primary?.phone) {
-    sendSms(primary.phone, `Prophandld: ${coOwnerName} accepted your invite to co-manage your properties.`).catch((err) =>
+    sendAlertSms(primary.phone, `Prophandld: ${coOwnerName} accepted your invite to co-manage your properties.`).catch((err) =>
       console.error('co-owner/accept: notification sms failed', err)
     )
   }

@@ -4,7 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { sendCoOwnerInvitedExistingAccountEmail } from '@/lib/email'
 import { emailAllowed } from '@/lib/notificationPrefs'
 import { sendPush } from '@/lib/push'
-import { sendSms } from '@/lib/sms'
+import { sendAlertSms } from '@/lib/sms'
 
 // This route both reveals account existence/role (a real email-
 // enumeration surface, same shape as /api/profiles/check-email) AND
@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
     url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/landlord`,
   }).catch((err) => console.error('co-owner/invite: notification push failed', err))
   if (inviteeRow?.sms_opt_in && inviteeRow?.phone) {
-    sendSms(
+    sendAlertSms(
       inviteeRow.phone,
       `Prophandld: ${primaryLandlordName} invited you to co-manage their properties. Log in to accept: ${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/landlord`
     ).catch((err) => console.error('co-owner/invite: notification sms failed', err))

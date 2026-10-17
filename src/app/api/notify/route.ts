@@ -3,7 +3,7 @@ import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { buildNotificationEmail, buildPushMessage, buildSmsMessage, SMS_ENABLED_TYPES, sendEmail, type NotifyType, type NotifyJobInfo, type Lang } from '@/lib/email'
 import { sendPush } from '@/lib/push'
-import { sendSms } from '@/lib/sms'
+import { sendAlertSms } from '@/lib/sms'
 import { notifyMatchingContractors } from '@/lib/openJobAlerts'
 import { loadNotifyExtras } from '@/lib/notifyExtras'
 import { emailAllowed } from '@/lib/notificationPrefs'
@@ -193,7 +193,7 @@ export async function POST(request: NextRequest) {
       // prefix when info.isEmergency is actually true).
       const smsAllowedForType = SMS_ENABLED_TYPES.includes(type)
       if (smsAllowedForType && recipient.sms_opt_in && recipient.phone) {
-        await sendSms(recipient.phone, buildSmsMessage(type, role, jobInfo)).catch((err) =>
+        await sendAlertSms(recipient.phone, buildSmsMessage(type, role, jobInfo)).catch((err) =>
           console.error('notify: sendSms failed', { jobId, role, err })
         )
       }

@@ -4,7 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { getComplianceStatus } from '@/lib/complianceStatus'
 import { sendDocumentExpiryReminderEmail } from '@/lib/email'
 import { sendPush } from '@/lib/push'
-import { sendSms } from '@/lib/sms'
+import { sendAlertSms } from '@/lib/sms'
 import { emailAllowed } from '@/lib/notificationPrefs'
 
 export const maxDuration = 60
@@ -125,7 +125,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (channels.includes('sms') && person.sms_opt_in && person.phone) {
-      await sendSms(person.phone, `Prophandld: ${expired ? 'Expired' : 'Expiring soon'}: ${docName}.`).catch((err) =>
+      await sendAlertSms(person.phone, `Prophandld: ${expired ? 'Expired' : 'Expiring soon'}: ${docName}.`).catch((err) =>
         console.error('cron/document-reminders: sendSms failed', { userId: row.user_id, err })
       )
       sentAny = true

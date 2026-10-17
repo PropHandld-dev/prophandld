@@ -4,7 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { sendCoRenterAddedEmail } from '@/lib/email'
 import { emailAllowed } from '@/lib/notificationPrefs'
 import { sendPush } from '@/lib/push'
-import { sendSms } from '@/lib/sms'
+import { sendAlertSms } from '@/lib/sms'
 
 // Adding a co-renter used to go straight from the browser: look up the
 // email, insert into tenancy_occupants, done — with no check at all that
@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
     url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/profile`,
   }).catch((err) => console.error('co-renter/add: notification push failed', err))
   if (inviteeRow?.sms_opt_in && inviteeRow?.phone) {
-    sendSms(
+    sendAlertSms(
       inviteeRow.phone,
       `Prophandld: ${landlordName} added you as a co-renter for ${unitLabel}.`
     ).catch((err) => console.error('co-renter/add: notification sms failed', err))

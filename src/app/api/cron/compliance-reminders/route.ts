@@ -4,7 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { getComplianceStatus } from '@/lib/complianceStatus'
 import { sendPropertyComplianceAutoReminderEmail, type ComplianceAutoReminderItem } from '@/lib/email'
 import { sendPush } from '@/lib/push'
-import { sendSms } from '@/lib/sms'
+import { sendAlertSms } from '@/lib/sms'
 import { emailAllowed } from '@/lib/notificationPrefs'
 import { notifyLandlordIds } from '@/lib/landlordCoOwners'
 
@@ -178,7 +178,7 @@ export async function GET(request: NextRequest) {
         const body = entry.items.length === 1
           ? `Prophandld: ${anyExpired ? 'Expired' : 'Expiring soon'}: ${entry.items[0].name} at ${entry.address}.`
           : `Prophandld: ${entry.items.length} compliance items need attention at ${entry.address}.`
-        const smsResult = await sendSms(person.phone, body).catch((err) => { console.error('cron/compliance-reminders: sendSms failed', { recipientId, err }); return null })
+        const smsResult = await sendAlertSms(person.phone, body).catch((err) => { console.error('cron/compliance-reminders: sendSms failed', { recipientId, err }); return null })
         if (smsResult?.ok) {
           sentAny = true
           logRows.push({ notification_type: 'compliance_reminder', channel: 'sms', recipient_user_id: recipientId, external_id: smsResult.id || null, resource_type: 'property_compliance', resource_id: entry.propertyId })
