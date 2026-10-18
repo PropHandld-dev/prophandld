@@ -321,31 +321,40 @@ function LoginForm() {
   const handlePasskeyLogin = async () => {
     setLoading(true)
     setError(null)
-    const { data, error: passkeyError } = await (supabase.auth as any).signInWithPasskey()
-    if (passkeyError) {
-      setError(passkeyError.message || 'Could not sign in with Face ID / Touch ID.')
-      setLoading(false)
-      return
-    }
-    if (data?.user) {
-      consumeFreshSignIn()
-      const { data: factorsData } = await supabase.auth.mfa.listFactors()
-      const verifiedTotp = factorsData?.totp?.find((f) => f.status === 'verified')
-      if (verifiedTotp) {
-        const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId: verifiedTotp.id })
-        if (challengeError || !challenge) {
-          setError('Could not start the authenticator check. Try again.')
-          setLoading(false)
-          return
-        }
-        setMfaFactorId(verifiedTotp.id)
-        setMfaUser(data.user)
-        setLoading(false)
+    // Beta API — until the one-time Supabase Dashboard passkey setup is
+    // confirmed done, this method can throw synchronously instead of
+    // rejecting as a normal {error} result. Unguarded, that throw landed
+    // before any setLoading(false), leaving the whole form (password
+    // submit included, since both share this same loading flag) stuck
+    // disabled until a manual refresh — the same failure mode as the
+    // InactivityGuard sign-out loop, caught here before shipping it live.
+    try {
+      const { data, error: passkeyError } = await (supabase.auth as any).signInWithPasskey()
+      if (passkeyError) {
+        setError(passkeyError.message || 'Could not sign in with Face ID / Touch ID.')
         return
       }
-      await completeSignIn(data.user)
+      if (data?.user) {
+        consumeFreshSignIn()
+        const { data: factorsData } = await supabase.auth.mfa.listFactors()
+        const verifiedTotp = factorsData?.totp?.find((f) => f.status === 'verified')
+        if (verifiedTotp) {
+          const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId: verifiedTotp.id })
+          if (challengeError || !challenge) {
+            setError('Could not start the authenticator check. Try again.')
+            return
+          }
+          setMfaFactorId(verifiedTotp.id)
+          setMfaUser(data.user)
+          return
+        }
+        await completeSignIn(data.user)
+      }
+    } catch {
+      setError('Face ID / Touch ID sign-in is not available right now. Use your password instead.')
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   const handleMfaVerify = async (e: React.FormEvent) => {

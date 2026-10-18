@@ -63,6 +63,7 @@ export default function RenterRentPage() {
   const [p2pPanelMethod, setP2pPanelMethod] = useState<'zelle' | 'venmo' | 'cashapp' | null>(null)
   const [p2pSending, setP2pSending] = useState(false)
   const [p2pSent, setP2pSent] = useState(false)
+  const [p2pError, setP2pError] = useState<string | null>(null)
   const [copiedHandle, setCopiedHandle] = useState(false)
 
   const loadPayments = async (tenancyId: string) => {
@@ -258,13 +259,18 @@ export default function RenterRentPage() {
 
   const handleMarkP2pSent = async (payment: any, method: 'zelle' | 'venmo' | 'cashapp') => {
     setP2pSending(true)
+    setP2pError(null)
     const res = await fetch('/api/rent/renter-marked-sent', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ rentPaymentId: payment.id, method }),
     }).catch(() => null)
     setP2pSending(false)
+    // Without this, a failed request (network blip, expired session) left
+    // the button simply clickable again with no sign anything went wrong —
+    // easy to read as "it worked" and never actually notify the landlord.
     if (res?.ok) setP2pSent(true)
+    else setP2pError(t('couldNotStartPayment', lang))
   }
 
   const startDwollaTransfer = async (payment: any) => {
@@ -632,7 +638,7 @@ export default function RenterRentPage() {
       {methodChoicePayment && (() => {
         const amountDue = Number(methodChoicePayment.expected_amount) - Number(methodChoicePayment.actual_amount || 0)
         const fee = cardProcessingFee(amountDue)
-        const closeModal = () => { setMethodChoicePayment(null); setP2pPanelMethod(null); setP2pSent(false) }
+        const closeModal = () => { setMethodChoicePayment(null); setP2pPanelMethod(null); setP2pSent(false); setP2pError(null) }
 
         if (p2pPanelMethod) {
           const handle = p2pPanelMethod === 'zelle' ? p2pOptions?.zelle : p2pPanelMethod === 'venmo' ? p2pOptions?.venmo : p2pOptions?.cashapp
@@ -693,6 +699,8 @@ export default function RenterRentPage() {
                       <p className="text-white/50 text-xs mb-3">{t('p2pZelleInstructions', lang)}</p>
                     )}
 
+                    {p2pError && <p className="text-red-400 text-xs mb-3">{p2pError}</p>}
+
                     <button
                       onClick={() => handleMarkP2pSent(methodChoicePayment, p2pPanelMethod)}
                       disabled={p2pSending}
@@ -703,7 +711,7 @@ export default function RenterRentPage() {
                     <p className="text-white/40 text-xs mb-3">{t('p2pMarkSentNote', lang)}</p>
 
                     <button
-                      onClick={() => setP2pPanelMethod(null)}
+                      onClick={() => { setP2pPanelMethod(null); setP2pError(null) }}
                       className="w-full text-center text-white/50 hover:text-white text-sm transition"
                     >
                       {t('backBtn', lang)}

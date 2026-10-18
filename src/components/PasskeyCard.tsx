@@ -23,10 +23,29 @@ export function PasskeyCard() {
   const [registering, setRegistering] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Real bug this exact gap caused: passkey support is still beta, and
+  // until the one-time Supabase Dashboard setup is confirmed done, calling
+  // any of these methods can throw synchronously (the method genuinely
+  // doesn't exist on the client yet) rather than reject as a normal
+  // {error} result — which, unguarded, happened before setLoading(false)
+  // ever ran, so this card got stuck on its loading skeleton forever on
+  // every single Profile page visit, for every role, not just whoever
+  // tried to use the feature. Every call below is now wrapped so a
+  // missing/failing method degrades to a visible error instead of an
+  // unhandled throw that leaves the UI stuck.
   const refresh = async () => {
-    const { data, error: listError } = await (supabase.auth as any).passkey.list()
-    if (!listError) setPasskeys(data?.passkeys || data || [])
-    setLoading(false)
+    try {
+      const { data, error: listError } = await (supabase.auth as any).passkey.list()
+      if (!listError) setPasskeys(data?.passkeys || data || [])
+      else setError(listError.message || t('couldNotAddPasskey', lang))
+    } catch {
+      // Beta API not actually available yet (dashboard setup not done,
+      // or this browser doesn't support WebAuthn) — fail quietly here;
+      // the Add button below will surface a clear error if someone
+      // actually tries to use it.
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -36,19 +55,28 @@ export function PasskeyCard() {
   const handleAdd = async () => {
     setRegistering(true)
     setError(null)
-    const { error: registerError } = await (supabase.auth as any).registerPasskey()
-    setRegistering(false)
-    if (registerError) {
-      setError(registerError.message || t('couldNotAddPasskey', lang))
-      return
+    try {
+      const { error: registerError } = await (supabase.auth as any).registerPasskey()
+      if (registerError) {
+        setError(registerError.message || t('couldNotAddPasskey', lang))
+        return
+      }
+      await refresh()
+    } catch {
+      setError(t('couldNotAddPasskey', lang))
+    } finally {
+      setRegistering(false)
     }
-    await refresh()
   }
 
   const handleRemove = async (passkeyId: string) => {
     if (!window.confirm(t('removePasskeyConfirm', lang))) return
-    await (supabase.auth as any).passkey.delete({ passkeyId })
-    await refresh()
+    try {
+      await (supabase.auth as any).passkey.delete({ passkeyId })
+      await refresh()
+    } catch {
+      setError(t('couldNotAddPasskey', lang))
+    }
   }
 
   return (
