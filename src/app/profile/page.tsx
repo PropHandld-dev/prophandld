@@ -19,6 +19,7 @@ import { CoRentersSection } from '@/components/CoRentersSection'
 import { BillingSection } from '@/components/BillingSection'
 import { Switch } from '@/components/Switch'
 import { TwoFactorAuthCard } from '@/components/TwoFactorAuthCard'
+import { ContactUsWidget } from '@/components/ContactUsWidget'
 import { usePushSubscription } from '@/lib/usePushSubscription'
 import { useLanguage, t } from '@/lib/i18n'
 
@@ -817,7 +818,7 @@ export default function ProfilePage() {
           {t('signOut', lang)}
         </button>
 
-        <div className="flex items-center justify-center gap-4 text-xs text-white/40 pt-2">
+        <div className="flex items-center justify-center flex-wrap gap-x-4 gap-y-1.5 text-xs text-white/40 pt-2">
           <Link href="/terms" target="_blank" className="hover:text-white/70 transition">{t('termsOfService', lang)}</Link>
           <span>·</span>
           <Link href="/privacy" target="_blank" className="hover:text-white/70 transition">{t('privacyPolicy', lang)}</Link>
@@ -827,6 +828,8 @@ export default function ProfilePage() {
               <Link href="/pricing" target="_blank" className="hover:text-white/70 transition">{t('pricing', lang)}</Link>
             </>
           )}
+          <span>·</span>
+          <ContactUsWidget />
         </div>
         </>
         )}
