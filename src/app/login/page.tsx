@@ -587,6 +587,9 @@ function LoginForm() {
         >
           Sign in with Face ID / Touch ID
         </button>
+        <p className="text-center text-white/40 text-xs -mt-2">
+          First time? Add Face ID / Touch ID from your Profile after signing in with your password.
+        </p>
 
         <p className="text-center text-white/60 text-sm">
           Don't have an account?{' '}
