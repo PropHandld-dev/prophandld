@@ -108,7 +108,7 @@ export default function PricingPage() {
       <footer className="border-t border-white/8 py-8">
         <div className="max-w-3xl mx-auto px-6 flex items-center justify-center gap-6 text-sm text-white/60 flex-wrap">
           <span>© 2026 Prophandld LLC</span>
-          <Link href="/terms" className="hover:text-white transition">Terms</Link>
+          <Link href="/terms/landlord" className="hover:text-white transition">Terms</Link>
           <Link href="/privacy" className="hover:text-white transition">Privacy</Link>
         </div>
       </footer>

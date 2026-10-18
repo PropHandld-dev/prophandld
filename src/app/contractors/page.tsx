@@ -221,7 +221,7 @@ export default function ContractorsLandingPage() {
       <footer className="border-t border-white/8 px-6 py-8 text-center text-white/40 text-sm">
         <Link href="/" className="hover:text-white transition">Prophandld for landlords</Link>
         <span className="mx-2">·</span>
-        <Link href="/terms" className="hover:text-white transition">Terms</Link>
+        <Link href="/terms/contractor" className="hover:text-white transition">Terms</Link>
         <span className="mx-2">·</span>
         <Link href="/privacy" className="hover:text-white transition">Privacy</Link>
       </footer>
