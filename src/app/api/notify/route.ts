@@ -193,9 +193,20 @@ export async function POST(request: NextRequest) {
       // prefix when info.isEmergency is actually true).
       const smsAllowedForType = SMS_ENABLED_TYPES.includes(type)
       if (smsAllowedForType && recipient.sms_opt_in && recipient.phone) {
-        await sendAlertSms(recipient.phone, buildSmsMessage(type, role, jobInfo)).catch((err) =>
+        const smsResult = await sendAlertSms(recipient.phone, buildSmsMessage(type, role, jobInfo)).catch((err) => {
           console.error('notify: sendSms failed', { jobId, role, err })
-        )
+          return null
+        })
+        if (smsResult?.ok) {
+          await supabaseAdmin.from('notification_log').insert({
+            notification_type: type,
+            channel: 'sms',
+            recipient_user_id: userId,
+            external_id: smsResult.id || null,
+            resource_type: 'job',
+            resource_id: jobId,
+          })
+        }
       }
     })
   )

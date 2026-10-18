@@ -9,6 +9,8 @@ import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 import { useLanguage, t } from '@/lib/i18n'
+import { ContactInviteInput, type ContactMode } from '@/components/ContactInviteInput'
+import { toE164 } from '@/lib/phoneFormat'
 
 export default function NewTenancyPage() {
   const router = useRouter()
@@ -20,6 +22,7 @@ export default function NewTenancyPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [inviteSent, setInviteSent] = useState(false)
+  const [contactMode, setContactMode] = useState<ContactMode>('email')
   const [form, setForm] = useState({
     renter_email: '',
     rent_amount: '',
@@ -47,11 +50,12 @@ export default function NewTenancyPage() {
     // capitalized their email at signup — mismatched case here was why
     // link-invite could never find the invite and it stayed stuck on
     // "pending" even after the tenant signed up and got linked.
-    const renterEmail = form.renter_email.trim().toLowerCase()
+    const renterEmail = contactMode === 'email' ? form.renter_email.trim().toLowerCase() : null
 
-    // Find renter by email using secure function
-    const { data: renterId, error: renterError } = await supabase
-      .rpc('get_user_id_by_email', { email_input: renterEmail })
+    // Find renter by email or phone using secure functions
+    const { data: renterId, error: renterError } = renterEmail
+      ? await supabase.rpc('get_user_id_by_email', { email_input: renterEmail })
+      : await supabase.rpc('get_user_id_by_phone', { phone_input: form.renter_email.trim(), role_input: 'renter' })
 
     if (renterError || !renterId) {
       await sendInvite()
@@ -105,7 +109,9 @@ export default function NewTenancyPage() {
       .insert({
         unit_id: unitId,
         landlord_user_id: user.id,
-        renter_email: form.renter_email.trim().toLowerCase(),
+        ...(contactMode === 'email'
+          ? { renter_email: form.renter_email.trim().toLowerCase() }
+          : { renter_phone: toE164(form.renter_email.trim()) }),
         rent_amount: form.rent_amount ? parseFloat(form.rent_amount) : null,
         rent_due_day: form.rent_due_day ? parseInt(form.rent_due_day) : 1,
         lease_start: form.lease_start || null,
@@ -175,15 +181,14 @@ export default function NewTenancyPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">{t('renterEmailLabel', lang)}</label>
-            <input
-              type="email"
-              name="renter_email"
-              required
+            <label className="text-white/70 text-sm block mb-1">{contactMode === 'email' ? t('renterEmailLabel', lang) : t('renterPhoneLabel', lang)}</label>
+            <ContactInviteInput
+              mode={contactMode}
+              onModeChange={(m) => { setContactMode(m); setForm({ ...form, renter_email: '' }) }}
               value={form.renter_email}
-              onChange={handleChange}
-              placeholder="renter@email.com"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
+              onChange={(v) => setForm({ ...form, renter_email: v })}
+              emailPlaceholder="renter@email.com"
+              phonePlaceholder="(555) 555-5555"
             />
           </div>
 

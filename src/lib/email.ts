@@ -320,6 +320,11 @@ export async function sendRenterInviteEmail({
   return sendEmail({ to, subject: `${landlordName} invited you to Prophandld`, html })
 }
 
+// Phone-invite counterpart to sendRenterInviteEmail.
+export function buildRenterInviteSms(landlordName: string, unitLabel: string) {
+  return `Prophandld: ${landlordName} invited you for ${unitLabel}. Sign up: ${SITE_URL}/signup`
+}
+
 // The landlord side of sendRenterInviteEmail — previously the invite just
 // silently flipped to 'accepted' with no signal back to whoever sent it,
 // so the only way to know it worked was to recheck the pending-invites
@@ -419,6 +424,11 @@ export async function sendCoRenterInviteEmail({
   return sendEmail({ to, subject: `${landlordName} invited you to Prophandld`, html })
 }
 
+// Phone-invite counterpart to sendCoRenterInviteEmail.
+export function buildCoRenterInviteSms(landlordName: string, unitLabel: string) {
+  return `Prophandld: ${landlordName} invited you as a co-renter for ${unitLabel}. Sign up: ${SITE_URL}/signup?role=renter`
+}
+
 // Distinct from sendCoRenterInviteEmail above: that one is for someone with
 // no account yet, this is for an email that already matched a real renter
 // account during /api/co-renter/add — they're linked immediately (no
@@ -474,6 +484,14 @@ export async function sendCoOwnerInviteEmail({
     footerText: `You're receiving this because ${escapeHtml(primaryLandlordName)} invited you to Prophandld.`,
   })
   return sendEmail({ to, subject: `${primaryLandlordName} invited you to co-manage their properties`, html })
+}
+
+// Phone-invite counterpart to sendCoOwnerInviteEmail — same no-account-yet
+// case, delivered by SMS instead. A plain body-text builder (not an email
+// sender) like buildSmsMessage below; kept in this file despite the name
+// since every other SMS/push copy builder in the app already lives here.
+export function buildCoOwnerInviteSms(primaryLandlordName: string) {
+  return `Prophandld: ${primaryLandlordName} invited you to co-manage their properties. Sign up: ${SITE_URL}/signup?role=landlord`
 }
 
 // Distinct from sendCoOwnerInviteEmail above: that one is for someone with
@@ -560,6 +578,11 @@ export async function sendContractorInviteEmail({
     footerText: `You're receiving this because ${escapeHtml(landlordName)} invited you to Prophandld.`,
   })
   return sendEmail({ to, subject: `${landlordName} invited you to Prophandld`, html })
+}
+
+// Phone-invite counterpart to sendContractorInviteEmail.
+export function buildContractorInviteSms(landlordName: string) {
+  return `Prophandld: ${landlordName} wants to work with you — free, no platform fee. Sign up: ${SITE_URL}/signup?role=contractor`
 }
 
 // The landlord side of sendContractorInviteEmail — previously the invite
@@ -2317,6 +2340,31 @@ export async function sendPayoutDetailsChangedEmail({
 // look — billing isn't enforced yet, so there's nothing to auto-block,
 // and a false positive here (e.g. a shared family bank account between
 // two genuinely different landlords) shouldn't cut anyone off on its own.
+// Fires at most once per cron/sms-health-check run, however many messages
+// it finds failing — a registration-class Twilio error means the whole
+// sending number is misconfigured, not that one message had a bad
+// destination, so one alert naming a few sample SIDs is more useful than
+// a flood of per-message emails.
+export async function sendSmsRegistrationErrorAdminEmail({
+  affectedCount,
+  checkedCount,
+  sampleSids,
+}: {
+  affectedCount: number
+  checkedCount: number
+  sampleSids: string[]
+}) {
+  const html = baseTemplate({
+    lang: 'en',
+    eyebrow: 'Urgent',
+    heading: 'SMS sending is misconfigured',
+    bodyHtml: `<strong>${affectedCount} of the last ${checkedCount}</strong> SMS sends checked came back with a registration-class error from Twilio (30034/30032/30033) — this means a sending number isn't currently attached to an approved A2P 10DLC campaign, and every SMS sent since this started is likely silently failing to deliver.<br /><br />Sample message SIDs: ${sampleSids.map((s) => escapeHtml(s)).join(', ')}<br /><br />Check Twilio Console → Messaging → Senders, and confirm every number is still correctly attached to its approved campaign.`,
+    ctaLabel: 'Open Twilio Console',
+    ctaUrl: 'https://console.twilio.com',
+  })
+  return sendToAdmins('URGENT: SMS sending is misconfigured (A2P registration error)', html)
+}
+
 export async function sendDuplicateLandlordBankAccountAdminEmail({
   accountA,
   accountB,

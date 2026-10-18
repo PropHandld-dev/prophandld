@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { sendRenterInviteAcceptedEmail, sendRenterTenancyLinkedEmail } from '@/lib/email'
 import { emailAllowed } from '@/lib/notificationPrefs'
 import { sendPush } from '@/lib/push'
+import { toE164 } from '@/lib/phoneFormat'
 
 // Auto-links a just-signed-up renter to their pending tenancy invite.
 // Runs server-side with the service role key because the newly-created
@@ -21,7 +22,7 @@ export async function POST() {
 
   const supabaseAdmin = getSupabaseAdmin()
 
-  const { data: invite, error: inviteError } = await supabaseAdmin
+  const { data: emailInvite, error: inviteError } = await supabaseAdmin
     .from('tenancy_invites')
     .select('*')
     .eq('renter_email', user.email.toLowerCase())
@@ -34,6 +35,33 @@ export async function POST() {
     console.error('link-invite: error fetching invite', inviteError)
     return NextResponse.json({ error: inviteError.message }, { status: 500 })
   }
+
+  let invite = emailInvite
+
+  // No match by email — try by phone. renter_phone is always stored
+  // E.164-normalized (see sendInvite in tenancy/new/page.tsx), so
+  // normalizing this user's own saved phone the same way is enough for a
+  // plain equality match.
+  if (!invite) {
+    const { data: ownRow } = await supabaseAdmin.from('users').select('phone').eq('id', user.id).maybeSingle()
+    const ownPhone = ownRow?.phone ? toE164(ownRow.phone) : null
+    if (ownPhone) {
+      const { data: phoneInvite, error: phoneInviteError } = await supabaseAdmin
+        .from('tenancy_invites')
+        .select('*')
+        .eq('renter_phone', ownPhone)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (phoneInviteError) {
+        console.error('link-invite: error fetching invite by phone', phoneInviteError)
+        return NextResponse.json({ error: phoneInviteError.message }, { status: 500 })
+      }
+      invite = phoneInvite
+    }
+  }
+
   if (!invite) {
     return NextResponse.json({ ok: true, linked: false })
   }

@@ -125,10 +125,21 @@ export async function GET(request: NextRequest) {
     }
 
     if (channels.includes('sms') && person.sms_opt_in && person.phone) {
-      await sendAlertSms(person.phone, `Prophandld: ${expired ? 'Expired' : 'Expiring soon'}: ${docName}.`).catch((err) =>
+      const smsResult = await sendAlertSms(person.phone, `Prophandld: ${expired ? 'Expired' : 'Expiring soon'}: ${docName}.`).catch((err) => {
         console.error('cron/document-reminders: sendSms failed', { userId: row.user_id, err })
-      )
-      sentAny = true
+        return null
+      })
+      if (smsResult?.ok) {
+        sentAny = true
+        await admin.from('notification_log').insert({
+          notification_type: 'document_reminder',
+          channel: 'sms',
+          recipient_user_id: row.user_id,
+          external_id: smsResult.id || null,
+          resource_type: 'document_reminder',
+          resource_id: row.id,
+        })
+      }
     }
 
     if (!sentAny) continue

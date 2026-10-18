@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
-import { sendContractorInviteEmail } from '@/lib/email'
+import { sendContractorInviteEmail, buildContractorInviteSms } from '@/lib/email'
+import { sendAlertSms } from '@/lib/sms'
+import { toE164 } from '@/lib/phoneFormat'
 
 // Creates the invite row and sends the email in one call — unlike the
 // tenant invite (which carries lease terms inserted client-side first),
@@ -17,15 +19,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Only landlords can invite contractors' }, { status: 403 })
   }
 
-  const { email, note } = (await request.json()) as { email?: string; note?: string }
-  if (!email || !email.trim()) {
-    return NextResponse.json({ error: 'Missing email' }, { status: 400 })
+  const { email, phone, note } = (await request.json()) as { email?: string; phone?: string; note?: string }
+  const contractorEmail = email?.trim().toLowerCase()
+  const contractorPhone = phone?.trim() ? toE164(phone.trim()) : null
+  if (!contractorEmail && !contractorPhone) {
+    return NextResponse.json({ error: phone?.trim() ? 'That doesn\'t look like a valid US phone number' : 'Missing email' }, { status: 400 })
   }
-  const contractorEmail = email.trim().toLowerCase()
 
   const supabaseAdmin = getSupabaseAdmin()
 
-  const { data: existingUserId } = await supabaseAdmin.rpc('get_user_id_by_email', { email_input: contractorEmail })
+  const { data: existingUserId } = contractorEmail
+    ? await supabaseAdmin.rpc('get_user_id_by_email', { email_input: contractorEmail })
+    : await supabaseAdmin.rpc('get_user_id_by_phone', { phone_input: contractorPhone, role_input: 'contractor' })
   if (existingUserId) {
     // get_user_id_by_email finds ANY account by that address, any role —
     // it used to be trusted blindly here, telling every landlord to
@@ -73,12 +78,12 @@ export async function POST(request: NextRequest) {
     .from('contractor_invites')
     .select('id')
     .eq('landlord_user_id', user.id)
-    .eq('contractor_email', contractorEmail)
     .eq('status', 'pending')
+    .eq(contractorEmail ? 'contractor_email' : 'invited_phone', contractorEmail || contractorPhone)
     .maybeSingle()
 
   if (existingInvite) {
-    return NextResponse.json({ error: "You've already invited this email. Check your pending invites below." }, { status: 400 })
+    return NextResponse.json({ error: `You've already invited this ${contractorEmail ? 'email' : 'phone number'}. Check your pending invites below.` }, { status: 400 })
   }
 
   const { data: landlordRow } = await supabaseAdmin
@@ -86,10 +91,15 @@ export async function POST(request: NextRequest) {
     .select('full_name')
     .eq('id', user.id)
     .maybeSingle()
+  const landlordName = landlordRow?.full_name || 'A landlord'
 
   const { data: invite, error: insertError } = await supabaseAdmin
     .from('contractor_invites')
-    .insert({ landlord_user_id: user.id, contractor_email: contractorEmail, note: note?.trim() || null })
+    .insert(
+      contractorEmail
+        ? { landlord_user_id: user.id, contractor_email: contractorEmail, note: note?.trim() || null }
+        : { landlord_user_id: user.id, invited_phone: contractorPhone, note: note?.trim() || null }
+    )
     .select('id')
     .single()
 
@@ -98,15 +108,24 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Could not create invite' }, { status: 500 })
   }
 
-  const result = await sendContractorInviteEmail({
-    to: contractorEmail,
-    landlordName: landlordRow?.full_name || 'A landlord',
-    note: note?.trim() || null,
-  })
-
-  if (!result.ok) {
-    console.error('invite-contractor: sendEmail failed', result)
-    return NextResponse.json({ error: 'Invite saved, but the email could not be sent. Try resending.' }, { status: 500 })
+  if (contractorEmail) {
+    const result = await sendContractorInviteEmail({ to: contractorEmail, landlordName, note: note?.trim() || null })
+    if (!result.ok) {
+      console.error('invite-contractor: sendEmail failed', result)
+      return NextResponse.json({ error: 'Invite saved, but the email could not be sent. Try resending.' }, { status: 500 })
+    }
+  } else {
+    const result = await sendAlertSms(contractorPhone!, buildContractorInviteSms(landlordName))
+    if (!result.ok) {
+      console.error('invite-contractor: sendAlertSms failed', result)
+      return NextResponse.json({ error: 'Invite saved, but the text could not be sent. Try resending.' }, { status: 500 })
+    }
+    await supabaseAdmin.from('notification_log').insert({
+      notification_type: 'contractor_invite',
+      channel: 'sms',
+      recipient_user_id: user.id, // no invitee account yet — logged under the inviter so it's still traceable
+      external_id: result.id || null,
+    })
   }
 
   return NextResponse.json({ ok: true, inviteId: invite.id })

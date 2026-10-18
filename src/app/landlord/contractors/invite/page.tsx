@@ -11,6 +11,7 @@ import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { WrenchIcon, MessageCircleIcon, ReceiptIcon, CheckCircleIcon } from '@/components/icons'
 import { useLanguage, t } from '@/lib/i18n'
+import { ContactInviteInput, type ContactMode } from '@/components/ContactInviteInput'
 
 const PITCH_POINTS: { icon: typeof WrenchIcon; textKey: Parameters<typeof t>[0] }[] = [
   { icon: WrenchIcon, textKey: 'invitePitchNoFees' },
@@ -27,6 +28,7 @@ export default function InviteContractorPage() {
   const [success, setSuccess] = useState<string | null>(null)
   const [invites, setInvites] = useState<any[]>([])
   const [form, setForm] = useState({ email: '', note: '' })
+  const [mode, setMode] = useState<ContactMode>('email')
 
   const loadInvites = async () => {
     const { data } = await supabase
@@ -60,7 +62,11 @@ export default function InviteContractorPage() {
     const res = await fetch('/api/invite-contractor', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: form.email.trim(), note: form.note.trim() || undefined }),
+      body: JSON.stringify(
+        mode === 'email'
+          ? { email: form.email.trim(), note: form.note.trim() || undefined }
+          : { phone: form.email.trim(), note: form.note.trim() || undefined }
+      ),
     })
     const data = await res.json().catch(() => ({}))
 
@@ -130,14 +136,14 @@ export default function InviteContractorPage() {
             <ScrollReveal>
               <form onSubmit={handleSubmit} className="bg-white/3 border border-white/8 rounded-2xl p-6 space-y-4 mb-8">
                 <div>
-                  <label className="text-white/70 text-sm block mb-1">{t('contractorsEmailLabel', lang)}</label>
-                  <input
-                    type="email"
+                  <label className="text-white/70 text-sm block mb-1">{mode === 'email' ? t('contractorsEmailLabel', lang) : t('contractorsPhoneLabel', lang)}</label>
+                  <ContactInviteInput
+                    mode={mode}
+                    onModeChange={(m) => { setMode(m); setForm({ ...form, email: '' }) }}
                     value={form.email}
-                    onChange={(e) => setForm({ ...form, email: e.target.value })}
-                    required
-                    placeholder={t('contractorsEmailPlaceholder', lang)}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
+                    onChange={(v) => setForm({ ...form, email: v })}
+                    emailPlaceholder={t('contractorsEmailPlaceholder', lang)}
+                    phonePlaceholder={t('contractorsPhonePlaceholder', lang)}
                   />
                 </div>
                 <div>
@@ -180,7 +186,7 @@ export default function InviteContractorPage() {
                     return (
                       <div key={invite.id} className="bg-white/3 border border-white/8 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-white text-sm truncate">{invite.contractor_email}</p>
+                          <p className="text-white text-sm truncate">{invite.contractor_email || invite.invited_phone}</p>
                           {invite.note && <p className="text-white/40 text-xs truncate mt-0.5">{invite.note}</p>}
                         </div>
                         <div className="flex items-center gap-2 shrink-0">

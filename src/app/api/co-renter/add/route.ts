@@ -5,6 +5,7 @@ import { sendCoRenterAddedEmail } from '@/lib/email'
 import { emailAllowed } from '@/lib/notificationPrefs'
 import { sendPush } from '@/lib/push'
 import { sendAlertSms } from '@/lib/sms'
+import { toE164 } from '@/lib/phoneFormat'
 
 // Adding a co-renter used to go straight from the browser: look up the
 // email, insert into tenancy_occupants, done — with no check at all that
@@ -44,11 +45,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Too many attempts, try again shortly' }, { status: 429 })
   }
 
-  const { tenancyId, email } = (await request.json()) as { tenancyId?: string; email?: string }
-  if (!tenancyId || !email?.trim()) {
-    return NextResponse.json({ error: 'Missing tenancyId or email' }, { status: 400 })
+  const { tenancyId, email, phone } = (await request.json()) as { tenancyId?: string; email?: string; phone?: string }
+  const coRenterEmail = email?.trim().toLowerCase()
+  const coRenterPhone = phone?.trim() ? toE164(phone.trim()) : null
+  if (!tenancyId || (!coRenterEmail && !coRenterPhone)) {
+    return NextResponse.json({ error: phone?.trim() ? 'That doesn\'t look like a valid US phone number' : 'Missing tenancyId or email' }, { status: 400 })
   }
-  const coRenterEmail = email.trim().toLowerCase()
 
   const supabaseAdmin = getSupabaseAdmin()
 
@@ -77,7 +79,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'occupant_limit_reached', maxCoRenters }, { status: 400 })
   }
 
-  const { data: existingUserId } = await supabaseAdmin.rpc('get_user_id_by_email', { email_input: coRenterEmail })
+  const { data: existingUserId } = coRenterEmail
+    ? await supabaseAdmin.rpc('get_user_id_by_email', { email_input: coRenterEmail })
+    : await supabaseAdmin.rpc('get_user_id_by_phone', { phone_input: coRenterPhone, role_input: 'renter' })
 
   if (!existingUserId) {
     // No dead end: the caller can offer to send an invite instead.
@@ -136,7 +140,18 @@ export async function POST(request: NextRequest) {
     sendAlertSms(
       inviteeRow.phone,
       `Prophandld: ${landlordName} added you as a co-renter for ${unitLabel}.`
-    ).catch((err) => console.error('co-renter/add: notification sms failed', err))
+    )
+      .then((result) => {
+        if (result.ok) {
+          return supabaseAdmin.from('notification_log').insert({
+            notification_type: 'co_renter_added',
+            channel: 'sms',
+            recipient_user_id: existingUserId,
+            external_id: result.id || null,
+          })
+        }
+      })
+      .catch((err) => console.error('co-renter/add: notification sms failed', err))
   }
 
   return NextResponse.json({ ok: true })

@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { sendContractorInviteAcceptedEmail } from '@/lib/email'
 import { emailAllowed } from '@/lib/notificationPrefs'
 import { sendPush } from '@/lib/push'
+import { toE164 } from '@/lib/phoneFormat'
 
 // Marks any pending contractor_invites for this email as accepted once
 // they actually sign up. There's no tenancy/lease payload to create
@@ -20,7 +21,7 @@ export async function POST() {
 
   const supabaseAdmin = getSupabaseAdmin()
 
-  const { data: acceptedInvites, error } = await supabaseAdmin
+  const { data: acceptedByEmail, error } = await supabaseAdmin
     .from('contractor_invites')
     .update({ status: 'accepted', accepted_at: new Date().toISOString() })
     .eq('contractor_email', user.email.toLowerCase())
@@ -31,6 +32,29 @@ export async function POST() {
     console.error('accept-invite: update failed', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
+
+  // Also accept any pending invite that reached this person by phone —
+  // invited_phone is always stored E.164-normalized (see
+  // invite-contractor), so normalizing this user's own saved phone the
+  // same way is enough for a plain equality match.
+  let acceptedByPhone: { landlord_user_id: string | null }[] = []
+  const { data: ownRow } = await supabaseAdmin.from('users').select('phone').eq('id', user.id).maybeSingle()
+  const ownPhone = ownRow?.phone ? toE164(ownRow.phone) : null
+  if (ownPhone) {
+    const { data, error: phoneError } = await supabaseAdmin
+      .from('contractor_invites')
+      .update({ status: 'accepted', accepted_at: new Date().toISOString() })
+      .eq('invited_phone', ownPhone)
+      .eq('status', 'pending')
+      .select('landlord_user_id')
+    if (phoneError) {
+      console.error('accept-invite: update by phone failed', phoneError)
+    } else {
+      acceptedByPhone = data || []
+    }
+  }
+
+  const acceptedInvites = [...(acceptedByEmail || []), ...acceptedByPhone]
 
   // The inviting landlord(s) used to get no signal this ever worked, short
   // of manually rechecking their pending-invites list. A contractor could

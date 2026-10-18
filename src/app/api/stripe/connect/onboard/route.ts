@@ -3,6 +3,7 @@ import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { getStripe, isPayoutReady } from '@/lib/stripe'
 import { friendlyStripeError } from '@/lib/stripeErrorMessage'
+import { toE164 } from '@/lib/phoneFormat'
 
 // This route makes up to 4 sequential Stripe calls in the worst case
 // (retrieve, update, accounts.create, accountLinks.create) — the 10s
@@ -11,13 +12,6 @@ import { friendlyStripeError } from '@/lib/stripeErrorMessage'
 // error indistinguishable from a real outage. Raising this is free and
 // directly addresses the likely cause of a "retried 2 times" report.
 export const maxDuration = 30
-
-function toE164(phone: string | null | undefined) {
-  const digits = (phone || '').replace(/\D/g, '')
-  if (digits.length === 10) return `+1${digits}`
-  if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`
-  return undefined
-}
 
 export async function POST() {
   const authClient = await createClient()

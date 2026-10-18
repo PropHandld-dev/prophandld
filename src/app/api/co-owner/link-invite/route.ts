@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
+import { toE164 } from '@/lib/phoneFormat'
 
 // Mirrors /api/tenancy/link-invite: fills in co_owner_user_id on a
 // pending-by-email row once the invited person actually signs up. Status
@@ -20,7 +21,7 @@ export async function POST() {
 
   const supabaseAdmin = getSupabaseAdmin()
 
-  const { data: invite, error: inviteError } = await supabaseAdmin
+  const { data: emailInvite, error: emailInviteError } = await supabaseAdmin
     .from('landlord_co_owners')
     .select('id')
     .eq('invited_email', user.email.toLowerCase())
@@ -29,10 +30,37 @@ export async function POST() {
     .limit(1)
     .maybeSingle()
 
-  if (inviteError) {
-    console.error('co-owner/link-invite: error fetching invite', inviteError)
-    return NextResponse.json({ error: inviteError.message }, { status: 500 })
+  if (emailInviteError) {
+    console.error('co-owner/link-invite: error fetching invite', emailInviteError)
+    return NextResponse.json({ error: emailInviteError.message }, { status: 500 })
   }
+
+  let invite = emailInvite
+
+  // No match by email — try by phone. invited_phone is always stored
+  // E.164-normalized (see co-owner/invite-email), so normalizing this
+  // user's own saved phone the same way is enough for a plain equality
+  // match, no fuzzy comparison needed here.
+  if (!invite) {
+    const { data: ownRow } = await supabaseAdmin.from('users').select('phone').eq('id', user.id).maybeSingle()
+    const ownPhone = ownRow?.phone ? toE164(ownRow.phone) : null
+    if (ownPhone) {
+      const { data: phoneInvite, error: phoneInviteError } = await supabaseAdmin
+        .from('landlord_co_owners')
+        .select('id')
+        .eq('invited_phone', ownPhone)
+        .is('co_owner_user_id', null)
+        .order('invited_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (phoneInviteError) {
+        console.error('co-owner/link-invite: error fetching invite by phone', phoneInviteError)
+        return NextResponse.json({ error: phoneInviteError.message }, { status: 500 })
+      }
+      invite = phoneInvite
+    }
+  }
+
   if (!invite) {
     return NextResponse.json({ ok: true, linked: false })
   }

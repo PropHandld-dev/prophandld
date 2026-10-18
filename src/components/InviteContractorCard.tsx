@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { RippleButton } from '@/components/RippleButton'
 import { WrenchIcon, CheckCircleIcon } from '@/components/icons'
 import { useLanguage, t } from '@/lib/i18n'
+import { ContactInviteInput, type ContactMode } from '@/components/ContactInviteInput'
 
 // The single highest-leverage growth mechanic this app has: every landlord
 // who invites their own contractor both organizes their own work AND, for
@@ -16,6 +17,7 @@ import { useLanguage, t } from '@/lib/i18n'
 export function InviteContractorCard() {
   const lang = useLanguage()
   const [email, setEmail] = useState('')
+  const [mode, setMode] = useState<ContactMode>('email')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [sent, setSent] = useState(false)
@@ -48,7 +50,7 @@ export function InviteContractorCard() {
     const res = await fetch('/api/invite-contractor', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email.trim() }),
+      body: JSON.stringify(mode === 'email' ? { email: email.trim() } : { phone: email.trim() }),
     })
     const data = await res.json().catch(() => ({}))
 
@@ -90,13 +92,13 @@ export function InviteContractorCard() {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-2">
-              <input
-                type="email"
+              <ContactInviteInput
+                mode={mode}
+                onModeChange={(m) => { setMode(m); setEmail('') }}
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                placeholder={t('contractorsEmailPlaceholder', lang)}
-                className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-white text-sm placeholder-white/40 focus:outline-none focus:border-[#12A5A9] transition"
+                onChange={setEmail}
+                emailPlaceholder={t('contractorsEmailPlaceholder', lang)}
+                phonePlaceholder={t('contractorsPhonePlaceholder', lang)}
               />
               <RippleButton
                 type="submit"

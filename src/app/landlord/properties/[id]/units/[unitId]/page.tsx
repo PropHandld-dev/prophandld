@@ -13,6 +13,7 @@ import { ScrollReveal } from '@/components/ScrollReveal'
 import { MagneticLink } from '@/components/MagneticLink'
 import { RippleButton } from '@/components/RippleButton'
 import { ShowMoreList } from '@/components/ShowMoreList'
+import { ContactInviteInput, type ContactMode } from '@/components/ContactInviteInput'
 import { useLanguage, t } from '@/lib/i18n'
 import { maxLateFee } from '@/lib/lateFee'
 
@@ -35,6 +36,7 @@ export default function UnitDetailPage() {
   const [coOccupants, setCoOccupants] = useState<any[]>([])
   const [tenantBackupContacts, setTenantBackupContacts] = useState<any[]>([])
   const [coRenterEmail, setCoRenterEmail] = useState('')
+  const [coRenterMode, setCoRenterMode] = useState<ContactMode>('email')
   const [addingCoRenter, setAddingCoRenter] = useState(false)
   const [coRenterError, setCoRenterError] = useState<string | null>(null)
   const [coRenterNoAccount, setCoRenterNoAccount] = useState(false)
@@ -124,7 +126,11 @@ export default function UnitDetailPage() {
     const res = await fetch('/api/co-renter/add', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tenancyId: tenancy.id, email: coRenterEmail.trim() }),
+      body: JSON.stringify(
+        coRenterMode === 'email'
+          ? { tenancyId: tenancy.id, email: coRenterEmail.trim() }
+          : { tenancyId: tenancy.id, phone: coRenterEmail.trim() }
+      ),
     })
     const data = await res.json().catch(() => ({}))
 
@@ -157,7 +163,11 @@ export default function UnitDetailPage() {
     const res = await fetch('/api/co-renter/invite', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tenancyId: tenancy.id, email: coRenterEmail.trim() }),
+      body: JSON.stringify(
+        coRenterMode === 'email'
+          ? { tenancyId: tenancy.id, email: coRenterEmail.trim() }
+          : { tenancyId: tenancy.id, phone: coRenterEmail.trim() }
+      ),
     })
     if (res.ok) {
       setCoRenterNoAccount(false)
@@ -716,13 +726,14 @@ export default function UnitDetailPage() {
                       ))}
                     </div>
                   )}
-                  <div className="flex gap-2">
-                    <input
-                      type="email"
+                  <div className="flex gap-2 items-end">
+                    <ContactInviteInput
+                      mode={coRenterMode}
+                      onModeChange={(m) => { setCoRenterMode(m); setCoRenterEmail('') }}
                       value={coRenterEmail}
-                      onChange={(e) => setCoRenterEmail(e.target.value)}
-                      placeholder={t('coRenterEmailPlaceholder', lang)}
-                      className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-xs placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
+                      onChange={setCoRenterEmail}
+                      emailPlaceholder={t('coRenterEmailPlaceholder', lang)}
+                      phonePlaceholder={t('coRenterPhonePlaceholder', lang)}
                     />
                     <button
                       onClick={handleAddCoRenter}
@@ -735,7 +746,7 @@ export default function UnitDetailPage() {
                   {coRenterError && <p className="text-red-400 text-xs mt-2">{coRenterError}</p>}
                   {coRenterNoAccount && (
                     <div className="mt-2">
-                      <p className="text-red-400 text-xs mb-1.5">{t('noAccountFoundEmail', lang)}</p>
+                      <p className="text-red-400 text-xs mb-1.5">{t(coRenterMode === 'email' ? 'noAccountFoundEmail' : 'noAccountFoundPhone', lang)}</p>
                       <button
                         onClick={handleSendCoRenterInvite}
                         disabled={sendingCoRenterInvite}

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { sendSms } from '@/lib/sms'
+import { toE164 } from '@/lib/phoneFormat'
 
 export const maxDuration = 15
 
@@ -21,13 +22,6 @@ function rateLimited(key: string): boolean {
     for (const [k, v] of hits) if (v.every((t) => now - t >= RATE_WINDOW_MS)) hits.delete(k)
   }
   return recent.length > RATE_LIMIT
-}
-
-function toE164(phone: string): string | null {
-  const digits = phone.replace(/\D/g, '')
-  if (digits.length === 10) return `+1${digits}`
-  if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`
-  return null
 }
 
 export async function POST(request: NextRequest) {

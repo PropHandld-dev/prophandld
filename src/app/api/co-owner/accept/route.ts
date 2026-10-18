@@ -62,9 +62,18 @@ export async function POST(request: NextRequest) {
   // /api/co-owner/invite) — this is as time-sensitive and high-value an
   // event as that one.
   if (primary?.sms_opt_in && primary?.phone) {
-    sendAlertSms(primary.phone, `Prophandld: ${coOwnerName} accepted your invite to co-manage your properties.`).catch((err) =>
-      console.error('co-owner/accept: notification sms failed', err)
-    )
+    sendAlertSms(primary.phone, `Prophandld: ${coOwnerName} accepted your invite to co-manage your properties.`)
+      .then((result) => {
+        if (result.ok) {
+          return supabaseAdmin.from('notification_log').insert({
+            notification_type: 'co_owner_accepted',
+            channel: 'sms',
+            recipient_user_id: updated.primary_landlord_user_id,
+            external_id: result.id || null,
+          })
+        }
+      })
+      .catch((err) => console.error('co-owner/accept: notification sms failed', err))
   }
 
   return NextResponse.json({ ok: true })

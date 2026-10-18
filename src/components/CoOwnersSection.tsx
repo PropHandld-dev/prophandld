@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { RippleButton } from '@/components/RippleButton'
 import { ScrollReveal } from '@/components/ScrollReveal'
+import { ContactInviteInput, type ContactMode } from '@/components/ContactInviteInput'
 import { PlusIcon } from '@/components/icons'
 import { useLanguage, t } from '@/lib/i18n'
 import { supabase } from '@/lib/supabase'
@@ -20,7 +21,8 @@ export function CoOwnersSection() {
   const [invitedByMe, setInvitedByMe] = useState<InvitedByMe[]>([])
   const [iAmCoOwnerOf, setIAmCoOwnerOf] = useState<IAmCoOwnerOf[]>([])
   const [loading, setLoading] = useState(true)
-  const [email, setEmail] = useState('')
+  const [mode, setMode] = useState<ContactMode>('email')
+  const [contact, setContact] = useState('')
   const [inviting, setInviting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [offerSendInvite, setOfferSendInvite] = useState(false)
@@ -40,7 +42,7 @@ export function CoOwnersSection() {
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email.trim()) return
+    if (!contact.trim()) return
     setInviting(true)
     setError(null)
     setOfferSendInvite(false)
@@ -48,12 +50,12 @@ export function CoOwnersSection() {
     const res = await fetch('/api/co-owner/invite', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify(mode === 'email' ? { email: contact } : { phone: contact }),
     }).catch(() => null)
     const data = await res?.json().catch(() => ({}))
     setInviting(false)
     if (res?.ok) {
-      setEmail('')
+      setContact('')
       load()
       return
     }
@@ -72,21 +74,21 @@ export function CoOwnersSection() {
     setError(typeof data?.error === 'string' ? data.error : 'Could not send the invite.')
   }
 
-  const handleSendInviteEmail = async () => {
+  const handleSendInvite = async () => {
     setInviting(true)
     const res = await fetch('/api/co-owner/invite-email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify(mode === 'email' ? { email: contact } : { phone: contact }),
     }).catch(() => null)
     setInviting(false)
     if (res?.ok) {
-      setEmail('')
+      setContact('')
       setOfferSendInvite(false)
       setSentConfirm(true)
       load()
     } else {
-      setError('Could not send the invite email.')
+      setError(mode === 'email' ? 'Could not send the invite email.' : 'Could not send the invite text.')
     }
   }
 
@@ -158,7 +160,7 @@ export function CoOwnersSection() {
               {t('cancel', lang)}
             </button>
             <RippleButton
-              onClick={handleSendInviteEmail}
+              onClick={handleSendInvite}
               disabled={inviting}
               className="flex-[1.5] bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
             >
@@ -167,17 +169,18 @@ export function CoOwnersSection() {
           </div>
         </div>
       ) : (
-        <form onSubmit={handleInvite} className="flex gap-2">
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder={t('coOwnerInviteEmailPlaceholder', lang)}
-            className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder-white/40 focus:outline-none focus:border-[#12A5A9] transition"
+        <form onSubmit={handleInvite} className="flex gap-2 items-end">
+          <ContactInviteInput
+            mode={mode}
+            onModeChange={(m) => { setMode(m); setContact('') }}
+            value={contact}
+            onChange={setContact}
+            emailPlaceholder={t('coOwnerInviteEmailPlaceholder', lang)}
+            phonePlaceholder={t('coOwnerInvitePhonePlaceholder', lang)}
           />
           <RippleButton
             type="submit"
-            disabled={inviting || !email.trim()}
+            disabled={inviting || !contact.trim()}
             className="shrink-0 flex items-center gap-1.5 bg-white/5 border border-dashed border-white/15 text-white/60 hover:text-white hover:border-white/30 text-sm font-medium px-4 py-2.5 rounded-xl transition disabled:opacity-50"
           >
             <PlusIcon className="w-4 h-4" />

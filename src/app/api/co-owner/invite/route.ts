@@ -5,6 +5,7 @@ import { sendCoOwnerInvitedExistingAccountEmail } from '@/lib/email'
 import { emailAllowed } from '@/lib/notificationPrefs'
 import { sendPush } from '@/lib/push'
 import { sendAlertSms } from '@/lib/sms'
+import { toE164 } from '@/lib/phoneFormat'
 
 // This route both reveals account existence/role (a real email-
 // enumeration surface, same shape as /api/profiles/check-email) AND
@@ -51,11 +52,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Too many invites sent, try again shortly' }, { status: 429 })
   }
 
-  const { email } = (await request.json().catch(() => ({}))) as { email?: string }
-  if (!email?.trim()) {
-    return NextResponse.json({ error: 'Missing email' }, { status: 400 })
+  const { email, phone } = (await request.json().catch(() => ({}))) as { email?: string; phone?: string }
+  const coOwnerEmail = email?.trim().toLowerCase()
+  const coOwnerPhone = phone?.trim() ? toE164(phone.trim()) : null
+  if (!coOwnerEmail && !coOwnerPhone) {
+    return NextResponse.json({ error: phone?.trim() ? 'That doesn\'t look like a valid US phone number' : 'Missing email' }, { status: 400 })
   }
-  const coOwnerEmail = email.trim().toLowerCase()
 
   const supabaseAdmin = getSupabaseAdmin()
 
@@ -69,7 +71,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'cannot_invite_as_co_owner' }, { status: 403 })
   }
 
-  const { data: existingUserId } = await supabaseAdmin.rpc('get_user_id_by_email', { email_input: coOwnerEmail })
+  // get_user_id_by_phone is role-filtered in SQL (phone alone can't tell
+  // apart a person's own linked landlord/renter/contractor profiles), so
+  // unlike the email path, a phone that belongs to a real account under a
+  // different role comes back indistinguishable from no account at all —
+  // both just offer the SMS invite-to-sign-up below. A minor UX rough
+  // edge, not a correctness problem: worst case is an unnecessary invite
+  // text to someone who already has an account under another role.
+  const { data: existingUserId } = coOwnerEmail
+    ? await supabaseAdmin.rpc('get_user_id_by_email', { email_input: coOwnerEmail })
+    : await supabaseAdmin.rpc('get_user_id_by_phone', { phone_input: coOwnerPhone, role_input: 'landlord' })
 
   if (!existingUserId) {
     // No dead end: the caller can offer to send an invite instead.
@@ -133,7 +144,18 @@ export async function POST(request: NextRequest) {
     sendAlertSms(
       inviteeRow.phone,
       `Prophandld: ${primaryLandlordName} invited you to co-manage their properties. Log in to accept: ${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/landlord`
-    ).catch((err) => console.error('co-owner/invite: notification sms failed', err))
+    )
+      .then((result) => {
+        if (result.ok) {
+          return supabaseAdmin.from('notification_log').insert({
+            notification_type: 'co_owner_invite',
+            channel: 'sms',
+            recipient_user_id: existingUserId,
+            external_id: result.id || null,
+          })
+        }
+      })
+      .catch((err) => console.error('co-owner/invite: notification sms failed', err))
   }
 
   return NextResponse.json({ ok: true })
