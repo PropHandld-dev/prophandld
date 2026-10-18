@@ -51,6 +51,18 @@ const INTERACTION_EVENTS = ['mousemove', 'mousedown', 'keydown', 'touchstart', '
 // site data resets it, same caveat the dormant check above already has).
 
 function forceSignOut(reason: 'inactive' | 'idle') {
+  // Real bug this exact omission caused: without clearing this, the stale
+  // timestamp sits in localStorage past the sign-out, so the moment the
+  // person signs back in and lands on a dashboard, InactivityGuard mounts
+  // fresh, reads that same still-too-old timestamp, and immediately force
+  // signs them out again — an unbreakable loop on that device, since
+  // nothing before this fix ever gave the check a reason to see anything
+  // but the original stale value. Clearing it here means the next mount
+  // (right after a fresh sign-in) sees no stored value, skips the check,
+  // and writes a clean timestamp instead.
+  try {
+    localStorage.removeItem(LAST_ACTIVE_KEY)
+  } catch {}
   supabase.auth.signOut().finally(() => {
     window.location.href = `/login?reason=${reason}`
   })
