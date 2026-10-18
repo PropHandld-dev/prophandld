@@ -1446,6 +1446,7 @@ const STRINGS = {
   p2pVenmoPlaceholder: { en: '@your-venmo', es: '@tu-venmo' },
   p2pCashAppLabel: { en: 'Cash App $cashtag', es: 'Cash App $cashtag' },
   p2pCashAppPlaceholder: { en: '$yourcashtag', es: '$tucashtag' },
+  p2pGroupLabel: { en: 'Or pay your landlord directly', es: 'O paga directamente a tu propietario' },
   p2pZelleOptionDesc: { en: 'No fee. Opens your own banking app.', es: 'Sin costo. Abre tu propia app bancaria.' },
   p2pVenmoOptionDesc: { en: 'Venmo charges a small fee for this.', es: 'Venmo cobra una tarifa pequeña por esto.' },
   p2pCashAppOptionDesc: { en: 'Cash App charges a small fee for this.', es: 'Cash App cobra una tarifa pequeña por esto.' },

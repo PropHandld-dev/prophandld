@@ -643,6 +643,12 @@ export default function RenterRentPage() {
         if (p2pPanelMethod) {
           const handle = p2pPanelMethod === 'zelle' ? p2pOptions?.zelle : p2pPanelMethod === 'venmo' ? p2pOptions?.venmo : p2pOptions?.cashapp
           const methodLabel = p2pPanelMethod === 'zelle' ? 'Zelle' : p2pPanelMethod === 'venmo' ? 'Venmo' : 'Cash App'
+          const feeNote =
+            p2pPanelMethod === 'zelle'
+              ? t('p2pZelleOptionDesc', lang)
+              : p2pPanelMethod === 'venmo'
+                ? t('p2pVenmoOptionDesc', lang)
+                : t('p2pCashAppOptionDesc', lang)
           const deepLink =
             p2pPanelMethod === 'cashapp' && handle
               ? `https://cash.app/${handle.trim().startsWith('$') ? handle.trim() : `$${handle.trim()}`}/${amountDue.toFixed(2)}`
@@ -666,7 +672,8 @@ export default function RenterRentPage() {
                 ) : (
                   <>
                     <h3 className="text-white font-semibold mb-1">{t('p2pPayViaPrefix', lang)} {methodLabel}</h3>
-                    <p className="text-white font-bold text-2xl tabular-nums mb-4">{money(amountDue)}</p>
+                    <p className="text-white font-bold text-2xl tabular-nums mb-1">{money(amountDue)}</p>
+                    <p className="text-white/40 text-xs mb-4">{feeNote}</p>
 
                     <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 mb-3 flex items-center justify-between gap-3">
                       <div className="min-w-0">
@@ -750,43 +757,39 @@ export default function RenterRentPage() {
                     +{money(fee)} {t('processingFeeSuffix', lang)} · {t('debitCardOptionDescPrefix', lang)}
                   </p>
                 </button>
-                {p2pOptions?.zelle && (
-                  <button
-                    onClick={() => setP2pPanelMethod('zelle')}
-                    className="w-full text-left bg-white/5 hover:bg-white/8 border border-white/10 rounded-xl px-4 py-3 transition"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-white font-medium text-sm">Zelle</span>
-                      <span className="text-white font-semibold text-sm tabular-nums">{money(amountDue)}</span>
-                    </div>
-                    <p className="text-white/50 text-xs mt-1">{t('p2pZelleOptionDesc', lang)}</p>
-                  </button>
-                )}
-                {p2pOptions?.venmo && (
-                  <button
-                    onClick={() => setP2pPanelMethod('venmo')}
-                    className="w-full text-left bg-white/5 hover:bg-white/8 border border-white/10 rounded-xl px-4 py-3 transition"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-white font-medium text-sm">Venmo</span>
-                      <span className="text-white font-semibold text-sm tabular-nums">{money(amountDue)}</span>
-                    </div>
-                    <p className="text-white/50 text-xs mt-1">{t('p2pVenmoOptionDesc', lang)}</p>
-                  </button>
-                )}
-                {p2pOptions?.cashapp && (
-                  <button
-                    onClick={() => setP2pPanelMethod('cashapp')}
-                    className="w-full text-left bg-white/5 hover:bg-white/8 border border-white/10 rounded-xl px-4 py-3 transition"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-white font-medium text-sm">Cash App</span>
-                      <span className="text-white font-semibold text-sm tabular-nums">{money(amountDue)}</span>
-                    </div>
-                    <p className="text-white/50 text-xs mt-1">{t('p2pCashAppOptionDesc', lang)}</p>
-                  </button>
-                )}
               </div>
+
+              {(p2pOptions?.zelle || p2pOptions?.venmo || p2pOptions?.cashapp) && (
+                <div className="mt-3">
+                  <p className="text-white/40 text-xs mb-2">{t('p2pGroupLabel', lang)}</p>
+                  <div className="flex gap-2">
+                    {p2pOptions?.zelle && (
+                      <button
+                        onClick={() => setP2pPanelMethod('zelle')}
+                        className="flex-1 bg-white/5 hover:bg-white/8 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm font-medium transition"
+                      >
+                        Zelle
+                      </button>
+                    )}
+                    {p2pOptions?.venmo && (
+                      <button
+                        onClick={() => setP2pPanelMethod('venmo')}
+                        className="flex-1 bg-white/5 hover:bg-white/8 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm font-medium transition"
+                      >
+                        Venmo
+                      </button>
+                    )}
+                    {p2pOptions?.cashapp && (
+                      <button
+                        onClick={() => setP2pPanelMethod('cashapp')}
+                        className="flex-1 bg-white/5 hover:bg-white/8 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm font-medium transition"
+                      >
+                        Cash App
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
               <button
                 onClick={closeModal}
                 className="w-full text-center text-white/50 hover:text-white text-sm mt-4 mb-3 transition"
