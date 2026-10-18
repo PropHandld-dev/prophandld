@@ -59,6 +59,11 @@ export default function RenterRentPage() {
   // older payments someone might actually be looking for (a mid-lease
   // receipt lookup, tax records, moving-out reference).
   const [historyYear, setHistoryYear] = useState<'all' | number>('all')
+  const [p2pOptions, setP2pOptions] = useState<{ zelle: string | null; venmo: string | null; cashapp: string | null; landlordName: string | null } | null>(null)
+  const [p2pPanelMethod, setP2pPanelMethod] = useState<'zelle' | 'venmo' | 'cashapp' | null>(null)
+  const [p2pSending, setP2pSending] = useState(false)
+  const [p2pSent, setP2pSent] = useState(false)
+  const [copiedHandle, setCopiedHandle] = useState(false)
 
   const loadPayments = async (tenancyId: string) => {
     const { data, error: paymentsError } = await supabase
@@ -125,6 +130,11 @@ export default function RenterRentPage() {
       if (unit?.properties?.address) {
         setUnitLabel(`${unit.properties.address}${unit.unit_number ? `, Unit ${unit.unit_number}` : ''}`)
       }
+
+      fetch('/api/rent/p2p-options')
+        .then((res) => res.json())
+        .then((data) => setP2pOptions(data))
+        .catch(() => {})
 
       await loadPayments(tenancyData.id)
       setLoading(false)
@@ -206,6 +216,8 @@ export default function RenterRentPage() {
   // which is what used to make offering card risky here at all.
   const handlePayNow = (payment: any) => {
     setError(null)
+    setP2pPanelMethod(null)
+    setP2pSent(false)
     setMethodChoicePayment(payment)
   }
 
@@ -242,6 +254,17 @@ export default function RenterRentPage() {
       setError(t('couldNotStartPayment', lang))
     }
     setPayingId(null)
+  }
+
+  const handleMarkP2pSent = async (payment: any, method: 'zelle' | 'venmo' | 'cashapp') => {
+    setP2pSending(true)
+    const res = await fetch('/api/rent/renter-marked-sent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rentPaymentId: payment.id, method }),
+    }).catch(() => null)
+    setP2pSending(false)
+    if (res?.ok) setP2pSent(true)
   }
 
   const startDwollaTransfer = async (payment: any) => {
@@ -609,6 +632,89 @@ export default function RenterRentPage() {
       {methodChoicePayment && (() => {
         const amountDue = Number(methodChoicePayment.expected_amount) - Number(methodChoicePayment.actual_amount || 0)
         const fee = cardProcessingFee(amountDue)
+        const closeModal = () => { setMethodChoicePayment(null); setP2pPanelMethod(null); setP2pSent(false) }
+
+        if (p2pPanelMethod) {
+          const handle = p2pPanelMethod === 'zelle' ? p2pOptions?.zelle : p2pPanelMethod === 'venmo' ? p2pOptions?.venmo : p2pOptions?.cashapp
+          const methodLabel = p2pPanelMethod === 'zelle' ? 'Zelle' : p2pPanelMethod === 'venmo' ? 'Venmo' : 'Cash App'
+          const deepLink =
+            p2pPanelMethod === 'cashapp' && handle
+              ? `https://cash.app/${handle.trim().startsWith('$') ? handle.trim() : `$${handle.trim()}`}/${amountDue.toFixed(2)}`
+              : p2pPanelMethod === 'venmo' && handle
+                ? `https://venmo.com/u/${handle.trim().replace(/^@/, '')}`
+                : null
+          return (
+            <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
+              <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
+                {p2pSent ? (
+                  <>
+                    <h3 className="text-white font-semibold mb-2">{t('p2pSentTitle', lang)}</h3>
+                    <p className="text-white/60 text-sm mb-5">{t('p2pSentBody', lang)}</p>
+                    <button
+                      onClick={closeModal}
+                      className="w-full bg-white/5 border border-white/10 text-white/70 hover:bg-white/8 text-sm font-semibold py-2.5 rounded-xl transition"
+                    >
+                      {t('closeBtn', lang)}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <h3 className="text-white font-semibold mb-1">{t('p2pPayViaPrefix', lang)} {methodLabel}</h3>
+                    <p className="text-white font-bold text-2xl tabular-nums mb-4">{money(amountDue)}</p>
+
+                    <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 mb-3 flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-white/50 text-xs">{p2pOptions?.landlordName || t('yourLandlordLabel', lang)}</p>
+                        <p className="text-white text-sm font-medium truncate">{handle}</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard?.writeText(handle || '').then(() => {
+                            setCopiedHandle(true)
+                            setTimeout(() => setCopiedHandle(false), 2000)
+                          }).catch(() => {})
+                        }}
+                        className="shrink-0 text-[#12A5A9] text-xs font-semibold bg-[#12A5A9]/10 hover:bg-[#12A5A9]/15 rounded-lg px-3 py-1.5 transition"
+                      >
+                        {copiedHandle ? t('copiedLabel', lang) : t('copyBtn', lang)}
+                      </button>
+                    </div>
+
+                    {deepLink ? (
+                      <a
+                        href={deepLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block w-full text-center bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl hover:opacity-90 transition mb-3"
+                      >
+                        {t('p2pOpenAppPrefix', lang)} {methodLabel}
+                      </a>
+                    ) : (
+                      <p className="text-white/50 text-xs mb-3">{t('p2pZelleInstructions', lang)}</p>
+                    )}
+
+                    <button
+                      onClick={() => handleMarkP2pSent(methodChoicePayment, p2pPanelMethod)}
+                      disabled={p2pSending}
+                      className="w-full bg-white/5 border border-white/10 text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-white/8 transition disabled:opacity-50 mb-3"
+                    >
+                      {p2pSending ? t('sendingDots', lang) : t('p2pMarkSentBtn', lang)}
+                    </button>
+                    <p className="text-white/40 text-xs mb-3">{t('p2pMarkSentNote', lang)}</p>
+
+                    <button
+                      onClick={() => setP2pPanelMethod(null)}
+                      className="w-full text-center text-white/50 hover:text-white text-sm transition"
+                    >
+                      {t('backBtn', lang)}
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          )
+        }
+
         return (
           <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
             <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
@@ -636,9 +742,45 @@ export default function RenterRentPage() {
                     +{money(fee)} {t('processingFeeSuffix', lang)} · {t('debitCardOptionDescPrefix', lang)}
                   </p>
                 </button>
+                {p2pOptions?.zelle && (
+                  <button
+                    onClick={() => setP2pPanelMethod('zelle')}
+                    className="w-full text-left bg-white/5 hover:bg-white/8 border border-white/10 rounded-xl px-4 py-3 transition"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-white font-medium text-sm">Zelle</span>
+                      <span className="text-white font-semibold text-sm tabular-nums">{money(amountDue)}</span>
+                    </div>
+                    <p className="text-white/50 text-xs mt-1">{t('p2pZelleOptionDesc', lang)}</p>
+                  </button>
+                )}
+                {p2pOptions?.venmo && (
+                  <button
+                    onClick={() => setP2pPanelMethod('venmo')}
+                    className="w-full text-left bg-white/5 hover:bg-white/8 border border-white/10 rounded-xl px-4 py-3 transition"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-white font-medium text-sm">Venmo</span>
+                      <span className="text-white font-semibold text-sm tabular-nums">{money(amountDue)}</span>
+                    </div>
+                    <p className="text-white/50 text-xs mt-1">{t('p2pVenmoOptionDesc', lang)}</p>
+                  </button>
+                )}
+                {p2pOptions?.cashapp && (
+                  <button
+                    onClick={() => setP2pPanelMethod('cashapp')}
+                    className="w-full text-left bg-white/5 hover:bg-white/8 border border-white/10 rounded-xl px-4 py-3 transition"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-white font-medium text-sm">Cash App</span>
+                      <span className="text-white font-semibold text-sm tabular-nums">{money(amountDue)}</span>
+                    </div>
+                    <p className="text-white/50 text-xs mt-1">{t('p2pCashAppOptionDesc', lang)}</p>
+                  </button>
+                )}
               </div>
               <button
-                onClick={() => setMethodChoicePayment(null)}
+                onClick={closeModal}
                 className="w-full text-center text-white/50 hover:text-white text-sm mt-4 mb-3 transition"
               >
                 {t('cancel', lang)}

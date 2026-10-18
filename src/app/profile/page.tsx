@@ -13,6 +13,7 @@ import { PasswordInput } from '@/components/PasswordInput'
 import { LogOutIcon } from '@/components/icons'
 import { TABS_BY_ROLE } from '@/lib/navTabs'
 import { StripeConnectCard } from '@/components/StripeConnectCard'
+import { ZelleVenmoCashAppCard } from '@/components/ZelleVenmoCashAppCard'
 import { LinkedProfilesSection } from '@/components/LinkedProfilesSection'
 import { CoOwnersSection } from '@/components/CoOwnersSection'
 import { CoRentersSection } from '@/components/CoRentersSection'
@@ -581,6 +582,9 @@ export default function ProfilePage() {
             </div>
             <div className="mb-6">
               <StripeConnectCard purpose="rent" />
+            </div>
+            <div className="mb-6">
+              <ZelleVenmoCashAppCard />
             </div>
           </>
         )}

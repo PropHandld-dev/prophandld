@@ -247,6 +247,12 @@ export default function UnitRentPage() {
       .update({
         actual_amount: amount ?? payment.expected_amount,
         paid_date: new Date().toISOString().slice(0, 10),
+        // Carries the renter's own "I've sent this via X" signal through
+        // to the existing payment_method field, so it doesn't just go
+        // stale for P2P payments — Mark Received itself is still what
+        // actually confirms the money arrived, this just records which
+        // rail it came in on when the renter already told us.
+        ...(payment.renter_marked_sent_method ? { payment_method: payment.renter_marked_sent_method } : {}),
       })
       .eq('id', payment.id)
 
@@ -529,6 +535,11 @@ export default function UnitRentPage() {
                           </div>
                         </div>
                         <div className="flex flex-col items-end gap-2 shrink-0">
+                          {!isPaid && payment.renter_marked_sent_method && (
+                            <span className="text-[11px] text-yellow-400 bg-yellow-500/10 rounded-full px-2.5 py-0.5">
+                              {t('tenantMarkedSentPrefix', lang)} {payment.renter_marked_sent_method === 'cashapp' ? 'Cash App' : payment.renter_marked_sent_method === 'venmo' ? 'Venmo' : 'Zelle'}
+                            </span>
+                          )}
                           {isPaid ? (
                             <Link href={`/receipts/rent/${payment.id}`} className="text-[#12A5A9] text-xs hover:underline">
                               {t('receipt', lang)}

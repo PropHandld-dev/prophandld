@@ -2256,6 +2256,57 @@ export async function sendRentMarkedReceivedEmail({
   return sendEmail({ to, subject: lang === 'es' ? `Renta registrada: $${amount.toFixed(2)} para ${monthLabel}` : `Rent recorded: $${amount.toFixed(2)} for ${monthLabel}`, html })
 }
 
+// Not a payment confirmation — the renter tapped "I've sent this payment"
+// after being shown the landlord's Zelle/Venmo/Cash App handle. The
+// landlord still has to see it land in their own account and use the
+// existing Mark Received flow; this just tells them to go look.
+export async function sendP2pPaymentSentEmail({
+  to,
+  landlordName,
+  renterName,
+  unitLabel,
+  amount,
+  methodLabel,
+  lang = 'en',
+}: {
+  to: string
+  landlordName: string
+  renterName: string
+  unitLabel: string
+  amount: number
+  methodLabel: string
+  lang?: Lang
+}) {
+  const html = lang === 'es' ? baseTemplate({
+    lang,
+    eyebrow: 'Renta',
+    heading: `${escapeHtml(renterName)} marcó un pago como enviado`,
+    bodyHtml: `Hola ${escapeHtml(landlordName)}, <strong>${escapeHtml(renterName)}</strong> indicó que envió <strong>$${amount.toFixed(2)}</strong> por ${escapeHtml(methodLabel)} para <strong>${escapeHtml(unitLabel)}</strong>. Esto no es una confirmación de pago — revisa tu cuenta de ${escapeHtml(methodLabel)} y marca el pago como recibido una vez que lo veas llegar.`,
+    preheader: `${unitLabel} · $${amount.toFixed(2)} vía ${methodLabel}`,
+    facts: [
+      { label: fl('Amount', lang), value: `$${amount.toFixed(2)}` },
+      { label: 'Método', value: methodLabel },
+      { label: fl('Unit', lang), value: unitLabel },
+    ],
+    ctaLabel: 'Revisar y marcar como recibido',
+    ctaUrl: `${SITE_URL}/landlord/rent`,
+  }) : baseTemplate({
+    lang,
+    eyebrow: 'Rent',
+    heading: `${escapeHtml(renterName)} marked a payment as sent`,
+    bodyHtml: `Hi ${escapeHtml(landlordName)}, <strong>${escapeHtml(renterName)}</strong> says they sent <strong>$${amount.toFixed(2)}</strong> via ${escapeHtml(methodLabel)} for <strong>${escapeHtml(unitLabel)}</strong>. This isn't a payment confirmation — check your ${escapeHtml(methodLabel)} account and mark it received once you see it land.`,
+    preheader: `${unitLabel} · $${amount.toFixed(2)} via ${methodLabel}`,
+    facts: [
+      { label: fl('Amount', lang), value: `$${amount.toFixed(2)}` },
+      { label: 'Method', value: methodLabel },
+      { label: fl('Unit', lang), value: unitLabel },
+    ],
+    ctaLabel: 'Review and mark received',
+    ctaUrl: `${SITE_URL}/landlord/rent`,
+  })
+  return sendEmail({ to, subject: lang === 'es' ? `${renterName} envió $${amount.toFixed(2)} por ${methodLabel}` : `${renterName} sent $${amount.toFixed(2)} via ${methodLabel}`, html })
+}
+
 export async function sendContractorVerificationDecisionEmail({
   to,
   contractorName,
