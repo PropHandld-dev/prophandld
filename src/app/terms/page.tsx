@@ -24,6 +24,18 @@ export default function TermsPage() {
         <div className="space-y-10 text-white/60 text-sm leading-relaxed [&_h2]:text-white [&_h2]:font-semibold [&_h2]:text-lg [&_h2]:mb-3 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5">
 
           <section>
+            <div className="bg-[#12A5A9]/8 border border-[#12A5A9]/20 rounded-xl px-4 py-3 mb-2">
+              <p className="text-white/80 text-sm mb-0">
+                Looking for the detailed terms for your specific role? See{' '}
+                <Link href="/terms/landlord" className="text-[#12A5A9] hover:underline">Landlord Terms</Link>,{' '}
+                <Link href="/terms/renter" className="text-[#12A5A9] hover:underline">Renter Terms</Link>, or{' '}
+                <Link href="/terms/contractor" className="text-[#12A5A9] hover:underline">Contractor Terms</Link>.
+                This page is the general agreement that applies to everyone.
+              </p>
+            </div>
+          </section>
+
+          <section>
             <h2>1. What Prophandld is</h2>
             <p>
               Prophandld is a platform that connects landlords, renters, and contractors to manage

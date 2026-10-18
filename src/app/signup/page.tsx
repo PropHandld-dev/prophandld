@@ -638,7 +638,7 @@ function SignupForm() {
           />
           <span>
             I agree to Prophandld's{' '}
-            <Link href="/terms" target="_blank" className="text-[#12A5A9]/80 hover:underline">Terms of Service</Link>
+            <Link href={role ? `/terms/${role}` : '/terms'} target="_blank" className="text-[#12A5A9]/80 hover:underline">Terms of Service</Link>
             {' '}and{' '}
             <Link href="/privacy" target="_blank" className="text-[#12A5A9]/80 hover:underline">Privacy Policy</Link>.
           </span>

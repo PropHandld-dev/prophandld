@@ -823,7 +823,7 @@ export default function ProfilePage() {
         </button>
 
         <div className="flex items-center justify-center flex-wrap gap-x-4 gap-y-1.5 text-xs text-white/40 pt-2">
-          <Link href="/terms" target="_blank" className="hover:text-white/70 transition">{t('termsOfService', lang)}</Link>
+          <Link href={role ? `/terms/${role}` : '/terms'} target="_blank" className="hover:text-white/70 transition">{t('termsOfService', lang)}</Link>
           <span>·</span>
           <Link href="/privacy" target="_blank" className="hover:text-white/70 transition">{t('privacyPolicy', lang)}</Link>
           {role === 'landlord' && (
