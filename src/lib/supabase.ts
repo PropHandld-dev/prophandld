@@ -32,6 +32,12 @@ export const supabase = createBrowserClient(
       detectSessionInUrl: true,
       persistSession: true,
       autoRefreshToken: true,
+      // Required explicit opt-in for Supabase Auth's passkey/Face ID
+      // support — still in beta as of this writing (Supabase's own docs:
+      // "the API may change without notice"). Offered as an optional,
+      // faster unlock alongside password, which stays the required
+      // primary method — see PasskeyCard.tsx and login/page.tsx.
+      experimental: { passkey: true },
     },
   }
 )

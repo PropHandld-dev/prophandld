@@ -311,6 +311,43 @@ function LoginForm() {
     setLoading(false)
   }
 
+  // Optional, faster alternative to typing a password — still beta on
+  // Supabase's side (see PasskeyCard.tsx), offered alongside the password
+  // form, never replacing it. Mirrors handleLogin's own MFA check exactly
+  // rather than assuming a passkey alone satisfies an account's TOTP
+  // requirement — Supabase's docs don't confirm passkey sign-in elevates
+  // AAL the same way an explicit MFA challenge does, so this stays
+  // conservative and consistent with the password path either way.
+  const handlePasskeyLogin = async () => {
+    setLoading(true)
+    setError(null)
+    const { data, error: passkeyError } = await (supabase.auth as any).signInWithPasskey()
+    if (passkeyError) {
+      setError(passkeyError.message || 'Could not sign in with Face ID / Touch ID.')
+      setLoading(false)
+      return
+    }
+    if (data?.user) {
+      consumeFreshSignIn()
+      const { data: factorsData } = await supabase.auth.mfa.listFactors()
+      const verifiedTotp = factorsData?.totp?.find((f) => f.status === 'verified')
+      if (verifiedTotp) {
+        const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId: verifiedTotp.id })
+        if (challengeError || !challenge) {
+          setError('Could not start the authenticator check. Try again.')
+          setLoading(false)
+          return
+        }
+        setMfaFactorId(verifiedTotp.id)
+        setMfaUser(data.user)
+        setLoading(false)
+        return
+      }
+      await completeSignIn(data.user)
+    }
+    setLoading(false)
+  }
+
   const handleMfaVerify = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!mfaFactorId || !mfaUser || mfaCode.trim().length === 0) return
@@ -532,6 +569,15 @@ function LoginForm() {
         >
           {loading ? 'Signing in...' : 'Sign in'}
         </RippleButton>
+
+        <button
+          type="button"
+          onClick={handlePasskeyLogin}
+          disabled={loading}
+          className="w-full bg-white/5 border border-white/10 text-white/70 font-semibold py-3 rounded-xl transition hover:bg-white/8 disabled:opacity-50 text-sm"
+        >
+          Sign in with Face ID / Touch ID
+        </button>
 
         <p className="text-center text-white/60 text-sm">
           Don't have an account?{' '}

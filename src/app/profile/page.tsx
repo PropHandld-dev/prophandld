@@ -20,6 +20,7 @@ import { CoRentersSection } from '@/components/CoRentersSection'
 import { BillingSection } from '@/components/BillingSection'
 import { Switch } from '@/components/Switch'
 import { TwoFactorAuthCard } from '@/components/TwoFactorAuthCard'
+import { PasskeyCard } from '@/components/PasskeyCard'
 import { ContactUsWidget } from '@/components/ContactUsWidget'
 import { usePushSubscription } from '@/lib/usePushSubscription'
 import { useLanguage, t } from '@/lib/i18n'
@@ -762,6 +763,8 @@ export default function ProfilePage() {
         <div id="two-factor" className="scroll-mt-6">
           <TwoFactorAuthCard />
         </div>
+
+        <PasskeyCard />
 
         {/* Replay tour */}
         <Link
