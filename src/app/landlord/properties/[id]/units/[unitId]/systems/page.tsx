@@ -312,7 +312,8 @@ export default function UnitSystemsPage() {
 
         <ScrollReveal>
         <form onSubmit={handleSubmit} className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6 space-y-4">
-          <h2 className="text-white font-semibold mb-2">{t('addASystemHeading', lang)}</h2>
+          <h2 className="text-white font-semibold mb-1">{t('addASystemHeading', lang)}</h2>
+          <p className="text-white/50 text-xs mb-4">{t('addSystemExplainer', lang)}</p>
 
           <div>
             <label className="text-white/70 text-sm block mb-1">{t('contactNameLabel', lang)}</label>

@@ -1193,6 +1193,13 @@ export default function JobDetailPage() {
             )}
           </div>
 
+          {job.status === 'pending_approval' && (
+            <p className="text-white/40 text-xs mb-4">{t('acknowledgeExplainer', lang)}</p>
+          )}
+          {job.status === 'approved' && (
+            <p className="text-white/40 text-xs mb-4">{t('startBiddingVsDiyExplainer', lang)}</p>
+          )}
+
           <p className="text-white/70 text-sm leading-relaxed">{job.description}</p>
 
           {job.access_notes && (

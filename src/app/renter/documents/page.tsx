@@ -388,11 +388,16 @@ export default function RenterDocumentsPage() {
                             {t('uploadedByYou', lang)}
                           </span>
                         )}
-                        {doc.expiry_date && (
-                          <span className={`text-xs rounded-full px-2.5 py-0.5 ${new Date(doc.expiry_date + 'T00:00:00') < new Date() ? 'bg-red-500/15 text-red-400' : 'bg-yellow-500/15 text-yellow-400'}`}>
-                            {t('expiresLabel', lang)} {new Date(doc.expiry_date + 'T00:00:00').toLocaleDateString()}
-                          </span>
-                        )}
+                        {doc.expiry_date && (() => {
+                          const expiry = new Date(doc.expiry_date + 'T00:00:00')
+                          const isExpired = expiry < new Date()
+                          const isSoon = !isExpired && expiry.getTime() - Date.now() < 30 * 24 * 60 * 60 * 1000
+                          return (
+                            <span className={`text-xs rounded-full px-2.5 py-0.5 ${isExpired ? 'bg-red-500/15 text-red-400' : isSoon ? 'bg-yellow-500/15 text-yellow-400' : 'bg-white/8 text-white/50'}`}>
+                              {isExpired ? t('expiredLabel', lang) : isSoon ? t('expiringSoonLabel', lang) : t('expiresLabel', lang)} {expiry.toLocaleDateString()}
+                            </span>
+                          )
+                        })()}
                       </div>
                       <p className="text-white/50 text-xs mt-2">
                         {new Date(doc.created_at).toLocaleDateString()}

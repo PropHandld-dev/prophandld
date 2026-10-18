@@ -436,21 +436,10 @@ export default function ProfilePage() {
         <>
         <h1 className="text-2xl font-bold text-white mb-8">{t('profileSettings', lang)}</h1>
 
-        {(role === 'landlord' || role === 'renter' || role === 'contractor') && (
-          <div className="mb-6">
-            <LinkedProfilesSection currentRole={role as 'landlord' | 'renter' | 'contractor'} />
-          </div>
-        )}
-
-        {role === 'landlord' && (
-          <div className="mb-6">
-            <CoOwnersSection />
-          </div>
-        )}
-
-        {role === 'renter' && <CoRentersSection />}
-
-        {/* Profile form */}
+        {/* Personal Information comes first — the one thing nearly everyone
+            is here for (change your name/phone/language) shouldn't sit
+            below multi-account features (linked profiles, co-owners,
+            co-renters) that most people never touch. */}
         <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
           <h2 className="text-white font-semibold mb-6">{t('personalInformation', lang)}</h2>
           <form onSubmit={handleSaveProfile} className="space-y-4">
@@ -512,6 +501,20 @@ export default function ProfilePage() {
             </RippleButton>
           </form>
         </ScrollReveal>
+
+        {(role === 'landlord' || role === 'renter' || role === 'contractor') && (
+          <div className="mb-6">
+            <LinkedProfilesSection currentRole={role as 'landlord' | 'renter' | 'contractor'} />
+          </div>
+        )}
+
+        {role === 'landlord' && (
+          <div className="mb-6">
+            <CoOwnersSection />
+          </div>
+        )}
+
+        {role === 'renter' && <CoRentersSection />}
 
         {/* Change password */}
         <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
