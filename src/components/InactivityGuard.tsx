@@ -4,16 +4,13 @@ import { useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
 const LAST_ACTIVE_KEY = 'prophandld_last_active'
-// 60 days: long enough that a renter who only opens the app once a month
-// for rent (the least frequent normal use case in this app) never gets
-// caught by it, short enough to actually cut off a genuinely forgotten,
-// long-dormant session — a lost/replaced phone, a shared or public
-// computer nobody came back to, an account someone stopped using. Tune
-// here if that balance should shift; it's the only number that matters
-// in this part of the file. This check runs once, on mount — it answers
-// "has the app not been opened at all in a long time," not "has someone
-// walked away from an open tab" (that's IDLE_THRESHOLD_MS below, a
-// deliberately separate and much shorter mechanism).
+// 60 days: an absolute backstop for a genuinely forgotten, long-dormant
+// session — a lost/replaced phone, a shared or public computer nobody
+// came back to, an account someone stopped using — independent of the
+// interim 20-minute persisted check below ever running at all (e.g. this
+// localStorage key was somehow never written). In the normal case the
+// 20-minute check below is stricter and catches everything this would,
+// so this mostly exists as a safety net, not the primary mechanism.
 const DORMANT_THRESHOLD_MS = 60 * 24 * 60 * 60 * 1000
 
 // A real idle timeout — zero interaction (no tap, click, scroll or
@@ -36,6 +33,23 @@ const IDLE_THRESHOLD_MS = 20 * 60 * 1000
 const IDLE_CHECK_INTERVAL_MS = 30 * 1000
 const INTERACTION_EVENTS = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'] as const
 
+// Interim fix (until the Supabase plan upgrade brings a real server-side
+// session timeout — see auth.sessions.inactivity_timeout, Pro-plan-gated,
+// not available on the current tier): the idle check above only runs
+// while the tab/app is actually open in memory — closing it before 20
+// minutes of idle time elapses resets the timer entirely, so someone who
+// closes the app and reopens it a day later was previously caught by
+// neither this check nor the 60-day dormant one. Confirmed as a real gap,
+// not a false alarm, via a live account that stayed signed in overnight.
+// This persists the same 20-minute threshold to localStorage so it's also
+// checked on mount, not only via the in-memory interval — closing the app
+// no longer resets the clock. This is a conscious, deliberate tightening
+// (every normal "closed the app, came back later" gap over 20 minutes now
+// forces a re-login, not just a genuinely-idle-while-open one) accepted
+// as a stopgap until the real server-side fix lands; not a bypass-proof
+// fix on its own, since it's still enforced client-side only (clearing
+// site data resets it, same caveat the dormant check above already has).
+
 function forceSignOut(reason: 'inactive' | 'idle') {
   supabase.auth.signOut().finally(() => {
     window.location.href = `/login?reason=${reason}`
@@ -52,12 +66,12 @@ function forceSignOut(reason: 'inactive' | 'idle') {
 export function InactivityGuard() {
   const lastInteractionRef = useRef<number>(Date.now())
 
-  // The dormant-session check: per-device localStorage, not a server
-  // column — zero extra network round trip on every page load (this app's
-  // stated top priority is no added lag), at the cost of resetting if
-  // someone clears site data. Acceptable for what this defends against
-  // (a forgotten dormant session), not a hard security boundary against
-  // someone actively trying to evade it.
+  // Per-device localStorage, not a server column — zero extra network
+  // round trip on every page load (this app's stated top priority is no
+  // added lag), at the cost of resetting if someone clears site data.
+  // Acceptable for what this defends against (a forgotten/closed-and-
+  // reopened session), not a hard security boundary against someone
+  // actively trying to evade it.
   useEffect(() => {
     let lastActive: number | null = null
     try {
@@ -68,8 +82,8 @@ export function InactivityGuard() {
       // so just skip the check this load rather than guessing.
     }
 
-    if (lastActive && Date.now() - lastActive > DORMANT_THRESHOLD_MS) {
-      forceSignOut('inactive')
+    if (lastActive && Date.now() - lastActive > IDLE_THRESHOLD_MS) {
+      forceSignOut(Date.now() - lastActive > DORMANT_THRESHOLD_MS ? 'inactive' : 'idle')
       return
     }
 
@@ -90,7 +104,14 @@ export function InactivityGuard() {
     const checkIdle = () => {
       if (Date.now() - lastInteractionRef.current > IDLE_THRESHOLD_MS) {
         forceSignOut('idle')
+        return
       }
+      // Keeps the persisted timestamp reasonably fresh (within one tick)
+      // so closing the tab mid-session doesn't leave a stale mount-time
+      // value behind for the on-mount check above to compare against.
+      try {
+        localStorage.setItem(LAST_ACTIVE_KEY, String(lastInteractionRef.current))
+      } catch {}
     }
     const onVisible = () => {
       if (document.visibilityState === 'visible') checkIdle()
