@@ -75,7 +75,8 @@ export function PhotoGrid({
                 <button
                   type="button"
                   onClick={(e) => handleDelete(e, p)}
-                  className="absolute top-1 right-1 bg-black/60 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center hover:bg-black/80 transition"
+                  aria-label={video ? t('removeVideoConfirm', lang) : t('removePhotoConfirm', lang)}
+                  className="absolute top-0.5 right-0.5 bg-black/60 text-white text-sm w-7 h-7 rounded-full flex items-center justify-center hover:bg-black/80 transition"
                 >
                   ×
                 </button>

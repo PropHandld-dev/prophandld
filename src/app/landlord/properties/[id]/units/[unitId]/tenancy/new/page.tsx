@@ -81,7 +81,8 @@ export default function NewTenancyPage() {
       })
 
     if (tenancyError) {
-      setError(t('errorCreatingTenancyColon', lang) + tenancyError.message)
+      console.error('Error creating tenancy:', tenancyError)
+      setError(t('errorCreatingTenancyColon', lang))
       setLoading(false)
       return
     }

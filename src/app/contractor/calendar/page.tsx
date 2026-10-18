@@ -6,7 +6,9 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ScheduleCalendar, eventState, CALENDAR_JOB_STATUSES, calendarHistoryStart, type CalendarEvent } from '@/components/ScheduleCalendar'
 import { ScrollReveal } from '@/components/ScrollReveal'
+import { BottomTabBar } from '@/components/BottomTabBar'
 import { useLanguage, t } from '@/lib/i18n'
+import { CONTRACTOR_TABS } from '@/lib/navTabs'
 
 export default function ContractorCalendarPage() {
   const router = useRouter()
@@ -70,7 +72,7 @@ export default function ContractorCalendarPage() {
         <div className="w-20" />
       </nav>
 
-      <main className="max-w-3xl mx-auto px-6 py-10">
+      <main className="max-w-3xl mx-auto px-6 py-10 pb-28">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-white">{t('calendarTitle', lang)}</h1>
           <p className="text-white/50 text-sm mt-1">{t('contractorCalendarSubtitle', lang)}</p>
@@ -80,6 +82,8 @@ export default function ContractorCalendarPage() {
           <ScheduleCalendar events={events} />
         </ScrollReveal>
       </main>
+
+      <BottomTabBar tabs={CONTRACTOR_TABS} />
     </div>
   )
 }

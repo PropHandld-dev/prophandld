@@ -9,12 +9,14 @@ import { ScrollReveal } from '@/components/ScrollReveal'
 import { CountUp } from '@/components/CountUp'
 import { Logo } from '@/components/Logo'
 import { RippleButton } from '@/components/RippleButton'
+import { BottomTabBar } from '@/components/BottomTabBar'
 import { DollarSignIcon, ReceiptIcon, DownloadIcon, PrinterIcon } from '@/components/icons'
 import { fetchAllPagesOrEmpty } from '@/lib/pagedQuery'
 import { downloadCsv } from '@/lib/csvExport'
 import { graduatedMonthlyAmount } from '@/lib/pricingTiers'
 import { useLanguage, t } from '@/lib/i18n'
 import { getLandlordIds } from '@/lib/landlordIds'
+import { LANDLORD_TABS } from '@/lib/navTabs'
 
 type Property = { id: string; address: string; city: string | null; state: string | null }
 type Unit = { id: string; unit_number: string; property_id: string }
@@ -437,6 +439,8 @@ export default function LandlordReportsPage() {
           </>
         )}
       </main>
+
+      <BottomTabBar tabs={LANDLORD_TABS} />
 
       {/* Printable statement — hidden on screen, shown only by @media print above */}
       <div className="print-statement hidden bg-white text-[#171717] max-w-2xl mx-auto px-10 py-10">

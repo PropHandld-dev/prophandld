@@ -6,8 +6,10 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ScheduleCalendar, eventState, CALENDAR_JOB_STATUSES, calendarHistoryStart, type CalendarEvent } from '@/components/ScheduleCalendar'
 import { ScrollReveal } from '@/components/ScrollReveal'
+import { BottomTabBar } from '@/components/BottomTabBar'
 import { timeWindowLabel } from '@/lib/constants'
 import { useLanguage, t } from '@/lib/i18n'
+import { RENTER_TABS } from '@/lib/navTabs'
 
 export default function RenterCalendarPage() {
   const router = useRouter()
@@ -77,7 +79,7 @@ export default function RenterCalendarPage() {
         <div className="w-20" />
       </nav>
 
-      <main className="max-w-3xl mx-auto px-6 py-10">
+      <main className="max-w-3xl mx-auto px-6 py-10 pb-28">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-white">{t('calendarTitle', lang)}</h1>
           <p className="text-white/50 text-sm mt-1">{t('renterCalendarSubtitle', lang)}</p>
@@ -87,6 +89,8 @@ export default function RenterCalendarPage() {
           <ScheduleCalendar events={events} />
         </ScrollReveal>
       </main>
+
+      <BottomTabBar tabs={RENTER_TABS} />
     </div>
   )
 }

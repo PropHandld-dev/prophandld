@@ -410,7 +410,7 @@ export default function UnitDetailPage() {
 
     if (updateError) {
       console.error('Error ending tenancy:', updateError)
-      setMoveOutError(t('couldNotEndTenancyColon', lang) + updateError.message)
+      setMoveOutError(t('couldNotEndTenancyColon', lang))
       return
     }
 

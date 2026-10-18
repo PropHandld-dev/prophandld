@@ -219,7 +219,7 @@ export default function SubmitBidPage() {
 
     if (submitError) {
       console.error('Error submitting bid:', submitError)
-      setError(`${t('couldNotSubmitBid', lang)} ${submitError.message}`)
+      setError(t('couldNotSubmitBid', lang))
       setSubmitting(false)
       return
     }

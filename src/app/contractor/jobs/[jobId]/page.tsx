@@ -321,7 +321,7 @@ export default function ContractorJobDetailPage() {
 
       if (insertError) {
         console.error('Error saving photo record:', insertError)
-        setError(`${t('photoUploadedNotSaved', lang)} ${insertError.message}`)
+        setError(t('photoUploadedNotSaved', lang))
       }
     }
 
@@ -446,7 +446,7 @@ export default function ContractorJobDetailPage() {
 
     if (updateError) {
       console.error('Error requesting price change:', updateError)
-      setError(`${t('couldNotSubmitPriceChange', lang)} ${updateError.message}`)
+      setError(t('couldNotSubmitPriceChange', lang))
       setActioning(false)
       return
     }
@@ -874,11 +874,14 @@ export default function ContractorJobDetailPage() {
                 )}
                 <RippleButton
                   onClick={openCompleteModal}
-                  disabled={actioning || uploading}
+                  disabled={actioning || uploading || afterPhotos.length === 0}
                   className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
                 >
                   {uploading ? t('uploading', lang) : t('markJobCompleteBtn', lang)}
                 </RippleButton>
+                {afterPhotos.length === 0 && (
+                  <p className="text-white/40 text-xs text-center mt-2">{t('addAfterPhotoBeforeComplete', lang)}</p>
+                )}
               </>
             )}
 
@@ -1044,9 +1047,10 @@ export default function ContractorJobDetailPage() {
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
           <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
             <h3 className="text-white font-semibold mb-1">{t('requestPriceChangeHeading', lang)}</h3>
-            <p className="text-white/50 text-sm mb-4">
+            <p className="text-white/50 text-sm mb-1">
               {t('currentPriceLabel', lang)} <span className="text-white/70 font-semibold">${Number(myBid?.amount || 0).toFixed(2)}</span>
             </p>
+            <p className="text-white/40 text-xs mb-4">{t('priceChangeApprovalNote', lang)}</p>
 
             <label className="text-white/70 text-sm block mb-1">{t('laborDollarLabel', lang)}</label>
             <input

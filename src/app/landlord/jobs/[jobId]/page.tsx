@@ -422,7 +422,7 @@ export default function JobDetailPage() {
 
     if (updateError) {
       console.error('Error declining job:', updateError)
-      setError(`${t('couldNotDeclineJob', lang)} ${updateError.message}`)
+      setError(t('couldNotDeclineJob', lang))
     } else {
       notify('job_declined', jobId)
       // Cancelling out of bidding: any still-open sealed bids need to be
@@ -551,7 +551,7 @@ export default function JobDetailPage() {
         .insert({ job_id: jobId, uploaded_by: userId, photo_url: filePath, stage })
       if (insertError) {
         console.error('Error saving photo record:', insertError)
-        setDiyError(`${t('photoUploadedNotSaved', lang)} ${insertError.message}`)
+        setDiyError(t('photoUploadedNotSaved', lang))
       }
     }
 
@@ -792,7 +792,7 @@ export default function JobDetailPage() {
 
     if (updateError) {
       console.error('Error approving completion:', updateError)
-      setError(`${t('couldNotApproveCompletion', lang)} ${updateError.message}`)
+      setError(t('couldNotApproveCompletion', lang))
     } else {
       notify('job_completed', jobId)
       // "Payment released" doesn't belong here — approving the job and

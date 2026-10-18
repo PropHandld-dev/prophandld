@@ -166,7 +166,7 @@ export default function PropertyCompliancePage() {
 
     if (uploadError) {
       console.error('Error uploading compliance document:', uploadError)
-      setError(`${t('couldNotUploadDocumentColon', lang)}${uploadError.message}`)
+      setError(t('couldNotUploadDocumentColon', lang))
       return
     }
 
@@ -183,7 +183,7 @@ export default function PropertyCompliancePage() {
 
     if (docInsertError) {
       console.error('Error linking compliance document:', docInsertError)
-      setError(`${t('documentUploadedNotLinked', lang)}${docInsertError.message}`)
+      setError(t('documentUploadedNotLinked', lang))
     }
   }
 
@@ -206,7 +206,7 @@ export default function PropertyCompliancePage() {
     const { error: deleteError } = await supabase.from('documents').delete().eq('id', doc.id)
     if (deleteError) {
       console.error('Error deleting document record:', deleteError)
-      setError(`${t('couldNotRemoveDocumentColon', lang)}${deleteError.message}`)
+      setError(t('couldNotRemoveDocumentColon', lang))
       return
     }
 
@@ -248,7 +248,7 @@ export default function PropertyCompliancePage() {
 
     if (insertError) {
       console.error('Error adding compliance item:', insertError)
-      setError(`${t('couldNotAddItemColon', lang)}${insertError.message}`)
+      setError(t('couldNotAddItemColon', lang))
       setSaving(false)
       return
     }
@@ -287,7 +287,7 @@ export default function PropertyCompliancePage() {
 
     if (updateError) {
       console.error('Error renewing item:', updateError)
-      setError(`${t('couldNotSaveChangesColon', lang)}${updateError.message}`)
+      setError(t('couldNotSaveChangesColon', lang))
       return
     }
 
@@ -302,7 +302,7 @@ export default function PropertyCompliancePage() {
     const { error: deleteError } = await supabase.from('compliance_items').delete().eq('id', item.id)
     if (deleteError) {
       console.error('Error deleting compliance item:', deleteError)
-      setError(`${t('couldNotDeleteItemColon', lang)}${deleteError.message}`)
+      setError(t('couldNotDeleteItemColon', lang))
       return
     }
 

@@ -68,7 +68,8 @@ export default function NewUnitPage() {
       })
 
     if (insertError) {
-      setError(`${t('errorCreatingUnit', lang)} ${insertError.message}`)
+      console.error('Error creating unit:', insertError)
+      setError(t('errorCreatingUnit', lang))
       setLoading(false)
       return
     }

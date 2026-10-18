@@ -145,7 +145,8 @@ export default function EditPropertyPage() {
       .eq('id', propertyId)
 
     if (updateError) {
-      setError(t('errorUpdatingPropertyColon', lang) + updateError.message)
+      console.error('Error updating property:', updateError)
+      setError(t('errorUpdatingPropertyColon', lang))
       setSaving(false)
       return
     }
@@ -166,7 +167,8 @@ export default function EditPropertyPage() {
       .eq('id', propertyId)
 
     if (archiveError) {
-      setError(t('couldNotUpdateArchiveStatus', lang) + archiveError.message)
+      console.error('Error updating archive status:', archiveError)
+      setError(t('couldNotUpdateArchiveStatus', lang))
       setArchiving(false)
       return
     }

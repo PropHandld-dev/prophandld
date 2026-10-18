@@ -12,7 +12,7 @@ import { AuthLayout } from '@/components/AuthLayout'
 import { Logo } from '@/components/Logo'
 import { AuthInput } from '@/components/AuthInput'
 import { MailIcon, LockIcon, CheckCircleIcon } from '@/components/icons'
-import { RolePicker, type Role } from '@/components/RolePicker'
+import type { Role } from '@/components/RolePicker'
 import { getLandlordIds } from '@/lib/landlordIds'
 
 // Purely cosmetic — sets which flavor of copy shows on the brand panel.
@@ -73,7 +73,7 @@ function LoginForm() {
   // True until the initial "is there already a session?" check finishes —
   // covers a tenant/contractor who clicked an email-confirmation link
   // rather than typing their password in on this page. Starts true so the
-  // role picker never flashes for someone about to be redirected straight
+  // login form never flashes for someone about to be redirected straight
   // through.
   const [checkingSession, setCheckingSession] = useState(true)
   // Set only when the session on this page load came from actually
@@ -462,74 +462,63 @@ function LoginForm() {
     )
   }
 
-  if (!role) {
-    return (
-      <AuthLayout
-        headline="Welcome back."
-        subtext="Who's signing in today?"
-      >
-        <div className="text-center mb-8 lg:text-left">
-          <h1 className="text-2xl font-bold text-white">Sign in</h1>
-          <p className="text-white/50 text-sm mt-1">Good to see you again.</p>
-        </div>
-
-        {linkError && (
-          <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm mb-6">
-            {linkError.code === 'otp_expired'
-              ? "That link has expired or was already used. If you signed up, try signing up again with the same email and we'll send a fresh one."
-              : linkError.description?.replace(/\+/g, ' ') || 'That link is no longer valid. Try again from where it was sent.'}
-          </div>
-        )}
-
-        {/* InactivityGuard redirects here with ?reason=inactive (hadn't
-            opened the app in a long time) or ?reason=idle (sat open and
-            untouched for a while) — without this, either would just look
-            like an unexplained, possibly alarming forced sign-out. Neutral
-            styling on purpose: both are expected, routine behavior, not an
-            error, and worded differently since they mean different things
-            to the person reading it. */}
-        {searchParams.get('reason') === 'inactive' && (
-          <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white/60 text-sm mb-6">
-            You were signed out after a long period of inactivity, as a security precaution. Sign in again to continue.
-          </div>
-        )}
-        {searchParams.get('reason') === 'idle' && (
-          <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white/60 text-sm mb-6">
-            You were signed out after sitting idle for a while, to keep your account safe if your device was left unattended. Sign in again to continue.
-          </div>
-        )}
-
-        <RolePicker onSelect={setRole} />
-
-        <p className="text-center text-white/60 text-sm mt-6">
-          Don't have an account?{' '}
-          <Link href="/signup" className="text-[#12A5A9] hover:underline">
-            Create one
-          </Link>
-        </p>
-      </AuthLayout>
-    )
-  }
-
-  const { headline, subtext, checklist } = ROLE_CONTENT[role]
+  // Role used to gate the whole form behind a "Who's signing in today?"
+  // picker screen — a tap that did nothing but pick which flavor of
+  // sidebar copy to show (see ROLE_CONTENT above and the real redirect
+  // logic in completeSignIn, which always uses the account's actual
+  // stored role regardless of what was clicked here). Every single
+  // returning user paid that extra tap for an unused answer. Now the form
+  // just shows immediately; role stays purely cosmetic, set only via a
+  // ?role= link (e.g. from a role-specific landing page) when present.
+  const { headline, subtext, checklist } = role
+    ? ROLE_CONTENT[role]
+    : { headline: 'Welcome back.', subtext: 'Good to see you again.', checklist: [] }
 
   return (
-    <AuthLayout headline={headline} subtext={subtext} checklist={checklist} showChecklist>
+    <AuthLayout headline={headline} subtext={subtext} checklist={checklist} showChecklist={!!role}>
       <div className="text-center mb-8 lg:text-left">
         <h1 className="text-2xl font-bold text-white">Sign in</h1>
-        <div className="flex items-center justify-center lg:justify-start gap-2 mt-2">
-          <span className="text-xs bg-[#0A7B7E]/20 text-[#12A5A9] border border-[#12A5A9]/30 rounded-full px-2.5 py-1 font-semibold capitalize">
-            {role}
-          </span>
-          <button
-            type="button"
-            onClick={() => setRole(null)}
-            className="text-white/60 text-xs hover:text-white transition"
-          >
-            Not you? Change
-          </button>
-        </div>
+        {role && (
+          <div className="flex items-center justify-center lg:justify-start gap-2 mt-2">
+            <span className="text-xs bg-[#0A7B7E]/20 text-[#12A5A9] border border-[#12A5A9]/30 rounded-full px-2.5 py-1 font-semibold capitalize">
+              {role}
+            </span>
+            <button
+              type="button"
+              onClick={() => setRole(null)}
+              className="text-white/60 text-xs hover:text-white transition"
+            >
+              Not you? Change
+            </button>
+          </div>
+        )}
       </div>
+
+      {linkError && (
+        <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm mb-6">
+          {linkError.code === 'otp_expired'
+            ? "That link has expired or was already used. If you signed up, try signing up again with the same email and we'll send a fresh one."
+            : linkError.description?.replace(/\+/g, ' ') || 'That link is no longer valid. Try again from where it was sent.'}
+        </div>
+      )}
+
+      {/* InactivityGuard redirects here with ?reason=inactive (hadn't
+          opened the app in a long time) or ?reason=idle (sat open and
+          untouched for a while) — without this, either would just look
+          like an unexplained, possibly alarming forced sign-out. Neutral
+          styling on purpose: both are expected, routine behavior, not an
+          error, and worded differently since they mean different things
+          to the person reading it. */}
+      {searchParams.get('reason') === 'inactive' && (
+        <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white/60 text-sm mb-6">
+          You were signed out after a long period of inactivity, as a security precaution. Sign in again to continue.
+        </div>
+      )}
+      {searchParams.get('reason') === 'idle' && (
+        <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white/60 text-sm mb-6">
+          You were signed out after sitting idle for a while, to keep your account safe if your device was left unattended. Sign in again to continue.
+        </div>
+      )}
 
       <form onSubmit={handleLogin} className="space-y-4">
 

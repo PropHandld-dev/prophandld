@@ -192,7 +192,7 @@ export default function ProfilePage() {
 
     if (updateError) {
       console.error('Error updating sms_opt_in:', updateError)
-      setError(t('couldNotUpdateTextAlertPrefix', lang) + updateError.message)
+      setError(t('couldNotUpdateTextAlertPrefix', lang))
       setSmsSaving(false)
       return
     }
@@ -237,7 +237,7 @@ export default function ProfilePage() {
     const { error: updateError } = await supabase.from('users').update({ email_notifications_enabled: next }).eq('id', user.id)
     if (updateError) {
       console.error('Error updating email_notifications_enabled:', updateError)
-      setError(t('couldNotUpdateEmailPrefPrefix', lang) + updateError.message)
+      setError(t('couldNotUpdateEmailPrefPrefix', lang))
       setEmailNotifSaving(false)
       return
     }
@@ -253,7 +253,7 @@ export default function ProfilePage() {
     const { error: updateError } = await supabase.from('users').update({ push_notifications_enabled: next }).eq('id', user.id)
     if (updateError) {
       console.error('Error updating push_notifications_enabled:', updateError)
-      setError(t('couldNotUpdatePushPrefPrefix', lang) + updateError.message)
+      setError(t('couldNotUpdatePushPrefPrefix', lang))
       setPushNotifSaving(false)
       return
     }
@@ -305,7 +305,7 @@ export default function ProfilePage() {
 
       if (publicUpdateError) {
         console.error('Error updating public.users:', publicUpdateError)
-        setError(t('publicProfileSyncFailedPrefix', lang) + publicUpdateError.message)
+        setError(t('publicProfileSyncFailedPrefix', lang))
         setSaving(false)
         return
       }

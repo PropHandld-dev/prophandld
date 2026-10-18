@@ -319,7 +319,7 @@ export default function UnitRentPage() {
 
     if (updateError) {
       console.error('Error saving rent month:', updateError)
-      setEditError(t('couldNotSavePrefix', lang) + updateError.message)
+      setEditError(t('couldNotSavePrefix', lang))
       setSavingId(null)
       return
     }

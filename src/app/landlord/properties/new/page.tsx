@@ -98,7 +98,7 @@ function NewPropertyForm() {
     const { data: { user }, error: userError } = await supabase.auth.getUser()
 
     if (userError || !user) {
-      setError(`${t('notAuthenticatedColon', lang)} ${userError?.message || 'no user'}`)
+      setError(t('notAuthenticatedColon', lang))
       setLoading(false)
       return
     }
@@ -161,7 +161,8 @@ function NewPropertyForm() {
       .single()
 
     if (propertyError) {
-      setError(`${t('errorCreatingProperty', lang)} ${propertyError.message} | User: ${user.id}`)
+      console.error('Error creating property:', propertyError, 'user:', user.id)
+      setError(t('errorCreatingProperty', lang))
       setLoading(false)
       return
     }
@@ -176,7 +177,8 @@ function NewPropertyForm() {
       })
 
     if (roleError) {
-      setError(`${t('errorSettingPropertyRole', lang)} ${roleError.message}`)
+      console.error('Error setting property role:', roleError)
+      setError(t('errorSettingPropertyRole', lang))
       setLoading(false)
       return
     }
@@ -193,7 +195,8 @@ function NewPropertyForm() {
         .insert(units)
 
       if (unitsError) {
-        setError(`${t('errorCreatingUnits', lang)} ${unitsError.message}`)
+        console.error('Error creating units:', unitsError)
+        setError(t('errorCreatingUnits', lang))
         setLoading(false)
         return
       }

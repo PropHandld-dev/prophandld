@@ -182,6 +182,9 @@ export default function RenterDashboard() {
   if (job.status === 'pending_review') {
     return t('statusWorkCompleteWaiting', lang)
   }
+  if (job.status === 'disputed') {
+    return t('statusDisputedFull', lang)
+  }
   return job.status
 }
 
