@@ -38,6 +38,11 @@ export default function SubmitBidPage() {
   const [questionText, setQuestionText] = useState('')
   const [askingQuestion, setAskingQuestion] = useState(false)
   const { confirm, ConfirmDialog } = useConfirm()
+  // Split into "your price" then "details" so a contractor isn't scanning
+  // seven fields at once on a job site, often one-handed — price is the
+  // one decision that actually matters here; availability/notes/exclusions
+  // are secondary and easy to skim through right after.
+  const [step, setStep] = useState<'price' | 'details'>('price')
 
   // Zooming pushes a throwaway history entry so the browser's own Back
   // button/gesture closes the zoom instead of navigating off the page
@@ -162,6 +167,19 @@ export default function SubmitBidPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })
+  }
+
+  const handleContinueToDetails = () => {
+    if (!form.amount || parseFloat(form.amount) <= 0) {
+      setError(t('enterValidBidAmount', lang))
+      return
+    }
+    if (form.pricing_type === 'hourly' && (!form.labor_rate || parseFloat(form.labor_rate) <= 0)) {
+      setError(t('enterValidBidAmount', lang))
+      return
+    }
+    setError(null)
+    setStep('details')
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -367,6 +385,12 @@ export default function SubmitBidPage() {
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              <p className="text-[#12A5A9] text-xs font-semibold uppercase tracking-wide">
+                {step === 'price' ? t('bidStepPriceLabel', lang) : t('bidStepDetailsLabel', lang)}
+              </p>
+
+              {step === 'price' && (
+              <>
               <div>
                 <FieldLabel>{t('pricingLabel', lang)}</FieldLabel>
                 <div className="grid grid-cols-2 gap-2">
@@ -456,7 +480,27 @@ export default function SubmitBidPage() {
                   </button>
                 )}
               </div>
+              </>
+              )}
 
+              {error && (
+                <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">
+                  {error}
+                </div>
+              )}
+
+              {step === 'price' && (
+                <RippleButton
+                  type="button"
+                  onClick={handleContinueToDetails}
+                  className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90"
+                >
+                  {t('continueBtn', lang)}
+                </RippleButton>
+              )}
+
+              {step === 'details' && (
+              <>
               <div>
                 <FieldLabel>{t('availabilityLabel', lang)}</FieldLabel>
                 <input
@@ -494,19 +538,24 @@ export default function SubmitBidPage() {
                 <p className="text-white/40 text-xs mt-1">{t('notIncludedHelp', lang)}</p>
               </div>
 
-              {error && (
-                <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">
-                  {error}
-                </div>
+              <div className="flex items-center gap-3">
+                <RippleButton
+                  type="submit"
+                  disabled={submitting}
+                  className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
+                >
+                  {submitting ? t('submitting', lang) : t('submitSealedBid', lang)}
+                </RippleButton>
+                <button
+                  type="button"
+                  onClick={() => setStep('price')}
+                  className="text-white/50 hover:text-white text-sm font-medium px-2 transition"
+                >
+                  {t('backBtn', lang)}
+                </button>
+              </div>
+              </>
               )}
-
-              <RippleButton
-                type="submit"
-                disabled={submitting}
-                className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
-              >
-                {submitting ? t('submitting', lang) : t('submitSealedBid', lang)}
-              </RippleButton>
             </form>
           </ScrollReveal>
         ) : null}

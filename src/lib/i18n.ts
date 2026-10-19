@@ -495,6 +495,9 @@ const STRINGS = {
   waitingBadge: { en: 'Waiting', es: 'Esperando' },
   more: { en: 'more', es: 'más' },
   needsYourAttention: { en: 'Needs your attention', es: 'Requiere tu atención' },
+  alertGroupUrgent: { en: 'Needs action now', es: 'Requiere acción ahora' },
+  alertGroupSoon: { en: 'Worth a look soon', es: 'Vale la pena revisar pronto' },
+  alertGroupFyi: { en: 'For your information', es: 'Para tu información' },
 
   // Landlord properties list
   yourPropertiesTitle: { en: 'Your properties', es: 'Tus propiedades' },
@@ -1097,6 +1100,8 @@ const STRINGS = {
   gotIt: { en: 'Got it', es: 'Entendido' },
   requestPriceChangeHeading: { en: 'Request a price change', es: 'Solicitar un cambio de precio' },
   priceChangeApprovalNote: { en: 'The landlord has to approve this before it changes.', es: 'El propietario debe aprobar esto antes de que cambie.' },
+  bidStepPriceLabel: { en: 'Step 1 of 2 — Your price', es: 'Paso 1 de 2 — Tu precio' },
+  bidStepDetailsLabel: { en: 'Step 2 of 2 — Details', es: 'Paso 2 de 2 — Detalles' },
   currentPriceLabel: { en: 'Current price:', es: 'Precio actual:' },
   changeFromCurrentSuffix: { en: 'from current', es: 'del precio actual' },
   laborDollarLabel: { en: 'Labor ($)', es: 'Mano de obra ($)' },
