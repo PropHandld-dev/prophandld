@@ -1314,11 +1314,6 @@ const STRINGS = {
   propertiesWord: { en: 'properties', es: 'propiedades' },
 
   // Property new/onboarding page
-  firstPropertyAdded: { en: 'First property added', es: 'Primera propiedad agregada' },
-  youMentionedManaging: { en: 'You mentioned managing', es: 'Mencionaste que administras' },
-  addAnotherOrComeBack: { en: 'properties. Add another one now, or come back to it anytime from your dashboard.', es: 'propiedades. Agrega otra ahora, o vuelve a esto cuando quieras desde tu panel.' },
-  addAnotherPropertyBtn: { en: 'Add another property', es: 'Agregar otra propiedad' },
-  illDoThisLater: { en: "I'll do this later", es: 'Lo haré más tarde' },
   backToDashboardArrow: { en: '← Back to dashboard', es: '← Volver al panel' },
   letsAddFirstProperty: { en: "Let's add your first property", es: 'Agreguemos tu primera propiedad' },
   addAPropertyHeading: { en: 'Add a property', es: 'Agregar una propiedad' },

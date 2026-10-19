@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, Suspense } from 'react'
 import { SubscribeToAdd } from '@/components/BillingReminder'
 import { useBillingStatus, BILLING_ENFORCED } from '@/lib/useBillingStatus'
 import { supabase } from '@/lib/supabase'
@@ -33,42 +33,7 @@ function NewPropertyForm() {
     num_units: '1',
   })
   const [placeGeo, setPlaceGeo] = useState<{ lat: number; lng: number } | null>(null)
-  // What they said at signup ("2-5", "6-10", etc.) — purely a one-time
-  // stated intent, never treated as a live count anywhere (the properties
-  // table is always the real source of truth for that). Its only job is
-  // deciding whether to offer "add another?" right after this first one,
-  // since onboarding itself only ever walks through a single property.
-  const [expectedPropertyCount, setExpectedPropertyCount] = useState<string | null>(null)
-  const [showAddAnotherPrompt, setShowAddAnotherPrompt] = useState(false)
   const { confirm, ConfirmDialog } = useConfirm()
-
-  const PROPERTY_COUNT_LABEL: Record<string, string> = {
-    '2-5': '2–5', '6-10': '6–10', '11-25': '11–25', '26+': '26+',
-  }
-
-  // If they gave an address on the signup form (before there was an
-  // authenticated session to actually save it), pick it up here instead of
-  // asking again — only on first arrival at onboarding, and only if they
-  // haven't already started typing something else in the meantime.
-  useEffect(() => {
-    if (!isOnboarding) return
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      const meta = user?.user_metadata
-      if (meta?.property_count) setExpectedPropertyCount(meta.property_count)
-      if (!meta?.onboarding_address) return
-      setForm((f) => f.address ? f : {
-        ...f,
-        address: meta.onboarding_address || '',
-        city: meta.onboarding_city || '',
-        state: meta.onboarding_state || '',
-        zip: meta.onboarding_zip || '',
-      })
-      if (meta.onboarding_lat != null && meta.onboarding_lng != null) {
-        setPlaceGeo({ lat: meta.onboarding_lat, lng: meta.onboarding_lng })
-      }
-    })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOnboarding])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -206,63 +171,11 @@ function NewPropertyForm() {
 
     fetch('/api/stripe/subscription/sync', { method: 'POST' }).catch(() => {})
 
-    if (isOnboarding && expectedPropertyCount && PROPERTY_COUNT_LABEL[expectedPropertyCount]) {
-      // They said at signup they'd be managing more than one — onboarding
-      // itself only ever walks through a single property, so without this
-      // they'd just land on the dashboard having only ever added the one.
-      // Ask once, right while they're still in the flow of doing it.
-      setLoading(false)
-      setShowAddAnotherPrompt(true)
-      return
-    }
-
     if (isOnboarding) {
       router.push('/landlord')
     } else {
       router.push(`/landlord/properties/${property.id}`)
     }
-  }
-
-  const handleAddAnother = () => {
-    setShowAddAnotherPrompt(false)
-    setExpectedPropertyCount(null) // ask only once, not after every additional property
-    setForm({ address: '', city: '', state: '', zip: '', property_type: 'residential', num_units: '1' })
-    setPlaceGeo(null)
-  }
-
-  if (showAddAnotherPrompt) {
-    const label = PROPERTY_COUNT_LABEL[expectedPropertyCount ?? ''] ?? ''
-    return (
-      <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center px-6">
-        <ScrollReveal>
-        <div className="max-w-sm text-center">
-          <div className="w-14 h-14 rounded-full bg-[#0A7B7E]/20 flex items-center justify-center mx-auto mb-5 motion-safe:animate-[popIn_0.5s_ease-out]">
-            <span className="text-2xl">🎉</span>
-          </div>
-          <h1 className="text-xl font-bold text-white mb-2">{t('firstPropertyAdded', lang)}</h1>
-          <p className="text-white/50 text-sm mb-8">
-            {t('youMentionedManaging', lang)} {label} {t('addAnotherOrComeBack', lang)}
-          </p>
-          <div className="space-y-3">
-            <RippleButton
-              type="button"
-              onClick={handleAddAnother}
-              className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90"
-            >
-              {t('addAnotherPropertyBtn', lang)}
-            </RippleButton>
-            <RippleButton
-              type="button"
-              onClick={() => router.push('/landlord')}
-              className="w-full bg-white/5 border border-white/10 text-white/70 font-medium py-3 rounded-xl transition hover:bg-white/10"
-            >
-              {t('illDoThisLater', lang)}
-            </RippleButton>
-          </div>
-        </div>
-        </ScrollReveal>
-      </div>
-    )
   }
 
   return (
