@@ -13,6 +13,7 @@ import { DocumentReminderToggle } from '@/components/DocumentReminderToggle'
 import { RENTER_TABS } from '@/lib/navTabs'
 import { useLanguage, t } from '@/lib/i18n'
 import { validateDocumentFile } from '@/lib/mediaValidation'
+import { useConfirm } from '@/lib/useConfirm'
 
 const TENANT_DOCUMENT_TYPES = ['Renters Insurance', 'Utility Proof: Electric', 'Utility Proof: Gas', 'Utility Proof: Water', 'Other']
 
@@ -38,6 +39,7 @@ export default function RenterDocumentsPage() {
     expiry_date: '',
   })
   const [files, setFiles] = useState<File[]>([])
+  const { confirm, ConfirmDialog } = useConfirm()
 
   const loadDocuments = async (forPropertyId: string) => {
     const { data: documentsData, error: documentsError } = await supabase
@@ -205,7 +207,7 @@ export default function RenterDocumentsPage() {
   }
 
   const handleDelete = async (doc: any) => {
-    if (!window.confirm(`${t('removeAttachmentConfirmPrefix', lang)}${doc.filename}${t('removeAttachmentConfirmSuffix', lang)}`)) return
+    if (!(await confirm({ body: `${t('removeAttachmentConfirmPrefix', lang)}${doc.filename}${t('removeAttachmentConfirmSuffix', lang)}`, danger: true }))) return
 
     const { error: storageError } = await supabase.storage.from('documents').remove([doc.file_url])
     if (storageError) {
@@ -437,6 +439,7 @@ export default function RenterDocumentsPage() {
       </main>
 
       <BottomTabBar tabs={RENTER_TABS} />
+      {ConfirmDialog}
     </div>
   )
 }

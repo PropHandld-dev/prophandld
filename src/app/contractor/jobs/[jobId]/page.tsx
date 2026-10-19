@@ -26,6 +26,7 @@ import { useJobRealtime } from '@/lib/useJobRealtime'
 import { CONTRACTOR_TABS } from '@/lib/navTabs'
 import { TIME_WINDOWS, validateScheduleTime, lateRescheduleWarning, shortNoticeWarning } from '@/lib/scheduleWindows'
 import { useLanguage, t, windowLabel } from '@/lib/i18n'
+import { useConfirm } from '@/lib/useConfirm'
 
 export default function ContractorJobDetailPage() {
   const router = useRouter()
@@ -56,6 +57,7 @@ export default function ContractorJobDetailPage() {
   const [laborAmount, setLaborAmount] = useState('')
   const [partsAmount, setPartsAmount] = useState('')
   const [priceChangeReason, setPriceChangeReason] = useState('')
+  const { confirm, ConfirmDialog } = useConfirm()
 
   const fetchJob = async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -205,7 +207,7 @@ export default function ContractorJobDetailPage() {
 
   const handleCancelJob = async () => {
     if (!myBid) return
-    if (!window.confirm(t('cancelJobConfirm', lang))) return
+    if (!(await confirm({ body: t('cancelJobConfirm', lang), danger: true }))) return
 
     setActioning(true)
     setError(null)
@@ -1125,6 +1127,7 @@ export default function ContractorJobDetailPage() {
       )}
 
       <BottomTabBar tabs={CONTRACTOR_TABS} />
+      {ConfirmDialog}
     </div>
   )
 }

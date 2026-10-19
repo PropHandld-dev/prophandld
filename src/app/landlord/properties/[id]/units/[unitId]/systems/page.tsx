@@ -10,6 +10,7 @@ import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 import { useLanguage, t, type Lang } from '@/lib/i18n'
+import { useConfirm } from '@/lib/useConfirm'
 
 const ITEM_TYPES: { value: string; labelKey: 'itemTypePlumbing' | 'itemTypeElectrical' | 'itemTypeHvac' | 'itemTypeAppliance' | 'itemTypeStructural' | 'itemTypeOther' }[] = [
   { value: 'plumbing', labelKey: 'itemTypePlumbing' },
@@ -69,6 +70,7 @@ export default function UnitSystemsPage() {
   const [addingLogForId, setAddingLogForId] = useState<string | null>(null)
   const [logForm, setLogForm] = useState({ service_date: '', description: '', cost: '' })
   const [now] = useState(() => Date.now())
+  const { confirm, ConfirmDialog } = useConfirm()
 
   useEffect(() => {
     const init = async () => {
@@ -185,7 +187,7 @@ export default function UnitSystemsPage() {
   }
 
   const handleDeleteItem = async (item: any) => {
-    if (!window.confirm(`${t('removeSystemConfirmPrefix', lang)}${item.name}${t('removeSystemConfirmSuffix', lang)}`)) return
+    if (!(await confirm({ body: `${t('removeSystemConfirmPrefix', lang)}${item.name}${t('removeSystemConfirmSuffix', lang)}`, danger: true }))) return
 
     const { error: logDeleteError } = await supabase
       .from('appliance_service_log')
@@ -577,6 +579,7 @@ export default function UnitSystemsPage() {
       </main>
 
       <BottomTabBar tabs={LANDLORD_TABS} />
+      {ConfirmDialog}
     </div>
   )
 }

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { RippleButton } from '@/components/RippleButton'
 import { useLanguage, t } from '@/lib/i18n'
+import { useConfirm } from '@/lib/useConfirm'
 
 type Passkey = { id: string; friendly_name?: string | null; created_at: string }
 
@@ -22,6 +23,7 @@ export function PasskeyCard() {
   const [passkeys, setPasskeys] = useState<Passkey[]>([])
   const [registering, setRegistering] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const { confirm, ConfirmDialog } = useConfirm()
 
   // Real bug this exact gap caused: passkey support is still beta, and
   // until the one-time Supabase Dashboard setup is confirmed done, calling
@@ -70,7 +72,7 @@ export function PasskeyCard() {
   }
 
   const handleRemove = async (passkeyId: string) => {
-    if (!window.confirm(t('removePasskeyConfirm', lang))) return
+    if (!(await confirm({ body: t('removePasskeyConfirm', lang), danger: true }))) return
     try {
       await (supabase.auth as any).passkey.delete({ passkeyId })
       await refresh()
@@ -109,6 +111,8 @@ export function PasskeyCard() {
       >
         {registering ? t('passkeyRegisteringDots', lang) : t('addPasskeyBtn', lang)}
       </RippleButton>
+
+      {ConfirmDialog}
     </div>
   )
 }

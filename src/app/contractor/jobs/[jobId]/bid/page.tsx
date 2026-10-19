@@ -13,6 +13,7 @@ import { RippleButton } from '@/components/RippleButton'
 import { WrenchIcon } from '@/components/icons'
 import { CONTRACTOR_TABS } from '@/lib/navTabs'
 import { useLanguage, t } from '@/lib/i18n'
+import { useConfirm } from '@/lib/useConfirm'
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return <label className="text-white/70 text-sm block mb-1">{children}</label>
@@ -36,6 +37,7 @@ export default function SubmitBidPage() {
   const [questions, setQuestions] = useState<any[]>([])
   const [questionText, setQuestionText] = useState('')
   const [askingQuestion, setAskingQuestion] = useState(false)
+  const { confirm, ConfirmDialog } = useConfirm()
 
   // Zooming pushes a throwaway history entry so the browser's own Back
   // button/gesture closes the zoom instead of navigating off the page
@@ -174,7 +176,7 @@ export default function SubmitBidPage() {
     // instead of $4,500) is a real, easy mistake worth one explicit
     // confirmation before it's locked in and shown to the landlord.
     const confirmedAmount = parseFloat(form.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-    if (!window.confirm(`${t('confirmBidAmountPrefix', lang)}${confirmedAmount}${t('confirmBidAmountSuffix', lang)}`)) {
+    if (!(await confirm({ body: `${t('confirmBidAmountPrefix', lang)}${confirmedAmount}${t('confirmBidAmountSuffix', lang)}` }))) {
       return
     }
 
@@ -524,6 +526,7 @@ export default function SubmitBidPage() {
       )}
 
       <BottomTabBar tabs={CONTRACTOR_TABS} />
+      {ConfirmDialog}
     </div>
   )
 }

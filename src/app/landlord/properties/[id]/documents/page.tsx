@@ -14,6 +14,7 @@ import { RippleButton } from '@/components/RippleButton'
 import { useLanguage, t } from '@/lib/i18n'
 import { getLandlordIds } from '@/lib/landlordIds'
 import { validateDocumentFile } from '@/lib/mediaValidation'
+import { useConfirm } from '@/lib/useConfirm'
 
 const DOCUMENT_TYPES = ['Lease', 'Rental Agreement', 'Deed', 'Insurance', 'Inspection Report', 'Other']
 
@@ -49,6 +50,7 @@ export default function PropertyDocumentsPage() {
     visibility: 'shared',
   })
   const [files, setFiles] = useState<File[]>([])
+  const { confirm, ConfirmDialog } = useConfirm()
 
   useEffect(() => {
     const init = async () => {
@@ -221,7 +223,7 @@ export default function PropertyDocumentsPage() {
   }
 
   const handleDelete = async (doc: any) => {
-    if (!window.confirm(`${t('removeAttachmentConfirmPrefix', lang)}${doc.filename}${t('removeAttachmentConfirmSuffix', lang)}`)) return
+    if (!(await confirm({ body: `${t('removeAttachmentConfirmPrefix', lang)}${doc.filename}${t('removeAttachmentConfirmSuffix', lang)}`, danger: true }))) return
 
     const { error: storageError } = await supabase.storage.from('documents').remove([doc.file_url])
     if (storageError) {
@@ -535,6 +537,7 @@ export default function PropertyDocumentsPage() {
       </main>
 
       <BottomTabBar tabs={LANDLORD_TABS} />
+      {ConfirmDialog}
     </div>
   )
 }

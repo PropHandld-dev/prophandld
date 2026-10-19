@@ -14,6 +14,7 @@ import { useLanguage, t, type Lang } from '@/lib/i18n'
 import { getLandlordIds } from '@/lib/landlordIds'
 import { validateDocumentFile } from '@/lib/mediaValidation'
 import { getComplianceStatus } from '@/lib/complianceStatus'
+import { useConfirm } from '@/lib/useConfirm'
 
 const ITEM_TYPE_KEYS: ('complianceItemRentalLicense' | 'complianceItemLeadCertification' | 'complianceItemSmokeDetector' | 'complianceItemCoDetector' | 'complianceItemFireExtinguisher' | 'complianceItemInsuranceRenewal')[] = [
   'complianceItemRentalLicense',
@@ -78,6 +79,7 @@ export default function PropertyCompliancePage() {
   const [renewingId, setRenewingId] = useState<string | null>(null)
   const [renewDate, setRenewDate] = useState('')
   const [attachingId, setAttachingId] = useState<string | null>(null)
+  const { confirm, ConfirmDialog } = useConfirm()
 
   useEffect(() => {
     const init = async () => {
@@ -196,7 +198,7 @@ export default function PropertyCompliancePage() {
   }
 
   const handleRemoveAttachment = async (doc: any) => {
-    if (!window.confirm(`${t('removeAttachmentConfirmPrefix', lang)}${doc.filename}${t('removeAttachmentConfirmSuffix', lang)}`)) return
+    if (!(await confirm({ body: `${t('removeAttachmentConfirmPrefix', lang)}${doc.filename}${t('removeAttachmentConfirmSuffix', lang)}`, danger: true }))) return
 
     const { error: storageError } = await supabase.storage.from('documents').remove([doc.file_url])
     if (storageError) {
@@ -297,7 +299,7 @@ export default function PropertyCompliancePage() {
   }
 
   const handleDelete = async (item: any) => {
-    if (!window.confirm(`${t('removeAttachmentConfirmPrefix', lang)}${item.item_type}${t('removeAttachmentConfirmSuffix', lang)}`)) return
+    if (!(await confirm({ body: `${t('removeAttachmentConfirmPrefix', lang)}${item.item_type}${t('removeAttachmentConfirmSuffix', lang)}`, danger: true }))) return
 
     const { error: deleteError } = await supabase.from('compliance_items').delete().eq('id', item.id)
     if (deleteError) {
@@ -591,6 +593,7 @@ export default function PropertyCompliancePage() {
       </main>
 
       <BottomTabBar tabs={LANDLORD_TABS} />
+      {ConfirmDialog}
     </div>
   )
 }

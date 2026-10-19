@@ -14,6 +14,7 @@ import { ensureCurrentMonthRentPayment } from '@/lib/rentAutomation'
 import { FileTextIcon } from '@/components/icons'
 import { useLanguage, t } from '@/lib/i18n'
 import { validateDocumentFile } from '@/lib/mediaValidation'
+import { useConfirm } from '@/lib/useConfirm'
 
 export default function UnitRentPage() {
   const router = useRouter()
@@ -37,6 +38,7 @@ export default function UnitRentPage() {
   const [uploadingWaterBillId, setUploadingWaterBillId] = useState<string | null>(null)
   const [showAddMonth, setShowAddMonth] = useState(false)
   const [addForm, setAddForm] = useState({ month: '', expected_amount: '' })
+  const { confirm, ConfirmDialog } = useConfirm()
   // A ref, not state: two clicks dispatched in the same tick (a fast real
   // double-click, or a double-tap on mobile) can both read savingId as
   // still-null before React's first setSavingId() re-render lands, so the
@@ -338,7 +340,7 @@ export default function UnitRentPage() {
         : mode === 'apply_to_next'
           ? `${t('applyCreditNextMonthConfirmPrefix', lang)}${money(overpaid)}${t('applyCreditNextMonthConfirmSuffix', lang)}`
           : `${t('recordRefundedOutsideConfirmPrefix', lang)}${money(overpaid)}${t('recordRefundedOutsideConfirmSuffix', lang)}`
-    if (!window.confirm(question)) return
+    if (!(await confirm({ body: question }))) return
 
     setResolvingId(payment.id)
     setError(null)
@@ -413,7 +415,7 @@ export default function UnitRentPage() {
     const message = recorded > 0
       ? `${t('monthHasRecordedPaidConfirmPrefix', lang)}${money(recorded)}${t('monthHasRecordedPaidConfirmSuffix', lang)}`
       : t('removeThisEntryConfirm', lang)
-    if (!window.confirm(message)) return
+    if (!(await confirm({ body: message, danger: true }))) return
 
     const { error: deleteError } = await supabase.from('rent_payments').delete().eq('id', paymentId)
     if (deleteError) {
@@ -735,6 +737,7 @@ export default function UnitRentPage() {
       })()}
 
       <BottomTabBar tabs={LANDLORD_TABS} />
+      {ConfirmDialog}
     </div>
   )
 }

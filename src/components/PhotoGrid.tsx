@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { isVideoPath } from '@/lib/mediaValidation'
 import { useLanguage, t } from '@/lib/i18n'
+import { useConfirm } from '@/lib/useConfirm'
 
 interface Photo {
   id: string
@@ -26,12 +27,14 @@ export function PhotoGrid({
 }) {
   const lang = useLanguage()
   const [zoomed, setZoomed] = useState<{ url: string; video: boolean } | null>(null)
+  const { confirm, ConfirmDialog } = useConfirm()
 
   const colClass = columns === 2 ? 'grid-cols-2' : columns === 4 ? 'grid-cols-4' : 'grid-cols-3'
 
-  const handleDelete = (e: React.MouseEvent, photo: Photo) => {
+  const handleDelete = async (e: React.MouseEvent, photo: Photo) => {
     e.stopPropagation()
-    if (window.confirm(isVideoPath(photo.photo_url) ? t('removeVideoConfirm', lang) : t('removePhotoConfirm', lang))) {
+    const video = isVideoPath(photo.photo_url)
+    if (await confirm({ body: video ? t('removeVideoConfirm', lang) : t('removePhotoConfirm', lang), danger: true })) {
       onDelete?.(photo)
     }
   }
@@ -109,6 +112,8 @@ export function PhotoGrid({
           )}
         </div>
       )}
+
+      {ConfirmDialog}
     </>
   )
 }

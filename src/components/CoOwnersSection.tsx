@@ -7,6 +7,7 @@ import { ContactInviteInput, type ContactMode } from '@/components/ContactInvite
 import { PlusIcon } from '@/components/icons'
 import { useLanguage, t } from '@/lib/i18n'
 import { supabase } from '@/lib/supabase'
+import { useConfirm } from '@/lib/useConfirm'
 
 type InvitedByMe = { id: string; status: 'pending' | 'accepted'; name: string; pendingSignup: boolean }
 type IAmCoOwnerOf = { id: string; status: 'pending' | 'accepted'; name: string }
@@ -27,6 +28,7 @@ export function CoOwnersSection() {
   const [error, setError] = useState<string | null>(null)
   const [offerSendInvite, setOfferSendInvite] = useState(false)
   const [sentConfirm, setSentConfirm] = useState(false)
+  const { confirm, ConfirmDialog } = useConfirm()
 
   const load = () => {
     fetch('/api/co-owner/list')
@@ -93,7 +95,7 @@ export function CoOwnersSection() {
   }
 
   const handleRemove = async (id: string) => {
-    if (!window.confirm(t('coOwnerRemoveConfirm', lang))) return
+    if (!(await confirm({ body: t('coOwnerRemoveConfirm', lang), danger: true }))) return
     await supabase.from('landlord_co_owners').delete().eq('id', id)
     load()
   }
@@ -188,6 +190,8 @@ export function CoOwnersSection() {
           </RippleButton>
         </form>
       )}
+
+      {ConfirmDialog}
     </ScrollReveal>
   )
 }

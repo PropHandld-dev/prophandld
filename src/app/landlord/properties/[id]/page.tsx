@@ -17,6 +17,7 @@ import { AddressLink } from '@/components/AddressLink'
 import { StreetView } from '@/components/StreetView'
 import { useLanguage, t, type Lang } from '@/lib/i18n'
 import { getLandlordIds } from '@/lib/landlordIds'
+import { useConfirm } from '@/lib/useConfirm'
 
 function getTourSteps(lang: Lang): TourStep[] {
   return [
@@ -45,6 +46,7 @@ export default function PropertyDetailPage() {
   const [editValue, setEditValue] = useState('')
   const [savingUnit, setSavingUnit] = useState(false)
   const [unitError, setUnitError] = useState<string | null>(null)
+  const { confirm, ConfirmDialog } = useConfirm()
 
   const fetchProperty = async () => {
     try {
@@ -174,7 +176,7 @@ export default function PropertyDetailPage() {
       return
     }
 
-    const confirmed = window.confirm(t('removeUnitConfirm', lang))
+    const confirmed = await confirm({ body: t('removeUnitConfirm', lang), danger: true })
     if (!confirmed) return
 
     const { error: deleteError } = await supabase
@@ -522,6 +524,7 @@ export default function PropertyDetailPage() {
       {tour.show && units.length > 0 && (
         <ProductTour steps={getTourSteps(lang)} onDone={tour.dismiss} onNeverAskAgain={tour.dismiss} />
       )}
+      {ConfirmDialog}
     </div>
   )
 }

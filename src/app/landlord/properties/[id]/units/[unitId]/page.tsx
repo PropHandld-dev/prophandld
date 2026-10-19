@@ -16,6 +16,7 @@ import { ShowMoreList } from '@/components/ShowMoreList'
 import { ContactInviteInput, type ContactMode } from '@/components/ContactInviteInput'
 import { useLanguage, t } from '@/lib/i18n'
 import { maxLateFee } from '@/lib/lateFee'
+import { useConfirm } from '@/lib/useConfirm'
 
 const IN_PROGRESS_STATUSES = ['pending_approval', 'approved', 'bidding', 'bid_selected', 'scheduled', 'in_progress']
 
@@ -59,6 +60,7 @@ export default function UnitDetailPage() {
   const [editingTenancy, setEditingTenancy] = useState(false)
   const [savingTenancy, setSavingTenancy] = useState(false)
   const [tenancyEditError, setTenancyEditError] = useState<string | null>(null)
+  const { confirm, ConfirmDialog } = useConfirm()
   const [editForm, setEditForm] = useState({
     rent_amount: '',
     rent_due_day: '1',
@@ -182,7 +184,7 @@ export default function UnitDetailPage() {
 
   const handleRemoveCoRenter = async (occupantId: string) => {
     if (!tenancy) return
-    if (!window.confirm(t('removeCoRenterConfirm', lang))) return
+    if (!(await confirm({ body: t('removeCoRenterConfirm', lang), danger: true }))) return
     await supabase.from('tenancy_occupants').delete().eq('id', occupantId)
     await loadCoOccupants(tenancy.id)
   }
@@ -309,7 +311,7 @@ export default function UnitDetailPage() {
 
   const handleCancelInvite = async () => {
     if (!pendingInvite) return
-    if (!window.confirm(`${t('cancelInviteConfirmPrefix', lang)} ${pendingInvite.renter_email}${t('cancelInviteConfirmSuffix', lang)}`)) return
+    if (!(await confirm({ body: `${t('cancelInviteConfirmPrefix', lang)} ${pendingInvite.renter_email}${t('cancelInviteConfirmSuffix', lang)}`, danger: true }))) return
 
     setInvitingBusy(true)
     const { error } = await supabase
@@ -383,7 +385,7 @@ export default function UnitDetailPage() {
     router.push(`/landlord/properties/${propertyId}/units/${unitId}/inspection?type=move_out`)
   }
 
-  const handleConfirmMoveOutComplete = () => {
+  const handleConfirmMoveOutComplete = async () => {
     // A typed deposit amount with nothing tracking what actually happened
     // to it at move-out used to be the whole story — this is the one real
     // moment to record it, right where the tenancy actually ends, tied to
@@ -398,7 +400,7 @@ export default function UnitDetailPage() {
       setShowDepositModal(true)
       return
     }
-    if (!window.confirm(t('confirmTenantMovedOut', lang))) return
+    if (!(await confirm({ body: t('confirmTenantMovedOut', lang), danger: true }))) return
     finalizeMoveOut({})
   }
 
@@ -1241,6 +1243,7 @@ export default function UnitDetailPage() {
       </main>
 
       <BottomTabBar tabs={LANDLORD_TABS} />
+      {ConfirmDialog}
     </div>
   )
 }

@@ -13,6 +13,7 @@ import { RippleButton } from '@/components/RippleButton'
 import { AddressAutocomplete, type AutocompletePlace } from '@/components/AddressAutocomplete'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 import { useLanguage, t } from '@/lib/i18n'
+import { useConfirm } from '@/lib/useConfirm'
 
 function NewPropertyForm() {
   const router = useRouter()
@@ -39,6 +40,7 @@ function NewPropertyForm() {
   // since onboarding itself only ever walks through a single property.
   const [expectedPropertyCount, setExpectedPropertyCount] = useState<string | null>(null)
   const [showAddAnotherPrompt, setShowAddAnotherPrompt] = useState(false)
+  const { confirm, ConfirmDialog } = useConfirm()
 
   const PROPERTY_COUNT_LABEL: Record<string, string> = {
     '2-5': '2–5', '6-10': '6–10', '11-25': '11–25', '26+': '26+',
@@ -128,7 +130,7 @@ function NewPropertyForm() {
     }
 
     if (dup.ownedByOther) {
-      const proceed = window.confirm(t('addressRegisteredOther', lang))
+      const proceed = await confirm({ body: t('addressRegisteredOther', lang) })
       if (!proceed) {
         setLoading(false)
         return
@@ -390,6 +392,7 @@ function NewPropertyForm() {
       </main>
 
       <BottomTabBar tabs={LANDLORD_TABS} />
+      {ConfirmDialog}
     </div>
   )
 }

@@ -9,6 +9,7 @@ import { LEGACY_LICENSE, type ScopedRequirement } from '@/lib/credentialRequirem
 import type { StateBoard } from '@/lib/stateLicensingBoards'
 import { useLanguage, t, type Lang } from '@/lib/i18n'
 import { validateDocumentFile } from '@/lib/mediaValidation'
+import { useConfirm } from '@/lib/useConfirm'
 
 type RequirementsResponse = {
   homeState: string | null
@@ -60,6 +61,7 @@ export function ContractorCredentials({ userId }: { userId: string }) {
   const [form, setForm] = useState<{ number: string; expiry: string; file: File | null }>({ number: '', expiry: '', file: null })
   const [savingId, setSavingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const { confirm, ConfirmDialog } = useConfirm()
 
   const load = useCallback(async () => {
     const [reqRes, credsRes, verifRes] = await Promise.all([
@@ -170,7 +172,7 @@ export function ContractorCredentials({ userId }: { userId: string }) {
   }
 
   const removeCredential = async (credential: Credential) => {
-    if (!window.confirm(t('removeCredentialConfirm', lang))) return
+    if (!(await confirm({ body: t('removeCredentialConfirm', lang), danger: true }))) return
     await supabase.from('contractor_credentials').delete().eq('id', credential.id)
     await load()
   }
@@ -441,6 +443,8 @@ export function ContractorCredentials({ userId }: { userId: string }) {
       <p className="text-white/40 text-xs mt-6">
         {t('requirementsChangeGuide', lang)}
       </p>
+
+      {ConfirmDialog}
     </ScrollReveal>
   )
 }

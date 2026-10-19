@@ -13,6 +13,7 @@ import { RippleButton } from '@/components/RippleButton'
 import { AddressAutocomplete, type AutocompletePlace } from '@/components/AddressAutocomplete'
 import { useLanguage, t } from '@/lib/i18n'
 import { getLandlordIds } from '@/lib/landlordIds'
+import { useConfirm } from '@/lib/useConfirm'
 
 export default function EditPropertyPage() {
   const router = useRouter()
@@ -37,6 +38,7 @@ export default function EditPropertyPage() {
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
   const [deleteConfirmError, setDeleteConfirmError] = useState<string | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const { confirm, ConfirmDialog } = useConfirm()
 
   useEffect(() => {
     const init = async () => {
@@ -120,7 +122,7 @@ export default function EditPropertyPage() {
     }
 
     if (dup.ownedByOther) {
-      const proceed = window.confirm(t('addressRegisteredOtherEditConfirm', lang))
+      const proceed = await confirm({ body: t('addressRegisteredOtherEditConfirm', lang) })
       if (!proceed) {
         setSaving(false)
         return
@@ -155,9 +157,7 @@ export default function EditPropertyPage() {
   }
 
   const handleArchiveToggle = async () => {
-    const confirmed = archived
-      ? window.confirm(t('confirmUnarchiveProperty', lang))
-      : window.confirm(t('confirmArchiveProperty', lang))
+    const confirmed = await confirm({ body: archived ? t('confirmUnarchiveProperty', lang) : t('confirmArchiveProperty', lang) })
     if (!confirmed) return
 
     setArchiving(true)
@@ -380,6 +380,7 @@ export default function EditPropertyPage() {
       </main>
 
       <BottomTabBar tabs={LANDLORD_TABS} />
+      {ConfirmDialog}
     </div>
   )
 }
