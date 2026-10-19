@@ -38,6 +38,14 @@ import { AddressLink } from '@/components/AddressLink'
 import { cardProcessingFee, achProcessingFee } from '@/lib/cardSurcharge'
 import { useLanguage, t, windowLabel } from '@/lib/i18n'
 
+// Shared styling for every secondary action in the status card's action
+// row (decline, handle it myself, chat, ask a question, archive) — one
+// consistent "outlined pill" look instead of each one being a differently
+// styled bare text link, so they read as a uniform group of lesser options
+// next to the one gradient-filled primary action for that status.
+const SECONDARY_ACTION_CLASS = 'text-white/70 hover:text-white text-xs font-medium bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-2 rounded-lg transition disabled:opacity-50'
+const DANGER_ACTION_CLASS = 'text-red-400/80 hover:text-red-400 text-xs font-medium bg-red-500/5 hover:bg-red-500/10 border border-red-500/20 px-3 py-2 rounded-lg transition disabled:opacity-50'
+
 export default function JobDetailPage() {
   const router = useRouter()
   const params = useParams()
@@ -1062,57 +1070,46 @@ export default function JobDetailPage() {
       <main className="max-w-2xl mx-auto px-6 py-10 pb-28">
 
         <div className="mb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-2 flex-wrap mb-2">
-                <h1 className="text-2xl font-bold text-white">{job.category}</h1>
-                {job.is_emergency && (
-                  <span className="text-xs bg-red-500/20 text-red-400 border border-red-500/30 rounded-full px-2.5 py-1 font-semibold">
-                    {t('emergency', lang)}
-                  </span>
-                )}
-              </div>
-              <p className="text-white/60 text-sm">
-                <AddressLink address={job.units?.properties?.address} city={job.units?.properties?.city} />
-                {' '}· Unit {job.units?.unit_number}
-              </p>
-              {job.location && (
-                <p className="text-white/50 text-xs mt-1 flex items-center gap-1">
-                  <MapPinIcon className="w-3 h-3" />
-                  {job.location}
-                </p>
-              )}
-              {job.maintenance_items && (
-                <p className="text-[#12A5A9] text-xs mt-1 flex items-center gap-1">
-                  <WrenchIcon className="w-3 h-3" />
-                  {job.maintenance_items.name}
-                  {job.maintenance_items.brand && `, ${job.maintenance_items.brand}`}
-                  {job.maintenance_items.install_date && `, installed ${new Date(job.maintenance_items.install_date + 'T00:00:00').getFullYear()}`}
-                </p>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap mb-2">
+              <h1 className="text-2xl font-bold text-white">{job.category}</h1>
+              {job.is_emergency && (
+                <span className="text-xs bg-red-500/20 text-red-400 border border-red-500/30 rounded-full px-2.5 py-1 font-semibold">
+                  {t('emergency', lang)}
+                </span>
               )}
             </div>
-            {job.status === 'completed' && (
-              <button
-                onClick={() => setShowArchiveModal(true)}
-                className="text-white/60 hover:text-white text-xs transition shrink-0"
-              >
-                {t('archiveBtn', lang)}
-              </button>
+            <p className="text-white/60 text-sm">
+              <AddressLink address={job.units?.properties?.address} city={job.units?.properties?.city} />
+              {' '}· Unit {job.units?.unit_number}
+            </p>
+            {job.location && (
+              <p className="text-white/50 text-xs mt-1 flex items-center gap-1">
+                <MapPinIcon className="w-3 h-3" />
+                {job.location}
+              </p>
             )}
-            {['approved', 'bidding'].includes(job.status) && (
-              <button
-                onClick={handleDeclineClick}
-                disabled={actioning}
-                className="text-red-400/70 hover:text-red-400 text-xs transition shrink-0 disabled:opacity-50"
-              >
-                {t('cancelThisJobBtn', lang)}
-              </button>
+            {job.maintenance_items && (
+              <p className="text-[#12A5A9] text-xs mt-1 flex items-center gap-1">
+                <WrenchIcon className="w-3 h-3" />
+                {job.maintenance_items.name}
+                {job.maintenance_items.brand && `, ${job.maintenance_items.brand}`}
+                {job.maintenance_items.install_date && `, installed ${new Date(job.maintenance_items.install_date + 'T00:00:00').getFullYear()}`}
+              </p>
             )}
           </div>
         </div>
 
+        {/* One actions area per job, not two (this card plus a separate
+            header row) — every status's buttons live here now: exactly one
+            prominent primary action, with every secondary action (decline,
+            handle it myself, chat, ask a question, cancel, archive) sharing
+            the same small outlined "pill" treatment instead of a mix of
+            bare text links and gradient buttons scattered in different
+            spots, so a landlord can tell at a glance which one thing to do
+            next versus everything else that's merely available. */}
         <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
             <h2 className="text-white font-semibold">
               {t('statusPrefix', lang)} <span className="text-[#12A5A9]">{statusLabel(job.status)}</span>
               {job.self_completed && (
@@ -1121,8 +1118,8 @@ export default function JobDetailPage() {
                 </span>
               )}
             </h2>
-            {job.status === 'pending_approval' && (
-              <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              {job.status === 'pending_approval' && (
                 <button
                   onClick={handleApproveClick}
                   disabled={actioning}
@@ -1130,17 +1127,8 @@ export default function JobDetailPage() {
                 >
                   {t('acknowledge', lang)}
                 </button>
-                <button
-                  onClick={handleDeclineClick}
-                  disabled={actioning}
-                  className="text-red-400/70 hover:text-red-400 text-xs transition"
-                >
-                  {t('decline', lang)}
-                </button>
-              </div>
-            )}
-            {job.status === 'approved' && (
-              <div className="flex items-center gap-3">
+              )}
+              {job.status === 'approved' && (
                 <button
                   onClick={handleStartBidding}
                   disabled={actioning}
@@ -1148,17 +1136,17 @@ export default function JobDetailPage() {
                 >
                   {t('startBidding', lang)}
                 </button>
+              )}
+              {job.status === 'approved' && (
                 <button
                   onClick={openDiyModal}
                   disabled={actioning}
-                  className="text-white/50 hover:text-white text-xs transition disabled:opacity-50"
+                  className={SECONDARY_ACTION_CLASS}
                 >
                   {t('handleItMyselfShort', lang)}
                 </button>
-              </div>
-            )}
-            {job.status === 'pending_review' && (
-              <div className="flex items-center gap-3">
+              )}
+              {job.status === 'pending_review' && (
                 <button
                   onClick={() => setShowApproveModal(true)}
                   disabled={actioning}
@@ -1166,31 +1154,59 @@ export default function JobDetailPage() {
                 >
                   {t('approveLabel', lang)}
                 </button>
+              )}
+              {job.status === 'pending_review' && (
                 <button
                   onClick={() => scrollToChat()}
-                  className="text-white/50 hover:text-white text-xs transition"
+                  className={SECONDARY_ACTION_CLASS}
                 >
                   {t('chatWithContractorLabel', lang)}
                 </button>
-                {!job.clarification_note && (
-                  <button
-                    onClick={() => setShowClarificationModal(true)}
-                    className="text-white/50 hover:text-white text-xs transition"
-                  >
-                    {t('askAQuestionBtn', lang)}
-                  </button>
-                )}
-              </div>
-            )}
-            {!acceptedBid && ['bid_selected', 'scheduled'].includes(job.status) && (
-              <button
-                onClick={openDiyCompleteModal}
-                disabled={actioning}
-                className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
-              >
-                {t('diyMarkFixed', lang)}
-              </button>
-            )}
+              )}
+              {job.status === 'pending_review' && !job.clarification_note && (
+                <button
+                  onClick={() => setShowClarificationModal(true)}
+                  className={SECONDARY_ACTION_CLASS}
+                >
+                  {t('askAQuestionBtn', lang)}
+                </button>
+              )}
+              {!acceptedBid && ['bid_selected', 'scheduled'].includes(job.status) && (
+                <button
+                  onClick={openDiyCompleteModal}
+                  disabled={actioning}
+                  className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
+                >
+                  {t('diyMarkFixed', lang)}
+                </button>
+              )}
+              {job.status === 'pending_approval' && (
+                <button
+                  onClick={handleDeclineClick}
+                  disabled={actioning}
+                  className={DANGER_ACTION_CLASS}
+                >
+                  {t('decline', lang)}
+                </button>
+              )}
+              {['approved', 'bidding'].includes(job.status) && (
+                <button
+                  onClick={handleDeclineClick}
+                  disabled={actioning}
+                  className={DANGER_ACTION_CLASS}
+                >
+                  {t('cancelThisJobBtn', lang)}
+                </button>
+              )}
+              {job.status === 'completed' && (
+                <button
+                  onClick={() => setShowArchiveModal(true)}
+                  className={SECONDARY_ACTION_CLASS}
+                >
+                  {t('archiveBtn', lang)}
+                </button>
+              )}
+            </div>
           </div>
 
           {job.status === 'pending_approval' && (
