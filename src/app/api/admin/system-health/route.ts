@@ -72,6 +72,16 @@ export async function GET() {
     console.error('system-health: frozen accounts query failed', frozenError)
   }
 
+  const { data: frozenP2pAccounts, error: frozenP2pError } = await admin
+    .from('users')
+    .select('id, full_name, email, p2p_handles_frozen_until')
+    .gt('p2p_handles_frozen_until', new Date().toISOString())
+    .order('p2p_handles_frozen_until', { ascending: true })
+
+  if (frozenP2pError) {
+    console.error('system-health: frozen p2p accounts query failed', frozenP2pError)
+  }
+
   // A job payment stuck on "processing" for more than an hour is never
   // normal Stripe latency — found during testing that this is exactly
   // what a STRIPE_SECRET_KEY live/test mode switch after a payment
@@ -110,6 +120,12 @@ export async function GET() {
       name: u.full_name || 'Unknown',
       email: u.email,
       frozenUntil: u.payout_frozen_until,
+    })),
+    frozenP2pAccounts: (frozenP2pAccounts || []).map((u) => ({
+      id: u.id,
+      name: u.full_name || 'Unknown',
+      email: u.email,
+      frozenUntil: u.p2p_handles_frozen_until,
     })),
     stuckProcessingPayments: (stuckBids || []).map((b) => ({
       bidId: b.id,

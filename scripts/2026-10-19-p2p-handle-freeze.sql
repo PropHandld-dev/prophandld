@@ -1,0 +1,13 @@
+-- A Zelle/Venmo/Cash App handle is a plain text field with no verification
+-- that it actually belongs to the landlord — unlike Stripe/Dwolla payout
+-- accounts, there's no bank-ownership check behind it at all. That makes it
+-- the single easiest payment destination in the app to silently redirect:
+-- anyone who got into a landlord's account (stolen password, unattended
+-- device) could swap in their own handle and a renter would send real money
+-- straight to them, with zero signal to the real landlord. This adds the
+-- same freeze-and-alert protection already in place for Stripe/Dwolla
+-- payout account changes: changing an already-set handle freezes it from
+-- showing to renters for 48 hours and emails/pushes the landlord so they
+-- can catch it if it wasn't them. First-time setup (nothing to hijack yet)
+-- is unaffected.
+alter table public.users add column if not exists p2p_handles_frozen_until timestamptz;

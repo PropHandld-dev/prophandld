@@ -2382,6 +2382,37 @@ export async function sendPayoutDetailsChangedEmail({
   })
 }
 
+export async function sendP2pHandlesChangedEmail({
+  to,
+  name,
+  lang = 'en',
+}: {
+  to: string
+  name: string
+  lang?: Lang
+}) {
+  const html = lang === 'es' ? baseTemplate({
+    lang,
+    eyebrow: 'Alerta de seguridad',
+    heading: 'Tu información de Zelle/Venmo/Cash App cambió',
+    bodyHtml: `Hola ${escapeHtml(name)}, se actualizó la información de Zelle, Venmo o Cash App que tus inquilinos ven para pagarte la renta. Como medida de seguridad de rutina, estas opciones se ocultan a tus inquilinos por 48 horas y luego vuelven a aparecer solas — no tienes que hacer nada si fuiste tú.<br><br><strong>Si no hiciste este cambio, contáctanos de inmediato</strong> en admin@prophandld.com.`,
+    ctaLabel: 'Ver mi perfil',
+    ctaUrl: `${SITE_URL}/profile`,
+  }) : baseTemplate({
+    lang,
+    eyebrow: 'Security alert',
+    heading: 'Your Zelle/Venmo/Cash App info changed',
+    bodyHtml: `Hi ${escapeHtml(name)}, the Zelle, Venmo, or Cash App info your renters see to pay rent was just updated. As a routine security measure, these options are hidden from your renters for 48 hours and then reappear on their own — no action needed if this was you.<br><br><strong>If you didn't make this change, contact us immediately</strong> at admin@prophandld.com.`,
+    ctaLabel: 'View my profile',
+    ctaUrl: `${SITE_URL}/profile`,
+  })
+  return sendEmail({
+    to,
+    subject: lang === 'es' ? 'Alerta de seguridad: tu información de Zelle/Venmo/Cash App cambió' : 'Security alert: your Zelle/Venmo/Cash App info changed',
+    html,
+  })
+}
+
 // Flags the free-tier loophole Joshua raised — two separate "landlord"
 // signups whose payout bank account resolves to the same Stripe
 // fingerprint, meaning one real bank account (very likely one real

@@ -36,14 +36,20 @@ export async function GET() {
 
   const { data: landlord } = await admin
     .from('users')
-    .select('full_name, zelle_handle, venmo_handle, cashapp_handle')
+    .select('full_name, zelle_handle, venmo_handle, cashapp_handle, p2p_handles_frozen_until')
     .eq('id', ownerId)
     .maybeSingle()
 
+  // A change to an already-set handle freezes it from renters for 48
+  // hours (see api/profile/p2p-handles) — the same window the landlord's
+  // alert email/push gives them to notice and report it if it wasn't them,
+  // before a renter could actually see and pay a possibly-hijacked handle.
+  const frozen = !!landlord?.p2p_handles_frozen_until && new Date(landlord.p2p_handles_frozen_until) > new Date()
+
   return NextResponse.json({
-    zelle: landlord?.zelle_handle || null,
-    venmo: landlord?.venmo_handle || null,
-    cashapp: landlord?.cashapp_handle || null,
+    zelle: frozen ? null : landlord?.zelle_handle || null,
+    venmo: frozen ? null : landlord?.venmo_handle || null,
+    cashapp: frozen ? null : landlord?.cashapp_handle || null,
     landlordName: landlord?.full_name || null,
   })
 }

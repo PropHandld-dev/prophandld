@@ -18,6 +18,7 @@ type Health = {
   twilio: { accountSidPresent: boolean; authTokenPresent: boolean; phoneNumberPresent: boolean }
   resend: { apiKeyPresent: boolean }
   frozenPayoutAccounts: { id: string; name: string; email: string; frozenUntil: string }[]
+  frozenP2pAccounts: { id: string; name: string; email: string; frozenUntil: string }[]
   stuckProcessingPayments: { bidId: string; jobId: string; stripePaymentIntentId: string | null; createdAt: string }[]
 }
 
@@ -141,6 +142,30 @@ export default function AdminHealthPage() {
               )}
               <p className="text-white/40 text-xs mt-3">
                 A landlord or contractor lands here for 48 hours after their Stripe payout bank account changes — routine fraud guard, not necessarily a problem.
+              </p>
+            </div>
+          </ScrollReveal>
+
+          <ScrollReveal>
+            <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mt-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-white font-semibold text-sm">Frozen Zelle/Venmo/Cash App handles</h2>
+                <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-white/8 text-white/50">{data.frozenP2pAccounts.length}</span>
+              </div>
+              {data.frozenP2pAccounts.length === 0 ? (
+                <p className="text-white/40 text-sm">Nobody is currently frozen.</p>
+              ) : (
+                <div className="space-y-2">
+                  {data.frozenP2pAccounts.map((a) => (
+                    <div key={a.id} className="flex items-center justify-between text-sm">
+                      <span className="text-white/80">{a.name} · {a.email}</span>
+                      <span className="text-yellow-400 text-xs" suppressHydrationWarning>until {new Date(a.frozenUntil).toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <p className="text-white/40 text-xs mt-3">
+                A landlord lands here for 48 hours after changing an already-set Zelle/Venmo/Cash App handle — hidden from their renters during this window, same fraud guard as frozen payout accounts above.
               </p>
             </div>
           </ScrollReveal>
