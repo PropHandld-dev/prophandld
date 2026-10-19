@@ -11,12 +11,11 @@ import { DollarSignIcon, CalendarIcon, UserIcon, CheckCircleIcon } from '@/compo
 import { LANDLORD_TABS } from '@/lib/navTabs'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { MagneticLink } from '@/components/MagneticLink'
-import { RippleButton } from '@/components/RippleButton'
 import { ShowMoreList } from '@/components/ShowMoreList'
 import { ContactInviteInput, type ContactMode } from '@/components/ContactInviteInput'
 import { useLanguage, t } from '@/lib/i18n'
-import { maxLateFee } from '@/lib/lateFee'
 import { useConfirm } from '@/lib/useConfirm'
+import { ordinal, nextEscalationDate } from '@/lib/leaseEscalation'
 
 const IN_PROGRESS_STATUSES = ['pending_approval', 'approved', 'bidding', 'bid_selected', 'scheduled', 'in_progress']
 
@@ -57,21 +56,7 @@ export default function UnitDetailPage() {
   const [openJobs, setOpenJobs] = useState<any[]>([])
   const [jobHistory, setJobHistory] = useState<any[]>([])
 
-  const [editingTenancy, setEditingTenancy] = useState(false)
-  const [savingTenancy, setSavingTenancy] = useState(false)
-  const [tenancyEditError, setTenancyEditError] = useState<string | null>(null)
   const { confirm, ConfirmDialog } = useConfirm()
-  const [editForm, setEditForm] = useState({
-    rent_amount: '',
-    rent_due_day: '1',
-    escalation_percent: '',
-    escalation_frequency_months: '',
-    occupants: '',
-    pets: '',
-    lease_notes: '',
-    late_fee_amount: '',
-    grace_period_days: '',
-  })
 
   const loadCoOccupants = async (tenancyId: string) => {
     const { data: occupants, error: occupantsError } = await supabase
@@ -446,105 +431,6 @@ export default function UnitDetailPage() {
     setSavingDeposit(false)
   }
 
-  const openTenancyEdit = () => {
-    setEditForm({
-      rent_amount: tenancy.rent_amount?.toString() || '',
-      rent_due_day: tenancy.rent_due_day?.toString() || '1',
-      escalation_percent: tenancy.escalation_percent?.toString() || '',
-      escalation_frequency_months: tenancy.escalation_frequency_months?.toString() || '',
-      occupants: tenancy.occupants?.toString() || '',
-      pets: tenancy.pets || '',
-      lease_notes: tenancy.lease_notes || '',
-      late_fee_amount: tenancy.late_fee_amount?.toString() || '',
-      grace_period_days: tenancy.grace_period_days?.toString() || '5',
-    })
-    setTenancyEditError(null)
-    setEditingTenancy(true)
-  }
-
-  const handleEditFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setEditForm({ ...editForm, [e.target.name]: e.target.value })
-  }
-
-  const handleSaveTenancy = async () => {
-    setTenancyEditError(null)
-
-    const rentAmount = editForm.rent_amount ? parseFloat(editForm.rent_amount) : null
-    const lateFeeAmount = editForm.late_fee_amount ? parseFloat(editForm.late_fee_amount) : null
-    const lateFeeCap = maxLateFee(rentAmount)
-    if (lateFeeAmount && lateFeeCap !== null && lateFeeAmount > lateFeeCap) {
-      setTenancyEditError(`${t('lateFeeTooHighPrefix', lang)}$${lateFeeCap.toFixed(2)}${t('lateFeeTooHighSuffix', lang)}`)
-      return
-    }
-
-    setSavingTenancy(true)
-
-    const { error: updateError } = await expectRow(supabase
-      .from('tenancies')
-      .update({
-        rent_amount: editForm.rent_amount ? parseFloat(editForm.rent_amount) : null,
-        rent_due_day: editForm.rent_due_day ? parseInt(editForm.rent_due_day) : 1,
-        escalation_percent: editForm.escalation_percent ? parseFloat(editForm.escalation_percent) : null,
-        escalation_frequency_months: editForm.escalation_frequency_months ? parseInt(editForm.escalation_frequency_months) : null,
-        occupants: editForm.occupants ? parseInt(editForm.occupants) : null,
-        pets: editForm.pets.trim() || null,
-        lease_notes: editForm.lease_notes.trim() || null,
-        late_fee_amount: editForm.late_fee_amount ? parseFloat(editForm.late_fee_amount) : null,
-        grace_period_days: editForm.grace_period_days ? parseInt(editForm.grace_period_days) : 5,
-      })
-      .eq('id', tenancy.id))
-
-    if (updateError) {
-      console.error('Error updating tenancy:', updateError)
-      setTenancyEditError(t('couldNotSaveTenancyChanges', lang))
-      setSavingTenancy(false)
-      return
-    }
-
-    setEditingTenancy(false)
-    setSavingTenancy(false)
-    await fetchUnit()
-  }
-
-  const ordinal = (day: number) => {
-    if (day % 10 === 1 && day !== 11) return `${day}st`
-    if (day % 10 === 2 && day !== 12) return `${day}nd`
-    if (day % 10 === 3 && day !== 13) return `${day}rd`
-    return `${day}th`
-  }
-
-  const nextEscalationDate = (leaseStart: string | null, frequencyMonths: number | null) => {
-    if (!leaseStart || !frequencyMonths) return null
-    const start = new Date(leaseStart + 'T00:00:00')
-    const now = new Date()
-    const next = new Date(start)
-    while (next <= now) {
-      next.setMonth(next.getMonth() + frequencyMonths)
-    }
-    return next
-  }
-
-  // A suggestion, never an auto-change: rent never moves without the
-  // landlord explicitly saving the form. Only surfaces within a 30-day
-  // window around the most recent escalation boundary that's already
-  // passed — deliberately not trying to compound across multiple
-  // long-unaccounted cycles, since this has no record of whether an
-  // earlier cycle was already applied through a normal rent edit.
-  const escalationSuggestion = () => {
-    if (!tenancy.escalation_percent || !tenancy.escalation_frequency_months || !tenancy.lease_start || !tenancy.rent_amount) return null
-    const next = nextEscalationDate(tenancy.lease_start, tenancy.escalation_frequency_months)
-    if (!next) return null
-    const previous = new Date(next)
-    previous.setMonth(previous.getMonth() - tenancy.escalation_frequency_months)
-    const start = new Date(tenancy.lease_start + 'T00:00:00')
-    if (previous <= start) return null // no cycle has actually passed yet
-    const daysSince = Math.round((Date.now() - previous.getTime()) / (24 * 60 * 60 * 1000))
-    if (daysSince < 0 || daysSince > 30) return null
-    const suggested = Math.round(Number(tenancy.rent_amount) * (1 + Number(tenancy.escalation_percent) / 100) * 100) / 100
-    if (suggested <= Number(tenancy.rent_amount)) return null
-    return { date: previous, suggested }
-  }
-
   // A DIY job passes through bid_selected/scheduled too (reusing the
   // contractor job's own propose/confirm mechanism), but "Contractor
   // selected" is simply false when there's no contractor on it at all —
@@ -621,7 +507,7 @@ export default function UnitDetailPage() {
                 {t('linkRenterBtn', lang)}
               </MagneticLink>
             )}
-            {tenancy && !editingTenancy && (
+            {tenancy && (
               <div className="flex items-center gap-3">
                 <button
                   onClick={handleMessageTenant}
@@ -630,12 +516,12 @@ export default function UnitDetailPage() {
                 >
                   {messagingTenant ? t('openingEllipsis', lang) : t('messageBtn', lang)}
                 </button>
-                <button
-                  onClick={openTenancyEdit}
+                <Link
+                  href={`/landlord/properties/${propertyId}/units/${unitId}/tenancy/edit`}
                   className="text-[#12A5A9] text-xs font-semibold hover:underline"
                 >
                   {t('editBtn', lang)}
-                </button>
+                </Link>
               </div>
             )}
           </div>
@@ -672,7 +558,7 @@ export default function UnitDetailPage() {
                 </p>
               )}
 
-              {!editingTenancy && tenancy.escalation_percent && tenancy.escalation_frequency_months && (
+              {tenancy.escalation_percent && tenancy.escalation_frequency_months && (
                 <p className="text-white/60 text-sm">
                   📈 +{tenancy.escalation_percent}{t('percentEveryPrefix', lang)} {tenancy.escalation_frequency_months} {t('monthsWord', lang)}
                   {tenancy.lease_start && (() => {
@@ -682,31 +568,30 @@ export default function UnitDetailPage() {
                 </p>
               )}
 
-              {!editingTenancy && tenancy.late_fee_amount && (
+              {tenancy.late_fee_amount && (
                 <p className="text-white/60 text-sm">
                   ⏰ ${tenancy.late_fee_amount} {t('lateFeeAfterPrefix', lang)} {tenancy.grace_period_days ?? 5} {t('daysWord', lang)}
                 </p>
               )}
 
-              {!editingTenancy && tenancy.occupants && (
+              {tenancy.occupants && (
                 <p className="text-white/60 text-sm flex items-center gap-1.5">
                   <UserIcon className="w-3.5 h-3.5 text-white/60" />
                   {tenancy.occupants} {tenancy.occupants === 1 ? t('occupantSingular', lang) : t('occupantPlural', lang)}
                 </p>
               )}
 
-              {!editingTenancy && tenancy.pets && (
+              {tenancy.pets && (
                 <p className="text-white/60 text-sm">🐾 {tenancy.pets}</p>
               )}
 
-              {!editingTenancy && tenancy.lease_notes && (
+              {tenancy.lease_notes && (
                 <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 mt-2">
                   <p className="text-white/50 text-sm">{tenancy.lease_notes}</p>
                 </div>
               )}
 
-              {!editingTenancy && (
-                <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 mt-2">
+              <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 mt-2">
                   <p className="text-white/70 text-xs font-semibold mb-2">{t('coRentersHeading', lang)}</p>
                   {coOccupants.length === 0 ? (
                     <p className="text-white/40 text-xs mb-3">{t('noCoRentersDesc', lang)}</p>
@@ -760,9 +645,8 @@ export default function UnitDetailPage() {
                   )}
                   {coRenterInviteSent && <p className="text-[#12A5A9] text-xs mt-2">{t('coRenterInviteSentMsg', lang)}</p>}
                 </div>
-              )}
 
-              {!editingTenancy && tenantBackupContacts.length > 0 && (
+              {tenantBackupContacts.length > 0 && (
                 <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 mt-2">
                   <p className="text-white/70 text-xs font-semibold mb-1">{t('ifTheyDontAnswer', lang)}</p>
                   <div className="space-y-2">
@@ -772,159 +656,6 @@ export default function UnitDetailPage() {
                         <a href={`tel:${c.phone}`} className="text-[#12A5A9] text-xs hover:underline">{c.phone}</a>
                       </div>
                     ))}
-                  </div>
-                </div>
-              )}
-
-              {editingTenancy && (
-                <div className="bg-white/5 border border-white/10 rounded-xl p-4 mt-2 space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-white/70 text-xs block mb-1">{t('monthlyRentDollarLabel', lang)}</label>
-                      <input
-                        type="number"
-                        name="rent_amount"
-                        value={editForm.rent_amount}
-                        onChange={handleEditFormChange}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#12A5A9] transition"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-white/70 text-xs block mb-1">{t('dueDayOfMonthLabel', lang)}</label>
-                      <input
-                        type="number"
-                        name="rent_due_day"
-                        min={1}
-                        max={28}
-                        value={editForm.rent_due_day}
-                        onChange={handleEditFormChange}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#12A5A9] transition"
-                      />
-                    </div>
-                  </div>
-                  {(() => {
-                    const suggestion = escalationSuggestion()
-                    if (!suggestion) return null
-                    return (
-                      <div className="bg-[#12A5A9]/10 border border-[#12A5A9]/25 rounded-lg px-3 py-2.5 flex items-center justify-between gap-3">
-                        <p className="text-white/70 text-xs">
-                          {t('escalationSuggestionPrefix', lang)} {suggestion.date.toLocaleDateString()} — {t('escalationSuggestionSuggested', lang)} <strong className="text-white">${suggestion.suggested.toFixed(2)}</strong>
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => setEditForm((f) => ({ ...f, rent_amount: suggestion.suggested.toString() }))}
-                          className="shrink-0 text-[#12A5A9] text-xs font-semibold hover:underline"
-                        >
-                          {t('useThisAmountBtn', lang)}
-                        </button>
-                      </div>
-                    )
-                  })()}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-white/70 text-xs block mb-1">{t('escalationPercentLabelShort', lang)}</label>
-                      <input
-                        type="number"
-                        step="0.1"
-                        name="escalation_percent"
-                        value={editForm.escalation_percent}
-                        onChange={handleEditFormChange}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#12A5A9] transition"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-white/70 text-xs block mb-1">{t('everyMonthsLabel', lang)}</label>
-                      <input
-                        type="number"
-                        name="escalation_frequency_months"
-                        value={editForm.escalation_frequency_months}
-                        onChange={handleEditFormChange}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#12A5A9] transition"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-white/70 text-xs block mb-1">{t('lateFeeOptionalLabel', lang)}</label>
-                      <input
-                        type="number"
-                        name="late_fee_amount"
-                        value={editForm.late_fee_amount}
-                        onChange={handleEditFormChange}
-                        placeholder={t('noFeePlaceholder', lang)}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
-                      />
-                      {(() => {
-                        const cap = maxLateFee(editForm.rent_amount ? parseFloat(editForm.rent_amount) : null)
-                        return cap !== null ? (
-                          <p className="text-white/40 text-xs mt-1">{t('lateFeeMaxHintPrefix', lang)}${cap.toFixed(2)}{t('lateFeeMaxHintSuffix', lang)}</p>
-                        ) : null
-                      })()}
-                    </div>
-                    <div>
-                      <label className="text-white/70 text-xs block mb-1">{t('gracePeriodDaysLabel', lang)}</label>
-                      <input
-                        type="number"
-                        name="grace_period_days"
-                        value={editForm.grace_period_days}
-                        onChange={handleEditFormChange}
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#12A5A9] transition"
-                      />
-                    </div>
-                  </div>
-                  <p className="text-white/50 text-[11px] -mt-2">
-                    {t('lateFeeHelperText', lang)}
-                  </p>
-                  <div>
-                    <label className="text-white/70 text-xs block mb-1">{t('occupantsLabel', lang)}</label>
-                    <input
-                      type="number"
-                      name="occupants"
-                      value={editForm.occupants}
-                      onChange={handleEditFormChange}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#12A5A9] transition"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-white/70 text-xs block mb-1">{t('petsLabel', lang)}</label>
-                    <input
-                      type="text"
-                      name="pets"
-                      value={editForm.pets}
-                      onChange={handleEditFormChange}
-                      placeholder={t('petsPlaceholder', lang)}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-white/70 text-xs block mb-1">{t('leaseNotesLabel', lang)}</label>
-                    <textarea
-                      name="lease_notes"
-                      value={editForm.lease_notes}
-                      onChange={handleEditFormChange}
-                      rows={3}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#12A5A9] transition resize-none"
-                    />
-                  </div>
-                  {tenancyEditError && (
-                    <div className="bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2 text-red-400 text-xs">
-                      {tenancyEditError}
-                    </div>
-                  )}
-                  <div className="flex items-center gap-3">
-                    <RippleButton
-                      onClick={handleSaveTenancy}
-                      disabled={savingTenancy}
-                      className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
-                    >
-                      {savingTenancy ? t('savingDots', lang) : t('saveBtn', lang)}
-                    </RippleButton>
-                    <button
-                      onClick={() => setEditingTenancy(false)}
-                      className="text-white/60 text-xs hover:text-white transition"
-                    >
-                      {t('cancelBtn', lang)}
-                    </button>
                   </div>
                 </div>
               )}

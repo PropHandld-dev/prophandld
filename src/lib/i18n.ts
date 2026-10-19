@@ -1532,6 +1532,8 @@ const STRINGS = {
   notAuthenticatedPeriod: { en: 'Not authenticated.', es: 'No autenticado.' },
   couldNotSendInvite: { en: 'Could not send invite. Please try again.', es: 'No se pudo enviar la invitación. Inténtalo de nuevo.' },
   backToUnitPlain: { en: '← Back to unit', es: '← Volver a la unidad' },
+  editLeaseDetailsHeading: { en: 'Edit lease details', es: 'Editar detalles del contrato' },
+  editLeaseDetailsDesc: { en: 'Changes take effect immediately and your tenant can see them on their side.', es: 'Los cambios se aplican de inmediato y tu inquilino puede verlos en su cuenta.' },
   linkARenterHeading: { en: 'Link a renter', es: 'Vincular un inquilino' },
   linkRenterDesc: { en: "Enter their email to link them to this unit. If they don't have a Prophandld account yet, we'll invite them. They'll be linked automatically once they sign up.", es: 'Ingresa su correo electrónico para vincularlo a esta unidad. Si aún no tiene una cuenta de Prophandld, le enviaremos una invitación. Se vinculará automáticamente una vez que se registre.' },
   inviteSentToPrefix: { en: 'Invite sent to ', es: 'Invitación enviada a ' },
