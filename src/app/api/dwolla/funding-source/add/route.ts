@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { addFundingSourceByAccountNumber, dwollaCustomerUrl, initiateMicroDeposits } from '@/lib/dwolla'
 import { sendPayoutDetailsChangedEmail } from '@/lib/email'
 import { sendPush } from '@/lib/push'
+import { verifyPassword } from '@/lib/reauth'
 
 export const maxDuration = 20
 
@@ -19,11 +20,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
 
-  const { routingNumber, accountNumber, bankAccountType, name } = (await request.json()) as {
+  const { routingNumber, accountNumber, bankAccountType, name, password } = (await request.json()) as {
     routingNumber?: string
     accountNumber?: string
     bankAccountType?: 'checking' | 'savings'
     name?: string
+    password?: string
   }
   if (!routingNumber?.trim() || !accountNumber?.trim() || !bankAccountType) {
     return NextResponse.json({ error: 'Missing routing number, account number, or account type' }, { status: 400 })
@@ -55,6 +57,19 @@ export async function POST(request: NextRequest) {
   // already-active payout account triggers the freeze.
   const isChangeToActiveAccount = !!userRow.dwolla_funding_source_id && userRow.dwolla_customer_status === 'active'
 
+  // The client already gates a re-link behind a password prompt
+  // (DwollaConnectCard's reauth step), but that's only a UI check —
+  // calling this route directly with a stolen session token (cookie/
+  // bearer, no password needed) would otherwise sail straight through.
+  // Re-verifying server-side, for the exact case the freeze below
+  // protects, is what makes the reauth real rather than cosmetic.
+  const onlyReceives = role === 'landlord'
+  if (onlyReceives && isChangeToActiveAccount) {
+    if (!userRow.email || !(await verifyPassword(userRow.email, password || ''))) {
+      return NextResponse.json({ error: 'Incorrect password' }, { status: 401 })
+    }
+  }
+
   try {
     const fundingSource = await addFundingSourceByAccountNumber({
       customerUrl: dwollaCustomerUrl(userRow.dwolla_customer_id),
@@ -70,7 +85,6 @@ export async function POST(request: NextRequest) {
     // account creates the transfer; the landlord's funding source is just
     // the destination), so they skip straight to active regardless of
     // their Dwolla Customer type. Renters send, so they always need it.
-    const onlyReceives = role === 'landlord'
     if (!onlyReceives) {
       await initiateMicroDeposits(fundingSource.url)
     }

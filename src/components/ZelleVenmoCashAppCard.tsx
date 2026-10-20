@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
 import { RippleButton } from '@/components/RippleButton'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { CheckCircleIcon, LockIcon } from '@/components/icons'
@@ -67,7 +66,12 @@ export function ZelleVenmoCashAppCard() {
     (!!original.venmo && original.venmo !== venmo.trim()) ||
     (!!original.cashapp && original.cashapp !== cashapp.trim())
 
-  const doSave = async () => {
+  // Password is only ever sent over HTTPS to this app's own API route,
+  // which re-verifies it server-side (see api/profile/p2p-handles) rather
+  // than trusting that the client only called this after a real check —
+  // a client-side-only gate can't stop someone calling the route directly
+  // with a stolen session token, no password required.
+  const doSave = async (password?: string) => {
     setSaving(true)
     setSaved(false)
     setError(null)
@@ -75,11 +79,16 @@ export function ZelleVenmoCashAppCard() {
       const res = await fetch('/api/profile/p2p-handles', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ zelle, venmo, cashapp }),
+        body: JSON.stringify({ zelle, venmo, cashapp, password }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setError(data.error || t('couldNotSavePrefix', lang))
+        if (res.status === 401 && isChange) {
+          setError(t('currentPasswordIncorrect', lang))
+          setReauthing(true)
+        } else {
+          setError(data.error || t('couldNotSavePrefix', lang))
+        }
         return
       }
       setOriginal({ zelle: zelle.trim(), venmo: venmo.trim(), cashapp: cashapp.trim() })
@@ -105,23 +114,11 @@ export function ZelleVenmoCashAppCard() {
   const handleReauthSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setReauthSubmitting(true)
-    setError(null)
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user?.email) {
-      setError(t('couldNotStartPayoutSetup', lang))
-      setReauthSubmitting(false)
-      return
-    }
-    const { error: verifyError } = await supabase.auth.signInWithPassword({ email: user.email, password: reauthPassword })
-    if (verifyError) {
-      setError(t('currentPasswordIncorrect', lang))
-      setReauthSubmitting(false)
-      return
-    }
-    setReauthSubmitting(false)
+    const password = reauthPassword
     setReauthPassword('')
     setReauthing(false)
-    await doSave()
+    await doSave(password)
+    setReauthSubmitting(false)
   }
 
   const isFrozen = !!frozenUntil && new Date(frozenUntil) > new Date()

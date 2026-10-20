@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { sendP2pHandlesChangedEmail } from '@/lib/email'
 import { sendPush } from '@/lib/push'
 import { notifyLandlordIds } from '@/lib/landlordCoOwners'
+import { verifyPassword } from '@/lib/reauth'
 
 const FREEZE_MS = 48 * 60 * 60 * 1000
 
@@ -43,10 +44,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
 
-  const { zelle, venmo, cashapp } = (await request.json().catch(() => ({}))) as {
+  const { zelle, venmo, cashapp, password } = (await request.json().catch(() => ({}))) as {
     zelle?: string
     venmo?: string
     cashapp?: string
+    password?: string
   }
 
   const admin = getSupabaseAdmin()
@@ -69,6 +71,17 @@ export async function POST(request: NextRequest) {
     (!!current?.zelle_handle && current.zelle_handle !== next.zelle_handle) ||
     (!!current?.venmo_handle && current.venmo_handle !== next.venmo_handle) ||
     (!!current?.cashapp_handle && current.cashapp_handle !== next.cashapp_handle)
+
+  // The client already gates this behind a password prompt (see
+  // ZelleVenmoCashAppCard's reauth step), but that only guards the UI —
+  // anyone who could call this route directly with a stolen session token
+  // (no password needed) would otherwise sail straight through. Re-checking
+  // the password here, server-side, is what actually makes the reauth real.
+  if (isChange) {
+    if (!user.email || !(await verifyPassword(user.email, password || ''))) {
+      return NextResponse.json({ error: 'Incorrect password' }, { status: 401 })
+    }
+  }
 
   const updates: Record<string, unknown> = { ...next }
   if (isChange) {

@@ -99,7 +99,12 @@ export function DwollaConnectCard() {
       return
     }
     setReauthSubmitting(false)
-    setReauthPassword('')
+    // Deliberately NOT cleared here — the wizard has several more steps
+    // (bank details, identity, review) before the actual re-link happens
+    // in handleFinalSubmit, which forwards this password so the server can
+    // re-verify it too (see funding-source/add). A client-side-only check
+    // can't stop someone calling that route directly with a stolen session
+    // token, no password required, so the server has to check it for real.
     setStep('bank')
   }
 
@@ -138,16 +143,25 @@ export function DwollaConnectCard() {
         accountNumber: accountNumber.trim(),
         bankAccountType,
         name: accountName.trim(),
+        password: reauthPassword,
       }),
     })
     const fundingData = await fundingRes.json().catch(() => ({}))
     if (!fundingRes.ok) {
+      if (fundingRes.status === 401) {
+        setError(t('currentPasswordIncorrect', lang))
+        setReauthPassword('')
+        setSubmitting(false)
+        setStep('reauth')
+        return
+      }
       setError(fundingData.error || t('couldNotAddBankAccount', lang))
       setSubmitting(false)
       setStep('bank')
       return
     }
 
+    setReauthPassword('')
     setSubmitting(false)
     setStep('success')
     await load()
