@@ -1464,6 +1464,7 @@ const STRINGS = {
   yourLandlordLabel: { en: 'Your landlord', es: 'Tu propietario' },
   p2pOpenAppPrefix: { en: 'Open', es: 'Abrir' },
   p2pZelleInstructions: { en: 'Open your banking app, send to the handle above via Zelle, then come back here.', es: 'Abre tu app bancaria, envía al contacto anterior por Zelle, y vuelve aquí.' },
+  p2pRenterDisclosure: { en: "Prophandld doesn't verify that this is actually your landlord's account, and isn't involved in or responsible for this payment once you send it. Double-check the handle looks right, and confirm with your landlord directly if anything seems off.", es: 'Prophandld no verifica que esta sea realmente la cuenta de tu propietario, y no participa ni es responsable de este pago una vez que lo envías. Verifica que el contacto sea correcto, y confirma directamente con tu propietario si algo no parece correcto.' },
   p2pMarkSentBtn: { en: "I've sent this payment", es: 'Ya envié este pago' },
   p2pMarkSentNote: { en: "This lets your landlord know to check for it — it doesn't confirm the payment itself.", es: 'Esto le avisa a tu propietario que lo busque — no confirma el pago en sí.' },
   p2pSentTitle: { en: 'Your landlord has been notified', es: 'Se notificó a tu propietario' },
@@ -1751,7 +1752,7 @@ const STRINGS = {
   // Renter rent page: choose how to pay
   howDoYouWantToPay: { en: 'How do you want to pay?', es: '¿Cómo quieres pagar?' },
   bankAccountOptionLabel: { en: 'Bank account', es: 'Cuenta bancaria' },
-  bankAccountOptionDesc: { en: 'No fee · usually clears in 1–3 business days', es: 'Sin cargo · normalmente se procesa en 1–3 días hábiles' },
+  bankAccountOptionDesc: { en: 'usually clears in 1–3 business days', es: 'normalmente se procesa en 1–3 días hábiles' },
   bankAccountOptionDescJobPay: { en: 'Usually clears in 1–3 business days', es: 'Normalmente se procesa en 1–3 días hábiles' },
   debitCardOptionLabel: { en: 'Debit card', es: 'Tarjeta de débito' },
   debitCardOptionDescPrefix: { en: 'instant', es: 'instantáneo' },

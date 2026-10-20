@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
-import { sendP2pHandlesChangedEmail } from '@/lib/email'
+import { sendP2pHandlesChangedEmail, sendP2pHandlesChangedRenterEmail } from '@/lib/email'
 import { sendPush } from '@/lib/push'
 import { notifyLandlordIds } from '@/lib/landlordCoOwners'
+import { getActiveRenterIds } from '@/lib/landlordRenters'
 import { verifyPassword } from '@/lib/reauth'
 
 const FREEZE_MS = 48 * 60 * 60 * 1000
@@ -101,6 +102,8 @@ export async function POST(request: NextRequest) {
       .select('id, email, full_name, preferred_language')
       .in('id', landlordIds)
 
+    const editorName = recipients?.find((r) => r.id === user.id)?.full_name || 'Your landlord'
+
     await Promise.allSettled(
       (recipients || []).map(async (recipient) => {
         if (recipient.email) {
@@ -117,6 +120,37 @@ export async function POST(request: NextRequest) {
         }).catch((err) => console.error('profile/p2p-handles: alert push failed', err))
       })
     )
+
+    // Also tell the renters themselves, not just the landlord's own
+    // account — a second, independent set of eyes. An alert that only
+    // reaches the landlord's own email is a weak safeguard if that's the
+    // very account that's compromised; a renter has their own money on
+    // the line and a real reason to double-check before paying.
+    const renterIds = await getActiveRenterIds(admin, user.id)
+    if (renterIds.length > 0) {
+      const { data: renters } = await admin
+        .from('users')
+        .select('id, email, full_name, preferred_language')
+        .in('id', renterIds)
+
+      await Promise.allSettled(
+        (renters || []).map(async (renter) => {
+          if (renter.email) {
+            await sendP2pHandlesChangedRenterEmail({
+              to: renter.email,
+              name: renter.full_name || 'there',
+              landlordName: editorName,
+              lang: renter.preferred_language === 'es' ? 'es' : 'en',
+            }).catch((err) => console.error('profile/p2p-handles: renter alert email failed', err))
+          }
+          await sendPush(renter.id, {
+            title: "Your landlord's payment info changed",
+            body: 'Double-check the handle before paying this way — see your rent page for details.',
+            url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/renter/rent`,
+          }).catch((err) => console.error('profile/p2p-handles: renter alert push failed', err))
+        })
+      )
+    }
   }
 
   return NextResponse.json({ ok: true, frozenUntil: isChange ? updates.p2p_handles_frozen_until : null })

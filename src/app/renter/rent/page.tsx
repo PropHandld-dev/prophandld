@@ -19,7 +19,7 @@ import { DwollaBankLinkModal } from '@/components/DwollaBankLinkModal'
 import { CheckCircleIcon, CalendarIcon, FileTextIcon } from '@/components/icons'
 import { RENTER_TABS } from '@/lib/navTabs'
 import { ensureCurrentMonthRentPayment, ensureNextMonthRentPayment } from '@/lib/rentAutomation'
-import { cardProcessingFee } from '@/lib/cardSurcharge'
+import { cardProcessingFee, achProcessingFee } from '@/lib/cardSurcharge'
 import { useLanguage, t, type Lang } from '@/lib/i18n'
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -638,6 +638,7 @@ export default function RenterRentPage() {
       {methodChoicePayment && (() => {
         const amountDue = Number(methodChoicePayment.expected_amount) - Number(methodChoicePayment.actual_amount || 0)
         const fee = cardProcessingFee(amountDue)
+        const achFee = achProcessingFee(amountDue)
         const closeModal = () => { setMethodChoicePayment(null); setP2pPanelMethod(null); setP2pSent(false); setP2pError(null) }
 
         if (p2pPanelMethod) {
@@ -693,6 +694,10 @@ export default function RenterRentPage() {
                       </button>
                     </div>
 
+                    <div className="bg-yellow-500/8 border border-yellow-500/20 rounded-xl px-4 py-3 mb-3">
+                      <p className="text-yellow-400/90 text-xs leading-relaxed">{t('p2pRenterDisclosure', lang)}</p>
+                    </div>
+
                     {deepLink ? (
                       <a
                         href={deepLink}
@@ -741,9 +746,11 @@ export default function RenterRentPage() {
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-white font-medium text-sm">{t('bankAccountOptionLabel', lang)}</span>
-                    <span className="text-white font-semibold text-sm tabular-nums">{money(amountDue)}</span>
+                    <span className="text-white font-semibold text-sm tabular-nums">{money(amountDue + achFee)}</span>
                   </div>
-                  <p className="text-white/50 text-xs mt-1">{t('bankAccountOptionDesc', lang)}</p>
+                  <p className="text-white/50 text-xs mt-1">
+                    +{money(achFee)} {t('processingFeeSuffix', lang)} · {t('bankAccountOptionDesc', lang)}
+                  </p>
                 </button>
                 <button
                   onClick={() => handleChooseMethod(methodChoicePayment, 'card')}

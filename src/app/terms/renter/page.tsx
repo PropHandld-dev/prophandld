@@ -64,6 +64,7 @@ export default function RenterTermsPage() {
           <li>Report maintenance issues honestly and provide a reasonably accurate description — including marking something an emergency only when it actually is one</li>
           <li>Provide reasonable access for a scheduled contractor visit or inspection, or communicate promptly if a scheduled time no longer works</li>
           <li>Pay rent on time through the method you and your landlord have set up, and not use the platform to misrepresent whether a payment was made</li>
+          <li>If you pay via Zelle, Venmo, or Cash App, make your own informed call before sending — Prophandld doesn&apos;t verify that a listed handle actually belongs to your landlord, and isn&apos;t a party to that payment once it leaves your account</li>
           <li>Keep any co-renter or backup contact information you provide accurate, and take responsibility for a co-renter you add to your unit</li>
           <li>Not use any contact information you gain through a job (for example, a contractor&apos;s) for anything outside that job</li>
         </ul>
@@ -108,7 +109,10 @@ export default function RenterTermsPage() {
           never touches Prophandld or Stripe for those. Those payments aren&apos;t confirmed
           automatically; after sending one, you can tap &quot;I&apos;ve sent this payment&quot; to let your landlord
           know to check for it, but your landlord&apos;s own &quot;Mark received&quot; action is what actually
-          records it as paid, the same as it would for cash or a check.
+          records it as paid, the same as it would for cash or a check. Prophandld doesn&apos;t verify
+          that a listed Zelle, Venmo, or Cash App handle actually belongs to your landlord, and isn&apos;t
+          a party to, or responsible for, money sent through any of those apps — double-check the
+          handle and confirm with your landlord directly if anything looks off before sending.
         </p>
         <p>
           <strong>Receipts.</strong> Every rent payment and every contractor payment on a job you&apos;re

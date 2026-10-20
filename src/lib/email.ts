@@ -2413,6 +2413,45 @@ export async function sendP2pHandlesChangedEmail({
   })
 }
 
+// Sent to renters (not just the landlord whose account it is) when a
+// landlord's Zelle/Venmo/Cash App info changes — a second, independent set
+// of eyes. An alert that only reaches the landlord's own account is a weak
+// safeguard if that account is what's actually compromised; a renter has
+// their own money on the line and a real reason to double-check before
+// sending a payment to a possibly-hijacked handle.
+export async function sendP2pHandlesChangedRenterEmail({
+  to,
+  name,
+  landlordName,
+  lang = 'en',
+}: {
+  to: string
+  name: string
+  landlordName: string
+  lang?: Lang
+}) {
+  const html = lang === 'es' ? baseTemplate({
+    lang,
+    eyebrow: 'Aviso de seguridad',
+    heading: 'La información de pago de tu propietario cambió',
+    bodyHtml: `Hola ${escapeHtml(name)}, ${escapeHtml(landlordName)} actualizó su información de Zelle, Venmo o Cash App. Por seguridad, esas opciones de pago estarán ocultas en la app por 48 horas antes de volver a aparecer. Si decides pagar por uno de esos métodos después, verifica que el contacto coincida con lo que tu propietario te indique directamente — Prophandld no verifica que un contacto listado realmente pertenezca a tu propietario.`,
+    ctaLabel: 'Ver mi renta',
+    ctaUrl: `${SITE_URL}/renter/rent`,
+  }) : baseTemplate({
+    lang,
+    eyebrow: 'Security notice',
+    heading: "Your landlord's payment info changed",
+    bodyHtml: `Hi ${escapeHtml(name)}, ${escapeHtml(landlordName)} just updated their Zelle, Venmo, or Cash App info. As a security precaution, those payment options will be hidden in the app for 48 hours before reappearing. If you do pay that way later, double-check the handle matches what your landlord tells you directly — Prophandld doesn't verify that a listed handle actually belongs to your landlord.`,
+    ctaLabel: 'View my rent',
+    ctaUrl: `${SITE_URL}/renter/rent`,
+  })
+  return sendEmail({
+    to,
+    subject: lang === 'es' ? 'Aviso de seguridad: la información de pago de tu propietario cambió' : "Security notice: your landlord's payment info changed",
+    html,
+  })
+}
+
 // Flags the free-tier loophole Joshua raised — two separate "landlord"
 // signups whose payout bank account resolves to the same Stripe
 // fingerprint, meaning one real bank account (very likely one real

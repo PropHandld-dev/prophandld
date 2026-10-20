@@ -3,7 +3,7 @@ import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { getStripe } from '@/lib/stripe'
 import { syncRentPayment } from '@/lib/rentPaymentSync'
-import { cardProcessingFee } from '@/lib/cardSurcharge'
+import { cardProcessingFee, achProcessingFee } from '@/lib/cardSurcharge'
 import { friendlyStripeError } from '@/lib/stripeErrorMessage'
 
 export const maxDuration = 20
@@ -91,13 +91,17 @@ export async function POST(request: NextRequest) {
 
   const stripe = getStripe()
 
-  // A card payment adds Stripe's real processing fee on top as a visible
-  // surcharge, and application_fee_amount retains exactly that surcharge
-  // for Prophandld, so the landlord still receives the full rent amount
-  // and the platform doesn't pay Stripe's cut out of its own pocket. Bank
-  // transfers are never surcharged — Prophandld absorbs that cost itself,
-  // same as the Dwolla rail was designed to.
-  const surcharge = paymentMethod === 'bank' ? 0 : cardProcessingFee(amountDue)
+  // Both bank transfer and card add Stripe's real processing fee on top as
+  // a visible surcharge, and application_fee_amount retains exactly that
+  // surcharge for Prophandld, so the landlord still receives the full rent
+  // amount and the platform doesn't pay Stripe's cut out of its own
+  // pocket. Decided 2026-10-20: this used to absorb the ACH fee itself,
+  // but that goes net-negative against subscription revenue as the
+  // platform scales — the tenant now covers it, same as job payments
+  // already do (see achProcessingFee's own comment) and the same way
+  // TurboTenant/TenantCloud pass a flat ACH fee to the tenant rather than
+  // eating it as a platform cost.
+  const surcharge = paymentMethod === 'bank' ? achProcessingFee(amountDue) : cardProcessingFee(amountDue)
   const chargeAmount = amountDue + surcharge
   const amountCents = Math.round(chargeAmount * 100)
   const applicationFeeCents = Math.round(surcharge * 100)

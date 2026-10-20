@@ -18,11 +18,12 @@ export function cardProcessingFee(baseAmount: number): number {
 }
 
 // Stripe's standard US bank-transfer (ACH debit) rate: 0.8%, capped at $5.
-// For rent, this stays a cost Prophandld absorbs itself (a tenant paying by
-// bank should never see a fee). For job payments, the landlord is already
-// choosing to pay a contractor for real work and picking their bid either
-// way, so this one is passed through the same way the card fee already is —
-// see job-payment/create-payment-intent's own comment for the reasoning.
+// Passed through to whoever is paying — the tenant for rent, the landlord
+// for job payments — same as the card fee already is. Rent briefly
+// absorbed this itself instead of surcharging the tenant, but that went
+// net-negative against subscription revenue as the platform scaled, so as
+// of 2026-10-20 it's passed through here too (see
+// stripe/rent/create-payment-intent's own comment).
 const ACH_FEE_PERCENT = 0.008
 const ACH_FEE_CAP = 5
 
