@@ -482,7 +482,7 @@ export default function RenterRentPage() {
         </div>
         {isProcessing(payment) ? (
           <span className="shrink-0 text-xs font-semibold px-3 py-2 rounded-xl bg-yellow-500/15 text-yellow-400 text-center leading-tight">
-            {lang === 'es' ? <>Pago bancario<br />en proceso</> : <>Bank payment<br />processing</>}
+            {t('bankPaymentWord', lang)}<br />{t('processingWord', lang)}
           </span>
         ) : (
           <RippleButton

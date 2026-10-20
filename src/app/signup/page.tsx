@@ -11,26 +11,35 @@ import { MailIcon, LockIcon } from '@/components/icons'
 import { RolePicker, type Role } from '@/components/RolePicker'
 import { SITE_URL } from '@/lib/site'
 import { setAppMetadataRole } from '@/lib/setAppMetadataRole'
-import { t, type Lang } from '@/lib/i18n'
+import { t, roleLabel, type Lang } from '@/lib/i18n'
 
 const ROLE_LABEL_KEY = { landlord: 'landlordLabel', renter: 'renterLabel', contractor: 'contractorLabel' } as const
 
-const ROLE_CONTENT: Record<Role, { headline: string; subtext: string; checklist: string[] }> = {
-  landlord: {
-    headline: 'Run your rentals, not a spreadsheet.',
-    subtext: "Takes about two minutes to get set up. Less time than deciding what to have for dinner.",
-    checklist: ['Sealed bidding', 'No surprise costs', 'Photo-verified work'],
-  },
-  renter: {
-    headline: 'Get things fixed, fast.',
-    subtext: "Report an issue in seconds, no digging through old texts to find your landlord's number.",
-    checklist: ['Report issues in one tap', 'See emergency contacts for your unit', 'Track your lease documents', 'Pay rent online, no checks or cash'],
-  },
-  contractor: {
-    headline: 'Bid fair, get picked on merit.',
-    subtext: 'See real jobs near you and submit a sealed bid, no guessing what everyone else quoted.',
-    checklist: ['Sealed, fair bidding', 'Get verified, get trusted', 'Build your rating over time'],
-  },
+// No signed-in session exists yet on this page, so there's no
+// useLanguage()-style saved preference to read — `lang` is computed from
+// the in-progress form's own "Preferred language" select instead (see
+// SignupForm below), same as the handful of spots that already did this
+// before the rest of the page's i18n audit gap was found and fixed.
+function getRoleContent(role: Role, lang: Lang): { headline: string; subtext: string; checklist: string[] } {
+  if (role === 'landlord') {
+    return {
+      headline: t('signupHeadlineLandlord', lang),
+      subtext: t('signupSubtextLandlord', lang),
+      checklist: [t('loginChecklistLandlord1', lang), t('loginChecklistLandlord2', lang), t('loginChecklistLandlord3', lang)],
+    }
+  }
+  if (role === 'renter') {
+    return {
+      headline: t('signupHeadlineRenter', lang),
+      subtext: t('signupSubtextRenter', lang),
+      checklist: [t('loginChecklistRenter1', lang), t('loginChecklistRenter2', lang), t('loginChecklistRenter3', lang), t('loginChecklistRenter4', lang)],
+    }
+  }
+  return {
+    headline: t('signupHeadlineContractor', lang),
+    subtext: t('signupSubtextContractor', lang),
+    checklist: [t('loginChecklistContractor1', lang), t('loginChecklistContractor2', lang), t('loginChecklistContractor3', lang)],
+  }
 }
 
 const VALID_ROLES: Role[] = ['landlord', 'renter', 'contractor']
@@ -71,6 +80,10 @@ function SignupForm() {
     phone: '',
     preferred_language: 'en',
   })
+  // No signed-in session exists yet to read a saved preference from (see
+  // getRoleContent's own comment) — the in-progress form's own language
+  // select is the only signal available until the account actually exists.
+  const lang = (form.preferred_language === 'es' ? 'es' : 'en') as Lang
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -80,7 +93,7 @@ function SignupForm() {
     e.preventDefault()
     if (!role) return
     if (!agreedToTerms) {
-      setError('Please agree to the Terms of Service and Privacy Policy to continue.')
+      setError(t('pleaseAgreeToTerms', lang))
       return
     }
     setLoading(true)
@@ -100,7 +113,7 @@ function SignupForm() {
         body: JSON.stringify({ phone: form.phone }),
       }).then((r) => r.json()).catch(() => ({ duplicate: false }))
       if (dupeCheck.duplicate) {
-        setError('This phone number is already on a landlord account. If that\'s you and you\'re managing more properties, sign in and add them to your existing account instead of creating a new one. If it isn\'t you, use a different phone number.')
+        setError(t('phoneAlreadyOnLandlordAccount', lang))
         setLoading(false)
         return
       }
@@ -124,13 +137,13 @@ function SignupForm() {
     })
 
     if (signupError) {
-      setError('Auth error: ' + signupError.message)
+      setError(signupError.message)
       setLoading(false)
       return
     }
 
     if (!data.user) {
-      setError('No user returned from signup')
+      setError(t('noUserReturnedFromSignup', lang))
       setLoading(false)
       return
     }
@@ -158,7 +171,7 @@ function SignupForm() {
       }
 
       setAlreadyRegistered(true)
-      setError('This email is already registered.')
+      setError(t('emailAlreadyRegistered', lang))
       setLoading(false)
       return
     }
@@ -274,7 +287,6 @@ function SignupForm() {
         body: JSON.stringify({ email: form.email, password: linkPassword, newRole: role }),
       })
       const data = await res.json()
-      const lang = (form.preferred_language === 'es' ? 'es' : 'en') as Lang
       if (!res.ok) {
         setLinkError(data.error === 'Incorrect password for that email.' ? t('incorrectPasswordTryAgain', lang) : data.error || t('couldNotCreateProfile', lang))
         setLinkSubmitting(false)
@@ -290,7 +302,6 @@ function SignupForm() {
       }
       window.location.href = role === 'landlord' ? '/landlord' : role === 'renter' ? '/renter' : '/contractor'
     } catch {
-      const lang = (form.preferred_language === 'es' ? 'es' : 'en') as Lang
       setLinkError(t('couldNotCreateProfile', lang))
       setLinkSubmitting(false)
     }
@@ -305,7 +316,8 @@ function SignupForm() {
       options: { emailRedirectTo: `${SITE_URL}/login` },
     })
     if (resendError) {
-      setError('Could not resend: ' + resendError.message)
+      console.error('signup: resend failed', resendError)
+      setError(t('couldNotResendCode', lang))
       setResendState('idle')
       return
     }
@@ -346,8 +358,8 @@ function SignupForm() {
       // this one was silently flattened into the generic message instead).
       setOtpError(
         verifyError.name === 'AuthRetryableFetchError'
-          ? "Couldn't reach the server. Check your connection and try again."
-          : 'That code didn\'t work. Double-check it, or use the link in the email instead.'
+          ? t('couldNotReachServer', lang)
+          : t('codeDidNotWork', lang)
       )
       setVerifyingCode(false)
       return
@@ -374,19 +386,19 @@ function SignupForm() {
 
   if (confirmationEmail) {
     return (
-      <AuthLayout headline="Almost there." subtext="One more step and your account is ready.">
+      <AuthLayout headline={t('almostThereHeadline', lang)} subtext={t('almostThereOneMoreStep', lang)}>
         <div className="text-center py-6">
           <div className="w-14 h-14 rounded-full bg-[#0A7B7E]/20 flex items-center justify-center mx-auto mb-5">
             <MailIcon className="w-6 h-6 text-[#12A5A9]" />
           </div>
-          <h2 className="text-white text-xl font-bold mb-2">Check your email</h2>
+          <h2 className="text-white text-xl font-bold mb-2">{t('checkYourEmailHeading', lang)}</h2>
           <p className="text-white/60 text-sm mb-1">
-            We sent a code to
+            {t('weSentACodeTo', lang)}
           </p>
           <p className="text-white font-semibold mb-5">{confirmationEmail}</p>
 
           <form onSubmit={handleVerifyCode} className="text-left mb-6">
-            <label className="text-white/70 text-sm block mb-1.5 text-center">Enter the code from that email</label>
+            <label className="text-white/70 text-sm block mb-1.5 text-center">{t('enterCodeFromEmailLabel', lang)}</label>
             <AuthInput
               type="text"
               inputMode="numeric"
@@ -394,7 +406,7 @@ function SignupForm() {
               maxLength={12}
               value={otpCode}
               onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 12))}
-              placeholder="Code"
+              placeholder={t('codePlaceholder', lang)}
               className="text-center text-lg tracking-[0.3em] font-semibold"
             />
             {otpError && (
@@ -407,12 +419,12 @@ function SignupForm() {
               disabled={verifyingCode || otpCode.length === 0}
               className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50 mt-3"
             >
-              {verifyingCode ? 'Verifying...' : 'Verify'}
+              {verifyingCode ? t('verifyingDots', lang) : t('verifyBtn', lang)}
             </RippleButton>
           </form>
 
           <p className="text-white/50 text-sm mb-4">
-            Or click the link in that same email instead. If this wasn&apos;t your email, no account was created for you, so there&apos;s nothing to do.
+            {t('orClickLinkInEmail', lang)}
           </p>
           <RippleButton
             type="button"
@@ -420,7 +432,7 @@ function SignupForm() {
             disabled={resendState === 'sending'}
             className="text-[#12A5A9] text-sm font-semibold hover:underline disabled:opacity-50"
           >
-            {resendState === 'sent' ? '✓ Sent again' : resendState === 'sending' ? 'Sending...' : "Didn't get either? Resend"}
+            {resendState === 'sent' ? t('sentAgainCheck', lang) : resendState === 'sending' ? t('sendingDotsPlain', lang) : t('didntGetEitherResend', lang)}
           </RippleButton>
           {error && (
             <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm mt-4">
@@ -433,7 +445,7 @@ function SignupForm() {
               onClick={() => setConfirmationEmail(null)}
               className="text-white/50 text-xs hover:text-white transition"
             >
-              Wrong email? Go back
+              {t('wrongEmailGoBack', lang)}
             </button>
           </div>
         </div>
@@ -444,42 +456,42 @@ function SignupForm() {
   if (!role) {
     return (
       <AuthLayout
-        headline="First, who are you?"
-        subtext="We'll set things up just right, depending on your answer."
+        headline={t('firstWhoAreYouHeadline', lang)}
+        subtext={t('weWillSetThingsUpSubtext', lang)}
       >
         <div className="text-center mb-8 lg:text-left">
-          <h1 className="text-2xl font-bold text-white">Create your account</h1>
-          <p className="text-white/50 text-sm mt-1">Your property, handled.</p>
+          <h1 className="text-2xl font-bold text-white">{t('createYourAccountHeading', lang)}</h1>
+          <p className="text-white/50 text-sm mt-1">{t('yourPropertyHandledTagline', lang)}</p>
         </div>
 
         <RolePicker onSelect={setRole} />
 
         <p className="text-center text-white/60 text-sm mt-6">
-          Already have an account?{' '}
+          {t('alreadyHaveAccountQ', lang)}{' '}
           <Link href="/login" className="text-[#12A5A9] hover:underline">
-            Sign in
+            {t('signIn', lang)}
           </Link>
         </p>
       </AuthLayout>
     )
   }
 
-  const { headline, subtext, checklist } = ROLE_CONTENT[role]
+  const { headline, subtext, checklist } = getRoleContent(role, lang)
 
   return (
     <AuthLayout headline={headline} subtext={subtext} checklist={checklist} showChecklist>
       <div className="text-center mb-6 lg:text-left">
-        <h1 className="text-2xl font-bold text-white">Create your account</h1>
+        <h1 className="text-2xl font-bold text-white">{t('createYourAccountHeading', lang)}</h1>
         <div className="flex items-center justify-center lg:justify-start gap-2 mt-2">
           <span className="text-xs bg-[#0A7B7E]/20 text-[#12A5A9] border border-[#12A5A9]/30 rounded-full px-2.5 py-1 font-semibold capitalize">
-            {role}
+            {roleLabel(role, lang)}
           </span>
           <button
             type="button"
             onClick={() => setRole(null)}
             className="text-white/60 text-xs hover:text-white transition"
           >
-            Not right? Change
+            {t('notRightChange', lang)}
           </button>
         </div>
       </div>
@@ -496,7 +508,7 @@ function SignupForm() {
       <form onSubmit={handleSignup} className="space-y-4">
 
         <div>
-          <label className="text-white/70 text-sm block mb-1">Full name</label>
+          <label className="text-white/70 text-sm block mb-1">{t('fullNameLabel', lang)}</label>
           <AuthInput
             type="text"
             name="full_name"
@@ -508,7 +520,7 @@ function SignupForm() {
         </div>
 
         <div>
-          <label className="text-white/70 text-sm block mb-1">Email</label>
+          <label className="text-white/70 text-sm block mb-1">{t('email', lang)}</label>
           <AuthInput
             icon={MailIcon}
             type="email"
@@ -521,7 +533,7 @@ function SignupForm() {
         </div>
 
         <div>
-          <label className="text-white/70 text-sm block mb-1">Phone</label>
+          <label className="text-white/70 text-sm block mb-1">{t('phoneLabel', lang)}</label>
           <AuthInput
             type="tel"
             name="phone"
@@ -532,7 +544,7 @@ function SignupForm() {
         </div>
 
         <div>
-          <label className="text-white/70 text-sm block mb-1">Password</label>
+          <label className="text-white/70 text-sm block mb-1">{t('passwordFieldLabel', lang)}</label>
           <AuthInput
             icon={LockIcon}
             type="password"
@@ -545,7 +557,7 @@ function SignupForm() {
         </div>
 
         <div>
-          <label className="text-white/70 text-sm block mb-1">Preferred language</label>
+          <label className="text-white/70 text-sm block mb-1">{t('preferredLanguageLabel', lang)}</label>
           <select
             name="preferred_language"
             value={form.preferred_language}
@@ -553,7 +565,7 @@ function SignupForm() {
             className="w-full bg-white/[0.06] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] focus:ring-2 focus:ring-[#12A5A9]/15 transition"
           >
             <option value="en" className="bg-[#0C1A2E]">English</option>
-            <option value="es" className="bg-[#0C1A2E]">Spanish</option>
+            <option value="es" className="bg-[#0C1A2E]">Español</option>
           </select>
         </div>
 
@@ -564,7 +576,7 @@ function SignupForm() {
               <>
                 {' '}
                 <Link href={`/login${role ? `?role=${role}` : ''}`} className="underline font-medium hover:text-red-300">
-                  Log in instead →
+                  {t('logInInsteadArrow', lang)}
                 </Link>
               </>
             )}
@@ -579,10 +591,10 @@ function SignupForm() {
             className="mt-0.5 w-4 h-4 shrink-0 rounded border-white/20 bg-white/5 accent-[#12A5A9]"
           />
           <span>
-            I agree to Prophandld's{' '}
-            <Link href={role ? `/terms/${role}` : '/terms'} target="_blank" className="text-[#12A5A9]/80 hover:underline">Terms of Service</Link>
-            {' '}and{' '}
-            <Link href="/privacy" target="_blank" className="text-[#12A5A9]/80 hover:underline">Privacy Policy</Link>.
+            {t('agreeToTermsPrefix', lang)}{' '}
+            <Link href={role ? `/terms/${role}` : '/terms'} target="_blank" className="text-[#12A5A9]/80 hover:underline">{t('termsOfService', lang)}</Link>
+            {' '}{t('agreeToTermsMiddle', lang)}{' '}
+            <Link href="/privacy" target="_blank" className="text-[#12A5A9]/80 hover:underline">{t('privacyPolicy', lang)}</Link>{t('agreeToTermsSuffix', lang)}.
           </span>
         </label>
 
@@ -591,20 +603,19 @@ function SignupForm() {
           disabled={loading || !agreedToTerms}
           className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50 mt-2"
         >
-          {loading ? 'Creating account...' : 'Create account'}
+          {loading ? t('creatingAccountDots', lang) : t('createAccountBtn', lang)}
         </RippleButton>
 
         <p className="text-center text-white/60 text-sm">
-          Already have an account?{' '}
+          {t('alreadyHaveAccountQ', lang)}{' '}
           <Link href="/login" className="text-[#12A5A9] hover:underline">
-            Sign in
+            {t('signIn', lang)}
           </Link>
         </p>
 
       </form>
 
       {linkOffer && role && (() => {
-        const lang = (form.preferred_language === 'es' ? 'es' : 'en') as Lang
         const existingRoleLabel = t(ROLE_LABEL_KEY[linkOffer.existingRole], lang)
         const newRoleLabel = t(ROLE_LABEL_KEY[role], lang)
         const body = t('emailAlreadyLinkedBody', lang).replace('{role}', existingRoleLabel).replace('{newRole}', newRoleLabel)

@@ -14,25 +14,30 @@ import { AuthInput } from '@/components/AuthInput'
 import { MailIcon, LockIcon, CheckCircleIcon } from '@/components/icons'
 import type { Role } from '@/components/RolePicker'
 import { getLandlordIds } from '@/lib/landlordIds'
+import { useLanguage, t, roleLabel, type Lang } from '@/lib/i18n'
 
 // Purely cosmetic — sets which flavor of copy shows on the brand panel.
 // The actual post-login redirect always uses the account's real stored role.
-const ROLE_CONTENT: Record<Role, { headline: string; subtext: string; checklist: string[] }> = {
-  landlord: {
-    headline: 'Welcome back.',
-    subtext: "Your properties didn't manage themselves while you were gone. Let's see what's going on.",
-    checklist: ['Sealed bidding', 'No surprise costs', 'Photo-verified work'],
-  },
-  renter: {
-    headline: 'Welcome back.',
-    subtext: 'Got something to report, or just checking on a fix in progress?',
-    checklist: ['Report issues in one tap', 'See emergency contacts for your unit', 'Track your lease documents', 'Pay rent online, no checks or cash'],
-  },
-  contractor: {
-    headline: 'Welcome back.',
-    subtext: 'New jobs might be waiting on you. Let\'s take a look.',
-    checklist: ['Sealed, fair bidding', 'Get verified, get trusted', 'Build your rating over time'],
-  },
+function getRoleContent(role: Role, lang: Lang): { headline: string; subtext: string; checklist: string[] } {
+  if (role === 'landlord') {
+    return {
+      headline: t('loginWelcomeBackHeadline', lang),
+      subtext: t('loginSubtextLandlord', lang),
+      checklist: [t('loginChecklistLandlord1', lang), t('loginChecklistLandlord2', lang), t('loginChecklistLandlord3', lang)],
+    }
+  }
+  if (role === 'renter') {
+    return {
+      headline: t('loginWelcomeBackHeadline', lang),
+      subtext: t('loginSubtextRenter', lang),
+      checklist: [t('loginChecklistRenter1', lang), t('loginChecklistRenter2', lang), t('loginChecklistRenter3', lang), t('loginChecklistRenter4', lang)],
+    }
+  }
+  return {
+    headline: t('loginWelcomeBackHeadline', lang),
+    subtext: t('loginSubtextContractor', lang),
+    checklist: [t('loginChecklistContractor1', lang), t('loginChecklistContractor2', lang), t('loginChecklistContractor3', lang)],
+  }
 }
 
 const VALID_ROLES: Role[] = ['landlord', 'renter', 'contractor']
@@ -64,6 +69,7 @@ async function sendWelcomeEmailWithRetry() {
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const lang = useLanguage()
   const initialRole = searchParams.get('role') as Role | null
   const [role, setRole] = useState<Role | null>(
     initialRole && VALID_ROLES.includes(initialRole) ? initialRole : null
@@ -295,7 +301,7 @@ function LoginForm() {
       if (verifiedTotp) {
         const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId: verifiedTotp.id })
         if (challengeError || !challenge) {
-          setError('Could not start the authenticator check. Try again.')
+          setError(t('couldNotStartAuthCheck', lang))
           setLoading(false)
           return
         }
@@ -341,7 +347,7 @@ function LoginForm() {
         if (verifiedTotp) {
           const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId: verifiedTotp.id })
           if (challengeError || !challenge) {
-            setError('Could not start the authenticator check. Try again.')
+            setError(t('couldNotStartAuthCheck', lang))
             return
           }
           setMfaFactorId(verifiedTotp.id)
@@ -351,7 +357,7 @@ function LoginForm() {
         await completeSignIn(data.user)
       }
     } catch {
-      setError('Face ID / Touch ID sign-in is not available right now. Use your password instead.')
+      setError(t('faceIdNotAvailableRightNow', lang))
     } finally {
       setLoading(false)
     }
@@ -365,13 +371,13 @@ function LoginForm() {
 
     const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId: mfaFactorId })
     if (challengeError || !challenge) {
-      setMfaError('Could not verify that code. Try again.')
+      setMfaError(t('twoFactorVerifyChallengeError', lang))
       setMfaVerifying(false)
       return
     }
     const { error: verifyError } = await supabase.auth.mfa.verify({ factorId: mfaFactorId, challengeId: challenge.id, code: mfaCode.trim() })
     if (verifyError) {
-      setMfaError("That code didn't match. Check your authenticator app and try again.")
+      setMfaError(t('twoFactorCodeMismatchError', lang))
       setMfaVerifying(false)
       return
     }
@@ -388,10 +394,10 @@ function LoginForm() {
 
   if (mfaUser) {
     return (
-      <AuthLayout headline="One more step." subtext="Confirm it's you with your authenticator app.">
+      <AuthLayout headline={t('oneMoreStepHeadline', lang)} subtext={t('confirmItsYouSubtext', lang)}>
         <div className="text-center mb-8 lg:text-left">
-          <h1 className="text-2xl font-bold text-white">Enter your authenticator code</h1>
-          <p className="text-white/50 text-sm mt-1">From the app you set up for this account.</p>
+          <h1 className="text-2xl font-bold text-white">{t('enterAuthenticatorCodeHeading', lang)}</h1>
+          <p className="text-white/50 text-sm mt-1">{t('fromAppYouSetUp', lang)}</p>
         </div>
         <form onSubmit={handleMfaVerify} className="space-y-4">
           <AuthInput
@@ -414,7 +420,7 @@ function LoginForm() {
             disabled={mfaVerifying || mfaCode.length === 0}
             className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
           >
-            {mfaVerifying ? 'Verifying...' : 'Verify'}
+            {mfaVerifying ? t('verifyingDots', lang) : t('verifyBtn', lang)}
           </RippleButton>
         </form>
       </AuthLayout>
@@ -430,7 +436,7 @@ function LoginForm() {
     return (
       <div className="min-h-screen bg-[#0C1A2E] flex flex-col items-center justify-center gap-4">
         <Logo className="w-10 h-10 motion-safe:animate-pulse" />
-        <div className="text-white/50 text-sm">Confirming your account...</div>
+        <div className="text-white/50 text-sm">{t('confirmingAccountDots', lang)}</div>
       </div>
     )
   }
@@ -442,20 +448,20 @@ function LoginForm() {
     // with no acknowledgment anything just happened. Same screen for
     // every role — nothing here depends on which one signed up.
     return (
-      <AuthLayout headline="You're verified." subtext="One click and you're in.">
+      <AuthLayout headline={t('youreVerifiedHeadline', lang)} subtext={t('oneClickAndYoureIn', lang)}>
         <div className="text-center py-6">
           <div className="w-16 h-16 rounded-full bg-[#0A7B7E]/20 flex items-center justify-center mx-auto mb-5 motion-safe:animate-[popIn_0.5s_ease-out]">
             <CheckCircleIcon className="w-8 h-8 text-[#12A5A9]" />
           </div>
-          <h2 className="text-white text-xl font-bold mb-2">Email verified!</h2>
-          <p className="text-white/50 text-sm mb-8">Your Prophandld account is ready to go.</p>
+          <h2 className="text-white text-xl font-bold mb-2">{t('emailVerifiedHeading', lang)}</h2>
+          <p className="text-white/50 text-sm mb-8">{t('accountReadyToGo', lang)}</p>
           <RippleButton
             type="button"
             onClick={handleContinue}
             disabled={continuing}
             className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
           >
-            {continuing ? 'Taking you in...' : 'Continue to your dashboard →'}
+            {continuing ? t('takingYouInDots', lang) : t('continueToDashboardArrow', lang)}
           </RippleButton>
         </div>
       </AuthLayout>
@@ -471,24 +477,24 @@ function LoginForm() {
   // just shows immediately; role stays purely cosmetic, set only via a
   // ?role= link (e.g. from a role-specific landing page) when present.
   const { headline, subtext, checklist } = role
-    ? ROLE_CONTENT[role]
-    : { headline: 'Welcome back.', subtext: 'Good to see you again.', checklist: [] }
+    ? getRoleContent(role, lang)
+    : { headline: t('loginWelcomeBackHeadline', lang), subtext: t('loginDefaultSubtext', lang), checklist: [] }
 
   return (
     <AuthLayout headline={headline} subtext={subtext} checklist={checklist} showChecklist={!!role}>
       <div className="text-center mb-8 lg:text-left">
-        <h1 className="text-2xl font-bold text-white">Sign in</h1>
+        <h1 className="text-2xl font-bold text-white">{t('signIn', lang)}</h1>
         {role && (
           <div className="flex items-center justify-center lg:justify-start gap-2 mt-2">
             <span className="text-xs bg-[#0A7B7E]/20 text-[#12A5A9] border border-[#12A5A9]/30 rounded-full px-2.5 py-1 font-semibold capitalize">
-              {role}
+              {roleLabel(role, lang)}
             </span>
             <button
               type="button"
               onClick={() => setRole(null)}
               className="text-white/60 text-xs hover:text-white transition"
             >
-              Not you? Change
+              {t('notYouChange', lang)}
             </button>
           </div>
         )}
@@ -497,8 +503,8 @@ function LoginForm() {
       {linkError && (
         <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm mb-6">
           {linkError.code === 'otp_expired'
-            ? "That link has expired or was already used. If you signed up, try signing up again with the same email and we'll send a fresh one."
-            : linkError.description?.replace(/\+/g, ' ') || 'That link is no longer valid. Try again from where it was sent.'}
+            ? t('linkExpiredError', lang)
+            : linkError.description?.replace(/\+/g, ' ') || t('linkInvalidError', lang)}
         </div>
       )}
 
@@ -511,19 +517,19 @@ function LoginForm() {
           to the person reading it. */}
       {searchParams.get('reason') === 'inactive' && (
         <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white/60 text-sm mb-6">
-          You were signed out after a long period of inactivity, as a security precaution. Sign in again to continue.
+          {t('signedOutInactiveMessage', lang)}
         </div>
       )}
       {searchParams.get('reason') === 'idle' && (
         <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white/60 text-sm mb-6">
-          You were signed out after sitting idle for a while, to keep your account safe if your device was left unattended. Sign in again to continue.
+          {t('signedOutIdleMessage', lang)}
         </div>
       )}
 
       <form onSubmit={handleLogin} className="space-y-4">
 
         <div>
-          <label className="text-white/70 text-sm block mb-1">Email</label>
+          <label className="text-white/70 text-sm block mb-1">{t('email', lang)}</label>
           <AuthInput
             icon={MailIcon}
             type="email"
@@ -536,7 +542,7 @@ function LoginForm() {
         </div>
 
         <div>
-          <label className="text-white/70 text-sm block mb-1">Password</label>
+          <label className="text-white/70 text-sm block mb-1">{t('passwordFieldLabel', lang)}</label>
           <AuthInput
             icon={LockIcon}
             type="password"
@@ -544,13 +550,13 @@ function LoginForm() {
             required
             value={form.password}
             onChange={handleChange}
-            placeholder="Your password"
+            placeholder={t('yourPasswordPlaceholder', lang)}
           />
         </div>
 
         <div className="text-right">
           <Link href="/forgot-password" className="text-[#12A5A9] text-sm hover:underline">
-            Forgot password?
+            {t('forgotPasswordLink', lang)}
           </Link>
         </div>
 
@@ -565,7 +571,7 @@ function LoginForm() {
           disabled={loading}
           className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
         >
-          {loading ? 'Signing in...' : 'Sign in'}
+          {loading ? t('signingInDots', lang) : t('signIn', lang)}
         </RippleButton>
 
         <button
@@ -574,16 +580,16 @@ function LoginForm() {
           disabled={loading}
           className="w-full bg-white/5 border border-white/10 text-white/70 font-semibold py-3 rounded-xl transition hover:bg-white/8 disabled:opacity-50 text-sm"
         >
-          Sign in with Face ID / Touch ID
+          {t('signInWithFaceIdBtn', lang)}
         </button>
         <p className="text-center text-white/40 text-xs -mt-2">
-          First time? Add Face ID / Touch ID from your Profile after signing in with your password.
+          {t('firstTimeFaceIdHint', lang)}
         </p>
 
         <p className="text-center text-white/60 text-sm">
-          Don't have an account?{' '}
+          {t('dontHaveAccountQ', lang)}{' '}
           <Link href="/signup" className="text-[#12A5A9] hover:underline">
-            Create one
+            {t('createOneLink', lang)}
           </Link>
         </p>
 
