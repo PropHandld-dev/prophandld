@@ -746,6 +746,12 @@ export default function LandlordDashboard() {
             </div>
           </>
         )}
+
+        <div className="flex items-center justify-center gap-4 text-xs text-white/40 pt-8 pb-2">
+          <Link href="/terms/landlord" target="_blank" className="hover:text-white/70 transition">{t('termsOfService', lang)}</Link>
+          <span>·</span>
+          <Link href="/privacy" target="_blank" className="hover:text-white/70 transition">{t('privacyPolicy', lang)}</Link>
+        </div>
       </main>
 
       <BottomTabBar tabs={LANDLORD_TABS} />

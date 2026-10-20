@@ -154,6 +154,22 @@ const NOTIFICATION_SETTINGS_LABEL: Record<Lang, string> = {
   es: 'Configuración de notificaciones',
 }
 
+// Generic (not role-specific) since baseTemplate serves every email type,
+// most of which don't know the recipient's role — /terms itself links down
+// to the three role-specific documents. Every transactional email now
+// carries this, not just the welcome email, since app review guidelines
+// (and basic good practice) expect Terms/Privacy reachable from first-touch
+// communications, not only from within the app.
+const TERMS_LABEL: Record<Lang, string> = {
+  en: 'Terms',
+  es: 'Términos',
+}
+
+const PRIVACY_LABEL: Record<Lang, string> = {
+  en: 'Privacy',
+  es: 'Privacidad',
+}
+
 // The English original plays on "handled" as both "managed" and the brand
 // name Prophandld — a pun that doesn't carry over. This is the meaning it
 // leaves behind (your property, taken care of), not a literal word-for-word
@@ -238,7 +254,8 @@ function baseTemplate({
             <tr>
               <td style="padding:22px 4px 0;color:#6F819A;font-size:12px;line-height:1.7;">
                 ${resolvedFooterText}<br />
-                <a href="${SITE_URL}/profile" style="color:#8FA2BA;text-decoration:underline;">${NOTIFICATION_SETTINGS_LABEL[lang]}</a> · <a href="${SITE_URL}" style="color:#8FA2BA;text-decoration:none;">prophandld.com</a> · ${TAGLINE[lang]}
+                <a href="${SITE_URL}/profile" style="color:#8FA2BA;text-decoration:underline;">${NOTIFICATION_SETTINGS_LABEL[lang]}</a> · <a href="${SITE_URL}/terms" style="color:#8FA2BA;text-decoration:underline;">${TERMS_LABEL[lang]}</a> · <a href="${SITE_URL}/privacy" style="color:#8FA2BA;text-decoration:underline;">${PRIVACY_LABEL[lang]}</a><br />
+                <a href="${SITE_URL}" style="color:#8FA2BA;text-decoration:none;">prophandld.com</a> · ${TAGLINE[lang]}
               </td>
             </tr>
           </table>

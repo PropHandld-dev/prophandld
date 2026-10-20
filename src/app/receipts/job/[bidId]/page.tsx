@@ -90,9 +90,10 @@ export default function JobPaymentReceiptPage() {
         { label: t('paidToLabel', lang), value: receipt.contractorName || '—' },
         { label: t('propertyLabel', lang), value: property ? `${property.city}, ${property.state}` : '—' },
         { label: t('jobLabel', lang), value: job?.category || '—' },
-        // Only shown when it's actually nonzero (a bank payment never has
-        // one), and only to the landlord — the contractor's own receipt
-        // never mentions it, since they received exactly the bid amount.
+        // Only shown when it's actually nonzero — both bank transfer and
+        // card carry a processing fee here — and only to the landlord, who
+        // paid it; the contractor's own receipt never mentions it, since
+        // they received exactly the bid amount.
         ...(surcharge > 0 ? [{ label: t('cardProcessingFeeLabel', lang), value: `$${surcharge.toFixed(2)}` }] : []),
         { label: t('paidOnLabel', lang), value: receipt.paid_at ? new Date(receipt.paid_at).toLocaleDateString(lang === 'es' ? 'es-ES' : undefined) : '—' },
         { label: t('methodLabelReceipt', lang), value: t('cardOrBankTransferValue', lang) },

@@ -99,9 +99,9 @@ export default function RentReceiptPage() {
               { label: t('waterWord', lang), value: `$${Number(receipt.water_amount).toFixed(2)}` },
             ]
           : []),
-        // Only shown when it's actually nonzero — a bank payment (the
-        // overwhelming majority) never had one, and the row would just be
-        // visual noise repeating "$0.00" on every receipt otherwise.
+        // Only shown when it's actually nonzero, so the row isn't visual
+        // noise repeating "$0.00" on every receipt. Both bank transfer and
+        // card carry a processing fee now (see create-payment-intent).
         ...(surcharge > 0 ? [{ label: t('cardProcessingFeeLabel', lang), value: `$${surcharge.toFixed(2)}` }] : []),
         { label: t('paidOnLabel', lang), value: receipt.paid_date ? new Date(receipt.paid_date + 'T00:00:00').toLocaleDateString(lang === 'es' ? 'es-ES' : undefined) : '—' },
         { label: t('methodLabelReceipt', lang), value: receipt.payment_method === 'bank' ? t('bankTransferValue', lang) : t('debitCardValue', lang) },

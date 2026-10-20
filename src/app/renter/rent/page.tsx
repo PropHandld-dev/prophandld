@@ -766,6 +766,10 @@ export default function RenterRentPage() {
                 </button>
               </div>
 
+              <div className="mt-3">
+                <PaymentTrustBadge provider="stripe" />
+              </div>
+
               {(p2pOptions?.zelle || p2pOptions?.venmo || p2pOptions?.cashapp) && (
                 <div className="mt-3">
                   <p className="text-white/40 text-xs mb-2">{t('p2pGroupLabel', lang)}</p>
@@ -803,7 +807,6 @@ export default function RenterRentPage() {
               >
                 {t('cancel', lang)}
               </button>
-              <PaymentTrustBadge provider="stripe" />
             </div>
           </div>
         )

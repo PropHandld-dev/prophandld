@@ -1165,7 +1165,7 @@ const STRINGS = {
 
   // DwollaConnectCard (landlord rent payouts)
   getPaidRentDwollaBody: { en: 'Link a bank account so rent payments made through Prophandld go straight to you.', es: 'Conecta una cuenta bancaria para que los pagos de renta hechos a través de Prophandld vayan directo a ti.' },
-  getPaidRentSectionIntro: { en: 'Set up how rent reaches you. Bank transfer is free and the default; debit card is there for a tenant who needs to pay right now.', es: 'Configura cómo recibes la renta. La transferencia bancaria es gratis y la opción predeterminada; la tarjeta de débito está ahí para un inquilino que necesite pagar de inmediato.' },
+  getPaidRentSectionIntro: { en: "Set up how rent reaches you. You always get the full rent amount either way — bank transfer is the default, and debit card is there for a tenant who needs to pay right now. Both carry a small processing fee that your tenant sees and pays, not you.", es: 'Configura cómo recibes la renta. Siempre recibes el monto completo de la renta de cualquier forma — la transferencia bancaria es la opción predeterminada, y la tarjeta de débito está ahí para un inquilino que necesite pagar de inmediato. Ambas tienen un pequeño cargo por procesamiento que ve y paga tu inquilino, no tú.' },
   getPaidRentBankTitle: { en: 'Bank transfer', es: 'Transferencia bancaria' },
   getPaidRentCardTitle: { en: 'Debit card (instant)', es: 'Tarjeta de débito (instantáneo)' },
   getPaidRentCardBody: { en: "For a tenant who needs to pay right now instead of waiting on a bank transfer. They pay a small card fee, shown to them up front — you're never charged for it.", es: 'Para un inquilino que necesita pagar de inmediato en lugar de esperar una transferencia bancaria. Ellos pagan una pequeña comisión por tarjeta, mostrada por adelantado; a ti nunca se te cobra.' },
@@ -1784,7 +1784,7 @@ const STRINGS = {
   rateAnytimeMsg: { en: 'You can rate this contractor anytime from this job.', es: 'Puedes calificar a este contratista cuando quieras desde este trabajo.' },
   rateNowBtn: { en: 'Rate now', es: 'Calificar ahora' },
   inclCardFeePrefix: { en: 'incl.', es: 'incluye' },
-  cardFeeSuffix: { en: 'card fee', es: 'cargo de tarjeta' },
+  cardFeeSuffix: { en: 'processing fee', es: 'cargo por procesamiento' },
 
   // Landlord rent roll page
   rentRollHeading: { en: 'Rent roll', es: 'Rol de rentas' },
