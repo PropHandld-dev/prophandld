@@ -85,6 +85,49 @@ function forceSignOut(reason: 'inactive' | 'idle') {
 export function InactivityGuard() {
   const lastInteractionRef = useRef<number>(Date.now())
 
+  // Supabase's browser client syncs session state across same-origin tabs
+  // (storage events) — switching linked profiles in one tab (see
+  // profileSwitch.ts) silently flips the underlying session in every OTHER
+  // open tab too, without those tabs' already-rendered React state having
+  // any idea it happened. A form submitted or button clicked in a stale
+  // tab after that point would run under the NEW account's identity
+  // against UI that still looks like the old one — a real identity
+  // mismatch, not just a cosmetic staleness bug, and exactly the kind of
+  // "account A's data next to account B's session" gap a pre-launch audit
+  // flagged. The tab that actually performs the switch already does a
+  // hard navigation (window.location.href) and is unaffected; this is for
+  // every OTHER tab watching the same browser's session. A full reload is
+  // the simplest correct fix — whatever page loads next re-runs its own
+  // server-side role check against the new session from scratch.
+  useEffect(() => {
+    let knownUserId: string | null = null
+    let initialized = false
+
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      const nextUserId = session?.user?.id ?? null
+      // onAuthStateChange fires once immediately on subscribe with the
+      // current session — that first call is just the baseline, nothing to
+      // compare against yet.
+      if (!initialized) {
+        knownUserId = nextUserId
+        initialized = true
+        return
+      }
+      if (event === 'SIGNED_OUT') {
+        if (knownUserId !== null) window.location.href = '/login'
+        knownUserId = null
+        return
+      }
+      if (nextUserId && knownUserId && nextUserId !== knownUserId) {
+        window.location.reload()
+        return
+      }
+      knownUserId = nextUserId
+    })
+
+    return () => listener.subscription.unsubscribe()
+  }, [])
+
   // Per-device localStorage, not a server column — zero extra network
   // round trip on every page load (this app's stated top priority is no
   // added lag), at the cost of resetting if someone clears site data.

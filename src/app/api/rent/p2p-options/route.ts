@@ -8,6 +8,11 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 // rather than a direct client-side query — there's no existing precedent
 // for a renter reading another user's row client-side, and no need to
 // introduce a new RLS policy just to expose three text fields.
+//
+// Also returns the renter's own saved `default_rent_payment_method` — read
+// straight off their own row via the caller's session (already
+// RLS-permitted, no admin client needed for that part) — so the pay modal
+// can pre-highlight their usual choice without a second round trip.
 export async function GET() {
   const authClient = await createClient()
   const { data: { user } } = await authClient.auth.getUser()
@@ -15,11 +20,18 @@ export async function GET() {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
 
+  const { data: ownRow } = await authClient
+    .from('users')
+    .select('default_rent_payment_method')
+    .eq('id', user.id)
+    .maybeSingle()
+  const defaultMethod = ownRow?.default_rent_payment_method || null
+
   // Security-definer, tied to auth.uid() — called via the caller's own
   // session so it only ever resolves the caller's own tenancy.
   const { data: tenancyId } = await authClient.rpc('get_my_active_tenancy_id')
   if (!tenancyId) {
-    return NextResponse.json({ zelle: null, venmo: null, cashapp: null, landlordName: null })
+    return NextResponse.json({ zelle: null, venmo: null, cashapp: null, landlordName: null, defaultMethod })
   }
 
   const admin = getSupabaseAdmin()
@@ -31,7 +43,7 @@ export async function GET() {
 
   const ownerId = (tenancy?.units as any)?.properties?.owner_user_id
   if (!ownerId) {
-    return NextResponse.json({ zelle: null, venmo: null, cashapp: null, landlordName: null })
+    return NextResponse.json({ zelle: null, venmo: null, cashapp: null, landlordName: null, defaultMethod })
   }
 
   const { data: landlord } = await admin
@@ -51,5 +63,6 @@ export async function GET() {
     venmo: frozen ? null : landlord?.venmo_handle || null,
     cashapp: frozen ? null : landlord?.cashapp_handle || null,
     landlordName: landlord?.full_name || null,
+    defaultMethod,
   })
 }

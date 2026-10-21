@@ -41,10 +41,19 @@ export async function POST() {
   // No match by email — try by phone. renter_phone is always stored
   // E.164-normalized (see sendInvite in tenancy/new/page.tsx), so
   // normalizing this user's own saved phone the same way is enough for a
-  // plain equality match.
+  // plain equality match. Gated on phone_verified_at because the phone
+  // field itself is just free text a user types in — without requiring
+  // proof of ownership first, anyone could type in someone else's phone
+  // number right after signup and get auto-linked into THEIR pending
+  // tenancy (lease terms, rent amount, landlord contact — no accept step,
+  // this creates the tenancy row immediately). Same check the phone-
+  // verified badge on Profile uses: verified AND still matches the
+  // current phone (a later edit clears verification, see
+  // clear_phone_verification_on_change).
   if (!invite) {
-    const { data: ownRow } = await supabaseAdmin.from('users').select('phone').eq('id', user.id).maybeSingle()
-    const ownPhone = ownRow?.phone ? toE164(ownRow.phone) : null
+    const { data: ownRow } = await supabaseAdmin.from('users').select('phone, phone_verified_at').eq('id', user.id).maybeSingle()
+    const isPhoneVerified = !!ownRow?.phone_verified_at
+    const ownPhone = isPhoneVerified && ownRow?.phone ? toE164(ownRow.phone) : null
     if (ownPhone) {
       const { data: phoneInvite, error: phoneInviteError } = await supabaseAdmin
         .from('tenancy_invites')

@@ -1760,6 +1760,12 @@ const STRINGS = {
   debitCardOptionLabel: { en: 'Debit card', es: 'Tarjeta de débito' },
   debitCardOptionDescPrefix: { en: 'instant', es: 'instantáneo' },
   processingFeeSuffix: { en: 'processing fee', es: 'cargo por procesamiento' },
+  usualChoiceLabel: { en: 'Usual', es: 'Habitual' },
+  rentPaymentDefaultTitle: { en: 'Rent payment method', es: 'Método de pago de renta' },
+  rentPaymentDefaultDesc: { en: 'Pick your usual way to pay rent — it\'ll be pre-selected next time, but you can always change it when you pay.', es: 'Elige tu forma habitual de pagar la renta — estará preseleccionada la próxima vez, pero siempre puedes cambiarla al pagar.' },
+  rentPaymentDefaultNote: { en: 'This just saves a default — you still confirm every payment yourself.', es: 'Esto solo guarda una opción predeterminada — tú sigues confirmando cada pago.' },
+  getPaidForJobsTitle: { en: 'Get paid for jobs', es: 'Recibe pago por trabajos' },
+  getPaidForJobsSectionIntro: { en: 'Connect your bank account so you can get paid when a landlord pays for a completed job.', es: 'Conecta tu cuenta bancaria para recibir el pago cuando un propietario pague por un trabajo completado.' },
 
   // Free trial before billing gets enforced
   trialEndsInPrefix: { en: 'Your free trial ends in', es: 'Tu prueba gratuita termina en' },

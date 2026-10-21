@@ -44,3 +44,40 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ ok: true })
 }
+
+// Called on sign-out/delete-account (see profile/page.tsx) before the
+// session itself goes away. Without this, a browser's push subscription
+// row outlives the person who created it — on a shared device, whoever
+// signs in next on that same browser still has the previous account's
+// notifications (job updates, chat messages, rent reminders) land as OS
+// notifications, visible on the lock screen/notification shade, since
+// sendPush() looks up subscriptions purely by user_id with no liveness
+// check. Deletes only the one row for THIS device's endpoint, not every
+// subscription for the account — other devices that are still actually
+// signed in should keep working.
+export async function DELETE(request: NextRequest) {
+  const authClient = await createClient()
+  const { data: { user } } = await authClient.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+  }
+
+  const { endpoint } = (await request.json().catch(() => ({}))) as { endpoint?: string }
+  if (!endpoint) {
+    return NextResponse.json({ error: 'Missing endpoint' }, { status: 400 })
+  }
+
+  const supabaseAdmin = getSupabaseAdmin()
+  const { error } = await supabaseAdmin
+    .from('push_subscriptions')
+    .delete()
+    .eq('user_id', user.id)
+    .eq('endpoint', endpoint)
+
+  if (error) {
+    console.error('push/subscribe: error deleting subscription', error)
+    return NextResponse.json({ error: 'Could not remove subscription' }, { status: 500 })
+  }
+
+  return NextResponse.json({ ok: true })
+}

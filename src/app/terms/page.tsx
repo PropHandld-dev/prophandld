@@ -19,7 +19,7 @@ export default function TermsPage() {
 
       <main className="max-w-3xl mx-auto px-6 py-16">
         <h1 className="text-3xl font-bold mb-2">Terms of Service</h1>
-        <p className="text-white/60 text-sm mb-12">Last updated October 16, 2026</p>
+        <p className="text-white/60 text-sm mb-12">Last updated October 20, 2026</p>
 
         <div className="space-y-10 text-white/60 text-sm leading-relaxed [&_h2]:text-white [&_h2]:font-semibold [&_h2]:text-lg [&_h2]:mb-3 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5">
 
@@ -51,11 +51,22 @@ export default function TermsPage() {
           <section>
             <h2>2. Accounts and roles</h2>
             <p>
+              You must be at least 18 years old to create a Prophandld account.
+            </p>
+            <p>
               You choose a role when you sign up (landlord, renter, or contractor), and the
               information you can see and the actions you can take depend on that role. You're
               responsible for keeping your login credentials secure and for the accuracy of the
               information you provide, including your contact details and (for contractors) license
               and insurance information.
+            </p>
+            <p>
+              You're responsible for all activity on your account, authorized or not, until you
+              report it to us. If you suspect someone else has accessed your account, change your
+              password immediately and contact{' '}
+              <a href="mailto:admin@prophandld.com" className="text-[#12A5A9] hover:underline">admin@prophandld.com</a>{' '}
+              right away — we may ask you to verify your identity before restoring access. We aren't
+              responsible for losses that happen before you report a compromise to us.
             </p>
             <p>
               If you genuinely act in more than one role — for example, you're a landlord who also
@@ -196,7 +207,8 @@ export default function TermsPage() {
             <p>
               You can stop using Prophandld and delete your account at any time. We may suspend or
               terminate accounts that violate these terms or that we reasonably believe are being
-              used fraudulently or abusively.
+              used fraudulently or abusively, including suspending an account we believe may be
+              compromised, until the rightful owner's identity is confirmed.
             </p>
           </section>
 

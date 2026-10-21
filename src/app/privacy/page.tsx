@@ -19,7 +19,7 @@ export default function PrivacyPage() {
 
       <main className="max-w-3xl mx-auto px-6 py-16">
         <h1 className="text-3xl font-bold mb-2">Privacy Policy</h1>
-        <p className="text-white/60 text-sm mb-12">Last updated October 15, 2026</p>
+        <p className="text-white/60 text-sm mb-12">Last updated October 20, 2026</p>
 
         <div className="space-y-10 text-white/60 text-sm leading-relaxed [&_h2]:text-white [&_h2]:font-semibold [&_h2]:text-lg [&_h2]:mb-3 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5">
 
@@ -111,7 +111,21 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2>8. Changes to this policy</h2>
+            <h2>8. Security</h2>
+            <p>
+              We use reasonable technical and organizational measures to protect your data —
+              encryption in transit, access controls, and the security practices of the providers
+              listed in Section 3. No system is perfectly secure, though. If we learn of a breach
+              affecting your personal information, we'll notify affected users and relevant
+              authorities as required by law, without unreasonable delay. You can help by using a
+              strong, unique password and reporting any suspicious activity on your account to{' '}
+              <a href="mailto:admin@prophandld.com" className="text-[#12A5A9] hover:underline">admin@prophandld.com</a>{' '}
+              right away.
+            </p>
+          </section>
+
+          <section>
+            <h2>9. Changes to this policy</h2>
             <p>
               We'll update the date at the top of this page whenever this policy changes, and for
               significant changes, we'll make a reasonable effort to let you know directly.
@@ -119,7 +133,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2>9. Contact</h2>
+            <h2>10. Contact</h2>
             <p>
               Questions about your data? Reach out at{' '}
               <a href="mailto:admin@prophandld.com" className="text-[#12A5A9] hover:underline">admin@prophandld.com</a>.

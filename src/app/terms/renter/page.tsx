@@ -9,7 +9,7 @@ export default function RenterTermsPage() {
   return (
     <LegalPageShell
       title="Terms of Service — Renters"
-      lastUpdated="October 19, 2026"
+      lastUpdated="October 20, 2026"
       footerLinks={
         <>
           <Link href="/terms" className="hover:text-white transition">General Terms</Link>
@@ -112,7 +112,10 @@ export default function RenterTermsPage() {
           records it as paid, the same as it would for cash or a check. Prophandld doesn&apos;t verify
           that a listed Zelle, Venmo, or Cash App handle actually belongs to your landlord, and isn&apos;t
           a party to, or responsible for, money sent through any of those apps — double-check the
-          handle and confirm with your landlord directly if anything looks off before sending.
+          handle and confirm with your landlord directly if anything looks off before sending. If a
+          handle changes, we freeze new payments to it for 48 hours and alert both of you by
+          email/push, but we still don&apos;t guarantee a handle&apos;s accuracy — always confirm a changed
+          handle directly with your landlord before sending money to it.
         </p>
         <p>
           <strong>Receipts.</strong> Every rent payment and every contractor payment on a job you&apos;re

@@ -14,6 +14,7 @@ import { LogOutIcon } from '@/components/icons'
 import { TABS_BY_ROLE } from '@/lib/navTabs'
 import { StripeConnectCard } from '@/components/StripeConnectCard'
 import { ZelleVenmoCashAppCard } from '@/components/ZelleVenmoCashAppCard'
+import { RentPaymentDefaultCard } from '@/components/RentPaymentDefaultCard'
 import { LinkedProfilesSection } from '@/components/LinkedProfilesSection'
 import { CoOwnersSection } from '@/components/CoOwnersSection'
 import { CoRentersSection } from '@/components/CoRentersSection'
@@ -376,6 +377,16 @@ export default function ProfilePage() {
       return
     }
 
+    // A session hijacked before this change (stolen refresh token,
+    // forgotten logged-in device) shouldn't just keep working after the
+    // "fix" — revokes every other session for this account, keeping only
+    // the one that just re-verified the password above. Fire-and-log: the
+    // password change itself already succeeded, so this shouldn't block
+    // the success toast if it fails.
+    fetch('/api/auth/revoke-other-sessions', { method: 'POST' }).catch((err) =>
+      console.error('Could not revoke other sessions after password change:', err)
+    )
+
     setSuccess(t('passwordUpdatedSuccessfully', lang))
     setShowPasswordToast(true)
     setTimeout(() => setShowPasswordToast(false), 3000)
@@ -390,7 +401,28 @@ export default function ProfilePage() {
     return '/'
   }
 
+  // A browser's push subscription otherwise outlives the sign-out that's
+  // about to happen — on a shared device, whoever signs in next would
+  // still get this account's notifications as OS notifications. Has to
+  // run BEFORE signOut() below, while the session (and therefore the
+  // DELETE call's auth) still exists.
+  const unsubscribePush = async () => {
+    try {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
+      const registration = await navigator.serviceWorker.ready
+      const subscription = await registration.pushManager.getSubscription()
+      if (!subscription) return
+      await fetch('/api/push/subscribe', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ endpoint: subscription.endpoint }),
+      }).catch(() => {})
+      await subscription.unsubscribe()
+    } catch {}
+  }
+
   const handleSignOut = async () => {
+    await unsubscribePush()
     try {
       localStorage.removeItem(LAST_ACTIVE_KEY)
     } catch {}
@@ -412,6 +444,16 @@ export default function ProfilePage() {
       return
     }
 
+    // api/account/delete already purges every push_subscriptions row for
+    // this user server-side — this just releases the browser's own
+    // PushManager registration for the device doing the deleting.
+    try {
+      if ('serviceWorker' in navigator && 'PushManager' in window) {
+        const registration = await navigator.serviceWorker.ready
+        const subscription = await registration.pushManager.getSubscription()
+        if (subscription) await subscription.unsubscribe()
+      }
+    } catch {}
     try {
       localStorage.removeItem(LAST_ACTIVE_KEY)
     } catch {}
@@ -521,7 +563,14 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {role === 'renter' && <CoRentersSection />}
+        {role === 'renter' && (
+          <>
+            <CoRentersSection />
+            <div className="mt-6 mb-6">
+              <RentPaymentDefaultCard />
+            </div>
+          </>
+        )}
 
         {/* Change password */}
         <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
@@ -609,9 +658,15 @@ export default function ProfilePage() {
             to how that page is organized) — this just adds a second,
             easier-to-reach entry point. */}
         {role === 'contractor' && (
-          <div className="mb-6">
-            <StripeConnectCard purpose="jobs" />
-          </div>
+          <>
+            <div className="mb-2">
+              <h2 className="text-white font-semibold mb-1">{t('getPaidForJobsTitle', lang)}</h2>
+              <p className="text-white/50 text-sm mb-4">{t('getPaidForJobsSectionIntro', lang)}</p>
+            </div>
+            <div className="mb-6">
+              <StripeConnectCard purpose="jobs" />
+            </div>
+          </>
         )}
 
         {/* Notification preferences */}

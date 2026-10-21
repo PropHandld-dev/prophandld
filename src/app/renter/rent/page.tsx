@@ -59,7 +59,8 @@ export default function RenterRentPage() {
   // older payments someone might actually be looking for (a mid-lease
   // receipt lookup, tax records, moving-out reference).
   const [historyYear, setHistoryYear] = useState<'all' | number>('all')
-  const [p2pOptions, setP2pOptions] = useState<{ zelle: string | null; venmo: string | null; cashapp: string | null; landlordName: string | null } | null>(null)
+  const [p2pOptions, setP2pOptions] = useState<{ zelle: string | null; venmo: string | null; cashapp: string | null; landlordName: string | null; defaultMethod: string | null } | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
   const [p2pPanelMethod, setP2pPanelMethod] = useState<'zelle' | 'venmo' | 'cashapp' | null>(null)
   const [p2pSending, setP2pSending] = useState(false)
   const [p2pSent, setP2pSent] = useState(false)
@@ -107,6 +108,7 @@ export default function RenterRentPage() {
         router.replace('/login')
         return
       }
+      setUserId(user.id)
 
       // Resolves to the caller's tenancy whether they're the primary
       // tenant or a co-renter added on the unit (tenancy_occupants) —
@@ -222,9 +224,19 @@ export default function RenterRentPage() {
     setMethodChoicePayment(payment)
   }
 
+  // Fire-and-forget — remembering a "usual" method is a convenience, not a
+  // critical write, so a failure here shouldn't block or error out the
+  // actual payment flow around it.
+  const saveDefaultMethod = (method: string) => {
+    if (!userId) return
+    setP2pOptions((prev) => (prev ? { ...prev, defaultMethod: method } : prev))
+    supabase.from('users').update({ default_rent_payment_method: method }).eq('id', userId).then(() => {})
+  }
+
   const handleChooseMethod = async (payment: any, method: 'bank' | 'card') => {
     setMethodChoicePayment(null)
     setError(null)
+    saveDefaultMethod(method)
 
     // Bank transfer runs back through Stripe ACH now (was briefly on
     // Dwolla — see startDwollaTransfer below, left in place but unused).
@@ -269,8 +281,10 @@ export default function RenterRentPage() {
     // Without this, a failed request (network blip, expired session) left
     // the button simply clickable again with no sign anything went wrong —
     // easy to read as "it worked" and never actually notify the landlord.
-    if (res?.ok) setP2pSent(true)
-    else setP2pError(t('couldNotStartPayment', lang))
+    if (res?.ok) {
+      setP2pSent(true)
+      saveDefaultMethod(method)
+    } else setP2pError(t('couldNotStartPayment', lang))
   }
 
   const startDwollaTransfer = async (payment: any) => {
@@ -742,10 +756,15 @@ export default function RenterRentPage() {
               <div className="space-y-3">
                 <button
                   onClick={() => handleChooseMethod(methodChoicePayment, 'bank')}
-                  className="w-full text-left bg-white/5 hover:bg-white/8 border border-white/10 rounded-xl px-4 py-3 transition"
+                  className={`w-full text-left bg-white/5 hover:bg-white/8 border rounded-xl px-4 py-3 transition ${p2pOptions?.defaultMethod === 'bank' ? 'border-[#12A5A9]/50' : 'border-white/10'}`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-white font-medium text-sm">{t('bankAccountOptionLabel', lang)}</span>
+                    <span className="text-white font-medium text-sm flex items-center gap-2">
+                      {t('bankAccountOptionLabel', lang)}
+                      {p2pOptions?.defaultMethod === 'bank' && (
+                        <span className="text-[#12A5A9] text-[10px] font-semibold bg-[#12A5A9]/10 rounded-full px-2 py-0.5">{t('usualChoiceLabel', lang)}</span>
+                      )}
+                    </span>
                     <span className="text-white font-semibold text-sm tabular-nums">{money(amountDue + achFee)}</span>
                   </div>
                   <p className="text-white/50 text-xs mt-1">
@@ -754,10 +773,15 @@ export default function RenterRentPage() {
                 </button>
                 <button
                   onClick={() => handleChooseMethod(methodChoicePayment, 'card')}
-                  className="w-full text-left bg-white/5 hover:bg-white/8 border border-white/10 rounded-xl px-4 py-3 transition"
+                  className={`w-full text-left bg-white/5 hover:bg-white/8 border rounded-xl px-4 py-3 transition ${p2pOptions?.defaultMethod === 'card' ? 'border-[#12A5A9]/50' : 'border-white/10'}`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-white font-medium text-sm">{t('debitCardOptionLabel', lang)}</span>
+                    <span className="text-white font-medium text-sm flex items-center gap-2">
+                      {t('debitCardOptionLabel', lang)}
+                      {p2pOptions?.defaultMethod === 'card' && (
+                        <span className="text-[#12A5A9] text-[10px] font-semibold bg-[#12A5A9]/10 rounded-full px-2 py-0.5">{t('usualChoiceLabel', lang)}</span>
+                      )}
+                    </span>
                     <span className="text-white font-semibold text-sm tabular-nums">{money(amountDue + fee)}</span>
                   </div>
                   <p className="text-white/50 text-xs mt-1">
@@ -777,25 +801,28 @@ export default function RenterRentPage() {
                     {p2pOptions?.zelle && (
                       <button
                         onClick={() => setP2pPanelMethod('zelle')}
-                        className="flex-1 bg-white/5 hover:bg-white/8 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm font-medium transition"
+                        className={`flex-1 bg-white/5 hover:bg-white/8 border rounded-xl px-3 py-2.5 text-white text-sm font-medium transition flex items-center justify-center gap-1.5 ${p2pOptions?.defaultMethod === 'zelle' ? 'border-[#12A5A9]/50' : 'border-white/10'}`}
                       >
                         Zelle
+                        {p2pOptions?.defaultMethod === 'zelle' && <span className="text-[#12A5A9] text-[10px] font-semibold">●</span>}
                       </button>
                     )}
                     {p2pOptions?.venmo && (
                       <button
                         onClick={() => setP2pPanelMethod('venmo')}
-                        className="flex-1 bg-white/5 hover:bg-white/8 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm font-medium transition"
+                        className={`flex-1 bg-white/5 hover:bg-white/8 border rounded-xl px-3 py-2.5 text-white text-sm font-medium transition flex items-center justify-center gap-1.5 ${p2pOptions?.defaultMethod === 'venmo' ? 'border-[#12A5A9]/50' : 'border-white/10'}`}
                       >
                         Venmo
+                        {p2pOptions?.defaultMethod === 'venmo' && <span className="text-[#12A5A9] text-[10px] font-semibold">●</span>}
                       </button>
                     )}
                     {p2pOptions?.cashapp && (
                       <button
                         onClick={() => setP2pPanelMethod('cashapp')}
-                        className="flex-1 bg-white/5 hover:bg-white/8 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm font-medium transition"
+                        className={`flex-1 bg-white/5 hover:bg-white/8 border rounded-xl px-3 py-2.5 text-white text-sm font-medium transition flex items-center justify-center gap-1.5 ${p2pOptions?.defaultMethod === 'cashapp' ? 'border-[#12A5A9]/50' : 'border-white/10'}`}
                       >
                         Cash App
+                        {p2pOptions?.defaultMethod === 'cashapp' && <span className="text-[#12A5A9] text-[10px] font-semibold">●</span>}
                       </button>
                     )}
                   </div>

@@ -40,10 +40,15 @@ export async function POST() {
   // No match by email — try by phone. invited_phone is always stored
   // E.164-normalized (see co-owner/invite-email), so normalizing this
   // user's own saved phone the same way is enough for a plain equality
-  // match, no fuzzy comparison needed here.
+  // match. Gated on phone_verified_at — the phone field is just free text
+  // a user types in, and this grants a whole portfolio's worth of access
+  // once accepted, so matching on an unverified number would let anyone
+  // type in someone else's phone number to pick up their pending co-owner
+  // invite. Same reasoning as the identical fix in tenancy/link-invite.
   if (!invite) {
-    const { data: ownRow } = await supabaseAdmin.from('users').select('phone').eq('id', user.id).maybeSingle()
-    const ownPhone = ownRow?.phone ? toE164(ownRow.phone) : null
+    const { data: ownRow } = await supabaseAdmin.from('users').select('phone, phone_verified_at').eq('id', user.id).maybeSingle()
+    const isPhoneVerified = !!ownRow?.phone_verified_at
+    const ownPhone = isPhoneVerified && ownRow?.phone ? toE164(ownRow.phone) : null
     if (ownPhone) {
       const { data: phoneInvite, error: phoneInviteError } = await supabaseAdmin
         .from('landlord_co_owners')

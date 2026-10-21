@@ -9,7 +9,7 @@ export default function LandlordTermsPage() {
   return (
     <LegalPageShell
       title="Terms of Service — Landlords"
-      lastUpdated="October 19, 2026"
+      lastUpdated="October 20, 2026"
       footerLinks={
         <>
           <Link href="/terms" className="hover:text-white transition">General Terms</Link>
@@ -124,7 +124,8 @@ export default function LandlordTermsPage() {
           why Prophandld shows you that risk plainly before you add either handle; it&apos;s your decision
           to make, not ours. None of these three methods are confirmed automatically — your own &quot;Mark
           received&quot; action on the rent page is what records a payment as received, the same as it
-          would for cash or a check.
+          would for cash or a check. If you change a handle, we freeze new payments to it for 48
+          hours and alert you by email/push — if that wasn&apos;t you, contact us right away.
         </p>
         <p>
           <strong>Your subscription.</strong> You separately pay Prophandld a graduated monthly

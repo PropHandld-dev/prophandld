@@ -15,6 +15,15 @@ import { t, roleLabel, type Lang } from '@/lib/i18n'
 
 const ROLE_LABEL_KEY = { landlord: 'landlordLabel', renter: 'renterLabel', contractor: 'contractorLabel' } as const
 
+// Mirrors each role terms page's own `lastUpdated` string (src/app/terms/{role}/page.tsx)
+// — bump the matching entry here whenever that page's content changes, so
+// terms_version on signup always records which version was actually agreed to.
+const TERMS_VERSION: Record<Role, string> = {
+  landlord: '2026-10-20',
+  renter: '2026-10-20',
+  contractor: '2026-10-19',
+}
+
 // No signed-in session exists yet on this page, so there's no
 // useLanguage()-style saved preference to read — `lang` is computed from
 // the in-progress form's own "Preferred language" select instead (see
@@ -190,6 +199,19 @@ function SignupForm() {
       .eq('id', data.user.id)
       .then(({ error: langSyncError }) => {
         if (langSyncError) console.error('signup: could not sync preferred_language to public.users', langSyncError)
+      })
+
+    // The required-checkbox above only ever blocked the client-side form
+    // submit — nothing durable recorded THAT this specific user agreed, OR
+    // to which version of the role-specific terms, which is a real gap if
+    // acceptance is ever contested. TERMS_VERSION below should track each
+    // role terms page's own `lastUpdated` string whenever those pages change.
+    supabase
+      .from('users')
+      .update({ terms_accepted_at: new Date().toISOString(), terms_version: TERMS_VERSION[role] })
+      .eq('id', data.user.id)
+      .then(({ error: termsSyncError }) => {
+        if (termsSyncError) console.error('signup: could not record terms acceptance', termsSyncError)
       })
 
     // role above only ever lands in user_metadata, which this same user
