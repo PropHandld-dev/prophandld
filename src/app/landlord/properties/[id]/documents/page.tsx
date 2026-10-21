@@ -212,6 +212,10 @@ export default function PropertyDocumentsPage() {
 
       if (insertError) {
         console.error('Error saving document record:', insertError)
+        // The file itself did upload — without this, it sits permanently
+        // orphaned in storage with no documents row ever pointing to it.
+        const { error: cleanupError } = await supabase.storage.from('documents').remove([filePath])
+        if (cleanupError) console.error('Error cleaning up orphaned document after failed insert:', cleanupError)
         setError(t('filesFailedToSave', lang))
       }
     }
@@ -227,7 +231,12 @@ export default function PropertyDocumentsPage() {
 
     const { error: storageError } = await supabase.storage.from('documents').remove([doc.file_url])
     if (storageError) {
+      // Used to continue to the DB delete anyway — the storage file would
+      // silently survive as a permanent orphan while the landlord saw no
+      // error and believed it was gone.
       console.error('Error deleting document file:', storageError)
+      setError(t('couldNotDeleteDocument', lang))
+      return
     }
 
     const { error: deleteError } = await supabase.from('documents').delete().eq('id', doc.id)

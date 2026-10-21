@@ -185,6 +185,11 @@ export default function PropertyCompliancePage() {
 
     if (docInsertError) {
       console.error('Error linking compliance document:', docInsertError)
+      // The file itself did upload — without this, it sits permanently
+      // orphaned in storage with no documents row ever pointing to it,
+      // since nothing else will ever retry or clean it up.
+      const { error: cleanupError } = await supabase.storage.from('documents').remove([filePath])
+      if (cleanupError) console.error('Error cleaning up orphaned compliance document after failed insert:', cleanupError)
       setError(t('documentUploadedNotLinked', lang))
     }
   }
@@ -202,7 +207,12 @@ export default function PropertyCompliancePage() {
 
     const { error: storageError } = await supabase.storage.from('documents').remove([doc.file_url])
     if (storageError) {
+      // Used to continue to the DB delete anyway — the storage file would
+      // silently survive as a permanent orphan (nothing left pointing to
+      // it) while the landlord saw no error and believed it was gone.
       console.error('Error deleting document file:', storageError)
+      setError(t('couldNotRemoveDocumentColon', lang))
+      return
     }
 
     const { error: deleteError } = await supabase.from('documents').delete().eq('id', doc.id)
@@ -300,6 +310,29 @@ export default function PropertyCompliancePage() {
 
   const handleDelete = async (item: any) => {
     if (!(await confirm({ body: `${t('removeAttachmentConfirmPrefix', lang)}${item.item_type}${t('removeAttachmentConfirmSuffix', lang)}`, danger: true }))) return
+
+    // Clean up any attached document explicitly rather than relying on an
+    // unverified DB-level cascade (this table was created directly in the
+    // Supabase SQL editor, not via an in-repo migration, so its ON DELETE
+    // behavior can't be confirmed from code) — without this, deleting the
+    // item either orphans the document's storage file forever, or the
+    // delete below fails outright with no indication a document was the
+    // blocker.
+    const attachedDoc = itemDocuments[item.id]
+    if (attachedDoc) {
+      const { error: storageError } = await supabase.storage.from('documents').remove([attachedDoc.file_url])
+      if (storageError) {
+        console.error('Error deleting attached document file:', storageError)
+        setError(t('couldNotDeleteItemColon', lang))
+        return
+      }
+      const { error: docDeleteError } = await supabase.from('documents').delete().eq('id', attachedDoc.id)
+      if (docDeleteError) {
+        console.error('Error deleting attached document record:', docDeleteError)
+        setError(t('couldNotDeleteItemColon', lang))
+        return
+      }
+    }
 
     const { error: deleteError } = await supabase.from('compliance_items').delete().eq('id', item.id)
     if (deleteError) {

@@ -211,11 +211,12 @@ export default function ReportIssuePage() {
       return
     }
 
-    notify('job_reported', jobData.id)
-
     // Photos are shrunk first and uploaded together rather than one after
     // another, which is most of the wait after tapping Submit on a phone.
-    await Promise.all(
+    // Uploaded (and the landlord notified) BEFORE notify() fires, not
+    // after — notifying first meant a landlord could open the job and
+    // find it still photo-less, mid-upload or never arrived.
+    const photoResults = await Promise.all(
       files.map(async (original) => {
         const file = await compressImage(original)
         const fileExt = file.name.split('.').pop()
@@ -227,7 +228,7 @@ export default function ReportIssuePage() {
 
         if (uploadError) {
           console.error('Error uploading photo:', uploadError)
-          return
+          return false
         }
 
         const { error: photoInsertError } = await supabase
@@ -241,9 +242,25 @@ export default function ReportIssuePage() {
 
         if (photoInsertError) {
           console.error('Error saving photo record:', photoInsertError)
+          return false
         }
+        return true
       })
     )
+
+    notify('job_reported', jobData.id)
+
+    // The job itself was already created successfully — a failed photo
+    // isn't worth losing that over, but silently navigating away as if
+    // everything worked (the previous behavior) left a renter believing
+    // photos were attached when the job actually has none. Stay on this
+    // page so the error is actually seen, rather than firing it into an
+    // unmounting component on the way to the next screen.
+    if (photoResults.some((ok) => !ok)) {
+      setError(t('reportSubmittedPhotosFailed', lang))
+      setSubmitting(false)
+      return
+    }
 
     router.push('/renter')
   }

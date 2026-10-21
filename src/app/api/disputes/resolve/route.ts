@@ -7,7 +7,7 @@ import { sendDisputeResolvedEmail } from '@/lib/email'
 import { emailAllowed } from '@/lib/notificationPrefs'
 import { sendPush } from '@/lib/push'
 import { notifyLandlordIds } from '@/lib/landlordCoOwners'
-import { notifyRenterIds } from '@/lib/coRenters'
+import { resolveReportingRenterIds } from '@/lib/resolveReportingTenancy'
 
 export async function POST(request: NextRequest) {
   const authClient = await createClient()
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
 
   const { data: job } = await supabaseAdmin
     .from('jobs')
-    .select('category, unit_id, units(properties(address, owner_user_id))')
+    .select('category, unit_id, reported_by, units(properties(address, owner_user_id))')
     .eq('id', dispute.job_id)
     .maybeSingle()
 
@@ -85,16 +85,12 @@ export async function POST(request: NextRequest) {
     for (const id of landlordIds) recipients.push({ userId: id, role: 'landlord' })
   }
 
-  const { data: tenancy } = await supabaseAdmin
-    .from('tenancies')
-    .select('id, renter_user_id')
-    .eq('unit_id', job?.unit_id)
-    .eq('ended', false)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-  if (tenancy?.renter_user_id) {
-    const renterIds = await notifyRenterIds(supabaseAdmin, tenancy.id, tenancy.renter_user_id)
+  // Resolved from whoever actually reported the job, not just whoever
+  // currently lives there — a dispute's resolution (including its notes)
+  // shouldn't leak to a tenant who moved in after the fact and had nothing
+  // to do with it. See resolveReportingTenancy.ts for the full reasoning.
+  if (job?.unit_id) {
+    const renterIds = await resolveReportingRenterIds(supabaseAdmin, { unit_id: job.unit_id, reported_by: (job as any).reported_by })
     for (const id of renterIds) recipients.push({ userId: id, role: 'renter' })
   }
 

@@ -142,7 +142,11 @@ function LoginForm() {
       // confirmation defers the real session to here) — see
       // setAppMetadataRole's own comment for why this has to happen
       // server-side rather than trusting user_metadata.role going forward.
-      setAppMetadataRole(accountRole)
+      // Awaited: the landlord branch below calls co-owner/link-invite next,
+      // which gates on this having already landed — losing that race used
+      // to send a co-owner-invited landlord to "add your first property"
+      // instead of their co-owned portfolio, on their very first login.
+      await setAppMetadataRole(accountRole)
     }
     if (accountRole === 'renter') {
       // A renter's real first entry into the app now happens here, not on

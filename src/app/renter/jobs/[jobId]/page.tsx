@@ -198,10 +198,19 @@ export default function RenterJobDetailPage() {
 
   const confirmSchedule = async () => {
     setActioning(true)
+    // Matches the proposal currently on screen, not just the job id — the
+    // other side could have overwritten their own proposal (submitProposal
+    // always overwrites unconditionally) in the gap between this page
+    // loading and Confirm being tapped. Without this, confirming would
+    // silently lock in whatever's in the database now, not the time the
+    // person actually looked at and agreed to. A mismatch here means zero
+    // rows match, which expectRow below already treats as a failure.
     const { error: updateError } = await expectRow(supabase
       .from('jobs')
       .update({ schedule_confirmed: true, status: 'scheduled' })
-      .eq('id', jobId))
+      .eq('id', jobId)
+      .eq('proposed_date', job.proposed_date)
+      .eq('proposed_window', job.proposed_window))
 
     if (updateError) {
       console.error('Error confirming schedule:', updateError)

@@ -104,7 +104,16 @@ export default function RentReceiptPage() {
         // card carry a processing fee now (see create-payment-intent).
         ...(surcharge > 0 ? [{ label: t('cardProcessingFeeLabel', lang), value: `$${surcharge.toFixed(2)}` }] : []),
         { label: t('paidOnLabel', lang), value: receipt.paid_date ? new Date(receipt.paid_date + 'T00:00:00').toLocaleDateString(lang === 'es' ? 'es-ES' : undefined) : '—' },
-        { label: t('methodLabelReceipt', lang), value: receipt.payment_method === 'bank' ? t('bankTransferValue', lang) : t('debitCardValue', lang) },
+        {
+          label: t('methodLabelReceipt', lang),
+          value:
+            receipt.payment_method === 'bank' ? t('bankTransferValue', lang)
+            : receipt.payment_method === 'card' ? t('debitCardValue', lang)
+            : receipt.payment_method === 'zelle' ? 'Zelle'
+            : receipt.payment_method === 'venmo' ? 'Venmo'
+            : receipt.payment_method === 'cashapp' ? 'Cash App'
+            : t('debitCardValue', lang),
+        },
       ]}
       totalLabel={t('amountPaidLabel', lang)}
       totalValue={`$${totalCharged.toFixed(2)}`}

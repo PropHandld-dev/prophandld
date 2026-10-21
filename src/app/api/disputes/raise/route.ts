@@ -5,7 +5,7 @@ import { sendDisputeRaisedAdminEmail, sendDisputeRaisedEmail } from '@/lib/email
 import { emailAllowed } from '@/lib/notificationPrefs'
 import { sendPush } from '@/lib/push'
 import { notifyLandlordIds } from '@/lib/landlordCoOwners'
-import { notifyRenterIds } from '@/lib/coRenters'
+import { resolveReportingRenterIds } from '@/lib/resolveReportingTenancy'
 
 export async function POST(request: NextRequest) {
   const authClient = await createClient()
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
 
   const { data: job, error: jobError } = await supabaseAdmin
     .from('jobs')
-    .select('id, category, status, landlord_approved_at, unit_id, units(properties(address, owner_user_id))')
+    .select('id, category, status, landlord_approved_at, unit_id, reported_by, units(properties(address, owner_user_id))')
     .eq('id', jobId)
     .maybeSingle()
 
@@ -39,15 +39,12 @@ export async function POST(request: NextRequest) {
   const landlordIds = property?.owner_user_id ? await notifyLandlordIds(supabaseAdmin, property.owner_user_id) : []
   const isLandlord = landlordIds.includes(user.id)
 
-  const { data: tenancy } = await supabaseAdmin
-    .from('tenancies')
-    .select('id, renter_user_id')
-    .eq('unit_id', job.unit_id)
-    .eq('ended', false)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-  const renterIds = tenancy?.renter_user_id ? await notifyRenterIds(supabaseAdmin, tenancy.id, tenancy.renter_user_id) : []
+  // Resolved from whoever actually reported the job, not just whoever
+  // currently lives there — otherwise a new tenant could both see and
+  // raise a dispute on a job they had nothing to do with, while the
+  // renter who actually reported it loses access the moment they move
+  // out. See resolveReportingTenancy.ts for the full reasoning.
+  const renterIds = await resolveReportingRenterIds(supabaseAdmin, job)
   const isRenter = renterIds.includes(user.id)
 
   const { data: acceptedBid } = await supabaseAdmin

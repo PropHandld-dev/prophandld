@@ -89,16 +89,24 @@ export async function GET(request: NextRequest) {
     for (const row of data || []) if (!paymentByTenancy.has(row.tenancy_id)) paymentByTenancy.set(row.tenancy_id, row)
   }
 
-  // Create whatever's missing, in bulk.
+  // Create whatever's missing, in bulk. upsert, not insert: this can race
+  // a page load's own ensureCurrentMonthRentPayment (rentAutomation.ts),
+  // which already upserts for exactly this reason — a plain insert here
+  // wouldn't just risk a duplicate row for the losing racer, a unique-
+  // constraint conflict on one row in a bulk insert fails the WHOLE batch
+  // in Postgres, silently dropping every other tenancy in it too.
   const missing = tenancies.filter((t) => !paymentByTenancy.has(t.id))
   const createdTenancyIds = new Set<string>()
   for (const batch of chunk(missing, ID_CHUNK)) {
     const { data, error } = await supabaseAdmin
       .from('rent_payments')
-      .insert(batch.map((t) => ({ tenancy_id: t.id, month, expected_amount: t.rent_amount })))
+      .upsert(
+        batch.map((t) => ({ tenancy_id: t.id, month, expected_amount: t.rent_amount })),
+        { onConflict: 'tenancy_id,month', ignoreDuplicates: true }
+      )
       .select('id, tenancy_id, expected_amount, actual_amount, late_fee_applied, reminder_sent_at')
     if (error) {
-      console.error('cron/rent-reminder: bulk insert failed', error)
+      console.error('cron/rent-reminder: bulk upsert failed', error)
       continue
     }
     for (const row of data || []) {

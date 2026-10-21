@@ -24,6 +24,7 @@ import { PasskeyCard } from '@/components/PasskeyCard'
 import { ContactUsWidget } from '@/components/ContactUsWidget'
 import { usePushSubscription } from '@/lib/usePushSubscription'
 import { useLanguage, t } from '@/lib/i18n'
+import { LAST_ACTIVE_KEY } from '@/components/InactivityGuard'
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -390,6 +391,9 @@ export default function ProfilePage() {
   }
 
   const handleSignOut = async () => {
+    try {
+      localStorage.removeItem(LAST_ACTIVE_KEY)
+    } catch {}
     await supabase.auth.signOut()
     router.replace('/login')
   }
@@ -408,6 +412,9 @@ export default function ProfilePage() {
       return
     }
 
+    try {
+      localStorage.removeItem(LAST_ACTIVE_KEY)
+    } catch {}
     await supabase.auth.signOut()
     router.replace('/')
   }

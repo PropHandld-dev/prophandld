@@ -3,7 +3,14 @@
 import { useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
-const LAST_ACTIVE_KEY = 'prophandld_last_active'
+// Exported so any other code path that signs someone out directly (Profile's
+// manual sign-out/delete-account, which don't go through forceSignOut below)
+// can clear it too — a real gap found in a pre-launch audit: without this,
+// signing out manually, then logging back in within the stale window, got
+// immediately bounced back out with a confusing "signed out for inactivity"
+// message, since this component mounts fresh on the dashboard and reads the
+// same pre-logout timestamp.
+export const LAST_ACTIVE_KEY = 'prophandld_last_active'
 // 60 days: an absolute backstop for a genuinely forgotten, long-dormant
 // session — a lost/replaced phone, a shared or public computer nobody
 // came back to, an account someone stopped using — independent of the

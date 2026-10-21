@@ -117,6 +117,7 @@ const STRINGS = {
   pleaseTellUsIssueKind: { en: 'Please tell us what kind of issue this is.', es: 'Por favor dinos qué tipo de problema es.' },
   couldNotIdentifyUnit: { en: 'Could not identify your unit. Please try again.', es: 'No se pudo identificar tu unidad. Inténtalo de nuevo.' },
   couldNotSubmitReport: { en: 'Could not submit report. Please try again.', es: 'No se pudo enviar el reporte. Inténtalo de nuevo.' },
+  reportSubmittedPhotosFailed: { en: "Your report was submitted, but one or more photos didn't upload. You can add them from the job page.", es: 'Tu reporte se envió, pero una o más fotos no se subieron. Puedes agregarlas desde la página del trabajo.' },
   whatKindOfIssueIsIt: { en: 'What kind of issue is it?', es: '¿Qué tipo de problema es?' },
   reportCategoryOtherPlaceholder: { en: 'e.g. Landscaping, Mold, Locksmith', es: 'ej. Jardinería, Moho, Cerrajería' },
   relatedSystemOptionalLabel: { en: 'Related system (optional)', es: 'Sistema relacionado (opcional)' },

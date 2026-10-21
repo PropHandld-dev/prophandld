@@ -8,8 +8,18 @@
 // reasoning as the other post-signup sync calls near this one — if it
 // fails, the account still works, it's just not yet trusted for
 // role-gated server actions until a human re-runs it.
+// Returns the promise (rather than being purely fire-and-forget) so a
+// caller that needs app_metadata.role to actually be set before its next
+// step can await it — found genuinely necessary for the landlord co-owner
+// invite flow: co-owner/link-invite gates on role === 'landlord' already
+// being set and silently no-ops otherwise, and losing that race (this call
+// is a slower admin.updateUserById() write vs. link-invite's single
+// getUser() read) meant a co-owner-invited landlord's very first login
+// could land them on "add your first property" instead of attached to the
+// portfolio they were invited to. Every other caller still doesn't await
+// it, which is unchanged, fire-and-forget behavior for them.
 export function setAppMetadataRole(role: string) {
-  fetch('/api/auth/set-role', {
+  return fetch('/api/auth/set-role', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ role }),

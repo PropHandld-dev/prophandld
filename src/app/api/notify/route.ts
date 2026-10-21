@@ -8,7 +8,7 @@ import { notifyMatchingContractors } from '@/lib/openJobAlerts'
 import { loadNotifyExtras } from '@/lib/notifyExtras'
 import { emailAllowed } from '@/lib/notificationPrefs'
 import { notifyLandlordIds } from '@/lib/landlordCoOwners'
-import { notifyRenterIds } from '@/lib/coRenters'
+import { resolveReportingRenterIds } from '@/lib/resolveReportingTenancy'
 
 type Role = 'landlord' | 'renter' | 'contractor'
 
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
 
   const { data: job, error: jobError } = await supabaseAdmin
     .from('jobs')
-    .select('id, status, category, unit_id, is_emergency, units(property_id, properties(address, city, owner_user_id))')
+    .select('id, status, category, unit_id, is_emergency, reported_by, units(property_id, properties(address, city, owner_user_id))')
     .eq('id', jobId)
     .maybeSingle()
 
@@ -130,17 +130,8 @@ export async function POST(request: NextRequest) {
   }
 
   if (roles.includes('renter')) {
-    const { data: tenancy } = await supabaseAdmin
-      .from('tenancies')
-      .select('id, renter_user_id')
-      .eq('unit_id', job.unit_id)
-      .eq('ended', false)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-    if (tenancy?.renter_user_id) {
-      roleUserIds.renter = await notifyRenterIds(supabaseAdmin, tenancy.id, tenancy.renter_user_id)
-    }
+    const renterIds = await resolveReportingRenterIds(supabaseAdmin, job)
+    if (renterIds.length > 0) roleUserIds.renter = renterIds
   }
 
   if (roles.includes('contractor')) {

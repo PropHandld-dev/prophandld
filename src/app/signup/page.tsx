@@ -204,7 +204,11 @@ function SignupForm() {
     // otherwise it's called once a session actually exists, at the end of
     // the confirmation-code flow below and in /login for the
     // confirmation-link flow.
-    if (data.session) setAppMetadataRole(role)
+    // Awaited: the landlord branch below calls linkPendingCoOwnerInvite()
+    // next, which (via co-owner/link-invite) gates on this having already
+    // landed — losing that race used to send a co-owner-invited landlord
+    // to "add your first property" instead of their co-owned portfolio.
+    if (data.session) await setAppMetadataRole(role)
 
     // No session back means this project requires confirming the email
     // address before the account is usable — the account row exists, but
