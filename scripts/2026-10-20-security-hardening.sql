@@ -79,3 +79,30 @@ alter table public.phone_verification_codes enable row level security;
 --    write right after signUp() succeeds.
 alter table public.users add column if not exists terms_accepted_at timestamptz;
 alter table public.users add column if not exists terms_version text;
+
+-- Writing these two columns via a plain client-side `.update()` (as
+-- signup/page.tsx first did) has a real evidentiary weakness: the
+-- timestamp comes from the CALLER'S OWN clock, and a user's own session
+-- is allowed to update their own row — so a technical user could, in
+-- principle, call this with a backdated timestamp, or call it again later
+-- with a different one, undermining the exact thing this record exists to
+-- prove. This function closes both gaps: `now()` is the database
+-- server's own clock (not client-suppliable), `security definer` +
+-- `auth.uid()` means a caller can only ever stamp their own row, and
+-- `coalesce` makes it write-once — once set, calling it again can't
+-- change the recorded date or version, even from the same account.
+create or replace function public.record_terms_acceptance(version text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  update public.users
+  set terms_accepted_at = coalesce(terms_accepted_at, now()),
+      terms_version = coalesce(terms_version, version)
+  where id = auth.uid();
+end;
+$$;
+
+grant execute on function public.record_terms_acceptance(text) to authenticated;

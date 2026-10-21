@@ -4,7 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { addFundingSourceByAccountNumber, dwollaCustomerUrl, initiateMicroDeposits } from '@/lib/dwolla'
 import { sendPayoutDetailsChangedEmail } from '@/lib/email'
 import { sendPush } from '@/lib/push'
-import { verifyPassword } from '@/lib/reauth'
+import { verifyPassword, mfaStepUpStatus } from '@/lib/reauth'
 
 export const maxDuration = 20
 
@@ -63,10 +63,18 @@ export async function POST(request: NextRequest) {
   // bearer, no password needed) would otherwise sail straight through.
   // Re-verifying server-side, for the exact case the freeze below
   // protects, is what makes the reauth real rather than cosmetic.
+  // An account with 2FA enrolled is held to that stronger bar instead of
+  // password alone — see mfaStepUpStatus's own comment.
   const onlyReceives = role === 'landlord'
   if (onlyReceives && isChangeToActiveAccount) {
-    if (!userRow.email || !(await verifyPassword(userRow.email, password || ''))) {
-      return NextResponse.json({ error: 'Incorrect password' }, { status: 401 })
+    const mfa = await mfaStepUpStatus(authClient)
+    if (mfa.enrolled && !mfa.satisfied) {
+      return NextResponse.json({ error: 'mfa_required' }, { status: 428 })
+    }
+    if (!mfa.satisfied) {
+      if (!userRow.email || !(await verifyPassword(userRow.email, password || ''))) {
+        return NextResponse.json({ error: 'Incorrect password' }, { status: 401 })
+      }
     }
   }
 

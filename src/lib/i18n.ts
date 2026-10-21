@@ -1191,6 +1191,8 @@ const STRINGS = {
   reauthToManagePayoutBody: { en: 'Changing your payout bank account is a sensitive action. Enter your password to continue.', es: 'Cambiar tu cuenta bancaria de pagos es una acción sensible. Ingresa tu contraseña para continuar.' },
   reauthToChangeP2pTitle: { en: 'Confirm it’s you', es: 'Confirma que eres tú' },
   reauthToChangeP2pBody: { en: 'Changing a Zelle, Venmo, or Cash App handle your renters pay is a sensitive action. Enter your password to continue.', es: 'Cambiar un dato de Zelle, Venmo o Cash App que usan tus inquilinos para pagarte es una acción sensible. Ingresa tu contraseña para continuar.' },
+  mfaStepUpTitle: { en: 'Confirm with your authenticator app', es: 'Confirma con tu app de autenticación' },
+  mfaStepUpBody: { en: 'This account has two-factor authentication on, so a payment-destination change needs a code from your authenticator app, not just your password.', es: 'Esta cuenta tiene activada la autenticación de dos factores, así que un cambio en el destino de pago necesita un código de tu app de autenticación, no solo tu contraseña.' },
   p2pFrozenNotice: { en: 'For your security, your renters won’t see your updated payment info until', es: 'Por tu seguridad, tus inquilinos no verán tu información de pago actualizada hasta' },
   p2pChangeProtectionNote: { en: 'Changing an existing handle requires your password, and hides it from renters for 48 hours — a routine security check, not an error.', es: 'Cambiar un dato existente requiere tu contraseña y lo oculta de los inquilinos por 48 horas — una verificación de seguridad de rutina, no un error.' },
   dwollaLandlordIntroTitle: { en: 'Get paid for rent, automatically', es: 'Recibe el pago de la renta automáticamente' },

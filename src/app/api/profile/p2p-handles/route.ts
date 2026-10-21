@@ -5,7 +5,7 @@ import { sendP2pHandlesChangedEmail, sendP2pHandlesChangedRenterEmail } from '@/
 import { sendPush } from '@/lib/push'
 import { notifyLandlordIds } from '@/lib/landlordCoOwners'
 import { getActiveRenterIds } from '@/lib/landlordRenters'
-import { verifyPassword } from '@/lib/reauth'
+import { verifyPassword, mfaStepUpStatus } from '@/lib/reauth'
 
 const FREEZE_MS = 48 * 60 * 60 * 1000
 
@@ -78,9 +78,18 @@ export async function POST(request: NextRequest) {
   // anyone who could call this route directly with a stolen session token
   // (no password needed) would otherwise sail straight through. Re-checking
   // the password here, server-side, is what actually makes the reauth real.
+  // An account with 2FA enrolled gets held to the stronger bar instead —
+  // see mfaStepUpStatus's own comment for why a second factor beats a
+  // standing password for exactly this kind of change.
   if (isChange) {
-    if (!user.email || !(await verifyPassword(user.email, password || ''))) {
-      return NextResponse.json({ error: 'Incorrect password' }, { status: 401 })
+    const mfa = await mfaStepUpStatus(authClient)
+    if (mfa.enrolled && !mfa.satisfied) {
+      return NextResponse.json({ error: 'mfa_required' }, { status: 428 })
+    }
+    if (!mfa.satisfied) {
+      if (!user.email || !(await verifyPassword(user.email, password || ''))) {
+        return NextResponse.json({ error: 'Incorrect password' }, { status: 401 })
+      }
     }
   }
 

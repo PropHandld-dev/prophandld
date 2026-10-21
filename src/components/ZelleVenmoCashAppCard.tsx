@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabase'
 import { RippleButton } from '@/components/RippleButton'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { CheckCircleIcon, LockIcon } from '@/components/icons'
@@ -37,6 +38,11 @@ export function ZelleVenmoCashAppCard() {
   const [reauthing, setReauthing] = useState(false)
   const [reauthPassword, setReauthPassword] = useState('')
   const [reauthSubmitting, setReauthSubmitting] = useState(false)
+  // Accounts with 2FA enrolled get this instead of the password prompt
+  // above — see mfaStepUpStatus's comment in src/lib/reauth.ts.
+  const [mfaRequired, setMfaRequired] = useState(false)
+  const [mfaCode, setMfaCode] = useState('')
+  const [mfaSubmitting, setMfaSubmitting] = useState(false)
 
   const load = async () => {
     try {
@@ -83,7 +89,10 @@ export function ZelleVenmoCashAppCard() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        if (res.status === 401 && isChange) {
+        if (res.status === 428 && data.error === 'mfa_required') {
+          setMfaRequired(true)
+          setMfaCode('')
+        } else if (res.status === 401 && isChange) {
           setError(t('currentPasswordIncorrect', lang))
           setReauthing(true)
         } else {
@@ -102,13 +111,26 @@ export function ZelleVenmoCashAppCard() {
     }
   }
 
-  const handleSaveClick = () => {
-    if (isChange) {
-      setError(null)
-      setReauthing(true)
+  const handleSaveClick = async () => {
+    setError(null)
+    if (!isChange) {
+      doSave()
       return
     }
-    doSave()
+    // getAuthenticatorAssuranceLevel() reads from the already-loaded
+    // session, no network round trip to our own backend — cheaper and
+    // cleaner than attempting the save first just to read its 401/428.
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+    if (aal?.currentLevel === 'aal2') {
+      doSave() // already stepped up earlier this session
+      return
+    }
+    if (aal?.nextLevel === 'aal2') {
+      setMfaRequired(true)
+      setMfaCode('')
+      return
+    }
+    setReauthing(true)
   }
 
   const handleReauthSubmit = async (e: React.FormEvent) => {
@@ -119,6 +141,39 @@ export function ZelleVenmoCashAppCard() {
     setReauthing(false)
     await doSave(password)
     setReauthSubmitting(false)
+  }
+
+  const handleMfaSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (mfaCode.trim().length === 0) return
+    setMfaSubmitting(true)
+    setError(null)
+
+    const { data: factorsData } = await supabase.auth.mfa.listFactors()
+    const factor = factorsData?.totp?.find((f) => f.status === 'verified')
+    if (!factor) {
+      setError(t('twoFactorVerifyChallengeError', lang))
+      setMfaSubmitting(false)
+      return
+    }
+    const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId: factor.id })
+    if (challengeError || !challenge) {
+      setError(t('twoFactorVerifyChallengeError', lang))
+      setMfaSubmitting(false)
+      return
+    }
+    const { error: verifyError } = await supabase.auth.mfa.verify({ factorId: factor.id, challengeId: challenge.id, code: mfaCode.trim() })
+    if (verifyError) {
+      setError(t('twoFactorCodeMismatchError', lang))
+      setMfaSubmitting(false)
+      return
+    }
+
+    setMfaRequired(false)
+    setMfaCode('')
+    // The session is now aal2 — the server accepts this without a password.
+    await doSave()
+    setMfaSubmitting(false)
   }
 
   const isFrozen = !!frozenUntil && new Date(frozenUntil) > new Date()
@@ -161,6 +216,42 @@ export function ZelleVenmoCashAppCard() {
             <button
               type="button"
               onClick={() => { setReauthing(false); setReauthPassword(''); setError(null) }}
+              className="text-white/50 hover:text-white text-sm transition"
+            >
+              {t('cancel', lang)}
+            </button>
+          </div>
+        </form>
+      ) : mfaRequired ? (
+        <form onSubmit={handleMfaSubmit} className="space-y-3">
+          <div className="flex items-center gap-2 text-white/70 text-sm">
+            <LockIcon className="w-4 h-4 text-[#12A5A9] shrink-0" />
+            {t('mfaStepUpTitle', lang)}
+          </div>
+          <p className="text-white/50 text-xs">{t('mfaStepUpBody', lang)}</p>
+          <input
+            type="text"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={6}
+            value={mfaCode}
+            onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+            placeholder="123456"
+            autoFocus
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-center text-lg tracking-[0.3em] font-semibold placeholder-white/40 focus:outline-none focus:border-[#12A5A9] transition"
+          />
+          {error && <p className="text-red-400 text-xs">{error}</p>}
+          <div className="flex items-center gap-3">
+            <RippleButton
+              type="submit"
+              disabled={mfaSubmitting || mfaCode.length === 0}
+              className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
+            >
+              {mfaSubmitting ? t('verifyingDots', lang) : t('continueBtn', lang)}
+            </RippleButton>
+            <button
+              type="button"
+              onClick={() => { setMfaRequired(false); setMfaCode(''); setError(null) }}
               className="text-white/50 hover:text-white text-sm transition"
             >
               {t('cancel', lang)}

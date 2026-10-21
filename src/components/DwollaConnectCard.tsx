@@ -10,7 +10,7 @@ import { PaymentTrustBadge } from '@/components/PaymentTrustBadge'
 import { useLanguage, t } from '@/lib/i18n'
 
 type CustomerStatus = 'not_started' | 'pending' | 'active' | 'suspended'
-type Step = 'reauth' | 'intro' | 'bank' | 'identity' | 'review' | 'success'
+type Step = 'reauth' | 'mfa' | 'intro' | 'bank' | 'identity' | 'review' | 'success'
 
 // Landlord-facing rent-payout setup via Dwolla — replaces
 // <StripeConnectCard purpose="rent" /> only (contractors' job payouts stay
@@ -45,6 +45,10 @@ export function DwollaConnectCard() {
   const [ssnLast4, setSsnLast4] = useState('')
   const [reauthPassword, setReauthPassword] = useState('')
   const [reauthSubmitting, setReauthSubmitting] = useState(false)
+  // Accounts with 2FA enrolled go through this instead of the password
+  // step above — see mfaStepUpStatus's comment in src/lib/reauth.ts.
+  const [mfaCode, setMfaCode] = useState('')
+  const [mfaSubmitting, setMfaSubmitting] = useState(false)
 
   const load = async () => {
     try {
@@ -74,6 +78,56 @@ export function DwollaConnectCard() {
     setDateOfBirth('')
     setSsnLast4('')
     setReauthPassword('')
+    setMfaCode('')
+  }
+
+  // Decides which step-up this account needs before opening the
+  // bank-details wizard for an already-active payout account — reads the
+  // already-loaded session, no network round trip to our own backend.
+  const handleManageClick = async () => {
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+    if (aal?.currentLevel === 'aal2') {
+      setStep('intro') // already stepped up earlier this session
+      return
+    }
+    if (aal?.nextLevel === 'aal2') {
+      setStep('mfa')
+      return
+    }
+    setStep('reauth')
+  }
+
+  const handleMfaSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (mfaCode.trim().length === 0) return
+    setMfaSubmitting(true)
+    setError(null)
+
+    const { data: factorsData } = await supabase.auth.mfa.listFactors()
+    const factor = factorsData?.totp?.find((f) => f.status === 'verified')
+    if (!factor) {
+      setError(t('twoFactorVerifyChallengeError', lang))
+      setMfaSubmitting(false)
+      return
+    }
+    const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({ factorId: factor.id })
+    if (challengeError || !challenge) {
+      setError(t('twoFactorVerifyChallengeError', lang))
+      setMfaSubmitting(false)
+      return
+    }
+    const { error: verifyError } = await supabase.auth.mfa.verify({ factorId: factor.id, challengeId: challenge.id, code: mfaCode.trim() })
+    if (verifyError) {
+      setError(t('twoFactorCodeMismatchError', lang))
+      setMfaSubmitting(false)
+      return
+    }
+
+    setMfaCode('')
+    setMfaSubmitting(false)
+    // The session is now aal2 — handleFinalSubmit's own call below doesn't
+    // need reauthPassword for this account, the server accepts on aal2 alone.
+    setStep('intro')
   }
 
   // Re-linking an already-active payout account is the one action in this
@@ -148,6 +202,13 @@ export function DwollaConnectCard() {
     })
     const fundingData = await fundingRes.json().catch(() => ({}))
     if (!fundingRes.ok) {
+      if (fundingRes.status === 428 && fundingData.error === 'mfa_required') {
+        // Edge case — aal2 was satisfied when the wizard started but isn't
+        // by the time this final submit runs (e.g. a long-idle tab).
+        setSubmitting(false)
+        setStep('mfa')
+        return
+      }
       if (fundingRes.status === 401) {
         setError(t('currentPasswordIncorrect', lang))
         setReauthPassword('')
@@ -191,7 +252,7 @@ export function DwollaConnectCard() {
       ) : step === null ? (
         status === 'active' ? (
           <RippleButton
-            onClick={() => setStep('reauth')}
+            onClick={handleManageClick}
             className="bg-white/5 border border-white/10 text-white/70 text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-white/8 transition"
           >
             {t('managePayoutAccount', lang)}
@@ -241,6 +302,50 @@ export function DwollaConnectCard() {
                   className="flex-[2] bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-[15px] font-semibold py-3 rounded-xl hover:opacity-90 transition disabled:opacity-40"
                 >
                   {reauthSubmitting ? t('verifyingDots', lang) : t('continueBtn', lang)}
+                </RippleButton>
+              </div>
+            </form>
+          )}
+
+          {step === 'mfa' && (
+            <form onSubmit={handleMfaSubmit} className="space-y-4">
+              <h3 className="text-white font-semibold text-lg">{t('mfaStepUpTitle', lang)}</h3>
+              <p className="text-white/60 text-[14px] leading-relaxed">{t('mfaStepUpBody', lang)}</p>
+              {error && <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">{error}</div>}
+              <div>
+                <label htmlFor="dwollaMfaCode" className="text-white/70 text-[15px] block mb-1 flex items-center gap-1.5">
+                  <LockIcon className="w-3.5 h-3.5" />
+                  {t('twoFactorAuthTitle', lang)}
+                </label>
+                <input
+                  id="dwollaMfaCode"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  value={mfaCode}
+                  onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="123456"
+                  autoFocus
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-center text-lg tracking-[0.3em] font-semibold focus:outline-none focus:border-[#12A5A9] transition"
+                  required
+                />
+              </div>
+              <div className="flex gap-3 pt-1">
+                <RippleButton
+                  type="button"
+                  onClick={resetForm}
+                  disabled={mfaSubmitting}
+                  className="flex-1 bg-white/5 border border-white/10 text-white/60 text-[15px] font-semibold py-3 rounded-xl hover:bg-white/8 transition disabled:opacity-40"
+                >
+                  {t('cancel', lang)}
+                </RippleButton>
+                <RippleButton
+                  type="submit"
+                  disabled={mfaSubmitting || mfaCode.length === 0}
+                  className="flex-[2] bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-[15px] font-semibold py-3 rounded-xl hover:opacity-90 transition disabled:opacity-40"
+                >
+                  {mfaSubmitting ? t('verifyingDots', lang) : t('continueBtn', lang)}
                 </RippleButton>
               </div>
             </form>

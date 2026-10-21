@@ -206,10 +206,14 @@ function SignupForm() {
     // to which version of the role-specific terms, which is a real gap if
     // acceptance is ever contested. TERMS_VERSION below should track each
     // role terms page's own `lastUpdated` string whenever those pages change.
+    // Goes through record_terms_acceptance() (a security-definer RPC, see
+    // the security-hardening SQL script) rather than a plain client
+    // `.update()` — that function stamps the DATABASE's own clock and is
+    // write-once, so the record can't be backdated or later altered from
+    // the client, which a plain update to this user's own row otherwise
+    // would have allowed.
     supabase
-      .from('users')
-      .update({ terms_accepted_at: new Date().toISOString(), terms_version: TERMS_VERSION[role] })
-      .eq('id', data.user.id)
+      .rpc('record_terms_acceptance', { version: TERMS_VERSION[role] })
       .then(({ error: termsSyncError }) => {
         if (termsSyncError) console.error('signup: could not record terms acceptance', termsSyncError)
       })
