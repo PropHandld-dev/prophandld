@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Prophandld</string>
+    <string name="title_activity_main">Prophandld</string>
+    <string name="package_name">com.prophandld.app</string>
+    <string name="custom_url_scheme">com.prophandld.app</string>
+</resources>

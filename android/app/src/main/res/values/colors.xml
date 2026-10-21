@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Matches the web app's dark navy/teal theme (#0C1A2E base,
+         #12A5A9 teal accent) so the native chrome — status bar,
+         splash background — doesn't clash with the WebView content. -->
+    <color name="colorPrimary">#0C1A2E</color>
+    <color name="colorPrimaryDark">#0C1A2E</color>
+    <color name="colorAccent">#12A5A9</color>
+</resources>
