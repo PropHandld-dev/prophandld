@@ -123,15 +123,13 @@ export default function SubmitBidPage() {
         .order('created_at', { ascending: false })
 
       if (photosData && photosData.length > 0) {
-        const enriched = await Promise.all(
-          photosData.map(async (photo) => {
-            const { data: signedUrlData } = await supabase.storage
-              .from('job-photos')
-              .createSignedUrl(photo.photo_url, 3600)
-            return { ...photo, displayUrl: signedUrlData?.signedUrl }
-          })
-        )
-        setPhotos(enriched)
+        // One batched request for every photo link instead of one per
+        // photo — matches the job detail page's own pattern.
+        const { data: signed } = await supabase.storage
+          .from('job-photos')
+          .createSignedUrls(photosData.map((p) => p.photo_url), 3600)
+        const urlByPath = new Map((signed || []).map((s) => [s.path, s.signedUrl]))
+        setPhotos(photosData.map((photo) => ({ ...photo, displayUrl: urlByPath.get(photo.photo_url) })))
       }
 
       await loadQuestions()

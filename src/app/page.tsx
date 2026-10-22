@@ -15,6 +15,7 @@ import { FeatureTourCarousel } from '@/components/FeatureTourCarousel'
 import { HowItWorksTracker, NotificationPreview } from '@/components/LandingTracker'
 import { BellIcon, ReceiptIcon } from '@/components/icons'
 import { LandingHelpWidget } from '@/components/LandingHelpWidget'
+import { LaunchEventSection } from '@/components/LaunchEventSection'
 
 const OPERATIONS_FEATURES = [
   { icon: DollarSignIcon, title: 'Online rent', desc: 'Rent tracks itself every month. Renters pay by bank transfer or debit card. Edit any month, add a credit, or refund an overpayment in a tap.' },
@@ -349,6 +350,13 @@ export default function LandingPage() {
             </Link>
           </div>
         </div>
+        </ScrollReveal>
+      </section>
+
+      {/* Launch event interest */}
+      <section className="max-w-5xl mx-auto px-6 pb-16">
+        <ScrollReveal>
+          <LaunchEventSection />
         </ScrollReveal>
       </section>
 

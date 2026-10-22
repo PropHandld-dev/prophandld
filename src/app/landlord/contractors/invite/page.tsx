@@ -29,11 +29,17 @@ export default function InviteContractorPage() {
   const [invites, setInvites] = useState<any[]>([])
   const [form, setForm] = useState({ email: '', note: '' })
   const [mode, setMode] = useState<ContactMode>('email')
+  const [userId, setUserId] = useState<string | null>(null)
 
-  const loadInvites = async () => {
+  const loadInvites = async (userId: string) => {
+    // Explicit landlord_user_id filter as defense-in-depth, same pattern
+    // every other "my data" list in the app uses on top of RLS — this was
+    // the one list screen that relied on RLS alone with no client-side
+    // scoping, confirmed via audit.
     const { data } = await supabase
       .from('contractor_invites')
       .select('*')
+      .eq('landlord_user_id', userId)
       .order('created_at', { ascending: false })
     setInvites(data || [])
   }
@@ -45,7 +51,8 @@ export default function InviteContractorPage() {
         router.replace('/login')
         return
       }
-      await loadInvites()
+      setUserId(user.id)
+      await loadInvites(user.id)
       setLoading(false)
     }
     init()
@@ -78,13 +85,13 @@ export default function InviteContractorPage() {
 
     setSuccess(`${t('inviteSentToDotPrefix', lang)}${form.email.trim()}.`)
     setForm({ email: '', note: '' })
-    await loadInvites()
+    if (userId) await loadInvites(userId)
     setSending(false)
   }
 
   const handleCancel = async (inviteId: string) => {
     await supabase.from('contractor_invites').update({ status: 'cancelled' }).eq('id', inviteId)
-    await loadInvites()
+    if (userId) await loadInvites(userId)
   }
 
   const statusLabel = (status: string) => {

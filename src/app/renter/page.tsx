@@ -53,6 +53,14 @@ export default function RenterDashboard() {
   const [pickTimeAlerts, setPickTimeAlerts] = useState<any[]>([])
   const [scheduleAlerts, setScheduleAlerts] = useState<any[]>([])
   const [jobsLoading, setJobsLoading] = useState(true)
+  // True when the tenancy/unit lookup comes back empty — previously the
+  // page just silently stopped loading with no error state set at all,
+  // so the quick-action grid, "Your home" card, and documents link all
+  // vanished (everything below is gated on `unit &&`) with zero
+  // indication why, reading as a broken, half-loaded app rather than a
+  // real "nothing to show" state. report/page.tsx already handles this
+  // exact situation with a clear message; this matches it.
+  const [noUnit, setNoUnit] = useState(false)
 
   useEffect(() => {
     const getUser = async () => {
@@ -73,6 +81,7 @@ export default function RenterDashboard() {
         : { data: null, error: null }
 
       if (tenancyError || !tenancyData) {
+        setNoUnit(true)
         setContactsLoading(false)
         setJobsLoading(false)
         return
@@ -92,6 +101,7 @@ export default function RenterDashboard() {
       ])
 
       if (!unitData) {
+        setNoUnit(true)
         setContactsLoading(false)
         setJobsLoading(false)
         return
@@ -254,6 +264,12 @@ export default function RenterDashboard() {
                 Replaces the separate Pay rent link card and the big gradient
                 Report-an-issue CTA that used to sit lower on this page — one
                 entry point per action now, not two. */}
+            {noUnit && (
+              <div className="bg-yellow-500/8 border border-yellow-500/20 rounded-2xl px-5 py-4 mb-6">
+                <p className="text-yellow-400/90 text-sm">{t('noActiveUnitError', lang)}</p>
+              </div>
+            )}
+
             {unit && (
               <div className="grid grid-cols-2 gap-3 mb-6" data-tour="report">
                 <Link

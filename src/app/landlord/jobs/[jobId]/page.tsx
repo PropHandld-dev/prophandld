@@ -839,11 +839,8 @@ export default function JobDetailPage() {
     }
   }
 
-  // Note: this doesn't pause the 3-day auto-approve clock, which still runs
-  // from contractor_completed_at regardless — a question left unanswered
-  // long enough can still auto-approve. Flagged, not solved here: pausing it
-  // is a separate decision about what the clock should actually mean once a
-  // question is outstanding.
+  // The 3-day auto-approve cron (api/cron/job-auto-approve) now skips any
+  // job with an unanswered clarification question — see its query filter.
   const handleSendClarification = async () => {
     if (!clarificationText.trim()) return
     setSendingClarification(true)

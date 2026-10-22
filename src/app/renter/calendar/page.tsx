@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { ScheduleCalendar, eventState, CALENDAR_JOB_STATUSES, calendarHistoryStart, type CalendarEvent } from '@/components/ScheduleCalendar'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { BottomTabBar } from '@/components/BottomTabBar'
+import { Skeleton } from '@/components/Skeleton'
 import { timeWindowLabel } from '@/lib/constants'
 import { useLanguage, t } from '@/lib/i18n'
 import { RENTER_TABS } from '@/lib/navTabs'
@@ -63,12 +64,6 @@ export default function RenterCalendarPage() {
     init()
   }, [router])
 
-  if (loading) return (
-    <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center">
-      <div className="text-white/50">{t('loading', lang)}</div>
-    </div>
-  )
-
   return (
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
@@ -80,14 +75,24 @@ export default function RenterCalendarPage() {
       </nav>
 
       <main className="max-w-3xl mx-auto px-6 py-10 pb-28">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-white">{t('calendarTitle', lang)}</h1>
-          <p className="text-white/50 text-sm mt-1">{t('renterCalendarSubtitle', lang)}</p>
-        </div>
+        {loading ? (
+          <div className="space-y-4">
+            <Skeleton className="h-7 w-40 mb-2" />
+            <Skeleton className="h-4 w-56" />
+            <Skeleton className="h-80 mt-4" />
+          </div>
+        ) : (
+          <>
+            <div className="mb-8">
+              <h1 className="text-2xl font-bold text-white">{t('calendarTitle', lang)}</h1>
+              <p className="text-white/50 text-sm mt-1">{t('renterCalendarSubtitle', lang)}</p>
+            </div>
 
-        <ScrollReveal>
-          <ScheduleCalendar events={events} />
-        </ScrollReveal>
+            <ScrollReveal>
+              <ScheduleCalendar events={events} />
+            </ScrollReveal>
+          </>
+        )}
       </main>
 
       <BottomTabBar tabs={RENTER_TABS} />

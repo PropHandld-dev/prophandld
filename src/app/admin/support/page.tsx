@@ -15,9 +15,12 @@ type Row = {
   resolvedByName: string | null
 }
 
+type EventRow = { id: string; email: string; created_at: string }
+
 export default function AdminSupportPage() {
   const [loading, setLoading] = useState(true)
   const [rows, setRows] = useState<Row[]>([])
+  const [eventInterest, setEventInterest] = useState<EventRow[]>([])
   const [error, setError] = useState<string | null>(null)
   const [actioningId, setActioningId] = useState<string | null>(null)
 
@@ -30,6 +33,7 @@ export default function AdminSupportPage() {
       return
     }
     setRows(data.rows || [])
+    setEventInterest(data.eventInterest || [])
     setLoading(false)
   }
 
@@ -122,9 +126,35 @@ export default function AdminSupportPage() {
           <ScrollReveal>
             <h2 className="text-white/70 font-semibold text-sm mb-3">Resolved ({resolved.length})</h2>
             {resolved.length === 0 ? (
-              <p className="text-white/50 text-sm">Nothing resolved yet.</p>
+              <p className="text-white/50 text-sm mb-8">Nothing resolved yet.</p>
             ) : (
-              <div>{resolved.map(renderRow)}</div>
+              <div className="mb-8">{resolved.map(renderRow)}</div>
+            )}
+          </ScrollReveal>
+
+          <ScrollReveal>
+            <div className="flex items-center justify-between mb-3 gap-3">
+              <h2 className="text-white/70 font-semibold text-sm">Launch event interest ({eventInterest.length})</h2>
+              {eventInterest.length > 0 && (
+                <button
+                  onClick={() => navigator.clipboard?.writeText(eventInterest.map((r) => r.email).join(', ')).catch(() => {})}
+                  className="text-[#12A5A9] text-xs font-semibold hover:underline shrink-0"
+                >
+                  Copy all emails
+                </button>
+              )}
+            </div>
+            {eventInterest.length === 0 ? (
+              <p className="text-white/50 text-sm">No one has signed up yet.</p>
+            ) : (
+              <div className="bg-white/3 border border-white/8 rounded-2xl divide-y divide-white/8">
+                {eventInterest.map((r) => (
+                  <div key={r.id} className="flex items-center justify-between gap-3 px-5 py-3">
+                    <a href={`mailto:${r.email}`} className="text-white text-sm hover:underline">{r.email}</a>
+                    <span className="text-white/40 text-xs shrink-0">{new Date(r.created_at).toLocaleDateString()}</span>
+                  </div>
+                ))}
+              </div>
             )}
           </ScrollReveal>
         </>

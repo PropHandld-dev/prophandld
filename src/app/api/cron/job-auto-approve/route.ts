@@ -67,6 +67,13 @@ export async function GET(request: NextRequest) {
       .eq('status', 'pending_review')
       .not('contractor_completed_at', 'is', null)
       .lte('contractor_completed_at', cutoff)
+      // A landlord's clarification question (see handleSendClarification,
+      // landlord/jobs/[jobId]/page.tsx) never used to pause this clock —
+      // a job could sit auto-approved with an open question the contractor
+      // hadn't answered yet. Skips any job with clarification_note set and
+      // no clarification_response yet; once answered, the normal 3-day
+      // window applies same as always.
+      .or('clarification_note.is.null,clarification_response.not.is.null')
       .order('id')
       .range(from, from + PAGE_SIZE - 1)
 

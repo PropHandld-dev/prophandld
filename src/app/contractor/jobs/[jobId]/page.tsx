@@ -286,54 +286,61 @@ export default function ContractorJobDetailPage() {
     setUploading(true)
     setError(null)
 
-    for (const original of Array.from(files)) {
-      const file = await compressImage(original)
-      const fileExt = file.name.split('.').pop()
-      const filePath = `${jobId}/${crypto.randomUUID()}.${fileExt}`
+    // Uploaded together, not one after another — a contractor attaching
+    // 4-5 before/after photos one-handed on a job site, possibly on weak
+    // signal, used to wait through each file's compress→upload→insert
+    // cycle (plus up to ~4.5s of retry backoff per file) in sequence,
+    // which could add up to tens of seconds. The per-file retry logic is
+    // unchanged, it just now runs concurrently across files instead of
+    // blocking the next one.
+    const results = await Promise.all(
+      Array.from(files).map(async (original) => {
+        const file = await compressImage(original)
+        const fileExt = file.name.split('.').pop()
+        const filePath = `${jobId}/${crypto.randomUUID()}.${fileExt}`
 
-      const { error: uploadError } = await supabase.storage
-        .from('job-photos')
-        .upload(filePath, file)
-
-      if (uploadError) {
-        console.error('Error uploading photo:', uploadError)
-        setError(t('onePhotoFailedUpload', lang))
-        continue
-      }
-
-      // The database can be slow under load and cancel the insert with a
-      // statement timeout. Retry a couple of times, checking first whether
-      // an earlier attempt actually landed so a photo is never saved twice.
-      let insertError: { message: string } | null = null
-      for (let attempt = 0; attempt < 3; attempt++) {
-        if (attempt > 0) {
-          await new Promise((r) => setTimeout(r, 1500 * attempt))
-          const { data: existing } = await supabase
-            .from('job_photos')
-            .select('id')
-            .eq('photo_url', filePath)
-            .maybeSingle()
-          if (existing) {
-            insertError = null
-            break
-          }
+        const { error: uploadError } = await supabase.storage.from('job-photos').upload(filePath, file)
+        if (uploadError) {
+          console.error('Error uploading photo:', uploadError)
+          return { name: original.name, ok: false, reason: 'upload' as const }
         }
-        const { error } = await supabase
-          .from('job_photos')
-          .insert({
-            job_id: jobId,
-            uploaded_by: userId,
-            photo_url: filePath,
-            stage,
-          })
-        insertError = error
-        if (!error) break
-      }
 
-      if (insertError) {
-        console.error('Error saving photo record:', insertError)
-        setError(t('photoUploadedNotSaved', lang))
-      }
+        // The database can be slow under load and cancel the insert with a
+        // statement timeout. Retry a couple of times, checking first whether
+        // an earlier attempt actually landed so a photo is never saved twice.
+        let insertError: { message: string } | null = null
+        for (let attempt = 0; attempt < 3; attempt++) {
+          if (attempt > 0) {
+            await new Promise((r) => setTimeout(r, 1500 * attempt))
+            const { data: existing } = await supabase
+              .from('job_photos')
+              .select('id')
+              .eq('photo_url', filePath)
+              .maybeSingle()
+            if (existing) {
+              insertError = null
+              break
+            }
+          }
+          const { error } = await supabase
+            .from('job_photos')
+            .insert({ job_id: jobId, uploaded_by: userId, photo_url: filePath, stage })
+          insertError = error
+          if (!error) break
+        }
+
+        if (insertError) {
+          console.error('Error saving photo record:', insertError)
+          return { name: original.name, ok: false, reason: 'save' as const }
+        }
+        return { name: original.name, ok: true as const }
+      })
+    )
+
+    const failed = results.filter((r) => !r.ok) as { name: string; ok: false; reason: 'upload' | 'save' }[]
+    if (failed.length > 0) {
+      const names = failed.map((f) => f.name).join(', ')
+      setError(failed.some((f) => f.reason === 'save') ? `${t('photoUploadedNotSaved', lang)} (${names})` : `${t('onePhotoFailedUpload', lang)} (${names})`)
     }
 
     await fetchJob()

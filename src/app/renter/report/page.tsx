@@ -137,15 +137,20 @@ export default function ReportIssuePage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const incoming = Array.from(e.target.files)
+      // Previously bailed on the FIRST invalid file and discarded the
+      // whole selection — attaching 5 photos where the 4th was an
+      // oversized video lost all 5, not just the bad one. Now only the
+      // bad file(s) get rejected, named in the error, and everything
+      // valid still gets added.
+      const valid: File[] = []
+      const rejected: string[] = []
       for (const file of incoming) {
         const problem = validateMediaFile(file)
-        if (problem) {
-          setError(problem)
-          return
-        }
+        if (problem) rejected.push(`${file.name}: ${problem}`)
+        else valid.push(file)
       }
-      setError(null)
-      setFiles([...files, ...incoming])
+      setError(rejected.length > 0 ? rejected.join(' ') : null)
+      if (valid.length > 0) setFiles([...files, ...valid])
     }
     e.target.value = ''
   }

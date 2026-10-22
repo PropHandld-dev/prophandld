@@ -117,16 +117,17 @@ export default function RenterDocumentsPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const incoming = Array.from(e.target.files)
+      // Only reject the bad file(s), named in the error — previously one
+      // invalid file in a multi-file selection discarded the entire batch.
+      const valid: File[] = []
+      const rejected: string[] = []
       for (const file of incoming) {
         const validationError = validateDocumentFile(file)
-        if (validationError) {
-          setError(validationError)
-          e.target.value = ''
-          return
-        }
+        if (validationError) rejected.push(`${file.name}: ${validationError}`)
+        else valid.push(file)
       }
-      setError(null)
-      setFiles([...files, ...incoming])
+      setError(rejected.length > 0 ? rejected.join(' ') : null)
+      if (valid.length > 0) setFiles([...files, ...valid])
     }
     e.target.value = ''
   }
@@ -166,42 +167,56 @@ export default function RenterDocumentsPage() {
       ? form.custom_document_type.trim()
       : form.document_type
 
-    for (const file of files) {
-      const fileExt = file.name.split('.').pop()
-      const filePath = `${propertyId}/${crypto.randomUUID()}.${fileExt}`
+    // Uploaded together, not one after another — this used to take
+    // visibly longer for 3-4 files than it needed to. Each file's outcome
+    // is tracked individually so a partial failure doesn't clear the
+    // whole selection or hide which file actually failed: previously
+    // `files` was unconditionally emptied after the loop regardless of
+    // which uploads succeeded, leaving a renter unable to tell which
+    // document(s) still needed re-uploading.
+    const results = await Promise.all(
+      files.map(async (file) => {
+        const fileExt = file.name.split('.').pop()
+        const filePath = `${propertyId}/${crypto.randomUUID()}.${fileExt}`
 
-      const { error: uploadError } = await supabase.storage
-        .from('documents')
-        .upload(filePath, file)
+        const { error: uploadError } = await supabase.storage.from('documents').upload(filePath, file)
+        if (uploadError) {
+          console.error('Error uploading document:', uploadError)
+          return { file, ok: false }
+        }
 
-      if (uploadError) {
-        console.error('Error uploading document:', uploadError)
-        setError(t('filesFailedToUpload', lang))
-        continue
-      }
+        const { error: insertError } = await supabase
+          .from('documents')
+          .insert({
+            property_id: propertyId,
+            unit_id: unitId,
+            uploaded_by: userId,
+            uploaded_by_role: 'renter',
+            document_type: documentType,
+            filename: file.name,
+            file_url: filePath,
+            visibility: form.visibility,
+            expiry_date: form.document_type === 'Renters Insurance' && form.expiry_date ? form.expiry_date : null,
+          })
 
-      const { error: insertError } = await supabase
-        .from('documents')
-        .insert({
-          property_id: propertyId,
-          unit_id: unitId,
-          uploaded_by: userId,
-          uploaded_by_role: 'renter',
-          document_type: documentType,
-          filename: file.name,
-          file_url: filePath,
-          visibility: form.visibility,
-          expiry_date: form.document_type === 'Renters Insurance' && form.expiry_date ? form.expiry_date : null,
-        })
+        if (insertError) {
+          console.error('Error saving document record:', insertError)
+          // The file itself is already in storage at this point — worth
+          // knowing if this ever needs manual cleanup, but not worth
+          // blocking on deleting it here; same tradeoff this app's other
+          // upload flows already make.
+          return { file, ok: false }
+        }
+        return { file, ok: true }
+      })
+    )
 
-      if (insertError) {
-        console.error('Error saving document record:', insertError)
-        setError(t('filesFailedToSave', lang))
-      }
+    const failed = results.filter((r) => !r.ok)
+    setFiles(failed.map((r) => r.file))
+    setError(failed.length > 0 ? `${t('filesFailedToUpload', lang)} (${failed.map((r) => r.file.name).join(', ')})` : null)
+    if (failed.length === 0) {
+      setForm({ document_type: '', custom_document_type: '', visibility: 'landlord_only', expiry_date: '' })
     }
-
-    setFiles([])
-    setForm({ document_type: '', custom_document_type: '', visibility: 'landlord_only', expiry_date: '' })
     await loadDocuments(propertyId)
     setUploading(false)
   }

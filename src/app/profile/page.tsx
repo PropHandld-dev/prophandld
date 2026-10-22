@@ -50,6 +50,7 @@ export default function ProfilePage() {
   const [initialLanguage, setInitialLanguage] = useState<'en' | 'es'>('en')
   const [showLanguageToast, setShowLanguageToast] = useState(false)
   const [showInviteLinkedToast, setShowInviteLinkedToast] = useState(false)
+  const [showProfileSavedToast, setShowProfileSavedToast] = useState(false)
   const [smsOptIn, setSmsOptIn] = useState(false)
   const [smsSaving, setSmsSaving] = useState(false)
   const [phoneVerified, setPhoneVerified] = useState(false)
@@ -86,11 +87,19 @@ export default function ProfilePage() {
       })
       setInitialLanguage(loadedLanguage)
 
-      const { data: userRow } = await supabase
-        .from('users')
-        .select('sms_opt_in, email_notifications_enabled, push_notifications_enabled, phone, phone_verified_at')
-        .eq('id', user.id)
-        .maybeSingle()
+      // Independent of each other — only depend on user.id, not on one
+      // another — so they run as one round trip instead of two. This was
+      // the only data-heavy page in the codebase with several sequential
+      // Supabase calls and no Promise.all; every other one (e.g. the
+      // landlord dashboard) was already refactored for this exact pattern.
+      const [{ data: userRow }] = await Promise.all([
+        supabase
+          .from('users')
+          .select('sms_opt_in, email_notifications_enabled, push_notifications_enabled, phone, phone_verified_at')
+          .eq('id', user.id)
+          .maybeSingle(),
+        loadBackupContacts(user.id),
+      ])
       setSmsOptIn(!!userRow?.sms_opt_in)
       setEmailNotifEnabled(userRow?.email_notifications_enabled !== false)
       setPushNotifEnabled(userRow?.push_notifications_enabled !== false)
@@ -100,8 +109,6 @@ export default function ProfilePage() {
       // just set from, read directly since the setForm above hasn't
       // actually landed in this closure's `form` yet).
       setPhoneVerified(!!userRow?.phone_verified_at && userRow.phone === (user.user_metadata?.phone || ''))
-
-      await loadBackupContacts(user.id)
 
       setLoading(false)
     }
@@ -347,6 +354,15 @@ export default function ProfilePage() {
     }
 
     setSuccess(t('profileUpdatedToast', lang))
+    // The inline `success` banner above renders far down the page (below
+    // Password, Linked Profiles, Co-Owners/Co-Renters), so saving the very
+    // first form on the page — the one most people actually touch — gave
+    // no visible confirmation near the button someone just clicked. Every
+    // other save action on this page (password, language, invite-linking)
+    // already pairs its inline message with a floating toast; this one
+    // didn't.
+    setShowProfileSavedToast(true)
+    setTimeout(() => setShowProfileSavedToast(false), 3000)
   }
 
   const handleChangePassword = async (e: React.FormEvent) => {
@@ -940,6 +956,13 @@ export default function ProfilePage() {
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-[#0F2138] border border-[#12A5A9]/30 rounded-xl px-5 py-3 shadow-lg flex items-center gap-2 z-50 motion-safe:animate-[floatUp_0.25s_ease-out]">
           <span className="text-[#12A5A9]">✓</span>
           <span className="text-white text-sm font-medium">{t('languageUpdatedToast', form.preferred_language as 'en' | 'es')}</span>
+        </div>
+      )}
+
+      {showProfileSavedToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-[#0F2138] border border-[#12A5A9]/30 rounded-xl px-5 py-3 shadow-lg flex items-center gap-2 z-50 motion-safe:animate-[floatUp_0.25s_ease-out]">
+          <span className="text-[#12A5A9]">✓</span>
+          <span className="text-white text-sm font-medium">{t('profileUpdatedToast', lang)}</span>
         </div>
       )}
 

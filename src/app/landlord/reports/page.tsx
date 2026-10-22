@@ -14,7 +14,7 @@ import { DollarSignIcon, ReceiptIcon, DownloadIcon, PrinterIcon } from '@/compon
 import { fetchAllPagesOrEmpty } from '@/lib/pagedQuery'
 import { downloadCsv } from '@/lib/csvExport'
 import { graduatedMonthlyAmount } from '@/lib/pricingTiers'
-import { useLanguage, t } from '@/lib/i18n'
+import { useLanguage, t, type Lang } from '@/lib/i18n'
 import { getLandlordIds } from '@/lib/landlordIds'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 
@@ -27,7 +27,23 @@ type RentRow = {
   propertyId: string
   place: string
   amount: number
-  method: 'bank' | 'card' | null
+  method: 'bank' | 'card' | 'zelle' | 'venmo' | 'cashapp' | null
+}
+
+// Matches receipts/rent/[rentPaymentId]/page.tsx's mapping — rent_payments.payment_method
+// can be any of these (a P2P mark-received sets it to the renter's stated
+// method; a plain manual mark-received, e.g. cash or check, leaves it
+// null), but this page's CSV/PDF/on-screen list used to default anything
+// that wasn't exactly 'bank' straight to "Debit Card" — mislabeling every
+// Zelle/Venmo/Cash App payment, and every cash/check payment, in a
+// landlord's own financial/tax records.
+function paymentMethodLabel(method: RentRow['method'], lang: Lang): string {
+  if (method === 'bank') return t('bankTransferValue', lang)
+  if (method === 'card') return t('debitCardValue', lang)
+  if (method === 'zelle') return 'Zelle'
+  if (method === 'venmo') return 'Venmo'
+  if (method === 'cashapp') return 'Cash App'
+  return t('otherPaymentMethodValue', lang)
 }
 
 type JobRow = {
@@ -148,7 +164,7 @@ export default function LandlordReportsPage() {
           propertyId: propertyOfUnit.get(tenancyUnit.get(rp.tenancy_id) || '') || '',
           place: placeOf(tenancyUnit.get(rp.tenancy_id) || ''),
           amount: Number(rp.actual_amount),
-          method: (rp.payment_method as 'bank' | 'card' | null) || null,
+          method: (rp.payment_method as RentRow['method']) || null,
         }))
       )
 
@@ -221,7 +237,7 @@ export default function LandlordReportsPage() {
     downloadCsv(
       `prophandld-rent-collected-${range.from}-to-${range.to}.csv`,
       [t('dateHeader', lang), t('propertyLabel', lang), t('amountHeader', lang), t('methodLabelReceipt', lang)],
-      filteredRent.map((r) => [r.date, r.place, r.amount.toFixed(2), r.method === 'bank' ? t('bankTransferValue', lang) : t('debitCardValue', lang)]),
+      filteredRent.map((r) => [r.date, r.place, r.amount.toFixed(2), paymentMethodLabel(r.method, lang)]),
       { heading: `Prophandld — ${t('rentCollectedLabel', lang)}`, subheading: `${landlordName || ''} · ${rangeLabel}` }
     )
   }
@@ -386,7 +402,7 @@ export default function LandlordReportsPage() {
                       <div className="min-w-0 flex-1">
                         <p className="text-white text-sm truncate">{r.place}</p>
                         <p className="text-white/40 text-xs mt-0.5">
-                          {new Date(r.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} · {r.method === 'bank' ? t('bankTransferValue', lang) : t('debitCardValue', lang)}
+                          {new Date(r.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} · {paymentMethodLabel(r.method, lang)}
                         </p>
                       </div>
                       <div className="text-right shrink-0">
@@ -492,7 +508,7 @@ export default function LandlordReportsPage() {
               <tr key={r.id} className="border-b border-black/5">
                 <td className="py-1.5">{r.date}</td>
                 <td className="py-1.5">{r.place}</td>
-                <td className="py-1.5">{r.method === 'bank' ? t('bankTransferValue', lang) : t('debitCardValue', lang)}</td>
+                <td className="py-1.5">{paymentMethodLabel(r.method, lang)}</td>
                 <td className="py-1.5 text-right">${r.amount.toFixed(2)}</td>
               </tr>
             ))}

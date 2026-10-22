@@ -1836,6 +1836,7 @@ const STRINGS = {
   methodLabelReceipt: { en: 'Method', es: 'Método' },
   bankTransferValue: { en: 'Bank transfer', es: 'Transferencia bancaria' },
   debitCardValue: { en: 'Debit card', es: 'Tarjeta de débito' },
+  otherPaymentMethodValue: { en: 'Cash / check / other', es: 'Efectivo / cheque / otro' },
   cardOrBankTransferValue: { en: 'Card or bank transfer', es: 'Tarjeta o transferencia bancaria' },
   amountPaidLabel: { en: 'Amount paid', es: 'Monto pagado' },
   processedViaFooterNote: { en: 'Processed via Prophandld · prophandld.com', es: 'Procesado a través de Prophandld · prophandld.com' },

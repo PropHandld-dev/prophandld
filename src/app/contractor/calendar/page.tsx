@@ -7,8 +7,10 @@ import Link from 'next/link'
 import { ScheduleCalendar, eventState, CALENDAR_JOB_STATUSES, calendarHistoryStart, type CalendarEvent } from '@/components/ScheduleCalendar'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { BottomTabBar } from '@/components/BottomTabBar'
+import { Skeleton } from '@/components/Skeleton'
 import { useLanguage, t } from '@/lib/i18n'
 import { CONTRACTOR_TABS } from '@/lib/navTabs'
+import { fetchAllPagesOrEmpty } from '@/lib/pagedQuery'
 
 export default function ContractorCalendarPage() {
   const router = useRouter()
@@ -24,10 +26,17 @@ export default function ContractorCalendarPage() {
         return
       }
 
-      const { data: bidsData } = await supabase
-        .from('bids')
-        .select('*, jobs(id, category, status, proposed_date, proposed_window, schedule_confirmed, units(unit_number, properties(address, city)))')
-        .eq('contractor_user_id', user.id)
+      // Supabase silently caps a single response at 1000 rows — the
+      // dashboard already hit and fixed this exact issue for the same
+      // `bids` table. A long-tenured contractor past 1000 historical bids
+      // would otherwise silently lose calendar entries with no error.
+      const bidsData = await fetchAllPagesOrEmpty<any>((from, to) =>
+        supabase
+          .from('bids')
+          .select('*, jobs(id, category, status, proposed_date, proposed_window, schedule_confirmed, units(unit_number, properties(address, city)))')
+          .eq('contractor_user_id', user.id)
+          .range(from, to)
+      )
 
       // Only jobs this contractor was actually selected for. (A bid that was
       // not selected used to put the winner's schedule on this calendar.)
@@ -56,12 +65,6 @@ export default function ContractorCalendarPage() {
     init()
   }, [router])
 
-  if (loading) return (
-    <div className="min-h-screen bg-[#0C1A2E] flex items-center justify-center">
-      <div className="text-white/50">{t('loading', lang)}</div>
-    </div>
-  )
-
   return (
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
@@ -73,14 +76,24 @@ export default function ContractorCalendarPage() {
       </nav>
 
       <main className="max-w-3xl mx-auto px-6 py-10 pb-28">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-white">{t('calendarTitle', lang)}</h1>
-          <p className="text-white/50 text-sm mt-1">{t('contractorCalendarSubtitle', lang)}</p>
-        </div>
+        {loading ? (
+          <div className="space-y-4">
+            <Skeleton className="h-7 w-40 mb-2" />
+            <Skeleton className="h-4 w-56" />
+            <Skeleton className="h-80 mt-4" />
+          </div>
+        ) : (
+          <>
+            <div className="mb-8">
+              <h1 className="text-2xl font-bold text-white">{t('calendarTitle', lang)}</h1>
+              <p className="text-white/50 text-sm mt-1">{t('contractorCalendarSubtitle', lang)}</p>
+            </div>
 
-        <ScrollReveal>
-          <ScheduleCalendar events={events} />
-        </ScrollReveal>
+            <ScrollReveal>
+              <ScheduleCalendar events={events} />
+            </ScrollReveal>
+          </>
+        )}
       </main>
 
       <BottomTabBar tabs={CONTRACTOR_TABS} />

@@ -11,14 +11,17 @@ export async function GET() {
   }
 
   const supabaseAdmin = getSupabaseAdmin()
-  const { data: rows, error } = await supabaseAdmin
-    .from('support_escalations')
-    .select('*')
-    .order('created_at', { ascending: false })
+  const [{ data: rows, error }, { data: eventRows, error: eventError }] = await Promise.all([
+    supabaseAdmin.from('support_escalations').select('*').order('created_at', { ascending: false }),
+    supabaseAdmin.from('event_interest').select('*').order('created_at', { ascending: false }),
+  ])
 
   if (error) {
     console.error('admin/support: error loading rows', error)
     return NextResponse.json({ error: 'Could not load questions' }, { status: 500 })
+  }
+  if (eventError) {
+    console.error('admin/support: error loading event interest', eventError)
   }
 
   const resolverIds = Array.from(new Set((rows || []).map((r) => r.resolved_by).filter(Boolean)))
@@ -32,5 +35,6 @@ export async function GET() {
       ...r,
       resolvedByName: r.resolved_by ? byId.get(r.resolved_by)?.full_name || byId.get(r.resolved_by)?.email || null : null,
     })),
+    eventInterest: eventRows || [],
   })
 }

@@ -10,6 +10,7 @@ import { RippleButton } from '@/components/RippleButton'
 import { ReceiptIcon, DollarSignIcon, DownloadIcon, PrinterIcon } from '@/components/icons'
 import { downloadCsv } from '@/lib/csvExport'
 import { useLanguage, t } from '@/lib/i18n'
+import { fetchAllPages } from '@/lib/pagedQuery'
 
 type Bid = {
   id: string
@@ -66,11 +67,19 @@ export default function ContractorEarningsPage() {
       }
       setContractorName((user.user_metadata as any)?.full_name || '')
 
-      const { data, error } = await supabase
-        .from('bids')
-        .select('id, amount, payment_status, paid_at, created_at, job_id, jobs(category, status, units(unit_number, properties(address, city)))')
-        .eq('contractor_user_id', user.id)
-        .order('created_at', { ascending: false })
+      // Supabase silently caps a single response at 1000 rows — the
+      // dashboard already hit and fixed this exact issue for the same
+      // `bids` table (see contractor/page.tsx). A long-tenured contractor
+      // past 1000 historical bids would otherwise see an incomplete
+      // earnings total with no error shown.
+      const { data, error } = await fetchAllPages<any>((from, to) =>
+        supabase
+          .from('bids')
+          .select('id, amount, payment_status, paid_at, created_at, job_id, jobs(category, status, units(unit_number, properties(address, city)))')
+          .eq('contractor_user_id', user.id)
+          .order('created_at', { ascending: false })
+          .range(from, to)
+      )
 
       if (error) {
         console.error('Error loading earnings:', error)

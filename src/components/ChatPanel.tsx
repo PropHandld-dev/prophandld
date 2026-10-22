@@ -186,6 +186,11 @@ export function ChatPanel({
     // real delivery mechanism right now, not just a rare safety net for a
     // dropped connection, hence the shorter interval than a true fallback
     // would need. See useJobRealtime.ts for the matching gap on jobs/bids.
+    // This is the single highest-visibility case of that gap — two people
+    // actively looking at the same open chat thread — so it gets a much
+    // tighter interval than the inbox/job-list polls (useConversations.ts,
+    // useJobRealtime.ts) that only affect an unread badge or a status
+    // label, not an in-progress conversation.
     const refetch = async () => {
       if (document.visibilityState !== 'visible' || !currentUserId) return
       const { data } = await buildMessagesQuery()
@@ -199,7 +204,7 @@ export function ChatPanel({
       })
       markRead(currentUserId)
     }
-    const timer = setInterval(refetch, 15000)
+    const timer = setInterval(refetch, 3000)
     document.addEventListener('visibilitychange', refetch)
 
     return () => {

@@ -2984,6 +2984,30 @@ export async function sendSupportConfirmationEmail({ to, question }: { to: strin
   return sendEmail({ to, subject: 'Got it, thanks for reaching out', html })
 }
 
+export async function sendEventInterestAdminEmail({ email }: { email: string }) {
+  const html = baseTemplate({
+    lang: 'en',
+    eyebrow: 'Launch event',
+    heading: 'New landlord event interest',
+    bodyHtml: `<strong>${escapeHtml(email)}</strong> wants to hear about the Philadelphia landlord launch event.`,
+    ctaLabel: 'Reply',
+    ctaUrl: `mailto:${escapeHtml(email)}`,
+  })
+  return sendToAdmins(`Event interest from ${email}`, html)
+}
+
+export async function sendEventInterestConfirmationEmail({ to }: { to: string }) {
+  const html = baseTemplate({
+    lang: 'en',
+    eyebrow: 'Launch event',
+    heading: "You're on the list",
+    bodyHtml: "We're planning an in-person event for Philadelphia landlords. We'll email this address with the date and location as soon as it's locked in.",
+    ctaLabel: 'Visit Prophandld',
+    ctaUrl: SITE_URL,
+  })
+  return sendEmail({ to, subject: "You're on the list for the Prophandld launch event", html })
+}
+
 export async function sendDmScheduleEmail({
   to,
   fromName,

@@ -112,7 +112,7 @@ export default function RentReceiptPage() {
             : receipt.payment_method === 'zelle' ? 'Zelle'
             : receipt.payment_method === 'venmo' ? 'Venmo'
             : receipt.payment_method === 'cashapp' ? 'Cash App'
-            : t('debitCardValue', lang),
+            : t('otherPaymentMethodValue', lang),
         },
       ]}
       totalLabel={t('amountPaidLabel', lang)}

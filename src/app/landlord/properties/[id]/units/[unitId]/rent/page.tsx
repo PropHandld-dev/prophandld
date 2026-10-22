@@ -407,7 +407,13 @@ export default function UnitRentPage() {
 
   const handleDelete = async (paymentId: string) => {
     const target = payments.find((p) => p.id === paymentId)
-    if (target?.stripe_status === 'succeeded') {
+    // A Stripe-succeeded payment was already blocked here — a Dwolla ACH
+    // transfer that actually completed (dwolla_status === 'paid') is the
+    // same situation (real money already moved) but had no matching guard,
+    // so deleting it looked identical to deleting an entry that was never
+    // collected, silently erasing the only record a real bank transfer
+    // happened.
+    if (target?.stripe_status === 'succeeded' || target?.dwolla_status === 'paid') {
       setError(t('monthPaidOnlineCannotDelete', lang))
       return
     }
