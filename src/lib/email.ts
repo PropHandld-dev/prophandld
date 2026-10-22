@@ -2916,6 +2916,11 @@ export async function sendEventInterestConfirmationEmail({ to }: { to: string })
     bodyHtml: "We're planning an in-person event for Philadelphia landlords. We'll email this address with the date and location as soon as it's locked in.",
     ctaLabel: 'Visit Prophandld',
     ctaUrl: SITE_URL,
+    // Default footer text assumes an active account — wrong here, this
+    // goes to anyone who typed an email into the landing page's interest
+    // form, account or not. Same fix sendPasswordResetEmail/
+    // sendRenterInviteEmail already apply for the same reason.
+    footerText: "You're receiving this because you asked to be notified about the Prophandld landlord launch event.",
   })
   return sendEmail({ to, subject: "You're on the list for the Prophandld launch event", html })
 }
