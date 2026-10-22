@@ -3,20 +3,18 @@ import {
   sendRentPaymentReceivedEmail,
   sendRentPaymentConfirmationEmail,
   sendCreditCardRejectedEmail,
-  sendBankTransferFailedEmail,
-  sendLandlordBankTransferFailedEmail,
 } from '@/lib/email'
 import { sendPush } from '@/lib/push'
 import { emailAllowed } from '@/lib/notificationPrefs'
 import { notifyLandlordIds } from '@/lib/landlordCoOwners'
 
-// Shared by both rails' webhooks AND both rails' /confirm routes — whichever
-// call actually wins the race to flip a rent row to paid/failed (the
+// Shared by both the Stripe webhook AND the Stripe /confirm route —
+// whichever call actually wins the race to flip a rent row to paid (the
 // confirm route often wins, since it runs the instant the renter's own
 // browser sees the payment go through, ahead of webhook delivery). Pulled
-// out of the two webhook handlers, which previously had all of this and
-// left both /confirm routes sending no notification at all on the (common)
-// case where they win that race — the same gap job payments had before
+// out of the webhook handler, which previously had all of this and left
+// /confirm sending no notification at all on the (common) case where it
+// wins that race — the same gap job payments had before
 // jobPaymentNotify.ts fixed it there.
 
 export async function sendRentPaymentReceivedNotifications(
@@ -140,70 +138,3 @@ export async function sendRentCreditCardRejectedNotifications(
   }).catch((err) => console.error('sendRentCreditCardRejectedNotifications: sendPush failed', err))
 }
 
-// Dwolla-only: a bank transfer bounced (insufficient funds, closed account,
-// etc) — tells both the renter (rent is still due) and the landlord (so a
-// payment that looked like it was processing doesn't just silently revert
-// to unpaid with no explanation days later).
-export async function sendRentBankTransferFailedNotifications(supabaseAdmin: SupabaseClient, { rentPaymentId }: { rentPaymentId: string }) {
-  const { data: rentPayment } = await supabaseAdmin
-    .from('rent_payments')
-    .select('expected_amount, actual_amount, tenancies(renter_user_id, units(unit_number, properties(address, owner_user_id)))')
-    .eq('id', rentPaymentId)
-    .maybeSingle()
-
-  const tenancy = rentPayment?.tenancies as any
-  const renterUserId = tenancy?.renter_user_id
-  const unit = tenancy?.units
-  const landlordUserId = unit?.properties?.owner_user_id
-  const failedAmount = Number(rentPayment?.expected_amount || 0) - Number(rentPayment?.actual_amount || 0)
-  const unitLabel = unit?.properties?.address ? `${unit.properties.address}${unit.unit_number ? `, Unit ${unit.unit_number}` : ''}` : null
-
-  let renterName: string | null = null
-  if (renterUserId) {
-    const { data: renter } = await supabaseAdmin
-      .from('users')
-      .select('email, full_name, preferred_language, email_notifications_enabled')
-      .eq('id', renterUserId)
-      .maybeSingle()
-    renterName = renter?.full_name || null
-    if (renter?.email && emailAllowed(renter)) {
-      await sendBankTransferFailedEmail({
-        to: renter.email,
-        renterName: renter.full_name || 'there',
-        amount: failedAmount > 0 ? failedAmount : null,
-        unitLabel,
-        lang: renter.preferred_language === 'es' ? 'es' : 'en',
-      }).catch((err) => console.error('sendRentBankTransferFailedNotifications: renter email failed', err))
-    }
-    await sendPush(renterUserId, {
-      title: "Bank transfer didn't go through",
-      body: 'Rent is still due. Try again or use a debit card instead.',
-      url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/renter/rent`,
-    }).catch((err) => console.error('sendRentBankTransferFailedNotifications: renter sendPush failed', err))
-  }
-
-  if (landlordUserId) {
-    const landlordIds = await notifyLandlordIds(supabaseAdmin, landlordUserId)
-    const { data: landlords } = await supabaseAdmin
-      .from('users')
-      .select('id, email, full_name, preferred_language, email_notifications_enabled')
-      .in('id', landlordIds)
-    for (const landlord of landlords || []) {
-      if (landlord?.email && emailAllowed(landlord)) {
-        await sendLandlordBankTransferFailedEmail({
-          to: landlord.email,
-          landlordName: landlord.full_name || 'there',
-          renterName,
-          amount: failedAmount > 0 ? failedAmount : null,
-          unitLabel,
-          lang: landlord.preferred_language === 'es' ? 'es' : 'en',
-        }).catch((err) => console.error('sendRentBankTransferFailedNotifications: landlord email failed', err))
-      }
-      await sendPush(landlord.id, {
-        title: "A rent bank transfer didn't go through",
-        body: unitLabel ? `${renterName || 'Your tenant'}'s payment for ${unitLabel} bounced.` : `${renterName || 'Your tenant'}'s payment bounced.`,
-        url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/landlord`,
-      }).catch((err) => console.error('sendRentBankTransferFailedNotifications: landlord sendPush failed', err))
-    }
-  }
-}

@@ -8,7 +8,7 @@ import { notifyLandlordIds } from '@/lib/landlordCoOwners'
 
 // Tells the renter their landlord manually marked a month's rent as
 // received (cash, check, or anything paid outside the app) — the automatic
-// Dwolla/Stripe path already notifies both sides via its own webhook/sync;
+// Stripe path already notifies both sides via its own webhook/sync;
 // this manual path previously notified no one. Fire-and-forget after the
 // client-side update, same pattern as review-submitted and
 // credential-submitted.

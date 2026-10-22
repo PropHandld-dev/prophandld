@@ -10,12 +10,12 @@ import { verifyPassword, mfaStepUpStatus } from '@/lib/reauth'
 const FREEZE_MS = 48 * 60 * 60 * 1000
 
 // A Zelle/Venmo/Cash App handle has no ownership verification behind it at
-// all (unlike Stripe/Dwolla, there's no bank check) — the single easiest
-// payment destination in the app to silently redirect if an account is
+// all (unlike Stripe, there's no bank check) — the single easiest payment
+// destination in the app to silently redirect if an account is
 // compromised. This route exists so that protection (the same
-// freeze-and-alert pattern already used for Stripe/Dwolla payout changes,
-// see dwolla/funding-source/add) can't be bypassed by calling the users
-// table directly from the client, the way ZelleVenmoCashAppCard used to.
+// freeze-and-alert pattern already used for Stripe payout changes) can't
+// be bypassed by calling the users table directly from the client, the
+// way ZelleVenmoCashAppCard used to.
 export async function GET() {
   const authClient = await createClient()
   const { data: { user } } = await authClient.auth.getUser()
@@ -66,8 +66,8 @@ export async function POST(request: NextRequest) {
   }
 
   // Only an edit to an already-set handle is a redirection risk — nothing
-  // to hijack on a first-time add, same distinction the Dwolla freeze logic
-  // makes for a brand-new payout account.
+  // to hijack on a first-time add, same distinction the Stripe payout
+  // freeze logic makes for a brand-new payout account.
   const isChange =
     (!!current?.zelle_handle && current.zelle_handle !== next.zelle_handle) ||
     (!!current?.venmo_handle && current.venmo_handle !== next.venmo_handle) ||

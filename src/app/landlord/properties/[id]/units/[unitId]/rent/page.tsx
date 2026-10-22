@@ -44,7 +44,7 @@ export default function UnitRentPage() {
   // still-null before React's first setSavingId() re-render lands, so the
   // disabled={savingId === payment.id} guard alone isn't airtight. A ref
   // updates synchronously, closing that gap. Matters here specifically
-  // because mark-received-notify (unlike the Stripe/Dwolla sync path) has
+  // because mark-received-notify (unlike the Stripe sync path) has
   // no server-side dedup of its own — a second call would email the renter
   // "rent marked as paid" twice for one real event.
   const markReceivedInFlightRef = useRef<Set<string>>(new Set())
@@ -125,33 +125,6 @@ export default function UnitRentPage() {
         const status = results[i]?.status
         return status === 'paid' || status === 'already_paid' || status === 'refunded_credit_card' || (status === 'processing' && p.stripe_status !== 'processing')
       })
-      if (changed) loadPayments(tenancy.id)
-    })
-  }, [payments, tenancy])
-
-  // The Dwolla twin of the self-heal effect above, for rent's bank-transfer
-  // leg — see src/app/renter/rent/page.tsx for the matching renter-side one.
-  const syncedDwollaIds = useRef<Set<string>>(new Set())
-  useEffect(() => {
-    if (!tenancy) return
-    const open = payments
-      .filter((p) => p.dwolla_transfer_id && p.dwolla_status === 'pending' && !syncedDwollaIds.current.has(p.id))
-      .slice(0, 3)
-    if (open.length === 0) return
-    open.forEach((p) => syncedDwollaIds.current.add(p.id))
-
-    Promise.all(
-      open.map((p) =>
-        fetch('/api/dwolla/rent-payment/confirm', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ rentPaymentId: p.id }),
-        })
-          .then((res) => res.json())
-          .catch(() => null)
-      )
-    ).then((results) => {
-      const changed = open.some((p, i) => ['paid', 'already_paid', 'failed', 'already_failed'].includes(results[i]?.status))
       if (changed) loadPayments(tenancy.id)
     })
   }, [payments, tenancy])
@@ -407,13 +380,7 @@ export default function UnitRentPage() {
 
   const handleDelete = async (paymentId: string) => {
     const target = payments.find((p) => p.id === paymentId)
-    // A Stripe-succeeded payment was already blocked here — a Dwolla ACH
-    // transfer that actually completed (dwolla_status === 'paid') is the
-    // same situation (real money already moved) but had no matching guard,
-    // so deleting it looked identical to deleting an entry that was never
-    // collected, silently erasing the only record a real bank transfer
-    // happened.
-    if (target?.stripe_status === 'succeeded' || target?.dwolla_status === 'paid') {
+    if (target?.stripe_status === 'succeeded') {
       setError(t('monthPaidOnlineCannotDelete', lang))
       return
     }
@@ -526,7 +493,7 @@ export default function UnitRentPage() {
                             <span className={`text-xs rounded-full px-2.5 py-0.5 ${status.color}`}>
                               {status.label}
                             </span>
-                            {!isPaid && (payment.stripe_status === 'processing' || payment.dwolla_status === 'pending') && (
+                            {!isPaid && payment.stripe_status === 'processing' && (
                               <span className="text-xs bg-yellow-500/15 text-yellow-400 rounded-full px-2.5 py-0.5">
                                 {t('bankPaymentProcessing', lang)}
                               </span>

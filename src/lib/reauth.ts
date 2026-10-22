@@ -29,7 +29,7 @@ export async function verifyPassword(email: string, password: string): Promise<b
 // authenticator app, here) is what actually raises the bar. This app's
 // 2FA is opt-in (TwoFactorAuthCard), so the policy is: if an account has
 // a verified TOTP factor enrolled, a payment-destination change (Zelle/
-// Venmo/Cash App handles, Dwolla funding source) must be backed by an
+// Venmo/Cash App handles) must be backed by an
 // actual completed MFA challenge this session (aal2) — not just
 // password — before it's allowed; an account with no factor enrolled at
 // all falls back to the existing password-reauth, unchanged.

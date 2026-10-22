@@ -15,15 +15,14 @@ import { useLanguage, t } from '@/lib/i18n'
 // All three fields are optional and independent; a landlord who sets none
 // changes nothing for their renters.
 //
-// Unlike Stripe/Dwolla, nothing here verifies a handle actually belongs to
-// the landlord — it's plain text. That makes editing an already-set handle
+// Unlike Stripe, nothing here verifies a handle actually belongs to the
+// landlord — it's plain text. That makes editing an already-set handle
 // the single easiest payment destination in the app to silently redirect
 // (stolen password, unattended device), so saving a CHANGE (not a
 // first-time add — nothing to hijack there) goes through
 // api/profile/p2p-handles instead of a direct client update: it requires
 // re-entering your password first, then freezes the changed handle(s) from
-// showing to renters for 48 hours and emails/pushes an alert, the same
-// freeze-and-alert pattern already used for Stripe/Dwolla payout changes.
+// showing to renters for 48 hours and emails/pushes an alert.
 export function ZelleVenmoCashAppCard() {
   const lang = useLanguage()
   const [loading, setLoading] = useState(true)
@@ -64,9 +63,8 @@ export function ZelleVenmoCashAppCard() {
     load()
   }, [])
 
-  // Only changing an already-set handle is a redirection risk — same
-  // distinction DwollaConnectCard makes before gating a re-link behind
-  // password re-entry.
+  // Only changing an already-set handle is a redirection risk — nothing
+  // to hijack on a first-time add.
   const isChange =
     (!!original.zelle && original.zelle !== zelle.trim()) ||
     (!!original.venmo && original.venmo !== venmo.trim()) ||

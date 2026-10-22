@@ -47,8 +47,8 @@ export type LinkedProfile = {
 // auth.users.app_metadata (never a public.users column — confirmed: no
 // other code anywhere in this app queries one), permanently immutable per
 // auth user (see api/auth/set-role's own comment on why), and
-// role-specific columns (stripe_connect_account_id, dwolla_customer_id,
-// address/SSN fields) are flat on public.users, one value per row. A
+// role-specific columns (stripe_connect_account_id, address/SSN fields)
+// are flat on public.users, one value per row. A
 // landlord-you and a contractor-you would collide on all of that under
 // one row. Instead: every role stays a fully separate auth user and
 // public.users row, exactly as today, linked only by a shared

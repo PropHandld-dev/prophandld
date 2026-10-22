@@ -15,11 +15,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
 
-  // Reverted to Stripe ACH for bank transfers (was briefly moved to Dwolla —
-  // see /api/dwolla/rent/create-transfer, left in place but unused). Dwolla
-  // declined to quote production pricing for an account at this volume, and
-  // the suggested alternatives didn't clearly beat what's already here, so
-  // this is back to being the only working bank-transfer rail for rent.
+  // Stripe ACH is the only bank-transfer rail for rent.
   const { rentPaymentId, paymentMethod } = (await request.json()) as { rentPaymentId?: string; paymentMethod?: 'bank' | 'card' }
   if (!rentPaymentId) {
     return NextResponse.json({ error: 'Missing rentPaymentId' }, { status: 400 })

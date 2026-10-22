@@ -33,9 +33,11 @@ const DORMANT_THRESHOLD_MS = 60 * 24 * 60 * 60 * 1000
 // explicit goal is being usable by non-technical people does more harm
 // than good. The single scariest version of this threat — someone using a
 // grabbed, still-logged-in session to redirect a payout bank account — is
-// already closed independent of any timeout: changing a payout account
-// requires re-entering the password regardless of session freshness (see
-// DwollaConnectCard's reauth step).
+// already closed independent of any timeout: changing a Zelle/Venmo/Cash
+// App payout handle requires re-entering the password regardless of
+// session freshness (see ZelleVenmoCashAppCard's reauth step) — Stripe
+// Connect bank details are changed entirely inside Stripe's own hosted
+// dashboard, governed by Stripe's own security, not this app's.
 const IDLE_THRESHOLD_MS = 20 * 60 * 1000
 const IDLE_CHECK_INTERVAL_MS = 30 * 1000
 const INTERACTION_EVENTS = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'] as const
