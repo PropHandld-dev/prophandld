@@ -37,6 +37,12 @@ export async function POST() {
   }
 
   let invite = emailInvite
+  // True when a pending invite matches this user's phone number but can't
+  // be auto-linked because that phone isn't verified yet — surfaced to the
+  // client so it can nudge them to verify instead of silently doing
+  // nothing, which is what the unverified-phone security fix below would
+  // otherwise look like from the renter's side.
+  let phoneMatchNeedsVerification = false
 
   // No match by email — try by phone. renter_phone is always stored
   // E.164-normalized (see sendInvite in tenancy/new/page.tsx), so
@@ -53,12 +59,12 @@ export async function POST() {
   if (!invite) {
     const { data: ownRow } = await supabaseAdmin.from('users').select('phone, phone_verified_at').eq('id', user.id).maybeSingle()
     const isPhoneVerified = !!ownRow?.phone_verified_at
-    const ownPhone = isPhoneVerified && ownRow?.phone ? toE164(ownRow.phone) : null
-    if (ownPhone) {
+    const rawPhone = ownRow?.phone ? toE164(ownRow.phone) : null
+    if (rawPhone) {
       const { data: phoneInvite, error: phoneInviteError } = await supabaseAdmin
         .from('tenancy_invites')
         .select('*')
-        .eq('renter_phone', ownPhone)
+        .eq('renter_phone', rawPhone)
         .eq('status', 'pending')
         .order('created_at', { ascending: false })
         .limit(1)
@@ -67,12 +73,16 @@ export async function POST() {
         console.error('link-invite: error fetching invite by phone', phoneInviteError)
         return NextResponse.json({ error: phoneInviteError.message }, { status: 500 })
       }
-      invite = phoneInvite
+      if (phoneInvite && isPhoneVerified) {
+        invite = phoneInvite
+      } else if (phoneInvite) {
+        phoneMatchNeedsVerification = true
+      }
     }
   }
 
   if (!invite) {
-    return NextResponse.json({ ok: true, linked: false })
+    return NextResponse.json({ ok: true, linked: false, phoneMatchNeedsVerification })
   }
 
   const { error: tenancyError } = await supabaseAdmin

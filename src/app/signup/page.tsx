@@ -259,11 +259,17 @@ function SignupForm() {
       // would attribute that new property to them, not the primary,
       // before they've even accepted the invite). Their dashboard shows
       // the pending-invite banner instead.
-      const linkedCoOwnership = await linkPendingCoOwnerInvite()
-      router.replace(linkedCoOwnership ? '/landlord' : '/landlord/properties/new?onboarding=1')
+      const { linked: linkedCoOwnership, needsPhone: coOwnerNeedsPhone } = await linkPendingCoOwnerInvite()
+      router.replace(
+        linkedCoOwnership
+          ? '/landlord'
+          : coOwnerNeedsPhone
+            ? '/landlord?pendingInviteNeedsPhone=1'
+            : '/landlord/properties/new?onboarding=1'
+      )
     } else if (role === 'renter') {
-      await linkPendingInvite()
-      router.replace('/renter')
+      const { needsPhone: tenancyNeedsPhone } = await linkPendingInvite()
+      router.replace(tenancyNeedsPhone ? '/renter?pendingInviteNeedsPhone=1' : '/renter')
     } else if (role === 'contractor') {
       fetch('/api/contractor/accept-invite', { method: 'POST', keepalive: true }).catch(() => {})
       router.replace('/contractor')
@@ -272,36 +278,44 @@ function SignupForm() {
     setLoading(false)
   }
 
-  const linkPendingInvite = async () => {
+  // `needsPhone` tells the dashboard to show a "verify your phone to link
+  // your pending invite" nudge — otherwise a phone-matched invite that
+  // can't auto-link yet (see the unverified-phone fix in
+  // api/tenancy/link-invite) would silently do nothing with no sign
+  // anything was ever found.
+  const linkPendingInvite = async (): Promise<{ needsPhone: boolean }> => {
     // Must run server-side (service role) — the renter isn't the unit's
     // landlord, so the tenancies INSERT policy blocks this from the
     // renter's own client session. See /api/tenancy/link-invite.
     try {
       const res = await fetch('/api/tenancy/link-invite', { method: 'POST' })
+      const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
         console.error('Error auto-linking invited tenancy:', data.error)
+        return { needsPhone: false }
       }
+      return { needsPhone: !!data.phoneMatchNeedsVerification }
     } catch (err) {
       console.error('Error checking pending invite:', err)
+      return { needsPhone: false }
     }
   }
 
   // Returns whether a pending co-owner invite actually linked — the
   // caller uses this to decide whether to skip "add your first property"
   // onboarding. See /api/co-owner/link-invite.
-  const linkPendingCoOwnerInvite = async (): Promise<boolean> => {
+  const linkPendingCoOwnerInvite = async (): Promise<{ linked: boolean; needsPhone: boolean }> => {
     try {
       const res = await fetch('/api/co-owner/link-invite', { method: 'POST' })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
         console.error('Error auto-linking invited co-ownership:', data.error)
-        return false
+        return { linked: false, needsPhone: false }
       }
-      return !!data.linked
+      return { linked: !!data.linked, needsPhone: !!data.phoneMatchNeedsVerification }
     } catch (err) {
       console.error('Error checking pending co-owner invite:', err)
-      return false
+      return { linked: false, needsPhone: false }
     }
   }
 

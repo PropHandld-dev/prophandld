@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/Skeleton'
 import { Logo } from '@/components/Logo'
 import { ProfileButton } from '@/components/ProfileButton'
 import { ProfileSwitchedBanner } from '@/components/ProfileSwitchedBanner'
+import { PendingInviteNeedsPhoneBanner } from '@/components/PendingInviteNeedsPhoneBanner'
 import { MessagesButton } from '@/components/MessagesButton'
 import { CalendarIcon, DollarSignIcon, CheckCircleIcon, FileTextIcon, MessageCircleIcon, WrenchIcon } from '@/components/icons'
 import { RENTER_TABS } from '@/lib/navTabs'
@@ -277,6 +278,7 @@ export default function RenterDashboard() {
             )}
 
             <ProfileSwitchedBanner />
+            <PendingInviteNeedsPhoneBanner />
             <AlertsList items={alertItems} />
             <EnableNotificationsCard />
 

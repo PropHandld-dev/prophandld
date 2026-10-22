@@ -14,6 +14,7 @@ import { InviteContractorCard } from '@/components/InviteContractorCard'
 import { MagneticLink } from '@/components/MagneticLink'
 import { ProfileButton } from '@/components/ProfileButton'
 import { ProfileSwitchedBanner } from '@/components/ProfileSwitchedBanner'
+import { PendingInviteNeedsPhoneBanner } from '@/components/PendingInviteNeedsPhoneBanner'
 import { CoOwnerInviteBanner } from '@/components/CoOwnerInviteBanner'
 import { MessagesButton } from '@/components/MessagesButton'
 import { CountUp } from '@/components/CountUp'
@@ -536,6 +537,7 @@ export default function LandlordDashboard() {
 
             <ProfileSwitchedBanner />
             <CoOwnerInviteBanner />
+            <PendingInviteNeedsPhoneBanner />
             <AlertsList items={alertItems} />
 
             <InviteContractorCard />

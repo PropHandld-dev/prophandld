@@ -135,6 +135,13 @@ function LoginForm() {
     // either, since the landing page's own redirect had the same gap
     // (see accountRole.ts for the full story).
     const accountRole = getAccountRole(user)
+    // Set by the tenancy/co-owner link-invite calls below when a pending
+    // invite matches this account's phone number but couldn't auto-link
+    // because that phone isn't verified yet — carried through to the
+    // dashboard redirect as a query param so it can nudge the person to
+    // verify instead of silently doing nothing.
+    let tenancyNeedsPhone = false
+    let coOwnerNeedsPhone = false
     if (isFirstActivation && (accountRole === 'landlord' || accountRole === 'renter' || accountRole === 'contractor')) {
       sendWelcomeEmailWithRetry()
       // Same "first activation" moment signup couldn't use directly (no
@@ -158,9 +165,11 @@ function LoginForm() {
       // first. Safe to call every login: a no-op once already linked.
       try {
         const res = await fetch('/api/tenancy/link-invite', { method: 'POST' })
+        const body = await res.json().catch(() => ({}))
         if (!res.ok) {
-          const body = await res.json().catch(() => ({}))
           console.error('Error auto-linking invited tenancy on login:', body.error)
+        } else if (body.phoneMatchNeedsVerification) {
+          tenancyNeedsPhone = true
         }
       } catch (err) {
         console.error('Error checking pending invite on login:', err)
@@ -189,9 +198,11 @@ function LoginForm() {
       // reasoning as the renter tenancy-invite auto-link right below.
       try {
         const res = await fetch('/api/co-owner/link-invite', { method: 'POST' })
+        const body = await res.json().catch(() => ({}))
         if (!res.ok) {
-          const body = await res.json().catch(() => ({}))
           console.error('Error auto-linking invited co-ownership on login:', body.error)
+        } else if (body.phoneMatchNeedsVerification) {
+          coOwnerNeedsPhone = true
         }
       } catch (err) {
         console.error('Error checking pending co-owner invite on login:', err)
@@ -206,9 +217,9 @@ function LoginForm() {
         .select('id', { count: 'exact', head: true })
         .in('owner_user_id', landlordIds)
       if (!count) router.replace('/landlord/properties/new?onboarding=1')
-      else router.replace('/landlord')
+      else router.replace(coOwnerNeedsPhone ? '/landlord?pendingInviteNeedsPhone=1' : '/landlord')
     }
-    else if (accountRole === 'renter') router.replace('/renter')
+    else if (accountRole === 'renter') router.replace(tenancyNeedsPhone ? '/renter?pendingInviteNeedsPhone=1' : '/renter')
     else if (accountRole === 'contractor') router.replace('/contractor')
     else router.replace('/')
   }

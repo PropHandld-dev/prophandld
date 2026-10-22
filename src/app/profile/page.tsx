@@ -49,6 +49,7 @@ export default function ProfilePage() {
   const [showPasswordToast, setShowPasswordToast] = useState(false)
   const [initialLanguage, setInitialLanguage] = useState<'en' | 'es'>('en')
   const [showLanguageToast, setShowLanguageToast] = useState(false)
+  const [showInviteLinkedToast, setShowInviteLinkedToast] = useState(false)
   const [smsOptIn, setSmsOptIn] = useState(false)
   const [smsSaving, setSmsSaving] = useState(false)
   const [phoneVerified, setPhoneVerified] = useState(false)
@@ -229,6 +230,24 @@ export default function ProfilePage() {
     const { error: updateError } = await supabase.from('users').update({ sms_opt_in: true }).eq('id', user.id)
     if (!updateError) setSmsOptIn(true)
     setSmsSaving(false)
+
+    // A pending tenancy/co-owner invite that could only match by phone
+    // (see the unverified-phone security fix) couldn't auto-link until
+    // this exact moment — retry it right now instead of leaving it stuck
+    // until the next signup/login, which won't happen again on an
+    // already-active account.
+    if (role === 'renter' || role === 'landlord') {
+      const inviteRoute = role === 'renter' ? '/api/tenancy/link-invite' : '/api/co-owner/link-invite'
+      fetch(inviteRoute, { method: 'POST' })
+        .then((r) => r.json())
+        .then((d) => {
+          if (d?.linked) {
+            setShowInviteLinkedToast(true)
+            setTimeout(() => setShowInviteLinkedToast(false), 4000)
+          }
+        })
+        .catch(() => {})
+    }
   }
 
   const handleToggleEmailNotif = async (next: boolean) => {
@@ -921,6 +940,13 @@ export default function ProfilePage() {
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-[#0F2138] border border-[#12A5A9]/30 rounded-xl px-5 py-3 shadow-lg flex items-center gap-2 z-50 motion-safe:animate-[floatUp_0.25s_ease-out]">
           <span className="text-[#12A5A9]">✓</span>
           <span className="text-white text-sm font-medium">{t('languageUpdatedToast', form.preferred_language as 'en' | 'es')}</span>
+        </div>
+      )}
+
+      {showInviteLinkedToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-[#0F2138] border border-[#12A5A9]/30 rounded-xl px-5 py-3 shadow-lg flex items-center gap-2 z-50 motion-safe:animate-[floatUp_0.25s_ease-out]">
+          <span className="text-[#12A5A9]">✓</span>
+          <span className="text-white text-sm font-medium">{t('pendingInviteLinkedToast', lang)}</span>
         </div>
       )}
     </div>

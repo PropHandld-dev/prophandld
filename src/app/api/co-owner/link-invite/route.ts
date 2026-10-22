@@ -36,6 +36,10 @@ export async function POST() {
   }
 
   let invite = emailInvite
+  // True when a pending invite matches this user's phone but can't be
+  // auto-linked because that phone isn't verified yet — surfaced to the
+  // client so it can nudge them to verify, same as tenancy/link-invite.
+  let phoneMatchNeedsVerification = false
 
   // No match by email — try by phone. invited_phone is always stored
   // E.164-normalized (see co-owner/invite-email), so normalizing this
@@ -48,12 +52,12 @@ export async function POST() {
   if (!invite) {
     const { data: ownRow } = await supabaseAdmin.from('users').select('phone, phone_verified_at').eq('id', user.id).maybeSingle()
     const isPhoneVerified = !!ownRow?.phone_verified_at
-    const ownPhone = isPhoneVerified && ownRow?.phone ? toE164(ownRow.phone) : null
-    if (ownPhone) {
+    const rawPhone = ownRow?.phone ? toE164(ownRow.phone) : null
+    if (rawPhone) {
       const { data: phoneInvite, error: phoneInviteError } = await supabaseAdmin
         .from('landlord_co_owners')
         .select('id')
-        .eq('invited_phone', ownPhone)
+        .eq('invited_phone', rawPhone)
         .is('co_owner_user_id', null)
         .order('invited_at', { ascending: false })
         .limit(1)
@@ -62,12 +66,16 @@ export async function POST() {
         console.error('co-owner/link-invite: error fetching invite by phone', phoneInviteError)
         return NextResponse.json({ error: phoneInviteError.message }, { status: 500 })
       }
-      invite = phoneInvite
+      if (phoneInvite && isPhoneVerified) {
+        invite = phoneInvite
+      } else if (phoneInvite) {
+        phoneMatchNeedsVerification = true
+      }
     }
   }
 
   if (!invite) {
-    return NextResponse.json({ ok: true, linked: false })
+    return NextResponse.json({ ok: true, linked: false, phoneMatchNeedsVerification })
   }
 
   const { error: updateError } = await supabaseAdmin
