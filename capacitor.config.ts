@@ -15,7 +15,19 @@ const config: CapacitorConfig = {
   appName: 'Prophandld',
   webDir: 'public',
   server: {
-    url: 'https://www.prophandld.com',
+    // Native app opens straight to sign-in, not the marketing homepage —
+    // someone who already installed the app from the App/Play Store
+    // already made the "try this" decision (that's what the store
+    // listing and website are for); showing the full pitch again inside
+    // the app itself is redundant friction every major native app
+    // (banking, Uber, Airbnb) deliberately avoids. /login itself handles
+    // both directions correctly: a visible "Sign up" link for a new
+    // user, and an automatic redirect straight to the right dashboard
+    // for anyone already signed in — so this is safe for first-time and
+    // returning users alike. The website at www.prophandld.com in a
+    // regular browser is untouched — it still opens on the full landing
+    // page, which is exactly right for a visitor who hasn't decided yet.
+    url: 'https://www.prophandld.com/login',
     // Required by Capacitor's WebView to actually navigate to a remote
     // origin rather than only ever loading local files.
     cleartext: false,
