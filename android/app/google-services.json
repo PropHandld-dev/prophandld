@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "219112459277",
+    "project_id": "prophandld",
+    "storage_bucket": "prophandld.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:219112459277:android:b75fb4c600a8f4e5ab5944",
+        "android_client_info": {
+          "package_name": "com.prophandld.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC_U1vybdOWgriPhW8xqeT8h7hiyrFeTjA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
