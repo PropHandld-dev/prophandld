@@ -120,17 +120,22 @@ export default function LandingPage() {
           </BrandLink>
           <span className="hidden md:inline text-white/50 text-xs border-l border-white/15 pl-2.5 ml-0.5">Your Property. Handled.</span>
         </div>
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-3 sm:gap-6">
           <a href="#how-it-works" className="text-sm text-white/50 hover:text-white transition hidden sm:block">How it works</a>
           <a href="#pricing" className="text-sm text-white/50 hover:text-white transition hidden sm:block">Pricing</a>
           <a href="#roles" className="text-sm text-white/50 hover:text-white transition hidden sm:block">Who it&apos;s for</a>
           <Link href="/contractors" className="text-sm text-white/50 hover:text-white transition hidden sm:block">For contractors</Link>
-          <Link href="/login" className="text-sm font-medium text-white/70 hover:text-white transition">
+          {/* whitespace-nowrap: at narrow real-device widths (~360px, a
+              common Android phone size — confirmed via an actual
+              screenshot at that width) this had just enough overflow
+              pressure to wrap "Sign in" onto two lines and visually
+              collide with the Get started button right next to it. */}
+          <Link href="/login" className="text-sm font-medium text-white/70 hover:text-white transition whitespace-nowrap shrink-0">
             Sign in
           </Link>
           <MagneticLink
             href="/signup"
-            className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-4 py-2 rounded-full hover:opacity-90"
+            className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-4 py-2 rounded-full hover:opacity-90 whitespace-nowrap shrink-0"
           >
             Get started
           </MagneticLink>
