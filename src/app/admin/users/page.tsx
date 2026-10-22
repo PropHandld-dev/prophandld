@@ -80,6 +80,21 @@ export default function AdminUsersPage() {
   const [tab, setTab] = useState<Role>('landlord')
   const [search, setSearch] = useState('')
 
+  // Prefilled by AdminSearch's header search box (?role=&q=), so clicking
+  // a result lands directly on that person instead of an empty filter —
+  // read directly from window.location rather than useSearchParams so
+  // this page doesn't need a Suspense boundary just for this.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const role = params.get('role')
+    const q = params.get('q')
+    if (role === 'landlord' || role === 'renter' || role === 'contractor') setTab(role)
+    if (q) setSearch(q)
+    if (role || q) {
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }, [])
+
   useEffect(() => {
     const load = async () => {
       const res = await fetch('/api/admin/users')

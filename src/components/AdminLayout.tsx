@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
+import { AdminSearch } from '@/components/AdminSearch'
 
 const TABS = [
   { href: '/admin', label: 'Overview' },
@@ -12,6 +13,7 @@ const TABS = [
   { href: '/admin/jobs', label: 'Jobs' },
   { href: '/admin/transactions', label: 'Transactions' },
   { href: '/admin/disputes', label: 'Disputes' },
+  { href: '/admin/support', label: 'Support' },
   { href: '/admin/contractors', label: 'Contractors' },
   { href: '/admin/compliance', label: 'Compliance' },
   { href: '/admin/audit-log', label: 'Audit log' },
@@ -89,9 +91,10 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-[#0C1A2E]">
-      <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
-        <span className="text-white font-semibold text-sm">Prophandld Admin</span>
-        <Link href="/" className="text-white/60 hover:text-white text-xs transition">
+      <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between gap-4">
+        <span className="text-white font-semibold text-sm shrink-0">Prophandld Admin</span>
+        <AdminSearch />
+        <Link href="/" className="text-white/60 hover:text-white text-xs transition shrink-0">
           Exit
         </Link>
       </nav>

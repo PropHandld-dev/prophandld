@@ -49,6 +49,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Too many messages. Please try again in a few minutes.' }, { status: 429 })
     }
 
+    // Stored before the email send so the question survives even if
+    // Resend has a bad moment — the admin inbox (/admin/support) is now
+    // the durable record, email is just the "notice something came in"
+    // channel on top of it, not the only place the question lives.
+    getSupabaseAdmin()
+      .from('support_escalations')
+      .insert({ email: email.toLowerCase(), question: question.trim() })
+      .then(({ error }) => {
+        if (error) console.error('support-escalate: could not store question', error)
+      })
+
     const [toAdmin, toAsker] = await Promise.all([
       sendSupportEscalationEmail({ askerEmail: email, question }),
       sendSupportConfirmationEmail({ to: email, question }),
