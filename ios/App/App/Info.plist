@@ -79,5 +79,12 @@
 	<string>Prophandld needs access to your photo library so you can attach existing photos or videos when reporting or documenting a job.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Prophandld can save job photos to your photo library when you choose to.</string>
+	<!-- Lets APNs wake the app to handle a push in the background (deliver
+	     it, update a badge) — without this, remote notifications only ever
+	     work while the app is already in the foreground. -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 </dict>
 </plist>

@@ -26,6 +26,7 @@ import { ContactUsWidget } from '@/components/ContactUsWidget'
 import { usePushSubscription } from '@/lib/usePushSubscription'
 import { useLanguage, t } from '@/lib/i18n'
 import { LAST_ACTIVE_KEY } from '@/components/InactivityGuard'
+import { NATIVE_PUSH_TOKEN_KEY } from '@/components/NativePushRegistration'
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -443,16 +444,36 @@ export default function ProfilePage() {
   // DELETE call's auth) still exists.
   const unsubscribePush = async () => {
     try {
-      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
-      const registration = await navigator.serviceWorker.ready
-      const subscription = await registration.pushManager.getSubscription()
-      if (!subscription) return
-      await fetch('/api/push/subscribe', {
+      if ('serviceWorker' in navigator && 'PushManager' in window) {
+        const registration = await navigator.serviceWorker.ready
+        const subscription = await registration.pushManager.getSubscription()
+        if (subscription) {
+          await fetch('/api/push/subscribe', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ endpoint: subscription.endpoint }),
+          }).catch(() => {})
+          await subscription.unsubscribe()
+        }
+      }
+    } catch {}
+
+    // Native (iOS/Android wrapper) twin of the web cleanup above — see
+    // NativePushRegistration.tsx. No-ops entirely in a plain browser tab,
+    // same as the registration side.
+    try {
+      const { Capacitor } = await import('@capacitor/core')
+      if (!Capacitor.isNativePlatform()) return
+      const token = localStorage.getItem(NATIVE_PUSH_TOKEN_KEY)
+      if (!token) return
+      const { PushNotifications } = await import('@capacitor/push-notifications')
+      await fetch('/api/push/register-native', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ endpoint: subscription.endpoint }),
+        body: JSON.stringify({ token }),
       }).catch(() => {})
-      await subscription.unsubscribe()
+      await PushNotifications.unregister()
+      localStorage.removeItem(NATIVE_PUSH_TOKEN_KEY)
     } catch {}
   }
 
@@ -480,13 +501,21 @@ export default function ProfilePage() {
     }
 
     // api/account/delete already purges every push_subscriptions row for
-    // this user server-side — this just releases the browser's own
-    // PushManager registration for the device doing the deleting.
+    // this user server-side (web and native alike) — this just releases
+    // this device's own local registration, web or native.
     try {
       if ('serviceWorker' in navigator && 'PushManager' in window) {
         const registration = await navigator.serviceWorker.ready
         const subscription = await registration.pushManager.getSubscription()
         if (subscription) await subscription.unsubscribe()
+      }
+    } catch {}
+    try {
+      const { Capacitor } = await import('@capacitor/core')
+      if (Capacitor.isNativePlatform()) {
+        const { PushNotifications } = await import('@capacitor/push-notifications')
+        await PushNotifications.unregister()
+        localStorage.removeItem(NATIVE_PUSH_TOKEN_KEY)
       }
     } catch {}
     try {

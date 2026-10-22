@@ -1,6 +1,8 @@
 import webpush from 'web-push'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { isPreviewDeployment } from '@/lib/env'
+import { sendFcmPush } from '@/lib/fcm'
+import { sendApnsPush } from '@/lib/apns'
 
 let configured = false
 
@@ -20,7 +22,10 @@ export async function sendPush(
   { title, body, url, tag, urgent }: { title: string; body: string; url?: string; tag?: string; urgent?: boolean }
 ) {
   if (isPreviewDeployment()) return
-  if (!process.env.VAPID_PRIVATE_KEY || !process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) return
+  // Each rail (web-push, FCM, APNs) gates itself on its own env vars
+  // inside its own send call below — no single early return here, since
+  // a user could have a native subscription even on a deploy where web
+  // push was never configured, or vice versa.
   ensureConfigured()
 
   const supabaseAdmin = getSupabaseAdmin()
@@ -39,7 +44,7 @@ export async function sendPush(
 
   const { data: subscriptions, error } = await supabaseAdmin
     .from('push_subscriptions')
-    .select('id, endpoint, p256dh, auth_key')
+    .select('id, endpoint, p256dh, auth_key, platform, native_token')
     .eq('user_id', userId)
 
   if (error) {
@@ -50,11 +55,27 @@ export async function sendPush(
 
   await Promise.allSettled(
     subscriptions.map(async (sub) => {
+      // Native subscriptions (iOS/Android wrapper apps) — web-push doesn't
+      // function inside a Capacitor WebView at all, so these go through
+      // FCM/APNs instead. See NativePushRegistration.tsx for how a device
+      // ends up with one of these rows.
+      if (sub.platform === 'android' && sub.native_token) {
+        const result = await sendFcmPush(sub.native_token, { title, body, url })
+        if (result.invalid) await supabaseAdmin.from('push_subscriptions').delete().eq('id', sub.id)
+        return
+      }
+      if (sub.platform === 'ios' && sub.native_token) {
+        const result = await sendApnsPush(sub.native_token, { title, body, url })
+        if (result.invalid) await supabaseAdmin.from('push_subscriptions').delete().eq('id', sub.id)
+        return
+      }
+
+      if (!process.env.VAPID_PRIVATE_KEY || !process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) return
       try {
         await webpush.sendNotification(
           {
             endpoint: sub.endpoint,
-            keys: { p256dh: sub.p256dh, auth: sub.auth_key },
+            keys: { p256dh: sub.p256dh!, auth: sub.auth_key! },
           },
           JSON.stringify({ title, body, url: url || '/', tag }),
           // iOS's "Time Sensitive" level (the one that breaks through Focus/Do
