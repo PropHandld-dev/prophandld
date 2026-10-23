@@ -6,6 +6,12 @@ import { sendPush } from '@/lib/push'
 export type Role = 'landlord' | 'renter' | 'contractor'
 export const ALL_ROLES: Role[] = ['landlord', 'renter', 'contractor']
 
+// The on/off switch for this whole feature lives in lib/featureFlags.ts,
+// not here — import it from there directly, especially from a client
+// component. This module pulls in server-only code (sendPush,
+// sendLinkedProfileAddedEmail below), so re-exporting the flag from here
+// would drag that whole chain into the browser bundle.
+
 const ROLE_LABEL: Record<Role, { en: string; es: string }> = {
   landlord: { en: 'Landlord', es: 'Propietario' },
   renter: { en: 'Renter', es: 'Inquilino' },

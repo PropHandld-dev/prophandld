@@ -6,6 +6,7 @@ import { BuildingIcon, HomeIcon, WrenchIcon, ChevronDownIcon, PlusIcon } from '@
 import { applySessionToken } from '@/lib/profileSwitch'
 import { useLanguage, t, roleLabel } from '@/lib/i18n'
 import type { Role } from '@/lib/linkedProfiles'
+import { LINKED_PROFILES_ENABLED } from '@/lib/featureFlags'
 
 type LinkedProfile = { id: string; role: Role; full_name: string | null }
 
@@ -36,7 +37,10 @@ export function ProfileButton({ name, currentRole }: { name?: string | null; cur
   const [open, setOpen] = useState(false)
   const [linked, setLinked] = useState<LinkedProfile[]>([])
   const [availableRoles, setAvailableRoles] = useState<Role[]>([])
-  const [loaded, setLoaded] = useState(false)
+  // Starts true when the feature is disabled — nothing to load, and
+  // setting it inside the effect below would set state synchronously
+  // during render's effect phase for no reason.
+  const [loaded, setLoaded] = useState(!LINKED_PROFILES_ENABLED)
   const [switchingId, setSwitchingId] = useState<string | null>(null)
   const [confirmingRole, setConfirmingRole] = useState<Role | null>(null)
   const [creating, setCreating] = useState(false)
@@ -53,6 +57,10 @@ export function ProfileButton({ name, currentRole }: { name?: string | null; cur
       .join('') || '?'
 
   useEffect(() => {
+    // Feature hidden for now (see LINKED_PROFILES_ENABLED) — skip the
+    // fetch entirely rather than fetch-then-ignore, so the dropdown
+    // branch below never has a reason to render.
+    if (!LINKED_PROFILES_ENABLED) return
     // Loads on mount, not gated on opening the menu — the little dot on the
     // avatar (below) needs to know "does this person have other profiles"
     // before they've ever opened this button, or it can never do its job

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { CheckCircleIcon } from '@/components/icons'
 import { useLanguage, t, roleLabel } from '@/lib/i18n'
 import type { Role } from '@/lib/linkedProfiles'
+import { LINKED_PROFILES_ENABLED } from '@/lib/featureFlags'
 
 const VALID_ROLES: Role[] = ['landlord', 'renter', 'contractor']
 
@@ -22,6 +23,10 @@ export function ProfileSwitchedBanner() {
   const [role, setRole] = useState<Role | null>(null)
 
   useEffect(() => {
+    // Feature hidden for now (see LINKED_PROFILES_ENABLED) — nothing can
+    // set ?switched= anymore, but guard anyway in case an old link/bookmark
+    // still carries one.
+    if (!LINKED_PROFILES_ENABLED) return
     const params = new URLSearchParams(window.location.search)
     const switched = params.get('switched')
     if (!switched || !VALID_ROLES.includes(switched as Role)) return

@@ -11,6 +11,7 @@ import { MailIcon, LockIcon } from '@/components/icons'
 import { RolePicker, type Role } from '@/components/RolePicker'
 import { SITE_URL } from '@/lib/site'
 import { setAppMetadataRole } from '@/lib/setAppMetadataRole'
+import { LINKED_PROFILES_ENABLED } from '@/lib/featureFlags'
 import { t, roleLabel, type Lang } from '@/lib/i18n'
 
 const ROLE_LABEL_KEY = { landlord: 'landlordLabel', renter: 'renterLabel', contractor: 'contractorLabel' } as const
@@ -173,7 +174,7 @@ function SignupForm() {
       }).catch(() => null)
       const checkData = await checkRes?.json().catch(() => null)
 
-      if (checkData?.exists && checkData.role && checkData.role !== role) {
+      if (LINKED_PROFILES_ENABLED && checkData?.exists && checkData.role && checkData.role !== role) {
         setLinkOffer({ existingRole: checkData.role as Role })
         setLoading(false)
         return
