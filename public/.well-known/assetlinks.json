@@ -1,0 +1,15 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.get_login_creds"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.prophandld.app",
+      "sha256_cert_fingerprints": [
+        "93:B3:2E:F1:91:24:A6:19:6E:37:0D:84:12:E0:87:B1:2F:CC:10:C5:9A:65:C8:51:27:2B:83:E0:DE:71:33:21"
+      ]
+    }
+  }
+]
