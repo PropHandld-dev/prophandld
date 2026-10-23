@@ -18,6 +18,19 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- Verified App Link to www.prophandld.com — required for
+                 /.well-known/assetlinks.json to actually get checked by the
+                 OS. Without this, Android has no reason to fetch or verify
+                 that file at all, and the WebView's platform (Face ID/
+                 Touch ID/fingerprint) WebAuthn authenticator stays blocked
+                 for this origin as an anti-phishing default. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="www.prophandld.com" />
+            </intent-filter>
         </activity>
 
         <provider

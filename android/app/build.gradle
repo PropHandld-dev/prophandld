@@ -22,8 +22,8 @@ android {
         // upload to the same app, even between internal-testing releases
         // — bump this by 1 for every new build you upload, regardless of
         // whether versionName (the human-readable one) changes.
-        versionCode 3
-        versionName "1.0.2"
+        versionCode 4
+        versionName "1.0.3"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
