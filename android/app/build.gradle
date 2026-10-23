@@ -18,8 +18,12 @@ android {
         applicationId "com.prophandld.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        // Google Play requires a strictly increasing versionCode on every
+        // upload to the same app, even between internal-testing releases
+        // — bump this by 1 for every new build you upload, regardless of
+        // whether versionName (the human-readable one) changes.
+        versionCode 2
+        versionName "1.0.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
