@@ -512,6 +512,7 @@ const STRINGS = {
   noArchivedProperties: { en: 'No archived properties', es: 'No hay propiedades archivadas' },
   addFirstPropertyShort: { en: 'Add your first property to get started.', es: 'Agrega tu primera propiedad para empezar.' },
   unarchive: { en: 'Unarchive', es: 'Desarchivar' },
+  archive: { en: 'Archive', es: 'Archivar' },
   addPropertyBtn: { en: '+ Add property', es: '+ Agregar propiedad' },
 
   // Landlord property detail

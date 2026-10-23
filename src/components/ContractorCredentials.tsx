@@ -124,21 +124,30 @@ export function ContractorCredentials({ userId }: { userId: string }) {
 
     // Any change goes back to "pending" so it's reviewed again — a
     // contractor can never mark their own credential verified.
-    const { error: saveError } = await supabase.from('contractor_credentials').upsert(
-      {
-        contractor_user_id: userId,
-        requirement_id: req.id,
-        credential_number: form.number.trim() || null,
-        expiry: req.hasExpiry === false ? null : form.expiry || null,
-        document_url: documentUrl,
-        status: 'pending',
-        admin_notes: null,
-        reviewed_by: null,
-        reviewed_at: null,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'contractor_user_id,requirement_id' }
-    )
+    // Retried on transient failure — the document has already uploaded by
+    // this point, and an upsert is safe to repeat (same conflict key), so
+    // there's no reason a flaky save should force re-picking the file.
+    let saveError: { message: string } | null = null
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (attempt > 0) await new Promise((r) => setTimeout(r, 1500 * attempt))
+      const { error } = await supabase.from('contractor_credentials').upsert(
+        {
+          contractor_user_id: userId,
+          requirement_id: req.id,
+          credential_number: form.number.trim() || null,
+          expiry: req.hasExpiry === false ? null : form.expiry || null,
+          document_url: documentUrl,
+          status: 'pending',
+          admin_notes: null,
+          reviewed_by: null,
+          reviewed_at: null,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'contractor_user_id,requirement_id' }
+      )
+      saveError = error
+      if (!error) break
+    }
 
     if (saveError) {
       console.error('Error saving credential:', saveError)

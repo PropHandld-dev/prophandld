@@ -75,13 +75,15 @@ export default function UnitDetailPage() {
       return
     }
 
-    const withNames = await Promise.all(
-      occupants.map(async (o) => {
-        const { data: renterData } = await supabase.rpc('get_user_by_id', { user_id_input: o.renter_user_id }).maybeSingle()
-        return { ...o, users: renterData }
-      })
-    )
-    setCoOccupants(withNames)
+    // One batched call instead of one get_user_by_id round trip per
+    // co-occupant — matches the pattern already used on the landlord
+    // dashboard/jobs/rent/reports pages for the same class of lookup.
+    const renterIds = Array.from(new Set(occupants.map((o) => o.renter_user_id).filter(Boolean)))
+    const { data: renterRows } = renterIds.length
+      ? await supabase.rpc('get_users_by_ids', { user_ids_input: renterIds })
+      : { data: [] as any[] }
+    const byId = new Map((renterRows || []).map((r: any) => [r.id, r]))
+    setCoOccupants(occupants.map((o) => ({ ...o, users: byId.get(o.renter_user_id) })))
   }
 
   const loadTenantBackupContacts = async (tenancyRow: any) => {

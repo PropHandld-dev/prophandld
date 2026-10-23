@@ -112,25 +112,27 @@ export default function InspectionPage() {
       return
     }
 
-    const enriched = await Promise.all(
-      photosData.map(async (photo) => {
-        const { data: uploaderData } = await supabase
-          .rpc('get_user_by_id', { user_id_input: photo.uploaded_by })
-          .maybeSingle()
+    // Two batched calls instead of two round trips per photo — one
+    // get_user_by_id and one createSignedUrl per photo used to run in
+    // sequence inside the same loop, same N+1 pattern already fixed on
+    // other photo-heavy pages (e.g. the contractor bid page).
+    const uploaderIds = Array.from(new Set(photosData.map((p) => p.uploaded_by).filter(Boolean)))
+    const [{ data: uploaderRows }, { data: signedUrls }] = await Promise.all([
+      uploaderIds.length
+        ? supabase.rpc('get_users_by_ids', { user_ids_input: uploaderIds })
+        : Promise.resolve({ data: [] as any[] }),
+      supabase.storage.from('inspection-photos').createSignedUrls(photosData.map((p) => p.photo_url), 3600),
+    ])
+    const uploaderById = new Map((uploaderRows || []).map((r: any) => [r.id, r]))
+    const urlByPath = new Map((signedUrls || []).map((s) => [s.path, s.signedUrl]))
 
-        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-          .from('inspection-photos')
-          .createSignedUrl(photo.photo_url, 3600)
-
-        if (signedUrlError) {
-          console.error('Error creating signed URL:', signedUrlError)
-        }
-
-        return { ...photo, uploader: uploaderData, displayUrl: signedUrlData?.signedUrl }
-      })
+    setPhotos(
+      photosData.map((photo) => ({
+        ...photo,
+        uploader: uploaderById.get(photo.uploaded_by),
+        displayUrl: urlByPath.get(photo.photo_url),
+      }))
     )
-
-    setPhotos(enriched)
   }
 
   const startInspection = async () => {

@@ -259,17 +259,21 @@ export default function PropertiesPage() {
                         </div>
                       </Link>
                       <div className="flex items-center gap-4">
-                        {property.archived && (
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault()
-                              handleArchiveToggle(property.id, property.archived)
-                            }}
-                            className="text-white/60 hover:text-white text-xs transition"
-                          >
-                            {t('unarchive', lang)}
-                          </button>
-                        )}
+                        {/* Previously only Unarchive got a one-tap action
+                            here — archiving an active property required
+                            opening it, tapping Edit, and scrolling to find
+                            the archive control. Same reversible, routine
+                            action in either direction now gets the same
+                            one-tap treatment. */}
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault()
+                            handleArchiveToggle(property.id, property.archived)
+                          }}
+                          className="text-white/60 hover:text-white text-xs transition"
+                        >
+                          {property.archived ? t('unarchive', lang) : t('archive', lang)}
+                        </button>
                         <Link href={`/landlord/properties/${property.id}`} className="text-white/50 text-xl">→</Link>
                       </div>
                     </div>
