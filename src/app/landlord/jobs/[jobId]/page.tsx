@@ -1274,7 +1274,7 @@ export default function JobDetailPage() {
           </div>
         )}
 
-        {job.status === 'pending_review' && (
+        {job.status === 'pending_review' && !(job.clarification_note && !job.clarification_response) && (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-4 mb-4">
             <p className="text-white/60 text-xs">
               ⏳ {t('autoApproveNotice', lang)}
