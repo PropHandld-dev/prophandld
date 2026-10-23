@@ -5,6 +5,10 @@
 -- get_user_by_id round trip per co-renter, same bug class
 -- get_users_by_ids was already built to fix elsewhere) without losing
 -- the email column that view actually displays.
+-- create or replace can't change a function's return row shape, so the
+-- old (id, full_name) signature has to be dropped first.
+drop function if exists get_users_by_ids(uuid[]);
+
 create or replace function get_users_by_ids(user_ids_input uuid[])
 returns table (id uuid, full_name text, email text)
 language sql
