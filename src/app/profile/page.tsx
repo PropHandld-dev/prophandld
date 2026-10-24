@@ -25,6 +25,7 @@ import { TwoFactorAuthCard } from '@/components/TwoFactorAuthCard'
 import { PasskeyCard } from '@/components/PasskeyCard'
 import { ContactUsWidget } from '@/components/ContactUsWidget'
 import { usePushSubscription } from '@/lib/usePushSubscription'
+import { useIsNativePlatform } from '@/lib/useIsNativePlatform'
 import { useLanguage, t } from '@/lib/i18n'
 import { LAST_ACTIVE_KEY } from '@/components/InactivityGuard'
 import { NATIVE_PUSH_TOKEN_KEY } from '@/components/NativePushRegistration'
@@ -32,6 +33,7 @@ import { NATIVE_PUSH_TOKEN_KEY } from '@/components/NativePushRegistration'
 export default function ProfilePage() {
   const router = useRouter()
   const lang = useLanguage()
+  const isNative = useIsNativePlatform()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -956,13 +958,20 @@ export default function ProfilePage() {
         </button>
 
         <div className="flex items-center justify-center flex-wrap gap-x-4 gap-y-1.5 text-xs text-white/40 pt-2">
-          <Link href={role ? `/terms/${role}` : '/terms'} target="_blank" className="hover:text-white/70 transition">{t('termsOfService', lang)}</Link>
+          {/* target="_blank" opens a new tab on the web — nice, leaves
+              Profile open behind it. Inside the native app there's no such
+              thing as a second tab: a WebView just navigates in place, so
+              the "new tab" link instead became a dead end the hardware
+              back button couldn't return from. Native gets a normal
+              same-WebView navigation, which the back button already
+              handles correctly on its own. */}
+          <Link href={role ? `/terms/${role}` : '/terms'} target={isNative ? undefined : '_blank'} className="hover:text-white/70 transition">{t('termsOfService', lang)}</Link>
           <span>·</span>
-          <Link href="/privacy" target="_blank" className="hover:text-white/70 transition">{t('privacyPolicy', lang)}</Link>
+          <Link href="/privacy" target={isNative ? undefined : '_blank'} className="hover:text-white/70 transition">{t('privacyPolicy', lang)}</Link>
           {role === 'landlord' && (
             <>
               <span>·</span>
-              <Link href="/pricing" target="_blank" className="hover:text-white/70 transition">{t('pricing', lang)}</Link>
+              <Link href="/pricing" target={isNative ? undefined : '_blank'} className="hover:text-white/70 transition">{t('pricing', lang)}</Link>
             </>
           )}
           <span>·</span>

@@ -1,6 +1,6 @@
-import Link from 'next/link'
 import { Logo } from '@/components/Logo'
 import { BrandLink } from '@/components/BrandLink'
+import { BackHomeLink } from '@/components/BackHomeLink'
 
 // Shared shell for every legal/policy page (terms, privacy, the per-role
 // terms pages, sms-consent) — same nav/footer markup those pages already
@@ -24,7 +24,7 @@ export function LegalPageShell({
           <Logo className="w-[26px] h-[26px]" />
           <span className="font-bold tracking-tight">Prophandld</span>
         </BrandLink>
-        <Link href="/" className="text-sm text-white/50 hover:text-white transition">← Back home</Link>
+        <BackHomeLink className="text-sm text-white/50 hover:text-white transition" />
       </nav>
 
       <main className="max-w-3xl mx-auto px-6 py-16">

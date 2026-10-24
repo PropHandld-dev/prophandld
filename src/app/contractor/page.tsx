@@ -31,6 +31,7 @@ import { useTourVisibility } from '@/lib/useTourVisibility'
 import { useMfaPromptVisibility } from '@/lib/useMfaPromptVisibility'
 import { MfaPromptModal } from '@/components/MfaPromptModal'
 import { useLanguage, t, windowLabel, type Lang } from '@/lib/i18n'
+import { useIsNativePlatform } from '@/lib/useIsNativePlatform'
 
 function getTourSteps(lang: Lang): TourStep[] {
   return [
@@ -45,6 +46,7 @@ function getTourSteps(lang: Lang): TourStep[] {
 
 export default function ContractorDashboard() {
   const router = useRouter()
+  const isNative = useIsNativePlatform()
   const lang = useLanguage()
   const PAST_FILTERS = [
     { key: 'all', label: t('filterAll', lang) },
@@ -559,9 +561,9 @@ export default function ContractorDashboard() {
         )}
 
         <div className="flex items-center justify-center gap-4 text-xs text-white/40 pt-8 pb-2">
-          <Link href="/terms/contractor" target="_blank" className="hover:text-white/70 transition">{t('termsOfService', lang)}</Link>
+          <Link href="/terms/contractor" target={isNative ? undefined : '_blank'} className="hover:text-white/70 transition">{t('termsOfService', lang)}</Link>
           <span>·</span>
-          <Link href="/privacy" target="_blank" className="hover:text-white/70 transition">{t('privacyPolicy', lang)}</Link>
+          <Link href="/privacy" target={isNative ? undefined : '_blank'} className="hover:text-white/70 transition">{t('privacyPolicy', lang)}</Link>
         </div>
       </main>
 

@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { Logo } from '@/components/Logo'
 import { BrandLink } from '@/components/BrandLink'
+import { BackHomeLink } from '@/components/BackHomeLink'
 import { MagneticLink } from '@/components/MagneticLink'
 import { CheckCircleIcon } from '@/components/icons'
 
@@ -42,7 +43,7 @@ export default function PricingPage() {
           <Logo className="w-[26px] h-[26px]" />
           <span className="font-bold tracking-tight">Prophandld</span>
         </BrandLink>
-        <Link href="/" className="text-sm text-white/50 hover:text-white transition">← Back home</Link>
+        <BackHomeLink className="text-sm text-white/50 hover:text-white transition" />
       </nav>
 
       <main className="max-w-3xl mx-auto px-6 py-16">

@@ -12,6 +12,7 @@ import { RolePicker, type Role } from '@/components/RolePicker'
 import { SITE_URL } from '@/lib/site'
 import { setAppMetadataRole } from '@/lib/setAppMetadataRole'
 import { LINKED_PROFILES_ENABLED } from '@/lib/featureFlags'
+import { useIsNativePlatform } from '@/lib/useIsNativePlatform'
 import { t, roleLabel, type Lang } from '@/lib/i18n'
 
 const ROLE_LABEL_KEY = { landlord: 'landlordLabel', renter: 'renterLabel', contractor: 'contractorLabel' } as const
@@ -56,6 +57,7 @@ const VALID_ROLES: Role[] = ['landlord', 'renter', 'contractor']
 
 function SignupForm() {
   const router = useRouter()
+  const isNative = useIsNativePlatform()
   const searchParams = useSearchParams()
   const initialRole = searchParams.get('role') as Role | null
   const [role, setRole] = useState<Role | null>(
@@ -637,9 +639,9 @@ function SignupForm() {
           />
           <span>
             {t('agreeToTermsPrefix', lang)}{' '}
-            <Link href={role ? `/terms/${role}` : '/terms'} target="_blank" className="text-[#12A5A9]/80 hover:underline">{t('termsOfService', lang)}</Link>
+            <Link href={role ? `/terms/${role}` : '/terms'} target={isNative ? undefined : '_blank'} className="text-[#12A5A9]/80 hover:underline">{t('termsOfService', lang)}</Link>
             {' '}{t('agreeToTermsMiddle', lang)}{' '}
-            <Link href="/privacy" target="_blank" className="text-[#12A5A9]/80 hover:underline">{t('privacyPolicy', lang)}</Link>{t('agreeToTermsSuffix', lang)}.
+            <Link href="/privacy" target={isNative ? undefined : '_blank'} className="text-[#12A5A9]/80 hover:underline">{t('privacyPolicy', lang)}</Link>{t('agreeToTermsSuffix', lang)}.
           </span>
         </label>
 

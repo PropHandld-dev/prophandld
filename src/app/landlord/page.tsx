@@ -31,6 +31,7 @@ import { useTourVisibility } from '@/lib/useTourVisibility'
 import { useMfaPromptVisibility } from '@/lib/useMfaPromptVisibility'
 import { MfaPromptModal } from '@/components/MfaPromptModal'
 import { useLanguage, t, type Lang } from '@/lib/i18n'
+import { useIsNativePlatform } from '@/lib/useIsNativePlatform'
 
 function getTourSteps(lang: Lang): TourStep[] {
   return [
@@ -46,6 +47,7 @@ function getTourSteps(lang: Lang): TourStep[] {
 
 export default function LandlordDashboard() {
   const router = useRouter()
+  const isNative = useIsNativePlatform()
   const lang = useLanguage()
   const [user, setUser] = useState<any>(null)
   const [now] = useState(() => Date.now())
@@ -750,9 +752,9 @@ export default function LandlordDashboard() {
         )}
 
         <div className="flex items-center justify-center gap-4 text-xs text-white/40 pt-8 pb-2">
-          <Link href="/terms/landlord" target="_blank" className="hover:text-white/70 transition">{t('termsOfService', lang)}</Link>
+          <Link href="/terms/landlord" target={isNative ? undefined : '_blank'} className="hover:text-white/70 transition">{t('termsOfService', lang)}</Link>
           <span>·</span>
-          <Link href="/privacy" target="_blank" className="hover:text-white/70 transition">{t('privacyPolicy', lang)}</Link>
+          <Link href="/privacy" target={isNative ? undefined : '_blank'} className="hover:text-white/70 transition">{t('privacyPolicy', lang)}</Link>
         </div>
       </main>
 
