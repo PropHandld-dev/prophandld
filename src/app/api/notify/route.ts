@@ -106,7 +106,13 @@ export async function POST(request: NextRequest) {
   // landlord has opened the job for bidding.
   if (type === 'job_open') {
     if (!isLandlord) return NextResponse.json({ error: 'Not allowed' }, { status: 403 })
-    const result = await notifyMatchingContractors(supabaseAdmin, jobId)
+    // Excludes the landlord opening this job from their own "near you"
+    // alert. public.users has no role column, so the zip/radius match
+    // below only ever looks at leftover service_zip/service_categories
+    // values — a landlord who once set up a contractor profile (or just
+    // poked at those settings) keeps matching their own jobs forever
+    // otherwise, exactly what was happening on this account.
+    const result = await notifyMatchingContractors(supabaseAdmin, jobId, user.id)
     return NextResponse.json({ ok: true, ...result })
   }
 
