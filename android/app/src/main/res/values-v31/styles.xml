@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Android 12+ (API 31) shows its OWN system splash screen before
+         the activity even starts — controlled by these windowSplashScreen*
+         attributes, completely separate from the @drawable/splash used in
+         values/styles.xml for older Android versions and from the
+         Capacitor SplashScreen plugin's own splash that follows it. Left
+         unset, it defaults to a white background with the full launcher
+         icon (which has an opaque dark background baked in) — exactly the
+         plain white flash this was meant to fix. Setting it explicitly
+         keeps this brief OS-controlled moment on-brand and visually
+         continuous with what follows. postSplashScreenTheme hands off to
+         the normal app theme once this system splash finishes. -->
+    <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/colorPrimary</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/splash_icon</item>
+        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
+    </style>
+
+</resources>
