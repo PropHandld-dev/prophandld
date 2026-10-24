@@ -44,6 +44,14 @@ by hand.
   selects the bid and proposes a time, contractor confirms the time and
   starts the job, contractor uploads proof of work and marks it complete,
   landlord approves and pays with a Stripe test card, contractor is paid.
+- `tests/rls-boundaries.spec.ts` — talks to Supabase directly (no browser),
+  signed in as each role, and asserts another party's data is actually
+  unreachable at the database level, not just hidden by the UI: sealed bid
+  amounts, another unit's jobs/documents/rent payments, and a renter trying
+  to write their own rent as paid. **As of 2026-10-24 the "another unit's
+  jobs" check fails for real** — see `scripts/2026-10-24-diagnose-jobs-select-policy.sql`.
+  This is expected to stay red until that policy is fixed; don't loosen the
+  assertion to make it pass.
 
 ## What's still not covered
 
