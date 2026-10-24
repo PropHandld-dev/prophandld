@@ -11,7 +11,7 @@ const BASE_URL = process.env.BASE_URL || 'https://www.prophandld.com';
 
 export default defineConfig({
   testDir: './tests',
-  timeout: 45_000,
+  timeout: 90_000, // the full job-lifecycle test now spans scheduling, photo upload, and a real Stripe payment
   expect: { timeout: 10_000 },
   fullyParallel: false, // the role accounts and demo data are shared and stateful
   retries: 1,

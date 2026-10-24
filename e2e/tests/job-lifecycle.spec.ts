@@ -4,21 +4,23 @@ import { account } from '../fixtures/accounts';
 import { watchForIssues, assertNoIssues, timed } from '../fixtures/monitoring';
 
 /**
- * The core marketplace loop, end to end, across all three real roles:
- * renter reports an issue -> landlord sees it -> contractor bids ->
- * landlord selects a bid. This is the single highest-value regression test
- * in the suite — it's the flow that has broken in real, non-obvious ways
- * before (contractor zip/radius matching, notification routing, RLS on the
- * bids table).
+ * The core marketplace loop, start to finish, across all three real roles:
+ * renter reports an issue -> landlord sees it, acknowledges it, and opens
+ * it for bids -> contractor bids -> landlord selects a bid -> landlord
+ * proposes a time -> contractor confirms it and starts the job -> contractor
+ * uploads proof of work and marks it complete -> landlord approves and pays
+ * -> contractor is paid. This is the single highest-value regression test in
+ * the suite — it's the flow that has broken in real, non-obvious ways before
+ * (contractor zip/radius matching, notification routing, RLS on the bids
+ * table, the Stripe webhook 308 / missing bids.paid_at bug).
  *
- * Deliberately stops before "mark complete" / "approve & pay": that step
- * drives a real Stripe PaymentIntent, and this suite has no safe way to
- * confirm from here whether the deployed keys are in Stripe test mode or
- * live mode. Automating a real charge is not a risk worth taking inside a
- * suite that's meant to be safe to re-run at any time — see e2e/README.md.
+ * The payment step is real money moving through a real Stripe PaymentIntent
+ * — confirmed running in Stripe TEST mode before this was written (see
+ * e2e/README.md). Never point this suite's BASE_URL at an environment
+ * running live Stripe keys.
  */
 
-test('report -> bid -> select, across renter, landlord, and contractor', async ({ browser }, testInfo) => {
+test('report -> bid -> select -> complete -> pay, across renter, landlord, and contractor', async ({ browser }, testInfo) => {
   const marker = `E2E-${Date.now()}`;
   const bidAmount = String(100 + (Date.now() % 200)); // varies per run, easy to spot in the UI
 
@@ -90,6 +92,64 @@ test('report -> bid -> select, across renter, landlord, and contractor', async (
     await landlord.getByRole('button', { name: 'Select this contractor' }).click();
     await landlord.getByRole('button', { name: 'Confirm' }).click();
     await expect(landlord.getByText('Selected contractor')).toBeVisible({ timeout: 15_000 });
+    const jobId = jobUrl.split('/jobs/')[1];
+
+    // --- Landlord proposes a time ---
+    await timed(testInfo, 'landlord proposes a time', async () => {
+      await landlord.getByRole('button', { name: 'Propose a time myself' }).click();
+      const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+      await landlord.locator('input[type="date"]').fill(tomorrow);
+      await landlord.getByRole('button', { name: 'Propose', exact: true }).click();
+      await expect(landlord.getByRole('button', { name: 'Propose a time myself' })).toBeHidden({ timeout: 15_000 });
+    });
+
+    // --- Contractor confirms the time and starts the job ---
+    await timed(testInfo, 'contractor confirms time and starts job', async () => {
+      await contractor.goto(`/contractor/jobs/${jobId}`);
+      await contractor.getByRole('button', { name: 'Confirm this time' }).click();
+      await contractor.getByRole('button', { name: 'Start job' }).click();
+      await expect(contractor.getByRole('button', { name: 'Start job' })).toBeHidden({ timeout: 15_000 });
+    });
+
+    // --- Contractor uploads proof of work and marks the job complete ---
+    // Three upload inputs render in this fixed order: before, after, receipt.
+    await timed(testInfo, 'contractor uploads after-photo and marks complete', async () => {
+      await contractor.locator('input[type="file"]').nth(1).setInputFiles('public/logo.png');
+      await contractor.getByRole('button', { name: 'Mark job complete' }).click({ timeout: 20_000 });
+      await contractor.getByRole('button', { name: 'Mark complete' }).click();
+      await contractor.waitForURL('**/contractor', { timeout: 15_000 });
+    });
+
+    // --- Landlord approves and pays with the Stripe test debit card ---
+    // 4000056655665556 is a genuine Stripe TEST debit card — not 4242..., which
+    // registers as a credit card and gets correctly auto-rejected/refunded by
+    // this app's own credit-card-detection safety feature on the rent side;
+    // job payments accept any card, but using the debit card keeps this
+    // suite's test data consistent with what a real landlord would use.
+    await timed(testInfo, 'landlord approves and starts payment', async () => {
+      await landlord.goto(jobUrl);
+      await landlord.getByRole('button', { name: 'Approve' }).click();
+      await landlord.getByRole('button', { name: 'Approve & pay' }).click();
+      await landlord.getByRole('button', { name: 'Debit card' }).click();
+    });
+
+    await timed(testInfo, 'landlord pays via Stripe', async () => {
+      // Stripe mounts several "__privateStripeFrame*" iframes (fraud
+      // detection, Link, etc.) alongside the visible card form — the
+      // documented, stable way to reach the actual payment form is its
+      // title, not a name-prefix match against every Stripe frame.
+      const stripeFrame = landlord.frameLocator('iframe[title="Secure payment input frame"]');
+      await stripeFrame.getByPlaceholder('1234 1234 1234 1234').fill('4000056655665556');
+      await stripeFrame.getByPlaceholder('MM / YY').fill('12/34');
+      await stripeFrame.getByPlaceholder('CVC').fill('123');
+      const zip = stripeFrame.getByPlaceholder('12345');
+      if (await zip.isVisible({ timeout: 2_000 }).catch(() => false)) {
+        await zip.fill('19019');
+      }
+      await landlord.getByRole('button', { name: /^Pay \$/ }).click();
+      await expect(landlord.getByRole('heading', { name: 'Payment complete' })).toBeVisible({ timeout: 30_000 });
+      await landlord.getByRole('button', { name: 'Done' }).click();
+    });
 
     assertNoIssues(renterIssues, testInfo);
     assertNoIssues(landlordIssues, testInfo);
