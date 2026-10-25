@@ -2363,6 +2363,45 @@ export async function sendContractorVerificationDecisionEmail({
   })
 }
 
+// One-off notice, not an event-driven notification — sent once via
+// scripts/2026-10-24-notify-contractors-terms-update.mjs to every existing
+// contractor when the terms page's "free, no cut, ever" line was replaced
+// with pilot-program wording (free during the pilot, 60 days' notice before
+// any future fee). Not gated on email_notifications_enabled: this is a
+// terms-of-service change, not a product alert a contractor opted into.
+export async function sendContractorTermsUpdatedEmail({
+  to,
+  contractorName,
+  lang = 'en',
+}: {
+  to: string
+  contractorName: string
+  lang?: Lang
+}) {
+  const html = lang === 'es' ? baseTemplate({
+    lang,
+    eyebrow: 'Términos actualizados',
+    heading: 'Actualizamos nuestros términos para contratistas',
+    bodyHtml: `Hola ${escapeHtml(contractorName)}, aclaramos la sección "Cómo te pagan" de nuestros Términos de Servicio para contratistas. Prophandld sigue siendo completamente gratis para contratistas en este momento — sin comisión de la plataforma, sin recorte de tu oferta. El cambio: en lugar de prometer que será gratis "para siempre", ahora decimos explícitamente que es gratis durante este programa piloto, y que si alguna vez introducimos un precio para contratistas, te avisaremos por escrito con al menos 60 días de anticipación antes de que te aplique, y nunca se aplicará de forma retroactiva al trabajo ya ofertado, programado o completado. Nada cambia hoy — esto es solo para ser honestos sobre el futuro en lugar de dejarlo en letra pequeña.`,
+    ctaLabel: 'Leer los términos actualizados',
+    ctaUrl: `${SITE_URL}/terms/contractor`,
+    footerText: 'Te avisamos porque esto cambia los términos que aceptaste al registrarte.',
+  }) : baseTemplate({
+    lang,
+    eyebrow: 'Updated terms',
+    heading: 'We updated our contractor terms',
+    bodyHtml: `Hi ${escapeHtml(contractorName)}, we clarified the "Getting paid" section of our Terms of Service for contractors. Prophandld is still completely free for contractors right now — no platform fee, no cut of your bid. The change: instead of promising it'll be free "forever," we now say plainly that it's free during this pilot program, and that if we ever introduce pricing for contractors, we'll give you at least 60 days' written notice before it applies to you, and it will never apply retroactively to work you've already bid, scheduled, or completed. Nothing changes today — this is just about being upfront about the future instead of leaving it in fine print.`,
+    ctaLabel: 'Read the updated terms',
+    ctaUrl: `${SITE_URL}/terms/contractor`,
+    footerText: "You're getting this because it changes the terms you agreed to at signup.",
+  })
+  return sendEmail({
+    to,
+    subject: lang === 'es' ? 'Actualizamos nuestros términos para contratistas' : 'We updated our contractor terms',
+    html,
+  })
+}
+
 // Fires whenever Stripe reports a payout bank account was added or changed
 // on a connected account — the exact moment a phished dashboard login would
 // be exploited. Payouts are paused for 48 hours regardless (see the

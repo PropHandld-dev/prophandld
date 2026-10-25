@@ -51,7 +51,7 @@ export async function GET() {
       { data: tenancies },
       { data: verifications },
     ] = await Promise.all([
-      supabaseAdmin.from('users').select('id, service_categories, service_zip, licensed').in('id', ids),
+      supabaseAdmin.from('users').select('id, service_categories, service_zip, licensed, terms_accepted_at, terms_version').in('id', ids),
       // One row per landlord/property ever — won't truncate until either
       // count crosses 1000, but the same unbounded-select bug this
       // project built fetchAllPages specifically to stop.
@@ -80,6 +80,7 @@ export async function GET() {
 
     const users = allUsers.map((u: any) => {
       const role = u.app_metadata?.role || null
+      const termsProfile: any = profileById.get(u.id)
       const base = {
         id: u.id,
         email: u.email,
@@ -87,6 +88,8 @@ export async function GET() {
         role,
         created_at: u.created_at,
         last_sign_in_at: u.last_sign_in_at || null,
+        termsAcceptedAt: termsProfile?.terms_accepted_at || null,
+        termsVersion: termsProfile?.terms_version || null,
       }
 
       if (role === 'landlord') {

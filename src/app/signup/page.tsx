@@ -21,9 +21,9 @@ const ROLE_LABEL_KEY = { landlord: 'landlordLabel', renter: 'renterLabel', contr
 // — bump the matching entry here whenever that page's content changes, so
 // terms_version on signup always records which version was actually agreed to.
 const TERMS_VERSION: Record<Role, string> = {
-  landlord: '2026-10-20',
+  landlord: '2026-10-24',
   renter: '2026-10-20',
-  contractor: '2026-10-19',
+  contractor: '2026-10-24',
 }
 
 // No signed-in session exists yet on this page, so there's no

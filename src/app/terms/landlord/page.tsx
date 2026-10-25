@@ -9,7 +9,7 @@ export default function LandlordTermsPage() {
   return (
     <LegalPageShell
       title="Terms of Service — Landlords"
-      lastUpdated="October 20, 2026"
+      lastUpdated="October 24, 2026"
       footerLinks={
         <>
           <Link href="/terms" className="hover:text-white transition">General Terms</Link>
@@ -133,7 +133,10 @@ export default function LandlordTermsPage() {
           <Link href="/pricing" className="text-[#12A5A9] hover:underline">prophandld.com/pricing</Link>.
           This fee is unrelated to, and never deducted from, any individual rent or job payment. Your
           first unit is free. A co-owner you&apos;ve invited sees their own account&apos;s billing (typically
-          free, since they&apos;re not the unit owner), never yours.
+          free, since they&apos;re not the unit owner), never yours. Current pricing reflects this pilot
+          program; if we restructure how landlord pricing works (not just adjust the existing rates —
+          for example, pricing a feature like rent collection separately from the base subscription),
+          we&apos;ll give you at least 60 days&apos; written notice (email) before it applies to you.
         </p>
       </section>
 

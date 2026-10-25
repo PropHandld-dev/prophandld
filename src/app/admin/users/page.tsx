@@ -14,6 +14,8 @@ type AdminUser = {
   role: Role | null
   created_at: string
   last_sign_in_at: string | null
+  termsAcceptedAt: string | null
+  termsVersion: string | null
   // landlord
   tier?: LandlordTier
   propertyCount?: number
@@ -287,6 +289,13 @@ function UserRow({ user }: { user: AdminUser }) {
       <div className="text-right shrink-0">
         <p className={`text-xs tabular-nums ${stale ? 'text-white/30' : 'text-white/60'}`}>{relativeTime(user.last_sign_in_at)}</p>
         <p className="text-white/25 text-[11px] mt-0.5">Joined {new Date(user.created_at).toLocaleDateString()}</p>
+        {user.termsAcceptedAt ? (
+          <p className="text-white/25 text-[11px] mt-0.5" title={new Date(user.termsAcceptedAt).toLocaleString()}>
+            Terms v{user.termsVersion || '?'} · {new Date(user.termsAcceptedAt).toLocaleDateString()}
+          </p>
+        ) : (
+          <p className="text-yellow-400/70 text-[11px] mt-0.5">Terms not recorded</p>
+        )}
       </div>
     </div>
   )

@@ -9,7 +9,7 @@ export default function ContractorTermsPage() {
   return (
     <LegalPageShell
       title="Terms of Service — Contractors"
-      lastUpdated="October 19, 2026"
+      lastUpdated="October 24, 2026"
       footerLinks={
         <>
           <Link href="/terms" className="hover:text-white transition">General Terms</Link>
@@ -93,8 +93,11 @@ export default function ContractorTermsPage() {
       <section>
         <h2>6. Getting paid</h2>
         <p>
-          Using Prophandld as a contractor is completely free — no platform fee, no cut of your bid,
-          ever. Once a landlord approves your completed work, payment moves directly from them to you
+          Using Prophandld as a contractor is free during this pilot program — no platform fee, no cut
+          of your bid. As the marketplace grows beyond the pilot, we may introduce pricing for
+          contractors, such as a fee on completed jobs or a monthly plan; if we do, we&apos;ll give you at
+          least 60 days&apos; written notice (email) before it applies to you, and it will never apply
+          retroactively to work already bid, scheduled, or completed. Once a landlord approves your completed work, payment moves directly from them to you
           through Stripe, a third-party payment processor; Prophandld does not hold or custody the
           funds at any point, and never sees or stores your bank account details — that&apos;s handled
           entirely by Stripe. A completed job auto-approves three days after you mark it done if the
