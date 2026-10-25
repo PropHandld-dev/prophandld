@@ -47,8 +47,24 @@ export const TIER_LABELS: Record<LandlordTier, string> = {
   free: 'Free',
   starter: '$19.99–$79.99/month',
   growth: '$79.99 + $1.75/unit over 25',
-  portfolio: '$211.24 + $1.25/unit over 100',
-  enterprise: '$711.24 + $1/unit over 500',
+  portfolio: '$79.99 + $1.75/unit over 25',
+  enterprise: '$79.99 + $1.75/unit over 25',
+}
+
+// Customer-facing tier names (what the /pricing page and the signup price
+// estimator show) — deliberately separate from LandlordTier above, which
+// stays as the internal 5-bucket admin-analytics categorization (snapshot
+// cron, tier-mix chart) that nothing here needs to disturb. These are
+// purely a naming/marketing layer over the same graduatedMonthlyAmount()
+// numbers: Free/Basic/Pro/Executive map 1:1 onto the old Free/Starter's
+// three flat steps, and Portfolio is every unit count above 25 collapsing
+// the old Growth/Portfolio/Enterprise three-step into the one flat rate.
+export function marketingTierName(unitCount: number): string {
+  if (unitCount <= 1) return 'Free'
+  if (unitCount <= 4) return 'Basic'
+  if (unitCount <= 10) return 'Pro'
+  if (unitCount <= 25) return 'Executive'
+  return 'Portfolio'
 }
 
 // The actual graduated formula, mirrored here for anywhere that needs a
@@ -56,16 +72,16 @@ export const TIER_LABELS: Record<LandlordTier, string> = {
 // Stripe's own tiered Price (configured with matching flat/per-unit
 // brackets in the Dashboard) is still the source of truth for what a
 // landlord is actually charged. Flat brackets for 2–4/5–10/11–25 units,
-// then genuinely marginal per-unit rates above 25/100/500 — same
-// tax-bracket shape as before, just with three flat steps instead of one.
+// then one flat $1.75/unit rate above 25 — simplified 2026-10-24 from the
+// earlier three-step marginal rate (25/100/500) at Joshua's call, since a
+// single continuing rate is easier to say out loud and to defend than
+// "it gets cheaper twice more, trust us" for landlords who never asked.
 export function graduatedMonthlyAmount(unitCount: number): number {
   if (unitCount <= 1) return 0
   if (unitCount <= 4) return 19.99
   if (unitCount <= 10) return 39.99
   if (unitCount <= 25) return 79.99
-  if (unitCount <= 100) return 79.99 + (unitCount - 25) * 1.75
-  if (unitCount <= 500) return 79.99 + 75 * 1.75 + (unitCount - 100) * 1.25
-  return 79.99 + 75 * 1.75 + 400 * 1.25 + (unitCount - 500) * 1
+  return 79.99 + (unitCount - 25) * 1.75
 }
 
 // The real price for a specific landlord's exact unit count — use this
