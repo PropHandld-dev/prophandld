@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
 
     if (hasWorkedTogether && hasWorkedTogether.length > 0) {
       return NextResponse.json(
-        { error: "This contractor already has a Prophandld account, and you've worked together before — message them directly instead." },
+        { error: "This contractor already has a Prophandld account, and you've worked together before. Message them directly instead." },
         { status: 400 }
       )
     }
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error:
-          "This contractor already has a Prophandld account, but you haven't worked together yet, so there's no way to message them directly. Post the job and they'll see it if it's in their service area and trade — or ask them for their service ZIP to confirm.",
+          "This contractor already has a Prophandld account, but you haven't worked together yet, so there's no way to message them directly. Post the job and they'll see it if it's in their service area and trade, or ask them for their service ZIP to confirm.",
       },
       { status: 400 }
     )

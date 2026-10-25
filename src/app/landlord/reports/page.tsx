@@ -238,7 +238,7 @@ export default function LandlordReportsPage() {
       `prophandld-rent-collected-${range.from}-to-${range.to}.csv`,
       [t('dateHeader', lang), t('propertyLabel', lang), t('amountHeader', lang), t('methodLabelReceipt', lang)],
       filteredRent.map((r) => [r.date, r.place, r.amount.toFixed(2), paymentMethodLabel(r.method, lang)]),
-      { heading: `Prophandld — ${t('rentCollectedLabel', lang)}`, subheading: `${landlordName || ''} · ${rangeLabel}` }
+      { heading: `Prophandld · ${t('rentCollectedLabel', lang)}`, subheading: `${landlordName || ''} · ${rangeLabel}` }
     )
   }
   const exportJobs = () => {
@@ -246,7 +246,7 @@ export default function LandlordReportsPage() {
       `prophandld-contractor-payments-${range.from}-to-${range.to}.csv`,
       [t('dateHeader', lang), t('propertyLabel', lang), t('categoryHeader', lang), t('contractorHeader', lang), t('amountHeader', lang)],
       filteredJobs.map((r) => [r.date, r.place, r.category, r.contractorName, r.amount.toFixed(2)]),
-      { heading: `Prophandld — ${t('paidToContractorsLabel', lang)}`, subheading: `${landlordName || ''} · ${rangeLabel}` }
+      { heading: `Prophandld · ${t('paidToContractorsLabel', lang)}`, subheading: `${landlordName || ''} · ${rangeLabel}` }
     )
   }
   const propertyLabel = propertyFilter === 'all' ? t('allPropertiesLabel', lang) : properties.find((p) => p.id === propertyFilter)?.address || ''

@@ -45,15 +45,15 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: 'What happens if my license lapses and I miss it?',
-    a: "Under the new law, a suspended license means you legally cannot collect rent until it's resolved — not a fine you can pay later and move on from, a hard stop on your income from that property. Prophandld's compliance tracking exists specifically to make sure you see it coming.",
+    a: "Under the new law, a suspended license means you legally cannot collect rent until it's resolved. Not a fine you can pay later and move on from, a hard stop on your income from that property. Prophandld's compliance tracking exists specifically to make sure you see it coming.",
   },
   {
     q: 'Does this replace checking with the city or an attorney?',
-    a: "No. This page and Prophandld's compliance tracking tell you what you have on file and when it expires — they don't replace confirming your specific obligations with the City of Philadelphia or your own attorney.",
+    a: "No. This page and Prophandld's compliance tracking tell you what you have on file and when it expires. They don't replace confirming your specific obligations with the City of Philadelphia or your own attorney.",
   },
   {
     q: 'Is Prophandld only for Philadelphia?',
-    a: "We're starting here and growing from here. Everything on Prophandld (rent, jobs, documents, compliance tracking) works the same regardless of city — Philadelphia is just where we're onboarding first.",
+    a: "We're starting here and growing from here. Everything on Prophandld (rent, jobs, documents, compliance tracking) works the same regardless of city. Philadelphia is just where we're onboarding first.",
   },
 ]
 

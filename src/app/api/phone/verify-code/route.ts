@@ -25,10 +25,10 @@ export async function POST(request: NextRequest) {
     .maybeSingle()
 
   if (error || !row) {
-    return NextResponse.json({ error: 'No pending code — request a new one' }, { status: 400 })
+    return NextResponse.json({ error: 'No pending code. Request a new one' }, { status: 400 })
   }
   if (new Date(row.expires_at) < new Date()) {
-    return NextResponse.json({ error: 'That code expired — request a new one' }, { status: 400 })
+    return NextResponse.json({ error: 'That code expired. Request a new one' }, { status: 400 })
   }
   if (row.code !== code.trim()) {
     return NextResponse.json({ error: 'That code didn\'t match' }, { status: 400 })

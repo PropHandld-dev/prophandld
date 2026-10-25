@@ -9,7 +9,7 @@ import Stripe from 'stripe'
 // decides what the client sees.
 export function friendlyStripeError(err: unknown, action = 'complete that'): string {
   if (err instanceof Stripe.errors.StripeError) {
-    return `Couldn't ${action} with Stripe just now — this is usually temporary. Try again in a moment, and contact admin@prophandld.com if it keeps happening.`
+    return `Couldn't ${action} with Stripe just now. This is usually temporary. Try again in a moment, and contact admin@prophandld.com if it keeps happening.`
   }
   return err instanceof Error ? err.message : 'Unknown error'
 }

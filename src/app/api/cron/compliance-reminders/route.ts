@@ -157,7 +157,7 @@ export async function GET(request: NextRequest) {
         const anyExpired = entry.items.some((i) => i.status === 'expired')
         await sendPush(recipientId, {
           title: anyExpired ? 'A compliance item has expired' : 'A compliance item is expiring soon',
-          body: entry.items.length === 1 ? `${entry.items[0].name} — ${entry.address}` : `${entry.items.length} items at ${entry.address}`,
+          body: entry.items.length === 1 ? `${entry.items[0].name} at ${entry.address}` : `${entry.items.length} items at ${entry.address}`,
           url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/landlord/properties/${entry.propertyId}/compliance`,
         }).catch((err) => console.error('cron/compliance-reminders: sendPush failed', { recipientId, err }))
         // Only count/log this as sent when a real subscription exists — no

@@ -44,15 +44,15 @@ export function LaunchEventSection() {
       </div>
       <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">We&apos;re planning an in-person launch event for Philadelphia landlords</h2>
       <p className="text-white/60 max-w-xl mx-auto leading-relaxed mb-8">
-        Meet the team, see the product live, swap notes with other local landlords, and ask us anything —
-        no pitch, just a real conversation. Leave your email and we&apos;ll send the date and location the
+        Meet the team, see the product live, swap notes with other local landlords, and ask us anything.
+        No pitch, just a real conversation. Leave your email and we&apos;ll send the date and location the
         moment it&apos;s locked in.
       </p>
 
       {status === 'done' ? (
         <div className="inline-flex items-center gap-2 text-[#12A5A9] font-semibold">
           <CheckCircleIcon className="w-5 h-5" />
-          You&apos;re on the list — we&apos;ll email you the details.
+          You&apos;re on the list. We&apos;ll email you the details.
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row items-center justify-center gap-3 max-w-md mx-auto">

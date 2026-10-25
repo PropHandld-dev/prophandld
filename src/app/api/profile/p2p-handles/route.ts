@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
           }
           await sendPush(renter.id, {
             title: "Your landlord's payment info changed",
-            body: 'Double-check the handle before paying this way — see your rent page for details.',
+            body: 'Double-check the handle before paying this way. See your rent page for details.',
             url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/renter/rent`,
           }).catch((err) => console.error('profile/p2p-handles: renter alert push failed', err))
         })

@@ -128,7 +128,7 @@ export default function ForgotPasswordPage() {
           </form>
 
           <p className="text-white/50 text-sm mb-4">
-            Or click the link in that same email instead. If this wasn&apos;t you, you can safely ignore the email — your password won&apos;t change.
+            Or click the link in that same email instead. If this wasn&apos;t you, you can safely ignore the email: your password won&apos;t change.
           </p>
           <RippleButton
             type="button"

@@ -178,7 +178,7 @@ export default function EditTenancyPage() {
             {suggestion && (
               <div className="bg-[#12A5A9]/10 border border-[#12A5A9]/25 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
                 <p className="text-white/70 text-xs">
-                  {t('escalationSuggestionPrefix', lang)} {suggestion.date.toLocaleDateString()} — {t('escalationSuggestionSuggested', lang)} <strong className="text-white">${suggestion.suggested.toFixed(2)}</strong>
+                  {t('escalationSuggestionPrefix', lang)} {suggestion.date.toLocaleDateString()}. {t('escalationSuggestionSuggested', lang)} <strong className="text-white">${suggestion.suggested.toFixed(2)}</strong>
                 </p>
                 <button
                   type="button"

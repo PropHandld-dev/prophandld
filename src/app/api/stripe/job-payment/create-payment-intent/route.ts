@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
   // the payout to a new account. See account.updated in the Stripe webhook.
   if (contractorRow.payout_frozen_until && new Date(contractorRow.payout_frozen_until) > new Date()) {
     return NextResponse.json(
-      { error: "This contractor's payout details recently changed. Payments are paused for 48 hours as a security precaution — please try again shortly." },
+      { error: "This contractor's payout details recently changed. Payments are paused for 48 hours as a security precaution, please try again shortly." },
       { status: 400 }
     )
   }

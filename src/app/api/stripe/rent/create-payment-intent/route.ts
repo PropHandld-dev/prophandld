@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
   // rent to a new account. See account.updated in the Stripe webhook.
   if (landlordRow.payout_frozen_until && new Date(landlordRow.payout_frozen_until) > new Date()) {
     return NextResponse.json(
-      { error: "Your landlord's payout details recently changed. Payments are paused for 48 hours as a security precaution — please try again shortly." },
+      { error: "Your landlord's payout details recently changed. Payments are paused for 48 hours as a security precaution, please try again shortly." },
       { status: 400 }
     )
   }

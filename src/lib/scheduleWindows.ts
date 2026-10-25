@@ -74,7 +74,7 @@ export function shortNoticeWarning(date: string, window: string, time: string | 
   const hoursUntil = hoursUntilProposed(date, window, time)
   if (hoursUntil >= ENTRY_NOTICE_HOURS) return null
   if (hoursUntil < 0) return null // a past/same-moment date is caught elsewhere, not this check's job
-  return `Heads up: this is less than ${ENTRY_NOTICE_HOURS} hours' notice. Most places expect at least a day's notice before entering a tenant's home for non-emergency work — fine if everyone's genuinely OK with it, but worth a quick check before you send it.`
+  return `Heads up: this is less than ${ENTRY_NOTICE_HOURS} hours' notice. Most places expect at least a day's notice before entering a tenant's home for non-emergency work. Fine if everyone's genuinely OK with it, but worth a quick check before you send it.`
 }
 
 // `time` is an <input type="time"> value ("HH:MM", 24h). Returns an

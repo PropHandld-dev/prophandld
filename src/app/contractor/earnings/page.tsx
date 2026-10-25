@@ -125,7 +125,7 @@ export default function ContractorEarningsPage() {
       `prophandld-earnings-${range.from}-to-${range.to}.csv`,
       [t('dateHeader', lang), t('categoryHeader', lang), t('propertyLabel', lang), t('amountHeader', lang)],
       paid.map((b) => [(b.paid_at || b.created_at).slice(0, 10), b.jobs?.category || '', jobLocation(b, lang), (b.amount || 0).toFixed(2)]),
-      { heading: `Prophandld — ${t('pastJobsEarnings', lang)}`, subheading: `${contractorName || ''} · ${rangeLabel}` }
+      { heading: `Prophandld · ${t('pastJobsEarnings', lang)}`, subheading: `${contractorName || ''} · ${rangeLabel}` }
     )
   }
 

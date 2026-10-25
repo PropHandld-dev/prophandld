@@ -1538,7 +1538,7 @@ const STRINGS = {
   inviteCardAnother: { en: 'Invite another', es: 'Invitar a otro' },
   inviteCardManageLink: { en: 'Manage your invites →', es: 'Administrar tus invitaciones →' },
   jobsListInviteLine: { en: 'Know a contractor who should be on here? Invite them →', es: '¿Conoces a un contratista que debería estar aquí? Invítalo →' },
-  inviteEyebrow: { en: 'Free, always', es: 'Gratis, siempre' },
+  inviteEyebrow: { en: 'Free during this pilot', es: 'Gratis durante este piloto' },
   invitePitchNoFees: { en: 'No platform fee during this pilot program. They keep every dollar they bid.', es: 'Sin comisión de plataforma durante este programa piloto. Se quedan con cada dólar que cotizan.' },
   invitePitchOneThread: { en: 'One message thread instead of scattered texts.', es: 'Un solo hilo de mensajes en vez de textos dispersos.' },
   invitePitchPaidFast: { en: 'Paid the moment a job is approved, no chasing checks.', es: 'Se les paga en cuanto se aprueba el trabajo, sin perseguir cheques.' },

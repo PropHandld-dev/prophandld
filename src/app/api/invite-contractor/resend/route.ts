@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'This invite is no longer pending' }, { status: 400 })
   }
   if (invite.last_sent_at && Date.now() - new Date(invite.last_sent_at).getTime() < COOLDOWN_MS) {
-    return NextResponse.json({ error: 'Already resent recently — give it a couple minutes before trying again.' }, { status: 429 })
+    return NextResponse.json({ error: 'Already resent recently. Give it a couple minutes before trying again.' }, { status: 429 })
   }
 
   const { data: landlordRow } = await supabaseAdmin.from('users').select('full_name').eq('id', user.id).maybeSingle()

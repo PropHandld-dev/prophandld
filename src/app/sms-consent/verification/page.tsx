@@ -29,8 +29,8 @@ export default function PhoneVerificationConsentPage() {
             <p>
               Prophandld sends a one-time 6-digit verification code by SMS to confirm a user&apos;s
               phone number before they can enable text alerts on their account, or after they change
-              their saved phone number. The code is requested directly by the account holder — by
-              tapping &quot;Verify phone number&quot; in the app — and is never sent unprompted. Each
+              their saved phone number. The code is requested directly by the account holder, by
+              tapping &quot;Verify phone number&quot; in the app, and is never sent unprompted. Each
               code expires after 10 minutes.
             </p>
           </section>
@@ -48,7 +48,7 @@ export default function PhoneVerificationConsentPage() {
                 className="rounded-xl border border-white/10 w-full"
               />
               <figcaption className="text-white/50 text-xs mt-2">
-                Verification panel shown after requesting a code — phone number, disclosure text, and
+                Verification panel shown after requesting a code: phone number, disclosure text, and
                 code entry all visible together
               </figcaption>
             </figure>

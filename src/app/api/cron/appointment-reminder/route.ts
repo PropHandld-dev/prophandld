@@ -168,7 +168,7 @@ export async function GET(request: NextRequest) {
         title:
           role === 'landlord'
             ? isDiy
-              ? `Tomorrow: ${job.category} — you're doing this one`
+              ? `Tomorrow: ${job.category} (you're doing this one)`
               : `Tomorrow: ${job.category} (FYI)`
             : `Tomorrow: ${job.category}`,
         body: `${when} · ${propertyLabel}`,
