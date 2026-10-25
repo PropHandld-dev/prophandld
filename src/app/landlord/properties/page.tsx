@@ -85,6 +85,13 @@ export default function PropertiesPage() {
       return
     }
 
+    // Archiving/unarchiving changes billable unit count — resync right
+    // away instead of leaving it to whenever this landlord next happens to
+    // open their profile page, which could be a while if archiving was the
+    // whole point of this visit. Fire-and-forget: the property list itself
+    // already reflects the change regardless of how this turns out.
+    void fetch('/api/stripe/subscription/sync', { method: 'POST' }).catch(() => {})
+
     await fetchProperties()
   }
 

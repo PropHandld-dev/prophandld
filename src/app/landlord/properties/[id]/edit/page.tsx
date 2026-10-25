@@ -173,6 +173,11 @@ export default function EditPropertyPage() {
       return
     }
 
+    // Archiving/unarchiving changes billable unit count — resync right
+    // away instead of leaving it to whenever this landlord next happens to
+    // open their profile page.
+    void fetch('/api/stripe/subscription/sync', { method: 'POST' }).catch(() => {})
+
     router.push('/landlord/properties')
   }
 

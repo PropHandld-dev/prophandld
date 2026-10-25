@@ -14,6 +14,7 @@ import { setAppMetadataRole } from '@/lib/setAppMetadataRole'
 import { LINKED_PROFILES_ENABLED } from '@/lib/featureFlags'
 import { useIsNativePlatform } from '@/lib/useIsNativePlatform'
 import { t, roleLabel, type Lang } from '@/lib/i18n'
+import { formatTierPrice } from '@/lib/pricingTiers'
 
 const ROLE_LABEL_KEY = { landlord: 'landlordLabel', renter: 'renterLabel', contractor: 'contractorLabel' } as const
 
@@ -54,6 +55,35 @@ function getRoleContent(role: Role, lang: Lang): { headline: string; subtext: st
 }
 
 const VALID_ROLES: Role[] = ['landlord', 'renter', 'contractor']
+
+// Purely informational — doesn't feed into signup itself. A landlord's
+// real bill is computed later from the actual properties/units they add
+// (see pricingTiers.ts), never from a number typed in here; this exists so
+// pricing isn't a surprise discovered only after they're already in.
+function UnitPriceEstimator({ lang }: { lang: Lang }) {
+  const [units, setUnits] = useState(1)
+  return (
+    <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 mb-6">
+      <p className="text-white/70 text-xs font-semibold uppercase tracking-wide mb-2">{t('seeYourPriceLabel', lang)}</p>
+      <div className="flex items-center justify-between gap-3">
+        <label htmlFor="unit-price-estimate" className="text-white/70 text-sm flex-1">
+          {t('howManyUnitsQuestion', lang)}
+        </label>
+        <input
+          id="unit-price-estimate"
+          type="number"
+          min={1}
+          max={9999}
+          value={units}
+          onChange={(e) => setUnits(Math.max(1, parseInt(e.target.value, 10) || 1))}
+          className="w-20 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-white text-sm text-center focus:outline-none focus:border-[#12A5A9] transition"
+        />
+      </div>
+      <p className="text-[#12A5A9] font-bold text-lg mt-2">{formatTierPrice(units)}</p>
+      <p className="text-white/40 text-xs mt-1">{t('yourPriceEstimateNote', lang)}</p>
+    </div>
+  )
+}
 
 function SignupForm() {
   const router = useRouter()
@@ -551,6 +581,8 @@ function SignupForm() {
           </li>
         ))}
       </ul>
+
+      {role === 'landlord' && <UnitPriceEstimator lang={lang} />}
 
       <form onSubmit={handleSignup} className="space-y-4">
 

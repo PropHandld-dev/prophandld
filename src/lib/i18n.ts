@@ -1916,6 +1916,9 @@ const STRINGS = {
   // in only ~5 spots across 674 lines, nearly all visible copy hardcoded.
   signupHeadlineLandlord: { en: 'Run your rentals, not a spreadsheet.', es: 'Administra tus alquileres, no una hoja de cálculo.' },
   signupSubtextLandlord: { en: 'Takes about two minutes to get set up. Less time than deciding what to have for dinner.', es: 'Toma unos dos minutos configurarlo. Menos tiempo del que te toma decidir qué cenar.' },
+  seeYourPriceLabel: { en: 'See your price', es: 'Ve tu precio' },
+  howManyUnitsQuestion: { en: 'How many units do you manage?', es: '¿Cuántas unidades gestionas?' },
+  yourPriceEstimateNote: { en: "Your first unit is free. After that, a 14-day trial, then billed monthly based on your real portfolio as you add it — this is just an estimate.", es: 'Tu primera unidad es gratis. Después, una prueba de 14 días, y luego se factura mensualmente según tu portafolio real a medida que lo agregas — esto es solo un estimado.' },
   signupHeadlineRenter: { en: 'Get things fixed, fast.', es: 'Resuelve problemas, rápido.' },
   signupSubtextRenter: { en: "Report an issue in seconds, no digging through old texts to find your landlord's number.", es: 'Reporta un problema en segundos, sin buscar en viejos mensajes el número de tu propietario.' },
   signupHeadlineContractor: { en: 'Bid fair, get picked on merit.', es: 'Oferta con justicia, gana por mérito.' },
