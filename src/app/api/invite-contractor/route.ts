@@ -97,8 +97,8 @@ export async function POST(request: NextRequest) {
     .from('contractor_invites')
     .insert(
       contractorEmail
-        ? { landlord_user_id: user.id, contractor_email: contractorEmail, note: note?.trim() || null }
-        : { landlord_user_id: user.id, invited_phone: contractorPhone, note: note?.trim() || null }
+        ? { landlord_user_id: user.id, contractor_email: contractorEmail, note: note?.trim() || null, last_sent_at: new Date().toISOString() }
+        : { landlord_user_id: user.id, invited_phone: contractorPhone, note: note?.trim() || null, last_sent_at: new Date().toISOString() }
     )
     .select('id')
     .single()

@@ -94,6 +94,27 @@ export default function InviteContractorPage() {
     if (userId) await loadInvites(userId)
   }
 
+  const [resendingId, setResendingId] = useState<string | null>(null)
+  const [resendResult, setResendResult] = useState<{ id: string; error: string | null } | null>(null)
+
+  const handleResend = async (inviteId: string) => {
+    setResendingId(inviteId)
+    setResendResult(null)
+    try {
+      const res = await fetch('/api/invite-contractor/resend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inviteId }),
+      })
+      const data = await res.json().catch(() => ({}))
+      setResendResult({ id: inviteId, error: res.ok ? null : (data.error || t('couldNotResendInvite', lang)) })
+    } catch {
+      setResendResult({ id: inviteId, error: t('couldNotResendInvite', lang) })
+    }
+    setResendingId(null)
+    if (userId) await loadInvites(userId)
+  }
+
   const statusLabel = (status: string) => {
     if (status === 'accepted') return { label: t('joinedStatus', lang), className: 'bg-[#0A7B7E]/20 text-[#12A5A9]' }
     if (status === 'cancelled') return { label: t('cancelledStatus', lang), className: 'bg-white/8 text-white/50' }
@@ -191,22 +212,44 @@ export default function InviteContractorPage() {
                   {invites.map((invite) => {
                     const status = statusLabel(invite.status)
                     return (
-                      <div key={invite.id} className="bg-white/3 border border-white/8 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="text-white text-sm truncate">{invite.contractor_email || invite.invited_phone}</p>
-                          {invite.note && <p className="text-white/40 text-xs truncate mt-0.5">{invite.note}</p>}
+                      <div key={invite.id} className="bg-white/3 border border-white/8 rounded-xl px-4 py-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-white text-sm truncate">{invite.contractor_email || invite.invited_phone}</p>
+                            {invite.note && <p className="text-white/40 text-xs truncate mt-0.5">{invite.note}</p>}
+                            {invite.status === 'pending' && invite.last_sent_at && (
+                              <p className="text-white/30 text-[11px] mt-0.5">
+                                {t('lastSentPrefix', lang)} {new Date(invite.last_sent_at).toLocaleDateString()}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className={`text-xs rounded-full px-2.5 py-0.5 ${status.className}`}>{status.label}</span>
+                            {invite.status === 'pending' && (
+                              <>
+                                <button
+                                  onClick={() => handleResend(invite.id)}
+                                  disabled={resendingId === invite.id}
+                                  className="text-[#12A5A9]/80 hover:text-[#12A5A9] text-xs transition disabled:opacity-50"
+                                >
+                                  {resendingId === invite.id ? t('resendingBtn', lang) : t('resendBtn', lang)}
+                                </button>
+                                <button
+                                  onClick={() => handleCancel(invite.id)}
+                                  className="text-red-400/70 hover:text-red-400 text-xs transition"
+                                >
+                                  {t('cancelBtn', lang)}
+                                </button>
+                              </>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className={`text-xs rounded-full px-2.5 py-0.5 ${status.className}`}>{status.label}</span>
-                          {invite.status === 'pending' && (
-                            <button
-                              onClick={() => handleCancel(invite.id)}
-                              className="text-red-400/70 hover:text-red-400 text-xs transition"
-                            >
-                              {t('cancelBtn', lang)}
-                            </button>
-                          )}
-                        </div>
+                        {resendResult && resendResult.id === invite.id && resendResult.error === null && (
+                          <p className="text-[#12A5A9] text-xs mt-2">{t('inviteResentMsg', lang)}</p>
+                        )}
+                        {resendResult && resendResult.id === invite.id && resendResult.error && (
+                          <p className="text-red-400 text-xs mt-2">{resendResult.error}</p>
+                        )}
                       </div>
                     )
                   })}

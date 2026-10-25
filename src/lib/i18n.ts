@@ -1544,6 +1544,9 @@ const STRINGS = {
   jobInviteDesc: { en: "Invite them directly, no bidding needed. They'll see this job waiting for them.", es: 'Invítalo directamente, sin necesidad de ofertas. Verá este trabajo esperándolo.' },
   cancelledStatus: { en: 'Cancelled', es: 'Cancelado' },
   waitingToSignUpStatus: { en: 'Waiting to sign up', es: 'Esperando registrarse' },
+  resendingBtn: { en: 'Resending…', es: 'Reenviando…' },
+  lastSentPrefix: { en: 'Last sent', es: 'Último envío' },
+  couldNotResendInvite: { en: 'Could not resend the invite. Try again shortly.', es: 'No se pudo reenviar la invitación. Inténtalo de nuevo en un momento.' },
 
   // Property compliance page
   complianceItemRentalLicense: { en: 'Rental License', es: 'Licencia de alquiler' },
