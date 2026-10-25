@@ -30,6 +30,20 @@ import { useLanguage, t } from '@/lib/i18n'
 import { LAST_ACTIVE_KEY } from '@/components/InactivityGuard'
 import { NATIVE_PUSH_TOKEN_KEY } from '@/components/NativePushRegistration'
 
+function VerifiedBadge({ verified, lang }: { verified: boolean; lang: 'en' | 'es' }) {
+  return (
+    <span
+      className={
+        verified
+          ? 'inline-flex items-center gap-1 text-[11px] font-semibold rounded-full px-2 py-0.5 bg-[#0A7B7E]/20 text-[#12A5A9]'
+          : 'inline-flex items-center gap-1 text-[11px] font-semibold rounded-full px-2 py-0.5 bg-yellow-500/15 text-yellow-400'
+      }
+    >
+      {verified ? t('verifiedBadge', lang) : t('notVerifiedBadge', lang)}
+    </span>
+  )
+}
+
 export default function ProfilePage() {
   const router = useRouter()
   const lang = useLanguage()
@@ -57,6 +71,7 @@ export default function ProfilePage() {
   const [showProfileSavedToast, setShowProfileSavedToast] = useState(false)
   const [smsOptIn, setSmsOptIn] = useState(false)
   const [smsSaving, setSmsSaving] = useState(false)
+  const [emailVerified, setEmailVerified] = useState(false)
   const [phoneVerified, setPhoneVerified] = useState(false)
   const [verifyStep, setVerifyStep] = useState<'idle' | 'sending' | 'code' | 'verifying'>('idle')
   const [verifyCode, setVerifyCode] = useState('')
@@ -90,6 +105,7 @@ export default function ProfilePage() {
         preferred_language: loadedLanguage,
       })
       setInitialLanguage(loadedLanguage)
+      setEmailVerified(!!user.email_confirmed_at)
 
       // Independent of each other — only depend on user.id, not on one
       // another — so they run as one round trip instead of two. This was
@@ -571,7 +587,10 @@ export default function ProfilePage() {
             </div>
 
             <div>
-              <label className="text-white/70 text-sm block mb-1">{t('email', lang)}</label>
+              <div className="flex items-center gap-2 mb-1">
+                <label className="text-white/70 text-sm">{t('email', lang)}</label>
+                <VerifiedBadge verified={emailVerified} lang={lang} />
+              </div>
               <input
                 type="email"
                 name="email"
@@ -583,7 +602,10 @@ export default function ProfilePage() {
             </div>
 
             <div>
-              <label className="text-white/70 text-sm block mb-1">{t('phone', lang)}</label>
+              <div className="flex items-center gap-2 mb-1">
+                <label className="text-white/70 text-sm">{t('phone', lang)}</label>
+                {form.phone.trim() && <VerifiedBadge verified={phoneVerified} lang={lang} />}
+              </div>
               <input
                 type="tel"
                 name="phone"

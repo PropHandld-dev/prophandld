@@ -394,6 +394,8 @@ const STRINGS = {
   fullName: { en: 'Full name', es: 'Nombre completo' },
   email: { en: 'Email', es: 'Correo electrónico' },
   emailCannotChange: { en: 'Email cannot be changed', es: 'El correo electrónico no se puede cambiar' },
+  verifiedBadge: { en: 'Verified', es: 'Verificado' },
+  notVerifiedBadge: { en: 'Not verified', es: 'No verificado' },
   phone: { en: 'Phone', es: 'Teléfono' },
   language: { en: 'Language / Idioma', es: 'Idioma / Language' },
   languageHelp: { en: "Changes take effect after you save.", es: "Los cambios se aplican después de guardar." },
