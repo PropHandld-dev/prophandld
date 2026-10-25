@@ -25,12 +25,14 @@ const TIER_COLORS: Record<LandlordTier, string> = {
 
 const MONTHS_SHOWN = 6
 
-// Stripe's standard US card rate — used only to estimate the processing
-// fee Prophandld absorbs on job payments (the "no platform fee, ever"
-// promise to contractors means that cost comes straight out of the
-// platform, not the contractor). This is a directional estimate for a
-// weekly check-in, not real accounting — Stripe's actual fee varies by
-// card type/country and this doesn't attempt to match it to the cent.
+// Stripe's standard US card rate — used to estimate the processing fee on
+// job payments and (as of 2026-10-20) rent payments, both of which
+// surcharge whoever is paying rather than Prophandld absorbing the cost
+// — see the "Stripe fees absorbed" EconLine below for why that label and
+// the net-monthly math built on it are now misleading. This is a
+// directional estimate for a weekly check-in, not real accounting —
+// Stripe's actual fee varies by card type/country and this doesn't
+// attempt to match it to the cent.
 const CARD_FEE_RATE = 0.029
 const CARD_FEE_FIXED = 0.30
 // ACH: 0.8%, capped at $5 — Stripe's standard bank-transfer rate.

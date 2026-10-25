@@ -76,18 +76,18 @@ export async function POST(request: NextRequest) {
   //
   // The contractor still receives exactly `amount` either way — "no
   // platform fee, ever" was a promise about their side of this, not about
-  // what the landlord's total charge looks like. Unlike rent (where a bank
-  // payment stays free and Prophandld absorbs that fee itself), a landlord
-  // paying a contractor covers Stripe's real processing fee on top either
-  // way, as a visible surcharge shown before they commit — they're already
-  // choosing to pay for real work at a price they picked, so this isn't a
-  // new barrier the way a fee on rent would be. application_fee_amount
-  // retains exactly that surcharge for Prophandld, whichever method is
-  // used, rather than the platform absorbing anything out of its own
-  // balance on a job payment. Restricting payment_method_types to the one
-  // chosen method is what makes a method-specific amount possible — the
-  // amount has to be fixed before the PaymentIntent is created, so the
-  // method has to be picked first.
+  // what the landlord's total charge looks like. A landlord paying a
+  // contractor covers Stripe's real processing fee on top either way, as a
+  // visible surcharge shown before they commit — they're already choosing
+  // to pay for real work at a price they picked, so this isn't a new
+  // barrier the way a fee on rent would be. Rent works the same way now
+  // too (as of 2026-10-20 — see cardSurcharge.ts): both flows surcharge
+  // whoever's paying rather than the platform absorbing anything out of
+  // its own balance. application_fee_amount retains exactly that surcharge
+  // for Prophandld, whichever method is used. Restricting
+  // payment_method_types to the one chosen method is what makes a
+  // method-specific amount possible — the amount has to be fixed before
+  // the PaymentIntent is created, so the method has to be picked first.
   const amount = Number(bid.amount)
   const surcharge = method === 'card' ? cardProcessingFee(amount) : achProcessingFee(amount)
   const chargeAmount = amount + surcharge
