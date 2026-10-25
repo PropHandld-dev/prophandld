@@ -8,7 +8,7 @@ export const metadata = {
 export default function RenterTermsPage() {
   return (
     <LegalPageShell
-      title="Terms of Service — Renters"
+      title="Terms of Service for Renters"
       lastUpdated="October 20, 2026"
       footerLinks={
         <>
@@ -22,7 +22,7 @@ export default function RenterTermsPage() {
       <section>
         <h2>1. What this covers</h2>
         <p>
-          This page is the complete Terms of Service for using Prophandld as a renter — everything
+          This page is the complete Terms of Service for using Prophandld as a renter: everything
           relevant to your role in one place. It&apos;s part of the same agreement as our{' '}
           <Link href="/terms" className="text-[#12A5A9] hover:underline">General Terms</Link>, which
           covers the platform as a whole; where the two overlap, this page has the specifics for your
@@ -44,8 +44,8 @@ export default function RenterTermsPage() {
           or phone; once you sign up and accept, you&apos;re linked to your unit automatically.
         </p>
         <p>
-          <strong>Co-renters.</strong> Your landlord can add another adult in your household — a
-          roommate, a spouse, anyone else actually living there — as a co-renter on the same unit.
+          <strong>Co-renters.</strong> Your landlord can add another adult in your household (a
+          roommate, a spouse, anyone else actually living there) as a co-renter on the same unit.
           A co-renter can report issues and see shared documents just like you can; rent is one shared
           amount for the household either way, not split or tracked separately per person. You&apos;re
           responsible for keeping any co-renter or backup contact information you provide accurate.
@@ -61,10 +61,10 @@ export default function RenterTermsPage() {
         <h2>3. Your responsibilities</h2>
         <p>As a renter using Prophandld, you agree to:</p>
         <ul>
-          <li>Report maintenance issues honestly and provide a reasonably accurate description — including marking something an emergency only when it actually is one</li>
+          <li>Report maintenance issues honestly and provide a reasonably accurate description, including marking something an emergency only when it actually is one</li>
           <li>Provide reasonable access for a scheduled contractor visit or inspection, or communicate promptly if a scheduled time no longer works</li>
           <li>Pay rent on time through the method you and your landlord have set up, and not use the platform to misrepresent whether a payment was made</li>
-          <li>If you pay via Zelle, Venmo, or Cash App, make your own informed call before sending — Prophandld doesn&apos;t verify that a listed handle actually belongs to your landlord, and isn&apos;t a party to that payment once it leaves your account</li>
+          <li>If you pay via Zelle, Venmo, or Cash App, make your own informed call before sending. Prophandld doesn&apos;t verify that a listed handle actually belongs to your landlord, and isn&apos;t a party to that payment once it leaves your account</li>
           <li>Keep any co-renter or backup contact information you provide accurate, and take responsibility for a co-renter you add to your unit</li>
           <li>Not use any contact information you gain through a job (for example, a contractor&apos;s) for anything outside that job</li>
         </ul>
@@ -73,8 +73,8 @@ export default function RenterTermsPage() {
       <section>
         <h2>4. Reporting an issue and sealed bidding</h2>
         <p>
-          When you report a maintenance issue — a category, a photo, a short description, and whether
-          it&apos;s an emergency — your landlord is notified right away and can open it for bidding.
+          When you report a maintenance issue (a category, a photo, a short description, and whether
+          it&apos;s an emergency), your landlord is notified right away and can open it for bidding.
           Contractors then submit sealed bids: their price, availability, and notes, without seeing
           what anyone else bid. Your landlord chooses who does the work; Prophandld doesn&apos;t set
           prices or guarantee any particular outcome, and isn&apos;t a party to the agreement between your
@@ -82,7 +82,7 @@ export default function RenterTermsPage() {
           scheduling, in progress, and completion.
         </p>
         <p>
-          Mark something an emergency only when it genuinely can&apos;t wait — the app will show you what
+          Mark something an emergency only when it genuinely can&apos;t wait. The app will show you what
           qualifies. Emergency jobs are treated with priority on the contractor side.
         </p>
       </section>
@@ -102,19 +102,19 @@ export default function RenterTermsPage() {
         <h2>6. Payments</h2>
         <p>
           <strong>Paying rent.</strong> You can pay rent by debit card or bank transfer through
-          Stripe, a third-party payment processor — Prophandld never sees or stores your card or bank
+          Stripe, a third-party payment processor. Prophandld never sees or stores your card or bank
           account details, that&apos;s handled entirely by Stripe. Credit cards aren&apos;t accepted for rent,
           on purpose, so you&apos;re not tempted into card debt to make rent. If your landlord has set one
-          up, you can also pay rent directly to them via Zelle, Venmo, or Cash App instead — money
+          up, you can also pay rent directly to them via Zelle, Venmo, or Cash App instead. Money
           never touches Prophandld or Stripe for those. Those payments aren&apos;t confirmed
           automatically; after sending one, you can tap &quot;I&apos;ve sent this payment&quot; to let your landlord
           know to check for it, but your landlord&apos;s own &quot;Mark received&quot; action is what actually
           records it as paid, the same as it would for cash or a check. Prophandld doesn&apos;t verify
           that a listed Zelle, Venmo, or Cash App handle actually belongs to your landlord, and isn&apos;t
-          a party to, or responsible for, money sent through any of those apps — double-check the
+          a party to, or responsible for, money sent through any of those apps. Double-check the
           handle and confirm with your landlord directly if anything looks off before sending. If a
           handle changes, we freeze new payments to it for 48 hours and alert both of you by
-          email/push, but we still don&apos;t guarantee a handle&apos;s accuracy — always confirm a changed
+          email/push, but we still don&apos;t guarantee a handle&apos;s accuracy. Always confirm a changed
           handle directly with your landlord before sending money to it.
         </p>
         <p>
@@ -122,7 +122,7 @@ export default function RenterTermsPage() {
           part of gets a receipt, emailed to you and saved on the payment record.
         </p>
         <p>
-          Using Prophandld as a renter has no fee to you beyond your actual rent — Prophandld&apos;s
+          Using Prophandld as a renter has no fee to you beyond your actual rent. Prophandld&apos;s
           subscription fee is paid by your landlord, never passed through to you.
         </p>
       </section>
@@ -130,7 +130,7 @@ export default function RenterTermsPage() {
       <section>
         <h2>7. Content you upload</h2>
         <p>
-          You may upload photos and documents — job photos, access notes, and similar content. You
+          You may upload photos and documents: job photos, access notes, and similar content. You
           keep ownership of what you upload, but you grant Prophandld the right to store it and
           display it to the people it&apos;s meant for (for example, your issue-report photos are visible
           to your landlord and the contractor assigned to that job). Don&apos;t upload anything you don&apos;t
@@ -141,10 +141,10 @@ export default function RenterTermsPage() {
       <section>
         <h2>8. Disputes</h2>
         <p>
-          After your landlord approves a job, any party on it — you, your landlord, or the contractor
-          — can raise a dispute within 48 hours, which pauses the job until it&apos;s sorted out.
+          After your landlord approves a job, any party on it (you, your landlord, or the contractor)
+          can raise a dispute within 48 hours, which pauses the job until it&apos;s sorted out.
           Prophandld&apos;s team reviews a raised dispute and makes a decision to resolve it as a platform
-          and payment administration tool only — not a legal finding of fault, not binding
+          and payment administration tool only: not a legal finding of fault, not binding
           arbitration, and it doesn&apos;t waive or limit any party&apos;s other legal rights or remedies
           (including your rights under landlord-tenant law, which this process doesn&apos;t replace).
         </p>
@@ -185,7 +185,7 @@ export default function RenterTermsPage() {
       <section>
         <h2>12. Changes to these terms</h2>
         <p>
-          We may update these terms as the platform evolves — for example, when a new feature like
+          We may update these terms as the platform evolves, for example, when a new feature like
           in-app rent payments launches. We&apos;ll update the date at the top of this page when we do.
           Continuing to use Prophandld after a change means you accept the updated terms.
         </p>
@@ -205,7 +205,7 @@ export default function RenterTermsPage() {
           Prophandld offers optional text message alerts for key job and scheduling updates: a new
           job to bid on near you isn&apos;t relevant as a renter, but scheduling updates and a completed
           job ready for review are. These are account notifications, not marketing messages. Text
-          alerts are off by default — you opt in from the Notifications section of your account
+          alerts are off by default: you opt in from the Notifications section of your account
           settings, and can turn them off there at any time. Message frequency varies with your
           account activity. Message and data rates may apply. Reply STOP to opt out at any time, or
           HELP for help. Carriers are not liable for delayed or undelivered messages. This SMS program

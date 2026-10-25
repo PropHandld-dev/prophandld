@@ -62,7 +62,7 @@ export default function PrivacyPage() {
               <li><strong className="text-white/80">PostHog:</strong> product analytics, so we can see which features are actually being used.</li>
               <li><strong className="text-white/80">Sentry:</strong> error tracking, so we know when something breaks.</li>
               <li><strong className="text-white/80">Vercel:</strong> hosts the application itself.</li>
-              <li><strong className="text-white/80">Google Cloud Translation:</strong> translates a chat message if you tap "See translation" on it. Only that specific message's text is sent, only when you tap it — nothing is translated automatically.</li>
+              <li><strong className="text-white/80">Google Cloud Translation:</strong> translates a chat message if you tap "See translation" on it. Only that specific message's text is sent, only when you tap it. Nothing is translated automatically.</li>
             </ul>
             <p>
               Within the platform, your data is also visible to other users where it needs to be.
@@ -71,7 +71,7 @@ export default function PrivacyPage() {
               Tenant-facing views are deliberately limited. For instance, renters never see bid
               amounts or other contractors' information during sealed bidding. If a landlord invites
               a co-owner to manage their properties, that co-owner can see the same tenant, job, rent,
-              and compliance data the landlord can — the landlord decides who they invite, and a
+              and compliance data the landlord can. The landlord decides who they invite, and a
               tenant's landlord-of-record doesn't change by adding one.
             </p>
           </section>
@@ -114,7 +114,7 @@ export default function PrivacyPage() {
           <section>
             <h2>8. Security</h2>
             <p>
-              We use reasonable technical and organizational measures to protect your data —
+              We use reasonable technical and organizational measures to protect your data:
               encryption in transit, access controls, and the security practices of the providers
               listed in Section 3. No system is perfectly secure, though. If we learn of a breach
               affecting your personal information, we'll notify affected users and relevant

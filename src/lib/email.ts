@@ -298,7 +298,7 @@ export async function sendPasswordResetEmail({
     lang,
     eyebrow: 'Restablecer contraseña',
     heading: 'Restablece tu contraseña',
-    bodyHtml: `Recibimos una solicitud para restablecer tu contraseña. Ingresa este código donde lo pide la app, o usa el botón de abajo.${codeBlockHtml}Si no solicitaste esto, puedes ignorar este correo con tranquilidad — tu contraseña no cambiará.`,
+    bodyHtml: `Recibimos una solicitud para restablecer tu contraseña. Ingresa este código donde lo pide la app, o usa el botón de abajo.${codeBlockHtml}Si no solicitaste esto, puedes ignorar este correo con tranquilidad. Tu contraseña no cambiará.`,
     ctaLabel: 'Restablecer contraseña',
     ctaUrl: actionLink,
     footerText: 'Recibes esto porque se solicitó un restablecimiento de contraseña para tu cuenta de Prophandld.',
@@ -306,7 +306,7 @@ export async function sendPasswordResetEmail({
     lang,
     eyebrow: 'Password reset',
     heading: 'Reset your password',
-    bodyHtml: `We received a request to reset your password. Enter this code wherever the app asks for it, or use the button below.${codeBlockHtml}If you didn't request this, you can safely ignore this email — your password won't change.`,
+    bodyHtml: `We received a request to reset your password. Enter this code wherever the app asks for it, or use the button below.${codeBlockHtml}If you didn't request this, you can safely ignore this email. Your password won't change.`,
     ctaLabel: 'Reset password',
     ctaUrl: actionLink,
     footerText: "You're receiving this because a password reset was requested for your Prophandld account.",
@@ -433,7 +433,7 @@ export async function sendCoRenterInviteEmail({
     lang: 'en',
     eyebrow: 'Invite',
     heading: `${escapeHtml(landlordName)} invited you to Prophandld`,
-    bodyHtml: `You've been added as a co-renter for <strong>${escapeHtml(unitLabel)}</strong>. Sign up as a renter with this same email address, then let ${escapeHtml(landlordName)} know — they'll add you to the unit so you can report issues and see documents, just like the primary tenant.`,
+    bodyHtml: `You've been added as a co-renter for <strong>${escapeHtml(unitLabel)}</strong>. Sign up as a renter with this same email address, then let ${escapeHtml(landlordName)} know. They'll add you to the unit so you can report issues and see documents, just like the primary tenant.`,
     ctaLabel: 'Create your account',
     ctaUrl: `${SITE_URL}/signup?role=renter`,
     footerText: `You're receiving this because ${escapeHtml(landlordName)} invited you to Prophandld.`,
@@ -468,14 +468,14 @@ export async function sendCoRenterAddedEmail({
     lang,
     eyebrow: 'Notificación',
     heading: `${escapeHtml(landlordName)} te agregó como co-inquilino`,
-    bodyHtml: `Ahora tienes acceso como co-inquilino de <strong>${escapeHtml(unitLabel)}</strong> — puedes reportar problemas y ver documentos, igual que el inquilino principal.`,
+    bodyHtml: `Ahora tienes acceso como co-inquilino de <strong>${escapeHtml(unitLabel)}</strong>. Puedes reportar problemas y ver documentos, igual que el inquilino principal.`,
     ctaLabel: 'Ver mi cuenta',
     ctaUrl: `${SITE_URL}/profile`,
   }) : baseTemplate({
     lang,
     eyebrow: 'Notice',
     heading: `${escapeHtml(landlordName)} added you as a co-renter`,
-    bodyHtml: `You now have co-renter access to <strong>${escapeHtml(unitLabel)}</strong> — you can report issues and see documents, just like the primary tenant.`,
+    bodyHtml: `You now have co-renter access to <strong>${escapeHtml(unitLabel)}</strong>. You can report issues and see documents, just like the primary tenant.`,
     ctaLabel: 'View my account',
     ctaUrl: `${SITE_URL}/profile`,
   })
@@ -495,7 +495,7 @@ export async function sendCoOwnerInviteEmail({
     lang: 'en',
     eyebrow: 'Invite',
     heading: `${escapeHtml(primaryLandlordName)} invited you to co-manage their properties`,
-    bodyHtml: `You've been invited to co-manage <strong>${escapeHtml(primaryLandlordName)}'s</strong> properties on Prophandld — full access to the same properties, units, tenants, jobs, rent, and compliance tracking. Sign up as a landlord with this same email address, then accept the invite from your dashboard.`,
+    bodyHtml: `You've been invited to co-manage <strong>${escapeHtml(primaryLandlordName)}'s</strong> properties on Prophandld: full access to the same properties, units, tenants, jobs, rent, and compliance tracking. Sign up as a landlord with this same email address, then accept the invite from your dashboard.`,
     ctaLabel: 'Create your account',
     ctaUrl: `${SITE_URL}/signup?role=landlord`,
     footerText: `You're receiving this because ${escapeHtml(primaryLandlordName)} invited you to Prophandld.`,
@@ -530,14 +530,14 @@ export async function sendCoOwnerInvitedExistingAccountEmail({
     lang,
     eyebrow: 'Invitación',
     heading: `${escapeHtml(primaryLandlordName)} te invitó a co-administrar sus propiedades`,
-    bodyHtml: `<strong>${escapeHtml(primaryLandlordName)}</strong> te invitó a co-administrar sus propiedades en Prophandld — acceso completo a las mismas propiedades, unidades, inquilinos, trabajos, renta y cumplimiento. Inicia sesión y acepta la invitación desde tu panel.`,
+    bodyHtml: `<strong>${escapeHtml(primaryLandlordName)}</strong> te invitó a co-administrar sus propiedades en Prophandld: acceso completo a las mismas propiedades, unidades, inquilinos, trabajos, renta y cumplimiento. Inicia sesión y acepta la invitación desde tu panel.`,
     ctaLabel: 'Ver invitación',
     ctaUrl: `${SITE_URL}/landlord`,
   }) : baseTemplate({
     lang,
     eyebrow: 'Invite',
     heading: `${escapeHtml(primaryLandlordName)} invited you to co-manage their properties`,
-    bodyHtml: `<strong>${escapeHtml(primaryLandlordName)}</strong> invited you to co-manage their properties on Prophandld — full access to the same properties, units, tenants, jobs, rent, and compliance tracking. Log in and accept the invite from your dashboard.`,
+    bodyHtml: `<strong>${escapeHtml(primaryLandlordName)}</strong> invited you to co-manage their properties on Prophandld: full access to the same properties, units, tenants, jobs, rent, and compliance tracking. Log in and accept the invite from your dashboard.`,
     ctaLabel: 'View invite',
     ctaUrl: `${SITE_URL}/landlord`,
   })
@@ -599,7 +599,7 @@ export async function sendContractorInviteEmail({
 
 // Phone-invite counterpart to sendContractorInviteEmail.
 export function buildContractorInviteSms(landlordName: string) {
-  return `Prophandld: ${landlordName} wants to work with you — free, no platform fee. Sign up: ${SITE_URL}/signup?role=contractor`
+  return `Prophandld: ${landlordName} wants to work with you, free, no platform fee. Sign up: ${SITE_URL}/signup?role=contractor`
 }
 
 // The landlord side of sendContractorInviteEmail — previously the invite
@@ -707,7 +707,7 @@ const WELCOME_CONTENT: Record<'landlord' | 'renter' | 'contractor', Record<Lang,
   contractor: {
     en: {
       heading: 'Welcome to Prophandld',
-      bodyHtml: "Welcome aboard. Real jobs near you, sealed bids, and you get paid the moment a landlord confirms the work's done — no lead fees, no cut, free during this pilot program." + stepsHtml([
+      bodyHtml: "Welcome aboard. Real jobs near you, sealed bids, and you get paid the moment a landlord confirms the work's done. No lead fees, no cut, free during this pilot program." + stepsHtml([
         'Set your service area and trades in Settings, so the right jobs find you',
         'Add your license and insurance for a "Verified" badge landlords can see',
         "Bid sealed on real jobs near you, you're never guessing what to quote",
@@ -717,7 +717,7 @@ const WELCOME_CONTENT: Record<'landlord' | 'renter' | 'contractor', Record<Lang,
     },
     es: {
       heading: 'Bienvenido a Prophandld',
-      bodyHtml: 'Bienvenido a bordo. Trabajos reales cerca de ti, ofertas selladas, y te pagan en el momento en que un propietario confirma que el trabajo está terminado — sin costo por cliente potencial, sin comisión, gratis durante este programa piloto.' + stepsHtml([
+      bodyHtml: 'Bienvenido a bordo. Trabajos reales cerca de ti, ofertas selladas, y te pagan en el momento en que un propietario confirma que el trabajo está terminado. Sin costo por cliente potencial, sin comisión, gratis durante este programa piloto.' + stepsHtml([
         'Configura tu área de servicio y oficios en Ajustes, para que los trabajos correctos te encuentren',
         'Agrega tu licencia y seguro para obtener una insignia de "Verificado" que los propietarios pueden ver',
         'Oferta de forma sellada en trabajos reales cerca de ti, nunca tendrás que adivinar cuánto cotizar',
@@ -823,7 +823,7 @@ export async function sendCredentialExpiryEmail({
             : 'upload the renewal before it lapses so landlords keep seeing it next to your bids.'
         }`,
     preheader: items.length === 1
-      ? `${items[0].name} — ${lang === 'es' ? (items[0].stage === 3 ? 'venció' : 'vence pronto') : (items[0].stage === 3 ? 'expired' : 'expiring soon')}`
+      ? `${items[0].name}: ${lang === 'es' ? (items[0].stage === 3 ? 'venció' : 'vence pronto') : (items[0].stage === 3 ? 'expired' : 'expiring soon')}`
       : lang === 'es' ? `${items.length} credenciales necesitan atención` : `${items.length} credentials need attention`,
     facts: credentialFacts,
     ctaLabel: lang === 'es' ? 'Actualizar credenciales' : 'Update credentials',
@@ -881,7 +881,7 @@ export async function sendPropertyComplianceAutoReminderEmail({
       ? `Hola ${escapeHtml(landlordName)}, en <strong>${escapeHtml(propertyAddress)}</strong>: ${items.length === 1 ? 'esto necesita' : 'estos necesitan'} tu atención.`
       : `Hi ${escapeHtml(landlordName)}, at <strong>${escapeHtml(propertyAddress)}</strong>: ${items.length === 1 ? 'this needs' : 'these need'} your attention.`,
     preheader: items.length === 1
-      ? `${items[0].name} — ${lang === 'es' ? (items[0].expired ? 'venció' : 'vence pronto') : (items[0].expired ? 'expired' : 'expiring soon')}`
+      ? `${items[0].name}: ${lang === 'es' ? (items[0].expired ? 'venció' : 'vence pronto') : (items[0].expired ? 'expired' : 'expiring soon')}`
       : lang === 'es' ? `${items.length} elementos necesitan atención` : `${items.length} items need attention`,
     facts: itemFacts,
     ctaLabel: lang === 'es' ? 'Ver cumplimiento' : 'View compliance',
@@ -1700,7 +1700,7 @@ export function buildNotificationEmail(type: NotifyType, role: NotifyRole, rawIn
           lang,
           eyebrow: 'Approved',
           heading: 'Your new price was approved',
-          bodyHtml: `The landlord approved your new price for the <strong>${cat}</strong> job at ${at}. You're clear to continue — mark the job complete once you're done.`,
+          bodyHtml: `The landlord approved your new price for the <strong>${cat}</strong> job at ${at}. You're clear to continue. Mark the job complete once you're done.`,
           preheader: info.amount != null ? `New price: ${money(info.amount)}. You can carry on.` : 'You can carry on.',
           stage: 3,
           facts: compact([info.amount != null && { label: fl('New price', lang), value: money(info.amount) }, jobFact, whereFact, unitFact]),
@@ -2298,7 +2298,7 @@ export async function sendP2pPaymentSentEmail({
     lang,
     eyebrow: 'Renta',
     heading: `${escapeHtml(renterName)} marcó un pago como enviado`,
-    bodyHtml: `Hola ${escapeHtml(landlordName)}, <strong>${escapeHtml(renterName)}</strong> indicó que envió <strong>$${amount.toFixed(2)}</strong> por ${escapeHtml(methodLabel)} para <strong>${escapeHtml(unitLabel)}</strong>. Esto no es una confirmación de pago — revisa tu cuenta de ${escapeHtml(methodLabel)} y marca el pago como recibido una vez que lo veas llegar.`,
+    bodyHtml: `Hola ${escapeHtml(landlordName)}, <strong>${escapeHtml(renterName)}</strong> indicó que envió <strong>$${amount.toFixed(2)}</strong> por ${escapeHtml(methodLabel)} para <strong>${escapeHtml(unitLabel)}</strong>. Esto no es una confirmación de pago. Revisa tu cuenta de ${escapeHtml(methodLabel)} y marca el pago como recibido una vez que lo veas llegar.`,
     preheader: `${unitLabel} · $${amount.toFixed(2)} vía ${methodLabel}`,
     facts: [
       { label: fl('Amount', lang), value: `$${amount.toFixed(2)}` },
@@ -2311,7 +2311,7 @@ export async function sendP2pPaymentSentEmail({
     lang,
     eyebrow: 'Rent',
     heading: `${escapeHtml(renterName)} marked a payment as sent`,
-    bodyHtml: `Hi ${escapeHtml(landlordName)}, <strong>${escapeHtml(renterName)}</strong> says they sent <strong>$${amount.toFixed(2)}</strong> via ${escapeHtml(methodLabel)} for <strong>${escapeHtml(unitLabel)}</strong>. This isn't a payment confirmation — check your ${escapeHtml(methodLabel)} account and mark it received once you see it land.`,
+    bodyHtml: `Hi ${escapeHtml(landlordName)}, <strong>${escapeHtml(renterName)}</strong> says they sent <strong>$${amount.toFixed(2)}</strong> via ${escapeHtml(methodLabel)} for <strong>${escapeHtml(unitLabel)}</strong>. This isn't a payment confirmation. Check your ${escapeHtml(methodLabel)} account and mark it received once you see it land.`,
     preheader: `${unitLabel} · $${amount.toFixed(2)} via ${methodLabel}`,
     facts: [
       { label: fl('Amount', lang), value: `$${amount.toFixed(2)}` },
@@ -2382,7 +2382,7 @@ export async function sendContractorTermsUpdatedEmail({
     lang,
     eyebrow: 'Términos actualizados',
     heading: 'Actualizamos nuestros términos para contratistas',
-    bodyHtml: `Hola ${escapeHtml(contractorName)}, aclaramos la sección "Cómo te pagan" de nuestros Términos de Servicio para contratistas. Prophandld sigue siendo completamente gratis para contratistas en este momento — sin comisión de la plataforma, sin recorte de tu oferta. El cambio: en lugar de prometer que será gratis "para siempre", ahora decimos explícitamente que es gratis durante este programa piloto, y que si alguna vez introducimos un precio para contratistas, te avisaremos por escrito con al menos 60 días de anticipación antes de que te aplique, y nunca se aplicará de forma retroactiva al trabajo ya ofertado, programado o completado. Nada cambia hoy — esto es solo para ser honestos sobre el futuro en lugar de dejarlo en letra pequeña.`,
+    bodyHtml: `Hola ${escapeHtml(contractorName)}, aclaramos la sección "Cómo te pagan" de nuestros Términos de Servicio para contratistas. Prophandld sigue siendo completamente gratis para contratistas en este momento: sin comisión de la plataforma, sin recorte de tu oferta. El cambio: en lugar de prometer que será gratis "para siempre", ahora decimos explícitamente que es gratis durante este programa piloto, y que si alguna vez introducimos un precio para contratistas, te avisaremos por escrito con al menos 60 días de anticipación antes de que te aplique, y nunca se aplicará de forma retroactiva al trabajo ya ofertado, programado o completado. Nada cambia hoy, esto es solo para ser honestos sobre el futuro en lugar de dejarlo en letra pequeña.`,
     ctaLabel: 'Leer los términos actualizados',
     ctaUrl: `${SITE_URL}/terms/contractor`,
     footerText: 'Te avisamos porque esto cambia los términos que aceptaste al registrarte.',
@@ -2390,7 +2390,7 @@ export async function sendContractorTermsUpdatedEmail({
     lang,
     eyebrow: 'Updated terms',
     heading: 'We updated our contractor terms',
-    bodyHtml: `Hi ${escapeHtml(contractorName)}, we clarified the "Getting paid" section of our Terms of Service for contractors. Prophandld is still completely free for contractors right now — no platform fee, no cut of your bid. The change: instead of promising it'll be free "forever," we now say plainly that it's free during this pilot program, and that if we ever introduce pricing for contractors, we'll give you at least 60 days' written notice before it applies to you, and it will never apply retroactively to work you've already bid, scheduled, or completed. Nothing changes today — this is just about being upfront about the future instead of leaving it in fine print.`,
+    bodyHtml: `Hi ${escapeHtml(contractorName)}, we clarified the "Getting paid" section of our Terms of Service for contractors. Prophandld is still completely free for contractors right now: no platform fee, no cut of your bid. The change: instead of promising it'll be free "forever," we now say plainly that it's free during this pilot program, and that if we ever introduce pricing for contractors, we'll give you at least 60 days' written notice before it applies to you, and it will never apply retroactively to work you've already bid, scheduled, or completed. Nothing changes today, this is just about being upfront about the future instead of leaving it in fine print.`,
     ctaLabel: 'Read the updated terms',
     ctaUrl: `${SITE_URL}/terms/contractor`,
     footerText: "You're getting this because it changes the terms you agreed to at signup.",
@@ -2420,14 +2420,14 @@ export async function sendPayoutDetailsChangedEmail({
     lang,
     eyebrow: 'Alerta de seguridad',
     heading: 'Tu cuenta bancaria de pagos cambió',
-    bodyHtml: `Hola ${escapeHtml(name)}, se actualizó la cuenta bancaria donde recibes tus pagos en Prophandld. Como medida de seguridad de rutina, los pagos a esta cuenta se pausan automáticamente por 48 horas y luego se reanudan solos — no tienes que hacer nada si fuiste tú.<br><br><strong>Si no hiciste este cambio, contáctanos de inmediato</strong> en admin@prophandld.com.`,
+    bodyHtml: `Hola ${escapeHtml(name)}, se actualizó la cuenta bancaria donde recibes tus pagos en Prophandld. Como medida de seguridad de rutina, los pagos a esta cuenta se pausan automáticamente por 48 horas y luego se reanudan solos. No tienes que hacer nada si fuiste tú.<br><br><strong>Si no hiciste este cambio, contáctanos de inmediato</strong> en admin@prophandld.com.`,
     ctaLabel: 'Ver mi perfil',
     ctaUrl: `${SITE_URL}/profile`,
   }) : baseTemplate({
     lang,
     eyebrow: 'Security alert',
     heading: 'Your payout bank account changed',
-    bodyHtml: `Hi ${escapeHtml(name)}, the bank account where you receive Prophandld payouts was just updated. As a routine security measure, payouts to this account are automatically paused for 48 hours and then resume on their own — no action needed if this was you.<br><br><strong>If you didn't make this change, contact us immediately</strong> at admin@prophandld.com.`,
+    bodyHtml: `Hi ${escapeHtml(name)}, the bank account where you receive Prophandld payouts was just updated. As a routine security measure, payouts to this account are automatically paused for 48 hours and then resume on their own. No action needed if this was you.<br><br><strong>If you didn't make this change, contact us immediately</strong> at admin@prophandld.com.`,
     ctaLabel: 'View my profile',
     ctaUrl: `${SITE_URL}/profile`,
   })
@@ -2451,14 +2451,14 @@ export async function sendP2pHandlesChangedEmail({
     lang,
     eyebrow: 'Alerta de seguridad',
     heading: 'Tu información de Zelle/Venmo/Cash App cambió',
-    bodyHtml: `Hola ${escapeHtml(name)}, se actualizó la información de Zelle, Venmo o Cash App que tus inquilinos ven para pagarte la renta. Como medida de seguridad de rutina, estas opciones se ocultan a tus inquilinos por 48 horas y luego vuelven a aparecer solas — no tienes que hacer nada si fuiste tú.<br><br><strong>Si no hiciste este cambio, contáctanos de inmediato</strong> en admin@prophandld.com.`,
+    bodyHtml: `Hola ${escapeHtml(name)}, se actualizó la información de Zelle, Venmo o Cash App que tus inquilinos ven para pagarte la renta. Como medida de seguridad de rutina, estas opciones se ocultan a tus inquilinos por 48 horas y luego vuelven a aparecer solas. No tienes que hacer nada si fuiste tú.<br><br><strong>Si no hiciste este cambio, contáctanos de inmediato</strong> en admin@prophandld.com.`,
     ctaLabel: 'Ver mi perfil',
     ctaUrl: `${SITE_URL}/profile`,
   }) : baseTemplate({
     lang,
     eyebrow: 'Security alert',
     heading: 'Your Zelle/Venmo/Cash App info changed',
-    bodyHtml: `Hi ${escapeHtml(name)}, the Zelle, Venmo, or Cash App info your renters see to pay rent was just updated. As a routine security measure, these options are hidden from your renters for 48 hours and then reappear on their own — no action needed if this was you.<br><br><strong>If you didn't make this change, contact us immediately</strong> at admin@prophandld.com.`,
+    bodyHtml: `Hi ${escapeHtml(name)}, the Zelle, Venmo, or Cash App info your renters see to pay rent was just updated. As a routine security measure, these options are hidden from your renters for 48 hours and then reappear on their own. No action needed if this was you.<br><br><strong>If you didn't make this change, contact us immediately</strong> at admin@prophandld.com.`,
     ctaLabel: 'View my profile',
     ctaUrl: `${SITE_URL}/profile`,
   })
@@ -2490,14 +2490,14 @@ export async function sendP2pHandlesChangedRenterEmail({
     lang,
     eyebrow: 'Aviso de seguridad',
     heading: 'La información de pago de tu propietario cambió',
-    bodyHtml: `Hola ${escapeHtml(name)}, ${escapeHtml(landlordName)} actualizó su información de Zelle, Venmo o Cash App. Por seguridad, esas opciones de pago estarán ocultas en la app por 48 horas antes de volver a aparecer. Si decides pagar por uno de esos métodos después, verifica que el contacto coincida con lo que tu propietario te indique directamente — Prophandld no verifica que un contacto listado realmente pertenezca a tu propietario.`,
+    bodyHtml: `Hola ${escapeHtml(name)}, ${escapeHtml(landlordName)} actualizó su información de Zelle, Venmo o Cash App. Por seguridad, esas opciones de pago estarán ocultas en la app por 48 horas antes de volver a aparecer. Si decides pagar por uno de esos métodos después, verifica que el contacto coincida con lo que tu propietario te indique directamente: Prophandld no verifica que un contacto listado realmente pertenezca a tu propietario.`,
     ctaLabel: 'Ver mi renta',
     ctaUrl: `${SITE_URL}/renter/rent`,
   }) : baseTemplate({
     lang,
     eyebrow: 'Security notice',
     heading: "Your landlord's payment info changed",
-    bodyHtml: `Hi ${escapeHtml(name)}, ${escapeHtml(landlordName)} just updated their Zelle, Venmo, or Cash App info. As a security precaution, those payment options will be hidden in the app for 48 hours before reappearing. If you do pay that way later, double-check the handle matches what your landlord tells you directly — Prophandld doesn't verify that a listed handle actually belongs to your landlord.`,
+    bodyHtml: `Hi ${escapeHtml(name)}, ${escapeHtml(landlordName)} just updated their Zelle, Venmo, or Cash App info. As a security precaution, those payment options will be hidden in the app for 48 hours before reappearing. If you do pay that way later, double-check the handle matches what your landlord tells you directly: Prophandld doesn't verify that a listed handle actually belongs to your landlord.`,
     ctaLabel: 'View my rent',
     ctaUrl: `${SITE_URL}/renter/rent`,
   })
@@ -2535,7 +2535,7 @@ export async function sendSmsRegistrationErrorAdminEmail({
     lang: 'en',
     eyebrow: 'Urgent',
     heading: 'SMS sending is misconfigured',
-    bodyHtml: `<strong>${affectedCount} of the last ${checkedCount}</strong> SMS sends checked came back with a registration-class error from Twilio (30034/30032/30033) — this means a sending number isn't currently attached to an approved A2P 10DLC campaign, and every SMS sent since this started is likely silently failing to deliver.<br /><br />Sample message SIDs: ${sampleSids.map((s) => escapeHtml(s)).join(', ')}<br /><br />Check Twilio Console → Messaging → Senders, and confirm every number is still correctly attached to its approved campaign.`,
+    bodyHtml: `<strong>${affectedCount} of the last ${checkedCount}</strong> SMS sends checked came back with a registration-class error from Twilio (30034/30032/30033). This means a sending number isn't currently attached to an approved A2P 10DLC campaign, and every SMS sent since this started is likely silently failing to deliver.<br /><br />Sample message SIDs: ${sampleSids.map((s) => escapeHtml(s)).join(', ')}<br /><br />Check Twilio Console → Messaging → Senders, and confirm every number is still correctly attached to its approved campaign.`,
     ctaLabel: 'Open Twilio Console',
     ctaUrl: 'https://console.twilio.com',
   })
@@ -2553,7 +2553,7 @@ export async function sendDuplicateLandlordBankAccountAdminEmail({
     lang: 'en',
     eyebrow: 'Billing',
     heading: 'Two landlord accounts share one payout bank account',
-    bodyHtml: `<strong>${escapeHtml(accountA.name || accountA.email || 'Account A')}</strong> (${escapeHtml(accountA.email || 'no email')}) and <strong>${escapeHtml(accountB.name || accountB.email || 'Account B')}</strong> (${escapeHtml(accountB.email || 'no email')}) just linked the same real bank account for rent payouts. Worth a manual look — this is the signature of one person running multiple free-tier accounts instead of one paid one, but could also be two people who genuinely share a bank account.`,
+    bodyHtml: `<strong>${escapeHtml(accountA.name || accountA.email || 'Account A')}</strong> (${escapeHtml(accountA.email || 'no email')}) and <strong>${escapeHtml(accountB.name || accountB.email || 'Account B')}</strong> (${escapeHtml(accountB.email || 'no email')}) just linked the same real bank account for rent payouts. Worth a manual look: this is the signature of one person running multiple free-tier accounts instead of one paid one, but could also be two people who genuinely share a bank account.`,
     ctaLabel: 'Review in admin',
     ctaUrl: `${SITE_URL}/admin/users`,
   })
@@ -2647,14 +2647,14 @@ export async function sendDisputeRaisedEmail({
     lang,
     eyebrow: 'Disputa',
     heading: 'Se abrió una disputa en un trabajo',
-    bodyHtml: `Se abrió una disputa sobre el trabajo de <strong>${escapeHtml(jobCategory)}</strong> en ${escapeHtml(propertyLabel)}. El equipo de Prophandld la está revisando — puedes agregar contexto desde el chat del trabajo mientras tanto.`,
+    bodyHtml: `Se abrió una disputa sobre el trabajo de <strong>${escapeHtml(jobCategory)}</strong> en ${escapeHtml(propertyLabel)}. El equipo de Prophandld la está revisando. Puedes agregar contexto desde el chat del trabajo mientras tanto.`,
     ctaLabel: 'Ver trabajo',
     ctaUrl: `${SITE_URL}/${role}/jobs/${jobId}`,
   }) : baseTemplate({
     lang,
     eyebrow: 'Dispute',
     heading: 'A dispute was opened on a job',
-    bodyHtml: `A dispute was opened on the <strong>${escapeHtml(jobCategory)}</strong> job at ${escapeHtml(propertyLabel)}. The Prophandld team is reviewing it — you can add context from the job chat in the meantime.`,
+    bodyHtml: `A dispute was opened on the <strong>${escapeHtml(jobCategory)}</strong> job at ${escapeHtml(propertyLabel)}. The Prophandld team is reviewing it. You can add context from the job chat in the meantime.`,
     ctaLabel: 'View job',
     ctaUrl: `${SITE_URL}/${role}/jobs/${jobId}`,
   })

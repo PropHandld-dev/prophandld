@@ -19,7 +19,7 @@ import { LaunchEventSection } from '@/components/LaunchEventSection'
 
 const OPERATIONS_FEATURES = [
   { icon: DollarSignIcon, title: 'Online rent', desc: 'Rent tracks itself every month. Renters pay by bank transfer or debit card. Edit any month, add a credit, or refund an overpayment in a tap.' },
-  { icon: BellIcon, title: 'Instant alerts', desc: "The right person hears at the right moment: a new bid, a proposed time, work ready for review. By email, push notification, or text — pick what works for you in Notifications settings." },
+  { icon: BellIcon, title: 'Instant alerts', desc: "The right person hears at the right moment: a new bid, a proposed time, work ready for review. By email, push notification, or text, pick what works for you in Notifications settings." },
   { icon: ReceiptIcon, title: 'Receipts & records', desc: 'Every rent and repair payment gets a receipt, emailed to you and saved on the record.' },
   { icon: MessageCircleIcon, title: 'Job chat', desc: 'Every job has one thread for the landlord, renter and contractor, with updates and history in one place.' },
   { icon: MessageCircleIcon, title: 'Direct messages', desc: "Message your tenants, or a contractor you've worked with before, job or no job. No phone numbers exchanged." },
@@ -171,7 +171,7 @@ export default function LandingPage() {
         </h1>
         <p className="text-lg text-white/50 max-w-2xl mx-auto mb-10">
           Prophandld gives you the tools a property-management company would
-          use, without hiring one — simple enough to start with a couple of
+          use, without hiring one. Simple enough to start with a couple of
           units, built to keep up as your portfolio grows. Track your
           properties and tenants, get competitive contractor bids through
           sealed bidding, and collect rent online, all in one place.
@@ -348,7 +348,7 @@ export default function LandingPage() {
               Real jobs near you, sent straight to your phone for your trade.
               Submit a sealed bid and get picked on merit, not by who lowballed
               hardest. Get paid directly the moment the job&apos;s approved.{' '}
-              <span className="text-white/70 font-medium">No signup fee, no monthly fee, no cut of your bid — free during this pilot program.</span>
+              <span className="text-white/70 font-medium">No signup fee, no monthly fee, no cut of your bid, free during this pilot program.</span>
             </p>
             <Link href="/contractors" className="text-[#12A5A9] text-sm font-semibold hover:underline">
               See how it works for contractors →
@@ -473,9 +473,8 @@ export default function LandingPage() {
       {/* Pricing teaser — real numbers, matches src/lib/pricingTiers.ts and
           the full breakdown at /pricing exactly; keep both in sync if
           those tiers ever change. A real free tier, flat monthly plans
-          through 25 units, then a per-unit rate that steps DOWN as a
-          portfolio grows (26-100 / 101-500 / 500+ each get cheaper than
-          the last) — a volume discount, not a per-unit penalty. */}
+          through 25 units, then a flat $1.75/unit rate above that
+          (simplified 2026-10-24 from an earlier three-step rate). */}
       <section id="pricing" className="max-w-5xl mx-auto px-6 py-16">
         <ScrollReveal>
           <div className="bg-white/3 border border-white/8 rounded-2xl p-8 sm:p-12 text-center">
@@ -486,11 +485,10 @@ export default function LandingPage() {
             <p className="text-white/50 max-w-xl mx-auto leading-relaxed mb-2">
               Your first unit is free, full stop. Then <strong className="text-white/80">$19.99/month</strong> for
               2–4 units, <strong className="text-white/80">$39.99</strong> for 5–10, <strong className="text-white/80">$79.99</strong> for
-              11–25 — flat rates, not per-unit. Past 25 units, a simple per-unit rate that gets
-              cheaper the bigger you grow, never more expensive.
+              11–25, flat rates, not per-unit. Past 25 units, $1.75 per unit.
             </p>
             <p className="text-white/50 max-w-xl mx-auto leading-relaxed mb-6">
-              Renters and contractors never pay Prophandld anything, ever.
+              Renters and contractors pay Prophandld nothing.
             </p>
             <div className="flex items-center justify-center gap-4 flex-wrap">
               <MagneticLink
@@ -519,12 +517,12 @@ export default function LandingPage() {
           <div className="space-y-3">
             {[
               { q: 'Is this just for finding contractors?', a: "No. Prophandld is built to replace the spreadsheet. Track every property, unit, and tenant, handle maintenance end to end with sealed bidding, and collect rent, all in one dashboard. Your spreadsheet can finally retire." },
-              { q: 'What does it cost?', a: "Your first unit is free. Then $19.99/month for 2–4 units, $39.99 for 5–10, $79.99 for 11–25 — flat rates, not per-unit. Past 25 units, $1.75 per unit. See the full breakdown and try the calculator at /pricing. Contractors pay nothing — no signup fee, no monthly fee, no cut of a bid — free during this pilot program." },
+              { q: 'What does it cost?', a: "Your first unit is free. Then $19.99/month for 2–4 units, $39.99 for 5–10, $79.99 for 11–25, flat rates, not per-unit. Past 25 units, $1.75 per unit. See the full breakdown and try the calculator at /pricing. Contractors pay nothing: no signup fee, no monthly fee, no cut of a bid, free during this pilot program." },
               { q: 'How does sealed bidding actually work?', a: "Contractors near the property are alerted when you open a job for bids. They submit their price privately and never see what anyone else bid. You choose who you trust, not just the lowest number. No bidding wars, no “my cousin quoted less”." },
               { q: 'Do I have to use a contractor?', a: "No. For anything small enough to handle yourself, mark it fixed directly, no bidding required. Contractors are there for when you want one, not a requirement for every repair." },
               { q: "What if the contractor's price changes?", a: 'If a contractor needs to adjust their price once work has started, they show you the new labor and parts breakdown, and you approve it before they move forward. No surprise invoices.' },
               { q: 'How do rent and contractor payments work?', a: "Renters pay rent by bank transfer or debit card, not credit cards, so nobody goes into card debt to make rent. Landlords pay contractors when they approve a finished job, by bank transfer or card. Everything runs through Stripe, the same infrastructure banks and major platforms rely on, and either way the money goes straight to the person being paid, never held by Prophandld." },
-              { q: 'How will I know when something happens?', a: "Email, push, and text, your choice — not one primary channel with the others as an afterthought. Every step of a job (a bid arrives, a time is proposed or confirmed, work is ready for review) emails you and, if you've added Prophandld to your phone's Home Screen, pushes an instant alert too. Opt in to text messages for the same key moments from your Notifications settings." },
+              { q: 'How will I know when something happens?', a: "Email, push, and text, your choice, not one primary channel with the others as an afterthought. Every step of a job (a bid arrives, a time is proposed or confirmed, work is ready for review) emails you and, if you've added Prophandld to your phone's Home Screen, pushes an instant alert too. Opt in to text messages for the same key moments from your Notifications settings." },
               { q: 'Do I get receipts and records?', a: 'Yes. Every rent payment and every contractor payment gets a receipt, emailed to you and saved on the job or rent record, so finding one later is a lookup, not a hunt.' },
               { q: 'What if a contractor cancels?', a: "The job reopens for sealed bids, nearby contractors are alerted again, and the landlord and renter are told. Photos, notes, and other bids stay put." },
               { q: "What if something isn't right after the job?", a: 'After the landlord approves, any side has 48 hours to raise a dispute. The job pauses while the Prophandld team reviews it. If nobody responds, finished work is approved automatically after 3 days so contractors are not left waiting.' },
@@ -532,7 +530,7 @@ export default function LandingPage() {
               { q: "What is Philadelphia's Safe Healthy Homes Act?", a: "A new city law taking effect November 1, 2026. It requires cited violations to be fixed within 30 days, ties rent collection directly to having a valid rental license, and gives tenants the right to sue for $1,000 or more per unresolved violation. Prophandld's compliance tracking is built to keep your licenses and certificates from ever lapsing without you knowing." },
               { q: 'Does it work in Spanish?', a: 'The whole app does, not a translated homepage that quietly drops you back into English the moment you sign in. Switch anytime from your profile.' },
               { q: 'Can I use Prophandld as more than one role?', a: "Yes. If you're a landlord who also does contract work, or a renter who's also a landlord, link a second profile from your account menu and switch between dashboards instantly, no second signup, no second password." },
-              { q: 'Can someone else help manage my properties?', a: "Yes. Invite a business partner or a property manager you hire as a co-owner, from your profile. They get their own login with full access to your properties, units, tenants, jobs, rent, and compliance tracking — same as you have. Billing stays yours alone, and you can remove their access anytime." },
+              { q: 'Can someone else help manage my properties?', a: "Yes. Invite a business partner or a property manager you hire as a co-owner, from your profile. They get their own login with full access to your properties, units, tenants, jobs, rent, and compliance tracking, same as you have. Billing stays yours alone, and you can remove their access anytime." },
             ].map((item) => (
               <details key={item.q} className="group bg-white/3 border border-white/8 rounded-2xl px-5 py-4 open:border-[#12A5A9]/30 open:bg-white/5 transition-colors">
                 <summary className="flex items-center justify-between gap-4 cursor-pointer list-none text-white font-semibold [&::-webkit-details-marker]:hidden">

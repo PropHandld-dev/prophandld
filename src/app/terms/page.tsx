@@ -66,20 +66,20 @@ export default function TermsPage() {
               report it to us. If you suspect someone else has accessed your account, change your
               password immediately and contact{' '}
               <a href="mailto:admin@prophandld.com" className="text-[#12A5A9] hover:underline">admin@prophandld.com</a>{' '}
-              right away — we may ask you to verify your identity before restoring access. We aren't
+              right away. We may ask you to verify your identity before restoring access. We aren't
               responsible for losses that happen before you report a compromise to us.
             </p>
             <p>
-              If you genuinely act in more than one role — for example, you're a landlord who also
-              does contracting work — you can link a second role profile to the same identity and
+              If you genuinely act in more than one role (for example, you're a landlord who also
+              does contracting work), you can link a second role profile to the same identity and
               switch between them. You're responsible for how every profile linked to you is used.
               Using linked profiles to bid on, select, or review your own jobs, or otherwise gain an
               advantage no other user could have, isn't allowed, whether or not our systems happen
               to block a specific attempt.
             </p>
             <p>
-              A landlord can also invite a co-owner — a separate person, such as a business partner
-              or property manager, with their own login — to manage their properties alongside them.
+              A landlord can also invite a co-owner (a separate person, such as a business partner
+              or property manager, with their own login) to manage their properties alongside them.
               A co-owner gets the same access to your properties, units, tenants, jobs, rent, and
               compliance tracking that you have; they can't see or change your subscription billing,
               and can't permanently delete a property. You're responsible for who you invite and for
@@ -92,11 +92,11 @@ export default function TermsPage() {
             <h2>3. Landlord responsibilities</h2>
             <p>As a landlord, you agree to:</p>
             <ul>
-              <li>Provide accurate information about your properties, units, and lease terms — address, rent amount, unit count, and who actually lives there</li>
+              <li>Provide accurate information about your properties, units, and lease terms: address, rent amount, unit count, and who actually lives there</li>
               <li>Keep required licenses, certifications, and inspections (for example, a rental license or lead certification where your jurisdiction requires one) current, and use the platform's compliance tracking as a tool, not a substitute for knowing your own legal obligations</li>
               <li>Respond to reported maintenance issues in a reasonable time, and not use the platform to avoid habitability or repair obligations you have under applicable law</li>
               <li>Pay contractors the full amount you approve for completed work, and pay your own Prophandld subscription fee on time</li>
-              <li>Respect a renter's privacy — only use their contact information and personal data for managing the tenancy, never for an unrelated purpose</li>
+              <li>Respect a renter's privacy: only use their contact information and personal data for managing the tenancy, never for an unrelated purpose</li>
               <li>Take responsibility for any co-owner you invite to help manage your properties, including their use of that access (see Section 2)</li>
             </ul>
           </section>
@@ -105,7 +105,7 @@ export default function TermsPage() {
             <h2>4. Renter responsibilities</h2>
             <p>As a renter, you agree to:</p>
             <ul>
-              <li>Report maintenance issues honestly and provide a reasonably accurate description — including marking something an emergency only when it actually is one</li>
+              <li>Report maintenance issues honestly and provide a reasonably accurate description, including marking something an emergency only when it actually is one</li>
               <li>Provide reasonable access for a scheduled contractor visit or inspection, or communicate promptly if a scheduled time no longer works</li>
               <li>Pay rent on time through the method you and your landlord have set up, and not use the platform to misrepresent whether a payment was made</li>
               <li>Keep any co-renter or backup contact information you provide accurate, and take responsibility for a co-renter you add to your unit</li>
@@ -118,7 +118,7 @@ export default function TermsPage() {
             <p>As a contractor, you agree to:</p>
             <ul>
               <li>Submit accurate, current license and insurance information, and tell us promptly if either lapses or changes</li>
-              <li>Perform work you bid on professionally, safely, and to the applicable code for your trade — a "Verified" badge reflects document review, not a guarantee of your work (see Section 7)</li>
+              <li>Perform work you bid on professionally, safely, and to the applicable code for your trade. A "Verified" badge reflects document review, not a guarantee of your work (see Section 7)</li>
               <li>Honor a sealed bid you submit, and not withdraw from or materially change a job's scope after a landlord selects you except through the platform's price-change process</li>
               <li>Never attempt to see, infer, or coordinate on another contractor's bid, and never ask a landlord or renter what a competing bid was</li>
               <li>Not solicit a landlord or renter to pay you directly, off-platform, for a job that started on Prophandld, in a way meant to avoid the platform's payment and dispute protections</li>

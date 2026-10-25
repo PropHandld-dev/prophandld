@@ -37,7 +37,7 @@ const COMPARISON_ROWS: { label: string; typical: string; prophandld: string }[] 
 ]
 
 const FAQS: { q: string; a: string }[] = [
-  { q: 'Is it actually free? What is the catch?', a: "There is no catch right now. Landlords pay a small monthly subscription to run their properties on Prophandld, similar to any small-business software — that is where the business makes money, not from contractors. It is currently free for contractors as part of a pilot program; if that ever changes, you get at least 60 days' written notice before any fee applies to you, and it never applies retroactively to work you have already bid, scheduled, or completed." },
+  { q: 'Is it actually free? What is the catch?', a: "There is no catch right now. Landlords pay a small monthly subscription to run their properties on Prophandld, similar to any small-business software. That is where the business makes money, not from contractors. It is currently free for contractors as part of a pilot program; if that ever changes, you get at least 60 days' written notice before any fee applies to you, and it never applies retroactively to work you have already bid, scheduled, or completed." },
   { q: 'How do I get matched with jobs?', a: "Set your trade categories, your home ZIP code, and how far you are willing to travel. You are alerted the moment a matching job opens for bidding near you, by email and on your phone if you add Prophandld to your Home Screen." },
   { q: 'What if I already work with a landlord who is not on here?', a: 'They can invite you directly with your email, no bidding required. Everything from the first message to the final payment happens in one place instead of scattered texts and paper receipts.' },
   { q: 'How does sealed bidding actually help me?', a: "You submit your real price without seeing what anyone else bid, and nobody sees yours. That means no race to undercut the next guy just because you are worried they will. Landlords pick based on your reviews and your price, not only the lowest number in the room." },
@@ -92,7 +92,7 @@ export default function ContractorsLandingPage() {
           Real repair jobs from real landlords near you, sent straight to your
           phone for your trade. Submit a sealed bid, get picked on merit, and
           get paid directly the moment the work is approved. Prophandld doesn&apos;t
-          take a cut of what you bid — free during this pilot program.
+          take a cut of what you bid, free during this pilot program.
         </p>
         <div className="flex items-center justify-center gap-4 flex-wrap">
           <MagneticLink

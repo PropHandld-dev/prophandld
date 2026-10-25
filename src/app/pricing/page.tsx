@@ -8,7 +8,7 @@ import { PricingCalculator } from '@/components/PricingCalculator'
 
 export const metadata = {
   title: 'Pricing | Prophandld',
-  description: 'Simple, graduated pricing for landlords — free for your first unit, flat monthly plans through 25 units, then $1.75 per unit after that. Try the calculator.',
+  description: 'Simple, graduated pricing for landlords: free for your first unit, flat monthly plans through 25 units, then $1.75 per unit after that. Try the calculator.',
 }
 
 const INCLUDED = [
@@ -19,7 +19,7 @@ const INCLUDED = [
   'Document vault, systems/CapEx tracking, and exportable reports',
   'Co-owner access for a business partner or property manager',
   'Unlimited contractors and renters linked to your properties',
-  'Bank transfer rent collection — the processing fee is shown to, and paid by, your tenant, never you',
+  'Bank transfer rent collection, with the processing fee shown to, and paid by, your tenant, not you',
 ]
 
 export default function PricingPage() {
@@ -47,8 +47,8 @@ export default function PricingPage() {
             </h1>
             <p className="text-white/60 max-w-xl mx-auto leading-relaxed">
               Your first unit is free, full stop. Flat monthly plans through 25 units, then $1.75
-              per unit after that — one rate, no fine print. Renters and contractors never pay
-              Prophandld anything, ever.
+              per unit after that, one rate, no fine print. Renters and contractors pay
+              Prophandld nothing.
             </p>
           </div>
         </div>
@@ -62,12 +62,10 @@ export default function PricingPage() {
             Coming soon
           </span>
           <div>
-            <p className="text-white text-sm font-semibold mb-1">AI pricing guidance — optional add-on</p>
+            <p className="text-white text-sm font-semibold mb-1">AI pricing guidance</p>
             <p className="text-white/50 text-sm leading-relaxed">
-              When a tenant reports an issue, Prophandld will suggest a fair price range for the
-              job before you open it for bids, based on the category and your area — a second
-              opinion, not a replacement for sealed bidding. Planned for a later phase, available
-              on every plan when it ships.
+              Prophandld will suggest a fair price before you open a job for bids. Coming in a
+              later phase.
             </p>
           </div>
         </div>
@@ -86,7 +84,7 @@ export default function PricingPage() {
 
         <div className="text-center mb-10">
           <p className="text-white/50 text-sm max-w-xl mx-auto leading-relaxed">
-            &ldquo;Unit&rdquo; means a rentable unit on the platform — a single-family rental
+            &ldquo;Unit&rdquo; means a rentable unit on the platform. A single-family rental
             counts as one, a triplex counts as three. A 14-day free trial starts the first time
             you actually exceed 1 unit, not from the day you sign up.
           </p>

@@ -8,7 +8,7 @@ export const metadata = {
 export default function LandlordTermsPage() {
   return (
     <LegalPageShell
-      title="Terms of Service — Landlords"
+      title="Terms of Service for Landlords"
       lastUpdated="October 24, 2026"
       footerLinks={
         <>
@@ -22,7 +22,7 @@ export default function LandlordTermsPage() {
       <section>
         <h2>1. What this covers</h2>
         <p>
-          This page is the complete Terms of Service for using Prophandld as a landlord — everything
+          This page is the complete Terms of Service for using Prophandld as a landlord: everything
           relevant to your role in one place, so you don&apos;t have to read sections meant for renters
           or contractors to find what applies to you. It&apos;s part of the same agreement as our{' '}
           <Link href="/terms" className="text-[#12A5A9] hover:underline">General Terms</Link>, which
@@ -41,7 +41,7 @@ export default function LandlordTermsPage() {
         <h2>2. Your account</h2>
         <p>
           You&apos;re responsible for keeping your login credentials secure and for the accuracy of the
-          property, unit, and lease information you enter — address, rent amount, unit count, and who
+          property, unit, and lease information you enter: address, rent amount, unit count, and who
           actually lives there. If you act in more than one role (for example, you also pick up
           contracting work yourself), you can link a second role profile to the same identity from
           your Profile page and switch between them; you&apos;re responsible for how every profile linked
@@ -49,13 +49,13 @@ export default function LandlordTermsPage() {
           allowed, whether or not our systems happen to catch a specific attempt.
         </p>
         <p>
-          <strong>Co-owners.</strong> You can invite a co-owner — a business partner, a property
-          manager, or anyone else you want managing alongside you — from your Profile page, by their
+          <strong>Co-owners.</strong> You can invite a co-owner (a business partner, a property
+          manager, or anyone else you want managing alongside you) from your Profile page, by their
           email or phone number. A co-owner gets your own full access to your properties, units,
           tenants, jobs, rent tracking, and compliance tracking; they can&apos;t see or change your
           subscription billing, and can&apos;t permanently delete a property. You can remove a co-owner&apos;s
           access at any time, and you&apos;re responsible for who you invite and for their use of that
-          access — including any job, payment, or tenant communication they make while they have it. A
+          access, including any job, payment, or tenant communication they make while they have it. A
           co-owner can manage only one landlord&apos;s portfolio at a time.
         </p>
       </section>
@@ -65,12 +65,12 @@ export default function LandlordTermsPage() {
         <p>As a landlord using Prophandld, you agree to:</p>
         <ul>
           <li>Provide accurate information about your properties, units, and lease terms, and keep it current as things change</li>
-          <li>Keep required licenses, certifications, and inspections (for example, a rental license or lead certification where your jurisdiction requires one) current — the platform&apos;s compliance tracking is a reminder tool, not a substitute for knowing your own legal obligations</li>
+          <li>Keep required licenses, certifications, and inspections (for example, a rental license or lead certification where your jurisdiction requires one) current. The platform&apos;s compliance tracking is a reminder tool, not a substitute for knowing your own legal obligations</li>
           <li>Respond to reported maintenance issues in a reasonable time, and not use the platform to avoid habitability or repair obligations you have under applicable law</li>
           <li>Pay contractors the full amount you approve for completed work, on the timeline the platform describes, and pay your own Prophandld subscription fee on time</li>
-          <li>Respect a renter&apos;s privacy — only use their contact information and personal data for managing the tenancy, never for an unrelated purpose</li>
+          <li>Respect a renter&apos;s privacy: only use their contact information and personal data for managing the tenancy, never for an unrelated purpose</li>
           <li>Take responsibility for any co-owner you invite, including their use of the access you grant them (see Section 2)</li>
-          <li>If you accept rent via a third-party app like Zelle, Venmo, or Cash App (see Section 6), make your own informed call about any fees or account-use terms that app imposes on you — Prophandld isn&apos;t a party to your account with them</li>
+          <li>If you accept rent via a third-party app like Zelle, Venmo, or Cash App (see Section 6), make your own informed call about any fees or account-use terms that app imposes on you. Prophandld isn&apos;t a party to your account with them</li>
         </ul>
       </section>
 
@@ -78,8 +78,8 @@ export default function LandlordTermsPage() {
         <h2>4. Posting jobs and sealed bidding</h2>
         <p>
           When you (or your renter) report a maintenance issue, or you open a job directly, it goes
-          out to matching contractors — filtered by trade and a service radius around the property&apos;s
-          ZIP code — who submit sealed bids: their price, availability, and any notes, without seeing
+          out to matching contractors (filtered by trade and a service radius around the property&apos;s
+          ZIP code) who submit sealed bids: their price, availability, and any notes, without seeing
           what anyone else bid. You choose who to select; price doesn&apos;t have to be the deciding factor.
           Prophandld doesn&apos;t set prices, doesn&apos;t guarantee any particular outcome from bidding, and
           isn&apos;t a party to the agreement between you and the contractor you select. Once you select a
@@ -88,7 +88,7 @@ export default function LandlordTermsPage() {
         </p>
         <p>
           A completed job auto-approves three days after a contractor marks it done if you haven&apos;t
-          acted on it — you&apos;ll be notified before that happens, and you&apos;re still the one who
+          acted on it. You&apos;ll be notified before that happens, and you&apos;re still the one who
           actually releases payment.
         </p>
       </section>
@@ -97,7 +97,7 @@ export default function LandlordTermsPage() {
         <h2>5. Contractor verification</h2>
         <p>
           Contractors may submit license and insurance information for review. A &quot;Verified&quot; badge
-          means Prophandld has reviewed the documents a contractor submitted — it is not a guarantee
+          means Prophandld has reviewed the documents a contractor submitted. It is not a guarantee
           of their work quality, their licensing status at any given moment, or their insurance
           coverage for your specific job. An unverified contractor can still bid and work through the
           platform; they&apos;re just labeled as such so you can decide. You&apos;re responsible for your own
@@ -115,26 +115,26 @@ export default function LandlordTermsPage() {
         </p>
         <p>
           <strong>Collecting rent.</strong> Your renter can pay rent by debit card or bank transfer
-          through Stripe, same as job payments — Prophandld never sees or stores card or bank account
+          through Stripe, same as job payments. Prophandld never sees or stores card or bank account
           details, that&apos;s handled entirely by Stripe. You can also optionally list a Zelle, Venmo, or
           Cash App handle on your Profile for your renter to pay you directly, outside Stripe
           entirely. Zelle has no fee and no risk to your account either way. Venmo and Cash App both
           charge a fee for this kind of payment and, under their own terms, aren&apos;t meant for business
-          use like rent — a small number of accounts have been restricted over exactly this, which is
+          use like rent. A small number of accounts have been restricted over exactly this, which is
           why Prophandld shows you that risk plainly before you add either handle; it&apos;s your decision
-          to make, not ours. None of these three methods are confirmed automatically — your own &quot;Mark
+          to make, not ours. None of these three methods are confirmed automatically: your own &quot;Mark
           received&quot; action on the rent page is what records a payment as received, the same as it
           would for cash or a check. If you change a handle, we freeze new payments to it for 48
-          hours and alert you by email/push — if that wasn&apos;t you, contact us right away.
+          hours and alert you by email/push. If that wasn&apos;t you, contact us right away.
         </p>
         <p>
           <strong>Your subscription.</strong> You separately pay Prophandld a graduated monthly
-          platform fee based on how many units you manage — see current pricing at{' '}
+          platform fee based on how many units you manage. See current pricing at{' '}
           <Link href="/pricing" className="text-[#12A5A9] hover:underline">prophandld.com/pricing</Link>.
           This fee is unrelated to, and never deducted from, any individual rent or job payment. Your
           first unit is free. A co-owner you&apos;ve invited sees their own account&apos;s billing (typically
           free, since they&apos;re not the unit owner), never yours. Current pricing reflects this pilot
-          program; if we restructure how landlord pricing works (not just adjust the existing rates —
+          program; if we restructure how landlord pricing works (not just adjust the existing rates,
           for example, pricing a feature like rent collection separately from the base subscription),
           we&apos;ll give you at least 60 days&apos; written notice (email) before it applies to you.
         </p>
@@ -143,7 +143,7 @@ export default function LandlordTermsPage() {
       <section>
         <h2>7. Content you upload</h2>
         <p>
-          You may upload photos, documents, and other content — job photos, lease documents,
+          You may upload photos, documents, and other content: job photos, lease documents,
           inspection reports, compliance records, license/insurance files you&apos;ve collected. You keep
           ownership of what you upload, but you grant Prophandld the right to store it and display it
           to the people it&apos;s meant for (for example, before/after job photos are visible to you, your
@@ -155,10 +155,10 @@ export default function LandlordTermsPage() {
       <section>
         <h2>8. Disputes</h2>
         <p>
-          After you approve a job, any party on it — you, your renter, or the contractor — can raise a
+          After you approve a job, any party on it (you, your renter, or the contractor) can raise a
           dispute within 48 hours, which pauses the job until it&apos;s sorted out. Prophandld&apos;s team
           reviews a raised dispute and makes a decision to resolve it as a platform and payment
-          administration tool only — not a legal finding of fault, not binding arbitration, and it
+          administration tool only: not a legal finding of fault, not binding arbitration, and it
           doesn&apos;t waive or limit any party&apos;s other legal rights or remedies.
         </p>
       </section>
@@ -197,7 +197,7 @@ export default function LandlordTermsPage() {
       <section>
         <h2>12. Changes to these terms</h2>
         <p>
-          We may update these terms as the platform evolves — for example, when a new feature like
+          We may update these terms as the platform evolves, for example, when a new feature like
           in-app rent payments launches. We&apos;ll update the date at the top of this page when we do.
           Continuing to use Prophandld after a change means you accept the updated terms.
         </p>
@@ -216,7 +216,7 @@ export default function LandlordTermsPage() {
         <p>
           Prophandld offers optional text message alerts for key job and scheduling updates: a new
           issue reported, a new job to bid on, scheduling, and a completed job ready for your review.
-          These are account notifications, not marketing messages. Text alerts are off by default —
+          These are account notifications, not marketing messages. Text alerts are off by default:
           you opt in from the Notifications section of your account settings, and can turn them off
           there at any time. Message frequency varies with your account activity. Message and data
           rates may apply. Reply STOP to opt out at any time, or HELP for help. Carriers are not

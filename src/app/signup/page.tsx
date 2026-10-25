@@ -305,7 +305,11 @@ function SignupForm() {
       router.replace(tenancyNeedsPhone ? '/renter?pendingInviteNeedsPhone=1' : '/renter')
     } else if (role === 'contractor') {
       fetch('/api/contractor/accept-invite', { method: 'POST', keepalive: true }).catch(() => {})
-      router.replace('/contractor')
+      // Straight to Service Settings, not the dashboard — a fresh account
+      // has no categories/zip set yet, so /contractor would just show a
+      // "set up your profile" banner and nothing else. Same reasoning as
+      // the landlord redirect above, skip the empty middle step.
+      router.replace('/contractor/settings')
     }
 
     setLoading(false)
