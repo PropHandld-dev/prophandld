@@ -153,7 +153,7 @@ export default function LandingPage() {
         className="block bg-gradient-to-r from-[#0A7B7E]/15 to-[#12A5A9]/15 border-b border-[#12A5A9]/20 px-6 py-2.5 text-center hover:from-[#0A7B7E]/20 hover:to-[#12A5A9]/20 transition"
       >
         <span className="text-xs sm:text-sm text-[#12A5A9] font-medium">
-          Contractor? Free local leads, no cut, ever. See how it works →
+          Contractor? Free local leads, no cut. See how it works →
         </span>
       </Link>
 
@@ -343,12 +343,12 @@ export default function LandingPage() {
           </div>
           <div className="bg-white/3 border border-white/8 rounded-2xl p-7 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all duration-200">
             <span className="text-xs font-semibold text-[#12A5A9] bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 border border-[#12A5A9]/30 px-2.5 py-1 rounded-full">Contractors</span>
-            <h3 className="text-white font-bold text-lg mt-4 mb-2">Free leads. No cut. Ever.</h3>
+            <h3 className="text-white font-bold text-lg mt-4 mb-2">Free leads. No cut.</h3>
             <p className="text-white/50 text-sm leading-relaxed mb-5">
               Real jobs near you, sent straight to your phone for your trade.
               Submit a sealed bid and get picked on merit, not by who lowballed
               hardest. Get paid directly the moment the job&apos;s approved.{' '}
-              <span className="text-white/70 font-medium">No signup fee, no monthly fee, no cut of your bid. Not now, not ever.</span>
+              <span className="text-white/70 font-medium">No signup fee, no monthly fee, no cut of your bid — free during this pilot program.</span>
             </p>
             <Link href="/contractors" className="text-[#12A5A9] text-sm font-semibold hover:underline">
               See how it works for contractors →
@@ -519,7 +519,7 @@ export default function LandingPage() {
           <div className="space-y-3">
             {[
               { q: 'Is this just for finding contractors?', a: "No. Prophandld is built to replace the spreadsheet. Track every property, unit, and tenant, handle maintenance end to end with sealed bidding, and collect rent, all in one dashboard. Your spreadsheet can finally retire." },
-              { q: 'What does it cost?', a: "Your first unit is free. Then $19.99/month for 2–4 units, $39.99 for 5–10, $79.99 for 11–25 — flat rates, not per-unit. Past 25 units, a per-unit rate that gets cheaper the bigger you grow. See the full breakdown at /pricing. Contractors never pay anything, ever, no signup fee, no monthly fee, no cut of a bid." },
+              { q: 'What does it cost?', a: "Your first unit is free. Then $19.99/month for 2–4 units, $39.99 for 5–10, $79.99 for 11–25 — flat rates, not per-unit. Past 25 units, $1.75 per unit. See the full breakdown and try the calculator at /pricing. Contractors pay nothing — no signup fee, no monthly fee, no cut of a bid — free during this pilot program." },
               { q: 'How does sealed bidding actually work?', a: "Contractors near the property are alerted when you open a job for bids. They submit their price privately and never see what anyone else bid. You choose who you trust, not just the lowest number. No bidding wars, no “my cousin quoted less”." },
               { q: 'Do I have to use a contractor?', a: "No. For anything small enough to handle yourself, mark it fixed directly, no bidding required. Contractors are there for when you want one, not a requirement for every repair." },
               { q: "What if the contractor's price changes?", a: 'If a contractor needs to adjust their price once work has started, they show you the new labor and parts breakdown, and you approve it before they move forward. No surprise invoices.' },

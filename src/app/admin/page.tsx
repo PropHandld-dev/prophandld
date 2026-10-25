@@ -313,7 +313,13 @@ export default function AdminOverviewPage() {
     setSavingInfraCost(false)
   }
 
-  const netMonthly = stats ? stats.mrr - stats.stripeFeesThisMonth - infraCost : 0
+  // stripeFeesThisMonth is NOT subtracted here, on purpose — as of
+  // 2026-10-20 both job-payment and rent-ACH processing fees are
+  // surcharged to whoever's paying (the landlord, the tenant) and
+  // collected by Prophandld via application_fee_amount, not paid out of
+  // the platform's own balance. It's pass-through volume, not a cost; see
+  // the "Processing fees collected" EconLine below.
+  const netMonthly = stats ? stats.mrr - infraCost : 0
 
   return (
     <AdminLayout>
@@ -342,7 +348,7 @@ export default function AdminOverviewPage() {
           <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-10">
             <div className="grid sm:grid-cols-4 gap-6">
               <EconLine label="Revenue" sublabel="Subscription MRR" value={stats.mrr} tone="positive" />
-              <EconLine label="Stripe fees absorbed" sublabel="Estimated, this month" value={-stats.stripeFeesThisMonth} tone="negative" />
+              <EconLine label="Processing fees collected" sublabel="Pass-through, not a cost — excluded from Net" value={stats.stripeFeesThisMonth} tone="positive" />
               <EconLine
                 label="Infrastructure"
                 sublabel="Vercel · Supabase · Resend · Twilio"

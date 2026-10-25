@@ -179,9 +179,10 @@ export default function RenterRentPage() {
   }, [payments, tenancy])
 
   // Opens the "how do you want to pay" choice first — the PaymentIntent
-  // itself can't be created until a method is picked, since a card payment
-  // adds a visible processing-fee surcharge that a bank payment never has,
-  // and the charge amount has to be fixed before the PaymentIntent exists.
+  // itself can't be created until a method is picked, since both card and
+  // bank transfer add a visible processing-fee surcharge (a different rate
+  // each, see cardSurcharge.ts) and the charge amount has to be fixed
+  // before the PaymentIntent exists.
   // Debit card is safe to offer alongside bank transfer: StripePaymentModal's
   // `verify` prop (below) catches a credit card AFTER Stripe confirms it and
   // shows an honest rejection screen instead of a false "Payment complete,"

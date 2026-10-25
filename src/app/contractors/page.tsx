@@ -14,7 +14,7 @@ import { DollarSignIcon, LockIcon, ReceiptIcon, CheckCircleIcon, StarIcon, BellI
 const WHY_POINTS = [
   {
     icon: DollarSignIcon,
-    title: 'No cut, ever',
+    title: 'No cut',
     desc: 'Not a signup fee, not a monthly membership, not a percentage off your bid. What you bid is what lands in your account.',
   },
   {
@@ -30,14 +30,14 @@ const WHY_POINTS = [
 ]
 
 const COMPARISON_ROWS: { label: string; typical: string; prophandld: string }[] = [
-  { label: 'Fee to see local jobs', typical: 'Monthly membership, common', prophandld: 'Never, not even $1' },
-  { label: 'Cut of what you bid', typical: 'Often 10–20% off the top', prophandld: '$0, always' },
+  { label: 'Fee to see local jobs', typical: 'Monthly membership, common', prophandld: '$0 during this pilot' },
+  { label: 'Cut of what you bid', typical: 'Often 10–20% off the top', prophandld: '$0 during this pilot' },
   { label: 'How you get picked', typical: 'Usually whoever bids lowest', prophandld: 'Sealed bid, picked on merit and trust' },
   { label: 'Getting paid', typical: 'Varies, sometimes delayed', prophandld: 'Direct deposit the moment work is approved' },
 ]
 
 const FAQS: { q: string; a: string }[] = [
-  { q: 'Is it actually free? What is the catch?', a: "There is no catch. Landlords pay a small monthly subscription to run their properties on Prophandld, similar to any small-business software. That is where the business makes money, not from contractors. You keep everything you bid." },
+  { q: 'Is it actually free? What is the catch?', a: "There is no catch right now. Landlords pay a small monthly subscription to run their properties on Prophandld, similar to any small-business software — that is where the business makes money, not from contractors. It is currently free for contractors as part of a pilot program; if that ever changes, you get at least 60 days' written notice before any fee applies to you, and it never applies retroactively to work you have already bid, scheduled, or completed." },
   { q: 'How do I get matched with jobs?', a: "Set your trade categories, your home ZIP code, and how far you are willing to travel. You are alerted the moment a matching job opens for bidding near you, by email and on your phone if you add Prophandld to your Home Screen." },
   { q: 'What if I already work with a landlord who is not on here?', a: 'They can invite you directly with your email, no bidding required. Everything from the first message to the final payment happens in one place instead of scattered texts and paper receipts.' },
   { q: 'How does sealed bidding actually help me?', a: "You submit your real price without seeing what anyone else bid, and nobody sees yours. That means no race to undercut the next guy just because you are worried they will. Landlords pick based on your reviews and your price, not only the lowest number in the room." },
@@ -86,13 +86,13 @@ export default function ContractorsLandingPage() {
         </div>
         <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-tight mb-6">
           Free local leads.<br />
-          <span className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] bg-clip-text text-transparent">No cut. Ever.</span>
+          <span className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] bg-clip-text text-transparent">No cut.</span>
         </h1>
         <p className="text-lg text-white/50 max-w-2xl mx-auto mb-10">
           Real repair jobs from real landlords near you, sent straight to your
           phone for your trade. Submit a sealed bid, get picked on merit, and
-          get paid directly the moment the work is approved. Prophandld never
-          takes a cut of what you bid, not now, not ever.
+          get paid directly the moment the work is approved. Prophandld doesn&apos;t
+          take a cut of what you bid — free during this pilot program.
         </p>
         <div className="flex items-center justify-center gap-4 flex-wrap">
           <MagneticLink
@@ -209,7 +209,7 @@ export default function ContractorsLandingPage() {
       {/* Final CTA */}
       <section className="max-w-3xl mx-auto px-6 py-20 text-center">
         <h2 className="text-3xl font-bold text-white mb-4">Your next job is a ZIP code away.</h2>
-        <p className="text-white/50 mb-8">Takes about two minutes. No fee to join, no fee ever.</p>
+        <p className="text-white/50 mb-8">Takes about two minutes. No fee to join.</p>
         <MagneticLink
           href="/signup?role=contractor"
           className="inline-block bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-8 py-4 rounded-full hover:opacity-90"

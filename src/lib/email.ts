@@ -589,7 +589,7 @@ export async function sendContractorInviteEmail({
     lang: 'en',
     eyebrow: 'Invite',
     heading: `${escapeHtml(landlordName)} invited you to Prophandld`,
-    bodyHtml: `${escapeHtml(landlordName)} wants to work with you through Prophandld: sealed bidding, completely free to use, no platform fee, ever, and you get paid directly the moment a job's done.${note ? `<br /><br />Their note: "${escapeHtml(note)}"` : ''} Sign up as a contractor with this same email address to get started.`,
+    bodyHtml: `${escapeHtml(landlordName)} wants to work with you through Prophandld: sealed bidding, completely free to use during this pilot program, and you get paid directly the moment a job's done.${note ? `<br /><br />Their note: "${escapeHtml(note)}"` : ''} Sign up as a contractor with this same email address to get started.`,
     ctaLabel: 'Create your account',
     ctaUrl: `${SITE_URL}/signup?role=contractor`,
     footerText: `You're receiving this because ${escapeHtml(landlordName)} invited you to Prophandld.`,
@@ -707,7 +707,7 @@ const WELCOME_CONTENT: Record<'landlord' | 'renter' | 'contractor', Record<Lang,
   contractor: {
     en: {
       heading: 'Welcome to Prophandld',
-      bodyHtml: "Welcome aboard. Real jobs near you, sealed bids, and you get paid the moment a landlord confirms the work's done, no lead fees, no cut, ever." + stepsHtml([
+      bodyHtml: "Welcome aboard. Real jobs near you, sealed bids, and you get paid the moment a landlord confirms the work's done — no lead fees, no cut, free during this pilot program." + stepsHtml([
         'Set your service area and trades in Settings, so the right jobs find you',
         'Add your license and insurance for a "Verified" badge landlords can see',
         "Bid sealed on real jobs near you, you're never guessing what to quote",
@@ -717,7 +717,7 @@ const WELCOME_CONTENT: Record<'landlord' | 'renter' | 'contractor', Record<Lang,
     },
     es: {
       heading: 'Bienvenido a Prophandld',
-      bodyHtml: 'Bienvenido a bordo. Trabajos reales cerca de ti, ofertas selladas, y te pagan en el momento en que un propietario confirma que el trabajo está terminado, sin costo por cliente potencial, sin comisión, nunca.' + stepsHtml([
+      bodyHtml: 'Bienvenido a bordo. Trabajos reales cerca de ti, ofertas selladas, y te pagan en el momento en que un propietario confirma que el trabajo está terminado — sin costo por cliente potencial, sin comisión, gratis durante este programa piloto.' + stepsHtml([
         'Configura tu área de servicio y oficios en Ajustes, para que los trabajos correctos te encuentren',
         'Agrega tu licencia y seguro para obtener una insignia de "Verificado" que los propietarios pueden ver',
         'Oferta de forma sellada en trabajos reales cerca de ti, nunca tendrás que adivinar cuánto cotizar',
