@@ -142,6 +142,7 @@ function LoginForm() {
     // verify instead of silently doing nothing.
     let tenancyNeedsPhone = false
     let coOwnerNeedsPhone = false
+    let contractorNeedsPhone = false
     if (isFirstActivation && (accountRole === 'landlord' || accountRole === 'renter' || accountRole === 'contractor')) {
       sendWelcomeEmailWithRetry()
       // Same "first activation" moment signup couldn't use directly (no
@@ -178,9 +179,17 @@ function LoginForm() {
     if (accountRole === 'contractor') {
       // Same bug, same fix, for a contractor a landlord invited: closing
       // out the invite used to only happen right after signup too.
-      fetch('/api/contractor/accept-invite', { method: 'POST', keepalive: true }).catch((err) =>
+      try {
+        const res = await fetch('/api/contractor/accept-invite', { method: 'POST' })
+        const body = await res.json().catch(() => ({}))
+        if (!res.ok) {
+          console.error('Error closing out contractor invite on login:', body.error)
+        } else if (body.phoneMatchNeedsVerification) {
+          contractorNeedsPhone = true
+        }
+      } catch (err) {
         console.error('Error closing out contractor invite on login:', err)
-      )
+      }
     }
     if (accountRole === 'landlord') {
       // A brand-new landlord used to land straight on "add your first
@@ -220,7 +229,7 @@ function LoginForm() {
       else router.replace(coOwnerNeedsPhone ? '/landlord?pendingInviteNeedsPhone=1' : '/landlord')
     }
     else if (accountRole === 'renter') router.replace(tenancyNeedsPhone ? '/renter?pendingInviteNeedsPhone=1' : '/renter')
-    else if (accountRole === 'contractor') router.replace('/contractor')
+    else if (accountRole === 'contractor') router.replace(contractorNeedsPhone ? '/contractor?pendingInviteNeedsPhone=1' : '/contractor')
     else router.replace('/')
   }
 

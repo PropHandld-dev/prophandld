@@ -36,21 +36,41 @@ export async function POST() {
   // Also accept any pending invite that reached this person by phone —
   // invited_phone is always stored E.164-normalized (see
   // invite-contractor), so normalizing this user's own saved phone the
-  // same way is enough for a plain equality match.
+  // same way is enough for a plain equality match. Gated on
+  // phone_verified_at — the phone field is just free text a user types
+  // in, and without requiring proof of ownership first, anyone could type
+  // in someone else's phone number to falsely show up as having accepted
+  // their invite. Same reasoning as the identical fix in
+  // tenancy/link-invite and co-owner/link-invite; this was the one invite
+  // flow that never got it.
   let acceptedByPhone: { landlord_user_id: string | null }[] = []
-  const { data: ownRow } = await supabaseAdmin.from('users').select('phone').eq('id', user.id).maybeSingle()
+  let phoneMatchNeedsVerification = false
+  const { data: ownRow } = await supabaseAdmin.from('users').select('phone, phone_verified_at').eq('id', user.id).maybeSingle()
+  const isPhoneVerified = !!ownRow?.phone_verified_at
   const ownPhone = ownRow?.phone ? toE164(ownRow.phone) : null
   if (ownPhone) {
-    const { data, error: phoneError } = await supabaseAdmin
+    const { data: phoneInvites, error: phoneError } = await supabaseAdmin
       .from('contractor_invites')
-      .update({ status: 'accepted', accepted_at: new Date().toISOString() })
+      .select('id, landlord_user_id')
       .eq('invited_phone', ownPhone)
       .eq('status', 'pending')
-      .select('landlord_user_id')
     if (phoneError) {
-      console.error('accept-invite: update by phone failed', phoneError)
-    } else {
-      acceptedByPhone = data || []
+      console.error('accept-invite: lookup by phone failed', phoneError)
+    } else if (phoneInvites && phoneInvites.length > 0) {
+      if (isPhoneVerified) {
+        const { data, error: updateError } = await supabaseAdmin
+          .from('contractor_invites')
+          .update({ status: 'accepted', accepted_at: new Date().toISOString() })
+          .in('id', phoneInvites.map((i) => i.id))
+          .select('landlord_user_id')
+        if (updateError) {
+          console.error('accept-invite: update by phone failed', updateError)
+        } else {
+          acceptedByPhone = data || []
+        }
+      } else {
+        phoneMatchNeedsVerification = true
+      }
     }
   }
 
@@ -89,5 +109,5 @@ export async function POST() {
     )
   }
 
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: true, phoneMatchNeedsVerification })
 }

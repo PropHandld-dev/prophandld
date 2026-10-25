@@ -15,6 +15,7 @@ import { ContractorCredentials } from '@/components/ContractorCredentials'
 import { ContractorReviewsList } from '@/components/ContractorReviewsList'
 import { Switch } from '@/components/Switch'
 import { useGroupedCategoryOptions } from '@/lib/categories'
+import { PendingInviteNeedsPhoneBanner } from '@/components/PendingInviteNeedsPhoneBanner'
 import { useLanguage, t } from '@/lib/i18n'
 
 export default function ContractorSettingsPage() {
@@ -156,6 +157,8 @@ export default function ContractorSettingsPage() {
         <p className="text-white/50 text-sm mb-8">
           {t('serviceSettingsDesc', lang)}
         </p>
+
+        <PendingInviteNeedsPhoneBanner />
 
         <ScrollReveal>
         <form onSubmit={handleSubmit} className="space-y-6">
