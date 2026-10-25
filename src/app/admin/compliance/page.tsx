@@ -146,7 +146,7 @@ export default function AdminCompliancePage() {
                               disabled={sendingId === p.propertyId || sent}
                               className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
                             >
-                              {sent ? 'Reminder sent ✓' : sendingId === p.propertyId ? 'Sending...' : 'Send reminder (email + app)'}
+                              {sent ? 'Reminder sent ✓' : sendingId === p.propertyId ? 'Sending...' : 'Send reminder (email + app + text)'}
                             </RippleButton>
                           )}
                         </div>

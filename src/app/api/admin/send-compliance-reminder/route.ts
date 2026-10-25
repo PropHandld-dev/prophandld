@@ -4,13 +4,15 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireAdminAal2 } from '@/lib/adminAccess'
 import { sendComplianceReminderEmail } from '@/lib/email'
 import { sendPush } from '@/lib/push'
+import { sendAlertSms } from '@/lib/sms'
 import { logAdminAudit } from '@/lib/auditLog'
 import { emailAllowed } from '@/lib/notificationPrefs'
 
-// Manual nudge from the admin roster — email and push today; SMS is
-// deliberately left out until Twilio is actually confirmed live in
-// production (see sendSms, which already no-ops safely if it isn't), so
-// this isn't wired to silently do nothing and look like it worked.
+// Manual nudge from the admin roster — email, push, and (now that Twilio
+// is confirmed live in production, 2026-10-25) text, same opt-in gate
+// every other SMS send in this app respects: only if this contractor has
+// sms_opt_in set and a phone on file, never unconditionally just because
+// it's coming from an admin.
 export async function POST(request: Request) {
   const authClient = await createClient()
   const { data: { user } } = await authClient.auth.getUser()
@@ -26,7 +28,7 @@ export async function POST(request: Request) {
   const admin = getSupabaseAdmin()
   const { data: contractor, error } = await admin
     .from('users')
-    .select('email, full_name, preferred_language, email_notifications_enabled')
+    .select('email, full_name, preferred_language, email_notifications_enabled, phone, sms_opt_in')
     .eq('id', contractorUserId)
     .maybeSingle()
 
@@ -56,6 +58,24 @@ export async function POST(request: Request) {
     body: missingNames.length === 1 ? missingNames[0] : missingNames.slice(0, 2).join(', ') + (missingNames.length > 2 ? '…' : ''),
     url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/contractor/settings`,
   }).catch((err) => console.error('send-compliance-reminder: sendPush failed', { contractorUserId, err }))
+
+  if (contractor.sms_opt_in && contractor.phone) {
+    const smsResult = await sendAlertSms(
+      contractor.phone,
+      `Prophandld: ${missingNames.length === 1 ? missingNames[0] : `${missingNames.length} credentials`} ${missingNames.length === 1 ? 'is' : 'are'} missing or expired on your profile. Update: ${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/contractor/settings`
+    ).catch((err) => {
+      console.error('send-compliance-reminder: sendAlertSms failed', { contractorUserId, err })
+      return null
+    })
+    if (smsResult?.ok) {
+      await admin.from('notification_log').insert({
+        notification_type: 'compliance_reminder',
+        channel: 'sms',
+        recipient_user_id: contractorUserId,
+        external_id: smsResult.id || null,
+      })
+    }
+  }
 
   await logAdminAudit({
     actionType: 'compliance_reminder_sent',

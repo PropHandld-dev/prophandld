@@ -82,7 +82,15 @@ function Tile({ label, value, sub, tone }: { label: string; value: string; sub?:
 export default function AdminTransactionsPage() {
   const [data, setData] = useState<Data | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [kind, setKind] = useState<'all' | Tx['kind']>('all')
+  // Prefilled by the Overview page's "This month" tiles (?kind=rent/job) —
+  // computed in the initializer (not set from an effect) so the first
+  // render already has the right filter instead of flashing "all" first.
+  // Guarded for SSR, where window doesn't exist yet.
+  const [kind, setKind] = useState<'all' | Tx['kind']>(() => {
+    if (typeof window === 'undefined') return 'all'
+    const k = new URLSearchParams(window.location.search).get('kind')
+    return k === 'rent' || k === 'job' || k === 'subscription' ? k : 'all'
+  })
   const [status, setStatus] = useState<'all' | 'attention' | Tx['status']>('all')
   const [query, setQuery] = useState('')
 
@@ -91,6 +99,14 @@ export default function AdminTransactionsPage() {
       .then((r) => r.json())
       .then((json) => (json.error ? setError(json.error) : setData(json)))
       .catch(() => setError('Could not load transactions.'))
+  }, [])
+
+  // Strips ?kind= from the URL once read — a plain history mutation, not a
+  // setState call, so this effect is just synchronizing with the URL bar.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('kind')) {
+      window.history.replaceState({}, '', window.location.pathname)
+    }
   }, [])
 
   const filtered = useMemo(() => {

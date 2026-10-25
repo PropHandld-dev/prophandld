@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { AdminLayout } from '@/components/AdminLayout'
 import { ScrollReveal } from '@/components/ScrollReveal'
@@ -336,12 +337,12 @@ export default function AdminOverviewPage() {
         <>
           <SectionHeading title="This month" />
           <ScrollReveal className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-10">
-            <StatCard label="Landlords" value={stats.userCounts.landlord || 0} />
-            <StatCard label="Renters" value={stats.userCounts.renter || 0} />
-            <StatCard label="Contractors" value={stats.userCounts.contractor || 0} />
-            <StatCard label="Rent collected" value={`$${stats.rentThisMonth.toLocaleString()}`} />
-            <StatCard label="Job payments, all-time" value={`$${stats.jobPaymentsAllTime.toLocaleString()}`} />
-            <StatCard label="Open disputes" value={stats.openDisputes} tone={stats.openDisputes > 0 ? 'yellow' : undefined} />
+            <StatCard label="Landlords" value={stats.userCounts.landlord || 0} href="/admin/users?role=landlord" />
+            <StatCard label="Renters" value={stats.userCounts.renter || 0} href="/admin/users?role=renter" />
+            <StatCard label="Contractors" value={stats.userCounts.contractor || 0} href="/admin/users?role=contractor" />
+            <StatCard label="Rent collected" value={`$${stats.rentThisMonth.toLocaleString()}`} href="/admin/transactions?kind=rent" />
+            <StatCard label="Job payments, all-time" value={`$${stats.jobPaymentsAllTime.toLocaleString()}`} href="/admin/transactions?kind=job" />
+            <StatCard label="Open disputes" value={stats.openDisputes} tone={stats.openDisputes > 0 ? 'yellow' : undefined} href="/admin/disputes" />
           </ScrollReveal>
 
           <SectionHeading title="Economics" subtitle="Real revenue, real costs, and what's actually left over — the numbers for the weekly meeting" />
@@ -519,13 +520,21 @@ function SectionHeading({ title, subtitle }: { title: string; subtitle?: string 
   )
 }
 
-function StatCard({ label, value, tone }: { label: string; value: string | number; tone?: 'yellow' }) {
-  return (
-    <div className="bg-white/3 border border-white/8 rounded-xl p-4 text-center">
+function StatCard({ label, value, tone, href }: { label: string; value: string | number; tone?: 'yellow'; href?: string }) {
+  const body = (
+    <>
       <div className={`text-xl font-bold tabular-nums ${tone === 'yellow' ? 'text-yellow-400' : 'text-white'}`}>{value}</div>
       <div className="text-white/60 text-xs mt-0.5">{label}</div>
-    </div>
+    </>
   )
+  if (href) {
+    return (
+      <Link href={href} className="block bg-white/3 border border-white/8 rounded-xl p-4 text-center hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all">
+        {body}
+      </Link>
+    )
+  }
+  return <div className="bg-white/3 border border-white/8 rounded-xl p-4 text-center">{body}</div>
 }
 
 function EconLine({
