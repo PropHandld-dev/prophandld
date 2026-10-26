@@ -28,7 +28,7 @@ export async function GET() {
 
   if (error) {
     console.error('admin/cost-items GET: error loading', error)
-    return NextResponse.json({ error: 'Could not load cost items' }, { status: 500 })
+    return NextResponse.json({ error: `Could not load cost items: ${error.message}` }, { status: 500 })
   }
 
   const items = data || []
