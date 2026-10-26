@@ -16,6 +16,8 @@ type Digest = {
   jobsCompleted: WindowCount
   rentCollected: WindowCount
   mrr: { now: number; weekAgo: number | null }
+  infraCostMonthly: number
+  netMarginMonthly: number
   openDisputes: { id: string; reason: string; createdAt: string; jobCategory: string | null; address: string | null }[]
   pendingVerifications: { id: string; createdAt: string; contractorName: string }[]
 }
@@ -85,6 +87,8 @@ export default function AdminWeeklyPage() {
                 isCurrency
                 noHistory={data.mrr.weekAgo == null}
               />
+              <StatCard label="Infra cost" thisWeek={data.infraCostMonthly} lastWeek={data.infraCostMonthly} isCurrency noHistory />
+              <StatCard label="Net margin" thisWeek={data.netMarginMonthly} lastWeek={data.netMarginMonthly} isCurrency noHistory />
             </div>
           </ScrollReveal>
 

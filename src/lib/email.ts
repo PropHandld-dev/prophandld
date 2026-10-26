@@ -2903,6 +2903,70 @@ export async function sendRentLateLandlordEmail({
   return sendEmail({ to, subject: lang === 'es' ? `Renta atrasada: ${unitLabel}` : `Rent is late: ${unitLabel}`, html })
 }
 
+// Weekly automated version of /admin/weekly — the same computation
+// (getWeeklyDigestData), so the email always matches the page. Lands
+// before the Monday meeting so the team starts from this instead of each
+// person checking a different admin tab first.
+export async function sendWeeklyDigestAdminEmail(data: {
+  signups: Record<'landlord' | 'renter' | 'contractor', { thisWeek: number; lastWeek: number }>
+  properties: { thisWeek: number; lastWeek: number }
+  units: { thisWeek: number; lastWeek: number }
+  jobsCompleted: { thisWeek: number; lastWeek: number }
+  rentCollected: { thisWeek: number; lastWeek: number }
+  mrr: { now: number; weekAgo: number | null }
+  infraCostMonthly: number
+  netMarginMonthly: number
+  openDisputes: { id: string; jobCategory: string | null; address: string | null }[]
+  pendingVerifications: { id: string; contractorName: string }[]
+}) {
+  const money = (n: number) => `$${n.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+  const facts: EmailFact[] = [
+    { label: 'New landlords', value: String(data.signups.landlord.thisWeek) },
+    { label: 'New renters', value: String(data.signups.renter.thisWeek) },
+    { label: 'New contractors', value: String(data.signups.contractor.thisWeek) },
+    { label: 'Properties added', value: String(data.properties.thisWeek) },
+    { label: 'Units added', value: String(data.units.thisWeek) },
+    { label: 'Jobs completed', value: String(data.jobsCompleted.thisWeek) },
+    { label: 'Rent collected', value: money(data.rentCollected.thisWeek) },
+    { label: 'MRR', value: `${money(data.mrr.now)}${data.mrr.weekAgo != null ? ` (was ${money(data.mrr.weekAgo)})` : ''}` },
+    { label: 'Infra cost', value: `${money(data.infraCostMonthly)}/mo` },
+    { label: 'Net margin', value: `${money(data.netMarginMonthly)}/mo` },
+  ]
+
+  const actionItems: string[] = []
+  if (data.openDisputes.length > 0) {
+    actionItems.push(
+      `<li style="margin-bottom:6px;">${data.openDisputes.length} open dispute${data.openDisputes.length === 1 ? '' : 's'}: ${data.openDisputes
+        .slice(0, 5)
+        .map((d) => escapeHtml(`${d.jobCategory || 'a job'}${d.address ? ` at ${d.address}` : ''}`))
+        .join(', ')}</li>`
+    )
+  }
+  if (data.pendingVerifications.length > 0) {
+    actionItems.push(
+      `<li style="margin-bottom:6px;">${data.pendingVerifications.length} contractor${data.pendingVerifications.length === 1 ? '' : 's'} waiting on verification: ${data.pendingVerifications
+        .slice(0, 5)
+        .map((v) => escapeHtml(v.contractorName))
+        .join(', ')}</li>`
+    )
+  }
+
+  const html = baseTemplate({
+    lang: 'en',
+    eyebrow: 'Weekly digest',
+    heading: 'This week at Prophandld',
+    bodyHtml:
+      actionItems.length > 0
+        ? `Before the meeting, these need a look:<ul style="margin:14px 0 0;padding-left:20px;color:#A9B7C8;font-size:14px;line-height:1.6;">${actionItems.join('')}</ul>`
+        : 'Nothing needs a decision from the team this week, everything below is for context.',
+    facts,
+    preheader: `MRR ${money(data.mrr.now)} · Net ${money(data.netMarginMonthly)}/mo`,
+    ctaLabel: 'Open the full weekly view',
+    ctaUrl: `${SITE_URL}/admin/weekly`,
+  })
+  return sendToAdmins('This week at Prophandld', html)
+}
+
 // A message reported from job chat or a DM (/api/messages/report) — always
 // English, admin-only, same reasoning as every other admin-facing alert.
 export async function sendMessageReportedAdminEmail({
