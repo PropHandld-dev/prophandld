@@ -2903,6 +2903,34 @@ export async function sendRentLateLandlordEmail({
   return sendEmail({ to, subject: lang === 'es' ? `Renta atrasada: ${unitLabel}` : `Rent is late: ${unitLabel}`, html })
 }
 
+// A message reported from job chat or a DM (/api/messages/report) — always
+// English, admin-only, same reasoning as every other admin-facing alert.
+export async function sendMessageReportedAdminEmail({
+  reporterEmail,
+  reportedEmail,
+  reason,
+  note,
+  contextLabel,
+  messageBody,
+}: {
+  reporterEmail: string
+  reportedEmail: string
+  reason: string
+  note?: string | null
+  contextLabel: string
+  messageBody?: string | null
+}) {
+  const html = baseTemplate({
+    lang: 'en',
+    eyebrow: 'Message reported',
+    heading: 'Someone reported a message',
+    bodyHtml: `<strong>${escapeHtml(reporterEmail)}</strong> reported a message from <strong>${escapeHtml(reportedEmail)}</strong> in ${escapeHtml(contextLabel)}.<br /><br />Reason: ${escapeHtml(reason)}${note ? `<br />Note: ${escapeHtml(note)}` : ''}${messageBody ? `<br /><br />Message: "${escapeHtml(messageBody)}"` : ''}`,
+    ctaLabel: 'Review in admin',
+    ctaUrl: `${SITE_URL}/admin`,
+  })
+  return sendToAdmins(`Message reported: ${reporterEmail} → ${reportedEmail}`, html)
+}
+
 // From the landing-page help widget, before anyone is signed in — no known
 // preference, English only, same reasoning as the pre-signup invites above.
 export async function sendSupportEscalationEmail({

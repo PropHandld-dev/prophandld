@@ -81,6 +81,14 @@ export function useConversations(userId: string | null) {
     const jobIds = entries.filter((e) => e.kind === 'job').map((e) => e.id)
     const threadIds = entries.filter((e) => e.kind === 'dm').map((e) => e.id)
 
+    // Blocking is the only reason a DM conversation this user is a real
+    // participant in should ever disappear from their own inbox — fetched
+    // once per load rather than per-thread since it's one small list.
+    const blockedUserIds = await fetch('/api/messages/block')
+      .then((res) => res.json())
+      .then((data) => new Set<string>(data.blockedUserIds || []))
+      .catch(() => new Set<string>())
+
     const missingJobIds = jobIds.filter((id) => !fresh(jobLabelCache.get(id)))
     const missingParticipantKeys = [
       ...jobIds.filter((id) => !fresh(participantsCache.get(`job:${id}`))).map((id) => ({ kind: 'job' as const, id })),
@@ -135,7 +143,13 @@ export function useConversations(userId: string | null) {
     const jobParticipantsById = new Map(jobIds.map((id) => [id, { data: participantsCache.get(`job:${id}`)?.value ?? [], error: null as any }]))
     const dmParticipantsById = new Map(threadIds.map((id) => [id, { data: participantsCache.get(`dm:${id}`)?.value ?? [], error: null as any }]))
 
-    const list: Conversation[] = entries.map((e) => {
+    const visibleEntries = blockedUserIds.size === 0 ? entries : entries.filter((e) => {
+      if (e.kind !== 'dm') return true
+      const participants = (dmParticipantsById.get(e.id)?.data || []) as { user_id: string }[]
+      return !participants.some((p) => p.user_id !== userId && blockedUserIds.has(p.user_id))
+    })
+
+    const list: Conversation[] = visibleEntries.map((e) => {
       if (e.kind === 'job') {
         const job = jobById.get(e.id) as any
         const unit = job?.units

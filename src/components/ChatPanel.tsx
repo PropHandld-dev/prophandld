@@ -8,6 +8,16 @@ import { RippleButton } from '@/components/RippleButton'
 import { markJobRead, markThreadRead } from '@/lib/messageReads'
 import { CalendarIcon, WrenchIcon } from '@/components/icons'
 import { useLanguage, t, roleLabel, type Lang } from '@/lib/i18n'
+import { useConfirm } from '@/lib/useConfirm'
+
+const REPORT_REASONS = ['harassment', 'spam', 'inappropriate', 'scam_or_fraud', 'other'] as const
+const reportReasonLabelKey: Record<(typeof REPORT_REASONS)[number], Parameters<typeof t>[0]> = {
+  harassment: 'reportReasonHarassment',
+  spam: 'reportReasonSpam',
+  inappropriate: 'reportReasonInappropriate',
+  scam_or_fraud: 'reportReasonScam',
+  other: 'reportReasonOther',
+}
 
 type Message = {
   id: string
@@ -104,6 +114,14 @@ export function ChatPanel({
   }
   const [scheduleDate, setScheduleDate] = useState('')
   const [scheduleTime, setScheduleTime] = useState('')
+  const { confirm, ConfirmDialog } = useConfirm()
+  const [blockStatus, setBlockStatus] = useState<{ blockedByMe: boolean; blockedMe: boolean } | null>(null)
+  const [reportingMessageId, setReportingMessageId] = useState<string | null>(null)
+  const [reportReason, setReportReason] = useState<(typeof REPORT_REASONS)[number]>('harassment')
+  const [reportNote, setReportNote] = useState('')
+  const [reportSubmitting, setReportSubmitting] = useState(false)
+  const [reportError, setReportError] = useState<string | null>(null)
+  const [reportedIds, setReportedIds] = useState<Set<string>>(new Set())
   const listRef = useRef<HTMLDivElement>(null)
   const messagesRef = useRef<Message[]>([])
   useEffect(() => {
@@ -232,6 +250,77 @@ export function ChatPanel({
   const contractorInThread = threadId ? others.find((p) => p.role === 'contractor') : undefined
   const showStartJob = !!contractorInThread && myRole === 'landlord'
 
+  // Block is a DM-only concept (job chat is tied to an active job that
+  // needs both sides communicating to function) and only makes sense for
+  // a real 1:1 DM, which is the only shape start_landlord_tenant_thread /
+  // start_landlord_contractor_thread ever create.
+  const otherForBlock = threadId && others.length === 1 ? others[0] : undefined
+  useEffect(() => {
+    let cancelled = false
+    const otherId = otherForBlock?.user_id
+    Promise.resolve()
+      .then(() => (otherId ? fetch(`/api/messages/block?otherUserId=${otherId}`).then((res) => res.json()) : null))
+      .then((data) => {
+        if (cancelled) return
+        setBlockStatus(data ? { blockedByMe: !!data.blockedByMe, blockedMe: !!data.blockedMe } : null)
+      })
+      .catch(() => { if (!cancelled) setBlockStatus(null) })
+    return () => { cancelled = true }
+  }, [otherForBlock?.user_id])
+  const isBlocked = !!blockStatus && (blockStatus.blockedByMe || blockStatus.blockedMe)
+
+  const handleBlock = async () => {
+    if (!otherForBlock) return
+    const ok = await confirm({
+      title: t('blockConfirmTitle', lang),
+      body: t('blockConfirmBody', lang),
+      confirmLabel: t('blockPersonBtn', lang),
+      danger: true,
+    })
+    if (!ok) return
+    const res = await fetch('/api/messages/block', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ otherUserId: otherForBlock.user_id }),
+    })
+    if (res.ok) setBlockStatus({ blockedByMe: true, blockedMe: blockStatus?.blockedMe || false })
+  }
+
+  const handleSubmitReport = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!reportingMessageId) return
+    const message = messages.find((m) => m.id === reportingMessageId)
+    if (!message) return
+    setReportSubmitting(true)
+    setReportError(null)
+    try {
+      const res = await fetch('/api/messages/report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messageId: message.id,
+          jobId: jobId || undefined,
+          threadId: threadId || undefined,
+          reportedUserId: message.sender_user_id,
+          reason: reportReason,
+          note: reportNote.trim() || undefined,
+        }),
+      })
+      if (!res.ok) {
+        setReportError(t('couldNotSubmitReport', lang))
+        return
+      }
+      setReportedIds((prev) => new Set(prev).add(message.id))
+      setReportingMessageId(null)
+      setReportNote('')
+      setReportReason('harassment')
+    } catch {
+      setReportError(t('couldNotSubmitReport', lang))
+    } finally {
+      setReportSubmitting(false)
+    }
+  }
+
   const sendMessage = async (body: string, options?: { silent?: boolean }) => {
     if (!body.trim() || !userId) return false
 
@@ -335,16 +424,24 @@ export function ChatPanel({
   return (
     <div className={`flex flex-col ${heightClassName}`}>
       {others.length > 0 && (
-        <div className="flex items-center gap-2 flex-wrap pb-3 mb-3 border-b border-white/8">
-          <span className="text-white/60 text-xs">{t('withLabel', lang)}</span>
-          {others.map((p) => (
-            <span key={p.user_id} className="inline-flex items-center gap-1 text-xs bg-white/5 border border-white/10 rounded-full px-2.5 py-1">
-              <span className="text-white font-medium">{p.full_name || t('unknownPerson', lang)}</span>
-              {p.role && <span className="text-white/60">· {roleLabel(p.role, lang)}</span>}
-            </span>
-          ))}
+        <div className="flex items-center justify-between gap-2 flex-wrap pb-3 mb-3 border-b border-white/8">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-white/60 text-xs">{t('withLabel', lang)}</span>
+            {others.map((p) => (
+              <span key={p.user_id} className="inline-flex items-center gap-1 text-xs bg-white/5 border border-white/10 rounded-full px-2.5 py-1">
+                <span className="text-white font-medium">{p.full_name || t('unknownPerson', lang)}</span>
+                {p.role && <span className="text-white/60">· {roleLabel(p.role, lang)}</span>}
+              </span>
+            ))}
+          </div>
+          {otherForBlock && !isBlocked && (
+            <button onClick={handleBlock} className="text-white/40 hover:text-red-400 text-xs font-medium transition shrink-0">
+              {t('blockPersonBtn', lang)}
+            </button>
+          )}
         </div>
       )}
+      {ConfirmDialog}
 
       {/* No edit/delete action on any message, deliberately: job chat and DMs
           are the audit trail if a fair-housing or maintenance dispute ever
@@ -391,14 +488,28 @@ export function ChatPanel({
                         </p>
                       )}
                     </div>
-                    {!isMine && !translations[m.id]?.text && (
-                      <button
-                        onClick={() => handleTranslate(m.id, m.body)}
-                        disabled={translations[m.id]?.loading}
-                        className="text-white/40 hover:text-white/70 text-[11px] mt-1 transition disabled:opacity-50"
-                      >
-                        {translations[m.id]?.loading ? t('translatingDots', lang) : translations[m.id]?.error ? translations[m.id]?.error : t('seeTranslationBtn', lang)}
-                      </button>
+                    {!isMine && (
+                      <div className="flex items-center gap-3 mt-1">
+                        {!translations[m.id]?.text && (
+                          <button
+                            onClick={() => handleTranslate(m.id, m.body)}
+                            disabled={translations[m.id]?.loading}
+                            className="text-white/40 hover:text-white/70 text-[11px] transition disabled:opacity-50"
+                          >
+                            {translations[m.id]?.loading ? t('translatingDots', lang) : translations[m.id]?.error ? translations[m.id]?.error : t('seeTranslationBtn', lang)}
+                          </button>
+                        )}
+                        {reportedIds.has(m.id) ? (
+                          <span className="text-white/30 text-[11px]">{t('reportSubmittedMsg', lang)}</span>
+                        ) : (
+                          <button
+                            onClick={() => { setReportingMessageId(m.id); setReportError(null) }}
+                            className="text-white/30 hover:text-red-400 text-[11px] transition"
+                          >
+                            {t('reportMessageBtn', lang)}
+                          </button>
+                        )}
+                      </div>
                     )}
                     <p className={`text-[10px] text-white/50 mt-1 ${isMine ? 'text-right' : 'text-left'}`}>
                       {formatTimestamp(m.created_at)}
@@ -425,6 +536,44 @@ export function ChatPanel({
         <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm mb-3">
           {error}
         </div>
+      )}
+
+      {reportingMessageId && (
+        <form onSubmit={handleSubmitReport} className="bg-white/5 border border-white/10 rounded-xl p-3 mb-3 space-y-2">
+          <p className="text-white text-sm font-medium">{t('reportMessageTitle', lang)}</p>
+          <div>
+            <label className="text-white/60 text-xs block mb-1">{t('reportReasonLabel', lang)}</label>
+            <select
+              value={reportReason}
+              onChange={(e) => setReportReason(e.target.value as (typeof REPORT_REASONS)[number])}
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#12A5A9] transition"
+            >
+              {REPORT_REASONS.map((r) => (
+                <option key={r} value={r} className="bg-[#0C1A2E]">{t(reportReasonLabelKey[r], lang)}</option>
+              ))}
+            </select>
+          </div>
+          <textarea
+            value={reportNote}
+            onChange={(e) => setReportNote(e.target.value)}
+            placeholder={t('reportNotePlaceholder', lang)}
+            rows={2}
+            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/40 focus:outline-none focus:border-[#12A5A9] transition resize-none"
+          />
+          {reportError && <p className="text-red-400 text-xs">{reportError}</p>}
+          <div className="flex items-center gap-2">
+            <button
+              type="submit"
+              disabled={reportSubmitting}
+              className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold rounded-lg px-3.5 py-2 disabled:opacity-50 transition"
+            >
+              {t('submitReportBtn', lang)}
+            </button>
+            <button type="button" onClick={() => setReportingMessageId(null)} className="text-white/60 hover:text-white text-xs transition">
+              {t('cancel', lang)}
+            </button>
+          </div>
+        </form>
       )}
 
       {threadId && !showStartJob && showSchedule && (
@@ -461,6 +610,9 @@ export function ChatPanel({
         </form>
       )}
 
+      {isBlocked ? (
+        <p className="text-white/40 text-sm text-center pt-3 border-t border-white/8">{t('blockedConversationMsg', lang)}</p>
+      ) : (
       <form onSubmit={handleSend} className="flex items-center gap-2 pt-2 border-t border-white/8">
         {threadId && showStartJob && (
           <button
@@ -500,6 +652,7 @@ export function ChatPanel({
           {t('send', lang)}
         </RippleButton>
       </form>
+      )}
     </div>
   )
 }
