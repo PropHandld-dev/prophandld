@@ -18,6 +18,7 @@ const TABS = [
   { href: '/admin/compliance', label: 'Compliance' },
   { href: '/admin/audit-log', label: 'Audit log' },
   { href: '/admin/health', label: 'System health' },
+  { href: '/admin/costs', label: 'Costs' },
 ]
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {

@@ -82,9 +82,6 @@ export default function AdminOverviewPage() {
     stripeFeesThisMonth: number
   } | null>(null)
   const [infraCost, setInfraCost] = useState(0)
-  const [infraCostDraft, setInfraCostDraft] = useState('')
-  const [editingInfraCost, setEditingInfraCost] = useState(false)
-  const [savingInfraCost, setSavingInfraCost] = useState(false)
   const [signupSeries, setSignupSeries] = useState<StackedSeries[]>([])
   const [rentPoints, setRentPoints] = useState<MonthPoint[]>([])
   const [jobPaymentPoints, setJobPaymentPoints] = useState<MonthPoint[]>([])
@@ -100,9 +97,9 @@ export default function AdminOverviewPage() {
   const [loadingMarketplace, setLoadingMarketplace] = useState(true)
 
   const loadCostSettings = async () => {
-    const res = await fetch('/api/admin/cost-settings')
+    const res = await fetch('/api/admin/cost-items')
     const data = await res.json().catch(() => null)
-    if (data && typeof data.monthlyInfraCost === 'number') setInfraCost(data.monthlyInfraCost)
+    if (data && typeof data.monthlyTotal === 'number') setInfraCost(data.monthlyTotal)
   }
 
   useEffect(() => {
@@ -293,27 +290,6 @@ export default function AdminOverviewPage() {
       .finally(() => setLoadingMarketplace(false))
   }, [])
 
-  const startEditingInfraCost = () => {
-    setInfraCostDraft(infraCost.toFixed(2))
-    setEditingInfraCost(true)
-  }
-
-  const saveInfraCost = async () => {
-    const value = parseFloat(infraCostDraft)
-    if (Number.isNaN(value) || value < 0) return
-    setSavingInfraCost(true)
-    const res = await fetch('/api/admin/cost-settings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ monthlyInfraCost: value }),
-    })
-    if (res.ok) {
-      setInfraCost(value)
-      setEditingInfraCost(false)
-    }
-    setSavingInfraCost(false)
-  }
-
   // stripeFeesThisMonth is NOT subtracted here, on purpose — as of
   // 2026-10-20 both job-payment and rent-ACH processing fees are
   // surcharged to whoever's paying (the landlord, the tenant) and
@@ -352,17 +328,10 @@ export default function AdminOverviewPage() {
               <EconLine label="Processing fees collected" sublabel="Pass-through, not a cost — excluded from Net" value={stats.stripeFeesThisMonth} tone="positive" />
               <EconLine
                 label="Infrastructure"
-                sublabel="Vercel · Supabase · Resend · Twilio"
+                sublabel="Every vendor, itemized"
                 value={-infraCost}
                 tone="negative"
-                editable
-                editing={editingInfraCost}
-                draft={infraCostDraft}
-                onDraftChange={setInfraCostDraft}
-                onStartEdit={startEditingInfraCost}
-                onSave={saveInfraCost}
-                onCancel={() => setEditingInfraCost(false)}
-                saving={savingInfraCost}
+                href="/admin/costs"
               />
               <EconLine label="Net" sublabel="Per month" value={netMonthly} tone={netMonthly >= 0 ? 'positive' : 'negative'} emphasize />
             </div>
@@ -543,61 +512,28 @@ function EconLine({
   value,
   tone,
   emphasize,
-  editable,
-  editing,
-  draft,
-  onDraftChange,
-  onStartEdit,
-  onSave,
-  onCancel,
-  saving,
+  href,
 }: {
   label: string
   sublabel: string
   value: number
   tone: 'positive' | 'negative'
   emphasize?: boolean
-  editable?: boolean
-  editing?: boolean
-  draft?: string
-  onDraftChange?: (v: string) => void
-  onStartEdit?: () => void
-  onSave?: () => void
-  onCancel?: () => void
-  saving?: boolean
+  href?: string
 }) {
   const formatted = `${value < 0 ? '-' : ''}$${Math.abs(value).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+  const valueClass = `${emphasize ? 'text-2xl' : 'text-xl'} font-bold tabular-nums ${tone === 'positive' ? 'text-[#12A5A9]' : 'text-white'}`
   return (
     <div>
       <div className="text-white/50 text-xs">{label}</div>
       <div className="text-white/25 text-[11px] mb-1.5">{sublabel}</div>
-      {editable && editing ? (
-        <div className="flex items-center gap-1.5">
-          <input
-            type="number"
-            step="0.01"
-            min="0"
-            value={draft}
-            onChange={(e) => onDraftChange?.(e.target.value)}
-            autoFocus
-            className="w-24 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white text-lg font-bold tabular-nums focus:outline-none focus:border-[#12A5A9] transition"
-          />
-          <button onClick={onSave} disabled={saving} className="text-[#12A5A9] text-xs font-semibold hover:underline disabled:opacity-50">
-            {saving ? '...' : 'Save'}
-          </button>
-          <button onClick={onCancel} className="text-white/40 text-xs hover:text-white/60 transition">
-            Cancel
-          </button>
-        </div>
-      ) : (
-        <div
-          className={`${emphasize ? 'text-2xl' : 'text-xl'} font-bold tabular-nums ${tone === 'positive' ? 'text-[#12A5A9]' : 'text-white'} ${editable ? 'cursor-pointer hover:underline decoration-dashed underline-offset-4' : ''}`}
-          onClick={editable ? onStartEdit : undefined}
-          title={editable ? 'Click to update' : undefined}
-        >
+      {href ? (
+        <Link href={href} className={`${valueClass} hover:underline decoration-dashed underline-offset-4 inline-flex items-baseline gap-1.5`}>
           {formatted}
-          {editable && <span className="text-white/30 text-xs font-normal ml-1.5">edit</span>}
-        </div>
+          <span className="text-white/30 text-xs font-normal">breakdown →</span>
+        </Link>
+      ) : (
+        <div className={valueClass}>{formatted}</div>
       )}
     </div>
   )
