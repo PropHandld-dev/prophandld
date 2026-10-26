@@ -13,6 +13,7 @@ type CostItem = {
   monthly_estimate: number
   billing_frequency: 'monthly' | 'annual' | 'one_time'
   updated_at: string
+  live: boolean
 }
 
 function monthlyEquivalent(item: CostItem) {
@@ -80,7 +81,7 @@ export default function AdminCostsPage() {
     <AdminLayout>
       <h1 className="text-2xl font-bold text-white mb-2">Costs</h1>
       <p className="text-white/50 text-sm mb-8 max-w-2xl">
-        What Prophandld actually pays to run, broken out by vendor. Each card links straight to that platform&apos;s own billing page, since that&apos;s the only real source of truth, these fields are just this month&apos;s best known figure. Annual and one-time costs show amortized into the monthly total below, since that&apos;s the number that matters for a recurring net-margin conversation.
+        What Prophandld actually pays to run, broken out by vendor. Twilio pulls its real cost live, straight from Twilio&apos;s own usage API; everything else is manually tracked, with a direct link to that platform&apos;s own billing page so the number here is easy to keep honest. Annual and one-time costs show amortized into the monthly total below, since that&apos;s the number that matters for a recurring net-margin conversation.
       </p>
 
       {loading ? (
@@ -113,7 +114,11 @@ export default function AdminCostsPage() {
                     <h3 className="text-white font-semibold text-sm">{item.label}</h3>
                     <p className="text-white/40 text-xs mt-0.5">{item.category}</p>
                   </div>
-                  {item.billing_frequency !== 'monthly' && (
+                  {item.live ? (
+                    <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-[#12A5A9]/15 text-[#12A5A9]">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#12A5A9]" /> Live
+                    </span>
+                  ) : item.billing_frequency !== 'monthly' && (
                     <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full bg-white/8 text-white/50">
                       {frequencyLabel(item.billing_frequency)}
                     </span>
@@ -122,21 +127,28 @@ export default function AdminCostsPage() {
 
                 {item.pricing_note && <p className="text-white/40 text-xs leading-relaxed">{item.pricing_note}</p>}
 
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-white/40 text-sm">$</span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={drafts[item.id] ?? ''}
-                    onChange={(e) => setDrafts((prev) => ({ ...prev, [item.id]: e.target.value }))}
-                    onBlur={() => saveItem(item.id)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-sm font-semibold tabular-nums focus:outline-none focus:border-[#12A5A9] transition"
-                  />
-                  <span className="text-white/30 text-xs shrink-0">
-                    {saving.has(item.id) ? 'saving…' : `/${item.billing_frequency === 'annual' ? 'yr' : item.billing_frequency === 'one_time' ? 'once' : 'mo'}`}
-                  </span>
-                </div>
+                {item.live ? (
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-white text-lg font-bold tabular-nums">${item.monthly_estimate.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                    <span className="text-white/30 text-xs">this month, pulled directly from Twilio just now</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-white/40 text-sm">$</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={drafts[item.id] ?? ''}
+                      onChange={(e) => setDrafts((prev) => ({ ...prev, [item.id]: e.target.value }))}
+                      onBlur={() => saveItem(item.id)}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-sm font-semibold tabular-nums focus:outline-none focus:border-[#12A5A9] transition"
+                    />
+                    <span className="text-white/30 text-xs shrink-0">
+                      {saving.has(item.id) ? 'saving…' : `/${item.billing_frequency === 'annual' ? 'yr' : item.billing_frequency === 'one_time' ? 'once' : 'mo'}`}
+                    </span>
+                  </div>
+                )}
 
                 {item.billing_url && (
                   <a

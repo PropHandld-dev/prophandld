@@ -2,6 +2,29 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireAdminAal2 } from '@/lib/adminAccess'
+import { getTwilioClient } from '@/lib/sms'
+
+// Confirmed live (2026-10-26): Twilio's own Usage Records API, category
+// 'totalprice', returns the account's real spend since startDate — no new
+// credential needed, reuses the same TWILIO_ACCOUNT_SID/TWILIO_AUTH_TOKEN
+// already configured for SMS sending. `price` comes back negative (a
+// debit); shown here as a positive cost like every other line item.
+// Resend and Sentry don't get the same treatment: Resend's usage API is
+// still private beta and returns email counts, not a dollar figure;
+// Sentry has no documented endpoint that returns one at all — both stay
+// manual rather than ship something likely to misreport or break.
+async function fetchLiveTwilioCost(): Promise<number | null> {
+  if (!process.env.TWILIO_ACCOUNT_SID?.trim() || !process.env.TWILIO_AUTH_TOKEN?.trim()) return null
+  try {
+    const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+    const records = await getTwilioClient().usage.records.list({ category: 'totalprice', startDate: startOfMonth })
+    const total = records.reduce((sum, r) => sum + Math.abs(Number(r.price) || 0), 0)
+    return total
+  } catch (err) {
+    console.error('admin/cost-items: live Twilio usage fetch failed', err)
+    return null
+  }
+}
 
 // Monthly-equivalent contribution to the recurring burn rate: a true
 // one-time cost (Google Play's $25 registration) never recurs, so it's
@@ -31,7 +54,13 @@ export async function GET() {
     return NextResponse.json({ error: `Could not load cost items: ${error.message}` }, { status: 500 })
   }
 
-  const items = data || []
+  const liveTwilioCost = await fetchLiveTwilioCost()
+
+  const items = (data || []).map((item) =>
+    item.id === 'twilio' && liveTwilioCost !== null
+      ? { ...item, monthly_estimate: liveTwilioCost, live: true }
+      : { ...item, live: false }
+  )
   const monthlyTotal = items.reduce((sum, i) => sum + monthlyEquivalent(Number(i.monthly_estimate) || 0, i.billing_frequency), 0)
 
   return NextResponse.json({ items, monthlyTotal })
