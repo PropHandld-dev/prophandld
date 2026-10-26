@@ -11,7 +11,8 @@
     "cap:open:ios": "cap open ios",
     "cap:open:android": "cap open android",
     "test:e2e": "playwright test --config=e2e/playwright.config.ts",
-    "test:e2e:report": "playwright show-report e2e/report"
+    "test:e2e:report": "playwright show-report e2e/report",
+    "capture:store-screenshots": "node scripts/capture-store-screenshots.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.3",

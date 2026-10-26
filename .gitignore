@@ -46,3 +46,4 @@ next-env.d.ts
 .env.sentry-build-plugin
 .env.local
 scripts/backfill-geocode.mjs
+scripts/out/
