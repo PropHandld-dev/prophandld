@@ -25,7 +25,13 @@ Sentry.init({
   // switching tabs or backgrounding mid-navigation, nothing to do with our
   // code. It was showing up here as a real-looking error every time that
   // race happened, with no app bug behind it and nothing actionable to fix.
-  ignoreErrors: ['Transition was aborted because of invalid state'],
+  // "...timeout in DOM update" (seen 2026-10-26, on /login's post-auth
+  // router.replace) is the same race under a different Chrome-internal
+  // abort step — backgrounding/throttling stalls the transition's DOM
+  // update instead of hitting the "invalid state" path, but the
+  // navigation itself still completes either way; only the animated
+  // transition effect is skipped.
+  ignoreErrors: ['Transition was aborted because of invalid state', 'Transition was aborted because of timeout in DOM update'],
 });
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
