@@ -329,6 +329,7 @@ const STRINGS = {
   setUpNow: { en: 'Set up now', es: 'Configurar ahora' },
   newJobs: { en: 'New Jobs', es: 'Nuevos trabajos' },
   active: { en: 'Active', es: 'Activos' },
+  myJobs: { en: 'My jobs', es: 'Mis trabajos' },
   earnings: { en: 'Earnings', es: 'Ganancias' },
   awaitingPayment: { en: 'awaiting payment', es: 'pendiente de pago' },
   payouts: { en: 'Payouts', es: 'Pagos' },

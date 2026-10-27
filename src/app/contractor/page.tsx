@@ -352,29 +352,42 @@ export default function ContractorDashboard() {
               </div>
             ) : (
               <>
-                <AlertsList items={alertItems} />
-                <EnableNotificationsCard />
-
-                <ScrollReveal className="grid grid-cols-3 gap-4 mb-6" data-tour="stats">
-                  <a href="#available-jobs" className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
-                    <ClipboardListIcon className="w-5 h-5 text-[#12A5A9] mx-auto mb-1" />
-                    <CountUp value={availableJobs.length} className="text-2xl font-bold text-white block" />
-                    <div className="text-white/60 text-xs mt-1">{t('newJobs', lang)}</div>
+                {/* Elevated to the very first thing a contractor sees, same
+                    treatment the renter dashboard gives "Pay rent"/"Report
+                    an issue" — these three destinations already existed
+                    (the #available-jobs/#your-bids anchors and the earnings
+                    page were just reached by scrolling past alerts first).
+                    Bigger icon circles here (vs the renter's) since these
+                    tiles also carry a live number, not just a label. */}
+                <ScrollReveal className="grid grid-cols-3 gap-3 mb-6" data-tour="stats">
+                  <a href="#available-jobs" className="flex flex-col items-center justify-center gap-2 bg-white/3 border border-white/8 rounded-2xl py-5 px-3 text-center hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all">
+                    <div className="w-10 h-10 rounded-full bg-[#0A7B7E]/20 flex items-center justify-center">
+                      <ClipboardListIcon className="w-5 h-5 text-[#12A5A9]" />
+                    </div>
+                    <CountUp value={availableJobs.length} className="text-xl font-bold text-white block" />
+                    <div className="text-white/60 text-xs">{t('newJobs', lang)}</div>
                   </a>
-                  <a href="#your-bids" className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
-                    <WrenchIcon className="w-5 h-5 text-[#12A5A9] mx-auto mb-1" />
-                    <CountUp value={activeJobsCount} className="text-2xl font-bold text-white block" />
-                    <div className="text-white/60 text-xs mt-1">{t('active', lang)}</div>
+                  <a href="#your-bids" className="flex flex-col items-center justify-center gap-2 bg-white/3 border border-white/8 rounded-2xl py-5 px-3 text-center hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all">
+                    <div className="w-10 h-10 rounded-full bg-[#0A7B7E]/20 flex items-center justify-center">
+                      <WrenchIcon className="w-5 h-5 text-[#12A5A9]" />
+                    </div>
+                    <CountUp value={activeJobsCount} className="text-xl font-bold text-white block" />
+                    <div className="text-white/60 text-xs">{t('myJobs', lang)}</div>
                   </a>
-                  <Link href="/contractor/earnings" className="bg-white/3 border border-white/8 rounded-2xl p-4 text-center hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
-                    <DollarSignIcon className="w-5 h-5 text-[#12A5A9] mx-auto mb-1" />
-                    <div className="text-2xl font-bold text-white">${totalEarnings.toLocaleString()}</div>
-                    <div className="text-white/60 text-xs mt-1">{t('earnings', lang)}</div>
+                  <Link href="/contractor/earnings" className="flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-[#0A7B7E]/20 to-[#12A5A9]/10 border border-[#12A5A9]/30 rounded-2xl py-5 px-3 text-center hover:opacity-90 hover:-translate-y-0.5 transition-all">
+                    <div className="w-10 h-10 rounded-full bg-[#12A5A9]/20 flex items-center justify-center">
+                      <DollarSignIcon className="w-5 h-5 text-[#12A5A9]" />
+                    </div>
+                    <div className="text-xl font-bold text-white">${totalEarnings.toLocaleString()}</div>
+                    <div className="text-white/60 text-xs">{t('earnings', lang)}</div>
                     {awaitingPayment > 0 && (
-                      <div className="text-yellow-400/90 text-[11px] mt-1">${awaitingPayment.toLocaleString()} {t('awaitingPayment', lang)}</div>
+                      <div className="text-yellow-400/90 text-[11px]">${awaitingPayment.toLocaleString()} {t('awaitingPayment', lang)}</div>
                     )}
                   </Link>
                 </ScrollReveal>
+
+                <AlertsList items={alertItems} />
+                <EnableNotificationsCard />
 
                 <div className="grid grid-cols-2 gap-4 mb-6" data-tour="settings">
                   <Link
