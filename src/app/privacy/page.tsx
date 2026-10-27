@@ -30,11 +30,20 @@ export default function PrivacyPage() {
             <ul>
               <li><strong className="text-white/80">Account info:</strong> name, email, phone number, role (landlord/renter/contractor), preferred language. If you choose to link more than one role to your identity, each linked profile shares this same contact info so notifications for any of them reach you.</li>
               <li><strong className="text-white/80">Property data:</strong> addresses, unit details, tenancy terms, rent amounts, entered by landlords</li>
+              <li><strong className="text-white/80">Third-party data landlords provide:</strong> a landlord may enter a renter's or co-owner's name, email, or phone number before that person has signed up, for example to record a tenancy or send an invite. See below for the landlord's responsibility when doing this.</li>
               <li><strong className="text-white/80">Job data:</strong> maintenance descriptions, categories, bids, photos, and documents you upload</li>
               <li><strong className="text-white/80">Contractor verification:</strong> license numbers, license/insurance documents, if you submit them for review</li>
               <li><strong className="text-white/80">Usage data:</strong> pages visited and actions taken, collected automatically to understand how the product is used</li>
               <li><strong className="text-white/80">Location:</strong> a property's address is geocoded to approximate coordinates, used to match jobs with nearby contractors by service area</li>
             </ul>
+            <p>
+              When a landlord provides personal data about a renter, co-owner, or contractor who
+              hasn't yet created their own account, the landlord represents that they have the right
+              under applicable law to share that person's information with Prophandld for managing
+              the tenancy or property, including any consent that law requires. A renter or
+              contractor who receives an unwanted notification as a result can ask us to stop at any
+              time (see Section 5).
+            </p>
           </section>
 
           <section>

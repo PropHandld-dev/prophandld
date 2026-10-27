@@ -181,7 +181,7 @@ export default function TermsPage() {
               <li>Misrepresent your identity, role, or qualifications (especially licensing/insurance as a contractor)</li>
               <li>Use the platform to harass, discriminate against, or defraud another user</li>
               <li>Attempt to circumvent sealed bidding by coordinating prices with other contractors</li>
-              <li>Scrape, reverse-engineer, or interfere with the platform's normal operation</li>
+              <li>Scrape, reverse-engineer, or interfere with the platform's normal operation, including using any automated tool or process to extract data from Prophandld to train or fine-tune an AI model, large language model, or other machine learning system, without our prior written consent</li>
             </ul>
           </section>
 
@@ -200,6 +200,14 @@ export default function TermsPage() {
               administration tool only. It is not a legal finding of fault or liability, is not
               binding arbitration, and does not waive or limit any party's other legal rights or
               remedies.
+            </p>
+            <p>
+              Compliance tracking (license, certification, and inspection reminders) is a tool to
+              help you stay on top of your own obligations, not a substitute for knowing or meeting
+              them, and not a guarantee that you're in compliance with any law. To the fullest extent
+              permitted by law, Prophandld LLC is not liable for any municipal fine, legal fee, lost
+              rent, or other loss resulting from a landlord's failure to meet a local housing law or
+              regulation, regardless of whether Prophandld sent, delayed, or omitted a related alert.
             </p>
           </section>
 
