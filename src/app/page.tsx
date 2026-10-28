@@ -142,6 +142,7 @@ export default function LandingPage() {
         </div>
       </nav>
 
+      <main>
       {/* Contractor callout — the nav link to /contractors is desktop-only
           (no room for it in the tight mobile nav row), and the contractor
           role card further down the page is well past the fold on a phone.
@@ -557,6 +558,7 @@ export default function LandingPage() {
         </MagneticLink>
         </ScrollReveal>
       </section>
+      </main>
 
       {/* Footer */}
       <footer className="border-t border-white/8 py-8">

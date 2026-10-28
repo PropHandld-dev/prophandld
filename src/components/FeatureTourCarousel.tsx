@@ -126,8 +126,10 @@ export function FeatureTourCarousel() {
             key={i}
             aria-label={`Go to feature ${i + 1}`}
             onClick={() => goTo(i)}
-            className={`h-1.5 rounded-full transition-all ${i === index ? 'w-6 bg-[#12A5A9]' : 'w-1.5 bg-white/15 hover:bg-white/30'}`}
-          />
+            className="group p-2.5 -m-2.5 flex items-center justify-center"
+          >
+            <span className={`block h-1.5 rounded-full transition-all ${i === index ? 'w-6 bg-[#12A5A9]' : 'w-1.5 bg-white/15 group-hover:bg-white/30'}`} />
+          </button>
         ))}
       </div>
     </div>
