@@ -36,7 +36,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Too many messages. Please try again in a few minutes.' }, { status: 429 })
     }
 
-    const { email, question } = (await req.json()) as { email: string; question: string }
+    let body: { email?: string; question?: string }
+    try {
+      body = await req.json()
+    } catch {
+      return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
+    }
+    const { email, question } = body
 
     if (typeof email !== 'string' || !EMAIL_RE.test(email)) {
       return NextResponse.json({ error: 'A valid email is required' }, { status: 400 })
@@ -73,6 +79,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, confirmationSent: toAsker.ok })
   } catch (err: any) {
     console.error('support-escalate error', err)
-    return NextResponse.json({ error: err.message || 'Something went wrong' }, { status: 500 })
+    return NextResponse.json({ error: 'Something went wrong. Please try again.' }, { status: 500 })
   }
 }
