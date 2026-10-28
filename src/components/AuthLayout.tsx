@@ -53,8 +53,9 @@ export function AuthLayout({
         <p className="relative text-white/50 text-xs">© 2026 Prophandld</p>
       </div>
 
-      {/* Form panel */}
-      <div className="flex-1 flex items-center justify-center px-4 py-12 relative overflow-hidden">
+      {/* Form panel — the page's actual main landmark; the brand panel
+          above is decorative, not primary content */}
+      <main className="flex-1 flex items-center justify-center px-4 py-12 relative overflow-hidden">
         <div aria-hidden className="lg:hidden absolute -top-32 -left-32 w-96 h-96 rounded-full bg-[#0A7B7E]/20 blur-3xl -z-10 motion-safe:animate-[drift_9s_ease-in-out_infinite]" />
         <div aria-hidden className="lg:hidden absolute -bottom-24 -right-24 w-80 h-80 rounded-full bg-[#12A5A9]/20 blur-3xl -z-10 motion-safe:animate-[drift_11s_ease-in-out_infinite_1s]" />
 
@@ -68,7 +69,7 @@ export function AuthLayout({
           </div>
           {children}
         </ScrollReveal>
-      </div>
+      </main>
     </div>
   )
 }

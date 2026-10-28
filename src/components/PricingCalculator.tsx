@@ -69,6 +69,7 @@ export function PricingCalculator() {
                 />
                 <input
                   type="number"
+                  aria-label="Number of units"
                   min={1}
                   max={9999}
                   value={units}
@@ -76,7 +77,7 @@ export function PricingCalculator() {
                   className="w-20 shrink-0 bg-white/5 border border-white/15 rounded-lg px-3 py-2 text-white text-sm text-center focus:outline-none focus:border-[#12A5A9] transition"
                 />
               </div>
-              <p className="text-white/35 text-xs mt-2">Drag, or type an exact number — a single-family rental is 1 unit, a triplex is 3.</p>
+              <p className="text-white/35 text-xs mt-2">Drag, or type an exact number. A single-family rental is 1 unit, a triplex is 3.</p>
             </div>
 
             <div className="text-center sm:text-right shrink-0">

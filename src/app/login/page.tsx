@@ -612,7 +612,7 @@ function LoginForm() {
 
         <p className="text-center text-white/60 text-sm">
           {t('dontHaveAccountQ', lang)}{' '}
-          <Link href="/signup" className="text-[#12A5A9] hover:underline">
+          <Link href="/signup" className="text-[#12A5A9] underline decoration-[#12A5A9]/40 hover:decoration-[#12A5A9] transition-colors">
             {t('createOneLink', lang)}
           </Link>
         </p>
