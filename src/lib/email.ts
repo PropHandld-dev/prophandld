@@ -990,6 +990,55 @@ export async function sendComplianceReminderEmail({
 // page shows this already, but nothing emails or pushes it unless the
 // landlord happens to open that page. Only ever sent by an admin's
 // deliberate "Send reminder" click, not a cron.
+// One-time heads-up when a lease's end date is coming up (tenancies.lease_end
+// already existed, nothing watched it before this) — claim-once via
+// renewal_reminder_sent_at, not a repeating nag like compliance items,
+// since "your lease ends in ~60 days" only needs saying once.
+export async function sendLeaseRenewalReminderEmail({
+  to,
+  landlordName,
+  renterName,
+  propertyAddress,
+  unitNumber,
+  leaseEnd,
+  daysUntil,
+  propertyId,
+  unitId,
+  lang = 'en',
+}: {
+  to: string
+  landlordName: string
+  renterName: string
+  propertyAddress: string
+  unitNumber: string | null
+  leaseEnd: string
+  daysUntil: number
+  propertyId: string
+  unitId: string
+  lang?: Lang
+}) {
+  const locale = lang === 'es' ? 'es-ES' : 'en-US'
+  const date = new Date(leaseEnd + 'T00:00:00').toLocaleDateString(locale, { month: 'long', day: 'numeric', year: 'numeric' })
+  const unitLabel = unitNumber ? `${propertyAddress}, Unit ${unitNumber}` : propertyAddress
+  const html = baseTemplate({
+    lang,
+    eyebrow: lang === 'es' ? 'Vencimiento de contrato' : 'Lease ending soon',
+    heading: lang === 'es' ? 'Un contrato está por vencer' : 'A lease is coming up for renewal',
+    bodyHtml: lang === 'es'
+      ? `Hola ${escapeHtml(landlordName)}, el contrato de <strong>${escapeHtml(renterName)}</strong> en <strong>${escapeHtml(unitLabel)}</strong> vence el ${date} (en ${daysUntil} días). Es un buen momento para enviar un aviso de renovación o de no renovación.`
+      : `Hi ${escapeHtml(landlordName)}, <strong>${escapeHtml(renterName)}</strong>'s lease at <strong>${escapeHtml(unitLabel)}</strong> ends ${date} (in ${daysUntil} days). Good time to send a renewal or non-renewal notice.`,
+    preheader: lang === 'es' ? `Vence el ${date}` : `Ends ${date}`,
+    facts: [{ label: lang === 'es' ? 'Vence' : 'Ends', value: date }],
+    ctaLabel: lang === 'es' ? 'Ver contrato' : 'View tenancy',
+    ctaUrl: `${SITE_URL}/landlord/properties/${propertyId}/units/${unitId}/tenancy/edit`,
+  })
+  return sendEmail({
+    to,
+    subject: lang === 'es' ? `Contrato vence pronto: ${unitLabel}` : `Lease ending soon: ${unitLabel}`,
+    html,
+  })
+}
+
 export async function sendPropertyComplianceReminderEmail({
   to,
   landlordName,
