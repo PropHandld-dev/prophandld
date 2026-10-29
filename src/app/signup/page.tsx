@@ -90,6 +90,7 @@ function SignupForm() {
   const isNative = useIsNativePlatform()
   const searchParams = useSearchParams()
   const initialRole = searchParams.get('role') as Role | null
+  const referrerId = searchParams.get('ref')
   const [role, setRole] = useState<Role | null>(
     initialRole && VALID_ROLES.includes(initialRole) ? initialRole : null
   )
@@ -170,6 +171,12 @@ function SignupForm() {
           phone: form.phone,
           role,
           preferred_language: form.preferred_language,
+          // Carried through user_metadata rather than recorded directly
+          // here, since signUp() often hasn't landed a real session yet
+          // (this project requires email confirmation) — /api/referrals/record
+          // needs real auth, so it's actually called at first login instead,
+          // reading this back off the confirmed user.
+          ...(referrerId ? { referrer_id: referrerId } : {}),
         },
         // Always the real domain, never window.location.origin — a
         // confirmation link built from a raw Vercel deployment URL lands

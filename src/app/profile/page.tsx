@@ -14,6 +14,7 @@ import { LogOutIcon } from '@/components/icons'
 import { TABS_BY_ROLE } from '@/lib/navTabs'
 import { StripeConnectCard } from '@/components/StripeConnectCard'
 import { ZelleVenmoCashAppCard } from '@/components/ZelleVenmoCashAppCard'
+import { ReferralCard } from '@/components/ReferralCard'
 import { RentPaymentDefaultCard } from '@/components/RentPaymentDefaultCard'
 import { LinkedProfilesSection } from '@/components/LinkedProfilesSection'
 import { LINKED_PROFILES_ENABLED } from '@/lib/featureFlags'
@@ -735,6 +736,7 @@ export default function ProfilePage() {
             <div className="mb-6">
               <ZelleVenmoCashAppCard />
             </div>
+            <ReferralCard />
           </>
         )}
 

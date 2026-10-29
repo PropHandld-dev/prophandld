@@ -1155,6 +1155,12 @@ const STRINGS = {
 
   // StripeConnectCard
   getPaidRentTitle: { en: 'Get paid rent', es: 'Recibe pagos de renta' },
+  inviteAndEarnTitle: { en: 'Invite & earn', es: 'Invita y gana' },
+  inviteAndEarnDesc: { en: 'Share your link. When a landlord you refer signs up and starts using Prophandld, we’ll reach out about a reward.', es: 'Comparte tu enlace. Cuando un propietario que refieras se registre y empiece a usar Prophandld, te contactaremos sobre una recompensa.' },
+  copyLinkBtn: { en: 'Copy link', es: 'Copiar enlace' },
+  noReferralsYet: { en: 'No referrals yet. Share your link to start.', es: 'Aún no hay referidos. Comparte tu enlace para empezar.' },
+  referralActiveStatus: { en: 'Active', es: 'Activo' },
+  referralPendingStatus: { en: 'Signed up', es: 'Registrado' },
   getPaidRentBody: { en: 'Connect a bank account so rent payments made through Prophandld go straight to you.', es: 'Conecta una cuenta bancaria para que los pagos de renta hechos a través de Prophandld vayan directo a ti.' },
   getPaidJobsTitle: { en: 'Get paid for jobs', es: 'Recibe pagos por trabajos' },
   getPaidJobsBody: { en: 'Connect a payout method (bank account or instant debit-card payout) so landlords can pay you through Prophandld.', es: 'Conecta un método de pago (cuenta bancaria o pago instantáneo con tarjeta de débito) para que los propietarios puedan pagarte a través de Prophandld.' },

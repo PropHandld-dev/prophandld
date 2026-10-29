@@ -155,6 +155,18 @@ function LoginForm() {
       // to send a co-owner-invited landlord to "add your first property"
       // instead of their co-owned portfolio, on their very first login.
       await setAppMetadataRole(accountRole)
+      // Carried from signup via user_metadata (see signup/page.tsx) since
+      // no real session existed yet at signUp() time to call this
+      // authenticated route directly — first activation, now that a real
+      // session exists, is the first point it can actually be recorded.
+      const referrerId = user.user_metadata?.referrer_id
+      if (referrerId) {
+        fetch('/api/referrals/record', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ referrerId }),
+        }).catch((err) => console.error('login: could not record referral', err))
+      }
     }
     if (accountRole === 'renter') {
       // A renter's real first entry into the app now happens here, not on
