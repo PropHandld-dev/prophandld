@@ -4,6 +4,7 @@ import { ViewTransition } from "react";
 import { CursorGlow } from "@/components/CursorGlow";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { StagingBadge } from "@/components/StagingBadge";
+import { AiHelpBubble } from "@/components/AiHelpBubble";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -86,6 +87,7 @@ export default function RootLayout({
             (it ran a full inbox query, Realtime subscription and 60s poll on
             every page). Messages tab and job chat pages are unaffected.
             Re-enable by restoring <FloatingChatWidget /> here. */}
+        <AiHelpBubble />
         <StagingBadge />
       </body>
     </html>
