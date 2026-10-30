@@ -15,6 +15,7 @@ import { getLandlordIds } from '@/lib/landlordIds'
 import { validateDocumentFile } from '@/lib/mediaValidation'
 import { getComplianceStatus } from '@/lib/complianceStatus'
 import { useConfirm } from '@/lib/useConfirm'
+import { AI_ASSIST_ENABLED } from '@/lib/aiAssist'
 
 const ITEM_TYPE_KEYS: ('complianceItemRentalLicense' | 'complianceItemLeadCertification' | 'complianceItemSmokeDetector' | 'complianceItemCoDetector' | 'complianceItemFireExtinguisher' | 'complianceItemInsuranceRenewal')[] = [
   'complianceItemRentalLicense',
@@ -57,6 +58,11 @@ export default function PropertyCompliancePage() {
   const [items, setItems] = useState<any[]>([])
   const [itemDocuments, setItemDocuments] = useState<Record<string, any>>({})
   const [error, setError] = useState<string | null>(null)
+  const [aiAssistActive, setAiAssistActive] = useState(false)
+  const [aiReading, setAiReading] = useState(false)
+  const [gapSuggestions, setGapSuggestions] = useState<{ itemType: string; why: string }[] | null>(null)
+  const [gapChecking, setGapChecking] = useState(false)
+  const [gapError, setGapError] = useState<string | null>(null)
 
   const [form, setForm] = useState({
     item_type: '',
@@ -109,6 +115,73 @@ export default function PropertyCompliancePage() {
     }
     init()
   }, [propertyId, router])
+
+  useEffect(() => {
+    if (!AI_ASSIST_ENABLED) return
+    fetch('/api/ai-assist/status')
+      .then((res) => res.json())
+      .then((data) => setAiAssistActive(data.enabled && (data.status === 'trialing' || data.status === 'active')))
+      .catch(() => setAiAssistActive(false))
+  }, [])
+
+  const extractComplianceFields = async (docFile: File) => {
+    const mediaType = docFile.type || (docFile.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : '')
+    if (!['application/pdf', 'image/jpeg', 'image/png'].includes(mediaType)) return
+    setAiReading(true)
+    try {
+      const fileBase64: string = await new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve((reader.result as string).split(',')[1] || '')
+        reader.onerror = reject
+        reader.readAsDataURL(docFile)
+      })
+      const res = await fetch('/api/ai-assist/extract/compliance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileBase64, mediaType }),
+      })
+      const data = await res.json()
+      if (res.ok && data.extracted) {
+        setForm((prev) => ({
+          ...prev,
+          item_type: !prev.item_type && data.extracted.item_type ? data.extracted.item_type : prev.item_type,
+          expiry_date: !prev.expiry_date && data.extracted.expiry_date ? data.extracted.expiry_date : prev.expiry_date,
+        }))
+      }
+    } catch (err) {
+      console.error('AI compliance extraction failed:', err)
+    }
+    setAiReading(false)
+  }
+
+  const checkComplianceGaps = async () => {
+    setGapChecking(true)
+    setGapError(null)
+    try {
+      const res = await fetch('/api/ai-assist/compliance-gap-check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ propertyId }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setGapError(data.error || t('aiGapCheckFailed', lang))
+        setGapChecking(false)
+        return
+      }
+      setGapSuggestions(data.suggestions || [])
+    } catch {
+      setGapError(t('aiGapCheckFailed', lang))
+    }
+    setGapChecking(false)
+  }
+
+  const trackSuggestion = (itemType: string) => {
+    const matched = ITEM_TYPES.includes(itemType)
+    setForm((prev) => ({ ...prev, item_type: matched ? itemType : 'Other', custom_item_type: matched ? '' : itemType }))
+    setGapSuggestions((prev) => (prev ? prev.filter((s) => s.itemType !== itemType) : prev))
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   const loadItems = async () => {
     const { data: itemsData, error: itemsError } = await supabase
@@ -388,6 +461,50 @@ export default function PropertyCompliancePage() {
           <p className="text-white/50 text-sm mt-1">{property.address}</p>
         </div>
 
+        {aiAssistActive && (
+          <div className="bg-[#12A5A9]/8 border border-[#12A5A9]/25 rounded-2xl p-5 mb-6">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-[10px] font-bold uppercase tracking-wide text-[#12A5A9] bg-[#12A5A9]/10 border border-[#12A5A9]/30 rounded-full px-2 py-0.5">✦ AI</span>
+              <p className="text-white text-sm font-semibold">{t('aiGapCheckTitle', lang)}</p>
+            </div>
+            {gapSuggestions === null ? (
+              <>
+                <p className="text-white/60 text-xs mb-3">{t('aiGapCheckDesc', lang)}</p>
+                <button
+                  type="button"
+                  onClick={checkComplianceGaps}
+                  disabled={gapChecking}
+                  className="text-xs font-semibold text-[#12A5A9] bg-[#12A5A9]/10 border border-[#12A5A9]/30 rounded-lg px-3 py-2 hover:bg-[#12A5A9]/15 transition disabled:opacity-50"
+                >
+                  {gapChecking ? t('aiGapChecking', lang) : t('aiGapCheckCta', lang)}
+                </button>
+              </>
+            ) : gapSuggestions.length === 0 ? (
+              <p className="text-white/50 text-xs">{t('aiGapCheckNone', lang)}</p>
+            ) : (
+              <div className="space-y-2">
+                {gapSuggestions.map((s) => (
+                  <div key={s.itemType} className="flex items-center justify-between gap-3 bg-white/5 border border-white/8 rounded-xl px-3.5 py-2.5">
+                    <div className="min-w-0">
+                      <p className="text-white text-sm font-medium">{s.itemType}</p>
+                      <p className="text-white/50 text-xs mt-0.5">{s.why}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => trackSuggestion(s.itemType)}
+                      className="shrink-0 text-xs font-semibold text-[#12A5A9] hover:underline"
+                    >
+                      {t('aiGapCheckTrackBtn', lang)}
+                    </button>
+                  </div>
+                ))}
+                <p className="text-white/30 text-[11px] pt-1">{t('aiGapCheckDisclaimer', lang)}</p>
+              </div>
+            )}
+            {gapError && <p className="text-red-400 text-xs mt-2">{gapError}</p>}
+          </div>
+        )}
+
         <ScrollReveal>
         <form onSubmit={handleSubmit} className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6 space-y-4">
           <h2 className="text-white font-semibold mb-2">{t('trackAnItemHeading', lang)}</h2>
@@ -476,6 +593,7 @@ export default function PropertyCompliancePage() {
                   }
                   setError(null)
                   setFile(selected)
+                  if (selected && aiAssistActive) extractComplianceFields(selected)
                 }}
                 className="hidden"
               />
@@ -483,6 +601,11 @@ export default function PropertyCompliancePage() {
                 {file ? file.name : t('chooseFileBtn', lang)}
               </span>
             </label>
+            {aiAssistActive && (
+              <p className="text-[#12A5A9] text-xs mt-2">
+                {aiReading ? `✦ ${t('aiLeaseUploadReading', lang)}` : `✦ ${t('aiComplianceAutoFillHint', lang)}`}
+              </p>
+            )}
           </div>
 
           {error && (

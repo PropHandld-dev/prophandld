@@ -31,6 +31,8 @@ export default function NewLandlordJobPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [files, setFiles] = useState<File[]>([])
+  const [readyCheck, setReadyCheck] = useState<{ checked: boolean; suggestion: string | null }>({ checked: false, suggestion: null })
+  const [checkingReady, setCheckingReady] = useState(false)
 
   const [form, setForm] = useState({
     category: '',
@@ -42,6 +44,7 @@ export default function NewLandlordJobPage() {
   const categoryGroups = useGroupedCategoryOptions()
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLTextAreaElement | HTMLInputElement>) => {
+    if (readyCheck.checked) setReadyCheck({ checked: false, suggestion: null })
     setForm({ ...form, [e.target.name]: e.target.value })
   }
 
@@ -75,6 +78,31 @@ export default function NewLandlordJobPage() {
     if (!form.description.trim()) {
       setError(t('pleaseDescribeTheIssue', lang))
       return
+    }
+
+    // One check per edit — see handleChange, which resets `checked` the
+    // moment the category or description actually changes. "Post anyway"
+    // on the suggestion card below sets checked:true itself so this
+    // doesn't loop a second time on the same content.
+    if (!readyCheck.checked) {
+      setCheckingReady(true)
+      try {
+        const res = await fetch('/api/ai-assist/job-ready-check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ category: form.category, description: form.description, hasPhoto: files.length > 0 }),
+        })
+        const data = await res.json()
+        setCheckingReady(false)
+        if (!data.ready && data.suggestion) {
+          setReadyCheck({ checked: true, suggestion: data.suggestion })
+          return
+        }
+        setReadyCheck({ checked: true, suggestion: null })
+      } catch {
+        setCheckingReady(false)
+        setReadyCheck({ checked: true, suggestion: null })
+      }
     }
 
     setSubmitting(true)
@@ -299,12 +327,25 @@ export default function NewLandlordJobPage() {
             </div>
           )}
 
+          {readyCheck.suggestion && (
+            <div className="bg-[#12A5A9]/8 border border-[#12A5A9]/25 rounded-xl px-4 py-3 flex items-start gap-2">
+              <span className="text-[#12A5A9] text-xs font-bold shrink-0">✦</span>
+              <p className="text-white/70 text-sm">{readyCheck.suggestion}</p>
+            </div>
+          )}
+
           <RippleButton
             type="submit"
-            disabled={submitting}
+            disabled={submitting || checkingReady}
             className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
           >
-            {submitting ? t('creatingDots', lang) : t('createJobBtn', lang)}
+            {checkingReady
+              ? t('aiCheckingDots', lang)
+              : submitting
+                ? t('creatingDots', lang)
+                : readyCheck.suggestion
+                  ? t('postAnywayBtn', lang)
+                  : t('createJobBtn', lang)}
           </RippleButton>
         </form>
         </ScrollReveal>

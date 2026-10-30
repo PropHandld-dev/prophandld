@@ -49,3 +49,12 @@ export function isPayoutReady(account: Stripe.Account) {
 export function graduatedPriceId(): string | null {
   return process.env.STRIPE_PRICE_GRADUATED || null
 }
+
+// A second, separate graduated Price (own Stripe Dashboard setup, mirroring
+// STRIPE_PRICE_GRADUATED's tier structure but with AI Assist's own bracket
+// amounts from pricingTiers.ts) for the AI Assist add-on. Deliberately its
+// own Stripe subscription, never an item bolted onto the base plan's
+// subscription — see ai-assist/start-trial/route.ts for why.
+export function aiAssistPriceId(): string | null {
+  return process.env.STRIPE_PRICE_AI_ASSIST || null
+}

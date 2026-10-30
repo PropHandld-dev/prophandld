@@ -11,6 +11,8 @@ import { RippleButton } from '@/components/RippleButton'
 import { useLanguage, t } from '@/lib/i18n'
 import { maxLateFee } from '@/lib/lateFee'
 import { escalationSuggestion } from '@/lib/leaseEscalation'
+import { LeaseUploadExtract } from '@/components/LeaseUploadExtract'
+import { AI_ASSIST_ENABLED } from '@/lib/aiAssist'
 
 // Was an inline toggle on the unit detail page itself — moved to its own
 // screen (mirroring tenancy/new, the equivalent "create" flow) so editing
@@ -27,6 +29,7 @@ export default function EditTenancyPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [tenancy, setTenancy] = useState<any>(null)
+  const [aiAssistActive, setAiAssistActive] = useState(false)
   const [form, setForm] = useState({
     rent_amount: '',
     rent_due_day: '1',
@@ -78,8 +81,38 @@ export default function EditTenancyPage() {
     load()
   }, [router, propertyId, unitId])
 
+  useEffect(() => {
+    if (!AI_ASSIST_ENABLED) return
+    fetch('/api/ai-assist/status')
+      .then((res) => res.json())
+      .then((data) => setAiAssistActive(data.enabled && (data.status === 'trialing' || data.status === 'active')))
+      .catch(() => setAiAssistActive(false))
+  }, [])
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })
+  }
+
+  const handleExtracted = (fields: {
+    rent_amount: number | null
+    rent_due_day: number | null
+    escalation_percent: number | null
+    escalation_frequency_months: number | null
+    occupants: number | null
+    pets: string | null
+  }) => {
+    setForm((prev) => ({
+      ...prev,
+      rent_amount: !prev.rent_amount && fields.rent_amount != null ? String(fields.rent_amount) : prev.rent_amount,
+      rent_due_day: fields.rent_due_day != null ? String(fields.rent_due_day) : prev.rent_due_day,
+      escalation_percent: !prev.escalation_percent && fields.escalation_percent != null ? String(fields.escalation_percent) : prev.escalation_percent,
+      escalation_frequency_months:
+        !prev.escalation_frequency_months && fields.escalation_frequency_months != null
+          ? String(fields.escalation_frequency_months)
+          : prev.escalation_frequency_months,
+      occupants: !prev.occupants && fields.occupants != null ? String(fields.occupants) : prev.occupants,
+      pets: !prev.pets && fields.pets ? fields.pets : prev.pets,
+    }))
   }
 
   const handleSave = async () => {
@@ -150,6 +183,8 @@ export default function EditTenancyPage() {
 
         <ScrollReveal>
           <div className="space-y-4">
+            {aiAssistActive && <LeaseUploadExtract onExtracted={handleExtracted} />}
+
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-white/70 text-sm block mb-1">{t('monthlyRentDollarLabel', lang)}</label>

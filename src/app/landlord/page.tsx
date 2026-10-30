@@ -9,6 +9,7 @@ import { AlertsList, type AlertItem } from '@/components/AlertsList'
 import { Skeleton } from '@/components/Skeleton'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { EnableNotificationsCard } from '@/components/EnableNotificationsCard'
+import { PortfolioDigestCard } from '@/components/PortfolioDigestCard'
 import { BillingReminder } from '@/components/BillingReminder'
 import { InviteContractorCard } from '@/components/InviteContractorCard'
 import { MagneticLink } from '@/components/MagneticLink'
@@ -537,6 +538,7 @@ export default function LandlordDashboard() {
               <p className="text-white/50 mt-2">{t('portfolioStateNow', lang)}</p>
             </div>
 
+            <PortfolioDigestCard />
             <ProfileSwitchedBanner />
             <CoOwnerInviteBanner />
             <PendingInviteNeedsPhoneBanner />

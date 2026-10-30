@@ -4,8 +4,6 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { tierForUnitCount } from '@/lib/stripe'
 import { TRIAL_DAYS } from '@/lib/pricingTiers'
 
-const TRIAL_MS = TRIAL_DAYS * 24 * 60 * 60 * 1000
-
 export async function GET() {
   const authClient = await createClient()
   const { data: { user } } = await authClient.auth.getUser()
@@ -57,7 +55,7 @@ export async function GET() {
 
     const { data: userRow, error: userRowError } = await supabaseAdmin
       .from('users')
-      .select('stripe_customer_id, trial_started_at')
+      .select('stripe_customer_id, trial_started_at, trial_override_days, free_forever')
       .eq('id', user.id)
       .maybeSingle()
 
@@ -87,12 +85,19 @@ export async function GET() {
       trialStartedAt = claimed?.trial_started_at ?? trialStartedAt
     }
 
+    // Admin-granted override (see /admin/users "Trial & AI Assist" and
+    // scripts/2026-10-29-trial-grants.sql) replaces the standard TRIAL_DAYS
+    // for this one landlord — free_forever bypasses the trial clock
+    // entirely rather than just extending it.
+    const freeForever = !!userRow?.free_forever
+    const trialMs = (userRow?.trial_override_days ?? TRIAL_DAYS) * 24 * 60 * 60 * 1000
+
     let daysLeftInTrial: number | null = null
     let trialExpired = false
-    if (trialStartedAt && !hasActiveSubscription) {
+    if (trialStartedAt && !hasActiveSubscription && !freeForever) {
       const elapsedMs = Date.now() - new Date(trialStartedAt).getTime()
-      daysLeftInTrial = Math.max(0, Math.ceil((TRIAL_MS - elapsedMs) / (24 * 60 * 60 * 1000)))
-      trialExpired = elapsedMs >= TRIAL_MS
+      daysLeftInTrial = Math.max(0, Math.ceil((trialMs - elapsedMs) / (24 * 60 * 60 * 1000)))
+      trialExpired = elapsedMs >= trialMs
     }
 
     return NextResponse.json({
@@ -104,6 +109,7 @@ export async function GET() {
       trialStartedAt,
       daysLeftInTrial,
       trialExpired,
+      freeForever,
     })
   } catch (err) {
     console.error('subscription/status: unhandled error', err)

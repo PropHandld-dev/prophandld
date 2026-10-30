@@ -17,6 +17,10 @@ import { useGroupedCategoryOptions, CATEGORY_TO_ITEM_TYPE } from '@/lib/categori
 import { LOCATION_OPTIONS } from '@/lib/jobLocations'
 import { TIME_WINDOWS } from '@/lib/scheduleWindows'
 import { useLanguage, t } from '@/lib/i18n'
+import { TroubleshootAssistant } from '@/components/TroubleshootAssistant'
+import { AI_ASSIST_ENABLED } from '@/lib/aiAssist'
+
+const NO_TROUBLESHOOT_CATEGORIES = ['Electrical', 'Gas', 'Structural']
 
 const MAX_AVAILABILITY_SLOTS = 3
 
@@ -66,6 +70,10 @@ export default function ReportIssuePage() {
     return () => { filePreviewUrls.forEach((url) => URL.revokeObjectURL(url)) }
   }, [filePreviewUrls])
   const [systems, setSystems] = useState<any[]>([])
+  const [aiAvailable, setAiAvailable] = useState(false)
+  const [troubleshootCleared, setTroubleshootCleared] = useState(false)
+  const [troubleshootTranscript, setTroubleshootTranscript] = useState<string | null>(null)
+  const [troubleshootResolvedNoAction, setTroubleshootResolvedNoAction] = useState(false)
   // Optional — picking a few windows here up front is what lets a
   // contractor propose a time by just tapping one of these instead of a
   // separate back-and-forth after they're selected.
@@ -117,9 +125,33 @@ export default function ReportIssuePage() {
     init()
   }, [router])
 
+  useEffect(() => {
+    if (!AI_ASSIST_ENABLED) return
+    fetch('/api/ai-assist/renter-status')
+      .then((res) => res.json())
+      .then((data) => setAiAvailable(!!data.available))
+      .catch(() => setAiAvailable(false))
+  }, [])
+
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLTextAreaElement | HTMLInputElement>) => {
+    // A category change is a big enough shift that any troubleshooting
+    // already done no longer applies to what's actually being reported —
+    // re-offer it rather than silently carrying a stale transcript.
+    if (e.target.name === 'category' && e.target.value !== form.category) {
+      setTroubleshootCleared(false)
+      setTroubleshootTranscript(null)
+      setTroubleshootResolvedNoAction(false)
+    }
     setForm({ ...form, [e.target.name]: e.target.value })
   }
+
+  const showTroubleshoot =
+    aiAvailable &&
+    !form.is_emergency &&
+    !!form.category &&
+    !NO_TROUBLESHOOT_CATEGORIES.some((c) => form.category.toLowerCase().includes(c.toLowerCase())) &&
+    form.description.trim().length > 0 &&
+    !troubleshootCleared
 
   const toggleEmergency = () => {
     if (!form.is_emergency) {
@@ -199,7 +231,9 @@ export default function ReportIssuePage() {
         category: form.category,
         location: form.location || null,
         urgency: form.is_emergency ? 'emergency' : form.urgency,
-        description: form.description.trim(),
+        description: troubleshootTranscript
+          ? `${form.description.trim()}\n\n[AI troubleshooting already tried]\n${troubleshootTranscript}`
+          : form.description.trim(),
         is_emergency: form.is_emergency,
         status: 'pending_approval',
         maintenance_item_id: form.maintenance_item_id || null,
@@ -529,13 +563,32 @@ export default function ReportIssuePage() {
               </div>
             )}
 
-            <RippleButton
-              type="submit"
-              disabled={submitting}
-              className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
-            >
-              {submitting ? t('submitting', lang) : t('submitReport', lang)}
-            </RippleButton>
+            {showTroubleshoot ? (
+              <TroubleshootAssistant
+                category={form.category}
+                description={form.description}
+                onDone={(action, transcript) => {
+                  setTroubleshootTranscript(transcript)
+                  setTroubleshootCleared(true)
+                  setTroubleshootResolvedNoAction(action === 'resolved')
+                }}
+              />
+            ) : troubleshootResolvedNoAction ? (
+              <div className="bg-[#12A5A9]/8 border border-[#12A5A9]/25 rounded-2xl p-4 flex items-center justify-between gap-3">
+                <p className="text-white/70 text-sm">{t('troubleshootResolvedFooter', lang)}</p>
+                <Link href="/renter" className="text-[#12A5A9] text-sm font-semibold hover:underline shrink-0">
+                  {t('dashboard', lang)}
+                </Link>
+              </div>
+            ) : (
+              <RippleButton
+                type="submit"
+                disabled={submitting}
+                className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
+              >
+                {submitting ? t('submitting', lang) : t('submitReport', lang)}
+              </RippleButton>
+            )}
           </form>
           </ScrollReveal>
         )}

@@ -35,6 +35,20 @@ async function fetchLiveTwilioCost(): Promise<number | null> {
   }
 }
 
+// ai_usage_log.cost_usd (src/lib/claude.ts logs one row per claudeJson()
+// call) is the real number, computed from Anthropic's own published rate
+// at the moment each call happened — same "pull the real figure, don't
+// hand-estimate it" reasoning as the Twilio row above.
+async function fetchLiveAiCost(admin: SupabaseClient): Promise<number | null> {
+  const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
+  const { data, error } = await admin.from('ai_usage_log').select('cost_usd').gte('created_at', startOfMonth)
+  if (error) {
+    console.error('costItems: live AI usage fetch failed', error)
+    return null
+  }
+  return (data || []).reduce((sum, r) => sum + (Number(r.cost_usd) || 0), 0)
+}
+
 // Shared by the authenticated /api/admin/cost-items route and the
 // service-role-only weekly digest cron, which has no admin session to
 // authenticate with — this takes the already-authorized admin client
@@ -50,11 +64,13 @@ export async function getCostItemsWithTotal(admin: SupabaseClient) {
     return { items: [] as any[], monthlyTotal: 0, error: error.message }
   }
 
-  const liveTwilioCost = await fetchLiveTwilioCost()
+  const [liveTwilioCost, liveAiCost] = await Promise.all([fetchLiveTwilioCost(), fetchLiveAiCost(admin)])
   const items = (data || []).map((item) =>
     item.id === 'twilio' && liveTwilioCost !== null
       ? { ...item, monthly_estimate: liveTwilioCost, live: true }
-      : { ...item, live: false }
+      : item.id === 'claude' && liveAiCost !== null
+        ? { ...item, monthly_estimate: liveAiCost, live: true }
+        : { ...item, live: false }
   )
   const monthlyTotal = items.reduce((sum, i) => sum + monthlyEquivalent(Number(i.monthly_estimate) || 0, i.billing_frequency), 0)
 

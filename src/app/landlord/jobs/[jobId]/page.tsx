@@ -36,6 +36,7 @@ import { requirementById } from '@/lib/credentialRequirements'
 import { TIME_WINDOWS, validateScheduleTime, lateRescheduleWarning, shortNoticeWarning } from '@/lib/scheduleWindows'
 import { AddressLink } from '@/components/AddressLink'
 import { cardProcessingFee, achProcessingFee } from '@/lib/cardSurcharge'
+import { AI_ASSIST_ENABLED } from '@/lib/aiAssist'
 import { useLanguage, t, windowLabel } from '@/lib/i18n'
 
 // Shared styling for every secondary action in the status card's action
@@ -70,6 +71,12 @@ export default function JobDetailPage() {
   const [questions, setQuestions] = useState<any[]>([])
   const [answerDrafts, setAnswerDrafts] = useState<Record<string, string>>({})
   const [answeringId, setAnsweringId] = useState<string | null>(null)
+  const [rehireSuggestion, setRehireSuggestion] = useState<{ id: string; name: string } | null>(null)
+  const [rehireLoading, setRehireLoading] = useState(false)
+  const [aiAssistActive, setAiAssistActive] = useState(false)
+  const [beforeAfterCheck, setBeforeAfterCheck] = useState<{ looksResolved: boolean; note: string } | null>(null)
+  const [beforeAfterChecking, setBeforeAfterChecking] = useState(false)
+  const [beforeAfterError, setBeforeAfterError] = useState<string | null>(null)
 
   const [showBiddingModal, setShowBiddingModal] = useState(false)
   const [showDiyModal, setShowDiyModal] = useState(false)
@@ -355,6 +362,71 @@ export default function JobDetailPage() {
       })
       .catch(() => {})
   }, [bids, paymentModal])
+
+  // Only worth checking once there's actually no bid yet to show instead —
+  // the moment this job has none, exactly where the generic email-invite
+  // box already lives.
+  useEffect(() => {
+    if (!AI_ASSIST_ENABLED) return
+    if (!job || job.status !== 'bidding') return
+    if (bids.some((b) => b.status === 'pending')) return
+    setRehireLoading(true)
+    fetch(`/api/ai-assist/rehire-suggestion?jobId=${jobId}`)
+      .then((res) => res.json())
+      .then((data) => setRehireSuggestion(data.contractor || null))
+      .catch(() => setRehireSuggestion(null))
+      .finally(() => setRehireLoading(false))
+  }, [job, bids, jobId])
+
+  useEffect(() => {
+    if (!AI_ASSIST_ENABLED) return
+    fetch('/api/ai-assist/status')
+      .then((res) => res.json())
+      .then((data) => setAiAssistActive(data.enabled && (data.status === 'trialing' || data.status === 'active')))
+      .catch(() => setAiAssistActive(false))
+  }, [])
+
+  const startRehireDm = async () => {
+    if (!rehireSuggestion) return
+    try {
+      const { startDmThread } = await import('@/lib/dmThreads')
+      const { threadId, initialDraft } = await startDmThread('landlord', {
+        other_user_id: rehireSuggestion.id,
+        other_role: 'contractor',
+        full_name: rehireSuggestion.name,
+        context_label: null,
+        last_job_category: job.category,
+        last_job_completed_at: null,
+        thread_id: null,
+      })
+      if (initialDraft) sessionStorage.setItem(`dm-draft:${threadId}`, initialDraft)
+      router.push(`/landlord/messages/${threadId}`)
+    } catch (err) {
+      console.error('Error starting rehire DM:', err)
+    }
+  }
+
+  const runBeforeAfterCheck = async () => {
+    setBeforeAfterChecking(true)
+    setBeforeAfterError(null)
+    try {
+      const res = await fetch('/api/ai-assist/before-after-check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setBeforeAfterError(data.error || t('aiBeforeAfterFailed', lang))
+        setBeforeAfterChecking(false)
+        return
+      }
+      setBeforeAfterCheck(data)
+    } catch {
+      setBeforeAfterError(t('aiBeforeAfterFailed', lang))
+    }
+    setBeforeAfterChecking(false)
+  }
 
   const handleDeletePhoto = async (photo: any) => {
     const { error: storageError } = await supabase.storage.from('job-photos').remove([photo.photo_url])
@@ -1053,6 +1125,14 @@ export default function JobDetailPage() {
   // losing (and the cancelling contractor's own) bid with a live
   // "Select this contractor" button, including the one who just backed out.
   const openBids = bids.filter((b) => b.status === 'pending')
+  // Pure math, no AI call — compared only against the other bids actually
+  // received on THIS job, never external "market rate" data (deliberately
+  // out of scope, see the proposal's "what's not on this list" page: a
+  // confident-sounding wrong market-rate guess is a real risk, flagging a
+  // bid as an outlier among its own real siblings isn't).
+  const bidAmounts = openBids.map((b) => Number(b.amount)).filter((n) => !isNaN(n)).sort((a, b) => a - b)
+  const bidMedian = bidAmounts.length > 0 ? bidAmounts[Math.floor(bidAmounts.length / 2)] : 0
+  const isBidOutlier = (amount: number) => bidAmounts.length >= 3 && bidMedian > 0 && (amount > bidMedian * 1.75 || amount < bidMedian * 0.5)
   const showSchedulingSection = ['bid_selected', 'scheduled'].includes(job.status)
   const isMyTurnToRespond = job.proposed_by && job.proposed_by !== 'landlord' && !job.schedule_confirmed
   const beforePhotos = photos.filter((p) => p.stage === 'before')
@@ -1346,6 +1426,19 @@ export default function JobDetailPage() {
             {openBids.length === 0 ? (
               <div>
                 <p className="text-white/50 text-sm mb-4">{t('noBidsYetNotified', lang)}</p>
+                {!rehireLoading && rehireSuggestion && (
+                  <div className="bg-[#12A5A9]/8 border border-[#12A5A9]/25 rounded-xl p-4 mb-3 flex items-center justify-between gap-3">
+                    <p className="text-white/80 text-sm">
+                      <span className="text-[#12A5A9] font-bold">✦</span> {t('rehireSuggestionPrefix', lang)} <strong className="text-white">{rehireSuggestion.name}</strong> {t('rehireSuggestionSuffix', lang)} {job.category}.
+                    </p>
+                    <RippleButton
+                      onClick={startRehireDm}
+                      className="shrink-0 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-3.5 py-2 rounded-lg hover:opacity-90 transition"
+                    >
+                      {t('rehireMessageBtn', lang)}
+                    </RippleButton>
+                  </div>
+                )}
                 <div className="bg-white/3 border border-white/8 rounded-xl p-4">
                   <div className="flex items-start gap-3">
                     <div className="w-8 h-8 rounded-full bg-gradient-to-r from-[#0A7B7E]/30 to-[#12A5A9]/30 border border-[#12A5A9]/30 flex items-center justify-center shrink-0">
@@ -1426,6 +1519,11 @@ export default function JobDetailPage() {
                         <p className="text-[#12A5A9] font-bold">${bid.amount}</p>
                         {bid.pricing_type === 'hourly' && bid.labor_rate && (
                           <p className="text-white/40 text-[11px]">${bid.labor_rate}/hr</p>
+                        )}
+                        {isBidOutlier(Number(bid.amount)) && (
+                          <p className="text-yellow-400 text-[11px] font-semibold mt-0.5">
+                            {Number(bid.amount) > bidMedian ? t('bidOutlierHigh', lang) : t('bidOutlierLow', lang)}
+                          </p>
                         )}
                       </div>
                     </div>
@@ -1712,6 +1810,26 @@ export default function JobDetailPage() {
                 <PhotoGrid photos={afterPhotos} columns={3} />
               )}
             </div>
+            {aiAssistActive && job.status === 'pending_review' && beforePhotos.length > 0 && afterPhotos.length > 0 && (
+              <div className="mt-4">
+                {beforeAfterCheck ? (
+                  <div className={`rounded-xl p-3.5 border ${beforeAfterCheck.looksResolved ? 'bg-[#12A5A9]/8 border-[#12A5A9]/25' : 'bg-yellow-500/8 border-yellow-500/25'}`}>
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-[#12A5A9] mb-1">✦ {t('aiBeforeAfterLabel', lang)}</p>
+                    <p className="text-white/80 text-sm">{beforeAfterCheck.note}</p>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={runBeforeAfterCheck}
+                    disabled={beforeAfterChecking}
+                    className="text-xs font-semibold text-[#12A5A9] bg-[#12A5A9]/10 border border-[#12A5A9]/30 rounded-lg px-3 py-2 hover:bg-[#12A5A9]/15 transition disabled:opacity-50"
+                  >
+                    {beforeAfterChecking ? t('aiBeforeAfterChecking', lang) : `✦ ${t('aiBeforeAfterCta', lang)}`}
+                  </button>
+                )}
+                {beforeAfterError && <p className="text-red-400 text-xs mt-2">{beforeAfterError}</p>}
+              </div>
+            )}
             {receiptPhotos.length > 0 && (
               <div className="mt-5">
                 <p className="text-white/70 text-sm font-medium mb-2">{t('materialReceiptsLabel', lang)} ({receiptPhotos.length})</p>

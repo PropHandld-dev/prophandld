@@ -10,6 +10,8 @@ import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { FileTextIcon } from '@/components/icons'
 import { DocumentReminderToggle } from '@/components/DocumentReminderToggle'
+import { LeaseQaCard } from '@/components/LeaseQaCard'
+import { AI_ASSIST_ENABLED } from '@/lib/aiAssist'
 import { RENTER_TABS } from '@/lib/navTabs'
 import { useLanguage, t } from '@/lib/i18n'
 import { validateDocumentFile } from '@/lib/mediaValidation'
@@ -27,6 +29,7 @@ export default function RenterDocumentsPage() {
   const [unitId, setUnitId] = useState<string | null>(null)
   const [documents, setDocuments] = useState<any[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [aiAvailable, setAiAvailable] = useState(false)
 
   const [form, setForm] = useState({
     document_type: '',
@@ -109,6 +112,14 @@ export default function RenterDocumentsPage() {
     }
     init()
   }, [router])
+
+  useEffect(() => {
+    if (!AI_ASSIST_ENABLED) return
+    fetch('/api/ai-assist/renter-status')
+      .then((res) => res.json())
+      .then((data) => setAiAvailable(!!data.available))
+      .catch(() => setAiAvailable(false))
+  }, [])
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -272,6 +283,7 @@ export default function RenterDocumentsPage() {
           </div>
         ) : (
         <>
+        {aiAvailable && <LeaseQaCard />}
         <ScrollReveal>
         <form onSubmit={handleSubmit} className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6 space-y-4">
           <h2 className="text-white font-semibold mb-2">{t('uploadADocument', lang)}</h2>

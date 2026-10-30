@@ -11,6 +11,7 @@ import { RippleButton } from '@/components/RippleButton'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 import { useLanguage, t, type Lang } from '@/lib/i18n'
 import { useConfirm } from '@/lib/useConfirm'
+import { AI_ASSIST_ENABLED } from '@/lib/aiAssist'
 
 const ITEM_TYPES: { value: string; labelKey: 'itemTypePlumbing' | 'itemTypeElectrical' | 'itemTypeHvac' | 'itemTypeAppliance' | 'itemTypeStructural' | 'itemTypeOther' }[] = [
   { value: 'plumbing', labelKey: 'itemTypePlumbing' },
@@ -97,6 +98,54 @@ export default function UnitSystemsPage() {
     }
     init()
   }, [unitId, propertyId, router])
+
+  const [aiAssistActive, setAiAssistActive] = useState(false)
+  const [aiPhotoReading, setAiPhotoReading] = useState(false)
+  useEffect(() => {
+    if (!AI_ASSIST_ENABLED) return
+    fetch('/api/ai-assist/status')
+      .then((res) => res.json())
+      .then((data) => setAiAssistActive(data.enabled && (data.status === 'trialing' || data.status === 'active')))
+      .catch(() => setAiAssistActive(false))
+  }, [])
+
+  const extractApplianceFields = async (file: File) => {
+    const mediaType = file.type
+    if (!['image/jpeg', 'image/png'].includes(mediaType)) {
+      setError(t('aiLeaseUploadWrongType', lang))
+      return
+    }
+    setAiPhotoReading(true)
+    setError(null)
+    try {
+      const fileBase64: string = await new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve((reader.result as string).split(',')[1] || '')
+        reader.onerror = reject
+        reader.readAsDataURL(file)
+      })
+      const res = await fetch('/api/ai-assist/extract/appliance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileBase64, mediaType }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || t('aiLeaseUploadFailed', lang))
+        setAiPhotoReading(false)
+        return
+      }
+      setForm((prev) => ({
+        ...prev,
+        brand: !prev.brand && data.extracted.brand ? data.extracted.brand : prev.brand,
+        model: !prev.model && data.extracted.model ? data.extracted.model : prev.model,
+        install_date: !prev.install_date && data.extracted.install_date ? data.extracted.install_date : prev.install_date,
+      }))
+    } catch {
+      setError(t('aiLeaseUploadFailed', lang))
+    }
+    setAiPhotoReading(false)
+  }
 
   const loadItems = async () => {
     const { data: itemsData, error: itemsError } = await supabase
@@ -359,6 +408,27 @@ export default function UnitSystemsPage() {
               </select>
             </div>
           </div>
+
+          {aiAssistActive && (
+            <div>
+              <label className="block">
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) extractApplianceFields(file)
+                    e.target.value = ''
+                  }}
+                />
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#12A5A9] bg-[#12A5A9]/10 border border-[#12A5A9]/30 rounded-lg px-3 py-2 cursor-pointer hover:bg-[#12A5A9]/15 transition">
+                  ✦ {aiPhotoReading ? t('aiLeaseUploadReading', lang) : t('aiAppliancePhotoCta', lang)}
+                </span>
+              </label>
+              <p className="text-white/30 text-[11px] mt-1.5">{t('aiAppliancePhotoHint', lang)}</p>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div>

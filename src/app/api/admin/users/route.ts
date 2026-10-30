@@ -50,8 +50,12 @@ export async function GET() {
       properties,
       { data: tenancies },
       { data: verifications },
+      aiAssistRows,
     ] = await Promise.all([
-      supabaseAdmin.from('users').select('id, service_categories, service_zip, licensed, terms_accepted_at, terms_version').in('id', ids),
+      supabaseAdmin
+        .from('users')
+        .select('id, service_categories, service_zip, licensed, terms_accepted_at, terms_version, trial_started_at, trial_override_days, free_forever')
+        .in('id', ids),
       // One row per landlord/property ever — won't truncate until either
       // count crosses 1000, but the same unbounded-select bug this
       // project built fetchAllPages specifically to stop.
@@ -66,10 +70,17 @@ export async function GET() {
         .select('renter_user_id, rent_amount, units(unit_number, properties(address, city, state, owner_user_id))')
         .eq('ended', false),
       supabaseAdmin.from('contractor_verifications').select('contractor_user_id, status'),
+      fetchAllPagesOrEmpty<any>((from, to) =>
+        supabaseAdmin
+          .from('ai_assist_subscriptions')
+          .select('landlord_user_id, status, trial_started_at, trial_override_days, free_forever')
+          .range(from, to)
+      ),
     ])
 
     const profileById = new Map((profileRows || []).map((p: any) => [p.id, p]))
     const subByLandlord = new Map((subs || []).map((s: any) => [s.landlord_user_id, s]))
+    const aiAssistByLandlord = new Map((aiAssistRows || []).map((a: any) => [a.landlord_user_id, a]))
     const propertyCountByOwner: Record<string, number> = {}
     ;(properties || []).forEach((p: any) => {
       propertyCountByOwner[p.owner_user_id] = (propertyCountByOwner[p.owner_user_id] || 0) + 1
@@ -80,7 +91,7 @@ export async function GET() {
 
     const users = allUsers.map((u: any) => {
       const role = u.app_metadata?.role || null
-      const termsProfile: any = profileById.get(u.id)
+      const profileRow: any = profileById.get(u.id)
       const base = {
         id: u.id,
         email: u.email,
@@ -88,17 +99,29 @@ export async function GET() {
         role,
         created_at: u.created_at,
         last_sign_in_at: u.last_sign_in_at || null,
-        termsAcceptedAt: termsProfile?.terms_accepted_at || null,
-        termsVersion: termsProfile?.terms_version || null,
+        termsAcceptedAt: profileRow?.terms_accepted_at || null,
+        termsVersion: profileRow?.terms_version || null,
       }
 
       if (role === 'landlord') {
         const sub: any = subByLandlord.get(u.id)
+        const ai: any = aiAssistByLandlord.get(u.id)
         return {
           ...base,
           tier: sub?.tier || 'free',
           propertyCount: propertyCountByOwner[u.id] || 0,
           mrr: sub && sub.status === 'active' ? graduatedMonthlyAmount(sub.unit_count || 0) : 0,
+          trial: {
+            trialStartedAt: profileRow?.trial_started_at || null,
+            trialOverrideDays: profileRow?.trial_override_days ?? null,
+            freeForever: !!profileRow?.free_forever,
+          },
+          aiAssist: {
+            status: ai?.status || 'none',
+            trialStartedAt: ai?.trial_started_at || null,
+            trialOverrideDays: ai?.trial_override_days ?? null,
+            freeForever: !!ai?.free_forever,
+          },
         }
       }
 

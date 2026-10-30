@@ -9,6 +9,7 @@ import { markJobRead, markThreadRead } from '@/lib/messageReads'
 import { CalendarIcon, WrenchIcon } from '@/components/icons'
 import { useLanguage, t, roleLabel, type Lang } from '@/lib/i18n'
 import { useConfirm } from '@/lib/useConfirm'
+import { AI_ASSIST_ENABLED } from '@/lib/aiAssist'
 
 const REPORT_REASONS = ['harassment', 'spam', 'inappropriate', 'scam_or_fraud', 'other'] as const
 const reportReasonLabelKey: Record<(typeof REPORT_REASONS)[number], Parameters<typeof t>[0]> = {
@@ -116,6 +117,10 @@ export function ChatPanel({
   const [scheduleTime, setScheduleTime] = useState('')
   const { confirm, ConfirmDialog } = useConfirm()
   const [blockStatus, setBlockStatus] = useState<{ blockedByMe: boolean; blockedMe: boolean } | null>(null)
+  const [aiAvailable, setAiAvailable] = useState(false)
+  const [showAiDraft, setShowAiDraft] = useState(false)
+  const [drafting, setDrafting] = useState(false)
+  const [smartReplies, setSmartReplies] = useState<string[]>([])
   const [reportingMessageId, setReportingMessageId] = useState<string | null>(null)
   const [reportReason, setReportReason] = useState<(typeof REPORT_REASONS)[number]>('harassment')
   const [reportNote, setReportNote] = useState('')
@@ -239,6 +244,31 @@ export function ChatPanel({
     if (el) el.scrollTop = el.scrollHeight
   }, [messages.length, loading])
 
+  // Quick-reply suggestions for whatever the other side just said — the
+  // route itself returns [] whenever AI Assist isn't active for whichever
+  // landlord is in this conversation, or when the last message is mine, so
+  // this doesn't need its own per-landlord availability check. It does
+  // still check the global flag first, though — this effect reruns on
+  // every incoming message, the highest-frequency AI check in the app, so
+  // skipping the fetch outright while the flag is off (rather than
+  // relying on the route's own fast no-op) is the one most worth avoiding
+  // entirely rather than just making cheap.
+  const lastMessage = messages[messages.length - 1]
+  useEffect(() => {
+    setSmartReplies([])
+    if (!AI_ASSIST_ENABLED || !lastMessage || !userId || lastMessage.sender_user_id === userId) return
+    let cancelled = false
+    fetch('/api/ai-assist/smart-replies', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jobId, threadId }),
+    })
+      .then((res) => res.json())
+      .then((data) => { if (!cancelled) setSmartReplies(data.replies || []) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [lastMessage?.id, userId, jobId, threadId])
+
   const participantByUserId = new Map(participants.map((p) => [p.user_id, p]))
   const others = participants.filter((p) => p.user_id !== userId)
   const myRole = participantByUserId.get(userId || '')?.role
@@ -249,6 +279,43 @@ export function ChatPanel({
   // pairing keeps the lightweight "Propose a time" chat shortcut.
   const contractorInThread = threadId ? others.find((p) => p.role === 'contractor') : undefined
   const showStartJob = !!contractorInThread && myRole === 'landlord'
+
+  // AI-drafted tenant communication only makes sense on a real 1:1 DM
+  // between this landlord and one of their renters, never job chat (the
+  // contractor's there too) and never a landlord-contractor DM.
+  const renterInThread = threadId && others.length === 1 && others[0].role === 'renter' ? others[0] : undefined
+  const showAiDraftBtn = !!renterInThread && myRole === 'landlord' && aiAvailable
+  useEffect(() => {
+    if (!AI_ASSIST_ENABLED || myRole !== 'landlord') return
+    fetch('/api/ai-assist/status')
+      .then((res) => res.json())
+      .then((data) => setAiAvailable(data.enabled && (data.status === 'trialing' || data.status === 'active')))
+      .catch(() => setAiAvailable(false))
+  }, [myRole])
+
+  const draftMessage = async (kind: 'late_rent' | 'access_notice' | 'renewal_offer') => {
+    if (!renterInThread) return
+    setDrafting(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/ai-assist/draft-message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ renterUserId: renterInThread.user_id, kind }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || t('aiDraftFailed', lang))
+        setDrafting(false)
+        return
+      }
+      setDraft(data.draft)
+      setShowAiDraft(false)
+    } catch {
+      setError(t('aiDraftFailed', lang))
+    }
+    setDrafting(false)
+  }
 
   // Block is a DM-only concept (job chat is tied to an active job that
   // needs both sides communicating to function) and only makes sense for
@@ -368,7 +435,10 @@ export function ChatPanel({
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (await sendMessage(draft)) setDraft('')
+    if (await sendMessage(draft)) {
+      setDraft('')
+      setSmartReplies([])
+    }
   }
 
   // DM threads only. Fire-and-forget: a failed email shouldn't block the chat itself.
@@ -610,10 +680,71 @@ export function ChatPanel({
         </form>
       )}
 
+      {showAiDraftBtn && showAiDraft && (
+        <div className="bg-[#12A5A9]/8 border border-[#12A5A9]/25 rounded-xl p-3 mb-3">
+          <p className="text-white/50 text-xs font-medium mb-2">{t('aiDraftPickOne', lang)}</p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              disabled={drafting}
+              onClick={() => draftMessage('late_rent')}
+              className="text-xs font-semibold text-[#12A5A9] bg-[#12A5A9]/10 border border-[#12A5A9]/30 rounded-lg px-3 py-1.5 hover:bg-[#12A5A9]/15 transition disabled:opacity-50"
+            >
+              {t('aiDraftLateRent', lang)}
+            </button>
+            <button
+              type="button"
+              disabled={drafting}
+              onClick={() => draftMessage('access_notice')}
+              className="text-xs font-semibold text-[#12A5A9] bg-[#12A5A9]/10 border border-[#12A5A9]/30 rounded-lg px-3 py-1.5 hover:bg-[#12A5A9]/15 transition disabled:opacity-50"
+            >
+              {t('aiDraftAccessNotice', lang)}
+            </button>
+            <button
+              type="button"
+              disabled={drafting}
+              onClick={() => draftMessage('renewal_offer')}
+              className="text-xs font-semibold text-[#12A5A9] bg-[#12A5A9]/10 border border-[#12A5A9]/30 rounded-lg px-3 py-1.5 hover:bg-[#12A5A9]/15 transition disabled:opacity-50"
+            >
+              {t('aiDraftRenewalOffer', lang)}
+            </button>
+            {drafting && <span className="text-white/40 text-xs">{t('aiDrafting', lang)}</span>}
+          </div>
+        </div>
+      )}
+
+      {!isBlocked && smartReplies.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap pt-2">
+          {smartReplies.map((reply, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setDraft(reply)}
+              className="text-xs font-medium text-white/70 bg-white/5 border border-white/10 rounded-full px-3 py-1.5 hover:bg-white/10 hover:text-white transition"
+            >
+              {reply}
+            </button>
+          ))}
+        </div>
+      )}
+
       {isBlocked ? (
         <p className="text-white/40 text-sm text-center pt-3 border-t border-white/8">{t('blockedConversationMsg', lang)}</p>
       ) : (
       <form onSubmit={handleSend} className="flex items-center gap-2 pt-2 border-t border-white/8">
+        {showAiDraftBtn && (
+          <button
+            type="button"
+            onClick={() => setShowAiDraft((v) => !v)}
+            aria-label={t('aiDraftBtnLabel', lang)}
+            title={t('aiDraftBtnLabel', lang)}
+            className={`shrink-0 w-11 h-11 rounded-xl border flex items-center justify-center transition text-sm font-bold ${
+              showAiDraft ? 'bg-[#12A5A9]/20 border-[#12A5A9]/40 text-[#12A5A9]' : 'bg-white/5 border-white/10 text-white/50 hover:text-white'
+            }`}
+          >
+            ✦
+          </button>
+        )}
         {threadId && showStartJob && (
           <button
             type="button"

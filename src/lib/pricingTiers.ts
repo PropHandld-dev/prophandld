@@ -93,3 +93,25 @@ export function formatTierPrice(unitCount: number): string {
   const rounded = Math.round(amount * 100) / 100
   return `$${rounded % 1 === 0 ? rounded.toFixed(0) : rounded.toFixed(2)}/month`
 }
+
+// AI Assist add-on (v1, pending team sign-off on the PDF proposal before
+// this is ever enabled for a real landlord — see NEXT_PUBLIC_AI_ASSIST_ENABLED
+// in aiAssist.ts). Numbers are Joshua's proposed bracket pricing (same flat-
+// per-bracket shape as the base plan, so it's one mirrored Stripe graduated
+// Price, not a new kind of calculation) — placeholder pending the team's
+// sign-off on the PDF, change here and in the matching Stripe Price config
+// if the number moves.
+export const AI_ASSIST_TRIAL_DAYS = 14
+
+export function aiAssistMonthlyAmount(unitCount: number): number {
+  if (unitCount <= 1) return 4.99
+  if (unitCount <= 4) return 9.99
+  if (unitCount <= 10) return 14.99
+  if (unitCount <= 25) return 24.99
+  return 24.99 + (unitCount - 25) * 0.5
+}
+
+export function formatAiAssistPrice(unitCount: number): string {
+  const amount = aiAssistMonthlyAmount(unitCount)
+  return `$${amount % 1 === 0 ? amount.toFixed(0) : amount.toFixed(2)}/month`
+}

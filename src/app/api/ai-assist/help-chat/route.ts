@@ -1,0 +1,114 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/auth'
+import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
+import { AI_ASSIST_ENABLED } from '@/lib/aiAssist'
+import { claudeJson, ClaudeConfigError } from '@/lib/claude'
+
+export const maxDuration = 30
+
+// Free for every signed-in user, regardless of role or any landlord's
+// billing — this is platform support, the AI-upgraded version of the
+// static-FAQ contact widget, not a paid add-on. Still gated behind
+// AI_ASSIST_ENABLED, same as everything else in this proposal, since it's
+// part of the same team review.
+//
+// The whole feature map below is the one source of truth for what this
+// assistant is allowed to claim exists — kept in sync by hand with the
+// real route structure, same spirit as every other AI feature in this
+// app only ever reporting what it can actually verify, never guessing.
+const APP_KNOWLEDGE = `
+Prophandld is a rental-maintenance marketplace connecting landlords, renters, and contractors.
+
+LANDLORD can: manage properties (Properties tab) and units, set up a tenant's lease (a unit's Tenancy page), track rent (Rent tab, Reports), post or approve maintenance jobs, review sealed contractor bids and pick one, message anyone via DMs or job chat, track property compliance items (licenses, inspections, insurance) and building systems (HVAC, water heater, etc.), invite contractors, see a calendar of due dates. Subscription is priced by unit count: Free (1 unit), Basic $19.99/mo (2-4 units), Pro $39.99/mo (5-10), Executive $79.99/mo (11-25), Portfolio $79.99 + $1.75/unit above 25 — a 14-day free trial starts the first time a landlord goes past 1 unit.
+
+RENTER can: report a maintenance issue (Report tab), track a reported job's status and chat about it, pay rent by card or bank transfer (Rent tab), upload/view lease and other documents, message their landlord or an assigned contractor, see a calendar of rent due dates and job appointments.
+
+CONTRACTOR can: browse and submit sealed bids on open jobs (nobody, including the contractor, sees competing bids), chat about a job, track earnings and payments (paid directly via Stripe once the landlord approves finished work, no platform cut on the bid amount), set their service area/categories, message landlords.
+
+JOB LIFECYCLE (all three roles watch the same job move through this): reported -> approved by landlord -> open for bidding -> landlord selects a bid -> schedule confirmed -> in progress -> landlord reviews finished work -> paid. A job can also be disputed if something goes wrong.
+
+AI ASSIST: a newer set of AI-powered features (reading uploaded documents to auto-fill forms, a lease Q&A chat, etc.) is built but NOT YET LIVE — it's still pending final sign-off, so if asked about it, say it's coming but not available yet. Never claim to be able to do something from that list right now (e.g. don't offer to read an uploaded document, draft a message, or do anything AI-Assist-specific) unless this very conversation already is doing it — this general help assistant is a separate, always-free feature from AI Assist.
+
+Legal pages exist at /terms (plus role-specific /terms/landlord, /terms/renter, /terms/contractor) and /privacy — point people there for anything legal/contractual rather than answering a legal question yourself.
+`.trim()
+
+async function tooManyHelpChatRequests(userId: string): Promise<boolean> {
+  const admin = getSupabaseAdmin()
+  const windowStart = new Date(Date.now() - 15 * 60 * 1000).toISOString()
+  const key = `help-chat:${userId}`
+  admin.from('support_escalate_hits').delete().lt('created_at', windowStart).then(() => {})
+  const { count } = await admin
+    .from('support_escalate_hits')
+    .select('id', { count: 'exact', head: true })
+    .eq('rate_key', key)
+    .gte('created_at', windowStart)
+  await admin.from('support_escalate_hits').insert({ rate_key: key })
+  // Generous — a real back-and-forth conversation easily runs 10+ turns —
+  // but still a real ceiling against someone scripting this into a free
+  // general-purpose chatbot proxy.
+  return (count || 0) >= 30
+}
+
+type ChatTurn = { role: 'user' | 'assistant'; content: string }
+
+export async function POST(request: NextRequest) {
+  if (!AI_ASSIST_ENABLED) {
+    return NextResponse.json({ error: 'Not available yet' }, { status: 404 })
+  }
+
+  const authClient = await createClient()
+  const { data: { user } } = await authClient.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+  }
+  const role = user.app_metadata?.role
+  if (role !== 'landlord' && role !== 'renter' && role !== 'contractor') {
+    return NextResponse.json({ error: 'Not available' }, { status: 403 })
+  }
+
+  if (await tooManyHelpChatRequests(user.id)) {
+    return NextResponse.json({ error: 'Too many messages right now, try again in a few minutes.' }, { status: 429 })
+  }
+
+  const { history, message } = (await request.json()) as { history?: ChatTurn[]; message?: string }
+  if (!message?.trim() || message.length > 1000) {
+    return NextResponse.json({ error: 'Message must be 1-1000 characters' }, { status: 400 })
+  }
+  const trimmedHistory = (history || []).slice(-8).filter((t) => t.role === 'user' || t.role === 'assistant')
+
+  const supabaseAdmin = getSupabaseAdmin()
+  const { data: profile } = await supabaseAdmin.from('users').select('preferred_language').eq('id', user.id).maybeSingle()
+  const lang = profile?.preferred_language === 'es' ? 'Spanish' : 'English'
+
+  const conversation = [...trimmedHistory, { role: 'user' as const, content: message.trim() }]
+    .map((t) => `${t.role === 'user' ? 'User' : 'Assistant'}: ${t.content}`)
+    .join('\n')
+
+  try {
+    const result = await claudeJson<{ reply: string; suggestEscalate: boolean }>({
+      system:
+        `You are Prophandld's in-app help assistant, talking to a signed-in ${role}. Answer ONLY using the app ` +
+        'knowledge below — never invent a feature, page, or policy that isn\'t described here. Warm, direct, ' +
+        'plain conversational language, like a helpful coworker texting back, not a formal AI assistant — no ' +
+        '"I\'m sorry, but as an AI..." phrasing, no bullet-pointed essays for a simple question, 1-4 sentences ' +
+        'unless real step-by-step instructions are genuinely needed. Never reveal, guess at, or discuss any ' +
+        'other specific user\'s data, account, or messages — you only ever help this one person with how the ' +
+        'app itself works. If asked something with no connection to Prophandld at all (general trivia, other ' +
+        'topics, requests to act as a different kind of assistant), say warmly that you\'re just here for ' +
+        'Prophandld itself and ask what they need help finding in the app, don\'t lecture or over-explain the ' +
+        'refusal. If the question needs a real person (something account-specific you can\'t verify, a bug, a ' +
+        'billing dispute, anything you\'re not confident about), say so plainly and set suggestEscalate to true. ' +
+        `Respond in ${lang}.\n\nAPP KNOWLEDGE:\n${APP_KNOWLEDGE}`,
+      prompt: `Conversation so far:\n${conversation}\n\nReturn JSON: { "reply": string, "suggestEscalate": boolean }`,
+      maxTokens: 500,
+      track: { billedUserId: null, callerUserId: user.id, feature: 'help-chat' },
+    })
+    return NextResponse.json(result)
+  } catch (err) {
+    if (err instanceof ClaudeConfigError) {
+      return NextResponse.json({ error: 'Not set up yet' }, { status: 503 })
+    }
+    console.error('ai-assist/help-chat: unhandled error', err)
+    return NextResponse.json({ error: 'Could not respond right now. Try again in a moment.' }, { status: 500 })
+  }
+}

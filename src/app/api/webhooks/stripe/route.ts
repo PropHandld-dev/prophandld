@@ -101,6 +101,28 @@ export async function POST(request: NextRequest) {
 
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
+        if (session.mode === 'subscription' && session.subscription && session.metadata?.prophandld_type === 'ai_assist') {
+          // AI Assist's own dedicated subscription, created via the
+          // card-not-on-file branch of ai-assist/start-trial/route.ts — the
+          // direct stripe.subscriptions.create() branch inserts its own row
+          // immediately instead of waiting on this event, so this only
+          // fires for landlords who went through hosted Checkout.
+          const landlordUserId = session.metadata?.prophandld_landlord_user_id
+          if (landlordUserId) {
+            const { error } = await supabaseAdmin.from('ai_assist_subscriptions').upsert(
+              {
+                landlord_user_id: landlordUserId,
+                status: 'trialing',
+                trial_started_at: new Date().toISOString(),
+                stripe_subscription_id: session.subscription as string,
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: 'landlord_user_id', ignoreDuplicates: true }
+            )
+            if (error) console.error('stripe webhook: ai_assist checkout.session.completed upsert failed', error)
+          }
+          break
+        }
         if (session.mode === 'subscription' && session.subscription) {
           const landlordUserId = session.metadata?.prophandld_landlord_user_id
           const tier = session.metadata?.prophandld_tier
@@ -126,6 +148,24 @@ export async function POST(request: NextRequest) {
       case 'customer.subscription.updated': {
         const subscription = event.data.object as Stripe.Subscription
         const landlordUserId = subscription.metadata?.prophandld_landlord_user_id
+        if (landlordUserId && subscription.metadata?.prophandld_type === 'ai_assist') {
+          // Stripe's own status values map directly onto our check
+          // constraint except 'trialing'/'active' both already match —
+          // anything else (past_due, unpaid, incomplete_expired) collapses
+          // to past_due, close enough for a v1 that isn't enforced yet.
+          const status =
+            subscription.status === 'active' || subscription.status === 'trialing'
+              ? subscription.status
+              : subscription.status === 'canceled'
+                ? 'canceled'
+                : 'past_due'
+          const { error } = await supabaseAdmin
+            .from('ai_assist_subscriptions')
+            .update({ status, updated_at: new Date().toISOString() })
+            .eq('landlord_user_id', landlordUserId)
+          if (error) console.error('stripe webhook: ai_assist customer.subscription.updated failed', error)
+          break
+        }
         if (landlordUserId) {
           const status = subscription.status === 'active' || subscription.status === 'trialing' ? 'active' : subscription.status
           const { error } = await supabaseAdmin
@@ -140,6 +180,14 @@ export async function POST(request: NextRequest) {
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription
         const landlordUserId = subscription.metadata?.prophandld_landlord_user_id
+        if (landlordUserId && subscription.metadata?.prophandld_type === 'ai_assist') {
+          const { error } = await supabaseAdmin
+            .from('ai_assist_subscriptions')
+            .update({ status: 'canceled', updated_at: new Date().toISOString() })
+            .eq('landlord_user_id', landlordUserId)
+          if (error) console.error('stripe webhook: ai_assist customer.subscription.deleted failed', error)
+          break
+        }
         if (landlordUserId) {
           const { error } = await supabaseAdmin
             .from('landlord_subscriptions')

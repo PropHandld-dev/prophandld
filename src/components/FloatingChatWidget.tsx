@@ -12,6 +12,8 @@ import { NewConversationPicker, type StartedConversation } from '@/components/Ne
 import { DmContactsStrip } from '@/components/DmContactsStrip'
 import { MessageCircleIcon } from '@/components/icons'
 import { useLanguage, t } from '@/lib/i18n'
+import { AiHelpChat } from '@/components/AiHelpChat'
+import { AI_ASSIST_ENABLED } from '@/lib/aiAssist'
 
 function formatTimestamp(iso: string) {
   const date = new Date(iso)
@@ -23,6 +25,7 @@ function formatTimestamp(iso: string) {
 type ActivePanel =
   | { kind: 'job'; id: string; otherName: string; otherRole: string; category: string }
   | { kind: 'dm'; id: string; otherName: string; otherRole: string; initialDraft?: string }
+  | { kind: 'ai-help' }
 
 export function FloatingChatWidget() {
   const pathname = usePathname()
@@ -136,12 +139,16 @@ export function FloatingChatWidget() {
                   <button onClick={handleBackToList} aria-label="Back to messages" className="text-white/50 hover:text-white transition shrink-0">
                     ←
                   </button>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-white text-sm font-semibold truncate">{active.otherName}</p>
-                    <p className="text-white/60 text-xs truncate">
-                      {active.otherRole}{active.kind === 'job' ? ` · ${active.category}` : ''}
-                    </p>
-                  </div>
+                  {active.kind === 'ai-help' ? (
+                    <p className="text-white text-sm font-semibold flex-1">✦ {t('aiHelpChatTitle', lang)}</p>
+                  ) : (
+                    <div className="min-w-0 flex-1">
+                      <p className="text-white text-sm font-semibold truncate">{active.otherName}</p>
+                      <p className="text-white/60 text-xs truncate">
+                        {active.otherRole}{active.kind === 'job' ? ` · ${active.category}` : ''}
+                      </p>
+                    </div>
+                  )}
                 </>
               ) : showPicker ? (
                 <p className="text-white text-sm font-semibold flex-1">{t('newMessage', lang)}</p>
@@ -163,7 +170,11 @@ export function FloatingChatWidget() {
             </div>
 
             <div className="flex-1 min-h-0 overflow-hidden">
-              {active ? (
+              {active?.kind === 'ai-help' ? (
+                <div className="px-4 h-full py-3">
+                  <AiHelpChat />
+                </div>
+              ) : active ? (
                 <div className="px-4 h-full">
                   <ChatPanel
                     {...(active.kind === 'job' ? { jobId: active.id } : { threadId: active.id, initialDraft: active.initialDraft })}
@@ -175,6 +186,18 @@ export function FloatingChatWidget() {
                 <NewConversationPicker myRole={role} onStart={handleStarted} onCancel={() => setShowPicker(false)} />
               ) : (
                 <div className="h-full overflow-y-auto px-3 py-3">
+                  {AI_ASSIST_ENABLED && (
+                    <button
+                      onClick={() => setActive({ kind: 'ai-help' })}
+                      className="w-full flex items-center gap-2.5 bg-[#12A5A9]/8 border border-[#12A5A9]/25 hover:bg-[#12A5A9]/12 rounded-xl p-3 mb-2 transition"
+                    >
+                      <span className="w-8 h-8 rounded-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] flex items-center justify-center text-white text-sm font-bold shrink-0">✦</span>
+                      <span className="min-w-0 flex-1 text-left">
+                        <span className="block text-white text-sm font-medium">{t('aiHelpChatTitle', lang)}</span>
+                        <span className="block text-white/50 text-xs truncate">{t('aiHelpChatEntryDesc', lang)}</span>
+                      </span>
+                    </button>
+                  )}
                   <DmContactsStrip myRole={role} onStart={handleStarted} onSeeAll={() => setShowPicker(true)} />
                   {loading ? (
                     <div className="space-y-2">

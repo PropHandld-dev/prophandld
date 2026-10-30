@@ -14,6 +14,7 @@ import { WrenchIcon } from '@/components/icons'
 import { CONTRACTOR_TABS } from '@/lib/navTabs'
 import { useLanguage, t } from '@/lib/i18n'
 import { useConfirm } from '@/lib/useConfirm'
+import { AI_ASSIST_ENABLED } from '@/lib/aiAssist'
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return <label className="text-white/70 text-sm block mb-1">{children}</label>
@@ -37,6 +38,8 @@ export default function SubmitBidPage() {
   const [questions, setQuestions] = useState<any[]>([])
   const [questionText, setQuestionText] = useState('')
   const [askingQuestion, setAskingQuestion] = useState(false)
+  const [aiAvailable, setAiAvailable] = useState(false)
+  const [polishing, setPolishing] = useState(false)
   const { confirm, ConfirmDialog } = useConfirm()
   // Split into "your price" then "details" so a contractor isn't scanning
   // seven fields at once on a job site, often one-handed — price is the
@@ -137,6 +140,45 @@ export default function SubmitBidPage() {
     }
     init()
   }, [jobId, router])
+
+  useEffect(() => {
+    if (!AI_ASSIST_ENABLED) return
+    fetch(`/api/ai-assist/job-status?jobId=${jobId}`)
+      .then((res) => res.json())
+      .then((data) => setAiAvailable(!!data.available))
+      .catch(() => setAiAvailable(false))
+  }, [jobId])
+
+  const polishNotes = async () => {
+    if (!form.notes.trim() || !form.amount) return
+    setPolishing(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/ai-assist/polish-bid', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobId,
+          notes: form.notes,
+          notIncluded: form.not_included,
+          amount: parseFloat(form.amount),
+          pricingType: form.pricing_type,
+          laborRate: form.labor_rate ? parseFloat(form.labor_rate) : null,
+          estimatedHours: form.estimated_hours ? parseFloat(form.estimated_hours) : null,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || t('aiPolishFailed', lang))
+        setPolishing(false)
+        return
+      }
+      setForm((prev) => ({ ...prev, notes: data.scope }))
+    } catch {
+      setError(t('aiPolishFailed', lang))
+    }
+    setPolishing(false)
+  }
 
   const loadQuestions = async () => {
     const { data } = await supabase
@@ -512,7 +554,19 @@ export default function SubmitBidPage() {
               </div>
 
               <div>
-                <FieldLabel>{t('notesOptionalLabel', lang)}</FieldLabel>
+                <div className="flex items-center justify-between mb-1">
+                  <FieldLabel>{t('notesOptionalLabel', lang)}</FieldLabel>
+                  {aiAvailable && form.notes.trim() && form.amount && (
+                    <button
+                      type="button"
+                      onClick={polishNotes}
+                      disabled={polishing}
+                      className="text-[#12A5A9] text-xs font-semibold hover:underline disabled:opacity-50"
+                    >
+                      {polishing ? t('aiPolishing', lang) : t('aiPolishBtn', lang)}
+                    </button>
+                  )}
+                </div>
                 <textarea
                   name="notes"
                   value={form.notes}
@@ -521,6 +575,7 @@ export default function SubmitBidPage() {
                   placeholder={t('notesPlaceholder', lang)}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition resize-none"
                 />
+                {aiAvailable && <p className="text-white/30 text-[11px] mt-1">{t('aiPolishHint', lang)}</p>}
               </div>
 
               <div>

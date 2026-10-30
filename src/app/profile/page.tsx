@@ -15,6 +15,7 @@ import { TABS_BY_ROLE } from '@/lib/navTabs'
 import { StripeConnectCard } from '@/components/StripeConnectCard'
 import { ZelleVenmoCashAppCard } from '@/components/ZelleVenmoCashAppCard'
 import { ReferralCard } from '@/components/ReferralCard'
+import { AiAssistCard } from '@/components/AiAssistCard'
 import { RentPaymentDefaultCard } from '@/components/RentPaymentDefaultCard'
 import { LinkedProfilesSection } from '@/components/LinkedProfilesSection'
 import { LINKED_PROFILES_ENABLED } from '@/lib/featureFlags'
@@ -725,6 +726,9 @@ export default function ProfilePage() {
           <>
             <div id="billing" className="scroll-mt-6">
               <BillingSection />
+            </div>
+            <div className="mb-6">
+              <AiAssistCard />
             </div>
             <div className="mb-2">
               <h2 className="text-white font-semibold mb-1">{t('getPaidRentTitle', lang)}</h2>

@@ -1039,6 +1039,62 @@ export async function sendLeaseRenewalReminderEmail({
   })
 }
 
+// Staff manually granting a trial/free-access override (/admin/users,
+// src/app/api/admin/trial-grant/route.ts) is a real change to a
+// landlord's account that they'd otherwise have no way of knowing
+// happened — this is the one notice for it, covering both products and
+// all three grant modes in one function rather than six near-duplicates.
+export async function sendTrialGrantedEmail({
+  to,
+  landlordName,
+  product,
+  mode,
+  days,
+  lang = 'en',
+}: {
+  to: string
+  landlordName: string
+  product: 'base' | 'ai_assist'
+  mode: 'days' | 'free' | 'reset'
+  days?: number
+  lang?: Lang
+}) {
+  const productLabel = lang === 'es'
+    ? (product === 'base' ? 'tu plan de Prophandld' : 'AI Assist')
+    : (product === 'base' ? 'your Prophandld plan' : 'AI Assist')
+
+  const bodyHtml = lang === 'es'
+    ? mode === 'free'
+      ? `Hola ${escapeHtml(landlordName)}, nuestro equipo acaba de activar acceso gratuito permanente a <strong>${escapeHtml(productLabel)}</strong> en tu cuenta. No se te cobrará por esto.`
+      : mode === 'days'
+        ? `Hola ${escapeHtml(landlordName)}, nuestro equipo acaba de darte ${days} día${days === 1 ? '' : 's'} de prueba de <strong>${escapeHtml(productLabel)}</strong>, a partir de hoy.`
+        : `Hola ${escapeHtml(landlordName)}, el acceso especial que nuestro equipo te había dado para <strong>${escapeHtml(productLabel)}</strong> fue removido; tu cuenta ahora sigue las condiciones estándar.`
+    : mode === 'free'
+      ? `Hi ${escapeHtml(landlordName)}, our team just turned on permanent free access to <strong>${escapeHtml(productLabel)}</strong> on your account. You won't be charged for it.`
+      : mode === 'days'
+        ? `Hi ${escapeHtml(landlordName)}, our team just gave your account ${days} day${days === 1 ? '' : 's'} to try <strong>${escapeHtml(productLabel)}</strong>, starting today.`
+        : `Hi ${escapeHtml(landlordName)}, the special access our team had given you for <strong>${escapeHtml(productLabel)}</strong> has been removed; your account is back to the standard terms.`
+
+  const html = baseTemplate({
+    lang,
+    eyebrow: lang === 'es' ? 'Cambio en tu cuenta' : 'Account update',
+    heading: lang === 'es' ? 'Un cambio en tu cuenta' : 'A change to your account',
+    bodyHtml,
+    preheader: productLabel,
+    ctaLabel: lang === 'es' ? 'Ver mi cuenta' : 'View my account',
+    ctaUrl: `${SITE_URL}/profile`,
+    note: lang === 'es'
+      ? '¿Preguntas sobre este cambio? Responde a este correo.'
+      : 'Questions about this change? Just reply to this email.',
+  })
+
+  return sendEmail({
+    to,
+    subject: lang === 'es' ? `Actualización de cuenta: ${productLabel}` : `Account update: ${productLabel}`,
+    html,
+  })
+}
+
 export async function sendPropertyComplianceReminderEmail({
   to,
   landlordName,
