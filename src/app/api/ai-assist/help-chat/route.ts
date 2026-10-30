@@ -51,6 +51,90 @@ async function tooManyHelpChatRequests(userId: string): Promise<boolean> {
 
 type ChatTurn = { role: 'user' | 'assistant'; content: string }
 
+// The signed-in user's OWN real numbers — never another user's. Deliberately
+// just counts/summaries, not full records (no names, no message contents),
+// kept cheap and lean since this runs on every single message. This is the
+// one place in help-chat that's allowed to answer "how many X do I have"
+// instead of pointing at a tab — the strict "no other user's data" rule
+// stays intact because every query below is already scoped to this exact
+// user_id, same ownership checks every other AI Assist route uses.
+async function getAccountFacts(admin: ReturnType<typeof getSupabaseAdmin>, userId: string, role: string): Promise<Record<string, unknown>> {
+  const todayKey = new Date().toISOString().slice(0, 10)
+  const in30 = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+
+  if (role === 'landlord') {
+    const { data: properties } = await admin.from('properties').select('id').eq('owner_user_id', userId).eq('archived', false)
+    const propertyIds = (properties || []).map((p) => p.id)
+    if (propertyIds.length === 0) return { propertyCount: 0, unitCount: 0 }
+
+    const [{ count: unitCount }, { data: units }, { count: expiringCompliance }] = await Promise.all([
+      admin.from('units').select('id', { count: 'exact', head: true }).in('property_id', propertyIds),
+      admin.from('units').select('id').in('property_id', propertyIds),
+      admin
+        .from('compliance_items')
+        .select('id', { count: 'exact', head: true })
+        .in('property_id', propertyIds)
+        .not('expiry_date', 'is', null)
+        .gte('expiry_date', todayKey)
+        .lte('expiry_date', in30),
+    ])
+    const unitIds = (units || []).map((u) => u.id)
+
+    const [{ count: openJobs }, { count: upcomingRenewals }] = await Promise.all([
+      unitIds.length > 0
+        ? admin.from('jobs').select('id', { count: 'exact', head: true }).in('unit_id', unitIds).in('status', ['pending_approval', 'approved', 'bidding', 'bid_selected', 'scheduled', 'in_progress', 'pending_review'])
+        : Promise.resolve({ count: 0 }),
+      unitIds.length > 0
+        ? admin.from('tenancies').select('id', { count: 'exact', head: true }).in('unit_id', unitIds).eq('ended', false).not('lease_end', 'is', null).gte('lease_end', todayKey).lte('lease_end', in30)
+        : Promise.resolve({ count: 0 }),
+    ])
+
+    return {
+      propertyCount: propertyIds.length,
+      unitCount: unitCount || 0,
+      openJobsCount: openJobs || 0,
+      leaseRenewalsNext30Days: upcomingRenewals || 0,
+      complianceItemsExpiringNext30Days: expiringCompliance || 0,
+    }
+  }
+
+  if (role === 'renter') {
+    const { data: tenancy } = await admin
+      .from('tenancies')
+      .select('rent_amount, rent_due_day, lease_end, units(unit_number, properties(address))')
+      .eq('renter_user_id', userId)
+      .eq('ended', false)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    const { count: openJobs } = await admin.from('jobs').select('id', { count: 'exact', head: true }).eq('reported_by', userId).not('status', 'in', '(completed,archived,declined)')
+
+    if (!tenancy) return { hasActiveLease: false, openJobsReported: openJobs || 0 }
+    const unit: any = (tenancy as any).units
+    return {
+      hasActiveLease: true,
+      propertyAddress: unit?.properties?.address || null,
+      unitNumber: unit?.unit_number || null,
+      monthlyRent: tenancy.rent_amount,
+      rentDueDay: tenancy.rent_due_day,
+      leaseEnd: tenancy.lease_end,
+      openJobsReported: openJobs || 0,
+    }
+  }
+
+  if (role === 'contractor') {
+    const [{ count: pendingBids }, { count: activeJobs }] = await Promise.all([
+      admin.from('bids').select('id', { count: 'exact', head: true }).eq('contractor_user_id', userId).eq('status', 'pending'),
+      admin.from('bids').select('id', { count: 'exact', head: true }).eq('contractor_user_id', userId).eq('status', 'accepted'),
+    ])
+    const { data: unpaid } = await admin.from('bids').select('amount').eq('contractor_user_id', userId).eq('status', 'accepted').neq('payment_status', 'paid')
+    const unpaidTotal = (unpaid || []).reduce((sum, b) => sum + (Number(b.amount) || 0), 0)
+    return { pendingBidsCount: pendingBids || 0, activeJobsCount: activeJobs || 0, unpaidEarnings: unpaidTotal }
+  }
+
+  return {}
+}
+
 export async function POST(request: NextRequest) {
   if (!AI_ASSIST_ENABLED) {
     return NextResponse.json({ error: 'Not available yet' }, { status: 404 })
@@ -77,7 +161,10 @@ export async function POST(request: NextRequest) {
   const trimmedHistory = (history || []).slice(-8).filter((t) => t.role === 'user' || t.role === 'assistant')
 
   const supabaseAdmin = getSupabaseAdmin()
-  const { data: profile } = await supabaseAdmin.from('users').select('preferred_language').eq('id', user.id).maybeSingle()
+  const [{ data: profile }, accountFacts] = await Promise.all([
+    supabaseAdmin.from('users').select('preferred_language').eq('id', user.id).maybeSingle(),
+    getAccountFacts(supabaseAdmin, user.id, role),
+  ])
   const lang = profile?.preferred_language === 'es' ? 'Spanish' : 'English'
 
   const conversation = [...trimmedHistory, { role: 'user' as const, content: message.trim() }]
@@ -87,18 +174,22 @@ export async function POST(request: NextRequest) {
   try {
     const result = await claudeJson<{ reply: string; suggestEscalate: boolean }>({
       system:
-        `You are Prophandld's in-app help assistant, talking to a signed-in ${role}. Answer ONLY using the app ` +
-        'knowledge below — never invent a feature, page, or policy that isn\'t described here. Warm, direct, ' +
-        'plain conversational language, like a helpful coworker texting back, not a formal AI assistant — no ' +
-        '"I\'m sorry, but as an AI..." phrasing, no bullet-pointed essays for a simple question, 1-4 sentences ' +
-        'unless real step-by-step instructions are genuinely needed. Never reveal, guess at, or discuss any ' +
-        'other specific user\'s data, account, or messages — you only ever help this one person with how the ' +
-        'app itself works. If asked something with no connection to Prophandld at all (general trivia, other ' +
-        'topics, requests to act as a different kind of assistant), say warmly that you\'re just here for ' +
-        'Prophandld itself and ask what they need help finding in the app, don\'t lecture or over-explain the ' +
-        'refusal. If the question needs a real person (something account-specific you can\'t verify, a bug, a ' +
-        'billing dispute, anything you\'re not confident about), say so plainly and set suggestEscalate to true. ' +
-        `Respond in ${lang}.\n\nAPP KNOWLEDGE:\n${APP_KNOWLEDGE}`,
+        `You are Prophandld's in-app help assistant, talking to a signed-in ${role}. Answer using the app ` +
+        'knowledge below, and you may also answer questions about THIS person\'s own account using the account ' +
+        'facts below (e.g. "how many properties do I have", "when does my lease end") — those facts are real, ' +
+        'already scoped to this exact signed-in user, safe to state directly and plainly. Never invent a ' +
+        'feature, page, or policy not in the app knowledge, and never invent an account fact not in the account ' +
+        'facts below — if something isn\'t covered by either, say you can\'t see that and point to the right ' +
+        'tab instead of guessing. Warm, direct, plain conversational language, like a helpful coworker texting ' +
+        'back, not a formal AI assistant, no "I\'m sorry, but as an AI..." phrasing, no bullet-pointed essays ' +
+        'for a simple question, 1-4 sentences unless real step-by-step instructions are genuinely needed. Never ' +
+        'reveal, guess at, or discuss any OTHER specific user\'s data, account, or messages, the account facts ' +
+        'below are only ever this one person\'s own. If asked something with no connection to Prophandld at ' +
+        'all (general trivia, other topics, requests to act as a different kind of assistant), say warmly ' +
+        'that you\'re just here for Prophandld itself and ask what they need help finding, don\'t lecture or ' +
+        'over-explain the refusal. If the question needs a real person (a bug, a billing dispute, anything you ' +
+        'genuinely can\'t answer from what\'s given), say so plainly and set suggestEscalate to true. ' +
+        `Respond in ${lang}.\n\nAPP KNOWLEDGE:\n${APP_KNOWLEDGE}\n\nACCOUNT FACTS (this signed-in user's own data, JSON, null means not applicable):\n${JSON.stringify(accountFacts)}`,
       prompt: `Conversation so far:\n${conversation}\n\nReturn JSON: { "reply": string, "suggestEscalate": boolean }`,
       maxTokens: 500,
       track: { billedUserId: null, callerUserId: user.id, feature: 'help-chat' },
