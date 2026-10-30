@@ -6,7 +6,12 @@ import { claudeJson, ClaudeConfigError } from '@/lib/claude'
 
 export const maxDuration = 30
 
-type Nudge = { icon: 'calendar' | 'warning' | 'wrench'; text: string }
+// sortDays is the urgency the nudge was built from (days until a renewal/
+// expiry, days a job has sat with no bids) — kept as its own field instead
+// of re-extracted from `text` with a regex, which previously grabbed the
+// first digit sequence in the rendered string (often a street number) and
+// sorted by that instead of by actual urgency.
+type Nudge = { icon: 'calendar' | 'warning' | 'wrench'; text: string; sortDays?: number }
 
 // The one page the AI Features Proposal PDF called the strongest "feels
 // worth paying for" moment — bundles the weekly-digest idea, proactive
@@ -94,13 +99,13 @@ export async function GET() {
       const address = unit ? propertyAddressById.get(unit.property_id) : null
       const label = unit?.unit_number ? `${address}, Unit ${unit.unit_number}` : address
       const days = Math.round((new Date(t.lease_end + 'T00:00:00').getTime() - today.getTime()) / 86400000)
-      nudges.push({ icon: 'calendar', text: `${label} renews in ${days} day${days === 1 ? '' : 's'}` })
+      nudges.push({ icon: 'calendar', text: `${label} renews in ${days} day${days === 1 ? '' : 's'}`, sortDays: days })
     }
 
     for (const c of complianceItems || []) {
       const address = propertyAddressById.get(c.property_id)
       const days = Math.round((new Date(c.expiry_date + 'T00:00:00').getTime() - today.getTime()) / 86400000)
-      nudges.push({ icon: 'warning', text: `${c.item_type} at ${address} expires in ${days} day${days === 1 ? '' : 's'}` })
+      nudges.push({ icon: 'warning', text: `${c.item_type} at ${address} expires in ${days} day${days === 1 ? '' : 's'}`, sortDays: days })
     }
 
     const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
@@ -110,7 +115,7 @@ export async function GET() {
       const createdAt = new Date(j.created_at)
       if (createdAt > sevenDaysAgo) continue
       const days = Math.round((today.getTime() - createdAt.getTime()) / 86400000)
-      nudges.push({ icon: 'wrench', text: `${j.category} job open ${days} days, no bids yet` })
+      nudges.push({ icon: 'wrench', text: `${j.category} job open ${days} days, no bids yet`, sortDays: -days })
     }
 
     // Predictive maintenance — the only one of the four nudge sources that
@@ -147,8 +152,8 @@ export async function GET() {
 
     // Cap and sort by "most time-sensitive first" — the dashboard card is
     // only ever glanced at, not read end to end. Lifespan flags carry no
-    // day count, so they sort to the back rather than tripping the regex.
-    nudges.sort((a, b) => (a.text.match(/\d+/)?.[0] ? Number(a.text.match(/\d+/)![0]) : 999) - (b.text.match(/\d+/)?.[0] ? Number(b.text.match(/\d+/)![0]) : 999))
+    // day count, so they sort to the back.
+    nudges.sort((a, b) => (a.sortDays ?? 999) - (b.sortDays ?? 999))
     const topNudges = nudges.slice(0, 6)
 
     if (topNudges.length === 0) {

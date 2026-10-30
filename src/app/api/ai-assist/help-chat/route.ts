@@ -36,7 +36,7 @@ async function tooManyHelpChatRequests(userId: string): Promise<boolean> {
   const admin = getSupabaseAdmin()
   const windowStart = new Date(Date.now() - 15 * 60 * 1000).toISOString()
   const key = `help-chat:${userId}`
-  admin.from('support_escalate_hits').delete().lt('created_at', windowStart).then(() => {})
+  admin.from('support_escalate_hits').delete().lt('created_at', windowStart).then(() => {}, () => {})
   const { count } = await admin
     .from('support_escalate_hits')
     .select('id', { count: 'exact', head: true })

@@ -150,6 +150,9 @@ export default function InviteContractorPage() {
               <p className="text-white/60 text-sm leading-relaxed">
                 {t('inviteContractorDesc', lang)}
               </p>
+              <Link href="/landlord/contractors" className="inline-block text-[#12A5A9] text-sm font-medium mt-3 transition hover:opacity-80">
+                {t('myContractorsLink', lang)}
+              </Link>
             </div>
 
             <ScrollReveal className="grid sm:grid-cols-3 gap-3 mb-8">

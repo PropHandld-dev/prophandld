@@ -297,12 +297,20 @@ function LandlordJobsList() {
             version that's always reachable from wherever a landlord actually
             manages jobs, so dismissing the dashboard card never costs them
             the feature itself, just that one shortcut. */}
-        <Link
-          href="/landlord/contractors/invite"
-          className="block text-white/60 hover:text-[#12A5A9] text-sm font-medium mb-6 transition"
-        >
-          {t('jobsListInviteLine', lang)}
-        </Link>
+        <div className="flex items-center gap-4 mb-6">
+          <Link
+            href="/landlord/contractors/invite"
+            className="text-white/60 hover:text-[#12A5A9] text-sm font-medium transition"
+          >
+            {t('jobsListInviteLine', lang)}
+          </Link>
+          <Link
+            href="/landlord/contractors"
+            className="text-white/60 hover:text-[#12A5A9] text-sm font-medium transition"
+          >
+            {t('myContractorsLink', lang)}
+          </Link>
+        </div>
 
         {error && (
           <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm mb-6">

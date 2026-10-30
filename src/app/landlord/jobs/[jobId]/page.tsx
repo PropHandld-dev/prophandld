@@ -37,6 +37,7 @@ import { TIME_WINDOWS, validateScheduleTime, lateRescheduleWarning, shortNoticeW
 import { AddressLink } from '@/components/AddressLink'
 import { cardProcessingFee, achProcessingFee } from '@/lib/cardSurcharge'
 import { AI_ASSIST_ENABLED } from '@/lib/aiAssist'
+import { FavoriteContractorButton } from '@/components/FavoriteContractorButton'
 import { useLanguage, t, windowLabel } from '@/lib/i18n'
 
 // Shared styling for every secondary action in the status card's action
@@ -73,6 +74,7 @@ export default function JobDetailPage() {
   const [answeringId, setAnsweringId] = useState<string | null>(null)
   const [rehireSuggestion, setRehireSuggestion] = useState<{ id: string; name: string } | null>(null)
   const [rehireLoading, setRehireLoading] = useState(false)
+  const [favoriteContractorIds, setFavoriteContractorIds] = useState<Set<string>>(new Set())
   const [aiAssistActive, setAiAssistActive] = useState(false)
   const [beforeAfterCheck, setBeforeAfterCheck] = useState<{ looksResolved: boolean; note: string } | null>(null)
   const [beforeAfterChecking, setBeforeAfterChecking] = useState(false)
@@ -384,6 +386,13 @@ export default function JobDetailPage() {
       .then((res) => res.json())
       .then((data) => setAiAssistActive(data.enabled && (data.status === 'trialing' || data.status === 'active')))
       .catch(() => setAiAssistActive(false))
+  }, [])
+
+  useEffect(() => {
+    fetch('/api/landlord/favorite-contractors')
+      .then((res) => res.json())
+      .then((data) => setFavoriteContractorIds(new Set(data.contractorIds || [])))
+      .catch(() => {})
   }, [])
 
   const startRehireDm = async () => {
@@ -1559,6 +1568,18 @@ export default function JobDetailPage() {
               <div>
                 <div className="flex items-center gap-2">
                   <p className="text-white font-semibold">{acceptedBid.contractor?.full_name}</p>
+                  <FavoriteContractorButton
+                    contractorUserId={acceptedBid.contractor_user_id}
+                    isFavorited={favoriteContractorIds.has(acceptedBid.contractor_user_id)}
+                    onChange={(favorited) =>
+                      setFavoriteContractorIds((prev) => {
+                        const next = new Set(prev)
+                        if (favorited) next.add(acceptedBid.contractor_user_id)
+                        else next.delete(acceptedBid.contractor_user_id)
+                        return next
+                      })
+                    }
+                  />
                   {(credentialBadges[acceptedBid.contractor_user_id] || []).map((label) => (
                     <span key={label} className="text-xs bg-[#0A7B7E]/20 text-[#12A5A9] rounded-full px-2 py-0.5 font-semibold">
                       {label} ✓
