@@ -15,12 +15,15 @@ export const maxDuration = 30
 type Nudge = { icon: 'calendar' | 'warning' | 'wrench'; text: string; sortDays?: number }
 
 // The one page the AI Features Proposal PDF called the strongest "feels
-// worth paying for" moment — bundles the weekly-digest idea, proactive
-// nudges (lease renewals, compliance expiring, stale job postings), and
-// the ready-to-open-for-bidding check into one card on the landlord
-// dashboard. The nudge FACTS are plain deterministic queries, not AI —
-// only the one-paragraph summary tying them together actually calls
-// Claude, which is also why this stays cheap even at heavy use.
+// worth paying for" moment — bundles the weekly-digest idea and proactive
+// nudges into one card on the landlord dashboard. Deliberately only
+// surfaces what's NOT already shown elsewhere on that dashboard (lease
+// renewals, stale open jobs, predicted-lifespan flags on tracked systems)
+// — compliance-expiring used to be a nudge here too, but that duplicated
+// AlertsList's own compliance alerts one scroll below, so it was dropped
+// from here. The nudge FACTS are plain deterministic queries, not AI —
+// only the one-paragraph summary tying them together, and the lifespan
+// prediction, actually call Claude.
 export async function GET() {
   const authClient = await createClient()
   const { data: { user } } = await authClient.auth.getUser()
@@ -62,7 +65,7 @@ export async function GET() {
     const in30 = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
     const todayKey = today.toISOString().slice(0, 10)
 
-    const [{ data: tenancies }, { data: complianceItems }, { data: staleJobs }, { data: systems }] = await Promise.all([
+    const [{ data: tenancies }, { data: staleJobs }, { data: systems }] = await Promise.all([
       unitIds.length > 0
         ? supabaseAdmin
             .from('tenancies')
@@ -73,13 +76,6 @@ export async function GET() {
             .gte('lease_end', todayKey)
             .lte('lease_end', in30)
         : Promise.resolve({ data: [] }),
-      supabaseAdmin
-        .from('compliance_items')
-        .select('item_type, expiry_date, property_id')
-        .in('property_id', propertyIds)
-        .not('expiry_date', 'is', null)
-        .gte('expiry_date', todayKey)
-        .lte('expiry_date', in30),
       unitIds.length > 0
         ? supabaseAdmin
             .from('jobs')
@@ -106,11 +102,13 @@ export async function GET() {
       nudges.push({ icon: 'calendar', text: `${label} renews in ${days} day${days === 1 ? '' : 's'}`, sortDays: days })
     }
 
-    for (const c of complianceItems || []) {
-      const address = propertyAddressById.get(c.property_id)
-      const days = Math.round((new Date(c.expiry_date + 'T00:00:00').getTime() - today.getTime()) / 86400000)
-      nudges.push({ icon: 'warning', text: `${c.item_type} at ${address} expires in ${days} day${days === 1 ? '' : 's'}`, sortDays: days })
-    }
+    // Compliance-expiring used to be its own nudge here too, computed from
+    // a plain fixed 30-day window — but the dashboard's AlertsList already
+    // shows the exact same fact, per item's own custom reminder_days
+    // threshold, with a direct link, right below this card. Landlords were
+    // seeing the same expiring-license fact twice in two different visual
+    // styles back to back, which read as clutter rather than two real
+    // signals. Dropped here; AlertsList stays the one place for it.
 
     const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
     for (const j of staleJobs || []) {
