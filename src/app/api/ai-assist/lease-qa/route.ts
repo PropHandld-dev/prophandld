@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { hasAiAssistAccess } from '@/lib/aiAssist'
+import { tooManyAiAssistRequests } from '@/lib/aiAssistRateLimit'
 import { claudeJson, ClaudeConfigError } from '@/lib/claude'
 
 export const maxDuration = 30
@@ -59,6 +60,10 @@ export async function POST(request: NextRequest) {
 
   if (!(await hasAiAssistAccess(supabaseAdmin, landlordUserId))) {
     return NextResponse.json({ error: 'Your landlord hasn’t turned on AI Assist yet.' }, { status: 403 })
+  }
+
+  if (await tooManyAiAssistRequests('lease-qa', user.id)) {
+    return NextResponse.json({ error: 'Too many questions right now, try again in a few minutes.' }, { status: 429 })
   }
 
   const leaseFacts = {

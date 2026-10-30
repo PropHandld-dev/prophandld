@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { AI_ASSIST_ENABLED } from '@/lib/aiAssist'
+import { tooManyAiAssistRequests } from '@/lib/aiAssistRateLimit'
 import { claudeJson, ClaudeConfigError } from '@/lib/claude'
 
 export const maxDuration = 30
@@ -31,23 +32,6 @@ AI ASSIST: a newer set of AI-powered features (reading uploaded documents to aut
 
 Legal pages exist at /terms (plus role-specific /terms/landlord, /terms/renter, /terms/contractor) and /privacy — point people there for anything legal/contractual rather than answering a legal question yourself.
 `.trim()
-
-async function tooManyHelpChatRequests(userId: string): Promise<boolean> {
-  const admin = getSupabaseAdmin()
-  const windowStart = new Date(Date.now() - 15 * 60 * 1000).toISOString()
-  const key = `help-chat:${userId}`
-  admin.from('support_escalate_hits').delete().lt('created_at', windowStart).then(() => {}, () => {})
-  const { count } = await admin
-    .from('support_escalate_hits')
-    .select('id', { count: 'exact', head: true })
-    .eq('rate_key', key)
-    .gte('created_at', windowStart)
-  await admin.from('support_escalate_hits').insert({ rate_key: key })
-  // Generous — a real back-and-forth conversation easily runs 10+ turns —
-  // but still a real ceiling against someone scripting this into a free
-  // general-purpose chatbot proxy.
-  return (count || 0) >= 30
-}
 
 type ChatTurn = { role: 'user' | 'assistant'; content: string }
 
@@ -150,7 +134,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Not available' }, { status: 403 })
   }
 
-  if (await tooManyHelpChatRequests(user.id)) {
+  // Generous — a real back-and-forth conversation easily runs 10+ turns —
+  // but still a real ceiling against someone scripting this into a free
+  // general-purpose chatbot proxy.
+  if (await tooManyAiAssistRequests('help-chat', user.id, 30)) {
     return NextResponse.json({ error: 'Too many messages right now, try again in a few minutes.' }, { status: 429 })
   }
 

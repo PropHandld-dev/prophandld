@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { hasAiAssistAccess } from '@/lib/aiAssist'
+import { tooManyAiAssistRequests } from '@/lib/aiAssistRateLimit'
 import { claudeJson, ClaudeConfigError } from '@/lib/claude'
 
 export const maxDuration = 30
@@ -46,6 +47,9 @@ export async function POST(request: NextRequest) {
   const landlordUserId = (job as any)?.units?.properties?.owner_user_id
   if (!job || !landlordUserId || !(await hasAiAssistAccess(supabaseAdmin, landlordUserId))) {
     return NextResponse.json({ error: 'AI Assist is not active on this job' }, { status: 403 })
+  }
+  if (await tooManyAiAssistRequests('polish-bid', user.id, 20)) {
+    return NextResponse.json({ error: 'Too many requests right now, try again in a few minutes.' }, { status: 429 })
   }
 
   const priceLine =

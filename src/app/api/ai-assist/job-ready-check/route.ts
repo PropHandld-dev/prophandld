@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { hasAiAssistAccess } from '@/lib/aiAssist'
+import { tooManyAiAssistRequests } from '@/lib/aiAssistRateLimit'
 import { claudeJson, ClaudeConfigError } from '@/lib/claude'
 
 export const maxDuration = 20
@@ -22,6 +23,9 @@ export async function POST(request: NextRequest) {
 
   const supabaseAdmin = getSupabaseAdmin()
   if (!(await hasAiAssistAccess(supabaseAdmin, user.id))) {
+    return NextResponse.json({ ready: true })
+  }
+  if (await tooManyAiAssistRequests('job-ready-check', user.id, 40)) {
     return NextResponse.json({ ready: true })
   }
 

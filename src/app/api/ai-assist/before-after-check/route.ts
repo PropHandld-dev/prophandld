@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { hasAiAssistAccess } from '@/lib/aiAssist'
+import { tooManyAiAssistRequests } from '@/lib/aiAssistRateLimit'
 import { claudeJson, ClaudeConfigError } from '@/lib/claude'
 
 export const maxDuration = 60
@@ -40,6 +41,9 @@ export async function POST(request: NextRequest) {
   }
   if (!(await hasAiAssistAccess(supabaseAdmin, user.id))) {
     return NextResponse.json({ error: 'AI Assist is not active on this account' }, { status: 403 })
+  }
+  if (await tooManyAiAssistRequests('before-after-check', user.id, 20)) {
+    return NextResponse.json({ error: 'Too many checks right now, try again in a few minutes.' }, { status: 429 })
   }
 
   const { data: photos } = await supabaseAdmin

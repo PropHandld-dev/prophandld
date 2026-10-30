@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { hasAiAssistAccess } from '@/lib/aiAssist'
+import { tooManyAiAssistRequests } from '@/lib/aiAssistRateLimit'
 import { claudeJson, ClaudeConfigError } from '@/lib/claude'
 
 export const maxDuration = 30
@@ -64,6 +65,9 @@ export async function POST(request: NextRequest) {
     .maybeSingle()
   const landlordUserId = (unit as any)?.properties?.owner_user_id
   if (!landlordUserId || !(await hasAiAssistAccess(supabaseAdmin, landlordUserId))) {
+    return NextResponse.json({ done: true, resolved: false, message: '' } as FirstPass)
+  }
+  if (await tooManyAiAssistRequests('troubleshoot', user.id, 20)) {
     return NextResponse.json({ done: true, resolved: false, message: '' } as FirstPass)
   }
 

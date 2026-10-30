@@ -108,25 +108,60 @@ export async function POST() {
     const paymentMethods = await stripe.paymentMethods.list({ customer: customerId, type: 'card', limit: 1 })
 
     if (paymentMethods.data.length > 0) {
-      const subscription = await stripe.subscriptions.create({
-        customer: customerId,
-        items: [{ price: priceId, quantity }],
-        trial_period_days: AI_ASSIST_TRIAL_DAYS,
-        metadata,
-      })
-
-      const { error: insertError } = await supabaseAdmin.from('ai_assist_subscriptions').insert({
+      // Claim the row before touching Stripe, not after — a double-click or
+      // a client retry otherwise lets two concurrent requests both pass the
+      // `!existing` check above and both call subscriptions.create(), and
+      // since this table's primary key is landlord_user_id, the second
+      // insert then fails with a live Stripe subscription already created
+      // and no DB row to track it, so it bills forever with no way for the
+      // app or the landlord to cancel it. Claiming first means the loser of
+      // the race bails out here instead, before any Stripe call.
+      const { error: claimError } = await supabaseAdmin.from('ai_assist_subscriptions').insert({
         landlord_user_id: user.id,
         status: 'trialing',
         trial_started_at: new Date().toISOString(),
-        stripe_subscription_id: subscription.id,
+        stripe_subscription_id: null,
       })
-      if (insertError) {
-        console.error('ai-assist/start-trial: insert failed after creating subscription', insertError)
-        return NextResponse.json({ error: 'Could not save AI Assist status' }, { status: 500 })
+      if (claimError) {
+        const { data: raceWinner } = await supabaseAdmin
+          .from('ai_assist_subscriptions')
+          .select('status')
+          .eq('landlord_user_id', user.id)
+          .maybeSingle()
+        return NextResponse.json({ status: raceWinner?.status || 'trialing', alreadyStarted: true })
       }
 
-      return NextResponse.json({ redirect: false, status: 'trialing' })
+      // If anything from here fails, the claimed row must not survive as a
+      // bare "trialing, no subscription" — that would hand out free AI
+      // Assist access with no real Stripe subscription behind it at all.
+      try {
+        const subscription = await stripe.subscriptions.create({
+          customer: customerId,
+          items: [{ price: priceId, quantity }],
+          trial_period_days: AI_ASSIST_TRIAL_DAYS,
+          metadata,
+        })
+
+        const { error: updateError } = await supabaseAdmin
+          .from('ai_assist_subscriptions')
+          .update({ stripe_subscription_id: subscription.id })
+          .eq('landlord_user_id', user.id)
+        if (updateError) {
+          // The Stripe subscription is real at this point — cancel it rather
+          // than deleting the row and leaving it live with nothing tracking
+          // it, same failure mode this whole claim-row change exists to
+          // close.
+          console.error('ai-assist/start-trial: update failed after creating subscription, cancelling it', updateError)
+          await stripe.subscriptions.cancel(subscription.id).catch((cancelErr) => console.error('ai-assist/start-trial: cleanup cancel also failed', cancelErr))
+          await supabaseAdmin.from('ai_assist_subscriptions').delete().eq('landlord_user_id', user.id).is('stripe_subscription_id', null)
+          return NextResponse.json({ error: 'Could not save AI Assist status' }, { status: 500 })
+        }
+
+        return NextResponse.json({ redirect: false, status: 'trialing' })
+      } catch (err) {
+        await supabaseAdmin.from('ai_assist_subscriptions').delete().eq('landlord_user_id', user.id).is('stripe_subscription_id', null)
+        throw err
+      }
     }
 
     const session = await stripe.checkout.sessions.create({

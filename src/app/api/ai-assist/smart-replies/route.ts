@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { hasAiAssistAccess } from '@/lib/aiAssist'
+import { tooManyAiAssistRequests } from '@/lib/aiAssistRateLimit'
 import { claudeJson, ClaudeConfigError } from '@/lib/claude'
 import { loadChatParticipants } from '@/lib/chatParticipants'
 
@@ -32,6 +33,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ replies: [] })
   }
   if (!(await hasAiAssistAccess(supabaseAdmin, landlord.userId))) {
+    return NextResponse.json({ replies: [] })
+  }
+  // This is the highest-frequency AI check in the app (reruns on every
+  // incoming chat message), so the ceiling is generous enough to never
+  // trip during a genuinely active conversation — a backstop against a
+  // scripted loop, not a usage cap.
+  if (await tooManyAiAssistRequests('smart-replies', user.id, 60)) {
     return NextResponse.json({ replies: [] })
   }
 
