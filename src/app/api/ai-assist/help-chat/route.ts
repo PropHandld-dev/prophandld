@@ -227,25 +227,28 @@ export async function POST(request: NextRequest) {
     // Awaited, not fire-and-forget — a serverless function's execution
     // context can be torn down the instant the response is sent, so an
     // un-awaited insert here would race the response and routinely lose,
-    // never actually landing. The supabase-js client never throws for a
-    // database-level error (permission, constraint, missing table) — it
-    // resolves normally with { error } set — so a bare try/catch around an
-    // un-destructured await silently swallows exactly that class of
-    // failure too; this must check `error` explicitly to actually surface
-    // it. A failed write here still doesn't fail the reply that already
-    // succeeded, it just means this one exchange won't show up next time
-    // the panel reopens.
+    // never actually landing. Every row in the batch explicitly sets every
+    // column (suggest_escalate included, even though it's false for the
+    // user turn) — PostgREST builds one INSERT across the whole array
+    // using the union of keys present, and sends an explicit NULL for a
+    // key a given row omits rather than letting that column's own default
+    // apply, which violated suggest_escalate's not-null constraint on the
+    // user row specifically (confirmed live via a temporary debug field
+    // echoing the real { error }, since supabase-js never throws for a
+    // database-level error like this one — it resolves normally with
+    // {error} set, so a bare try/catch with no destructured error silently
+    // swallowed it with nothing logged, which is why this took two tries
+    // to actually find).
     try {
       const { error: historyError } = await supabaseAdmin.from('ai_help_chat_messages').insert([
-        { user_id: user.id, role: 'user', content: message.trim() },
+        { user_id: user.id, role: 'user', content: message.trim(), suggest_escalate: false },
         { user_id: user.id, role: 'assistant', content: result.reply, suggest_escalate: !!result.suggestEscalate },
       ])
       if (historyError) console.error('ai-assist/help-chat: history insert failed', historyError)
-      return NextResponse.json(historyError ? { ...result, _debugHistoryError: historyError } : result)
     } catch (err) {
       console.error('ai-assist/help-chat: history insert threw', err)
-      return NextResponse.json({ ...result, _debugHistoryError: String(err) })
     }
+    return NextResponse.json(result)
   } catch (err) {
     if (err instanceof ClaudeConfigError) {
       return NextResponse.json({ error: 'Not set up yet' }, { status: 503 })
