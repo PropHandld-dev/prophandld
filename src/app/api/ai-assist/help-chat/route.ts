@@ -94,7 +94,7 @@ async function getAccountFacts(admin: ReturnType<typeof getSupabaseAdmin>, userI
 
     const [{ count: openJobs }, { count: upcomingRenewals }] = await Promise.all([
       unitIds.length > 0
-        ? admin.from('jobs').select('id', { count: 'exact', head: true }).in('unit_id', unitIds).in('status', ['pending_approval', 'approved', 'bidding', 'bid_selected', 'scheduled', 'in_progress', 'pending_review'])
+        ? admin.from('jobs').select('id', { count: 'exact', head: true }).in('unit_id', unitIds).in('status', ['pending_approval', 'approved', 'bidding', 'bid_selected', 'scheduled', 'in_progress', 'pending_review', 'disputed'])
         : Promise.resolve({ count: 0 }),
       unitIds.length > 0
         ? admin.from('tenancies').select('id', { count: 'exact', head: true }).in('unit_id', unitIds).eq('ended', false).not('lease_end', 'is', null).gte('lease_end', todayKey).lte('lease_end', in30)
@@ -227,20 +227,25 @@ export async function POST(request: NextRequest) {
     // Awaited, not fire-and-forget — a serverless function's execution
     // context can be torn down the instant the response is sent, so an
     // un-awaited insert here would race the response and routinely lose,
-    // never actually landing (caught live: POST succeeded every time, but
-    // the row never existed on the next GET). Still wrapped in its own
-    // try/catch — a failed write here means this one exchange won't show
-    // up next time the panel reopens, not a reason to fail a reply that
-    // already succeeded.
+    // never actually landing. The supabase-js client never throws for a
+    // database-level error (permission, constraint, missing table) — it
+    // resolves normally with { error } set — so a bare try/catch around an
+    // un-destructured await silently swallows exactly that class of
+    // failure too; this must check `error` explicitly to actually surface
+    // it. A failed write here still doesn't fail the reply that already
+    // succeeded, it just means this one exchange won't show up next time
+    // the panel reopens.
     try {
-      await supabaseAdmin.from('ai_help_chat_messages').insert([
+      const { error: historyError } = await supabaseAdmin.from('ai_help_chat_messages').insert([
         { user_id: user.id, role: 'user', content: message.trim() },
         { user_id: user.id, role: 'assistant', content: result.reply, suggest_escalate: !!result.suggestEscalate },
       ])
+      if (historyError) console.error('ai-assist/help-chat: history insert failed', historyError)
+      return NextResponse.json(historyError ? { ...result, _debugHistoryError: historyError } : result)
     } catch (err) {
-      console.error('ai-assist/help-chat: history insert failed', err)
+      console.error('ai-assist/help-chat: history insert threw', err)
+      return NextResponse.json({ ...result, _debugHistoryError: String(err) })
     }
-    return NextResponse.json(result)
   } catch (err) {
     if (err instanceof ClaudeConfigError) {
       return NextResponse.json({ error: 'Not set up yet' }, { status: 503 })
