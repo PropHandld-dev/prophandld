@@ -3,6 +3,7 @@ import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { AI_ASSIST_ENABLED } from '@/lib/aiAssist'
 import { tooManyAiAssistRequests } from '@/lib/aiAssistRateLimit'
+import { getLandlordIdsAdmin } from '@/lib/landlordIds'
 import { claudeJson, ClaudeConfigError } from '@/lib/claude'
 
 export const maxDuration = 30
@@ -35,6 +36,32 @@ Legal pages exist at /terms (plus role-specific /terms/landlord, /terms/renter, 
 
 type ChatTurn = { role: 'user' | 'assistant'; content: string }
 
+const HISTORY_WINDOW_DAYS = 30
+// A real conversation rarely runs past a couple dozen turns — capping what
+// a GET returns (not what gets stored; nothing is ever deleted early)
+// keeps the panel's first paint fast regardless of how chatty someone's
+// history gets over 30 days.
+const HISTORY_MAX_ROWS = 60
+
+// Loading the panel re-opens to where someone left off instead of a blank
+// slate every time — closing the bubble unmounts AiHelpChat and wipes its
+// in-memory turns immediately, which read as "I lose my chat" even within
+// the same visit, not just across days. Lazily prunes this user's own rows
+// older than the retention window on the way out, same pattern as
+// tooManyAiAssistRequests' sweep of support_escalate_hits.
+async function loadRecentHistory(admin: ReturnType<typeof getSupabaseAdmin>, userId: string) {
+  const cutoff = new Date(Date.now() - HISTORY_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString()
+  admin.from('ai_help_chat_messages').delete().eq('user_id', userId).lt('created_at', cutoff).then(() => {}, () => {})
+  const { data } = await admin
+    .from('ai_help_chat_messages')
+    .select('role, content, suggest_escalate, created_at')
+    .eq('user_id', userId)
+    .gte('created_at', cutoff)
+    .order('created_at', { ascending: false })
+    .limit(HISTORY_MAX_ROWS)
+  return (data || []).reverse()
+}
+
 // The signed-in user's OWN real numbers — never another user's. Deliberately
 // just counts/summaries, not full records (no names, no message contents),
 // kept cheap and lean since this runs on every single message. This is the
@@ -47,7 +74,8 @@ async function getAccountFacts(admin: ReturnType<typeof getSupabaseAdmin>, userI
   const in30 = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
 
   if (role === 'landlord') {
-    const { data: properties } = await admin.from('properties').select('id').eq('owner_user_id', userId).eq('archived', false)
+    const landlordIds = await getLandlordIdsAdmin(admin, userId)
+    const { data: properties } = await admin.from('properties').select('id').in('owner_user_id', landlordIds).eq('archived', false)
     const propertyIds = (properties || []).map((p) => p.id)
     if (propertyIds.length === 0) return { propertyCount: 0, unitCount: 0 }
 
@@ -119,6 +147,21 @@ async function getAccountFacts(admin: ReturnType<typeof getSupabaseAdmin>, userI
   return {}
 }
 
+export async function GET() {
+  if (!AI_ASSIST_ENABLED) {
+    return NextResponse.json({ turns: [] })
+  }
+  const authClient = await createClient()
+  const { data: { user } } = await authClient.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+  }
+  const turns = await loadRecentHistory(getSupabaseAdmin(), user.id)
+  return NextResponse.json({
+    turns: turns.map((row) => ({ role: row.role, content: row.content, suggestEscalate: row.suggest_escalate })),
+  })
+}
+
 export async function POST(request: NextRequest) {
   if (!AI_ASSIST_ENABLED) {
     return NextResponse.json({ error: 'Not available yet' }, { status: 404 })
@@ -181,6 +224,16 @@ export async function POST(request: NextRequest) {
       maxTokens: 500,
       track: { billedUserId: null, callerUserId: user.id, feature: 'help-chat' },
     })
+    // Best-effort — a failed write here means this one exchange won't show
+    // up next time the panel reopens, not a reason to fail a reply that
+    // already succeeded.
+    supabaseAdmin
+      .from('ai_help_chat_messages')
+      .insert([
+        { user_id: user.id, role: 'user', content: message.trim() },
+        { user_id: user.id, role: 'assistant', content: result.reply, suggest_escalate: !!result.suggestEscalate },
+      ])
+      .then(() => {}, (err) => console.error('ai-assist/help-chat: history insert failed', err))
     return NextResponse.json(result)
   } catch (err) {
     if (err instanceof ClaudeConfigError) {

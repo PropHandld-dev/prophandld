@@ -17,3 +17,20 @@ export async function getLandlordIds(supabase: SupabaseClient, userId: string): 
   const { data, error } = await supabase.rpc('my_landlord_ids')
   return !error && data?.length ? data : [userId]
 }
+
+// Same answer as getLandlordIds, for the service-role routes that can't use
+// it — my_landlord_ids() resolves off auth.uid(), which is unset under the
+// admin client, so it silently falls back to just [userId] there, same as
+// passing no co-owner relationship existed at all. Found via a real
+// landlord's AI help-chat undercounting their own property/unit count
+// (co-owned properties, owned by a different primary landlord, were
+// excluded) — portfolio-digest has the same gap, documented in its own
+// comment, for the same reason.
+export async function getLandlordIdsAdmin(admin: { from: (table: string) => any }, userId: string): Promise<string[]> {
+  const { data } = await admin
+    .from('landlord_co_owners')
+    .select('primary_landlord_user_id')
+    .eq('co_owner_user_id', userId)
+    .eq('status', 'accepted')
+  return [userId, ...((data || []) as { primary_landlord_user_id: string }[]).map((r) => r.primary_landlord_user_id)]
+}

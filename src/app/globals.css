@@ -1,8 +1,21 @@
 @import "tailwindcss";
 
+/* This app is a single, deliberately dark theme everywhere — not adaptive
+   to the OS light/dark setting, unlike the create-next-app scaffolding
+   this block started from (which toggled --background between white and
+   near-black via prefers-color-scheme, and was never actually wired into
+   any real page — grep confirms every page sets its own bg-[#0C1A2E]
+   directly). Left as-is, it meant: a device in light mode shows a white
+   flash wherever the real dark background hasn't painted yet (page load,
+   native WebView overscroll bounce), and no color-scheme was declared at
+   all, so some browsers render native form chrome (autofill, selection,
+   spellcheck) assuming a light page even though every input is styled
+   dark. Both fixed by just committing to the one theme this app actually
+   has. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0C1A2E;
+  --foreground: #ededed;
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -10,13 +23,6 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {

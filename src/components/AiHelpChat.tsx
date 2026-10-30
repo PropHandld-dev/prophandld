@@ -30,6 +30,17 @@ export function AiHelpChat() {
     supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email || null))
   }, [])
 
+  // Closing the bubble unmounts this component and wipes `turns` — reload
+  // the last 30 days of this person's own history on every fresh mount so
+  // reopening (or coming back a different day) picks up where they left
+  // off instead of a blank slate.
+  useEffect(() => {
+    fetch('/api/ai-assist/help-chat')
+      .then((res) => res.json())
+      .then((data) => { if (Array.isArray(data.turns) && data.turns.length) setTurns(data.turns) })
+      .catch(() => {})
+  }, [])
+
   useEffect(() => {
     const el = listRef.current
     if (el) el.scrollTop = el.scrollHeight

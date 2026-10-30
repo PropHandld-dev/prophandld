@@ -3,6 +3,7 @@ import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { hasAiAssistAccess } from '@/lib/aiAssist'
 import { tooManyAiAssistRequests } from '@/lib/aiAssistRateLimit'
+import { getLandlordIdsAdmin } from '@/lib/landlordIds'
 import { claudeJson, ClaudeConfigError } from '@/lib/claude'
 
 export const maxDuration = 30
@@ -43,11 +44,7 @@ export async function GET() {
   }
 
   try {
-    // getLandlordIds' my_landlord_ids() RPC resolves off auth.uid(), which
-    // is unset under the service-role admin client used here — scoped to
-    // this landlord's own properties only, not co-owned ones, same
-    // graceful fallback getLandlordIds itself would take in that case.
-    const landlordIds = [user.id]
+    const landlordIds = await getLandlordIdsAdmin(supabaseAdmin, user.id)
 
     const { data: properties } = await supabaseAdmin.from('properties').select('id, address').in('owner_user_id', landlordIds).eq('archived', false)
     const propertyIds = (properties || []).map((p) => p.id)
