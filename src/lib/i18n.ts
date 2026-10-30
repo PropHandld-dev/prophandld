@@ -1177,9 +1177,12 @@ const STRINGS = {
   aiAssistStatusActive: { en: 'Active', es: 'Activo' },
   aiAssistStatusPastDue: { en: 'Payment issue', es: 'Problema de pago' },
   aiAssistStatusNotStarted: { en: 'Not added', es: 'No agregado' },
+  aiAssistStatusEnding: { en: 'Ending soon', es: 'Termina pronto' },
   aiAssistStartTrialBtn: { en: 'Try free for 14 days', es: 'Prueba gratis por 14 días' },
   aiAssistManageBtn: { en: 'Turn off AI Assist', es: 'Desactivar AI Assist' },
+  aiAssistUndoCancelBtn: { en: 'Keep AI Assist on', es: 'Mantener AI Assist activado' },
   aiAssistDaysLeft: { en: '{days} days left in your free trial', es: 'Quedan {days} días de tu prueba gratis' },
+  aiAssistEndingOn: { en: "You'll keep full access through {date}. It just won't renew after that, unless you turn it back on.", es: 'Mantendrás acceso completo hasta el {date}. Solo que no se renovará después, a menos que lo vuelvas a activar.' },
   aiAssistCouldNotStart: { en: 'Could not start AI Assist. Try again in a moment.', es: 'No se pudo activar AI Assist. Inténtalo de nuevo en un momento.' },
   aiAssistCouldNotCancel: { en: 'Could not turn off AI Assist. Try again in a moment.', es: 'No se pudo desactivar AI Assist. Inténtalo de nuevo en un momento.' },
 

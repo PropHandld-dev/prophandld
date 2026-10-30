@@ -109,15 +109,27 @@ export async function POST(request: NextRequest) {
           // fires for landlords who went through hosted Checkout.
           const landlordUserId = session.metadata?.prophandld_landlord_user_id
           if (landlordUserId) {
+            // Status is read from the real subscription rather than
+            // hardcoded 'trialing' — a restart after a prior cancellation
+            // (start-trial/route.ts skips trial_period_days there) comes
+            // back 'active', charged immediately, not trialing. A plain
+            // upsert (not ignoreDuplicates) so a restart's existing
+            // 'canceled' row actually gets overwritten instead of silently
+            // left as-is because a row with that landlord_user_id already
+            // existed.
+            const subscription = await stripe.subscriptions.retrieve(session.subscription as string)
+            const status = subscription.status === 'active' ? 'active' : 'trialing'
             const { error } = await supabaseAdmin.from('ai_assist_subscriptions').upsert(
               {
                 landlord_user_id: landlordUserId,
-                status: 'trialing',
+                status,
                 trial_started_at: new Date().toISOString(),
                 stripe_subscription_id: session.subscription as string,
+                cancel_at_period_end: false,
+                current_period_end: null,
                 updated_at: new Date().toISOString(),
               },
-              { onConflict: 'landlord_user_id', ignoreDuplicates: true }
+              { onConflict: 'landlord_user_id' }
             )
             if (error) console.error('stripe webhook: ai_assist checkout.session.completed upsert failed', error)
           }
@@ -159,9 +171,18 @@ export async function POST(request: NextRequest) {
               : subscription.status === 'canceled'
                 ? 'canceled'
                 : 'past_due'
+          // Keeps cancel_at_period_end/current_period_end accurate beyond
+          // just the app's own cancel route — e.g. if it's ever changed
+          // from the Stripe dashboard directly.
+          const periodEnd = subscription.items.data[0]?.current_period_end
           const { error } = await supabaseAdmin
             .from('ai_assist_subscriptions')
-            .update({ status, updated_at: new Date().toISOString() })
+            .update({
+              status,
+              cancel_at_period_end: subscription.cancel_at_period_end,
+              current_period_end: subscription.cancel_at_period_end && periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
+              updated_at: new Date().toISOString(),
+            })
             .eq('landlord_user_id', landlordUserId)
           if (error) console.error('stripe webhook: ai_assist customer.subscription.updated failed', error)
           break
@@ -183,7 +204,7 @@ export async function POST(request: NextRequest) {
         if (landlordUserId && subscription.metadata?.prophandld_type === 'ai_assist') {
           const { error } = await supabaseAdmin
             .from('ai_assist_subscriptions')
-            .update({ status: 'canceled', updated_at: new Date().toISOString() })
+            .update({ status: 'canceled', cancel_at_period_end: false, current_period_end: null, updated_at: new Date().toISOString() })
             .eq('landlord_user_id', landlordUserId)
           if (error) console.error('stripe webhook: ai_assist customer.subscription.deleted failed', error)
           break

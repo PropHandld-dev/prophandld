@@ -22,6 +22,8 @@ export function AiAssistCard() {
   const [loading, setLoading] = useState(true)
   const [working, setWorking] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [cancelAtPeriodEnd, setCancelAtPeriodEnd] = useState(false)
+  const [currentPeriodEnd, setCurrentPeriodEnd] = useState<string | null>(null)
 
   const load = async () => {
     // The route itself already checks this and returns instantly, but
@@ -40,6 +42,8 @@ export function AiAssistCard() {
       setStatus(res.ok ? data.status : 'none')
       setDaysLeft(data.daysLeftInTrial ?? null)
       setMonthlyPrice(typeof data.monthlyPrice === 'number' ? data.monthlyPrice : null)
+      setCancelAtPeriodEnd(!!data.cancelAtPeriodEnd)
+      setCurrentPeriodEnd(data.currentPeriodEnd ?? null)
     } catch {
       setEnabled(false)
     }
@@ -92,6 +96,25 @@ export function AiAssistCard() {
     }
   }
 
+  const handleUndoCancel = async () => {
+    setWorking(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/ai-assist/cancel', { method: 'DELETE' })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || t('aiAssistCouldNotCancel', lang))
+        setWorking(false)
+        return
+      }
+      await load()
+      setWorking(false)
+    } catch {
+      setError(t('aiAssistCouldNotCancel', lang))
+      setWorking(false)
+    }
+  }
+
   if (loading) {
     return (
       <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6">
@@ -104,14 +127,19 @@ export function AiAssistCard() {
   if (!enabled) return null
 
   const isOn = status === 'trialing' || status === 'active' || status === 'past_due'
+  const periodEndLabel = currentPeriodEnd
+    ? new Date(currentPeriodEnd).toLocaleDateString(undefined, { month: 'long', day: 'numeric' })
+    : null
 
-  const badge = status === 'trialing'
-    ? { label: t('aiAssistStatusTrialing', lang), cls: 'bg-[#0A7B7E]/20 text-[#12A5A9]' }
-    : status === 'active'
-      ? { label: t('aiAssistStatusActive', lang), cls: 'bg-[#0A7B7E]/20 text-[#12A5A9]' }
-      : status === 'past_due'
-        ? { label: t('aiAssistStatusPastDue', lang), cls: 'bg-red-500/15 text-red-400' }
-        : { label: t('aiAssistStatusNotStarted', lang), cls: 'bg-white/8 text-white/50' }
+  const badge = cancelAtPeriodEnd
+    ? { label: t('aiAssistStatusEnding', lang), cls: 'bg-yellow-500/15 text-yellow-400' }
+    : status === 'trialing'
+      ? { label: t('aiAssistStatusTrialing', lang), cls: 'bg-[#0A7B7E]/20 text-[#12A5A9]' }
+      : status === 'active'
+        ? { label: t('aiAssistStatusActive', lang), cls: 'bg-[#0A7B7E]/20 text-[#12A5A9]' }
+        : status === 'past_due'
+          ? { label: t('aiAssistStatusPastDue', lang), cls: 'bg-red-500/15 text-red-400' }
+          : { label: t('aiAssistStatusNotStarted', lang), cls: 'bg-white/8 text-white/50' }
 
   return (
     <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6">
@@ -131,6 +159,10 @@ export function AiAssistCard() {
         <p className="text-white/40 text-xs mb-4">${monthlyPrice % 1 === 0 ? monthlyPrice.toFixed(0) : monthlyPrice.toFixed(2)}/month after your trial, cancel anytime before then</p>
       )}
 
+      {cancelAtPeriodEnd && periodEndLabel && (
+        <p className="text-yellow-400/90 text-xs font-semibold mb-4">{t('aiAssistEndingOn', lang).replace('{date}', periodEndLabel)}</p>
+      )}
+
       {error && (
         <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm mb-4">
           {error}
@@ -138,13 +170,23 @@ export function AiAssistCard() {
       )}
 
       {isOn ? (
-        <RippleButton
-          onClick={handleCancel}
-          disabled={working}
-          className="bg-white/5 border border-white/10 text-white/70 text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-white/8 transition disabled:opacity-50"
-        >
-          {working ? t('redirecting', lang) : t('aiAssistManageBtn', lang)}
-        </RippleButton>
+        cancelAtPeriodEnd ? (
+          <RippleButton
+            onClick={handleUndoCancel}
+            disabled={working}
+            className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
+          >
+            {working ? t('redirecting', lang) : t('aiAssistUndoCancelBtn', lang)}
+          </RippleButton>
+        ) : (
+          <RippleButton
+            onClick={handleCancel}
+            disabled={working}
+            className="bg-white/5 border border-white/10 text-white/70 text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-white/8 transition disabled:opacity-50"
+          >
+            {working ? t('redirecting', lang) : t('aiAssistManageBtn', lang)}
+          </RippleButton>
+        )
       ) : (
         <>
           <RippleButton

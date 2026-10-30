@@ -14,9 +14,14 @@ export const maxDuration = 20
 // native trial_period_days do the trial-to-charge transition for us
 // instead of a custom conversion cron.
 //
-// Claim-once: a landlord who already has a row (any status, including
-// canceled) gets that row's state back unchanged — starting a trial is a
-// one-time thing, same philosophy as the base plan's trial_started_at.
+// Claim-once protects the free TRIAL specifically (a landlord who already
+// has a row in any non-canceled status gets that row's state back
+// unchanged, same philosophy as the base plan's trial_started_at) — it
+// does not mean "can never pay for this again." A landlord whose row is
+// 'canceled' can always restart, just without a second trial period,
+// since they already used theirs. Found live: Joshua clicked cancel and
+// then couldn't restart at all — this used to treat any existing row,
+// canceled or not, as claimed forever.
 export async function POST() {
   if (!AI_ASSIST_ENABLED) {
     return NextResponse.json({ error: 'AI Assist is not available yet' }, { status: 404 })
@@ -43,7 +48,8 @@ export async function POST() {
       console.error('ai-assist/start-trial: error checking existing row', existingError)
       return NextResponse.json({ error: 'Could not check AI Assist status' }, { status: 500 })
     }
-    if (existing) {
+    const isRestart = !!existing && existing.status === 'canceled'
+    if (existing && !isRestart) {
       return NextResponse.json({ status: existing.status, alreadyStarted: true })
     }
 
@@ -110,19 +116,32 @@ export async function POST() {
     if (paymentMethods.data.length > 0) {
       // Claim the row before touching Stripe, not after — a double-click or
       // a client retry otherwise lets two concurrent requests both pass the
-      // `!existing` check above and both call subscriptions.create(), and
-      // since this table's primary key is landlord_user_id, the second
-      // insert then fails with a live Stripe subscription already created
-      // and no DB row to track it, so it bills forever with no way for the
-      // app or the landlord to cancel it. Claiming first means the loser of
-      // the race bails out here instead, before any Stripe call.
-      const { error: claimError } = await supabaseAdmin.from('ai_assist_subscriptions').insert({
-        landlord_user_id: user.id,
-        status: 'trialing',
-        trial_started_at: new Date().toISOString(),
-        stripe_subscription_id: null,
-      })
-      if (claimError) {
+      // `!existing` check above and both call subscriptions.create(). For a
+      // brand-new row, the primary key does that (the second insert fails);
+      // for a restart, there's no insert conflict to lean on since the row
+      // already exists, so the claim is a conditional update that only
+      // succeeds while the row is still exactly 'canceled' — the loser sees
+      // 0 rows affected and bails out here instead, before any Stripe call,
+      // same race this whole claim-first pattern exists to close either way.
+      let claimed = true
+      if (isRestart) {
+        const { data: rows, error: claimError } = await supabaseAdmin
+          .from('ai_assist_subscriptions')
+          .update({ status: 'trialing', stripe_subscription_id: null, cancel_at_period_end: false, current_period_end: null })
+          .eq('landlord_user_id', user.id)
+          .eq('status', 'canceled')
+          .select('landlord_user_id')
+        claimed = !claimError && !!rows?.length
+      } else {
+        const { error: claimError } = await supabaseAdmin.from('ai_assist_subscriptions').insert({
+          landlord_user_id: user.id,
+          status: 'trialing',
+          trial_started_at: new Date().toISOString(),
+          stripe_subscription_id: null,
+        })
+        claimed = !claimError
+      }
+      if (!claimed) {
         const { data: raceWinner } = await supabaseAdmin
           .from('ai_assist_subscriptions')
           .select('status')
@@ -138,28 +157,38 @@ export async function POST() {
         const subscription = await stripe.subscriptions.create({
           customer: customerId,
           items: [{ price: priceId, quantity }],
-          trial_period_days: AI_ASSIST_TRIAL_DAYS,
+          // A restart already used its one free trial — charge now instead
+          // of granting a second one.
+          ...(isRestart ? {} : { trial_period_days: AI_ASSIST_TRIAL_DAYS }),
           metadata,
         })
 
         const { error: updateError } = await supabaseAdmin
           .from('ai_assist_subscriptions')
-          .update({ stripe_subscription_id: subscription.id })
+          .update({ stripe_subscription_id: subscription.id, status: subscription.status === 'active' ? 'active' : 'trialing' })
           .eq('landlord_user_id', user.id)
         if (updateError) {
           // The Stripe subscription is real at this point — cancel it rather
-          // than deleting the row and leaving it live with nothing tracking
+          // than reverting the row and leaving it live with nothing tracking
           // it, same failure mode this whole claim-row change exists to
           // close.
           console.error('ai-assist/start-trial: update failed after creating subscription, cancelling it', updateError)
           await stripe.subscriptions.cancel(subscription.id).catch((cancelErr) => console.error('ai-assist/start-trial: cleanup cancel also failed', cancelErr))
-          await supabaseAdmin.from('ai_assist_subscriptions').delete().eq('landlord_user_id', user.id).is('stripe_subscription_id', null)
+          if (isRestart) {
+            await supabaseAdmin.from('ai_assist_subscriptions').update({ status: 'canceled', stripe_subscription_id: null }).eq('landlord_user_id', user.id)
+          } else {
+            await supabaseAdmin.from('ai_assist_subscriptions').delete().eq('landlord_user_id', user.id).is('stripe_subscription_id', null)
+          }
           return NextResponse.json({ error: 'Could not save AI Assist status' }, { status: 500 })
         }
 
-        return NextResponse.json({ redirect: false, status: 'trialing' })
+        return NextResponse.json({ redirect: false, status: subscription.status === 'active' ? 'active' : 'trialing' })
       } catch (err) {
-        await supabaseAdmin.from('ai_assist_subscriptions').delete().eq('landlord_user_id', user.id).is('stripe_subscription_id', null)
+        if (isRestart) {
+          await supabaseAdmin.from('ai_assist_subscriptions').update({ status: 'canceled', stripe_subscription_id: null }).eq('landlord_user_id', user.id)
+        } else {
+          await supabaseAdmin.from('ai_assist_subscriptions').delete().eq('landlord_user_id', user.id).is('stripe_subscription_id', null)
+        }
         throw err
       }
     }
@@ -171,7 +200,7 @@ export async function POST() {
       success_url: `${origin}/profile?aiAssist=success`,
       cancel_url: `${origin}/profile?aiAssist=cancelled`,
       metadata,
-      subscription_data: { trial_period_days: AI_ASSIST_TRIAL_DAYS, metadata },
+      subscription_data: isRestart ? { metadata } : { trial_period_days: AI_ASSIST_TRIAL_DAYS, metadata },
     })
 
     return NextResponse.json({ redirect: true, url: session.url })

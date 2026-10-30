@@ -47,7 +47,7 @@ export async function GET() {
 
     const { data: row, error: rowError } = await supabaseAdmin
       .from('ai_assist_subscriptions')
-      .select('status, trial_started_at, trial_override_days, free_forever')
+      .select('status, trial_started_at, trial_override_days, free_forever, cancel_at_period_end, current_period_end')
       .eq('landlord_user_id', user.id)
       .maybeSingle()
     if (rowError) {
@@ -71,6 +71,8 @@ export async function GET() {
       daysLeftInTrial,
       monthlyPrice: aiAssistMonthlyAmount(unitCount),
       freeForever,
+      cancelAtPeriodEnd: !!row?.cancel_at_period_end,
+      currentPeriodEnd: row?.current_period_end ?? null,
     })
   } catch (err) {
     console.error('ai-assist/status: unhandled error', err)
