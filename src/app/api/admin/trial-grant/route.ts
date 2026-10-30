@@ -111,15 +111,17 @@ export async function POST(request: NextRequest) {
       detail: { product, mode, days: mode === 'days' ? days : undefined },
     })
 
-    // Best-effort — the grant itself already succeeded and is logged
-    // above regardless of whether this notice goes out.
+    // Best-effort in the sense that a failed send doesn't undo the grant
+    // (already logged above) — but still awaited, not fire-and-forget,
+    // since an un-awaited send here routinely never actually completed
+    // before this route's response went out and tore the function down.
     if (authUser.user.email) {
       const { data: profile } = await supabaseAdmin
         .from('users')
         .select('full_name, preferred_language')
         .eq('id', landlordUserId)
         .maybeSingle()
-      sendTrialGrantedEmail({
+      await sendTrialGrantedEmail({
         to: authUser.user.email,
         landlordName: profile?.full_name || 'there',
         product,

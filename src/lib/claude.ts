@@ -108,10 +108,19 @@ export async function claudeJson<T>({
 
   // Logged regardless of what happens below — a call that burned real
   // tokens but then failed to parse as JSON still cost real money and
-  // belongs in the cost-per-user numbers.
-  logUsage(track, message.usage.input_tokens, message.usage.output_tokens).catch((err) =>
+  // belongs in the cost-per-user numbers. Awaited, not fire-and-forget: a
+  // serverless function's execution can be torn down the instant its
+  // response is sent, which raced this insert on every single call site
+  // (every AI route returns right after claudeJson resolves) — caught live
+  // via the identical bug in help-chat's own chat-history insert, which
+  // shares this exact fire-and-forget shape. ai_usage_log was very likely
+  // silently losing rows since it was built, which would mean /admin/costs
+  // has been undercounting the whole time.
+  try {
+    await logUsage(track, message.usage.input_tokens, message.usage.output_tokens)
+  } catch (err) {
     console.error('claudeJson: usage logging threw', err)
-  )
+  }
 
   const textBlock = message.content.find((b): b is Anthropic.TextBlock => b.type === 'text')
   if (!textBlock) throw new Error('Claude did not return a text response')

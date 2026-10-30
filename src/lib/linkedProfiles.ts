@@ -25,22 +25,29 @@ const ROLE_LABEL: Record<Role, { en: string; es: string }> = {
 // not gated on the notification-preferences toggle. Called from both
 // /api/profiles/add (already signed in) and /api/profiles/add-with-password
 // (the signup-page link flow) after a successful createLinkedProfile.
-export function notifyLinkedProfileAdded(
+export async function notifyLinkedProfileAdded(
   primaryUserId: string,
   { email, fullName, preferredLanguage, newRole }: { email: string | null; fullName: string | null; preferredLanguage: string | null; newRole: Role }
 ) {
   const lang = preferredLanguage === 'es' ? 'es' : 'en'
   const roleLabel = ROLE_LABEL[newRole][lang]
-  if (email) {
-    sendLinkedProfileAddedEmail({ to: email, name: fullName || 'there', newRoleLabel: roleLabel, lang }).catch((err) =>
-      console.error('notifyLinkedProfileAdded: email failed', err)
-    )
-  }
-  sendPush(primaryUserId, {
-    title: 'Profile added',
-    body: `A ${roleLabel} profile was added to your account.`,
-    url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/profile`,
-  }).catch((err) => console.error('notifyLinkedProfileAdded: push failed', err))
+  // Awaited (concurrently, not sequentially), and this whole function made
+  // async so its two callers can await it too — it used to fire both sends
+  // and return immediately with nothing for a caller to even await, racing
+  // whatever a serverless function's execution gets torn down by once its
+  // own response goes out.
+  await Promise.all([
+    email
+      ? sendLinkedProfileAddedEmail({ to: email, name: fullName || 'there', newRoleLabel: roleLabel, lang }).catch((err) =>
+          console.error('notifyLinkedProfileAdded: email failed', err)
+        )
+      : Promise.resolve(),
+    sendPush(primaryUserId, {
+      title: 'Profile added',
+      body: `A ${roleLabel} profile was added to your account.`,
+      url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/profile`,
+    }).catch((err) => console.error('notifyLinkedProfileAdded: push failed', err)),
+  ])
 }
 
 export type LinkedProfile = {

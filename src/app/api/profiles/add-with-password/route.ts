@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: result.error }, { status: 400 })
   }
 
-  notifyLinkedProfileAdded(existingUserId, {
+  await notifyLinkedProfileAdded(existingUserId, {
     email: row?.email || email,
     fullName: row?.full_name || null,
     preferredLanguage: row?.preferred_language || null,

@@ -43,10 +43,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Could not save your interest. Please try again.' }, { status: 500 })
     }
 
-    if (!insertError) {
-      sendEventInterestAdminEmail({ email: normalized }).catch((err) => console.error('event-interest: admin email failed', err))
-    }
-    sendEventInterestConfirmationEmail({ to: normalized }).catch((err) => console.error('event-interest: confirmation email failed', err))
+    // Awaited (concurrently, not sequentially) rather than fire-and-forget
+    // — a serverless function's execution can be torn down the instant its
+    // response is sent, which routinely raced these and lost before a
+    // matching bug was found and fixed elsewhere in the app (AI usage
+    // logging, chat history). A failed send here still doesn't fail the
+    // request itself — the visitor's interest is already saved either way.
+    await Promise.all([
+      insertError ? Promise.resolve() : sendEventInterestAdminEmail({ email: normalized }).catch((err) => console.error('event-interest: admin email failed', err)),
+      sendEventInterestConfirmationEmail({ to: normalized }).catch((err) => console.error('event-interest: confirmation email failed', err)),
+    ])
 
     return NextResponse.json({ ok: true })
   } catch (err: any) {

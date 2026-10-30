@@ -58,13 +58,15 @@ export async function POST(req: Request) {
     // Stored before the email send so the question survives even if
     // Resend has a bad moment — the admin inbox (/admin/support) is now
     // the durable record, email is just the "notice something came in"
-    // channel on top of it, not the only place the question lives.
-    getSupabaseAdmin()
+    // channel on top of it, not the only place the question lives. Awaited
+    // (not fire-and-forget as it was) since that durability promise only
+    // holds if this insert actually completes before the response goes
+    // out — a serverless function's execution can be torn down the
+    // instant it does.
+    const { error: storeError } = await getSupabaseAdmin()
       .from('support_escalations')
       .insert({ email: email.toLowerCase(), question: question.trim() })
-      .then(({ error }) => {
-        if (error) console.error('support-escalate: could not store question', error)
-      })
+    if (storeError) console.error('support-escalate: could not store question', storeError)
 
     const [toAdmin, toAsker] = await Promise.all([
       sendSupportEscalationEmail({ askerEmail: email, question }),

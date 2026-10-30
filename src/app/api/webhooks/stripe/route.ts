@@ -71,7 +71,13 @@ export async function POST(request: NextRequest) {
           .maybeSingle()
         if (error) console.error('stripe webhook: account.updated update failed', error)
         if (bankDetailsChanged && !alreadyFrozen && updatedUser?.email) {
-          sendPayoutDetailsChangedEmail({
+          // Awaited, not fire-and-forget — same reason as the
+          // duplicate-bank-account check just below: the handler's 200 to
+          // Stripe comes right after this switch statement, which routinely
+          // raced (and lost to) an un-awaited promise like this one. This
+          // is the actual security alert telling a landlord their payout
+          // account changed, so it mattered more than most to actually fix.
+          await sendPayoutDetailsChangedEmail({
             to: updatedUser.email,
             name: updatedUser.full_name || 'there',
             lang: updatedUser.preferred_language === 'es' ? 'es' : 'en',
@@ -92,9 +98,20 @@ export async function POST(request: NextRequest) {
         // and an automatic hard block here could strand real rent a
         // legitimate landlord is mid-collecting.
         if (bankDetailsChanged && updatedUser?.id) {
-          checkDuplicateLandlordBankAccount(stripe, supabaseAdmin, account.id, updatedUser.id, updatedUser.email, updatedUser.full_name).catch((err) =>
+          // Awaited, not fire-and-forget — the handler returns its 200 to
+          // Stripe right after this switch statement, and a serverless
+          // function's execution can be torn down the instant that response
+          // is sent. This fraud check (and the admin alert it can send) was
+          // very likely never actually completing in production as a
+          // result, same bug found and fixed in AI usage logging and chat
+          // history elsewhere in this app. Its own try/catch keeps a
+          // failure here from turning an otherwise-successful webhook into
+          // a 500 that makes Stripe retry the whole event.
+          try {
+            await checkDuplicateLandlordBankAccount(stripe, supabaseAdmin, account.id, updatedUser.id, updatedUser.email, updatedUser.full_name)
+          } catch (err) {
             console.error('stripe webhook: duplicate-bank-account check failed', err)
-          )
+          }
         }
         break
       }
@@ -379,7 +396,11 @@ async function checkDuplicateLandlordBankAccount(
 
   const match = matches?.[0]
   if (match) {
-    sendDuplicateLandlordBankAccountAdminEmail({
+    // Awaited for the same reason the caller now awaits this whole
+    // function — being the last statement in an async function does not
+    // make the caller's await wait for it too, only for promises this
+    // function itself returns or awaits.
+    await sendDuplicateLandlordBankAccountAdminEmail({
       accountA: { email: userEmail, name: userFullName },
       accountB: { email: match.email, name: match.full_name },
     }).catch((err) => console.error('stripe webhook: duplicate-bank-account admin alert failed', err))

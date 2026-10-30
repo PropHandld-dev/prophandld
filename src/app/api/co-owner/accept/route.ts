@@ -45,36 +45,41 @@ export async function POST(request: NextRequest) {
   ])
   const coOwnerName = coOwner?.full_name || user.email || 'Your co-owner'
 
-  if (primary?.email && emailAllowed(primary)) {
-    sendCoOwnerAcceptedEmail({
-      to: primary.email,
-      primaryLandlordName: primary.full_name || 'there',
-      coOwnerName,
-      lang: primary.preferred_language === 'es' ? 'es' : 'en',
-    }).catch((err) => console.error('co-owner/accept: notification email failed', err))
-  }
-  sendPush(updated.primary_landlord_user_id, {
-    title: 'Co-owner joined',
-    body: `${coOwnerName} accepted your invite to co-manage your properties.`,
-    url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/profile`,
-  }).catch((err) => console.error('co-owner/accept: notification push failed', err))
-  // Same equal-channel treatment as the initial invite (see
-  // /api/co-owner/invite) — this is as time-sensitive and high-value an
-  // event as that one.
-  if (primary?.sms_opt_in && primary?.phone) {
-    sendAlertSms(primary.phone, `Prophandld: ${coOwnerName} accepted your invite to co-manage your properties.`)
-      .then((result) => {
-        if (result.ok) {
-          return supabaseAdmin.from('notification_log').insert({
-            notification_type: 'co_owner_accepted',
-            channel: 'sms',
-            recipient_user_id: updated.primary_landlord_user_id,
-            external_id: result.id || null,
+  // Awaited (concurrently, not sequentially) rather than fire-and-forget —
+  // a serverless function's execution can be torn down the instant the
+  // response right below is sent, which this routinely raced and lost.
+  await Promise.all([
+    primary?.email && emailAllowed(primary)
+      ? sendCoOwnerAcceptedEmail({
+          to: primary.email,
+          primaryLandlordName: primary.full_name || 'there',
+          coOwnerName,
+          lang: primary.preferred_language === 'es' ? 'es' : 'en',
+        }).catch((err) => console.error('co-owner/accept: notification email failed', err))
+      : Promise.resolve(),
+    sendPush(updated.primary_landlord_user_id, {
+      title: 'Co-owner joined',
+      body: `${coOwnerName} accepted your invite to co-manage your properties.`,
+      url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/profile`,
+    }).catch((err) => console.error('co-owner/accept: notification push failed', err)),
+    // Same equal-channel treatment as the initial invite (see
+    // /api/co-owner/invite) — this is as time-sensitive and high-value an
+    // event as that one.
+    primary?.sms_opt_in && primary?.phone
+      ? sendAlertSms(primary.phone, `Prophandld: ${coOwnerName} accepted your invite to co-manage your properties.`)
+          .then((result) => {
+            if (result.ok) {
+              return supabaseAdmin.from('notification_log').insert({
+                notification_type: 'co_owner_accepted',
+                channel: 'sms',
+                recipient_user_id: updated.primary_landlord_user_id,
+                external_id: result.id || null,
+              })
+            }
           })
-        }
-      })
-      .catch((err) => console.error('co-owner/accept: notification sms failed', err))
-  }
+          .catch((err) => console.error('co-owner/accept: notification sms failed', err))
+      : Promise.resolve(),
+  ])
 
   return NextResponse.json({ ok: true })
 }

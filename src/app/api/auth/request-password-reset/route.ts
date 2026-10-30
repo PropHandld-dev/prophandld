@@ -43,7 +43,15 @@ export async function POST(request: NextRequest) {
     .eq('id', linkData.user.id)
     .maybeSingle()
 
-  sendPasswordResetEmail({
+  // Awaited, not fire-and-forget — a serverless function's execution can
+  // be torn down the instant its response is sent, which this routinely
+  // raced and lost (the exact bug confirmed live elsewhere in this app:
+  // AI chat history, AI usage logging, a co-owner invite's notifications).
+  // This one is the worst version of it: a locked-out user would silently
+  // never get their reset email, with no error shown to them by design
+  // (the ok:true below is deliberate, to not reveal whether an email has
+  // an account), so there'd be no sign anything had gone wrong at all.
+  await sendPasswordResetEmail({
     to: trimmedEmail,
     code: linkData.properties.email_otp,
     actionLink: linkData.properties.action_link,

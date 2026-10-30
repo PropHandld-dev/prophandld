@@ -128,35 +128,40 @@ export async function POST(request: NextRequest) {
   const primaryLandlordName = inviterRow?.full_name || 'A Prophandld landlord'
   const inviteeLang = inviteeRow?.preferred_language === 'es' ? 'es' : 'en'
 
-  if (inviteeRow?.email && emailAllowed(inviteeRow)) {
-    sendCoOwnerInvitedExistingAccountEmail({
-      to: inviteeRow.email,
-      primaryLandlordName,
-      lang: inviteeLang,
-    }).catch((err) => console.error('co-owner/invite: notification email failed', err))
-  }
-  sendPush(existingUserId, {
-    title: 'Co-owner invite',
-    body: `${primaryLandlordName} invited you to co-manage their properties.`,
-    url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/landlord`,
-  }).catch((err) => console.error('co-owner/invite: notification push failed', err))
-  if (inviteeRow?.sms_opt_in && inviteeRow?.phone) {
-    sendAlertSms(
-      inviteeRow.phone,
-      `Prophandld: ${primaryLandlordName} invited you to co-manage their properties. Log in to accept: ${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/landlord`
-    )
-      .then((result) => {
-        if (result.ok) {
-          return supabaseAdmin.from('notification_log').insert({
-            notification_type: 'co_owner_invite',
-            channel: 'sms',
-            recipient_user_id: existingUserId,
-            external_id: result.id || null,
+  // Awaited (concurrently, not sequentially) rather than fire-and-forget —
+  // a serverless function's execution can be torn down the instant the
+  // response right below is sent, which this routinely raced and lost.
+  await Promise.all([
+    inviteeRow?.email && emailAllowed(inviteeRow)
+      ? sendCoOwnerInvitedExistingAccountEmail({
+          to: inviteeRow.email,
+          primaryLandlordName,
+          lang: inviteeLang,
+        }).catch((err) => console.error('co-owner/invite: notification email failed', err))
+      : Promise.resolve(),
+    sendPush(existingUserId, {
+      title: 'Co-owner invite',
+      body: `${primaryLandlordName} invited you to co-manage their properties.`,
+      url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/landlord`,
+    }).catch((err) => console.error('co-owner/invite: notification push failed', err)),
+    inviteeRow?.sms_opt_in && inviteeRow?.phone
+      ? sendAlertSms(
+          inviteeRow.phone,
+          `Prophandld: ${primaryLandlordName} invited you to co-manage their properties. Log in to accept: ${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/landlord`
+        )
+          .then((result) => {
+            if (result.ok) {
+              return supabaseAdmin.from('notification_log').insert({
+                notification_type: 'co_owner_invite',
+                channel: 'sms',
+                recipient_user_id: existingUserId,
+                external_id: result.id || null,
+              })
+            }
           })
-        }
-      })
-      .catch((err) => console.error('co-owner/invite: notification sms failed', err))
-  }
+          .catch((err) => console.error('co-owner/invite: notification sms failed', err))
+      : Promise.resolve(),
+  ])
 
   return NextResponse.json({ ok: true })
 }

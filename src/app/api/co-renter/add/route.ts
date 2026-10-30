@@ -123,36 +123,41 @@ export async function POST(request: NextRequest) {
   const landlordName = landlordRow?.full_name || 'Your landlord'
   const inviteeLang = inviteeRow?.preferred_language === 'es' ? 'es' : 'en'
 
-  if (inviteeRow?.email && emailAllowed(inviteeRow)) {
-    sendCoRenterAddedEmail({
-      to: inviteeRow.email,
-      landlordName,
-      unitLabel,
-      lang: inviteeLang,
-    }).catch((err) => console.error('co-renter/add: notification email failed', err))
-  }
-  sendPush(existingUserId, {
-    title: 'Added as co-renter',
-    body: `${landlordName} added you as a co-renter for ${unitLabel}.`,
-    url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/profile`,
-  }).catch((err) => console.error('co-renter/add: notification push failed', err))
-  if (inviteeRow?.sms_opt_in && inviteeRow?.phone) {
-    sendAlertSms(
-      inviteeRow.phone,
-      `Prophandld: ${landlordName} added you as a co-renter for ${unitLabel}.`
-    )
-      .then((result) => {
-        if (result.ok) {
-          return supabaseAdmin.from('notification_log').insert({
-            notification_type: 'co_renter_added',
-            channel: 'sms',
-            recipient_user_id: existingUserId,
-            external_id: result.id || null,
+  // Awaited (concurrently, not sequentially) rather than fire-and-forget —
+  // a serverless function's execution can be torn down the instant the
+  // response below is sent, which this routinely raced and lost.
+  await Promise.all([
+    inviteeRow?.email && emailAllowed(inviteeRow)
+      ? sendCoRenterAddedEmail({
+          to: inviteeRow.email,
+          landlordName,
+          unitLabel,
+          lang: inviteeLang,
+        }).catch((err) => console.error('co-renter/add: notification email failed', err))
+      : Promise.resolve(),
+    sendPush(existingUserId, {
+      title: 'Added as co-renter',
+      body: `${landlordName} added you as a co-renter for ${unitLabel}.`,
+      url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/profile`,
+    }).catch((err) => console.error('co-renter/add: notification push failed', err)),
+    inviteeRow?.sms_opt_in && inviteeRow?.phone
+      ? sendAlertSms(
+          inviteeRow.phone,
+          `Prophandld: ${landlordName} added you as a co-renter for ${unitLabel}.`
+        )
+          .then((result) => {
+            if (result.ok) {
+              return supabaseAdmin.from('notification_log').insert({
+                notification_type: 'co_renter_added',
+                channel: 'sms',
+                recipient_user_id: existingUserId,
+                external_id: result.id || null,
+              })
+            }
           })
-        }
-      })
-      .catch((err) => console.error('co-renter/add: notification sms failed', err))
-  }
+          .catch((err) => console.error('co-renter/add: notification sms failed', err))
+      : Promise.resolve(),
+  ])
 
   return NextResponse.json({ ok: true })
 }

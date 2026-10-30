@@ -128,30 +128,35 @@ export async function POST() {
     ])
     const unitLabel = unitRow ? `${(unitRow.properties as any)?.address || 'your property'}${unitRow.unit_number ? `, Unit ${unitRow.unit_number}` : ''}` : 'your property'
     const renterName = renterRow?.full_name || user.email
-    if (landlord?.email && emailAllowed(landlord)) {
-      sendRenterInviteAcceptedEmail({
-        to: landlord.email,
-        landlordName: landlord.full_name || 'there',
-        renterName,
-        unitLabel,
-        lang: landlord.preferred_language === 'es' ? 'es' : 'en',
-      }).catch((err) => console.error('link-invite: landlord notification email failed', err))
-    }
-    sendPush(invite.landlord_user_id, {
-      title: 'Tenant joined',
-      body: `${renterName} accepted your invite for ${unitLabel}.`,
-      url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/landlord`,
-    }).catch((err) => console.error('link-invite: landlord notification push failed', err))
-
-    if (emailAllowed(renterRow)) {
-      sendRenterTenancyLinkedEmail({
-        to: user.email,
-        renterName,
-        landlordName: landlord?.full_name || 'your landlord',
-        unitLabel,
-        lang: renterRow?.preferred_language === 'es' ? 'es' : 'en',
-      }).catch((err) => console.error('link-invite: renter notification email failed', err))
-    }
+    // Awaited (concurrently via Promise.all, not sequentially) rather than
+    // fire-and-forget — a serverless function's execution can be torn down
+    // the instant the response right below is sent, which this routinely
+    // raced and lost.
+    await Promise.all([
+      landlord?.email && emailAllowed(landlord)
+        ? sendRenterInviteAcceptedEmail({
+            to: landlord.email,
+            landlordName: landlord.full_name || 'there',
+            renterName,
+            unitLabel,
+            lang: landlord.preferred_language === 'es' ? 'es' : 'en',
+          }).catch((err) => console.error('link-invite: landlord notification email failed', err))
+        : Promise.resolve(),
+      sendPush(invite.landlord_user_id, {
+        title: 'Tenant joined',
+        body: `${renterName} accepted your invite for ${unitLabel}.`,
+        url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/landlord`,
+      }).catch((err) => console.error('link-invite: landlord notification push failed', err)),
+      emailAllowed(renterRow)
+        ? sendRenterTenancyLinkedEmail({
+            to: user.email,
+            renterName,
+            landlordName: landlord?.full_name || 'your landlord',
+            unitLabel,
+            lang: renterRow?.preferred_language === 'es' ? 'es' : 'en',
+          }).catch((err) => console.error('link-invite: renter notification email failed', err))
+        : Promise.resolve(),
+    ])
   }
 
   return NextResponse.json({ ok: true, linked: true })

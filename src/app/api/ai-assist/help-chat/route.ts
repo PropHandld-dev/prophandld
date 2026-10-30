@@ -224,16 +224,22 @@ export async function POST(request: NextRequest) {
       maxTokens: 500,
       track: { billedUserId: null, callerUserId: user.id, feature: 'help-chat' },
     })
-    // Best-effort — a failed write here means this one exchange won't show
+    // Awaited, not fire-and-forget — a serverless function's execution
+    // context can be torn down the instant the response is sent, so an
+    // un-awaited insert here would race the response and routinely lose,
+    // never actually landing (caught live: POST succeeded every time, but
+    // the row never existed on the next GET). Still wrapped in its own
+    // try/catch — a failed write here means this one exchange won't show
     // up next time the panel reopens, not a reason to fail a reply that
     // already succeeded.
-    supabaseAdmin
-      .from('ai_help_chat_messages')
-      .insert([
+    try {
+      await supabaseAdmin.from('ai_help_chat_messages').insert([
         { user_id: user.id, role: 'user', content: message.trim() },
         { user_id: user.id, role: 'assistant', content: result.reply, suggest_escalate: !!result.suggestEscalate },
       ])
-      .then(() => {}, (err) => console.error('ai-assist/help-chat: history insert failed', err))
+    } catch (err) {
+      console.error('ai-assist/help-chat: history insert failed', err)
+    }
     return NextResponse.json(result)
   } catch (err) {
     if (err instanceof ClaudeConfigError) {
