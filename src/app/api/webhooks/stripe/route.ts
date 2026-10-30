@@ -192,6 +192,11 @@ export async function POST(request: NextRequest) {
           // just the app's own cancel route — e.g. if it's ever changed
           // from the Stripe dashboard directly.
           const periodEnd = subscription.items.data[0]?.current_period_end
+          // Scoped to this exact subscription id, not just the landlord —
+          // a delayed/retried event for a subscription this landlord's row
+          // has since moved on from (a restart replaced it, or an admin
+          // free_forever grant cancelled it outright) must not stomp
+          // whatever the row's current, newer state actually is.
           const { error } = await supabaseAdmin
             .from('ai_assist_subscriptions')
             .update({
@@ -201,6 +206,7 @@ export async function POST(request: NextRequest) {
               updated_at: new Date().toISOString(),
             })
             .eq('landlord_user_id', landlordUserId)
+            .eq('stripe_subscription_id', subscription.id)
           if (error) console.error('stripe webhook: ai_assist customer.subscription.updated failed', error)
           break
         }
@@ -219,10 +225,18 @@ export async function POST(request: NextRequest) {
         const subscription = event.data.object as Stripe.Subscription
         const landlordUserId = subscription.metadata?.prophandld_landlord_user_id
         if (landlordUserId && subscription.metadata?.prophandld_type === 'ai_assist') {
+          // Same stale-event guard as customer.subscription.updated above —
+          // this is exactly the case a background review flagged: granting
+          // free_forever cancels any real existing subscription, but left
+          // that subscription's own metadata pointed at this landlord, so
+          // its eventual deletion event used to stomp status back to
+          // 'canceled' over the active free_forever grant with nothing
+          // catching it.
           const { error } = await supabaseAdmin
             .from('ai_assist_subscriptions')
             .update({ status: 'canceled', cancel_at_period_end: false, current_period_end: null, updated_at: new Date().toISOString() })
             .eq('landlord_user_id', landlordUserId)
+            .eq('stripe_subscription_id', subscription.id)
           if (error) console.error('stripe webhook: ai_assist customer.subscription.deleted failed', error)
           break
         }
