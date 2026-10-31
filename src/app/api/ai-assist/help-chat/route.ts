@@ -62,51 +62,76 @@ async function loadRecentHistory(admin: ReturnType<typeof getSupabaseAdmin>, use
   return (data || []).reverse()
 }
 
-// The signed-in user's OWN real numbers — never another user's. Deliberately
-// just counts/summaries, not full records (no names, no message contents),
-// kept cheap and lean since this runs on every single message. This is the
-// one place in help-chat that's allowed to answer "how many X do I have"
-// instead of pointing at a tab — the strict "no other user's data" rule
-// stays intact because every query below is already scoped to this exact
-// user_id, same ownership checks every other AI Assist route uses.
+// The signed-in user's OWN real records — never another user's. Itemized,
+// not just counts (expanded 2026-11-01: a landlord asked "when does my
+// rental license expire" and got "I can see 1 item is expiring but not
+// its name or date," which is honest but useless — the count existed,
+// the actual item didn't). Still deliberately lean: no tenant/contractor
+// names, no message contents, no document contents, capped list lengths,
+// since this runs on every single message. This is the one place in
+// help-chat allowed to state specific account facts directly instead of
+// pointing at a tab — the strict "no other user's data, ever" rule stays
+// intact because every query below reuses the exact same ownership-scoped
+// ID chains (getLandlordIdsAdmin -> owner_user_id -> property_id ->
+// unit_id) every other AI Assist route already enforces, nothing new or
+// looser. Compliance facts are real account records, safe to state
+// directly; what to actually DO about one still isn't legal advice — the
+// system prompt below is explicit about pointing to the real "How do I
+// renew this?" AI guide on that item instead of improvising one here.
 async function getAccountFacts(admin: ReturnType<typeof getSupabaseAdmin>, userId: string, role: string): Promise<Record<string, unknown>> {
   const todayKey = new Date().toISOString().slice(0, 10)
   const in30 = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+  const ITEM_CAP = 25
 
   if (role === 'landlord') {
     const landlordIds = await getLandlordIdsAdmin(admin, userId)
-    const { data: properties } = await admin.from('properties').select('id').in('owner_user_id', landlordIds).eq('archived', false)
+    const { data: properties } = await admin.from('properties').select('id, address, city, state').in('owner_user_id', landlordIds).eq('archived', false)
     const propertyIds = (properties || []).map((p) => p.id)
     if (propertyIds.length === 0) return { propertyCount: 0, unitCount: 0 }
+    const addressById = new Map((properties || []).map((p) => [p.id, `${p.address}${p.city ? `, ${p.city}` : ''}${p.state ? `, ${p.state}` : ''}`]))
 
-    const [{ count: unitCount }, { data: units }, { count: expiringCompliance }] = await Promise.all([
+    const [{ count: unitCount }, { data: units }, { data: complianceItems }] = await Promise.all([
       admin.from('units').select('id', { count: 'exact', head: true }).in('property_id', propertyIds),
-      admin.from('units').select('id').in('property_id', propertyIds),
+      admin.from('units').select('id, unit_number, property_id').in('property_id', propertyIds),
       admin
         .from('compliance_items')
-        .select('id', { count: 'exact', head: true })
+        .select('item_type, expiry_date, property_id')
         .in('property_id', propertyIds)
-        .not('expiry_date', 'is', null)
-        .gte('expiry_date', todayKey)
-        .lte('expiry_date', in30),
+        .order('expiry_date', { ascending: true, nullsFirst: false })
+        .limit(ITEM_CAP),
     ])
     const unitIds = (units || []).map((u) => u.id)
+    const unitLabelById = new Map((units || []).map((u) => [u.id, `${addressById.get(u.property_id) || 'unknown property'}${u.unit_number ? `, Unit ${u.unit_number}` : ''}`]))
 
-    const [{ count: openJobs }, { count: upcomingRenewals }] = await Promise.all([
+    const [{ data: openJobs }, { data: upcomingRenewals }, { data: rentRows }] = await Promise.all([
       unitIds.length > 0
-        ? admin.from('jobs').select('id', { count: 'exact', head: true }).in('unit_id', unitIds).in('status', ['pending_approval', 'approved', 'bidding', 'bid_selected', 'scheduled', 'in_progress', 'pending_review', 'disputed'])
-        : Promise.resolve({ count: 0 }),
+        ? admin.from('jobs').select('category, status, unit_id').in('unit_id', unitIds).in('status', ['pending_approval', 'approved', 'bidding', 'bid_selected', 'scheduled', 'in_progress', 'pending_review', 'disputed']).limit(ITEM_CAP)
+        : Promise.resolve({ data: [] as any[] }),
       unitIds.length > 0
-        ? admin.from('tenancies').select('id', { count: 'exact', head: true }).in('unit_id', unitIds).eq('ended', false).not('lease_end', 'is', null).gte('lease_end', todayKey).lte('lease_end', in30)
-        : Promise.resolve({ count: 0 }),
+        ? admin.from('tenancies').select('lease_end, rent_amount, unit_id').in('unit_id', unitIds).eq('ended', false).not('lease_end', 'is', null).gte('lease_end', todayKey).lte('lease_end', in30).order('lease_end', { ascending: true }).limit(ITEM_CAP)
+        : Promise.resolve({ data: [] as any[] }),
+      unitIds.length > 0
+        ? admin.from('tenancies').select('rent_amount').in('unit_id', unitIds).eq('ended', false)
+        : Promise.resolve({ data: [] as any[] }),
     ])
+
+    const monthlyRentRoll = (rentRows || []).reduce((sum, t) => sum + (Number(t.rent_amount) || 0), 0)
 
     return {
       propertyCount: propertyIds.length,
+      properties: (properties || []).map((p) => ({ address: addressById.get(p.id) })),
       unitCount: unitCount || 0,
-      openJobsCount: openJobs || 0,
-      leaseRenewalsNext30Days: upcomingRenewals || 0,
-      complianceItemsExpiringNext30Days: expiringCompliance || 0,
+      monthlyRentRoll,
+      // Not filtered to "expiring soon" — a landlord asking about a
+      // specific license should get an answer even if it's 90 days out,
+      // not just when it's already urgent. Sorted soonest-first, capped.
+      complianceItems: (complianceItems || []).map((c) => ({
+        itemType: c.item_type,
+        expiryDate: c.expiry_date,
+        property: addressById.get(c.property_id) || null,
+      })),
+      openJobs: (openJobs || []).map((j) => ({ category: j.category, status: j.status, unit: unitLabelById.get(j.unit_id) || null })),
+      leaseRenewalsNext30Days: (upcomingRenewals || []).map((t) => ({ unit: unitLabelById.get(t.unit_id) || null, leaseEnd: t.lease_end, rentAmount: t.rent_amount })),
     }
   }
 
@@ -119,9 +144,9 @@ async function getAccountFacts(admin: ReturnType<typeof getSupabaseAdmin>, userI
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
-    const { count: openJobs } = await admin.from('jobs').select('id', { count: 'exact', head: true }).eq('reported_by', userId).not('status', 'in', '(completed,archived,declined)')
+    const { data: jobs } = await admin.from('jobs').select('category, status').eq('reported_by', userId).not('status', 'in', '(completed,archived,declined)').limit(ITEM_CAP)
 
-    if (!tenancy) return { hasActiveLease: false, openJobsReported: openJobs || 0 }
+    if (!tenancy) return { hasActiveLease: false, openJobs: (jobs || []).map((j) => ({ category: j.category, status: j.status })) }
     const unit: any = (tenancy as any).units
     return {
       hasActiveLease: true,
@@ -130,18 +155,22 @@ async function getAccountFacts(admin: ReturnType<typeof getSupabaseAdmin>, userI
       monthlyRent: tenancy.rent_amount,
       rentDueDay: tenancy.rent_due_day,
       leaseEnd: tenancy.lease_end,
-      openJobsReported: openJobs || 0,
+      openJobs: (jobs || []).map((j) => ({ category: j.category, status: j.status })),
     }
   }
 
   if (role === 'contractor') {
-    const [{ count: pendingBids }, { count: activeJobs }] = await Promise.all([
+    const [{ count: pendingBids }, { data: activeJobs }] = await Promise.all([
       admin.from('bids').select('id', { count: 'exact', head: true }).eq('contractor_user_id', userId).eq('status', 'pending'),
-      admin.from('bids').select('id', { count: 'exact', head: true }).eq('contractor_user_id', userId).eq('status', 'accepted'),
+      admin.from('bids').select('job_id, amount, jobs(category, status)').eq('contractor_user_id', userId).eq('status', 'accepted').limit(ITEM_CAP),
     ])
     const { data: unpaid } = await admin.from('bids').select('amount').eq('contractor_user_id', userId).eq('status', 'accepted').neq('payment_status', 'paid')
     const unpaidTotal = (unpaid || []).reduce((sum, b) => sum + (Number(b.amount) || 0), 0)
-    return { pendingBidsCount: pendingBids || 0, activeJobsCount: activeJobs || 0, unpaidEarnings: unpaidTotal }
+    return {
+      pendingBidsCount: pendingBids || 0,
+      activeJobs: (activeJobs || []).map((b: any) => ({ category: b.jobs?.category || null, status: b.jobs?.status || null, amount: b.amount })),
+      unpaidEarnings: unpaidTotal,
+    }
   }
 
   return {}
@@ -206,22 +235,32 @@ export async function POST(request: NextRequest) {
       system:
         `You are Prophandld's in-app help assistant, talking to a signed-in ${role}. Answer using the app ` +
         'knowledge below, and you may also answer questions about THIS person\'s own account using the account ' +
-        'facts below (e.g. "how many properties do I have", "when does my lease end") — those facts are real, ' +
-        'already scoped to this exact signed-in user, safe to state directly and plainly. Never invent a ' +
-        'feature, page, or policy not in the app knowledge, and never invent an account fact not in the account ' +
-        'facts below — if something isn\'t covered by either, say you can\'t see that and point to the right ' +
-        'tab instead of guessing. Warm, direct, plain conversational language, like a helpful coworker texting ' +
-        'back, not a formal AI assistant, no "I\'m sorry, but as an AI..." phrasing, no bullet-pointed essays ' +
-        'for a simple question, 1-4 sentences unless real step-by-step instructions are genuinely needed. Never ' +
-        'reveal, guess at, or discuss any OTHER specific user\'s data, account, or messages, the account facts ' +
-        'below are only ever this one person\'s own. If asked something with no connection to Prophandld at ' +
-        'all (general trivia, other topics, requests to act as a different kind of assistant), say warmly ' +
-        'that you\'re just here for Prophandld itself and ask what they need help finding, don\'t lecture or ' +
-        'over-explain the refusal. If the question needs a real person (a bug, a billing dispute, anything you ' +
-        'genuinely can\'t answer from what\'s given), say so plainly and set suggestEscalate to true. ' +
+        'facts below (e.g. "how many properties do I have", "when does my rental license expire", "when does my ' +
+        'lease end") — those facts are real, itemized, already scoped to this exact signed-in user, safe to ' +
+        'state directly and plainly, by name and date, not just "yes something\'s expiring." Never invent a ' +
+        'feature, page, or policy not in the app knowledge, and never invent an account fact (an address, a ' +
+        'date, an amount) not in the account facts below — if something isn\'t covered by either, say you ' +
+        'can\'t see that and point to the right tab instead of guessing. A compliance item\'s type, property, ' +
+        'and expiry date from account facts are real records, state them directly — but don\'t improvise the ' +
+        'actual renewal process, requirements, or legal interpretation yourself; point to the "How do I renew ' +
+        'this?" AI guide on that item\'s Compliance page for that, same as you\'d point to a real tab for ' +
+        'anything else you can\'t personally do here. Warm, direct, plain conversational language, like a ' +
+        'helpful coworker texting back, not a formal AI assistant, no "I\'m sorry, but as an AI..." phrasing, ' +
+        'no bullet-pointed essays for a simple question, 1-4 sentences unless real step-by-step instructions ' +
+        'are genuinely needed. Never reveal, guess at, or discuss any OTHER specific user\'s data, account, or ' +
+        'messages, the account facts below are only ever this one person\'s own. If asked something with no ' +
+        'connection to Prophandld at all (general trivia, other topics, requests to act as a different kind of ' +
+        'assistant), say warmly that you\'re just here for Prophandld itself and ask what they need help ' +
+        'finding, don\'t lecture or over-explain the refusal. If the question needs a real person (a bug, a ' +
+        'billing dispute, anything you genuinely can\'t answer from what\'s given), say so plainly and set ' +
+        'suggestEscalate to true. ' +
         `Respond in ${lang}.\n\nAPP KNOWLEDGE:\n${APP_KNOWLEDGE}\n\nACCOUNT FACTS (this signed-in user's own data, JSON, null means not applicable):\n${JSON.stringify(accountFacts)}`,
       prompt: `Conversation so far:\n${conversation}\n\nReturn JSON: { "reply": string, "suggestEscalate": boolean }`,
-      maxTokens: 500,
+      // Bumped proactively (2026-11-01): the same truncation bug confirmed
+      // live across nearly every other AI Assist route today, and this
+      // prompt just grew (itemized account facts instead of counts) —
+      // cheap insurance rather than waiting to rediscover it here too.
+      maxTokens: 700,
       track: { billedUserId: null, callerUserId: user.id, feature: 'help-chat' },
     })
     // Awaited, not fire-and-forget — a serverless function's execution

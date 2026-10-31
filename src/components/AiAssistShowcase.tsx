@@ -14,11 +14,16 @@ type Audience = 'tenant' | 'landlord'
 // section was written). No contractor turn in here on purpose: AI Assist
 // is a landlord add-on for landlords and their renters, not a contractor
 // feature (see TroubleshootAssistant/DiyTroubleshootPanel/polish-bid).
+// The brand/model callout is real too, not embellishment — a unit's
+// tracked appliances (Systems & appliances) get matched automatically and
+// handed to the AI as "already known, don't ask for it again" (see
+// knownApplianceLine in troubleshoot/route.ts), so a tenant never has to
+// type their washer's model number themselves.
 const TENANT_TRANSCRIPT = [
   { role: 'user' as const, text: 'The washer makes a loud banging noise during the spin cycle.' },
-  { role: 'ai' as const, text: "Banging during spin is usually just an unbalanced load. Pause the cycle, spread the clothes out evenly around the drum, and run it again." },
+  { role: 'ai' as const, text: "I can see the Samsung washer on file for this unit (model WF45T6000AW) — banging during spin on that model is usually just an unbalanced load. Pause the cycle, spread the clothes out evenly, and run it again." },
   { role: 'user' as const, text: "Still banging, what else can I try?" },
-  { role: 'ai' as const, text: "Check whether the washer's level — press each corner and see if it rocks. Still banging after that? Totally fine to report it. Nothing here's a guarantee." },
+  { role: 'ai' as const, text: "Check whether it's level — Samsung's own guidance for this model is to adjust the rear feet first. Still banging after that? Totally fine to report it. Nothing here's a guarantee." },
 ]
 
 // Same property names already used in RoleShowcase's own mockups further
@@ -35,7 +40,7 @@ const FEATURES = [
   {
     icon: WrenchIcon,
     title: 'Talks a tenant through it first',
-    desc: "Reads what they typed and the photo they attached, suggests one safe thing to try at a time, and keeps going until there's nothing left to try. Won't go near electrical, gas, or structural. Ever.",
+    desc: "Already knows which washer, water heater, or HVAC unit it's looking at from what's tracked for that unit, reads the photo they attached, and suggests one safe thing to try at a time. Won't go near electrical, gas, or structural. Ever.",
   },
   {
     icon: FileTextIcon,
@@ -160,7 +165,7 @@ function TenantDemo() {
   }, [visible, typing])
 
   return (
-    <WindowChrome label="Prophandld AI · Washer or Dryer">
+    <WindowChrome label="Prophandld AI · Samsung Washer (WF45T6000AW)">
       <div ref={listRef} className="space-y-2.5">
         {TENANT_TRANSCRIPT.slice(0, visible).map((turn, i) => (
           <div key={i} className={`flex ${turn.role === 'user' ? 'justify-end' : 'justify-start'} motion-safe:animate-[fadeIn_0.3s_ease-out]`}>
