@@ -116,7 +116,7 @@ export default function ReportIssuePage() {
 
       const { data: systemsData } = await supabase
         .from('maintenance_items')
-        .select('id, name, item_type')
+        .select('id, name, item_type, brand, model')
         .eq('unit_id', tenancyData.unit_id)
 
       setSystems(systemsData || [])
@@ -144,6 +144,12 @@ export default function ReportIssuePage() {
     }
     setForm({ ...form, [e.target.name]: e.target.value })
   }
+
+  // Trade-level match (any appliance, any plumbing fixture, etc.) — the
+  // Related System dropdown below already works this way, reused here so
+  // troubleshoot can auto-fill a known brand/model when there's only one
+  // real candidate, without duplicating the filter logic.
+  const matchingSystems = form.category ? systems.filter((s) => s.item_type === CATEGORY_TO_ITEM_TYPE[form.category]) : []
 
   const showTroubleshoot =
     aiAvailable &&
@@ -389,7 +395,7 @@ export default function ReportIssuePage() {
               </select>
             </div>
 
-            {form.category && systems.filter((s) => s.item_type === CATEGORY_TO_ITEM_TYPE[form.category]).length > 0 && (
+            {matchingSystems.length > 0 && (
               <div>
                 <label className="text-white/70 text-sm block mb-1">{t('relatedSystemOptionalLabel', lang)}</label>
                 <select
@@ -399,9 +405,7 @@ export default function ReportIssuePage() {
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
                 >
                   <option value="" className="bg-[#0C1A2E]">{t('notSureNoneOption', lang)}</option>
-                  {systems
-                    .filter((s) => s.item_type === CATEGORY_TO_ITEM_TYPE[form.category])
-                    .map((s) => (
+                  {matchingSystems.map((s) => (
                       <option key={s.id} value={s.id} className="bg-[#0C1A2E]">{s.name}</option>
                     ))}
                 </select>
@@ -576,6 +580,16 @@ export default function ReportIssuePage() {
               <TroubleshootAssistant
                 category={form.category}
                 description={form.description}
+                knownAppliance={
+                  // Explicitly picked from the Related System dropdown
+                  // always wins. Otherwise, if there's exactly one tracked
+                  // appliance on this unit at all, it's safe to use without
+                  // making the renter pick it — the dropdown's own match is
+                  // by trade (any appliance), not the specific category, so
+                  // more than one candidate isn't a safe guess.
+                  systems.find((s) => s.id === form.maintenance_item_id) ||
+                  (matchingSystems.length === 1 ? matchingSystems[0] : null)
+                }
                 onDone={(action, transcript) => {
                   setTroubleshootTranscript(transcript)
                   setTroubleshootCleared(true)

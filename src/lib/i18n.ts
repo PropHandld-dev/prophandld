@@ -738,6 +738,8 @@ const STRINGS = {
   diyModalDesc: { en: 'Add a photo of the finished work. No bidding, no contractor, no payment, this closes the job right away.', es: 'Agrega una foto del trabajo terminado. Sin ofertas, sin contratista, sin pago, esto cierra el trabajo de inmediato.' },
   diyAfterPhotoRequired: { en: 'Add at least one photo of the finished work before marking it fixed.', es: 'Agrega al menos una foto del trabajo terminado antes de marcarlo como arreglado.' },
   diyNotePlaceholder: { en: 'Optional note, e.g. what you did', es: 'Nota opcional, ej. qué hiciste' },
+  diyAiSuggestBtn: { en: 'Get AI suggestions before you start', es: 'Obtener sugerencias de IA antes de empezar' },
+  diyAiNoSuggestions: { en: "Couldn't get a suggestion right now. Go ahead and handle it, or try again in a moment.", es: 'No se pudo obtener una sugerencia en este momento. Puedes continuar, o intentarlo de nuevo en un momento.' },
   diyCostLabel: { en: 'Materials cost (optional)', es: 'Costo de materiales (opcional)' },
   diyMarkFixed: { en: 'Mark as fixed', es: 'Marcar como arreglado' },
   diyMarkingFixed: { en: 'Marking fixed...', es: 'Marcando como arreglado...' },

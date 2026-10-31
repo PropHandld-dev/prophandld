@@ -10,13 +10,20 @@ type Phase = 'offer' | 'asking' | 'question' | 'checking' | 'result'
 // this, or the exchange concludes — onDone always fires exactly once, with
 // a transcript to fold into the job description when the issue wasn't
 // resolved (null when skipped entirely, so nothing extra gets appended).
+type KnownAppliance = { name: string; brand: string | null; model: string | null }
+
 export function TroubleshootAssistant({
   category,
   description,
+  knownAppliance,
   onDone,
 }: {
   category: string
   description: string
+  // The tracked system this job matches, if the landlord has it on file and
+  // it's an unambiguous match — lets the one combined question skip asking
+  // for brand/model it already knows instead of asking again.
+  knownAppliance?: KnownAppliance | null
   // 'resolved' means the renter confirmed it's fixed and explicitly chose
   // not to report it — the parent should stop here, not fall through to
   // showing a submit button for a report that isn't happening.
@@ -35,7 +42,7 @@ export function TroubleshootAssistant({
       const res = await fetch('/api/ai-assist/troubleshoot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ category, description }),
+        body: JSON.stringify({ category, description, knownAppliance: knownAppliance || undefined }),
       })
       const data = await res.json()
       if (data.done) {
@@ -64,7 +71,7 @@ export function TroubleshootAssistant({
       const res = await fetch('/api/ai-assist/troubleshoot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ category, description, previousQuestion: question, previousAnswer: answer }),
+        body: JSON.stringify({ category, description, knownAppliance: knownAppliance || undefined, previousQuestion: question, previousAnswer: answer }),
       })
       const data = await res.json()
       setResolved(!!data.resolved)

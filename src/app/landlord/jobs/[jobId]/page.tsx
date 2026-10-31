@@ -38,6 +38,7 @@ import { AddressLink } from '@/components/AddressLink'
 import { cardProcessingFee, achProcessingFee } from '@/lib/cardSurcharge'
 import { AI_ASSIST_ENABLED } from '@/lib/aiAssist'
 import { FavoriteContractorButton } from '@/components/FavoriteContractorButton'
+import { DiyTroubleshootPanel } from '@/components/DiyTroubleshootPanel'
 import { useLanguage, t, windowLabel } from '@/lib/i18n'
 
 // Shared styling for every secondary action in the status card's action
@@ -1937,6 +1938,14 @@ export default function JobDetailPage() {
             </h3>
             <p className="text-white/50 text-sm mb-2">{t('diyModalDesc', lang)}</p>
             <p className="text-white/40 text-xs mb-5">{t('videoLengthHint', lang)}</p>
+
+            {aiAssistActive && (
+              <DiyTroubleshootPanel
+                category={job.category}
+                description={job.description}
+                knownAppliance={job.maintenance_items || null}
+              />
+            )}
 
             <div className="mb-4">
               <div className="flex items-center justify-between mb-2">
