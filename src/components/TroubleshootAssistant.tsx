@@ -11,11 +11,33 @@ type Phase = 'offer' | 'asking' | 'question' | 'checking' | 'result'
 // a transcript to fold into the job description when the issue wasn't
 // resolved (null when skipped entirely, so nothing extra gets appended).
 type KnownAppliance = { name: string; brand: string | null; model: string | null }
+const IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
+
+// A photo is often far more useful than a typed description for this —
+// "it's sparking" vs. an actual photo of the outlet. Capped at 2 so a
+// renter who attached five photos and a video doesn't balloon the cost of
+// one troubleshooting question; videos are skipped entirely (Claude's
+// image input only).
+async function encodeFirstPhotos(files: File[] | undefined, max = 2): Promise<{ base64: string; mediaType: string }[]> {
+  const images = (files || []).filter((f) => IMAGE_MIME_TYPES.has(f.type)).slice(0, max)
+  return Promise.all(
+    images.map(
+      (file) =>
+        new Promise<{ base64: string; mediaType: string }>((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onload = () => resolve({ base64: (reader.result as string).split(',')[1] || '', mediaType: file.type })
+          reader.onerror = reject
+          reader.readAsDataURL(file)
+        })
+    )
+  )
+}
 
 export function TroubleshootAssistant({
   category,
   description,
   knownAppliance,
+  photos,
   onDone,
 }: {
   category: string
@@ -24,6 +46,10 @@ export function TroubleshootAssistant({
   // it's an unambiguous match — lets the one combined question skip asking
   // for brand/model it already knows instead of asking again.
   knownAppliance?: KnownAppliance | null
+  // Whatever photos are already attached to the report at the point
+  // troubleshooting runs — encoded on demand, only when actually needed,
+  // not pre-encoded on every keystroke.
+  photos?: File[]
   // 'resolved' means the renter confirmed it's fixed and explicitly chose
   // not to report it — the parent should stop here, not fall through to
   // showing a submit button for a report that isn't happening.
@@ -39,10 +65,11 @@ export function TroubleshootAssistant({
   const start = async () => {
     setPhase('asking')
     try {
+      const encodedPhotos = await encodeFirstPhotos(photos)
       const res = await fetch('/api/ai-assist/troubleshoot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ category, description, knownAppliance: knownAppliance || undefined }),
+        body: JSON.stringify({ category, description, knownAppliance: knownAppliance || undefined, photos: encodedPhotos.length ? encodedPhotos : undefined }),
       })
       const data = await res.json()
       if (data.done) {
@@ -68,10 +95,21 @@ export function TroubleshootAssistant({
   const submitAnswer = async () => {
     setPhase('checking')
     try {
+      // Each call is stateless (no server-side memory of the first pass),
+      // so the photos have to be sent again here for the DIY-tips pass to
+      // also have visual context, not just the text answer.
+      const encodedPhotos = await encodeFirstPhotos(photos)
       const res = await fetch('/api/ai-assist/troubleshoot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ category, description, knownAppliance: knownAppliance || undefined, previousQuestion: question, previousAnswer: answer }),
+        body: JSON.stringify({
+          category,
+          description,
+          knownAppliance: knownAppliance || undefined,
+          photos: encodedPhotos.length ? encodedPhotos : undefined,
+          previousQuestion: question,
+          previousAnswer: answer,
+        }),
       })
       const data = await res.json()
       setResolved(!!data.resolved)

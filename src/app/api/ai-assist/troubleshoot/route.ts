@@ -10,6 +10,9 @@ export const maxDuration = 30
 type FirstPass = { done: boolean; question?: string; resolved?: boolean; message?: string }
 type SecondPass = { resolved: boolean; message: string }
 type KnownAppliance = { name?: string; brand?: string | null; model?: string | null }
+type PhotoInput = { base64: string; mediaType: string }
+
+const ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
 
 // Two shapes of call to the same route: no previousQuestion yet means
 // "should we even ask a troubleshooting question, and if so what" — a
@@ -34,14 +37,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Not available' }, { status: 403 })
   }
 
-  const { category, description, isEmergency, knownAppliance, previousQuestion, previousAnswer } = (await request.json()) as {
+  const { category, description, isEmergency, knownAppliance, photos, previousQuestion, previousAnswer } = (await request.json()) as {
     category?: string
     description?: string
     isEmergency?: boolean
     knownAppliance?: KnownAppliance
+    photos?: PhotoInput[]
     previousQuestion?: string
     previousAnswer?: string
   }
+  // A photo is often far more informative than a typed description — "it's
+  // sparking" vs. an actual photo of the outlet — so this is passed to
+  // Claude as real image input, not just described in text. Capped at 2
+  // and filtered to real image types regardless of what the client sent,
+  // same defense-in-depth every other AI Assist upload route already uses.
+  const validPhotos: { base64: string; mediaType: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp' }[] = (photos || [])
+    .filter((p): p is PhotoInput & { mediaType: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp' } => !!p?.base64 && ALLOWED_PHOTO_TYPES.includes(p.mediaType))
+    .slice(0, 2)
 
   if (!category || !description?.trim()) {
     return NextResponse.json({ error: 'Missing category or description' }, { status: 400 })
@@ -118,12 +130,14 @@ export async function POST(request: NextRequest) {
           'model isn\'t already known, and the description doesn\'t already say it, work that into your one ' +
           'question too — specific guidance later is much more useful with it (e.g. "What brand is the ' +
           'dishwasher, and is the door latching all the way?"). ' +
-          `Ask at most ONE combined question, 1-2 short sentences, plain language. Respond in ${lang}.`,
+          (validPhotos.length ? ' A photo of the issue is attached — actually look at it and factor in what you can see.' : '') +
+          ` Ask at most ONE combined question, 1-2 short sentences, plain language. Respond in ${lang}.`,
         prompt:
           `Category: ${category}\nDescription: ${description.trim()}${knownApplianceLine}\n\n` +
           'Return JSON: either { "done": false, "question": string } if there is one worthwhile thing to check, ' +
           'or { "done": true, "resolved": false, "message": string } (a short, friendly one-sentence note) if ' +
           'this should just be posted as-is.',
+        files: validPhotos.length ? validPhotos : undefined,
         maxTokens: 350,
         track: { billedUserId: landlordUserId, callerUserId: user.id, feature: 'troubleshoot' },
       })
@@ -156,11 +170,14 @@ export async function POST(request: NextRequest) {
         'either way so it\'s on record regardless. Keep the message short either way, and write it as ONE flowing ' +
         'paragraph of plain sentences, no line breaks, no bullet points or numbered lists, no markdown — separate ' +
         'multiple tips inline with words like "first" / "also" / "and" rather than putting each on its own line, ' +
-        `since the message must be valid JSON as a single plain string. Respond in ${lang}.`,
+        'since the message must be valid JSON as a single plain string.' +
+        (validPhotos.length ? ' A photo of the issue is attached — actually look at it and factor in what you can see.' : '') +
+        ` Respond in ${lang}.`,
       prompt:
         `Category: ${category}\nDescription: ${description.trim()}${knownApplianceLine}\nQuestion asked: ${previousQuestion}\n` +
         `Answer: ${previousAnswer || ''}\n\n` +
         'Return JSON: { "resolved": boolean, "message": string }',
+      files: validPhotos.length ? validPhotos : undefined,
       // Confirmed live: 400 wasn't enough headroom once the message could
       // include a few DIY tips plus the required disclaimer — the model's
       // raw output was getting cut off mid-sentence, which produces

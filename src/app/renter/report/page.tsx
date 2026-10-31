@@ -590,6 +590,7 @@ export default function ReportIssuePage() {
                   systems.find((s) => s.id === form.maintenance_item_id) ||
                   (matchingSystems.length === 1 ? matchingSystems[0] : null)
                 }
+                photos={files}
                 onDone={(action, transcript) => {
                   setTroubleshootTranscript(transcript)
                   setTroubleshootCleared(true)
