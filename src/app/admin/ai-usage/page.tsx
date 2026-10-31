@@ -7,6 +7,7 @@ import { ScrollReveal } from '@/components/ScrollReveal'
 
 type UserRow = { userId: string; name: string; email: string; cost: number; calls: number; tokens: number }
 type FeatureRow = { feature: string; cost: number; calls: number }
+type DayRow = { date: string; cost: number; calls: number }
 
 const FEATURE_LABELS: Record<string, string> = {
   'lease-extraction': 'Lease document extraction',
@@ -43,6 +44,11 @@ export default function AdminAiUsagePage() {
   const [totalCost, setTotalCost] = useState(0)
   const [totalCalls, setTotalCalls] = useState(0)
   const [last30DaysCost, setLast30DaysCost] = useState(0)
+  const [aiAssistCost, setAiAssistCost] = useState(0)
+  const [payingLandlordCount, setPayingLandlordCount] = useState(0)
+  const [trialingLandlordCount, setTrialingLandlordCount] = useState(0)
+  const [costPerPayingLandlord, setCostPerPayingLandlord] = useState<number | null>(null)
+  const [dailyTrend, setDailyTrend] = useState<DayRow[]>([])
   const [byUser, setByUser] = useState<UserRow[]>([])
   const [byFeature, setByFeature] = useState<FeatureRow[]>([])
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
@@ -59,6 +65,11 @@ export default function AdminAiUsagePage() {
           setTotalCost(data.totalCost || 0)
           setTotalCalls(data.totalCalls || 0)
           setLast30DaysCost(data.last30DaysCost || 0)
+          setAiAssistCost(data.aiAssistCost || 0)
+          setPayingLandlordCount(data.payingLandlordCount || 0)
+          setTrialingLandlordCount(data.trialingLandlordCount || 0)
+          setCostPerPayingLandlord(data.costPerPayingLandlord ?? null)
+          setDailyTrend(data.dailyTrend || [])
           setByUser(data.byUser || [])
           setByFeature(data.byFeature || [])
           setLastUpdated(new Date())
@@ -109,7 +120,7 @@ export default function AdminAiUsagePage() {
         <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">{error}</div>
       ) : (
         <>
-          <ScrollReveal className="grid grid-cols-3 gap-4 mb-8">
+          <ScrollReveal className="grid grid-cols-3 gap-4 mb-4">
             <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
               <p className="text-white/50 text-xs mb-1">All-time cost</p>
               <p className="text-2xl font-bold text-white tabular-nums">{money(totalCost)}</p>
@@ -121,6 +132,52 @@ export default function AdminAiUsagePage() {
             <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
               <p className="text-white/50 text-xs mb-1">Total AI calls</p>
               <p className="text-2xl font-bold text-white tabular-nums">{totalCalls.toLocaleString()}</p>
+            </div>
+          </ScrollReveal>
+
+          <ScrollReveal className="grid sm:grid-cols-[1fr_auto] gap-4 mb-8">
+            <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
+              <p className="text-white/50 text-xs mb-3">Daily AI Assist cost, last 30 days</p>
+              {dailyTrend.length === 0 || dailyTrend.every((d) => d.cost === 0) ? (
+                <p className="text-white/30 text-xs py-4">No usage yet in this window.</p>
+              ) : (
+                <div className="flex items-end gap-[3px] h-16">
+                  {dailyTrend.map((d) => {
+                    const max = Math.max(...dailyTrend.map((x) => x.cost), 0.0001)
+                    const pct = Math.max((d.cost / max) * 100, d.cost > 0 ? 6 : 0)
+                    return (
+                      <div
+                        key={d.date}
+                        title={`${d.date}: ${money(d.cost)} · ${d.calls} call${d.calls === 1 ? '' : 's'}`}
+                        className={`flex-1 rounded-sm transition-all ${d.cost > 0 ? 'bg-gradient-to-t from-[#0A7B7E] to-[#12A5A9]' : 'bg-white/8'}`}
+                        style={{ height: `${pct}%`, minHeight: d.cost > 0 ? '3px' : '2px' }}
+                      />
+                    )
+                  })}
+                </div>
+              )}
+              <div className="flex justify-between text-white/30 text-[10px] mt-2">
+                <span>{dailyTrend[0]?.date}</span>
+                <span>{dailyTrend[dailyTrend.length - 1]?.date}</span>
+              </div>
+            </div>
+            <div className="bg-white/3 border border-white/8 rounded-2xl p-5 sm:w-56">
+              <p className="text-white/50 text-xs mb-1">Cost per paying AI Assist landlord</p>
+              {payingLandlordCount === 0 ? (
+                <>
+                  <p className="text-xl font-bold text-white/40">&mdash;</p>
+                  <p className="text-white/40 text-xs mt-1">No active (paying) subscribers yet{trialingLandlordCount > 0 ? ` · ${trialingLandlordCount} trialing` : ''}.</p>
+                </>
+              ) : (
+                <>
+                  <p className={`text-2xl font-bold tabular-nums ${costPerPayingLandlord !== null && costPerPayingLandlord < 4.99 ? 'text-[#12A5A9]' : 'text-yellow-400'}`}>
+                    {money(costPerPayingLandlord || 0)}
+                  </p>
+                  <p className="text-white/40 text-xs mt-1">
+                    vs $4.99+/mo floor price &middot; {payingLandlordCount} paying{trialingLandlordCount > 0 ? `, ${trialingLandlordCount} trialing` : ''}
+                  </p>
+                </>
+              )}
             </div>
           </ScrollReveal>
 

@@ -257,60 +257,6 @@ export default function LandingPage() {
         </ScrollReveal>
       </section>
 
-      {/* AI Assist — an optional, landlord-paid add-on, not folded into the
-          base plan or hidden behind a "coming soon" placeholder (fixed
-          2026-10-31: the old /pricing page literally still said "coming in
-          a later phase" for a different, never-built feature, months after
-          this one actually shipped). Everything claimed below is a real,
-          shipped, live-tested capability, not a roadmap item. Copy
-          deliberately never compares against "other AI apps" — the pitch
-          is what it does with your actual data, not a category claim. */}
-      <section className="max-w-6xl mx-auto px-6 py-16">
-        <ScrollReveal>
-          <div className="text-center mb-14">
-            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 text-[#12A5A9] border border-[#12A5A9]/30 text-xs font-semibold px-3 py-1.5 rounded-full mb-5">
-              AI Assist &middot; optional add-on
-            </div>
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4 text-balance">
-              The AI that&apos;s actually read your lease, not the internet&apos;s best guess.
-            </h2>
-            <p className="text-white/50 max-w-2xl mx-auto leading-relaxed">
-              No generic advice, no made-up policy. Every answer comes from the real lease, photo,
-              or document on your account, or it tells you it doesn&apos;t know, out loud, instead
-              of guessing and hoping you don&apos;t check.
-            </p>
-          </div>
-
-          <AiAssistShowcase />
-
-          <div className="mt-16 max-w-3xl mx-auto bg-white/3 border border-white/8 rounded-2xl p-6 sm:p-8">
-            <h3 className="text-white font-semibold text-center mb-2">One subscription, two people benefit</h3>
-            <p className="text-white/50 text-sm text-center leading-relaxed max-w-xl mx-auto mb-6">
-              You&apos;re the one who turns it on and pays for it. The moment you do, every tenant
-              on your properties gets it too, automatically, at no extra cost to them. Turn it
-              off, and it turns off for them at the same time, nothing lingers.
-            </p>
-            <div className="grid sm:grid-cols-5 gap-2.5 text-center">
-              {[
-                ['1 unit', '$4.99'],
-                ['2–4 units', '$9.99'],
-                ['5–10 units', '$14.99'],
-                ['11–25 units', '$24.99'],
-                ['25+ units', '+$0.50/unit'],
-              ].map(([range, price]) => (
-                <div key={range} className="bg-white/[0.03] border border-white/8 rounded-xl py-3">
-                  <p className="text-white font-bold text-sm">{price}</p>
-                  <p className="text-white/40 text-[11px] mt-0.5">{range}</p>
-                </div>
-              ))}
-            </div>
-            <p className="text-white/40 text-xs text-center mt-5">
-              14-day free trial, cancel anytime. Turn it on from your profile whenever you&apos;re ready.
-            </p>
-          </div>
-        </ScrollReveal>
-      </section>
-
       {/* Beyond maintenance */}
       <section className="max-w-5xl mx-auto px-6 py-16">
         <ScrollReveal>
@@ -560,6 +506,66 @@ export default function LandingPage() {
                 See the full pricing breakdown →
               </Link>
             </div>
+          </div>
+        </ScrollReveal>
+      </section>
+
+      {/* AI Assist — an optional, landlord-paid add-on, not folded into the
+          base plan or hidden behind a "coming soon" placeholder (fixed
+          2026-10-31: the old /pricing page literally still said "coming in
+          a later phase" for a different, never-built feature, months after
+          this one actually shipped). Everything claimed below is a real,
+          shipped, live-tested capability, not a roadmap item. Copy
+          deliberately never compares against "other AI apps" — the pitch
+          is what it does with your actual data, not a category claim.
+          Placed right after the base plan's own pricing section, not
+          earlier on the page (fixed 2026-11-01: a first-time visitor
+          scrolling straight down used to hit a full AI Assist price grid
+          before ever learning what the app itself costs — confusing on its
+          own terms, since "$4.99" read like it might BE the price). */}
+      <section className="max-w-6xl mx-auto px-6 py-16">
+        <ScrollReveal>
+          <div className="text-center mb-14">
+            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 text-[#12A5A9] border border-[#12A5A9]/30 text-xs font-semibold px-3 py-1.5 rounded-full mb-5">
+              AI Assist &middot; optional add-on, on top of the plan above
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4 text-balance">
+              The AI that&apos;s actually read your lease, not the internet&apos;s best guess.
+            </h2>
+            <p className="text-white/50 max-w-2xl mx-auto leading-relaxed">
+              No generic advice, no made-up policy. Every answer comes from the real lease, photo,
+              or document on your account, or it tells you it doesn&apos;t know, out loud, instead
+              of guessing and hoping you don&apos;t check.
+            </p>
+          </div>
+
+          <AiAssistShowcase />
+
+          <div className="mt-16 max-w-3xl mx-auto bg-white/3 border border-white/8 rounded-2xl p-6 sm:p-8">
+            <h3 className="text-white font-semibold text-center mb-2">One subscription, two people benefit</h3>
+            <p className="text-white/50 text-sm text-center leading-relaxed max-w-xl mx-auto mb-6">
+              This is separate from, and in addition to, the plan above. You&apos;re the one who
+              turns it on and pays for it. The moment you do, every tenant on your properties gets
+              it too, automatically, at no extra cost to them. Turn it off, and it turns off for
+              them at the same time, nothing lingers.
+            </p>
+            <div className="grid sm:grid-cols-5 gap-2.5 text-center">
+              {[
+                ['1 unit', '$4.99'],
+                ['2–4 units', '$9.99'],
+                ['5–10 units', '$14.99'],
+                ['11–25 units', '$24.99'],
+                ['25+ units', '+$0.50/unit'],
+              ].map(([range, price]) => (
+                <div key={range} className="bg-white/[0.03] border border-white/8 rounded-xl py-3">
+                  <p className="text-white font-bold text-sm">{price}</p>
+                  <p className="text-white/40 text-[11px] mt-0.5">{range}</p>
+                </div>
+              ))}
+            </div>
+            <p className="text-white/40 text-xs text-center mt-5">
+              14-day free trial, cancel anytime. Turn it on from your profile whenever you&apos;re ready.
+            </p>
           </div>
         </ScrollReveal>
       </section>
