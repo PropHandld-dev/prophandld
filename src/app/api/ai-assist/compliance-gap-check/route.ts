@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
   if (user.app_metadata?.role !== 'landlord') {
-    return NextResponse.json({ error: 'Only landlords can use Handld' }, { status: 403 })
+    return NextResponse.json({ error: 'Only landlords can use Prophandld AI' }, { status: 403 })
   }
 
   const { propertyId } = (await request.json()) as { propertyId?: string }
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Property not found' }, { status: 404 })
   }
   if (!(await hasAiAssistAccess(supabaseAdmin, user.id))) {
-    return NextResponse.json({ error: 'Handld is not active on this account' }, { status: 403 })
+    return NextResponse.json({ error: 'Prophandld AI is not active on this account' }, { status: 403 })
   }
   if (await tooManyAiAssistRequests('compliance-gap-check', user.id, 20)) {
     return NextResponse.json({ error: 'Too many checks right now, try again in a few minutes.' }, { status: 429 })

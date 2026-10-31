@@ -1060,8 +1060,8 @@ export async function sendTrialGrantedEmail({
   lang?: Lang
 }) {
   const productLabel = lang === 'es'
-    ? (product === 'base' ? 'tu plan de Prophandld' : 'Handld')
-    : (product === 'base' ? 'your Prophandld plan' : 'Handld')
+    ? (product === 'base' ? 'tu plan de Prophandld' : 'Prophandld AI')
+    : (product === 'base' ? 'your Prophandld plan' : 'Prophandld AI')
 
   const bodyHtml = lang === 'es'
     ? mode === 'free'

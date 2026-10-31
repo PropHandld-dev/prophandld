@@ -72,7 +72,7 @@ export default function PrivacyPage() {
               <li><strong className="text-white/80">Sentry:</strong> error tracking, so we know when something breaks.</li>
               <li><strong className="text-white/80">Vercel:</strong> hosts the application itself.</li>
               <li><strong className="text-white/80">Google Cloud Translation:</strong> translates a chat message if you tap "See translation" on it. Only that specific message's text is sent, only when you tap it. Nothing is translated automatically.</li>
-              <li><strong className="text-white/80">Anthropic:</strong> powers Handld (AI Assist), an optional add-on a landlord turns on for their own account. When it's on, whatever a specific feature needs — a job description and photo for a troubleshooting suggestion, an uploaded lease or compliance document, a typed question — is sent to Anthropic's API to generate a response. Nothing is sent for anyone whose landlord hasn't turned Handld on.</li>
+              <li><strong className="text-white/80">Anthropic:</strong> powers Prophandld AI (AI Assist), an optional add-on a landlord turns on for their own account. When it's on, whatever a specific feature needs — a job description and photo for a troubleshooting suggestion, an uploaded lease or compliance document, a typed question — is sent to Anthropic's API to generate a response. Nothing is sent for anyone whose landlord hasn't turned Prophandld AI on.</li>
             </ul>
             <p>
               Within the platform, your data is also visible to other users where it needs to be.

@@ -15,7 +15,7 @@ export async function GET() {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
   if (user.app_metadata?.role !== 'landlord') {
-    return NextResponse.json({ error: 'Only landlords can add Handld' }, { status: 403 })
+    return NextResponse.json({ error: 'Only landlords can add Prophandld AI' }, { status: 403 })
   }
 
   const supabaseAdmin = getSupabaseAdmin()
@@ -52,7 +52,7 @@ export async function GET() {
       .maybeSingle()
     if (rowError) {
       console.error('ai-assist/status: error fetching row', rowError)
-      return NextResponse.json({ error: 'Could not load Handld status' }, { status: 500 })
+      return NextResponse.json({ error: 'Could not load Prophandld AI status' }, { status: 500 })
     }
 
     const status: AiAssistStatus = (row?.status as AiAssistStatus) || 'none'
@@ -76,6 +76,6 @@ export async function GET() {
     })
   } catch (err) {
     console.error('ai-assist/status: unhandled error', err)
-    return NextResponse.json({ error: 'Could not load Handld status' }, { status: 500 })
+    return NextResponse.json({ error: 'Could not load Prophandld AI status' }, { status: 500 })
   }
 }

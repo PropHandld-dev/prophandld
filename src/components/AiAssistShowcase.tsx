@@ -160,7 +160,7 @@ function TenantDemo() {
   }, [visible, typing])
 
   return (
-    <WindowChrome label="Handld · Washer or Dryer">
+    <WindowChrome label="Prophandld AI · Washer or Dryer">
       <div ref={listRef} className="space-y-2.5">
         {TENANT_TRANSCRIPT.slice(0, visible).map((turn, i) => (
           <div key={i} className={`flex ${turn.role === 'user' ? 'justify-end' : 'justify-start'} motion-safe:animate-[fadeIn_0.3s_ease-out]`}>
@@ -220,7 +220,7 @@ function LandlordDemo() {
   }, [reducedMotion])
 
   return (
-    <WindowChrome label="Handld · Morning digest">
+    <WindowChrome label="Prophandld AI · Morning digest">
       <div className="mb-4">
         <p className="text-white font-semibold text-sm">✦ Good morning</p>
         <p className="text-white/50 text-xs mt-0.5">Here&apos;s what&apos;s worth a look across your portfolio</p>

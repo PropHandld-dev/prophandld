@@ -18,7 +18,7 @@ export const maxDuration = 20
 // invoiced yet, so there's no paid period to honor.
 export async function POST() {
   if (!AI_ASSIST_ENABLED) {
-    return NextResponse.json({ error: 'Handld is not available yet' }, { status: 404 })
+    return NextResponse.json({ error: 'Prophandld AI is not available yet' }, { status: 404 })
   }
 
   const authClient = await createClient()
@@ -27,7 +27,7 @@ export async function POST() {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
   if (user.app_metadata?.role !== 'landlord') {
-    return NextResponse.json({ error: 'Only landlords can manage Handld' }, { status: 403 })
+    return NextResponse.json({ error: 'Only landlords can manage Prophandld AI' }, { status: 403 })
   }
 
   const supabaseAdmin = getSupabaseAdmin()
@@ -40,7 +40,7 @@ export async function POST() {
       .maybeSingle()
     if (rowError) {
       console.error('ai-assist/cancel: error fetching row', rowError)
-      return NextResponse.json({ error: 'Could not load Handld status' }, { status: 500 })
+      return NextResponse.json({ error: 'Could not load Prophandld AI status' }, { status: 500 })
     }
     if (!row || row.status === 'canceled') {
       return NextResponse.json({ status: 'canceled' })
@@ -66,7 +66,7 @@ export async function POST() {
           .eq('landlord_user_id', user.id)
         if (updateError) {
           console.error('ai-assist/cancel: error updating row', updateError)
-          return NextResponse.json({ error: 'Could not update Handld status' }, { status: 500 })
+          return NextResponse.json({ error: 'Could not update Prophandld AI status' }, { status: 500 })
         }
       }
       return NextResponse.json({ status: row.status, cancelAtPeriodEnd: true })
@@ -82,13 +82,13 @@ export async function POST() {
       .eq('landlord_user_id', user.id)
     if (updateError) {
       console.error('ai-assist/cancel: error updating row', updateError)
-      return NextResponse.json({ error: 'Could not update Handld status' }, { status: 500 })
+      return NextResponse.json({ error: 'Could not update Prophandld AI status' }, { status: 500 })
     }
 
     return NextResponse.json({ status: 'canceled' })
   } catch (err) {
     console.error('ai-assist/cancel: unhandled error', err)
-    return NextResponse.json({ error: friendlyStripeError(err, 'cancel Handld') }, { status: 500 })
+    return NextResponse.json({ error: friendlyStripeError(err, 'cancel Prophandld AI') }, { status: 500 })
   }
 }
 
@@ -97,7 +97,7 @@ export async function POST() {
 // actually stopped.
 export async function DELETE() {
   if (!AI_ASSIST_ENABLED) {
-    return NextResponse.json({ error: 'Handld is not available yet' }, { status: 404 })
+    return NextResponse.json({ error: 'Prophandld AI is not available yet' }, { status: 404 })
   }
 
   const authClient = await createClient()
@@ -106,7 +106,7 @@ export async function DELETE() {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
   if (user.app_metadata?.role !== 'landlord') {
-    return NextResponse.json({ error: 'Only landlords can manage Handld' }, { status: 403 })
+    return NextResponse.json({ error: 'Only landlords can manage Prophandld AI' }, { status: 403 })
   }
 
   const supabaseAdmin = getSupabaseAdmin()
@@ -119,7 +119,7 @@ export async function DELETE() {
       .maybeSingle()
     if (rowError) {
       console.error('ai-assist/cancel DELETE: error fetching row', rowError)
-      return NextResponse.json({ error: 'Could not load Handld status' }, { status: 500 })
+      return NextResponse.json({ error: 'Could not load Prophandld AI status' }, { status: 500 })
     }
     if (!row || !row.cancel_at_period_end || !row.stripe_subscription_id) {
       return NextResponse.json({ error: 'Nothing to undo' }, { status: 400 })
@@ -134,12 +134,12 @@ export async function DELETE() {
       .eq('landlord_user_id', user.id)
     if (updateError) {
       console.error('ai-assist/cancel DELETE: error updating row', updateError)
-      return NextResponse.json({ error: 'Could not update Handld status' }, { status: 500 })
+      return NextResponse.json({ error: 'Could not update Prophandld AI status' }, { status: 500 })
     }
 
     return NextResponse.json({ status: row.status, cancelAtPeriodEnd: false })
   } catch (err) {
     console.error('ai-assist/cancel DELETE: unhandled error', err)
-    return NextResponse.json({ error: friendlyStripeError(err, 'undo the Handld cancellation') }, { status: 500 })
+    return NextResponse.json({ error: friendlyStripeError(err, 'undo the Prophandld AI cancellation') }, { status: 500 })
   }
 }

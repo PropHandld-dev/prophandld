@@ -115,7 +115,7 @@ function SignupForm() {
   const [verifyingCode, setVerifyingCode] = useState(false)
   const [otpError, setOtpError] = useState<string | null>(null)
   const [agreedToTerms, setAgreedToTerms] = useState(false)
-  // Lifted out of UnitPriceEstimator so the Handld price line right below
+  // Lifted out of UnitPriceEstimator so the Prophandld AI price line right below
   // it can scale with the same number instead of showing a hardcoded
   // $4.99 regardless of how many units someone actually enters.
   const [estimatorUnits, setEstimatorUnits] = useState(1)

@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (!(await hasAiAssistAccess(supabaseAdmin, landlordUserId))) {
-    return NextResponse.json({ error: 'Your landlord hasn’t turned on Handld yet.' }, { status: 403 })
+    return NextResponse.json({ error: 'Your landlord hasn’t turned on Prophandld AI yet.' }, { status: 403 })
   }
 
   if (await tooManyAiAssistRequests('lease-qa', user.id)) {
