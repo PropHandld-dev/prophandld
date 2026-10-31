@@ -42,7 +42,7 @@ const FAQS: Record<Role, { q: string; a: string }[]> = {
     },
     {
       q: 'How much does it cost?',
-      a: 'Your first unit is free, full stop. Flat monthly plans through 25 units, then $1.75 per unit after that. See the full breakdown and try the calculator at /pricing. That\'s the only fee either way: contractors pay nothing, no cut of a bid, free during this pilot program.',
+      a: 'Your first unit is free, full stop. Flat monthly plans through 25 units, then $1.75 per unit after that. See the full breakdown and try the calculator at /pricing. That\'s the only fee either way: contractors pay nothing, no cut of a bid.',
     },
     {
       q: 'Do contractors need a license?',
@@ -82,7 +82,7 @@ const FAQS: Record<Role, { q: string; a: string }[]> = {
     },
     {
       q: 'Does it cost anything to use Prophandld?',
-      a: 'No, Prophandld is completely free for contractors right now. You keep 100% of what you\'re paid for every job, no platform cut, free during this pilot program, with at least 60 days\' notice before that would ever change.',
+      a: 'No, Prophandld is completely free for contractors right now. You keep 100% of what you\'re paid for every job, no platform cut. See our contractor terms for the full picture on how that could ever change.',
     },
     {
       q: 'Do I need to be licensed to bid?',

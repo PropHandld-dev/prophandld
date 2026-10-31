@@ -3,7 +3,7 @@
 // thin layout too.
 export const metadata = {
   title: 'For Contractors | Prophandld',
-  description: 'Real local maintenance jobs, sent straight to your phone for your trade. Submit a sealed bid and get picked on merit. No signup fee, no monthly fee, no cut of your bid, free during this pilot program.',
+  description: 'Real local maintenance jobs, sent straight to your phone for your trade. Submit a sealed bid and get picked on merit. No signup fee, no monthly fee, no cut of your bid.',
 }
 
 export default function ContractorsLayout({ children }: { children: React.ReactNode }) {

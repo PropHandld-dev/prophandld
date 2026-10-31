@@ -3,8 +3,10 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { ScrollReveal } from '@/components/ScrollReveal'
-import { useLanguage, t } from '@/lib/i18n'
+import { RippleButton } from '@/components/RippleButton'
+import { useLanguage, t, type Lang } from '@/lib/i18n'
 import { AI_ASSIST_ENABLED } from '@/lib/aiAssist'
+import { openAiHelp } from '@/lib/openAiHelp'
 
 type Nudge = { icon: 'calendar' | 'warning' | 'wrench'; text: string }
 
@@ -14,6 +16,42 @@ const ICON_STYLES: Record<Nudge['icon'], string> = {
   wrench: 'bg-[#12A5A9]/15 text-[#12A5A9]',
 }
 const ICON_GLYPH: Record<Nudge['icon'], string> = { calendar: '📅', warning: '⚠️', wrench: '🔧' }
+
+// A typed question here doesn't get its own answer inline — it hands off
+// to the floating AI help chat (free for every landlord regardless of AI
+// Assist, see openAiHelp.ts), which already knows how to ground an answer
+// in real account data and has the escalate-to-a-human fallback this card
+// has no room for. One shared input, reused across all three card states.
+function AskBar({ lang }: { lang: Lang }) {
+  const [question, setQuestion] = useState('')
+
+  const ask = () => {
+    const q = question.trim()
+    if (!q) return
+    openAiHelp(q)
+    setQuestion('')
+  }
+
+  return (
+    <div className="flex items-center gap-2 mt-3">
+      <input
+        type="text"
+        value={question}
+        onChange={(e) => setQuestion(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && ask()}
+        placeholder={t('portfolioAskPlaceholder', lang)}
+        className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-white text-sm placeholder-white/40 focus:outline-none focus:border-[#12A5A9] transition"
+      />
+      <RippleButton
+        onClick={ask}
+        disabled={!question.trim()}
+        className="shrink-0 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
+      >
+        {t('aiLeaseQaAskBtn', lang)}
+      </RippleButton>
+    </div>
+  )
+}
 
 // Three states, not one: a landlord without AI Assist used to see nothing
 // at all here (no hint the feature even exists), and a landlord WITH it
@@ -58,6 +96,7 @@ export function PortfolioDigestCard() {
         <Link href="/profile#billing" className="text-[#12A5A9] text-sm font-semibold hover:underline">
           {t('portfolioDigestUpsellCta', lang)}
         </Link>
+        <AskBar lang={lang} />
       </ScrollReveal>
     )
   }
@@ -89,6 +128,7 @@ export function PortfolioDigestCard() {
           </div>
         </>
       )}
+      <AskBar lang={lang} />
     </ScrollReveal>
   )
 }

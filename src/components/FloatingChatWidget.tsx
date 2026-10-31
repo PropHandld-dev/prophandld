@@ -14,6 +14,7 @@ import { MessageCircleIcon } from '@/components/icons'
 import { useLanguage, t } from '@/lib/i18n'
 import { AiHelpChat } from '@/components/AiHelpChat'
 import { AI_ASSIST_ENABLED } from '@/lib/aiAssist'
+import { onOpenAiHelp } from '@/lib/openAiHelp'
 
 function formatTimestamp(iso: string) {
   const date = new Date(iso)
@@ -35,6 +36,13 @@ export function FloatingChatWidget() {
   const [open, setOpen] = useState(false)
   const [showPicker, setShowPicker] = useState(false)
   const [active, setActive] = useState<ActivePanel | null>(null)
+  const [pendingAiHelpMessage, setPendingAiHelpMessage] = useState<string | null>(null)
+
+  useEffect(() => onOpenAiHelp((message) => {
+    setPendingAiHelpMessage(message)
+    setActive({ kind: 'ai-help' })
+    setOpen(true)
+  }), [])
 
   useEffect(() => {
     const applyUser = (user: User | null | undefined) => {
@@ -98,6 +106,7 @@ export function FloatingChatWidget() {
     setOpen(false)
     setActive(null)
     setShowPicker(false)
+    setPendingAiHelpMessage(null)
   }
 
   const openConversation = (c: (typeof conversations)[number]) => {
@@ -111,6 +120,7 @@ export function FloatingChatWidget() {
 
   const handleBackToList = () => {
     setActive(null)
+    setPendingAiHelpMessage(null)
     // Don't rely solely on the realtime subscription catching up — a
     // conversation just started via the picker/strip has no messages
     // yet, and the freshly-sent one should show up immediately rather
@@ -172,7 +182,7 @@ export function FloatingChatWidget() {
             <div className="flex-1 min-h-0 overflow-hidden">
               {active?.kind === 'ai-help' ? (
                 <div className="px-4 h-full py-3">
-                  <AiHelpChat />
+                  <AiHelpChat key={pendingAiHelpMessage || 'default'} initialMessage={pendingAiHelpMessage} />
                 </div>
               ) : active ? (
                 <div className="px-4 h-full">

@@ -30,8 +30,8 @@ const WHY_POINTS = [
 ]
 
 const COMPARISON_ROWS: { label: string; typical: string; prophandld: string }[] = [
-  { label: 'Fee to see local jobs', typical: 'Monthly membership, common', prophandld: '$0 during this pilot' },
-  { label: 'Cut of what you bid', typical: 'Often 10–20% off the top', prophandld: '$0 during this pilot' },
+  { label: 'Fee to see local jobs', typical: 'Monthly membership, common', prophandld: '$0' },
+  { label: 'Cut of what you bid', typical: 'Often 10–20% off the top', prophandld: '$0' },
   { label: 'How you get picked', typical: 'Usually whoever bids lowest', prophandld: 'Sealed bid, picked on merit and trust' },
   { label: 'Getting paid', typical: 'Varies, sometimes delayed', prophandld: 'Direct deposit the moment work is approved' },
 ]
@@ -92,7 +92,7 @@ export default function ContractorsLandingPage() {
           Real repair jobs from real landlords near you, sent straight to your
           phone for your trade. Submit a sealed bid, get picked on merit, and
           get paid directly the moment the work is approved. Prophandld doesn&apos;t
-          take a cut of what you bid, free during this pilot program.
+          take a cut of what you bid.
         </p>
         <div className="flex items-center justify-center gap-4 flex-wrap">
           <MagneticLink

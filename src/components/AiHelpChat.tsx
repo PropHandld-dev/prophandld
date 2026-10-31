@@ -14,7 +14,7 @@ type Turn = { role: 'user' | 'assistant'; content: string; suggestEscalate?: boo
 // when it isn't confident, it says so and offers the same human-escalation
 // path the old static contact form always used
 // (/api/support-escalate), never leaves someone stuck with just an AI.
-export function AiHelpChat() {
+export function AiHelpChat({ initialMessage }: { initialMessage?: string | null } = {}) {
   const lang = useLanguage()
   const [email, setEmail] = useState<string | null>(null)
   const [turns, setTurns] = useState<Turn[]>([])
@@ -25,6 +25,7 @@ export function AiHelpChat() {
   const [escalateNote, setEscalateNote] = useState('')
   const [escalateStatus, setEscalateStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
   const listRef = useRef<HTMLDivElement>(null)
+  const sentInitialRef = useRef(false)
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email || null))
@@ -46,8 +47,20 @@ export function AiHelpChat() {
     if (el) el.scrollTop = el.scrollHeight
   }, [turns.length, sending])
 
-  const send = async () => {
-    const message = draft.trim()
+  // A question typed somewhere else on the app (e.g. the dashboard's "Ask
+  // AI" box, see openAiHelp.ts) lands here as a prop, not local draft
+  // state, and fires exactly once per mount — opening this panel twice
+  // with the same initialMessage (e.g. a parent re-render) must not
+  // re-send it.
+  useEffect(() => {
+    if (initialMessage && !sentInitialRef.current) {
+      sentInitialRef.current = true
+      doSend(initialMessage)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialMessage])
+
+  const doSend = async (message: string) => {
     if (!message || sending) return
     setDraft('')
     setError(null)
@@ -74,6 +87,8 @@ export function AiHelpChat() {
     }
     setSending(false)
   }
+
+  const send = () => doSend(draft.trim())
 
   const submitEscalate = async () => {
     if (!email) return

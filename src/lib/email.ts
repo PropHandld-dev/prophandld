@@ -589,7 +589,7 @@ export async function sendContractorInviteEmail({
     lang: 'en',
     eyebrow: 'Invite',
     heading: `${escapeHtml(landlordName)} invited you to Prophandld`,
-    bodyHtml: `${escapeHtml(landlordName)} wants to work with you through Prophandld: sealed bidding, completely free to use during this pilot program, and you get paid directly the moment a job's done.${note ? `<br /><br />Their note: "${escapeHtml(note)}"` : ''} Sign up as a contractor with this same email address to get started.`,
+    bodyHtml: `${escapeHtml(landlordName)} wants to work with you through Prophandld: sealed bidding, completely free to use, and you get paid directly the moment a job's done.${note ? `<br /><br />Their note: "${escapeHtml(note)}"` : ''} Sign up as a contractor with this same email address to get started.`,
     ctaLabel: 'Create your account',
     ctaUrl: `${SITE_URL}/signup?role=contractor`,
     footerText: `You're receiving this because ${escapeHtml(landlordName)} invited you to Prophandld.`,
@@ -707,7 +707,7 @@ const WELCOME_CONTENT: Record<'landlord' | 'renter' | 'contractor', Record<Lang,
   contractor: {
     en: {
       heading: 'Welcome to Prophandld',
-      bodyHtml: "Welcome aboard. Real jobs near you, sealed bids, and you get paid the moment a landlord confirms the work's done. No lead fees, no cut, free during this pilot program." + stepsHtml([
+      bodyHtml: "Welcome aboard. Real jobs near you, sealed bids, and you get paid the moment a landlord confirms the work's done. No lead fees, no cut." + stepsHtml([
         'Set your service area and trades in Settings, so the right jobs find you',
         'Add your license and insurance for a "Verified" badge landlords can see',
         "Bid sealed on real jobs near you, you're never guessing what to quote",
@@ -717,7 +717,7 @@ const WELCOME_CONTENT: Record<'landlord' | 'renter' | 'contractor', Record<Lang,
     },
     es: {
       heading: 'Bienvenido a Prophandld',
-      bodyHtml: 'Bienvenido a bordo. Trabajos reales cerca de ti, ofertas selladas, y te pagan en el momento en que un propietario confirma que el trabajo está terminado. Sin costo por cliente potencial, sin comisión, gratis durante este programa piloto.' + stepsHtml([
+      bodyHtml: 'Bienvenido a bordo. Trabajos reales cerca de ti, ofertas selladas, y te pagan en el momento en que un propietario confirma que el trabajo está terminado. Sin costo por cliente potencial, sin comisión.' + stepsHtml([
         'Configura tu área de servicio y oficios en Ajustes, para que los trabajos correctos te encuentren',
         'Agrega tu licencia y seguro para obtener una insignia de "Verificado" que los propietarios pueden ver',
         'Oferta de forma sellada en trabajos reales cerca de ti, nunca tendrás que adivinar cuánto cotizar',
@@ -1091,6 +1091,41 @@ export async function sendTrialGrantedEmail({
   return sendEmail({
     to,
     subject: lang === 'es' ? `Actualización de cuenta: ${productLabel}` : `Account update: ${productLabel}`,
+    html,
+  })
+}
+
+export async function sendReferralRewardEmail({
+  to,
+  landlordName,
+  referredName,
+  lang = 'en',
+}: {
+  to: string
+  landlordName: string
+  referredName: string
+  lang?: Lang
+}) {
+  const bodyHtml = lang === 'es'
+    ? `¡Buenas noticias! <strong>${escapeHtml(referredName)}</strong> ya empezó a usar Prophandld de verdad gracias a tu invitación. Añadimos 30 días gratis a tu prueba automáticamente, no tienes que hacer nada.`
+    : `Good news — <strong>${escapeHtml(referredName)}</strong> just became a real, active landlord on Prophandld thanks to your invite. We've added 30 free days to your trial automatically, nothing for you to do.`
+
+  const html = baseTemplate({
+    lang,
+    eyebrow: lang === 'es' ? 'Recompensa por invitar' : 'Referral reward',
+    heading: lang === 'es' ? 'Ganaste 30 días gratis' : 'You earned 30 free days',
+    bodyHtml,
+    preheader: referredName,
+    ctaLabel: lang === 'es' ? 'Ver mi cuenta' : 'View my account',
+    ctaUrl: `${SITE_URL}/profile`,
+    note: lang === 'es'
+      ? 'Sigue invitando, cada propietario activo te da 30 días más.'
+      : 'Keep inviting — every active landlord you bring in earns you another 30 days.',
+  })
+
+  return sendEmail({
+    to,
+    subject: lang === 'es' ? 'Ganaste 30 días gratis en Prophandld' : 'You earned 30 free days on Prophandld',
     html,
   })
 }

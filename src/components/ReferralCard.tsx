@@ -7,12 +7,11 @@ import { useLanguage, t } from '@/lib/i18n'
 
 type ReferralItem = { id: string; createdAt: string; referredName: string; active: boolean }
 
-// Referral tracking v1 — deliberately no automated reward here. Billing
-// enforcement is still off and Stripe is still test-mode, so there's no
-// live subscription to apply a credit against yet; rewards for now are
-// applied manually. This just makes sure every referral from here on is
-// actually captured, so nothing is lost once a real reward mechanism
-// exists. See scripts/2026-10-28-referral-program.sql.
+// Reward is automatic (2026-11-01): the moment a referral's trial starts
+// for real (crosses 1 unit), the referrer's own trial gets extended 30
+// days and they get an email — no manual step, see
+// rewardReferrerIfFirstTrial in subscription/status/route.ts and
+// scripts/2026-11-01-referral-auto-reward.sql.
 export function ReferralCard() {
   const lang = useLanguage()
   const [loading, setLoading] = useState(true)
