@@ -128,7 +128,10 @@ export async function POST(request: NextRequest) {
         'tools beyond what\'s already in a kitchen or closet — if the issue doesn\'t have a real safe thing to ' +
         'try, don\'t force one, just say so plainly. Always make clear these are general tips, not a guarantee, ' +
         'that it\'s completely fine to skip straight to reporting it, and that the report should go in either ' +
-        `way so the landlord/contractor knows about it regardless. Keep the message short either way. Respond in ${lang}.`,
+        'way so the landlord/contractor knows about it regardless. Keep the message short either way, and write ' +
+        'it as ONE flowing paragraph of plain sentences, no line breaks, no bullet points or numbered lists, no ' +
+        'markdown — separate multiple tips inline with words like "first" / "also" / "and" rather than putting ' +
+        `each on its own line, since the message must be valid JSON as a single plain string. Respond in ${lang}.`,
       prompt:
         `Category: ${category}\nDescription: ${description.trim()}\nQuestion asked: ${previousQuestion}\n` +
         `Renter's answer: ${previousAnswer || ''}\n\n` +
