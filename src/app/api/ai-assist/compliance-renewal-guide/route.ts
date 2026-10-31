@@ -76,7 +76,12 @@ export async function POST(request: NextRequest) {
         `Expires: ${item.expiry_date || 'no date on file'}\n` +
         `Property: ${property.address}, ${property.city || 'unknown city'}, ${property.state || 'unknown state'}\n\n` +
         'Return JSON: { "guide": string } — the renewal guidance as described.',
-      maxTokens: 600,
+      // Same truncation bug confirmed live elsewhere this session
+      // (compliance-gap-check, troubleshoot, draft-message): the careful
+      // "I'm not confident about the exact fee/deadline" hedging this
+      // prompt explicitly asks for runs long, and 600 cut a real response
+      // off mid-sentence, producing invalid JSON.
+      maxTokens: 800,
       track: { billedUserId: user.id, callerUserId: user.id, feature: 'compliance-renewal-guide' },
     })
     return NextResponse.json(result)
@@ -85,6 +90,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'This isn’t set up yet.' }, { status: 503 })
     }
     console.error('ai-assist/compliance-renewal-guide: unhandled error', err)
-    return NextResponse.json({ error: 'Could not look that up right now.', _debug: err instanceof Error ? err.message : String(err) } as any, { status: 500 })
+    return NextResponse.json({ error: 'Could not look that up right now.' }, { status: 500 })
   }
 }
