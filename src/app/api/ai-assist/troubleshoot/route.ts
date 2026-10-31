@@ -160,7 +160,7 @@ export async function POST(request: NextRequest) {
       maxTokens: 600,
       track: { billedUserId: landlordUserId, callerUserId: user.id, feature: 'troubleshoot' },
     })
-    if (!result.reply) result.reply = `[EMPTY-REPLY-DEBUG] ${fallbackMessage}`
+    if (!result.reply) result.reply = fallbackMessage
     return NextResponse.json(result)
   } catch (err) {
     if (err instanceof ClaudeConfigError) {
@@ -174,6 +174,6 @@ export async function POST(request: NextRequest) {
     // this failing either way — fail open with a plain fallback that
     // still lets the conversation (or reporting) continue.
     console.error('ai-assist/troubleshoot: unhandled error', err)
-    return NextResponse.json({ reply: fallbackMessage, resolved: false, _debug: err instanceof Error ? err.message : String(err) } as any)
+    return NextResponse.json({ reply: fallbackMessage, resolved: false } as Reply)
   }
 }
