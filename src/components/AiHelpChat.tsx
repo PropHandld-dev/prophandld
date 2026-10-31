@@ -34,12 +34,34 @@ export function AiHelpChat({ initialMessage }: { initialMessage?: string | null 
   // Closing the bubble unmounts this component and wipes `turns` — reload
   // the last 30 days of this person's own history on every fresh mount so
   // reopening (or coming back a different day) picks up where they left
-  // off instead of a blank slate.
+  // off instead of a blank slate. Combined with the initialMessage
+  // auto-send (a question typed elsewhere, e.g. the dashboard's "Ask AI"
+  // box — see openAiHelp.ts) into one effect on purpose: these used to be
+  // two independent mount effects, and whichever one's fetch resolved
+  // LAST would win — if the history GET landed after the question's own
+  // POST finished, it silently overwrote the fresh exchange with stale
+  // history, so clicking Ask could feel like nothing happened. Now the
+  // question is sent (if any) using the just-loaded history as its base,
+  // not racing against it.
   useEffect(() => {
+    let cancelled = false
+    const sendInitialIfNeeded = (history: Turn[]) => {
+      if (initialMessage && !sentInitialRef.current) {
+        sentInitialRef.current = true
+        doSend(initialMessage, history)
+      }
+    }
     fetch('/api/ai-assist/help-chat')
       .then((res) => res.json())
-      .then((data) => { if (Array.isArray(data.turns) && data.turns.length) setTurns(data.turns) })
-      .catch(() => {})
+      .then((data) => {
+        if (cancelled) return
+        const loaded: Turn[] = Array.isArray(data.turns) ? data.turns : []
+        if (loaded.length) setTurns(loaded)
+        sendInitialIfNeeded(loaded)
+      })
+      .catch(() => { if (!cancelled) sendInitialIfNeeded([]) })
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
@@ -47,21 +69,9 @@ export function AiHelpChat({ initialMessage }: { initialMessage?: string | null 
     if (el) el.scrollTop = el.scrollHeight
   }, [turns.length, sending])
 
-  // A question typed somewhere else on the app (e.g. the dashboard's "Ask
-  // AI" box, see openAiHelp.ts) lands here as a prop, not local draft
-  // state, and fires exactly once per mount — opening this panel twice
-  // with the same initialMessage (e.g. a parent re-render) must not
-  // re-send it.
-  useEffect(() => {
-    if (initialMessage && !sentInitialRef.current) {
-      sentInitialRef.current = true
-      doSend(initialMessage)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialMessage])
-
-  const doSend = async (message: string) => {
+  const doSend = async (message: string, historyOverride?: Turn[]) => {
     if (!message || sending) return
+    const baseHistory = historyOverride ?? turns
     setDraft('')
     setError(null)
     setTurns((prev) => [...prev, { role: 'user', content: message }])
@@ -71,7 +81,7 @@ export function AiHelpChat({ initialMessage }: { initialMessage?: string | null 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          history: turns.map((t) => ({ role: t.role, content: t.content })),
+          history: baseHistory.map((t) => ({ role: t.role, content: t.content })),
           message,
         }),
       })
