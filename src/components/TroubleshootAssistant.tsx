@@ -61,11 +61,17 @@ export function TroubleshootAssistant({
   const [answer, setAnswer] = useState('')
   const [resultMessage, setResultMessage] = useState('')
   const [resolved, setResolved] = useState(false)
+  // How many photos actually made it into the LAST call (not just how many
+  // are attached) — a video or a failed read silently drops out in
+  // encodeFirstPhotos, so this is read back from what was really sent, not
+  // assumed from the prop.
+  const [photosUsed, setPhotosUsed] = useState(0)
 
   const start = async () => {
     setPhase('asking')
     try {
       const encodedPhotos = await encodeFirstPhotos(photos)
+      setPhotosUsed(encodedPhotos.length)
       const res = await fetch('/api/ai-assist/troubleshoot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -99,6 +105,7 @@ export function TroubleshootAssistant({
       // so the photos have to be sent again here for the DIY-tips pass to
       // also have visual context, not just the text answer.
       const encodedPhotos = await encodeFirstPhotos(photos)
+      setPhotosUsed(encodedPhotos.length)
       const res = await fetch('/api/ai-assist/troubleshoot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -151,6 +158,9 @@ export function TroubleshootAssistant({
   if (phase === 'question') {
     return (
       <div className="bg-[#12A5A9]/8 border border-[#12A5A9]/25 rounded-2xl p-4">
+        {photosUsed > 0 && (
+          <p className="text-[#12A5A9]/70 text-[11px] mb-1.5">✦ {t('aiReviewedPhotoNote', lang)}</p>
+        )}
         <p className="text-white text-sm mb-3">{question}</p>
         <textarea
           value={answer}
@@ -182,6 +192,9 @@ export function TroubleshootAssistant({
   // result
   return (
     <div className={`rounded-2xl p-4 border ${resolved ? 'bg-[#12A5A9]/8 border-[#12A5A9]/25' : 'bg-white/3 border-white/8'}`}>
+      {photosUsed > 0 && (
+        <p className="text-[#12A5A9]/70 text-[11px] mb-1.5">✦ {t('aiReviewedPhotoNote', lang)}</p>
+      )}
       <p className="text-white text-sm mb-3">{resultMessage}</p>
       {resolved ? (
         <div className="flex items-center gap-3">

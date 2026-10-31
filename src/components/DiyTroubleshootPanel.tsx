@@ -60,11 +60,13 @@ export function DiyTroubleshootPanel({
   const [question, setQuestion] = useState('')
   const [answer, setAnswer] = useState('')
   const [resultMessage, setResultMessage] = useState('')
+  const [photosUsed, setPhotosUsed] = useState(0)
 
   const start = async () => {
     setPhase('asking')
     try {
       const photos = await encodePhotoUrls(photoUrls || [])
+      setPhotosUsed(photos.length)
       const res = await fetch('/api/ai-assist/troubleshoot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -88,6 +90,7 @@ export function DiyTroubleshootPanel({
     setPhase('checking')
     try {
       const photos = await encodePhotoUrls(photoUrls || [])
+      setPhotosUsed(photos.length)
       const res = await fetch('/api/ai-assist/troubleshoot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -130,6 +133,9 @@ export function DiyTroubleshootPanel({
   if (phase === 'question') {
     return (
       <div className="bg-[#12A5A9]/8 border border-[#12A5A9]/25 rounded-xl p-3 mb-4">
+        {photosUsed > 0 && (
+          <p className="text-[#12A5A9]/70 text-[11px] mb-1.5">✦ {t('aiReviewedPhotoNote', lang)}</p>
+        )}
         <p className="text-white text-xs mb-2">{question}</p>
         <textarea
           value={answer}
@@ -153,6 +159,9 @@ export function DiyTroubleshootPanel({
   return (
     <div className="bg-white/3 border border-white/8 rounded-xl p-3 mb-4">
       <span className="text-[10px] font-bold uppercase tracking-wide text-[#12A5A9] bg-[#12A5A9]/10 border border-[#12A5A9]/30 rounded-full px-2 py-0.5 inline-block mb-2">✦ AI</span>
+      {photosUsed > 0 && (
+        <p className="text-[#12A5A9]/70 text-[11px] mb-1.5">✦ {t('aiReviewedPhotoNote', lang)}</p>
+      )}
       <p className="text-white/80 text-xs leading-relaxed">{resultMessage}</p>
     </div>
   )

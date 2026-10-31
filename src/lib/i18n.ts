@@ -1210,6 +1210,7 @@ const STRINGS = {
   troubleshootTryBtn: { en: 'Try it', es: 'Intentarlo' },
   troubleshootSkipBtn: { en: 'Skip, just report it', es: 'Omitir, solo reportar' },
   troubleshootThinking: { en: 'One moment...', es: 'Un momento...' },
+  aiReviewedPhotoNote: { en: 'AI looked at your photo too', es: 'La IA también revisó tu foto' },
   troubleshootAnswerPlaceholder: { en: 'Type your answer...', es: 'Escribe tu respuesta...' },
   troubleshootContinueBtn: { en: 'Continue', es: 'Continuar' },
   troubleshootAllSetBtn: { en: "All set, don't report it", es: 'Todo listo, no reportar' },
