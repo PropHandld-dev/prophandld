@@ -1218,10 +1218,6 @@ const STRINGS = {
   troubleshootPostJobBtn: { en: 'Post the report', es: 'Publicar el reporte' },
   troubleshootResolvedFooter: { en: "Good to know, nothing's been reported.", es: 'Bueno saberlo, no se ha reportado nada.' },
 
-  aiPolishBtn: { en: '✦ Polish with AI', es: '✦ Mejorar con IA' },
-  aiPolishing: { en: 'Polishing...', es: 'Mejorando...' },
-  aiPolishFailed: { en: 'Could not polish that right now. Try again in a moment.', es: 'No se pudo mejorar eso ahora. Inténtalo de nuevo en un momento.' },
-  aiPolishHint: { en: 'Turns your rough notes into a clear scope, using your exact price and meaning.', es: 'Convierte tus notas en un alcance claro, usando tu precio y significado exactos.' },
 
   aiDraftBtnLabel: { en: 'Draft with AI', es: 'Redactar con IA' },
   aiDraftPickOne: { en: 'Draft a message about...', es: 'Redactar un mensaje sobre...' },

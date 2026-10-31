@@ -19,6 +19,15 @@ export async function POST(request: NextRequest) {
   if (!user) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
+  // Free for landlords and renters, but not contractors — same reasoning
+  // as every other contractor-facing AI route being pulled for now
+  // (AI Assist is a landlord-paid add-on; a future contractor Pro tier is
+  // the right place for this, not a free ride on someone else's plan).
+  // The UI already skips this fetch for a contractor; this is the
+  // server-side backstop.
+  if (user.app_metadata?.role === 'contractor') {
+    return NextResponse.json({ replies: [] })
+  }
 
   const { jobId, threadId } = (await request.json()) as { jobId?: string; threadId?: string }
   if (!jobId && !threadId) {

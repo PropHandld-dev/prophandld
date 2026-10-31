@@ -256,7 +256,13 @@ export function ChatPanel({
   const lastMessage = messages[messages.length - 1]
   useEffect(() => {
     setSmartReplies([])
-    if (!AI_ASSIST_ENABLED || !lastMessage || !userId || lastMessage.sender_user_id === userId) return
+    // Free for landlords and renters (riding on the landlord's AI Assist
+    // subscription either way), but not contractors — AI Assist is a
+    // landlord-paid add-on, and giving contractors the same features for
+    // free undercuts a future paid contractor tier. Revisit if/when there's
+    // a contractor Pro plan.
+    const myRole = participants.find((p) => p.user_id === userId)?.role
+    if (!AI_ASSIST_ENABLED || !lastMessage || !userId || lastMessage.sender_user_id === userId || myRole === 'contractor') return
     let cancelled = false
     fetch('/api/ai-assist/smart-replies', {
       method: 'POST',
