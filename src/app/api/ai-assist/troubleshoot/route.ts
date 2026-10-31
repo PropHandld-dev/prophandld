@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing category or description' }, { status: 400 })
   }
   if (isEmergency || NO_TROUBLESHOOT_CATEGORIES.some((c) => category.toLowerCase().includes(c.toLowerCase()))) {
-    return NextResponse.json({ done: true, resolved: false, message: '' } as FirstPass)
+    return NextResponse.json({ done: true, resolved: false, message: '', _debugSite: 'A-emergency-or-excluded' } as any)
   }
 
   const supabaseAdmin = getSupabaseAdmin()
@@ -65,10 +65,10 @@ export async function POST(request: NextRequest) {
     .maybeSingle()
   const landlordUserId = (unit as any)?.properties?.owner_user_id
   if (!landlordUserId || !(await hasAiAssistAccess(supabaseAdmin, landlordUserId))) {
-    return NextResponse.json({ done: true, resolved: false, message: '' } as FirstPass)
+    return NextResponse.json({ done: true, resolved: false, message: '', _debugSite: 'B-no-ai-assist-access', _debugLandlordId: landlordUserId || null } as any)
   }
   if (await tooManyAiAssistRequests('troubleshoot', user.id, 20)) {
-    return NextResponse.json({ done: true, resolved: false, message: '' } as FirstPass)
+    return NextResponse.json({ done: true, resolved: false, message: '', _debugSite: 'C-rate-limited' } as any)
   }
 
   // Never passed to the model before — a Spanish-preferring renter got
@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
       if (result.done && !result.resolved && !result.message) {
         result.message = fallbackMessage
       }
-      return NextResponse.json(result)
+      return NextResponse.json({ ...result, _debugSite: 'D-first-pass-normal' } as any)
     }
 
     const result = await claudeJson<SecondPass>({
@@ -124,15 +124,15 @@ export async function POST(request: NextRequest) {
       track: { billedUserId: landlordUserId, callerUserId: user.id, feature: 'troubleshoot' },
     })
     if (!result.message) result.message = fallbackMessage
-    return NextResponse.json({ done: true, ...result } as FirstPass)
+    return NextResponse.json({ done: true, ...result, _debugSite: 'E-second-pass-normal' } as any)
   } catch (err) {
     if (err instanceof ClaudeConfigError) {
       console.error('ai-assist/troubleshoot: Claude not configured', err)
-      return NextResponse.json({ done: true, resolved: false, message: '' } as FirstPass)
+      return NextResponse.json({ done: true, resolved: false, message: fallbackMessage, _debugSite: 'F-config-error' } as any)
     }
     console.error('ai-assist/troubleshoot: unhandled error', err)
     // Never block the actual report over this failing — fail open straight
     // to "just post it", same as the category/emergency skip above.
-    return NextResponse.json({ done: true, resolved: false, message: '' } as FirstPass)
+    return NextResponse.json({ done: true, resolved: false, message: fallbackMessage, _debugSite: 'G-unhandled-error', _debugErr: err instanceof Error ? err.message : String(err) } as any)
   }
 }
