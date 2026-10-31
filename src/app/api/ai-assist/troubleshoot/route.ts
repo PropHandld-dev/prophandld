@@ -71,6 +71,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ done: true, resolved: false, message: '' } as FirstPass)
   }
 
+  // Never passed to the model before — a Spanish-preferring renter got
+  // English troubleshooting questions regardless of their setting, the
+  // one AI Assist route that missed this (help-chat, lease-qa both
+  // already do it).
+  const { data: profile } = await supabaseAdmin.from('users').select('preferred_language').eq('id', user.id).maybeSingle()
+  const lang = profile?.preferred_language === 'es' ? 'Spanish' : 'English'
+  const fallbackMessage = lang === 'Spanish' ? 'No hay nada más que revisar aquí, puedes reportarlo.' : "Nothing extra to check here, go ahead and report it."
+
   try {
     if (!previousQuestion) {
       const result = await claudeJson<FirstPass>({
@@ -81,7 +89,7 @@ export async function POST(request: NextRequest) {
           'reset) — never anything touching electrical wiring, gas lines, or that could cause damage or injury ' +
           'if attempted. If the issue genuinely has no safe self-check worth trying (e.g. a broken fixture, a ' +
           'structural issue, anything already described as serious), skip straight to recommending it be posted. ' +
-          'Ask at most ONE combined question, 1-2 short sentences, plain language.',
+          `Ask at most ONE combined question, 1-2 short sentences, plain language. Respond in ${lang}.`,
         prompt:
           `Category: ${category}\nDescription: ${description.trim()}\n\n` +
           'Return JSON: either { "done": false, "question": string } if there is one worthwhile thing to check, ' +
@@ -90,6 +98,16 @@ export async function POST(request: NextRequest) {
         maxTokens: 300,
         track: { billedUserId: landlordUserId, callerUserId: user.id, feature: 'troubleshoot' },
       })
+      // The model doesn't always follow the "short, friendly note" part of
+      // the instructions even when it correctly decides there's nothing
+      // worth checking — caught live via an empty message string. The UI
+      // treats any empty message as "skip troubleshooting with zero
+      // feedback," which looks exactly like tapping "Try it" did nothing,
+      // worse than never offering it at all. A plain fallback keeps that
+      // real, useful "done: true, resolved: false" case from going silent.
+      if (result.done && !result.resolved && !result.message) {
+        result.message = fallbackMessage
+      }
       return NextResponse.json(result)
     }
 
@@ -97,7 +115,7 @@ export async function POST(request: NextRequest) {
       system:
         'You are finishing a short troubleshooting exchange with a renter about a maintenance issue, for a ' +
         'property management app. Based on their answer, decide if the issue sounds resolved or still needs a ' +
-        'contractor. Keep the message to one short, friendly sentence.',
+        `contractor. Keep the message to one short, friendly sentence. Respond in ${lang}.`,
       prompt:
         `Category: ${category}\nDescription: ${description.trim()}\nQuestion asked: ${previousQuestion}\n` +
         `Renter's answer: ${previousAnswer || ''}\n\n` +
@@ -105,6 +123,7 @@ export async function POST(request: NextRequest) {
       maxTokens: 200,
       track: { billedUserId: landlordUserId, callerUserId: user.id, feature: 'troubleshoot' },
     })
+    if (!result.message) result.message = fallbackMessage
     return NextResponse.json({ done: true, ...result } as FirstPass)
   } catch (err) {
     if (err instanceof ClaudeConfigError) {
