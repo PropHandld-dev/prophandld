@@ -171,6 +171,6 @@ export async function POST(request: NextRequest) {
     // this failing either way — fail open with a plain fallback that
     // still lets the conversation (or reporting) continue.
     console.error('ai-assist/troubleshoot: unhandled error', err)
-    return NextResponse.json({ reply: fallbackMessage, resolved: false } as Reply)
+    return NextResponse.json({ reply: fallbackMessage, resolved: false, _debug: err instanceof Error ? err.message : String(err) } as any)
   }
 }
