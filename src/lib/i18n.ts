@@ -1706,6 +1706,8 @@ const STRINGS = {
   pushLabel: { en: 'Push', es: 'Notificación push' },
   smsLabel: { en: 'Text', es: 'Mensaje de texto' },
   attachDocumentOptionalLabel: { en: 'Attach document (optional)', es: 'Adjuntar documento (opcional)' },
+  attachDocumentRequiredLabel: { en: 'Attach document (required)', es: 'Adjuntar documento (obligatorio)' },
+  pleaseAttachADocument: { en: 'Please attach the license, certificate, or inspection document for this item.', es: 'Por favor adjunta la licencia, certificado o documento de inspección para este elemento.' },
   chooseFileBtn: { en: '+ Choose file', es: '+ Elegir archivo' },
   addItemBtn: { en: 'Add item', es: 'Agregar elemento' },
 

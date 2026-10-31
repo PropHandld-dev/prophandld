@@ -353,6 +353,14 @@ export default function PropertyCompliancePage() {
       setError(t('pleaseEnterAType', lang))
       return
     }
+    // Joshua's call: a tracked compliance item with no document behind it
+    // is exactly the "resolved by just typing a date" gap this whole page
+    // exists to close — see the AI-assisted renewal flow below for the
+    // other half of this.
+    if (!file) {
+      setError(t('pleaseAttachADocument', lang))
+      return
+    }
 
     setSaving(true)
     setError(null)
@@ -408,6 +416,13 @@ export default function PropertyCompliancePage() {
       setError(t('pleasePickNewExpiryDate', lang))
       return
     }
+    // Required, same as adding a new item — an old attachment from a prior
+    // period doesn't prove THIS new date, so a fresh document is required
+    // even if the item already has something on file.
+    if (!renewFile) {
+      setError(t('pleaseAttachADocument', lang))
+      return
+    }
 
     const { error: updateError } = await supabase
       .from('compliance_items')
@@ -424,9 +439,7 @@ export default function PropertyCompliancePage() {
     // fails, the renewal still went through and the landlord can attach
     // the document separately via the same upload control every item
     // already has below.
-    if (renewFile) {
-      await uploadComplianceDocument(item.id, item.item_type, renewFile)
-    }
+    await uploadComplianceDocument(item.id, item.item_type, renewFile)
 
     setRenewingId(null)
     setRenewDate('')
@@ -630,7 +643,7 @@ export default function PropertyCompliancePage() {
           </div>
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">{t('attachDocumentOptionalLabel', lang)}</label>
+            <label className="text-white/70 text-sm block mb-1">{t('attachDocumentRequiredLabel', lang)}</label>
             <label className="block">
               <input
                 type="file"

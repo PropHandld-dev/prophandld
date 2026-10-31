@@ -89,13 +89,17 @@ export async function POST(request: NextRequest) {
           'reset) — never anything touching electrical wiring, gas lines, or that could cause damage or injury ' +
           'if attempted. If the issue genuinely has no safe self-check worth trying (e.g. a broken fixture, a ' +
           'structural issue, anything already described as serious), skip straight to recommending it be posted. ' +
+          'If this is an appliance (refrigerator, oven/stove, dishwasher, washer/dryer, microwave) and the ' +
+          'description doesn\'t already say the brand or model, work that into your one question too — specific ' +
+          'guidance later is much more useful with it (e.g. "What brand is the dishwasher, and is the door ' +
+          'latching all the way?"). ' +
           `Ask at most ONE combined question, 1-2 short sentences, plain language. Respond in ${lang}.`,
         prompt:
           `Category: ${category}\nDescription: ${description.trim()}\n\n` +
           'Return JSON: either { "done": false, "question": string } if there is one worthwhile thing to check, ' +
           'or { "done": true, "resolved": false, "message": string } (a short, friendly one-sentence note) if ' +
           'this should just be posted as-is.',
-        maxTokens: 300,
+        maxTokens: 350,
         track: { billedUserId: landlordUserId, callerUserId: user.id, feature: 'troubleshoot' },
       })
       // The model doesn't always follow the "short, friendly note" part of
@@ -115,12 +119,21 @@ export async function POST(request: NextRequest) {
       system:
         'You are finishing a short troubleshooting exchange with a renter about a maintenance issue, for a ' +
         'property management app. Based on their answer, decide if the issue sounds resolved or still needs a ' +
-        `contractor. Keep the message to one short, friendly sentence. Respond in ${lang}.`,
+        'contractor. If it does NOT sound resolved and this is the kind of issue with real, well-known, genuinely ' +
+        'safe things to try (e.g. a dishwasher not draining because of a clogged filter, a washer not spinning ' +
+        'because it\'s overloaded or unbalanced, a fridge not cooling because vents are blocked or coils need ' +
+        'dusting, a dryer not heating because the lint trap or vent is clogged), include up to 2-3 short steps, ' +
+        'plain language, as part of the message. Never suggest opening the appliance\'s housing or casing, ' +
+        'touching any internal or electrical parts, working with a gas line or connection, or anything needing ' +
+        'tools beyond what\'s already in a kitchen or closet — if the issue doesn\'t have a real safe thing to ' +
+        'try, don\'t force one, just say so plainly. Always make clear these are general tips, not a guarantee, ' +
+        'that it\'s completely fine to skip straight to reporting it, and that the report should go in either ' +
+        `way so the landlord/contractor knows about it regardless. Keep the message short either way. Respond in ${lang}.`,
       prompt:
         `Category: ${category}\nDescription: ${description.trim()}\nQuestion asked: ${previousQuestion}\n` +
         `Renter's answer: ${previousAnswer || ''}\n\n` +
         'Return JSON: { "resolved": boolean, "message": string }',
-      maxTokens: 200,
+      maxTokens: 400,
       track: { billedUserId: landlordUserId, callerUserId: user.id, feature: 'troubleshoot' },
     })
     if (!result.message) result.message = fallbackMessage
