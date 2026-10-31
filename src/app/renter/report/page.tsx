@@ -204,8 +204,17 @@ export default function ReportIssuePage() {
     setAvailabilitySlots(availabilitySlots.filter((_, i) => i !== index))
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  // transcriptOverride lets the troubleshoot "proceed" paths submit directly
+  // with the transcript they already have in hand, instead of going through
+  // setTroubleshootTranscript (state) and waiting a render cycle for a
+  // second, separately-labeled Submit button to even appear — that extra
+  // tap didn't let someone do anything they couldn't already do earlier in
+  // the same form (photos/availability/access notes are all above the
+  // troubleshoot panel, still editable while it's open), it was just a
+  // second click doing the same thing "Post the report" already said.
+  const handleSubmit = async (e: React.FormEvent | null, transcriptOverride?: string | null) => {
+    e?.preventDefault()
+    const effectiveTranscript = transcriptOverride !== undefined ? transcriptOverride : troubleshootTranscript
 
     if (!form.category) {
       setError(t('pleaseSelectACategory', lang))
@@ -231,8 +240,8 @@ export default function ReportIssuePage() {
         category: form.category,
         location: form.location || null,
         urgency: form.is_emergency ? 'emergency' : form.urgency,
-        description: troubleshootTranscript
-          ? `${form.description.trim()}\n\n[AI troubleshooting already tried]\n${troubleshootTranscript}`
+        description: effectiveTranscript
+          ? `${form.description.trim()}\n\n[AI troubleshooting already tried]\n${effectiveTranscript}`
           : form.description.trim(),
         is_emergency: form.is_emergency,
         status: 'pending_approval',
@@ -570,7 +579,11 @@ export default function ReportIssuePage() {
                 onDone={(action, transcript) => {
                   setTroubleshootTranscript(transcript)
                   setTroubleshootCleared(true)
-                  setTroubleshootResolvedNoAction(action === 'resolved')
+                  if (action === 'resolved') {
+                    setTroubleshootResolvedNoAction(true)
+                    return
+                  }
+                  handleSubmit(null, transcript)
                 }}
               />
             ) : troubleshootResolvedNoAction ? (
