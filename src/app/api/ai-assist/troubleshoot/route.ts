@@ -136,7 +136,13 @@ export async function POST(request: NextRequest) {
         `Category: ${category}\nDescription: ${description.trim()}\nQuestion asked: ${previousQuestion}\n` +
         `Renter's answer: ${previousAnswer || ''}\n\n` +
         'Return JSON: { "resolved": boolean, "message": string }',
-      maxTokens: 400,
+      // Confirmed live: 400 wasn't enough headroom once the message could
+      // include a few DIY tips plus the required disclaimer — the model's
+      // raw output was getting cut off mid-sentence, which produces
+      // truncated, invalid JSON (not a formatting problem, an actual
+      // length one). 700 gives real room without being wasteful for the
+      // common case where there's nothing extra to say at all.
+      maxTokens: 700,
       track: { billedUserId: landlordUserId, callerUserId: user.id, feature: 'troubleshoot' },
     })
     if (!result.message) result.message = fallbackMessage
@@ -153,6 +159,6 @@ export async function POST(request: NextRequest) {
     // the actual report over this failing either way — fail open straight
     // to "just post it", same as the category/emergency skip above.
     console.error('ai-assist/troubleshoot: unhandled error', err)
-    return NextResponse.json({ done: true, resolved: false, message: fallbackMessage, _debugErr: err instanceof Error ? err.message : String(err) } as any)
+    return NextResponse.json({ done: true, resolved: false, message: fallbackMessage } as FirstPass)
   }
 }
