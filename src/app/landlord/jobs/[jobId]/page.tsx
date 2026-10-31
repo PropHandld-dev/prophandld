@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic'
 import { supabase } from '@/lib/supabase'
 import { expectRow } from '@/lib/expectRow'
 import { compressImage } from '@/lib/imageCompress'
-import { validateMediaFile } from '@/lib/mediaValidation'
+import { validateMediaFile, isVideoPath } from '@/lib/mediaValidation'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { PhotoGrid } from '@/components/PhotoGrid'
@@ -1944,6 +1944,7 @@ export default function JobDetailPage() {
                 category={job.category}
                 description={job.description}
                 knownAppliance={job.maintenance_items || null}
+                photoUrls={photos.filter((p) => p.displayUrl && !isVideoPath(p.photo_url)).map((p) => p.displayUrl)}
               />
             )}
 

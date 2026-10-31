@@ -6,6 +6,34 @@ import { useLanguage, t } from '@/lib/i18n'
 
 type Phase = 'idle' | 'asking' | 'question' | 'checking' | 'result'
 type KnownAppliance = { name: string; brand: string | null; model: string | null }
+const IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
+
+// Same idea as TroubleshootAssistant's encodeFirstPhotos, starting from
+// signed storage URLs instead of in-browser File objects — the job's
+// reported photos already live in Supabase storage by the time a landlord
+// is looking at an existing job, not as File objects to re-encode. Capped
+// at 2, silently skips anything that fails to fetch or isn't a real image
+// (a video, an expired signed URL) rather than blocking the suggestion.
+async function encodePhotoUrls(urls: string[], max = 2): Promise<{ base64: string; mediaType: string }[]> {
+  const results = await Promise.all(
+    urls.slice(0, max).map(async (url) => {
+      try {
+        const blob = await (await fetch(url)).blob()
+        if (!IMAGE_MIME_TYPES.has(blob.type)) return null
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onload = () => resolve((reader.result as string).split(',')[1] || '')
+          reader.onerror = reject
+          reader.readAsDataURL(blob)
+        })
+        return { base64, mediaType: blob.type }
+      } catch {
+        return null
+      }
+    })
+  )
+  return results.filter((r): r is { base64: string; mediaType: string } => !!r)
+}
 
 // The landlord-side counterpart to TroubleshootAssistant (renter/report) —
 // same API route, same safety rules, same disclaimers, just no "proceed to
@@ -18,10 +46,14 @@ export function DiyTroubleshootPanel({
   category,
   description,
   knownAppliance,
+  photoUrls,
 }: {
   category: string
   description: string
   knownAppliance?: KnownAppliance | null
+  // The job's own reported photo URLs (signed, from Supabase storage) —
+  // optional, since not every job has photos attached.
+  photoUrls?: string[]
 }) {
   const lang = useLanguage()
   const [phase, setPhase] = useState<Phase>('idle')
@@ -32,10 +64,11 @@ export function DiyTroubleshootPanel({
   const start = async () => {
     setPhase('asking')
     try {
+      const photos = await encodePhotoUrls(photoUrls || [])
       const res = await fetch('/api/ai-assist/troubleshoot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ category, description, knownAppliance: knownAppliance || undefined }),
+        body: JSON.stringify({ category, description, knownAppliance: knownAppliance || undefined, photos: photos.length ? photos : undefined }),
       })
       const data = await res.json()
       if (data.done) {
@@ -54,10 +87,18 @@ export function DiyTroubleshootPanel({
   const submitAnswer = async () => {
     setPhase('checking')
     try {
+      const photos = await encodePhotoUrls(photoUrls || [])
       const res = await fetch('/api/ai-assist/troubleshoot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ category, description, knownAppliance: knownAppliance || undefined, previousQuestion: question, previousAnswer: answer }),
+        body: JSON.stringify({
+          category,
+          description,
+          knownAppliance: knownAppliance || undefined,
+          photos: photos.length ? photos : undefined,
+          previousQuestion: question,
+          previousAnswer: answer,
+        }),
       })
       const data = await res.json()
       setResultMessage(data.message || t('diyAiNoSuggestions', lang))
