@@ -91,7 +91,10 @@ export async function POST(request: NextRequest) {
         'sounds like it needs a real legal opinion (an eviction, a dispute, anything adversarial). Keep the ' +
         'answer to 2-4 sentences, plain language, no markdown formatting.',
       prompt: `Lease facts (JSON, null means not on file): ${JSON.stringify(leaseFacts)}\n\nQuestion: ${question.trim()}\n\nReturn JSON: { "answer": string }`,
-      maxTokens: 400,
+      // Same 2-4 sentence prose scope that truncated at 400 elsewhere
+      // (draft-message, compliance-gap-check) and was already flagged here
+      // as transiently failing in production.
+      maxTokens: 600,
       track: { billedUserId: landlordUserId, callerUserId: user.id, feature: 'lease-qa' },
     })
 

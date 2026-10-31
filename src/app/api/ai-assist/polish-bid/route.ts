@@ -71,7 +71,9 @@ export async function POST(request: NextRequest) {
         `Price: ${priceLine}\n\n` +
         'Return JSON: { "scope": string } — a clear rewrite of the notes as the bid scope, starting with ' +
         '"Scope:" and keeping it to what they actually said.',
-      maxTokens: 300,
+      // Same 2-4 sentence prose scope that truncated at 400 elsewhere
+      // (draft-message, lease-qa) — bumped proactively here too.
+      maxTokens: 600,
       track: { billedUserId: landlordUserId, callerUserId: user.id, feature: 'bid-polish' },
     })
 
