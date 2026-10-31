@@ -121,21 +121,22 @@ export async function POST(request: NextRequest) {
   try {
     const result = await claudeJson<Reply>({
       system:
-        `You're having a short, ongoing chat with ${audienceRole} trying to resolve a maintenance issue ` +
-        `themselves, for a property management app, before it needs a contractor.${audienceNote} This can run ` +
-        'several turns — don\'t just ask one thing and stop. Suggest ONE safe, reversible thing to check or try ' +
-        'at a time (is it plugged in, is a valve or switch in the right position, has it been reset), wait for ' +
-        'them to say what happened, then either suggest the next safe thing if that one didn\'t work, say it ' +
-        `sounds resolved, or say plainly you're out of safe things to try and it's worth having them ${reportingAction} — ` +
-        'whichever actually fits where the conversation is. Keep each reply short, 1-3 sentences, warm and ' +
-        'plain, like a helpful coworker texting back, not a formal assistant. ' +
+        `You decide what to say next in an ongoing troubleshooting exchange with ${audienceRole} who's trying ` +
+        `to resolve a maintenance issue themselves, for a property management app, before it needs a ` +
+        `contractor.${audienceNote} This can run several turns — don't just produce one question and stop. The ` +
+        'reply you write should suggest ONE safe, reversible thing to check or try at a time (is it plugged in, ' +
+        'is a valve or switch in the right position, has it been reset), or, once you\'ve seen their result, ' +
+        'either suggest the next safe thing if that one didn\'t work, say it sounds resolved, or say plainly ' +
+        `you're out of safe things to try and it's worth having them ${reportingAction} — whichever actually ` +
+        'fits where the conversation is. Keep the reply short, 1-3 sentences, warm and plain, like a helpful ' +
+        'coworker texting back, not a formal assistant. ' +
         'Never suggest anything touching electrical wiring, gas lines, or that could cause damage or injury if ' +
         'attempted, and if at ANY point in the conversation they describe something dangerous (sparking, a gas ' +
-        `smell, a shock, smoke, visible damage getting worse), drop whatever you were suggesting and tell them ` +
-        `to stop immediately, stay safe, and ${reportingAction} right away — that overrides everything else, ` +
-        'including anything you already suggested trying. If the issue genuinely never has a safe self-check ' +
-        `worth trying (e.g. a broken fixture, a structural issue, anything already described as serious), say so ` +
-        `plainly up front and recommend they ${reportingAction} instead of forcing a question. ` +
+        `smell, a shock, smoke, visible damage getting worse), drop whatever you were suggesting and write a ` +
+        `reply telling them to stop immediately, stay safe, and ${reportingAction} right away — that overrides ` +
+        'everything else, including anything you already suggested trying. If the issue genuinely never has a ' +
+        `safe self-check worth trying (e.g. a broken fixture, a structural issue, anything already described as ` +
+        `serious), say so plainly up front and recommend they ${reportingAction} instead of forcing a question. ` +
         'If this is an appliance (refrigerator, oven/stove, dishwasher, washer/dryer, microwave) and the brand ' +
         'or model isn\'t already known and hasn\'t been said, it\'s fine to ask for it, but don\'t belabor it if ' +
         'they don\'t know. Always make clear nothing here is a guarantee and it\'s completely fine to stop and ' +
@@ -143,18 +144,20 @@ export async function POST(request: NextRequest) {
         'only way this gets fixed. Set resolved: true only when their LATEST message actually indicates it\'s ' +
         'fixed now, not just that something sounds promising.' +
         (validPhotos.length ? ' A photo of the issue is attached — actually look at it and factor in what you can see.' : '') +
-        ` Respond in ${lang}. Return JSON: { "reply": string, "resolved": boolean }.`,
+        ` Respond in ${lang}.\n\n` +
+        'Output EXACTLY one JSON object and nothing else — no reply text before it, no repeated or paraphrased ' +
+        'version of the reply after it, no commentary, just { "reply": string, "resolved": boolean } once.',
       prompt:
         `Category: ${category}\nDescription: ${description.trim()}${knownApplianceLine}\n\n` +
-        (conversation ? `Conversation so far:\n${conversation}\n\n` : '(Nothing said yet — this is your opening reply.)\n\n') +
+        (conversation ? `Conversation so far:\n${conversation}\n\n` : '(Nothing said yet — write your opening reply.)\n\n') +
         'Return JSON: { "reply": string, "resolved": boolean }.',
       files: validPhotos.length ? validPhotos : undefined,
       // Generous — a multi-turn conversation with real tips needs more
-      // room than a single fixed question ever did, and a truncated raw
-      // response produces invalid JSON (confirmed live earlier as the
-      // actual cause of a very similar "goes silent" bug, not a
-      // formatting problem).
-      maxTokens: 500,
+      // room than a single fixed question ever did. (The earlier failures
+      // at 500 turned out to be the model writing the reply twice — once
+      // as plain prose, once re-wrapped in JSON — not pure truncation, but
+      // extra headroom is cheap insurance either way.)
+      maxTokens: 600,
       track: { billedUserId: landlordUserId, callerUserId: user.id, feature: 'troubleshoot' },
     })
     if (!result.reply) result.reply = fallbackMessage
