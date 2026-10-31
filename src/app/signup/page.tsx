@@ -600,7 +600,15 @@ function SignupForm() {
         ))}
       </ul>
 
-      {role === 'landlord' && <UnitPriceEstimator lang={lang} />}
+      {role === 'landlord' && (
+        <>
+          <UnitPriceEstimator lang={lang} />
+          <div className="bg-gradient-to-br from-[#0A7B7E]/10 to-white/[0.02] border border-[#12A5A9]/25 rounded-xl px-4 py-3.5 mb-6">
+            <p className="text-white text-sm font-semibold mb-1">{t('signupAiAssistTitle', lang)}</p>
+            <p className="text-white/60 text-xs leading-relaxed">{t('signupAiAssistDesc', lang)}</p>
+          </div>
+        </>
+      )}
 
       <form onSubmit={handleSignup} className="space-y-4">
 

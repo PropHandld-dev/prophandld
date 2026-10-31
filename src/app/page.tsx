@@ -350,7 +350,7 @@ export default function LandingPage() {
               Real jobs near you, sent straight to your phone for your trade.
               Submit a sealed bid and get picked on merit, not by who lowballed
               hardest. Get paid directly the moment the job&apos;s approved.{' '}
-              <span className="text-white/70 font-medium">No signup fee, no monthly fee, no cut of your bid, free during this pilot program.</span>
+              <span className="text-white/70 font-medium">No signup fee, no monthly fee, no cut of your bid.</span>
             </p>
             <Link href="/contractors" className="text-[#12A5A9] text-sm font-semibold hover:underline">
               See how it works for contractors →
@@ -392,7 +392,7 @@ export default function LandingPage() {
             {[
               { label: 'Getting quotes', typical: "Contractors call and text you directly, you're juggling comparisons yourself.", prophandld: 'Every bid lands in one dashboard, side by side.' },
               { label: 'Bidding fairness', typical: "Contractors can tell roughly how many others are bidding, some don't bother competing seriously.", prophandld: "Sealed bidding, nobody sees another's number, so you get real prices, not posturing." },
-              { label: 'What it costs the contractor', typical: 'Many apps charge contractors per lead, win or not.', prophandld: 'Free during this pilot program, so the contractors who show up actually want the job.' },
+              { label: 'What it costs the contractor', typical: 'Many apps charge contractors per lead, win or not.', prophandld: 'Free, so the contractors who show up actually want the job.' },
               { label: 'After you pick someone', typical: "You're often on your own, no tracking, no proof of work, no built-in payment.", prophandld: 'Scheduling, before/after photos, and payment all stay in one place.' },
             ].map((row, i, arr) => (
               <div

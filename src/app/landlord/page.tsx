@@ -712,27 +712,18 @@ export default function LandlordDashboard() {
               </ScrollReveal>
             )}
 
+            {/* Trimmed from 7 cards to 4 (2026-11-01): Properties, View
+                Jobs, and Rent Roll duplicated destinations already one tap
+                away via the stat row and pipeline row above — the same
+                /landlord/properties, /landlord/jobs, /landlord/rent links,
+                just repeated lower on the page. What's left here is
+                genuinely not represented anywhere else on the dashboard. */}
             <h2 className="text-white font-semibold text-lg mb-4">{t('quickActions', lang)}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4" data-tour="quicklinks">
-              <Link href="/landlord/properties" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
-                <BuildingIcon className="w-5 h-5 text-[#12A5A9] mb-2" />
-                <h3 className="text-white font-semibold mb-1">{t('properties', lang)}</h3>
-                <p className="text-white/60 text-sm">{t('propertiesCardDesc', lang)}</p>
-              </Link>
               <Link href="/landlord/properties/new" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
                 <PlusIcon className="w-5 h-5 text-[#12A5A9] mb-2" />
                 <h3 className="text-white font-semibold mb-1">{t('addPropertyCardTitle', lang)}</h3>
                 <p className="text-white/60 text-sm">{t('addPropertyCardDesc', lang)}</p>
-              </Link>
-              <Link href="/landlord/jobs" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
-                <WrenchIcon className="w-5 h-5 text-[#12A5A9] mb-2" />
-                <h3 className="text-white font-semibold mb-1">{t('viewJobsCardTitle', lang)}</h3>
-                <p className="text-white/60 text-sm">{t('viewJobsCardDesc', lang)}</p>
-              </Link>
-              <Link href="/landlord/rent" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
-                <DollarSignIcon className="w-5 h-5 text-[#12A5A9] mb-2" />
-                <h3 className="text-white font-semibold mb-1">{t('rentRollCardTitle', lang)}</h3>
-                <p className="text-white/60 text-sm">{t('rentRollCardDesc', lang)}</p>
               </Link>
               <Link href="/landlord/properties" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
                 <FileTextIcon className="w-5 h-5 text-[#12A5A9] mb-2" />

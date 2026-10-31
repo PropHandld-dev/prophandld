@@ -2052,6 +2052,8 @@ const STRINGS = {
   seeYourPriceLabel: { en: 'See your price', es: 'Ve tu precio' },
   howManyUnitsQuestion: { en: 'How many units do you manage?', es: '¿Cuántas unidades gestionas?' },
   yourPriceEstimateNote: { en: "Your first unit is free. A 14-day trial starts once you add a second unit, then billing follows your real portfolio automatically.", es: 'Tu primera unidad es gratis. Una prueba de 14 días comienza en cuanto agregas una segunda unidad, y después la facturación sigue tu portafolio real automáticamente.' },
+  signupAiAssistTitle: { en: '✦ Also available: AI Assist', es: '✦ También disponible: AI Assist' },
+  signupAiAssistDesc: { en: "Reads your tenants' photos and talks them through fixing it themselves, reads your lease and compliance documents, and gives you a one-line morning briefing of what actually needs attention. Optional, from $4.99/month, 14-day free trial. Turn it on anytime from your profile.", es: 'Lee las fotos de tus inquilinos y los guía para solucionarlo ellos mismos, lee tus contratos y documentos de cumplimiento, y te da un resumen matutino de una línea sobre lo que realmente necesita atención. Opcional, desde $4.99/mes, prueba gratuita de 14 días. Actívalo cuando quieras desde tu perfil.' },
   signupHeadlineRenter: { en: 'Get things fixed, fast.', es: 'Resuelve problemas, rápido.' },
   signupSubtextRenter: { en: "Report an issue in seconds, no digging through old texts to find your landlord's number.", es: 'Reporta un problema en segundos, sin buscar en viejos mensajes el número de tu propietario.' },
   signupHeadlineContractor: { en: 'Bid fair, get picked on merit.', es: 'Oferta con justicia, gana por mérito.' },

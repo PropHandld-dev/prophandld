@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   WrenchIcon, FileTextIcon, MessageCircleIcon, ClipboardListIcon, DollarSignIcon, BuildingIcon,
+  CheckCircleIcon, BellIcon,
 } from '@/components/icons'
 
 type Audience = 'tenant' | 'landlord'
@@ -61,7 +62,26 @@ const FEATURES = [
     title: 'A one-line morning briefing',
     desc: "What actually needs your attention across your whole portfolio, in a sentence, not a dashboard full of numbers you have to interpret yourself.",
   },
+  {
+    icon: CheckCircleIcon,
+    title: 'A heads-up before contractors start skipping it',
+    desc: "If a posted job's description is too thin to bid on confidently, you'll see a flag on it before it sits untouched for a week wondering why.",
+  },
+  {
+    icon: BellIcon,
+    title: "Quick replies when you're mid-conversation",
+    desc: "A couple of smart suggestions for what to say next in any job chat or direct message, so you're not always starting from a blank box.",
+  },
 ]
+
+// How long a message stays alone on screen before the next one arrives —
+// proportional to how long it actually takes to read, not a flat delay.
+// Fixed at ~700ms/1400ms before, a visitor flagged the tenant demo as
+// "going fast" — a 140-character AI reply was getting well under 2
+// seconds, nowhere near enough to actually read it.
+function readDelay(text: string) {
+  return Math.min(Math.max(text.length * 32, 1400), 5500)
+}
 
 function TypingDots() {
   return (
@@ -118,7 +138,7 @@ function TenantDemo() {
     const step = (i: number) => {
       if (cancelled) return
       if (i >= TENANT_TRANSCRIPT.length) {
-        timer = setTimeout(() => { setVisible(0); step(0) }, 3200)
+        timer = setTimeout(() => { setVisible(0); step(0) }, 4000)
         return
       }
       const isAi = TENANT_TRANSCRIPT[i].role === 'ai'
@@ -127,8 +147,8 @@ function TenantDemo() {
         if (cancelled) return
         setTyping(false)
         setVisible(i + 1)
-        timer = setTimeout(() => step(i + 1), isAi ? 1400 : 700)
-      }, isAi ? 900 : 100)
+        timer = setTimeout(() => step(i + 1), readDelay(TENANT_TRANSCRIPT[i].text))
+      }, isAi ? 1100 : 150)
     }
     step(0)
     return () => { cancelled = true; clearTimeout(timer) }
@@ -190,10 +210,10 @@ function LandlordDemo() {
     const step = (i: number) => {
       if (cancelled) return
       if (i >= LANDLORD_DIGEST.length) {
-        timer = setTimeout(() => { setVisible(0); step(0) }, 3600)
+        timer = setTimeout(() => { setVisible(0); step(0) }, 4500)
         return
       }
-      timer = setTimeout(() => { if (!cancelled) { setVisible(i + 1); step(i + 1) } }, i === 0 ? 500 : 1100)
+      timer = setTimeout(() => { if (!cancelled) { setVisible(i + 1); step(i + 1) } }, i === 0 ? 500 : readDelay(LANDLORD_DIGEST[i - 1].text))
     }
     step(0)
     return () => { cancelled = true; clearTimeout(timer) }
