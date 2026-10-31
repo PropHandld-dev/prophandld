@@ -160,6 +160,18 @@ export async function POST() {
           // A restart already used its one free trial — charge now instead
           // of granting a second one.
           ...(isRestart ? {} : { trial_period_days: AI_ASSIST_TRIAL_DAYS }),
+          // paymentMethods.list above only confirms a card is ATTACHED to
+          // the customer — it says nothing about whether Stripe considers
+          // it the customer's DEFAULT payment method, which is what an
+          // invoice actually charges against. Without this, Stripe errors
+          // with "no attached payment source or default payment method" —
+          // confirmed live on a restart (which charges immediately, no
+          // trial, so the gap surfaces right away), but the exact same
+          // failure was already latent in the normal first-time trial path
+          // too: nothing ever set a default, so the trial's own first real
+          // invoice 14 days later would have hit this identically, just
+          // silently, days after anyone was looking.
+          default_payment_method: paymentMethods.data[0].id,
           metadata,
         })
 
@@ -206,6 +218,6 @@ export async function POST() {
     return NextResponse.json({ redirect: true, url: session.url })
   } catch (err) {
     console.error('ai-assist/start-trial: unhandled error', err)
-    return NextResponse.json({ error: friendlyStripeError(err, 'start your AI Assist trial'), _debug: err instanceof Error ? err.message : String(err) }, { status: 500 })
+    return NextResponse.json({ error: friendlyStripeError(err, 'start your AI Assist trial') }, { status: 500 })
   }
 }
