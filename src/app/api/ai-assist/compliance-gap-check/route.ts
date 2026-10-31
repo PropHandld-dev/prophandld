@@ -75,6 +75,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'This isn’t set up yet.' }, { status: 503 })
     }
     console.error('ai-assist/compliance-gap-check: unhandled error', err)
-    return NextResponse.json({ error: 'Could not check that right now.' }, { status: 500 })
+    return NextResponse.json({ error: 'Could not check that right now.', _debug: err instanceof Error ? err.message : String(err) }, { status: 500 })
   }
 }
