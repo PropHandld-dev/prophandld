@@ -14,7 +14,7 @@ import { setAppMetadataRole } from '@/lib/setAppMetadataRole'
 import { LINKED_PROFILES_ENABLED } from '@/lib/featureFlags'
 import { useIsNativePlatform } from '@/lib/useIsNativePlatform'
 import { t, roleLabel, type Lang } from '@/lib/i18n'
-import { formatTierPrice } from '@/lib/pricingTiers'
+import { formatTierPrice, formatAiAssistPrice } from '@/lib/pricingTiers'
 
 const ROLE_LABEL_KEY = { landlord: 'landlordLabel', renter: 'renterLabel', contractor: 'contractorLabel' } as const
 
@@ -60,8 +60,7 @@ const VALID_ROLES: Role[] = ['landlord', 'renter', 'contractor']
 // real bill is computed later from the actual properties/units they add
 // (see pricingTiers.ts), never from a number typed in here; this exists so
 // pricing isn't a surprise discovered only after they're already in.
-function UnitPriceEstimator({ lang }: { lang: Lang }) {
-  const [units, setUnits] = useState(1)
+function UnitPriceEstimator({ lang, units, onUnitsChange }: { lang: Lang; units: number; onUnitsChange: (units: number) => void }) {
   return (
     <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 mb-6">
       <p className="text-white/70 text-xs font-semibold uppercase tracking-wide mb-2">{t('seeYourPriceLabel', lang)}</p>
@@ -75,7 +74,7 @@ function UnitPriceEstimator({ lang }: { lang: Lang }) {
           min={1}
           max={9999}
           value={units}
-          onChange={(e) => setUnits(Math.max(1, parseInt(e.target.value, 10) || 1))}
+          onChange={(e) => onUnitsChange(Math.max(1, parseInt(e.target.value, 10) || 1))}
           className="w-20 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-white text-sm text-center focus:outline-none focus:border-[#12A5A9] transition"
         />
       </div>
@@ -116,6 +115,10 @@ function SignupForm() {
   const [verifyingCode, setVerifyingCode] = useState(false)
   const [otpError, setOtpError] = useState<string | null>(null)
   const [agreedToTerms, setAgreedToTerms] = useState(false)
+  // Lifted out of UnitPriceEstimator so the Handld price line right below
+  // it can scale with the same number instead of showing a hardcoded
+  // $4.99 regardless of how many units someone actually enters.
+  const [estimatorUnits, setEstimatorUnits] = useState(1)
   const [form, setForm] = useState({
     full_name: '',
     email: '',
@@ -602,9 +605,10 @@ function SignupForm() {
 
       {role === 'landlord' && (
         <>
-          <UnitPriceEstimator lang={lang} />
+          <UnitPriceEstimator lang={lang} units={estimatorUnits} onUnitsChange={setEstimatorUnits} />
           <div className="bg-gradient-to-br from-[#0A7B7E]/10 to-white/[0.02] border border-[#12A5A9]/25 rounded-xl px-4 py-3.5 mb-6">
             <p className="text-white text-sm font-semibold mb-1">{t('signupAiAssistTitle', lang)}</p>
+            <p className="text-[#12A5A9] font-bold text-sm mb-1">{formatAiAssistPrice(estimatorUnits)}</p>
             <p className="text-white/60 text-xs leading-relaxed">{t('signupAiAssistDesc', lang)}</p>
           </div>
         </>
