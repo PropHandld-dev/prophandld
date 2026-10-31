@@ -22,6 +22,17 @@ const INCLUDED = [
   'Bank transfer rent collection, with the processing fee shown to, and paid by, your tenant, not you',
 ]
 
+const AI_INCLUDED = [
+  'A troubleshooting chat that walks tenants through safe fixes themselves, photo included',
+  'Documents that fill in their own fields, lease or compliance, instead of you retyping them',
+  'A heads-up before a license or inspection lapses, with real renewal guidance for it',
+  'Lease Q&A for tenants, answered from their actual lease, not a guess',
+  'Routine messages drafted for you: late-rent nudges, access notices, renewal offers',
+  'A one-line morning briefing of what across your whole portfolio actually needs you',
+  'A flag on a job that might be too thin for a contractor to bid on confidently',
+  'Smart reply suggestions in any job chat or direct message',
+]
+
 export default function PricingPage() {
   return (
     <div className="min-h-screen bg-[#0C1A2E] text-white">
@@ -65,17 +76,16 @@ export default function PricingPage() {
             <div>
               <p className="text-white text-sm font-semibold mb-1">Prophandld AI</p>
               <p className="text-white/50 text-sm leading-relaxed">
-                Reads a tenant&apos;s photo and talks them through fixing it themselves, reads an
-                uploaded lease or compliance document and fills in the fields for you, answers a
-                renter&apos;s questions about their own lease, flags a compliance gap before an
-                inspector does, and drafts the routine messages you&apos;d otherwise type yourself.
-                Billed to you, the landlord, on top of your base plan; every tenant on your
-                properties gets it automatically the moment you turn it on, at no extra cost to
-                them.
+                Your own AI handling the part of this job nobody signed up for: tenants get walked
+                through fixing small things themselves before you&apos;re even looped in, your
+                paperwork reads itself straight into the right fields, and you hear about a
+                deadline while there&apos;s still time to do something about it, not after. Billed
+                to you, the landlord, on top of your base plan; every tenant on your properties
+                gets it automatically the moment you turn it on, at no extra cost to them.
               </p>
             </div>
           </div>
-          <div className="grid sm:grid-cols-5 gap-3">
+          <div className="grid sm:grid-cols-5 gap-3 mb-6">
             {[
               { name: '1 unit', price: '$4.99' },
               { name: '2–4 units', price: '$9.99' },
@@ -88,6 +98,17 @@ export default function PricingPage() {
                 <p className="text-white font-bold font-mono text-sm">{tier.price}</p>
               </div>
             ))}
+          </div>
+          <div className="border-t border-white/8 pt-6">
+            <p className="text-white font-semibold text-sm mb-3">Prophandld AI includes</p>
+            <ul className="grid sm:grid-cols-2 gap-2.5">
+              {AI_INCLUDED.map((item) => (
+                <li key={item} className="flex items-start gap-2 text-white/60 text-xs leading-relaxed">
+                  <CheckCircleIcon className="w-3.5 h-3.5 text-[#12A5A9] shrink-0 mt-0.5" />
+                  {item}
+                </li>
+              ))}
+            </ul>
           </div>
           <p className="text-white/40 text-xs leading-relaxed mt-5">
             Same graduated shape as the base plan, just its own separate line. 14-day free trial,
