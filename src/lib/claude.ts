@@ -132,6 +132,6 @@ export async function claudeJson<T>({
     return JSON.parse(raw) as T
   } catch (err) {
     console.error('claudeJson: failed to parse model output as JSON', { raw, err })
-    throw new Error('Could not read the AI response. Try again.')
+    throw new Error('Could not read the AI response. Try again. RAW: ' + raw.slice(0, 800))
   }
 }
