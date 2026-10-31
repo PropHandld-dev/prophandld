@@ -39,7 +39,7 @@ const LANDLORD_ALERTS = [
 
 const COMPLIANCE_ITEMS = [
   { icon: CheckCircleIcon, tone: 'teal', title: 'Rental license', subtitle: '123 Oak St', badge: 'Valid' },
-  { icon: AlertTriangleIcon, tone: 'yellow', title: 'Fire extinguisher inspection', subtitle: '456 Elm Ave', badge: '12 days left' },
+  { icon: AlertTriangleIcon, tone: 'yellow', title: 'Fire extinguisher inspection', subtitle: '✦ AI flagged · 456 Elm Ave', badge: '12 days left' },
 ] as const
 
 const RENTER_ISSUES = [
@@ -226,7 +226,7 @@ function RenterPreview() {
       <div className="bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/10 border border-[#12A5A9]/30 rounded-2xl p-4 sm:p-5 mb-4 flex items-center justify-between">
         <div>
           <p className="text-white font-semibold text-sm">Report an issue</p>
-          <p className="text-white/50 text-xs mt-0.5">Something broken? Let your landlord know.</p>
+          <p className="text-white/50 text-xs mt-0.5">Snap a photo, ✦ AI helps you try a fix first.</p>
         </div>
         <span className="text-xs font-semibold bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white px-3 py-1.5 rounded-full shrink-0">
           Report

@@ -20,7 +20,7 @@ export default function TermsPage() {
 
       <main className="max-w-3xl mx-auto px-6 py-16">
         <h1 className="text-3xl font-bold mb-2">Terms of Service</h1>
-        <p className="text-white/60 text-sm mb-12">Last updated October 20, 2026</p>
+        <p className="text-white/60 text-sm mb-12">Last updated October 31, 2026</p>
 
         <div className="space-y-10 text-white/60 text-sm leading-relaxed [&_h2]:text-white [&_h2]:font-semibold [&_h2]:text-lg [&_h2]:mb-3 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5">
 
@@ -160,7 +160,26 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2>9. Content you upload</h2>
+            <h2>9. AI Assist</h2>
+            <p>
+              AI Assist is an optional, paid add-on a landlord can turn on for their own account.
+              When it's on, Prophandld uses a third-party AI service (see our{' '}
+              <Link href="/privacy" className="text-[#12A5A9] hover:underline">Privacy Policy</Link>)
+              to do things like suggest a next troubleshooting step, read an uploaded document,
+              answer a renter's question about their own lease, or draft a routine message.
+            </p>
+            <p>
+              These suggestions are generated automatically. They are not professional, legal, or
+              contracting advice, and we don't guarantee they're accurate, complete, or safe for
+              your specific situation. Never attempt an electrical, gas, or structural repair
+              yourself regardless of what a suggestion says, and always use your own judgment
+              before acting on one. AI Assist is provided "as is," same as the rest of the platform
+              (see Section 12, Disclaimers, below).
+            </p>
+          </section>
+
+          <section>
+            <h2>10. Content you upload</h2>
             <p>
               You may upload photos, documents, and other content (job photos, lease documents,
               inspection reports, license/insurance files). You keep ownership of what you upload,
@@ -175,7 +194,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2>10. Acceptable use</h2>
+            <h2>11. Acceptable use</h2>
             <p>You agree not to:</p>
             <ul>
               <li>Misrepresent your identity, role, or qualifications (especially licensing/insurance as a contractor)</li>
@@ -186,7 +205,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2>11. Disclaimers</h2>
+            <h2>12. Disclaimers</h2>
             <p>
               Prophandld is provided "as is." We do our best to keep it running and accurate, but we
               don't guarantee it will be uninterrupted, error-free, or that it will meet your specific
@@ -212,7 +231,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2>12. Termination</h2>
+            <h2>13. Termination</h2>
             <p>
               You can stop using Prophandld and delete your account at any time. We may suspend or
               terminate accounts that violate these terms or that we reasonably believe are being
@@ -222,7 +241,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2>13. Changes to these terms</h2>
+            <h2>14. Changes to these terms</h2>
             <p>
               We may update these terms as the platform evolves. For example, when new features like
               in-app rent payments launch. We'll update the date at the top of this page when we do.
@@ -231,7 +250,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2>14. Governing law</h2>
+            <h2>15. Governing law</h2>
             <p>
               These terms are governed by the laws of the Commonwealth of Pennsylvania, without
               regard to conflict of law principles.
@@ -239,7 +258,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2>15. SMS Terms</h2>
+            <h2>16. SMS Terms</h2>
             <p>
               Prophandld offers optional text message alerts for key job and scheduling updates: a
               new maintenance job opening near a contractor, an issue reported by a tenant, a
@@ -256,7 +275,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2>16. Contact</h2>
+            <h2>17. Contact</h2>
             <p>
               Questions about these terms? Reach out at{' '}
               <a href="mailto:admin@prophandld.com" className="text-[#12A5A9] hover:underline">admin@prophandld.com</a>.

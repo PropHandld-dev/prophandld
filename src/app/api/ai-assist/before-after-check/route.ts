@@ -4,8 +4,12 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { hasAiAssistAccess } from '@/lib/aiAssist'
 import { tooManyAiAssistRequests } from '@/lib/aiAssistRateLimit'
 import { claudeJson, ClaudeConfigError } from '@/lib/claude'
+import { isVideoPath } from '@/lib/mediaValidation'
 
 export const maxDuration = 60
+
+type AllowedImageType = 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'
+const ALLOWED_IMAGE_TYPES = new Set<string>(['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
 
 // Compares the before/after photos a contractor attaches to finished work
 // and flags if the after photo plausibly doesn't show the described
@@ -58,6 +62,13 @@ export async function POST(request: NextRequest) {
   if (!before || !after) {
     return NextResponse.json({ error: 'Need at least one before and one after photo to compare' }, { status: 400 })
   }
+  // The before/after upload inputs accept video too (handlePhotoUpload's
+  // accept="image/*,video/*") — this only ever makes sense on actual
+  // photos, so bail out rather than sending video bytes to Claude as an
+  // "image" block.
+  if (isVideoPath(before.photo_url) || isVideoPath(after.photo_url)) {
+    return NextResponse.json({ error: 'Need actual photos (not video) to compare.' }, { status: 400 })
+  }
 
   try {
     const [beforeFile, afterFile] = await Promise.all([
@@ -67,6 +78,12 @@ export async function POST(request: NextRequest) {
     if (!beforeFile.data || !afterFile.data) {
       return NextResponse.json({ error: 'Could not load the photos' }, { status: 500 })
     }
+    // Use each photo's real stored content type rather than assuming JPEG —
+    // compressImage only re-encodes to JPEG above a size threshold, so a
+    // smaller PNG/WebP photo reaches storage, and this route, in its
+    // original format.
+    const beforeType: AllowedImageType = ALLOWED_IMAGE_TYPES.has(beforeFile.data.type) ? (beforeFile.data.type as AllowedImageType) : 'image/jpeg'
+    const afterType: AllowedImageType = ALLOWED_IMAGE_TYPES.has(afterFile.data.type) ? (afterFile.data.type as AllowedImageType) : 'image/jpeg'
     const [beforeBase64, afterBase64] = await Promise.all([
       beforeFile.data.arrayBuffer().then((b) => Buffer.from(b).toString('base64')),
       afterFile.data.arrayBuffer().then((b) => Buffer.from(b).toString('base64')),
@@ -85,8 +102,8 @@ export async function POST(request: NextRequest) {
         'The first image is BEFORE, the second is AFTER. Return JSON: { "looksResolved": boolean, "note": string ' +
         '} — note is one short, plain sentence either way.',
       files: [
-        { base64: beforeBase64, mediaType: 'image/jpeg' },
-        { base64: afterBase64, mediaType: 'image/jpeg' },
+        { base64: beforeBase64, mediaType: beforeType },
+        { base64: afterBase64, mediaType: afterType },
       ],
       maxTokens: 250,
       track: { billedUserId: user.id, callerUserId: user.id, feature: 'before-after-check' },

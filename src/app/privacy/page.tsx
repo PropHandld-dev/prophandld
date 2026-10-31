@@ -20,7 +20,7 @@ export default function PrivacyPage() {
 
       <main className="max-w-3xl mx-auto px-6 py-16">
         <h1 className="text-3xl font-bold mb-2">Privacy Policy</h1>
-        <p className="text-white/60 text-sm mb-12">Last updated October 20, 2026</p>
+        <p className="text-white/60 text-sm mb-12">Last updated October 31, 2026</p>
 
         <div className="space-y-10 text-white/60 text-sm leading-relaxed [&_h2]:text-white [&_h2]:font-semibold [&_h2]:text-lg [&_h2]:mb-3 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5">
 
@@ -72,6 +72,7 @@ export default function PrivacyPage() {
               <li><strong className="text-white/80">Sentry:</strong> error tracking, so we know when something breaks.</li>
               <li><strong className="text-white/80">Vercel:</strong> hosts the application itself.</li>
               <li><strong className="text-white/80">Google Cloud Translation:</strong> translates a chat message if you tap "See translation" on it. Only that specific message's text is sent, only when you tap it. Nothing is translated automatically.</li>
+              <li><strong className="text-white/80">Anthropic:</strong> powers AI Assist, an optional add-on a landlord turns on for their own account. When it's on, whatever a specific feature needs — a job description and photo for a troubleshooting suggestion, an uploaded lease or compliance document, a typed question — is sent to Anthropic's API to generate a response. Nothing is sent for anyone whose landlord hasn't turned AI Assist on.</li>
             </ul>
             <p>
               Within the platform, your data is also visible to other users where it needs to be.

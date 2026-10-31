@@ -171,7 +171,10 @@ export async function GET() {
           'property management app dashboard, from a list of facts already gathered. Friendly, concrete, no ' +
           'fluff, no markdown. Mention 2-3 of the most time-sensitive items by name if there are several.',
         prompt: `Facts:\n${topNudges.map((n) => `- ${n.text}`).join('\n')}\n\nReturn JSON: { "summary": string }`,
-        maxTokens: 200,
+        // Same truncation risk fixed elsewhere today (compliance-gap-check,
+        // draft-message, lease-qa) — naming 2-3 items across 1-2 sentences
+        // is more than 200 reliably covers.
+        maxTokens: 400,
         track: { billedUserId: user.id, callerUserId: user.id, feature: 'portfolio-digest' },
       })
       summary = result.summary
