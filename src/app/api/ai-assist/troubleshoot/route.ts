@@ -153,6 +153,6 @@ export async function POST(request: NextRequest) {
     // the actual report over this failing either way — fail open straight
     // to "just post it", same as the category/emergency skip above.
     console.error('ai-assist/troubleshoot: unhandled error', err)
-    return NextResponse.json({ done: true, resolved: false, message: fallbackMessage } as FirstPass)
+    return NextResponse.json({ done: true, resolved: false, message: fallbackMessage, _debugErr: err instanceof Error ? err.message : String(err) } as any)
   }
 }
