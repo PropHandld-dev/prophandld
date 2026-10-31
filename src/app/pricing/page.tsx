@@ -57,22 +57,42 @@ export default function PricingPage() {
           <PricingCalculator />
         </div>
 
-        <div className="rounded-2xl border border-[#12A5A9]/25 bg-gradient-to-br from-[#0A7B7E]/10 to-white/[0.02] px-6 py-5 mb-10 flex items-start gap-4">
-          <span className="shrink-0 text-xs font-semibold uppercase tracking-wide text-[#12A5A9] bg-[#12A5A9]/15 rounded-full px-2.5 py-1 mt-0.5">
-            Optional add-on
-          </span>
-          <div>
-            <p className="text-white text-sm font-semibold mb-1">AI Assist, from $4.99/month</p>
-            <p className="text-white/50 text-sm leading-relaxed mb-1">
-              Reads a tenant&apos;s photo and talks them through fixing it themselves, reads an
-              uploaded lease or compliance document and fills in the fields for you, answers a
-              renter&apos;s questions about their own lease, flags a compliance gap before an
-              inspector does, and drafts the routine messages you&apos;d otherwise type yourself.
-              Same graduated pricing as the base plan, starting at $4.99/month for one unit, up to
-              $24.99 for 11&ndash;25. 14-day free trial, cancel anytime. Turn it on from your
-              profile whenever you&apos;re ready.
-            </p>
+        <div className="rounded-2xl border border-[#12A5A9]/25 bg-gradient-to-br from-[#0A7B7E]/10 to-white/[0.02] px-6 py-6 sm:px-8 sm:py-8 mb-10">
+          <div className="flex items-start gap-4 mb-6">
+            <span className="shrink-0 text-xs font-semibold uppercase tracking-wide text-[#12A5A9] bg-[#12A5A9]/15 rounded-full px-2.5 py-1 mt-0.5">
+              Optional add-on
+            </span>
+            <div>
+              <p className="text-white text-sm font-semibold mb-1">AI Assist</p>
+              <p className="text-white/50 text-sm leading-relaxed">
+                Reads a tenant&apos;s photo and talks them through fixing it themselves, reads an
+                uploaded lease or compliance document and fills in the fields for you, answers a
+                renter&apos;s questions about their own lease, flags a compliance gap before an
+                inspector does, and drafts the routine messages you&apos;d otherwise type yourself.
+                Billed to you, the landlord, on top of your base plan; every tenant on your
+                properties gets it automatically the moment you turn it on, at no extra cost to
+                them.
+              </p>
+            </div>
           </div>
+          <div className="grid sm:grid-cols-5 gap-3">
+            {[
+              { name: '1 unit', price: '$4.99' },
+              { name: '2–4 units', price: '$9.99' },
+              { name: '5–10 units', price: '$14.99' },
+              { name: '11–25 units', price: '$24.99' },
+              { name: '25+ units', price: '+$0.50/unit' },
+            ].map((tier) => (
+              <div key={tier.name} className="rounded-2xl border border-white/8 bg-white/[0.02] px-4 py-5">
+                <p className="text-white/40 text-xs mb-3">{tier.name}</p>
+                <p className="text-white font-bold font-mono text-sm">{tier.price}</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-white/40 text-xs leading-relaxed mt-5">
+            Same graduated shape as the base plan, just its own separate line. 14-day free trial,
+            cancel anytime. Turn it on from your profile whenever you&apos;re ready.
+          </p>
         </div>
 
         <div className="bg-white/3 border border-white/8 rounded-2xl p-6 sm:p-8 mb-10">

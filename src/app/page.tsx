@@ -262,7 +262,9 @@ export default function LandingPage() {
           2026-10-31: the old /pricing page literally still said "coming in
           a later phase" for a different, never-built feature, months after
           this one actually shipped). Everything claimed below is a real,
-          shipped, live-tested capability, not a roadmap item. */}
+          shipped, live-tested capability, not a roadmap item. Copy
+          deliberately never compares against "other AI apps" — the pitch
+          is what it does with your actual data, not a category claim. */}
       <section className="max-w-6xl mx-auto px-6 py-16">
         <ScrollReveal>
           <div className="text-center mb-14">
@@ -270,26 +272,41 @@ export default function LandingPage() {
               AI Assist &middot; optional add-on
             </div>
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4 text-balance">
-              Yes, there&apos;s AI in it. We checked that it&apos;s actually useful first.
+              The AI that&apos;s actually read your lease, not the internet&apos;s best guess.
             </h2>
             <p className="text-white/50 max-w-2xl mx-auto leading-relaxed">
-              Every app claims AI now, most of it is a chatbot wearing a trench coat. Ours reads
-              the photo your tenant attached, knows what&apos;s actually in your lease, and tells
-              someone to stop before a bathroom fan becomes an insurance claim.
+              No generic advice, no made-up policy. Every answer comes from the real lease, photo,
+              or document on your account, or it tells you it doesn&apos;t know, out loud, instead
+              of guessing and hoping you don&apos;t check.
             </p>
           </div>
 
           <AiAssistShowcase />
 
-          <div className="text-center mt-14">
-            <p className="text-white/50 text-sm mb-5">
-              From <strong className="text-white/80">$4.99/month</strong> for one unit, scaling
-              the same way your base plan does. 14-day free trial, cancel anytime, turn it on from
-              your profile whenever you&apos;re ready.
+          <div className="mt-16 max-w-3xl mx-auto bg-white/3 border border-white/8 rounded-2xl p-6 sm:p-8">
+            <h3 className="text-white font-semibold text-center mb-2">One subscription, two people benefit</h3>
+            <p className="text-white/50 text-sm text-center leading-relaxed max-w-xl mx-auto mb-6">
+              You&apos;re the one who turns it on and pays for it. The moment you do, every tenant
+              on your properties gets it too, automatically, at no extra cost to them. Turn it
+              off, and it turns off for them at the same time, nothing lingers.
             </p>
-            <Link href="/pricing" className="text-[#12A5A9] text-sm font-semibold hover:underline">
-              See AI Assist pricing →
-            </Link>
+            <div className="grid sm:grid-cols-5 gap-2.5 text-center">
+              {[
+                ['1 unit', '$4.99'],
+                ['2–4 units', '$9.99'],
+                ['5–10 units', '$14.99'],
+                ['11–25 units', '$24.99'],
+                ['25+ units', '+$0.50/unit'],
+              ].map(([range, price]) => (
+                <div key={range} className="bg-white/[0.03] border border-white/8 rounded-xl py-3">
+                  <p className="text-white font-bold text-sm">{price}</p>
+                  <p className="text-white/40 text-[11px] mt-0.5">{range}</p>
+                </div>
+              ))}
+            </div>
+            <p className="text-white/40 text-xs text-center mt-5">
+              14-day free trial, cancel anytime. Turn it on from your profile whenever you&apos;re ready.
+            </p>
           </div>
         </ScrollReveal>
       </section>
@@ -557,7 +574,7 @@ export default function LandingPage() {
             {[
               { q: 'Is this just for finding contractors?', a: "No. Prophandld is built to replace the spreadsheet. Track every property, unit, and tenant, handle maintenance end to end with sealed bidding, and collect rent, all in one dashboard. Your spreadsheet can finally retire." },
               { q: 'What does it cost?', a: "Your first unit is free. Then $19.99/month for 2–4 units, $39.99 for 5–10, $79.99 for 11–25, flat rates, not per-unit. Past 25 units, $1.75 per unit. AI Assist is a separate optional add-on from $4.99/month if you want it. See the full breakdown and try the calculator at /pricing. Contractors pay nothing: no signup fee, no monthly fee, no cut of a bid, free during this pilot program." },
-              { q: 'What does AI Assist actually do?', a: "It reads the photo and description a tenant reported an issue with and walks them through safe things to try before a contractor's needed, never anything electrical, gas, or structural. It also reads uploaded leases and compliance documents to fill in fields for you, answers a renter's questions about their own lease, flags a compliance gap before it becomes a fine, drafts routine messages, and gives you a one-line morning briefing of what actually needs attention. It's an optional add-on for landlords, from $4.99/month, 14-day free trial." },
+              { q: 'What does AI Assist actually do?', a: "It reads the photo and description a tenant reported an issue with and walks them through safe things to try before a contractor's needed, never anything electrical, gas, or structural. It also reads uploaded leases and compliance documents to fill in fields for you, answers a renter's questions about their own lease, flags a compliance gap before it becomes a fine, drafts routine messages, and gives you a one-line morning briefing of what actually needs attention. It's an optional add-on billed to you, the landlord, from $4.99/month with a 14-day free trial. Turn it on and your tenants get it too, automatically, at no extra cost to them." },
               { q: 'How does sealed bidding actually work?', a: "Contractors near the property are alerted when you open a job for bids. They submit their price privately and never see what anyone else bid. You choose who you trust, not just the lowest number. No bidding wars, no “my cousin quoted less”." },
               { q: 'Do I have to use a contractor?', a: "No. For anything small enough to handle yourself, mark it fixed directly, no bidding required. Contractors are there for when you want one, not a requirement for every repair." },
               { q: "What if the contractor's price changes?", a: 'If a contractor needs to adjust their price once work has started, they show you the new labor and parts breakdown, and you approve it before they move forward. No surprise invoices.' },

@@ -5,17 +5,29 @@ import {
   WrenchIcon, FileTextIcon, MessageCircleIcon, ClipboardListIcon, DollarSignIcon, BuildingIcon,
 } from '@/components/icons'
 
+type Audience = 'tenant' | 'landlord'
+
 // Real conversation shape, lightly trimmed for length — not a fabricated
 // quote, this is the actual back-and-forth AI Assist produces for this
 // exact scenario (verified live against production the same day this
 // section was written). No contractor turn in here on purpose: AI Assist
 // is a landlord add-on for landlords and their renters, not a contractor
 // feature (see TroubleshootAssistant/DiyTroubleshootPanel/polish-bid).
-const TRANSCRIPT = [
+const TENANT_TRANSCRIPT = [
   { role: 'user' as const, text: 'The washer makes a loud banging noise during the spin cycle.' },
   { role: 'ai' as const, text: "Banging during spin is usually just an unbalanced load. Pause the cycle, spread the clothes out evenly around the drum, and run it again." },
   { role: 'user' as const, text: "Still banging, what else can I try?" },
   { role: 'ai' as const, text: "Check whether the washer's level — press each corner and see if it rocks. Still banging after that? Totally fine to report it. Nothing here's a guarantee." },
+]
+
+// Same property names already used in RoleShowcase's own mockups further
+// up the page (123 Oak St, 456 Elm Ave, fire extinguisher at 12 days) —
+// one consistent example portfolio across the whole landing page, not a
+// different fake address every time AI gets demoed.
+const LANDLORD_DIGEST = [
+  { icon: ClipboardListIcon, text: 'Fire extinguisher inspection at 456 Elm Ave expires in 12 days, worth getting ahead of it.' },
+  { icon: DollarSignIcon, text: '2 new bids came in overnight on the Oak St kitchen sink leak.' },
+  { icon: FileTextIcon, text: "Read renewal-2026.pdf for 789 Pine St: rent $1,850, 3%/yr escalation, 1 dog on file. Fields filled in for you." },
 ]
 
 const FEATURES = [
@@ -65,13 +77,27 @@ function TypingDots() {
   )
 }
 
+function WindowChrome({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-3xl border border-white/10 bg-[#0F2138] shadow-[0_40px_120px_-40px_rgba(18,165,169,0.35)] overflow-hidden">
+      <div className="flex items-center gap-2 px-5 py-3.5 border-b border-white/8 bg-white/[0.02]">
+        <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
+        <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
+        <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
+        <span className="ml-3 text-white/50 text-xs">{label}</span>
+      </div>
+      <div className="p-5 sm:p-6 min-h-[320px] flex flex-col justify-center">{children}</div>
+    </div>
+  )
+}
+
 // A chat demo, not a screenshot — same reasoning RoleShowcase already
 // applies to the dashboard mockups further up the page: a real screenshot
 // goes stale the moment the UI changes, a hand-built version with a
 // verified-real transcript doesn't. Plays the transcript on a loop so a
 // visitor who lands mid-scroll still sees the point land, not a frozen
 // half-conversation.
-function ChatDemo() {
+function TenantDemo() {
   const [visible, setVisible] = useState(0)
   const [typing, setTyping] = useState(false)
   const [reducedMotion, setReducedMotion] = useState(true)
@@ -83,7 +109,7 @@ function ChatDemo() {
 
   useEffect(() => {
     if (reducedMotion) {
-      setVisible(TRANSCRIPT.length)
+      setVisible(TENANT_TRANSCRIPT.length)
       return
     }
     let cancelled = false
@@ -91,11 +117,11 @@ function ChatDemo() {
 
     const step = (i: number) => {
       if (cancelled) return
-      if (i >= TRANSCRIPT.length) {
+      if (i >= TENANT_TRANSCRIPT.length) {
         timer = setTimeout(() => { setVisible(0); step(0) }, 3200)
         return
       }
-      const isAi = TRANSCRIPT[i].role === 'ai'
+      const isAi = TENANT_TRANSCRIPT[i].role === 'ai'
       if (isAi) setTyping(true)
       timer = setTimeout(() => {
         if (cancelled) return
@@ -114,15 +140,9 @@ function ChatDemo() {
   }, [visible, typing])
 
   return (
-    <div className="rounded-3xl border border-white/10 bg-[#0F2138] shadow-[0_40px_120px_-40px_rgba(18,165,169,0.35)] overflow-hidden">
-      <div className="flex items-center gap-2 px-5 py-3.5 border-b border-white/8 bg-white/[0.02]">
-        <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
-        <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
-        <span className="w-2.5 h-2.5 rounded-full bg-white/15" />
-        <span className="ml-3 text-white/50 text-xs">AI Assist · Washer or Dryer</span>
-      </div>
-      <div ref={listRef} className="p-5 sm:p-6 space-y-2.5 min-h-[320px]">
-        {TRANSCRIPT.slice(0, visible).map((turn, i) => (
+    <WindowChrome label="AI Assist · Washer or Dryer">
+      <div ref={listRef} className="space-y-2.5">
+        {TENANT_TRANSCRIPT.slice(0, visible).map((turn, i) => (
           <div key={i} className={`flex ${turn.role === 'user' ? 'justify-end' : 'justify-start'} motion-safe:animate-[fadeIn_0.3s_ease-out]`}>
             <div
               className={
@@ -143,28 +163,105 @@ function ChatDemo() {
           </div>
         )}
       </div>
-    </div>
+    </WindowChrome>
+  )
+}
+
+// The landlord's own side of AI Assist, since the thing they're paying
+// for isn't a chatbot for someone else — it's three different features
+// (compliance watch, bid/job awareness, document extraction) landing as
+// one morning digest. Reveals one line at a time, same pacing idea as the
+// tenant chat, so it reads as "arriving," not a static list.
+function LandlordDemo() {
+  const [visible, setVisible] = useState(0)
+  const [reducedMotion, setReducedMotion] = useState(true)
+
+  useEffect(() => {
+    setReducedMotion(window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+  }, [])
+
+  useEffect(() => {
+    if (reducedMotion) {
+      setVisible(LANDLORD_DIGEST.length)
+      return
+    }
+    let cancelled = false
+    let timer: ReturnType<typeof setTimeout>
+    const step = (i: number) => {
+      if (cancelled) return
+      if (i >= LANDLORD_DIGEST.length) {
+        timer = setTimeout(() => { setVisible(0); step(0) }, 3600)
+        return
+      }
+      timer = setTimeout(() => { if (!cancelled) { setVisible(i + 1); step(i + 1) } }, i === 0 ? 500 : 1100)
+    }
+    step(0)
+    return () => { cancelled = true; clearTimeout(timer) }
+  }, [reducedMotion])
+
+  return (
+    <WindowChrome label="AI Assist · Morning digest">
+      <div className="mb-4">
+        <p className="text-white font-semibold text-sm">✦ Good morning</p>
+        <p className="text-white/50 text-xs mt-0.5">Here&apos;s what&apos;s worth a look across your portfolio</p>
+      </div>
+      <div className="space-y-2.5">
+        {LANDLORD_DIGEST.slice(0, visible).map(({ icon: Icon, text }, i) => (
+          <div key={i} className="flex items-start gap-3 bg-white/[0.03] border border-white/8 rounded-xl px-3.5 py-3 motion-safe:animate-[fadeIn_0.3s_ease-out]">
+            <div className="w-6 h-6 rounded-full bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 border border-[#12A5A9]/30 flex items-center justify-center shrink-0 mt-0.5">
+              <Icon className="w-3 h-3 text-[#12A5A9]" />
+            </div>
+            <p className="text-white/80 text-sm leading-relaxed">{text}</p>
+          </div>
+        ))}
+      </div>
+    </WindowChrome>
   )
 }
 
 export function AiAssistShowcase() {
+  const [audience, setAudience] = useState<Audience>('landlord')
+
   return (
-    <div className="grid lg:grid-cols-2 gap-10 lg:gap-14 items-center">
-      <div>
-        <ChatDemo />
-        <p className="text-white/40 text-xs text-center mt-4">A real conversation shape, shown with example data</p>
+    <div>
+      <div className="flex items-center justify-center gap-2 mb-8">
+        {([
+          ['landlord', 'What you see'],
+          ['tenant', 'What your tenants see'],
+        ] as [Audience, string][]).map(([value, label]) => (
+          <button
+            key={value}
+            onClick={() => setAudience(value)}
+            className={
+              value === audience
+                ? 'text-xs sm:text-sm font-semibold px-4 py-2 rounded-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white transition'
+                : 'text-xs sm:text-sm font-semibold px-4 py-2 rounded-full bg-white/5 text-white/50 hover:bg-white/8 hover:text-white/80 transition'
+            }
+          >
+            {label}
+          </button>
+        ))}
       </div>
-      <div>
-        <div className="grid sm:grid-cols-2 gap-5">
-          {FEATURES.map(({ icon: Icon, title, desc }) => (
-            <div key={title}>
-              <div className="w-9 h-9 rounded-full bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 border border-[#12A5A9]/30 flex items-center justify-center mb-3">
-                <Icon className="w-4 h-4 text-[#12A5A9]" />
+
+      <div className="grid lg:grid-cols-2 gap-10 lg:gap-14 items-center">
+        <div>
+          {audience === 'landlord' ? <LandlordDemo /> : <TenantDemo />}
+          <p className="text-white/40 text-xs text-center mt-4">
+            {audience === 'landlord' ? 'A real digest shape, shown with example data' : 'A real conversation shape, shown with example data'}
+          </p>
+        </div>
+        <div>
+          <div className="grid sm:grid-cols-2 gap-5">
+            {FEATURES.map(({ icon: Icon, title, desc }) => (
+              <div key={title}>
+                <div className="w-9 h-9 rounded-full bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 border border-[#12A5A9]/30 flex items-center justify-center mb-3">
+                  <Icon className="w-4 h-4 text-[#12A5A9]" />
+                </div>
+                <h3 className="text-white font-semibold text-sm mb-1">{title}</h3>
+                <p className="text-white/50 text-xs leading-relaxed">{desc}</p>
               </div>
-              <h3 className="text-white font-semibold text-sm mb-1">{title}</h3>
-              <p className="text-white/50 text-xs leading-relaxed">{desc}</p>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
     </div>

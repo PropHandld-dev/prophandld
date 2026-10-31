@@ -29,41 +29,77 @@ function money(n: number) {
   return `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`
 }
 
+// The underlying query is cheap at real usage (see the route's own
+// comment — the table stays small, this is a page-load aggregation, not a
+// cached report), so this polls instead of requiring a manual reload. 20s
+// rather than something tighter: an admin watching this page is checking
+// in on cost, not debugging a single call in real time.
+const REFRESH_MS = 20000
+
 export default function AdminAiUsagePage() {
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [totalCost, setTotalCost] = useState(0)
   const [totalCalls, setTotalCalls] = useState(0)
   const [last30DaysCost, setLast30DaysCost] = useState(0)
   const [byUser, setByUser] = useState<UserRow[]>([])
   const [byFeature, setByFeature] = useState<FeatureRow[]>([])
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
 
-  useEffect(() => {
+  const load = (isRefresh: boolean) => {
+    if (isRefresh) setRefreshing(true)
     fetch('/api/admin/ai-usage')
       .then((res) => res.json())
       .then((data) => {
         if (data.error) {
           setError(data.error)
         } else {
+          setError(null)
           setTotalCost(data.totalCost || 0)
           setTotalCalls(data.totalCalls || 0)
           setLast30DaysCost(data.last30DaysCost || 0)
           setByUser(data.byUser || [])
           setByFeature(data.byFeature || [])
+          setLastUpdated(new Date())
         }
         setLoading(false)
+        setRefreshing(false)
       })
       .catch(() => {
         setError('Could not load AI usage.')
         setLoading(false)
+        setRefreshing(false)
       })
+  }
+
+  useEffect(() => {
+    load(false)
+    const id = setInterval(() => load(true), REFRESH_MS)
+    const onVisible = () => { if (document.visibilityState === 'visible') load(true) }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      clearInterval(id)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
   }, [])
 
   return (
     <AdminLayout>
-      <h1 className="text-2xl font-bold text-white mb-2">AI usage & cost</h1>
+      <div className="flex items-start justify-between gap-4 mb-2">
+        <h1 className="text-2xl font-bold text-white">AI usage & cost</h1>
+        <button
+          type="button"
+          onClick={() => load(true)}
+          disabled={refreshing}
+          className="shrink-0 text-xs font-semibold text-[#12A5A9] hover:underline disabled:opacity-50 flex items-center gap-1.5 mt-1"
+        >
+          <span className={`inline-block w-1.5 h-1.5 rounded-full bg-[#12A5A9] ${refreshing ? 'animate-pulse' : ''}`} />
+          {refreshing ? 'Refreshing…' : lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString()}` : 'Refresh'}
+        </button>
+      </div>
       <p className="text-white/50 text-sm mb-8 max-w-2xl">
-        Real cost from every AI call in the app, not the worst-case estimates in the proposal. The totals here also feed the live &quot;Claude (Anthropic)&quot; line on the{' '}
+        Real cost from every AI call in the app, not the worst-case estimates in the proposal. Refreshes automatically every 20 seconds. The totals here also feed the live &quot;Claude (Anthropic)&quot; line on the{' '}
         <Link href="/admin/costs" className="text-[#12A5A9] hover:underline">Costs</Link> page.
       </p>
 
