@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { useLanguage, t } from '@/lib/i18n'
 import { AI_ASSIST_ENABLED } from '@/lib/aiAssist'
@@ -14,10 +15,13 @@ const ICON_STYLES: Record<Nudge['icon'], string> = {
 }
 const ICON_GLYPH: Record<Nudge['icon'], string> = { calendar: '📅', warning: '⚠️', wrench: '🔧' }
 
-// Only rendered once the status fetch confirms this landlord has AI Assist
-// — renders nothing at all otherwise, same as every other AI-gated card.
-// Everything here is read-only: tapping through to act on a nudge happens
-// on the real page (the lease, the job), never here.
+// Three states, not one: a landlord without AI Assist used to see nothing
+// at all here (no hint the feature even exists), and a landlord WITH it
+// but a clean portfolio also saw nothing (so the card they're paying for
+// was invisible exactly when it had good news to report). Both now render
+// something. Neither costs anything extra — the route already skips the
+// Claude call entirely when there's nothing to flag or no access, so the
+// "all clear" and upsell states are pure UI, not new spend.
 export function PortfolioDigestCard() {
   const lang = useLanguage()
   const [loading, setLoading] = useState(true)
@@ -41,7 +45,22 @@ export function PortfolioDigestCard() {
       .finally(() => setLoading(false))
   }, [])
 
-  if (loading || !enabled || nudges.length === 0) return null
+  if (loading || !AI_ASSIST_ENABLED) return null
+
+  if (!enabled) {
+    return (
+      <ScrollReveal className="bg-gradient-to-br from-[#0A7B7E]/10 to-white/[0.02] border border-[#12A5A9]/25 rounded-2xl p-6 mb-6">
+        <span className="text-[10px] font-bold uppercase tracking-wide text-[#12A5A9] bg-[#12A5A9]/10 border border-[#12A5A9]/30 rounded-full px-2 py-0.5">
+          ✦ {t('aiAssistCardTitle', lang)}
+        </span>
+        <h2 className="text-white font-semibold mt-3 mb-1.5">{t('portfolioDigestUpsellTitle', lang)}</h2>
+        <p className="text-white/60 text-sm leading-relaxed mb-4">{t('portfolioDigestUpsellDesc', lang)}</p>
+        <Link href="/profile#billing" className="text-[#12A5A9] text-sm font-semibold hover:underline">
+          {t('portfolioDigestUpsellCta', lang)}
+        </Link>
+      </ScrollReveal>
+    )
+  }
 
   return (
     <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
@@ -51,17 +70,25 @@ export function PortfolioDigestCard() {
           ✦ {t('aiAssistCardTitle', lang)}
         </span>
       </div>
-      {summary && <p className="text-white/70 text-sm bg-white/5 border border-white/8 rounded-xl px-3.5 py-2.5 mb-3">{summary}</p>}
-      <div className="space-y-2">
-        {nudges.map((n, i) => (
-          <div key={i} className="flex items-center gap-3 bg-white/3 border border-white/8 rounded-xl px-3.5 py-2.5">
-            <span className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-xs ${ICON_STYLES[n.icon]}`}>
-              {ICON_GLYPH[n.icon]}
-            </span>
-            <span className="text-white/80 text-sm">{n.text}</span>
+      {nudges.length === 0 ? (
+        <p className="text-white/70 text-sm bg-white/5 border border-white/8 rounded-xl px-3.5 py-2.5">
+          ✦ {t('portfolioDigestAllClear', lang)}
+        </p>
+      ) : (
+        <>
+          {summary && <p className="text-white/70 text-sm bg-white/5 border border-white/8 rounded-xl px-3.5 py-2.5 mb-3">{summary}</p>}
+          <div className="space-y-2">
+            {nudges.map((n, i) => (
+              <div key={i} className="flex items-center gap-3 bg-white/3 border border-white/8 rounded-xl px-3.5 py-2.5">
+                <span className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-xs ${ICON_STYLES[n.icon]}`}>
+                  {ICON_GLYPH[n.icon]}
+                </span>
+                <span className="text-white/80 text-sm">{n.text}</span>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </>
+      )}
     </ScrollReveal>
   )
 }

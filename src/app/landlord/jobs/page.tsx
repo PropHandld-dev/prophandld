@@ -19,6 +19,36 @@ import { useLanguage, t } from '@/lib/i18n'
 
 const IN_PROGRESS_STATUSES = ['approved', 'bidding', 'bid_selected', 'scheduled', 'in_progress']
 
+// A small, self-contained AI flag for a job that's open for bidding but
+// might be too thin for a contractor to bid on confidently — the result
+// is cached on the job row (job-ready-recheck/route.ts), so this only
+// actually calls Claude the first time any landlord views this job after
+// it went live; every view after that is a plain read. Renders nothing
+// at all unless the check comes back flagged, same quiet-by-default
+// pattern as the rest of AI Assist on this list.
+function JobReadyFlag({ jobId, lang }: { jobId: string; lang: string }) {
+  const [suggestion, setSuggestion] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    fetch(`/api/ai-assist/job-ready-recheck?jobId=${jobId}`)
+      .then((res) => res.json())
+      .then((data) => { if (!cancelled && data.ready === false) setSuggestion(data.suggestion || null) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [jobId])
+
+  if (!suggestion) return null
+  return (
+    <span
+      title={suggestion}
+      className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#12A5A9] bg-[#12A5A9]/10 border border-[#12A5A9]/30 rounded-full px-2 py-0.5"
+    >
+      ✦ {lang === 'es' ? 'puede ser difícil de licitar' : 'might be hard to bid on'}
+    </span>
+  )
+}
+
 function LandlordJobsList() {
   const router = useRouter()
   const lang = useLanguage()
@@ -339,6 +369,7 @@ function LandlordJobsList() {
                       <h3 className="text-white font-semibold">{job.category}</h3>
                       {urgencyBadge(job)}
                       <span className="text-xs text-white/50">{statusLabel(job)}</span>
+                      {job.status === 'bidding' && <JobReadyFlag jobId={job.id} lang={lang} />}
                       {unreadJobIds.has(job.id) && (
                         <span className="inline-flex items-center gap-1 text-[#12A5A9]">
                           <MessageCircleIcon className="w-3.5 h-3.5" />
