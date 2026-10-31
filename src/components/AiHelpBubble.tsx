@@ -7,6 +7,7 @@ import { getAccountRole } from '@/lib/accountRole'
 import { AiHelpChat } from '@/components/AiHelpChat'
 import { AI_ASSIST_ENABLED } from '@/lib/aiAssist'
 import { useLanguage, t } from '@/lib/i18n'
+import { onOpenAiHelp } from '@/lib/openAiHelp'
 
 // A deliberately lightweight, standalone floating bubble for the AI help
 // chat — NOT a restoration of FloatingChatWidget (see the comment in
@@ -25,6 +26,18 @@ export function AiHelpBubble() {
   const lang = useLanguage()
   const [role, setRole] = useState<'landlord' | 'renter' | 'contractor' | null>(null)
   const [open, setOpen] = useState(false)
+  const [pendingMessage, setPendingMessage] = useState<string | null>(null)
+
+  // A question typed elsewhere on the app (the dashboard's "Ask" box, see
+  // openAiHelp.ts) opens this exact bubble instead of a second, separate
+  // chat surface — this was originally wired to FloatingChatWidget, which
+  // turned out to be switched off app-wide (see the layout.tsx comment),
+  // so the open-ai-help event had no live listener at all and silently
+  // did nothing when fired.
+  useEffect(() => onOpenAiHelp((message) => {
+    setPendingMessage(message)
+    setOpen(true)
+  }), [])
 
   useEffect(() => {
     if (!AI_ASSIST_ENABLED) return
@@ -58,12 +71,12 @@ export function AiHelpBubble() {
           <div className="bg-[#0F2138]/97 backdrop-blur-xl border border-white/10 rounded-3xl shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] overflow-hidden flex flex-col h-[70vh] sm:h-[520px]">
             <div className="flex items-center justify-between gap-3 px-4 py-3.5 border-b border-white/8 shrink-0">
               <p className="text-white text-sm font-semibold flex-1">✦ {t('aiHelpChatTitle', lang)}</p>
-              <button onClick={() => setOpen(false)} aria-label="Close" className="text-white/60 hover:text-white text-lg leading-none transition shrink-0">
+              <button onClick={() => { setOpen(false); setPendingMessage(null) }} aria-label="Close" className="text-white/60 hover:text-white text-lg leading-none transition shrink-0">
                 ×
               </button>
             </div>
             <div className="flex-1 min-h-0 px-4 py-3">
-              <AiHelpChat />
+              <AiHelpChat key={pendingMessage || 'default'} initialMessage={pendingMessage} />
             </div>
           </div>
         </div>
