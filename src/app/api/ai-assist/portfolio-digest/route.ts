@@ -138,7 +138,11 @@ export async function GET() {
             'conservative, most items should not be flagged. For an item_type you don\'t have confident general ' +
             'knowledge about, skip it rather than guessing.',
           prompt: `Items: ${JSON.stringify(ages)}\n\nReturn JSON: { "flagged": [{ "name": string, "note": string }] } — note is one short plain sentence.`,
-          maxTokens: 400,
+          // Same multi-item truncation risk confirmed live on
+          // compliance-gap-check's near-identical shape (an array of
+          // {name, note} items) — 400 wasn't enough once more than one
+          // system gets flagged.
+          maxTokens: 700,
           track: { billedUserId: user.id, callerUserId: user.id, feature: 'portfolio-digest' },
         })
         for (const f of lifespanResult.flagged || []) {

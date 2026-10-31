@@ -1,23 +1,19 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { RippleButton } from '@/components/RippleButton'
 import { useLanguage, t } from '@/lib/i18n'
 
-type Phase = 'offer' | 'asking' | 'question' | 'checking' | 'result'
-
-// Sits in place of the real Submit button until the renter either skips
-// this, or the exchange concludes — onDone always fires exactly once, with
-// a transcript to fold into the job description when the issue wasn't
-// resolved (null when skipped entirely, so nothing extra gets appended).
 type KnownAppliance = { name: string; brand: string | null; model: string | null }
+type Turn = { role: 'user' | 'assistant'; content: string; resolved?: boolean }
 const IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
 
 // A photo is often far more useful than a typed description for this —
 // "it's sparking" vs. an actual photo of the outlet. Capped at 2 so a
 // renter who attached five photos and a video doesn't balloon the cost of
-// one troubleshooting question; videos are skipped entirely (Claude's
-// image input only).
+// every turn; videos are skipped entirely (Claude's image input only).
+// Encoded once and cached, not re-read from the File objects on every
+// message in a multi-turn conversation.
 async function encodeFirstPhotos(files: File[] | undefined, max = 2): Promise<{ base64: string; mediaType: string }[]> {
   const images = (files || []).filter((f) => IMAGE_MIME_TYPES.has(f.type)).slice(0, max)
   return Promise.all(
@@ -33,6 +29,13 @@ async function encodeFirstPhotos(files: File[] | undefined, max = 2): Promise<{ 
   )
 }
 
+// An open-ended chat, not a fixed one-question-then-done wizard — stays in
+// the conversation for as many turns as the renter keeps responding,
+// exactly like talking to an actual AI assistant, with "report it now"
+// always sitting right there so nothing ever traps them in it.
+// onDone fires exactly once, with a transcript of the whole exchange to
+// fold into the job description when the issue wasn't resolved (null when
+// skipped entirely at the very first offer, so nothing extra gets added).
 export function TroubleshootAssistant({
   category,
   description,
@@ -43,12 +46,11 @@ export function TroubleshootAssistant({
   category: string
   description: string
   // The tracked system this job matches, if the landlord has it on file and
-  // it's an unambiguous match — lets the one combined question skip asking
-  // for brand/model it already knows instead of asking again.
+  // it's an unambiguous match — lets the AI skip asking for brand/model it
+  // already knows instead of asking again.
   knownAppliance?: KnownAppliance | null
   // Whatever photos are already attached to the report at the point
-  // troubleshooting runs — encoded on demand, only when actually needed,
-  // not pre-encoded on every keystroke.
+  // troubleshooting starts.
   photos?: File[]
   // 'resolved' means the renter confirmed it's fixed and explicitly chose
   // not to report it — the parent should stop here, not fall through to
@@ -56,55 +58,33 @@ export function TroubleshootAssistant({
   onDone: (action: 'proceed' | 'resolved', transcript: string | null) => void
 }) {
   const lang = useLanguage()
-  const [phase, setPhase] = useState<Phase>('offer')
-  const [question, setQuestion] = useState('')
-  const [answer, setAnswer] = useState('')
-  const [resultMessage, setResultMessage] = useState('')
-  const [resolved, setResolved] = useState(false)
-  // How many photos actually made it into the LAST call (not just how many
-  // are attached) — a video or a failed read silently drops out in
-  // encodeFirstPhotos, so this is read back from what was really sent, not
-  // assumed from the prop.
+  const [started, setStarted] = useState(false)
+  const [turns, setTurns] = useState<Turn[]>([])
+  const [draft, setDraft] = useState('')
+  const [sending, setSending] = useState(false)
   const [photosUsed, setPhotosUsed] = useState(0)
+  const encodedPhotosRef = useRef<{ base64: string; mediaType: string }[] | null>(null)
+  const listRef = useRef<HTMLDivElement>(null)
 
-  const start = async () => {
-    setPhase('asking')
-    try {
-      const encodedPhotos = await encodeFirstPhotos(photos)
-      setPhotosUsed(encodedPhotos.length)
-      const res = await fetch('/api/ai-assist/troubleshoot', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ category, description, knownAppliance: knownAppliance || undefined, photos: encodedPhotos.length ? encodedPhotos : undefined }),
-      })
-      const data = await res.json()
-      if (data.done) {
-        if (!data.message) {
-          // Nothing worth asking (emergency/excluded category/no useful
-          // check) — skip straight through as if troubleshooting was never
-          // offered at all.
-          onDone('proceed', null)
-          return
-        }
-        setResolved(!!data.resolved)
-        setResultMessage(data.message)
-        setPhase('result')
-        return
-      }
-      setQuestion(data.question)
-      setPhase('question')
-    } catch {
-      onDone('proceed', null)
+  useEffect(() => {
+    const el = listRef.current
+    if (el) el.scrollTop = el.scrollHeight
+  }, [turns.length, sending])
+
+  const transcriptFor = (allTurns: Turn[]) =>
+    allTurns.length ? `AI troubleshooting conversation:\n${allTurns.map((t) => `${t.role === 'user' ? 'Renter' : 'Assistant'}: ${t.content}`).join('\n')}` : null
+
+  const getEncodedPhotos = async () => {
+    if (encodedPhotosRef.current === null) {
+      encodedPhotosRef.current = await encodeFirstPhotos(photos)
     }
+    return encodedPhotosRef.current
   }
 
-  const submitAnswer = async () => {
-    setPhase('checking')
+  const send = async (history: Turn[], userMessage?: string) => {
+    setSending(true)
     try {
-      // Each call is stateless (no server-side memory of the first pass),
-      // so the photos have to be sent again here for the DIY-tips pass to
-      // also have visual context, not just the text answer.
-      const encodedPhotos = await encodeFirstPhotos(photos)
+      const encodedPhotos = await getEncodedPhotos()
       setPhotosUsed(encodedPhotos.length)
       const res = await fetch('/api/ai-assist/troubleshoot', {
         method: 'POST',
@@ -114,22 +94,49 @@ export function TroubleshootAssistant({
           description,
           knownAppliance: knownAppliance || undefined,
           photos: encodedPhotos.length ? encodedPhotos : undefined,
-          previousQuestion: question,
-          previousAnswer: answer,
+          history: history.map((h) => ({ role: h.role, content: h.content })),
+          message: userMessage,
         }),
       })
       const data = await res.json()
-      setResolved(!!data.resolved)
-      setResultMessage(data.message || '')
-      setPhase('result')
+      if (!data.reply) {
+        // Nothing worth asking (emergency/excluded category/no AI Assist/
+        // rate-limited) — only meaningful on the very first call; skip
+        // straight through as if troubleshooting was never offered.
+        if (history.length === 0) {
+          onDone('proceed', null)
+          return
+        }
+        setSending(false)
+        return
+      }
+      setTurns((prev) => [...prev, ...(userMessage ? [{ role: 'user' as const, content: userMessage }] : []), { role: 'assistant' as const, content: data.reply, resolved: !!data.resolved }])
     } catch {
-      onDone('proceed', `AI troubleshooting question: ${question}\nRenter's answer: ${answer}`)
+      if (history.length === 0) {
+        onDone('proceed', null)
+        return
+      }
+      setTurns((prev) => [...prev, ...(userMessage ? [{ role: 'user' as const, content: userMessage }] : [])])
     }
+    setSending(false)
   }
 
-  const transcript = question ? `AI troubleshooting question: ${question}\nRenter's answer: ${answer}` : null
+  const start = () => {
+    setStarted(true)
+    send([])
+  }
 
-  if (phase === 'offer') {
+  const sendMessage = () => {
+    const message = draft.trim()
+    if (!message || sending) return
+    setDraft('')
+    send(turns, message)
+  }
+
+  const lastTurn = turns[turns.length - 1]
+  const justResolved = lastTurn?.role === 'assistant' && lastTurn.resolved
+
+  if (!started) {
     return (
       <div className="bg-[#12A5A9]/8 border border-[#12A5A9]/25 rounded-2xl p-4">
         <div className="flex items-center gap-2 mb-1">
@@ -151,71 +158,67 @@ export function TroubleshootAssistant({
     )
   }
 
-  if (phase === 'asking') {
-    return <div className="bg-white/3 border border-white/8 rounded-2xl p-4 text-white/50 text-sm">{t('troubleshootThinking', lang)}</div>
-  }
-
-  if (phase === 'question') {
-    return (
-      <div className="bg-[#12A5A9]/8 border border-[#12A5A9]/25 rounded-2xl p-4">
-        {photosUsed > 0 && (
-          <p className="text-[#12A5A9]/70 text-[11px] mb-1.5">✦ {t('aiReviewedPhotoNote', lang)}</p>
-        )}
-        <p className="text-white text-sm mb-3">{question}</p>
-        <textarea
-          value={answer}
-          onChange={(e) => setAnswer(e.target.value)}
-          rows={2}
-          placeholder={t('troubleshootAnswerPlaceholder', lang)}
-          className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-white text-sm placeholder-white/40 focus:outline-none focus:border-[#12A5A9] transition resize-none mb-3"
-        />
-        <div className="flex items-center gap-3">
-          <RippleButton
-            onClick={submitAnswer}
-            disabled={!answer.trim()}
-            className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-4 py-2 rounded-xl hover:opacity-90 transition disabled:opacity-50"
-          >
-            {t('troubleshootContinueBtn', lang)}
-          </RippleButton>
-          <button type="button" onClick={() => onDone('proceed', transcript)} className="text-white/50 text-sm hover:text-white transition">
-            {t('troubleshootSkipBtn', lang)}
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  if (phase === 'checking') {
-    return <div className="bg-white/3 border border-white/8 rounded-2xl p-4 text-white/50 text-sm">{t('troubleshootThinking', lang)}</div>
-  }
-
-  // result
   return (
-    <div className={`rounded-2xl p-4 border ${resolved ? 'bg-[#12A5A9]/8 border-[#12A5A9]/25' : 'bg-white/3 border-white/8'}`}>
+    <div className="bg-[#12A5A9]/8 border border-[#12A5A9]/25 rounded-2xl p-4">
       {photosUsed > 0 && (
-        <p className="text-[#12A5A9]/70 text-[11px] mb-1.5">✦ {t('aiReviewedPhotoNote', lang)}</p>
+        <p className="text-[#12A5A9]/70 text-[11px] mb-2">✦ {t('aiReviewedPhotoNote', lang)}</p>
       )}
-      <p className="text-white text-sm mb-3">{resultMessage}</p>
-      {resolved ? (
-        <div className="flex items-center gap-3">
+      <div ref={listRef} className="max-h-72 overflow-y-auto space-y-2.5 mb-3">
+        {turns.map((turn, i) => (
+          <div key={i} className={`flex ${turn.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div
+              className={
+                turn.role === 'user'
+                  ? 'max-w-[85%] bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white rounded-2xl rounded-br-sm px-3.5 py-2 text-sm'
+                  : 'max-w-[85%] bg-white/5 border border-white/10 text-white rounded-2xl rounded-bl-sm px-3.5 py-2 text-sm'
+              }
+            >
+              <p className="leading-relaxed whitespace-pre-wrap break-words">{turn.content}</p>
+            </div>
+          </div>
+        ))}
+        {sending && <p className="text-white/40 text-xs">{t('troubleshootThinking', lang)}</p>}
+      </div>
+
+      {justResolved && (
+        <div className="flex items-center gap-3 mb-3">
           <RippleButton
             onClick={() => onDone('resolved', null)}
-            className="bg-white/8 text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-white/12 transition"
+            className="bg-white/8 text-white text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-white/12 transition"
           >
             {t('troubleshootAllSetBtn', lang)}
           </RippleButton>
-          <button type="button" onClick={() => onDone('proceed', transcript)} className="text-[#12A5A9] text-sm hover:underline transition">
+          <button type="button" onClick={() => onDone('proceed', transcriptFor(turns))} className="text-[#12A5A9] text-xs hover:underline transition">
             {t('troubleshootStillReportBtn', lang)}
           </button>
         </div>
-      ) : (
-        <RippleButton
-          onClick={() => onDone('proceed', transcript)}
-          className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-4 py-2 rounded-xl hover:opacity-90 transition"
-        >
-          {t('troubleshootPostJobBtn', lang)}
-        </RippleButton>
       )}
+
+      <div className="flex items-center gap-2">
+        <input
+          type="text"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+          placeholder={t('troubleshootAnswerPlaceholder', lang)}
+          disabled={sending}
+          className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-white text-sm placeholder-white/40 focus:outline-none focus:border-[#12A5A9] transition disabled:opacity-50"
+        />
+        <RippleButton
+          onClick={sendMessage}
+          disabled={sending || !draft.trim()}
+          className="shrink-0 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
+        >
+          {t('troubleshootContinueBtn', lang)}
+        </RippleButton>
+      </div>
+      <button
+        type="button"
+        onClick={() => onDone('proceed', transcriptFor(turns))}
+        className="text-white/40 hover:text-white/70 text-xs mt-2.5 transition"
+      >
+        {t('troubleshootPostJobBtn', lang)}
+      </button>
     </div>
   )
 }

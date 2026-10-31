@@ -90,7 +90,11 @@ export async function POST(request: NextRequest) {
         'Plain, warm but professional language, 3-5 sentences, no markdown, no subject line, ready to send as a ' +
         'single chat message. Use the real facts provided, never invent specifics not given.',
       prompt: `${kindInstruction[kind]}\n\nFacts (JSON, null means not on file): ${JSON.stringify(facts)}\n\nReturn JSON: { "message": string }`,
-      maxTokens: 400,
+      // A 3-5 sentence drafted message is the same scope that needed
+      // raising elsewhere today (troubleshoot's DIY tips) after 400
+      // turned out to truncate mid-sentence — bumped proactively here
+      // rather than waiting for the same failure to get reported again.
+      maxTokens: 600,
       track: { billedUserId: user.id, callerUserId: user.id, feature: 'draft-message' },
     })
 

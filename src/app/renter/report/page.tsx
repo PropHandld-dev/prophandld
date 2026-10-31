@@ -490,6 +490,43 @@ export default function ReportIssuePage() {
               )}
             </div>
 
+            {showTroubleshoot && (
+              <TroubleshootAssistant
+                category={form.category}
+                description={form.description}
+                knownAppliance={
+                  // Explicitly picked from the Related System dropdown
+                  // always wins. Otherwise, if there's exactly one tracked
+                  // appliance on this unit at all, it's safe to use without
+                  // making the renter pick it — the dropdown's own match is
+                  // by trade (any appliance), not the specific category, so
+                  // more than one candidate isn't a safe guess.
+                  systems.find((s) => s.id === form.maintenance_item_id) ||
+                  (matchingSystems.length === 1 ? matchingSystems[0] : null)
+                }
+                photos={files}
+                onDone={(action, transcript) => {
+                  setTroubleshootTranscript(transcript)
+                  setTroubleshootCleared(true)
+                  if (action === 'resolved') {
+                    setTroubleshootResolvedNoAction(true)
+                    return
+                  }
+                  handleSubmit(null, transcript)
+                }}
+              />
+            )}
+            {troubleshootResolvedNoAction && (
+              <div className="bg-[#12A5A9]/8 border border-[#12A5A9]/25 rounded-2xl p-4 flex items-center justify-between gap-3">
+                <p className="text-white/70 text-sm">{t('troubleshootResolvedFooter', lang)}</p>
+                <Link href="/renter" className="text-[#12A5A9] text-sm font-semibold hover:underline shrink-0">
+                  {t('dashboard', lang)}
+                </Link>
+              </div>
+            )}
+
+            {!troubleshootResolvedNoAction && (
+            <>
             <div>
               <label className="text-white/70 text-sm block mb-1">{t('whenAreYouAroundLabel', lang)}</label>
               <p className="text-white/40 text-xs mb-2">{t('availabilityHint', lang)}</p>
@@ -576,39 +613,7 @@ export default function ReportIssuePage() {
               </div>
             )}
 
-            {showTroubleshoot ? (
-              <TroubleshootAssistant
-                category={form.category}
-                description={form.description}
-                knownAppliance={
-                  // Explicitly picked from the Related System dropdown
-                  // always wins. Otherwise, if there's exactly one tracked
-                  // appliance on this unit at all, it's safe to use without
-                  // making the renter pick it — the dropdown's own match is
-                  // by trade (any appliance), not the specific category, so
-                  // more than one candidate isn't a safe guess.
-                  systems.find((s) => s.id === form.maintenance_item_id) ||
-                  (matchingSystems.length === 1 ? matchingSystems[0] : null)
-                }
-                photos={files}
-                onDone={(action, transcript) => {
-                  setTroubleshootTranscript(transcript)
-                  setTroubleshootCleared(true)
-                  if (action === 'resolved') {
-                    setTroubleshootResolvedNoAction(true)
-                    return
-                  }
-                  handleSubmit(null, transcript)
-                }}
-              />
-            ) : troubleshootResolvedNoAction ? (
-              <div className="bg-[#12A5A9]/8 border border-[#12A5A9]/25 rounded-2xl p-4 flex items-center justify-between gap-3">
-                <p className="text-white/70 text-sm">{t('troubleshootResolvedFooter', lang)}</p>
-                <Link href="/renter" className="text-[#12A5A9] text-sm font-semibold hover:underline shrink-0">
-                  {t('dashboard', lang)}
-                </Link>
-              </div>
-            ) : (
+            {!showTroubleshoot && (
               <RippleButton
                 type="submit"
                 disabled={submitting}
@@ -616,6 +621,8 @@ export default function ReportIssuePage() {
               >
                 {submitting ? t('submitting', lang) : t('submitReport', lang)}
               </RippleButton>
+            )}
+            </>
             )}
           </form>
           </ScrollReveal>

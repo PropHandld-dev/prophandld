@@ -1,11 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { RippleButton } from '@/components/RippleButton'
 import { useLanguage, t } from '@/lib/i18n'
 
-type Phase = 'idle' | 'asking' | 'question' | 'checking' | 'result'
 type KnownAppliance = { name: string; brand: string | null; model: string | null }
+type Turn = { role: 'user' | 'assistant'; content: string; resolved?: boolean }
 const IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
 
 // Same idea as TroubleshootAssistant's encodeFirstPhotos, starting from
@@ -36,12 +36,12 @@ async function encodePhotoUrls(urls: string[], max = 2): Promise<{ base64: strin
 }
 
 // The landlord-side counterpart to TroubleshootAssistant (renter/report) —
-// same API route, same safety rules, same disclaimers, just no "proceed to
-// submitting a report" exit path, since the landlord already has the job
-// open in front of them. Purely informational: a landlord who's decided to
-// "Handle it myself" can optionally see what AI would suggest before they
-// start, then use the existing before/after photo + cost fields regardless
-// of what it says.
+// same API route, same open-ended chat (not a fixed one-question wizard),
+// same safety rules, just no "proceed to submitting a report" exit path,
+// since the landlord already has the job open in front of them. Purely
+// informational: a landlord who's decided to "Handle it myself" can
+// optionally keep chatting with AI before/while they work, then use the
+// existing before/after photo + cost fields regardless of what it says.
 export function DiyTroubleshootPanel({
   category,
   description,
@@ -56,41 +56,31 @@ export function DiyTroubleshootPanel({
   photoUrls?: string[]
 }) {
   const lang = useLanguage()
-  const [phase, setPhase] = useState<Phase>('idle')
-  const [question, setQuestion] = useState('')
-  const [answer, setAnswer] = useState('')
-  const [resultMessage, setResultMessage] = useState('')
+  const [started, setStarted] = useState(false)
+  const [turns, setTurns] = useState<Turn[]>([])
+  const [draft, setDraft] = useState('')
+  const [sending, setSending] = useState(false)
   const [photosUsed, setPhotosUsed] = useState(0)
+  const encodedPhotosRef = useRef<{ base64: string; mediaType: string }[] | null>(null)
+  const listRef = useRef<HTMLDivElement>(null)
 
-  const start = async () => {
-    setPhase('asking')
-    try {
-      const photos = await encodePhotoUrls(photoUrls || [])
-      setPhotosUsed(photos.length)
-      const res = await fetch('/api/ai-assist/troubleshoot', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ category, description, knownAppliance: knownAppliance || undefined, photos: photos.length ? photos : undefined }),
-      })
-      const data = await res.json()
-      if (data.done) {
-        setResultMessage(data.message || t('diyAiNoSuggestions', lang))
-        setPhase('result')
-        return
-      }
-      setQuestion(data.question)
-      setPhase('question')
-    } catch {
-      setResultMessage(t('diyAiNoSuggestions', lang))
-      setPhase('result')
+  useEffect(() => {
+    const el = listRef.current
+    if (el) el.scrollTop = el.scrollHeight
+  }, [turns.length, sending])
+
+  const getEncodedPhotos = async () => {
+    if (encodedPhotosRef.current === null) {
+      encodedPhotosRef.current = await encodePhotoUrls(photoUrls || [])
     }
+    return encodedPhotosRef.current
   }
 
-  const submitAnswer = async () => {
-    setPhase('checking')
+  const send = async (history: Turn[], userMessage?: string) => {
+    setSending(true)
     try {
-      const photos = await encodePhotoUrls(photoUrls || [])
-      setPhotosUsed(photos.length)
+      const encodedPhotos = await getEncodedPhotos()
+      setPhotosUsed(encodedPhotos.length)
       const res = await fetch('/api/ai-assist/troubleshoot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -98,21 +88,37 @@ export function DiyTroubleshootPanel({
           category,
           description,
           knownAppliance: knownAppliance || undefined,
-          photos: photos.length ? photos : undefined,
-          previousQuestion: question,
-          previousAnswer: answer,
+          photos: encodedPhotos.length ? encodedPhotos : undefined,
+          history: history.map((h) => ({ role: h.role, content: h.content })),
+          message: userMessage,
         }),
       })
       const data = await res.json()
-      setResultMessage(data.message || t('diyAiNoSuggestions', lang))
-      setPhase('result')
+      if (!data.reply) {
+        setTurns((prev) => [...prev, ...(userMessage ? [{ role: 'user' as const, content: userMessage }] : []), { role: 'assistant' as const, content: t('diyAiNoSuggestions', lang) }])
+        setSending(false)
+        return
+      }
+      setTurns((prev) => [...prev, ...(userMessage ? [{ role: 'user' as const, content: userMessage }] : []), { role: 'assistant' as const, content: data.reply, resolved: !!data.resolved }])
     } catch {
-      setResultMessage(t('diyAiNoSuggestions', lang))
-      setPhase('result')
+      setTurns((prev) => [...prev, ...(userMessage ? [{ role: 'user' as const, content: userMessage }] : []), { role: 'assistant' as const, content: t('diyAiNoSuggestions', lang) }])
     }
+    setSending(false)
   }
 
-  if (phase === 'idle') {
+  const start = () => {
+    setStarted(true)
+    send([])
+  }
+
+  const sendMessage = () => {
+    const message = draft.trim()
+    if (!message || sending) return
+    setDraft('')
+    send(turns, message)
+  }
+
+  if (!started) {
     return (
       <button
         type="button"
@@ -124,45 +130,45 @@ export function DiyTroubleshootPanel({
     )
   }
 
-  if (phase === 'asking' || phase === 'checking') {
-    return (
-      <div className="bg-white/3 border border-white/8 rounded-xl p-3 text-white/50 text-xs mb-4">{t('troubleshootThinking', lang)}</div>
-    )
-  }
-
-  if (phase === 'question') {
-    return (
-      <div className="bg-[#12A5A9]/8 border border-[#12A5A9]/25 rounded-xl p-3 mb-4">
-        {photosUsed > 0 && (
-          <p className="text-[#12A5A9]/70 text-[11px] mb-1.5">✦ {t('aiReviewedPhotoNote', lang)}</p>
-        )}
-        <p className="text-white text-xs mb-2">{question}</p>
-        <textarea
-          value={answer}
-          onChange={(e) => setAnswer(e.target.value)}
-          rows={2}
+  return (
+    <div className="bg-[#12A5A9]/8 border border-[#12A5A9]/25 rounded-xl p-3 mb-4">
+      {photosUsed > 0 && (
+        <p className="text-[#12A5A9]/70 text-[11px] mb-2">✦ {t('aiReviewedPhotoNote', lang)}</p>
+      )}
+      <div ref={listRef} className="max-h-56 overflow-y-auto space-y-2 mb-2.5">
+        {turns.map((turn, i) => (
+          <div key={i} className={`flex ${turn.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div
+              className={
+                turn.role === 'user'
+                  ? 'max-w-[85%] bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white rounded-xl rounded-br-sm px-3 py-1.5 text-xs'
+                  : 'max-w-[85%] bg-white/5 border border-white/10 text-white/80 rounded-xl rounded-bl-sm px-3 py-1.5 text-xs'
+              }
+            >
+              <p className="leading-relaxed whitespace-pre-wrap break-words">{turn.content}</p>
+            </div>
+          </div>
+        ))}
+        {sending && <p className="text-white/40 text-xs">{t('troubleshootThinking', lang)}</p>}
+      </div>
+      <div className="flex items-center gap-2">
+        <input
+          type="text"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
           placeholder={t('troubleshootAnswerPlaceholder', lang)}
-          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-xs placeholder-white/40 focus:outline-none focus:border-[#12A5A9] transition resize-none mb-2"
+          disabled={sending}
+          className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-xs placeholder-white/40 focus:outline-none focus:border-[#12A5A9] transition disabled:opacity-50"
         />
         <RippleButton
-          onClick={submitAnswer}
-          disabled={!answer.trim()}
-          className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-3 py-1.5 rounded-lg hover:opacity-90 transition disabled:opacity-50"
+          onClick={sendMessage}
+          disabled={sending || !draft.trim()}
+          className="shrink-0 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-3 py-1.5 rounded-lg hover:opacity-90 transition disabled:opacity-50"
         >
           {t('troubleshootContinueBtn', lang)}
         </RippleButton>
       </div>
-    )
-  }
-
-  // result
-  return (
-    <div className="bg-white/3 border border-white/8 rounded-xl p-3 mb-4">
-      <span className="text-[10px] font-bold uppercase tracking-wide text-[#12A5A9] bg-[#12A5A9]/10 border border-[#12A5A9]/30 rounded-full px-2 py-0.5 inline-block mb-2">✦ AI</span>
-      {photosUsed > 0 && (
-        <p className="text-[#12A5A9]/70 text-[11px] mb-1.5">✦ {t('aiReviewedPhotoNote', lang)}</p>
-      )}
-      <p className="text-white/80 text-xs leading-relaxed">{resultMessage}</p>
     </div>
   )
 }
