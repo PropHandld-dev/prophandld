@@ -206,6 +206,6 @@ export async function POST() {
     return NextResponse.json({ redirect: true, url: session.url })
   } catch (err) {
     console.error('ai-assist/start-trial: unhandled error', err)
-    return NextResponse.json({ error: friendlyStripeError(err, 'start your AI Assist trial') }, { status: 500 })
+    return NextResponse.json({ error: friendlyStripeError(err, 'start your AI Assist trial'), _debug: err instanceof Error ? err.message : String(err) }, { status: 500 })
   }
 }
