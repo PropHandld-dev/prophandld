@@ -1260,6 +1260,9 @@ const STRINGS = {
   aiGapCheckTrackBtn: { en: 'Track this', es: 'Registrar' },
   aiGapCheckDisclaimer: { en: 'Worth double-checking with your city/state, requirements vary and change.', es: 'Vale la pena confirmar con tu ciudad/estado: los requisitos varían y cambian.' },
   aiGapCheckFailed: { en: 'Could not check that right now.', es: 'No se pudo revisar eso ahora.' },
+  aiRenewalGuideBtn: { en: 'How do I renew this?', es: '¿Cómo renuevo esto?' },
+  aiRenewalGuideTitle: { en: 'How to renew this', es: 'Cómo renovar esto' },
+  aiRenewalGuideFailed: { en: 'Could not look that up right now.', es: 'No se pudo consultar eso ahora.' },
   bidOutlierHigh: { en: '↑ notably higher than other bids', es: '↑ notablemente más alto que otras ofertas' },
   bidOutlierLow: { en: '↓ notably lower than other bids', es: '↓ notablemente más bajo que otras ofertas' },
 

@@ -63,6 +63,10 @@ export default function PropertyCompliancePage() {
   const [gapSuggestions, setGapSuggestions] = useState<{ itemType: string; why: string }[] | null>(null)
   const [gapChecking, setGapChecking] = useState(false)
   const [gapError, setGapError] = useState<string | null>(null)
+  // Keyed by compliance item id — per item, not global, since a landlord
+  // with several items due might want to check more than one in the same
+  // visit without losing the first answer.
+  const [renewalGuides, setRenewalGuides] = useState<Record<string, { loading: boolean; text: string | null; error: string | null }>>({})
 
   const [form, setForm] = useState({
     item_type: '',
@@ -214,6 +218,37 @@ export default function PropertyCompliancePage() {
       setGapError(t('aiGapCheckFailed', lang))
     }
     setGapChecking(false)
+  }
+
+  const fetchRenewalGuide = async (itemId: string) => {
+    // Toggle closed if already open with an answer, same as expanding/
+    // collapsing any other inline panel — re-opening later re-fetches
+    // rather than caching, since the item's own expiry date could have
+    // changed via a renewal in between.
+    if (renewalGuides[itemId]?.text) {
+      setRenewalGuides((prev) => {
+        const next = { ...prev }
+        delete next[itemId]
+        return next
+      })
+      return
+    }
+    setRenewalGuides((prev) => ({ ...prev, [itemId]: { loading: true, text: null, error: null } }))
+    try {
+      const res = await fetch('/api/ai-assist/compliance-renewal-guide', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ complianceItemId: itemId }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setRenewalGuides((prev) => ({ ...prev, [itemId]: { loading: false, text: null, error: data.error || t('aiRenewalGuideFailed', lang) } }))
+        return
+      }
+      setRenewalGuides((prev) => ({ ...prev, [itemId]: { loading: false, text: data.guide, error: null } }))
+    } catch {
+      setRenewalGuides((prev) => ({ ...prev, [itemId]: { loading: false, text: null, error: t('aiRenewalGuideFailed', lang) } }))
+    }
   }
 
   const trackSuggestion = (itemType: string) => {
@@ -732,6 +767,15 @@ export default function PropertyCompliancePage() {
                           {t('renewBtn', lang)}
                         </button>
                       )}
+                      {aiAssistActive && (
+                        <button
+                          onClick={() => fetchRenewalGuide(item.id)}
+                          disabled={renewalGuides[item.id]?.loading}
+                          className="text-[#12A5A9] text-xs font-semibold hover:underline disabled:opacity-50"
+                        >
+                          {renewalGuides[item.id]?.loading ? `✦ ${t('aiCheckingDots', lang)}` : `✦ ${t('aiRenewalGuideBtn', lang)}`}
+                        </button>
+                      )}
                       <button
                         onClick={() => handleDelete(item)}
                         className="text-red-400/70 text-xs hover:text-red-400 transition"
@@ -740,6 +784,18 @@ export default function PropertyCompliancePage() {
                       </button>
                     </div>
                   </div>
+
+                  {renewalGuides[item.id]?.error && (
+                    <p className="text-red-400 text-xs mt-3">{renewalGuides[item.id].error}</p>
+                  )}
+                  {renewalGuides[item.id]?.text && (
+                    <div className="mt-3 bg-[#12A5A9]/8 border border-[#12A5A9]/25 rounded-xl px-3.5 py-3">
+                      <p className="text-[#12A5A9] text-[11px] font-semibold uppercase tracking-wide mb-1.5">
+                        ✦ {t('aiRenewalGuideTitle', lang)}
+                      </p>
+                      <p className="text-white/80 text-sm leading-relaxed whitespace-pre-wrap">{renewalGuides[item.id].text}</p>
+                    </div>
+                  )}
 
                   {isRenewing && (
                     <div className="mt-4 space-y-2.5">
