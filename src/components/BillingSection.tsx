@@ -13,6 +13,8 @@ type Status = {
   tier: LandlordTier
   hasActiveSubscription: boolean
   hasStripeCustomer: boolean
+  cancelAtPeriodEnd: boolean
+  currentPeriodEnd: string | null
 }
 
 export function BillingSection() {
@@ -146,14 +148,25 @@ export function BillingSection() {
         </div>
         {status.tier !== 'free' && (
           <span className={
-            status.hasActiveSubscription
-              ? 'text-xs font-semibold px-2.5 py-1 rounded-full bg-[#0A7B7E]/20 text-[#12A5A9]'
-              : 'text-xs font-semibold px-2.5 py-1 rounded-full bg-yellow-500/15 text-yellow-400'
+            status.cancelAtPeriodEnd
+              ? 'text-xs font-semibold px-2.5 py-1 rounded-full bg-yellow-500/15 text-yellow-400'
+              : status.hasActiveSubscription
+                ? 'text-xs font-semibold px-2.5 py-1 rounded-full bg-[#0A7B7E]/20 text-[#12A5A9]'
+                : 'text-xs font-semibold px-2.5 py-1 rounded-full bg-yellow-500/15 text-yellow-400'
           }>
-            {status.hasActiveSubscription ? t('activeStatus', lang) : t('paymentNeededBadge', lang)}
+            {status.cancelAtPeriodEnd ? t('subscriptionStatusEnding', lang) : status.hasActiveSubscription ? t('activeStatus', lang) : t('paymentNeededBadge', lang)}
           </span>
         )}
       </div>
+
+      {status.cancelAtPeriodEnd && status.currentPeriodEnd && (
+        <p className="text-yellow-400/90 text-xs font-semibold mb-4">
+          {t('subscriptionEndingOn', lang).replace(
+            '{date}',
+            new Date(status.currentPeriodEnd).toLocaleDateString(undefined, { month: 'long', day: 'numeric' })
+          )}
+        </p>
+      )}
 
       {error && (
         <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm mb-4">

@@ -164,6 +164,8 @@ export async function POST(request: NextRequest) {
                   tier,
                   stripe_subscription_id: session.subscription as string,
                   status: 'active',
+                  cancel_at_period_end: false,
+                  current_period_end: null,
                   updated_at: new Date().toISOString(),
                 },
                 { onConflict: 'landlord_user_id' }
@@ -212,9 +214,21 @@ export async function POST(request: NextRequest) {
         }
         if (landlordUserId) {
           const status = subscription.status === 'active' || subscription.status === 'trialing' ? 'active' : subscription.status
+          // Base plan is managed entirely through Stripe's hosted billing
+          // portal (billing-portal/route.ts), which already does the real
+          // cancel-at-period-end mechanics — this app just never tracked
+          // it, so a landlord who cancelled there saw "Active" right up
+          // until the day it silently wasn't, no warning anywhere in the
+          // app itself. Mirrors the same fields on ai_assist_subscriptions.
+          const basePeriodEnd = subscription.items.data[0]?.current_period_end
           const { error } = await supabaseAdmin
             .from('landlord_subscriptions')
-            .update({ status, updated_at: new Date().toISOString() })
+            .update({
+              status,
+              cancel_at_period_end: subscription.cancel_at_period_end,
+              current_period_end: subscription.cancel_at_period_end && basePeriodEnd ? new Date(basePeriodEnd * 1000).toISOString() : null,
+              updated_at: new Date().toISOString(),
+            })
             .eq('landlord_user_id', landlordUserId)
           if (error) console.error('stripe webhook: customer.subscription.updated failed', error)
         }
@@ -243,7 +257,14 @@ export async function POST(request: NextRequest) {
         if (landlordUserId) {
           const { error } = await supabaseAdmin
             .from('landlord_subscriptions')
-            .update({ tier: 'free', stripe_subscription_id: null, status: 'active', updated_at: new Date().toISOString() })
+            .update({
+              tier: 'free',
+              stripe_subscription_id: null,
+              status: 'active',
+              cancel_at_period_end: false,
+              current_period_end: null,
+              updated_at: new Date().toISOString(),
+            })
             .eq('landlord_user_id', landlordUserId)
           if (error) console.error('stripe webhook: customer.subscription.deleted failed', error)
         }

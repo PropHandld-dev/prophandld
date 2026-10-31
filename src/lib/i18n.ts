@@ -1290,6 +1290,8 @@ const STRINGS = {
   tierSuffix: { en: 'tier', es: 'nivel' },
   activeStatus: { en: 'Active', es: 'Activo' },
   paymentNeededBadge: { en: 'Payment needed', es: 'Pago requerido' },
+  subscriptionStatusEnding: { en: 'Ending soon', es: 'Termina pronto' },
+  subscriptionEndingOn: { en: "You'll keep full access through {date}. It just won't renew after that, unless you turn auto-renew back on from the billing portal.", es: 'Mantendrás acceso completo hasta el {date}. Solo que no se renovará después, a menos que reactives la renovación automática desde el portal de facturación.' },
   manageBillingBtn: { en: 'Manage billing', es: 'Administrar facturación' },
   oneUnitStaysFree: { en: '1 unit stays free, no card needed.', es: '1 unidad se mantiene gratis, sin necesidad de tarjeta.' },
   couldNotSyncUnitCount: { en: 'Could not sync your unit count.', es: 'No se pudo sincronizar tu cantidad de unidades.' },

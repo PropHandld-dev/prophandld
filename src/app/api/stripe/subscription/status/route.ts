@@ -44,7 +44,7 @@ export async function GET() {
 
     const { data: subscription, error: subscriptionError } = await supabaseAdmin
       .from('landlord_subscriptions')
-      .select('tier, stripe_subscription_id, status')
+      .select('tier, stripe_subscription_id, status, cancel_at_period_end, current_period_end')
       .eq('landlord_user_id', user.id)
       .maybeSingle()
 
@@ -110,6 +110,8 @@ export async function GET() {
       daysLeftInTrial,
       trialExpired,
       freeForever,
+      cancelAtPeriodEnd: !!subscription?.cancel_at_period_end,
+      currentPeriodEnd: subscription?.current_period_end ?? null,
     })
   } catch (err) {
     console.error('subscription/status: unhandled error', err)
