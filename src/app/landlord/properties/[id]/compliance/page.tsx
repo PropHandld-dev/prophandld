@@ -84,6 +84,9 @@ export default function PropertyCompliancePage() {
 
   const [renewingId, setRenewingId] = useState<string | null>(null)
   const [renewDate, setRenewDate] = useState('')
+  const [renewFile, setRenewFile] = useState<File | null>(null)
+  const [renewExtracting, setRenewExtracting] = useState(false)
+  const [renewExtractedType, setRenewExtractedType] = useState<string | null>(null)
   const [attachingId, setAttachingId] = useState<string | null>(null)
   const { confirm, ConfirmDialog } = useConfirm()
 
@@ -152,6 +155,43 @@ export default function PropertyCompliancePage() {
       console.error('AI compliance extraction failed:', err)
     }
     setAiReading(false)
+  }
+
+  // Renewing used to be nothing more than typing in whatever date someone
+  // felt like — Joshua's real complaint: a landlord "resolves" an expired
+  // rental license by just picking a new date, no proof it was actually
+  // renewed. This reads the renewal document the same way a new item's
+  // upload does, pre-fills the date from what's actually printed on it,
+  // and surfaces what AI read the document AS so a landlord attaching the
+  // wrong file (an insurance cert while renewing a license, say) sees the
+  // mismatch before saving instead of silently overwriting the expiry with
+  // an unrelated document's date.
+  const extractRenewalFields = async (docFile: File) => {
+    const mediaType = docFile.type || (docFile.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : '')
+    if (!['application/pdf', 'image/jpeg', 'image/png'].includes(mediaType)) return
+    setRenewExtracting(true)
+    setRenewExtractedType(null)
+    try {
+      const fileBase64: string = await new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve((reader.result as string).split(',')[1] || '')
+        reader.onerror = reject
+        reader.readAsDataURL(docFile)
+      })
+      const res = await fetch('/api/ai-assist/extract/compliance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileBase64, mediaType }),
+      })
+      const data = await res.json()
+      if (res.ok && data.extracted) {
+        if (data.extracted.expiry_date) setRenewDate(data.extracted.expiry_date)
+        if (data.extracted.item_type) setRenewExtractedType(data.extracted.item_type)
+      }
+    } catch (err) {
+      console.error('AI renewal extraction failed:', err)
+    }
+    setRenewExtracting(false)
   }
 
   const checkComplianceGaps = async () => {
@@ -351,15 +391,19 @@ export default function PropertyCompliancePage() {
   const startRenew = (item: any) => {
     setRenewingId(item.id)
     setRenewDate(item.expiry_date || '')
+    setRenewFile(null)
+    setRenewExtractedType(null)
     setError(null)
   }
 
   const cancelRenew = () => {
     setRenewingId(null)
     setRenewDate('')
+    setRenewFile(null)
+    setRenewExtractedType(null)
   }
 
-  const saveRenew = async (itemId: string) => {
+  const saveRenew = async (item: any) => {
     if (!renewDate) {
       setError(t('pleasePickNewExpiryDate', lang))
       return
@@ -368,7 +412,7 @@ export default function PropertyCompliancePage() {
     const { error: updateError } = await supabase
       .from('compliance_items')
       .update({ expiry_date: renewDate, last_reminder_status: null })
-      .eq('id', itemId)
+      .eq('id', item.id)
 
     if (updateError) {
       console.error('Error renewing item:', updateError)
@@ -376,8 +420,18 @@ export default function PropertyCompliancePage() {
       return
     }
 
+    // Attached last, after the date itself is safely saved — if this part
+    // fails, the renewal still went through and the landlord can attach
+    // the document separately via the same upload control every item
+    // already has below.
+    if (renewFile) {
+      await uploadComplianceDocument(item.id, item.item_type, renewFile)
+    }
+
     setRenewingId(null)
     setRenewDate('')
+    setRenewFile(null)
+    setRenewExtractedType(null)
     await loadItems()
   }
 
@@ -675,25 +729,64 @@ export default function PropertyCompliancePage() {
                   </div>
 
                   {isRenewing && (
-                    <div className="flex items-center gap-2 mt-4">
-                      <input
-                        type="date"
-                        value={renewDate}
-                        onChange={(e) => setRenewDate(e.target.value)}
-                        className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-[#12A5A9] transition"
-                      />
-                      <button
-                        onClick={() => saveRenew(item.id)}
-                        className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-3 py-2 rounded-lg hover:opacity-90 transition"
-                      >
-                        {t('saveBtn', lang)}
-                      </button>
-                      <button
-                        onClick={cancelRenew}
-                        className="text-white/50 hover:text-white text-xs px-2 transition"
-                      >
-                        {t('cancelBtn', lang)}
-                      </button>
+                    <div className="mt-4 space-y-2.5">
+                      <label className="block">
+                        <input
+                          type="file"
+                          accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                          onChange={(e) => {
+                            const selected = e.target.files?.[0] || null
+                            if (selected) {
+                              const validationError = validateDocumentFile(selected)
+                              if (validationError) {
+                                setError(validationError)
+                                e.target.value = ''
+                                return
+                              }
+                            }
+                            setError(null)
+                            setRenewFile(selected)
+                            setRenewExtractedType(null)
+                            if (selected && aiAssistActive) extractRenewalFields(selected)
+                          }}
+                          className="hidden"
+                        />
+                        <span className="inline-block bg-white/8 text-white text-xs font-medium px-3 py-2 rounded-lg hover:bg-white/12 transition cursor-pointer">
+                          {renewFile ? renewFile.name : t('attachRenewedDocumentBtn', lang)}
+                        </span>
+                      </label>
+                      {aiAssistActive && renewFile && (
+                        <p className="text-[#12A5A9] text-xs">
+                          {renewExtracting
+                            ? `✦ ${t('aiLeaseUploadReading', lang)}`
+                            : renewExtractedType
+                              ? `✦ ${t('aiReadThisAsPrefix', lang)} ${itemTypeDisplayLabel(renewExtractedType, lang)}`
+                              : `✦ ${t('aiComplianceAutoFillHint', lang)}`}
+                        </p>
+                      )}
+                      {renewExtractedType && renewExtractedType !== item.item_type && (
+                        <p className="text-yellow-400 text-xs font-semibold">{t('renewDocumentMismatchWarning', lang)}</p>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="date"
+                          value={renewDate}
+                          onChange={(e) => setRenewDate(e.target.value)}
+                          className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-[#12A5A9] transition"
+                        />
+                        <button
+                          onClick={() => saveRenew(item)}
+                          className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-3 py-2 rounded-lg hover:opacity-90 transition"
+                        >
+                          {t('saveBtn', lang)}
+                        </button>
+                        <button
+                          onClick={cancelRenew}
+                          className="text-white/50 hover:text-white text-xs px-2 transition"
+                        >
+                          {t('cancelBtn', lang)}
+                        </button>
+                      </div>
                     </div>
                   )}
 
