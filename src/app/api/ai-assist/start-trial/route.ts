@@ -24,7 +24,7 @@ export const maxDuration = 20
 // canceled or not, as claimed forever.
 export async function POST() {
   if (!AI_ASSIST_ENABLED) {
-    return NextResponse.json({ error: 'AI Assist is not available yet' }, { status: 404 })
+    return NextResponse.json({ error: 'Handld is not available yet' }, { status: 404 })
   }
 
   const authClient = await createClient()
@@ -33,7 +33,7 @@ export async function POST() {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
   if (user.app_metadata?.role !== 'landlord') {
-    return NextResponse.json({ error: 'Only landlords can add AI Assist' }, { status: 403 })
+    return NextResponse.json({ error: 'Only landlords can add Handld' }, { status: 403 })
   }
 
   const supabaseAdmin = getSupabaseAdmin()
@@ -46,7 +46,7 @@ export async function POST() {
       .maybeSingle()
     if (existingError) {
       console.error('ai-assist/start-trial: error checking existing row', existingError)
-      return NextResponse.json({ error: 'Could not check AI Assist status' }, { status: 500 })
+      return NextResponse.json({ error: 'Could not check Handld status' }, { status: 500 })
     }
     const isRestart = !!existing && existing.status === 'canceled'
     if (existing && !isRestart) {
@@ -56,7 +56,7 @@ export async function POST() {
     const priceId = aiAssistPriceId()
     if (!priceId) {
       console.error('ai-assist/start-trial: STRIPE_PRICE_AI_ASSIST is not configured')
-      return NextResponse.json({ error: 'AI Assist billing is not set up yet.' }, { status: 503 })
+      return NextResponse.json({ error: 'Handld billing is not set up yet.' }, { status: 503 })
     }
 
     const { data: properties } = await supabaseAdmin
@@ -191,7 +191,7 @@ export async function POST() {
           } else {
             await supabaseAdmin.from('ai_assist_subscriptions').delete().eq('landlord_user_id', user.id).is('stripe_subscription_id', null)
           }
-          return NextResponse.json({ error: 'Could not save AI Assist status' }, { status: 500 })
+          return NextResponse.json({ error: 'Could not save Handld status' }, { status: 500 })
         }
 
         return NextResponse.json({ redirect: false, status: subscription.status === 'active' ? 'active' : 'trialing' })
@@ -218,6 +218,6 @@ export async function POST() {
     return NextResponse.json({ redirect: true, url: session.url })
   } catch (err) {
     console.error('ai-assist/start-trial: unhandled error', err)
-    return NextResponse.json({ error: friendlyStripeError(err, 'start your AI Assist trial') }, { status: 500 })
+    return NextResponse.json({ error: friendlyStripeError(err, 'start your Handld trial') }, { status: 500 })
   }
 }

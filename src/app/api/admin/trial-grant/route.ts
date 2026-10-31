@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
         .upsert({ landlord_user_id: landlordUserId, ...updates }, { onConflict: 'landlord_user_id' })
       if (error) {
         console.error('admin/trial-grant: ai_assist update failed', error)
-        return NextResponse.json({ error: 'Could not update AI Assist trial' }, { status: 500 })
+        return NextResponse.json({ error: 'Could not update Handld trial' }, { status: 500 })
       }
     }
 

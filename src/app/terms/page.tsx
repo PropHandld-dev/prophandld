@@ -160,10 +160,10 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2>9. AI Assist</h2>
+            <h2>9. Handld (AI Assist)</h2>
             <p>
-              AI Assist is an optional, paid add-on a landlord can turn on for their own account.
-              When it's on, Prophandld uses a third-party AI service (see our{' '}
+              Handld is our name for AI Assist, an optional, paid add-on a landlord can turn on for
+              their own account. When it's on, Prophandld uses a third-party AI service (see our{' '}
               <Link href="/privacy" className="text-[#12A5A9] hover:underline">Privacy Policy</Link>)
               to do things like suggest a next troubleshooting step, read an uploaded document,
               answer a renter's question about their own lease, or draft a routine message.
@@ -173,7 +173,7 @@ export default function TermsPage() {
               contracting advice, and we don't guarantee they're accurate, complete, or safe for
               your specific situation. Never attempt an electrical, gas, or structural repair
               yourself regardless of what a suggestion says, and always use your own judgment
-              before acting on one. AI Assist is provided "as is," same as the rest of the platform
+              before acting on one. Handld is provided "as is," same as the rest of the platform
               (see Section 12, Disclaimers, below).
             </p>
           </section>

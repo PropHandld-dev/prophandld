@@ -527,10 +527,10 @@ export default function LandingPage() {
         <ScrollReveal>
           <div className="text-center mb-14">
             <div className="inline-flex items-center gap-2 bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 text-[#12A5A9] border border-[#12A5A9]/30 text-xs font-semibold px-3 py-1.5 rounded-full mb-5">
-              AI Assist &middot; optional add-on, on top of the plan above
+              Handld &middot; our AI, optional add-on, on top of the plan above
             </div>
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4 text-balance">
-              The AI that&apos;s actually read your lease, not the internet&apos;s best guess.
+              Meet Handld, the AI that&apos;s actually read your lease, not the internet&apos;s best guess.
             </h2>
             <p className="text-white/50 max-w-2xl mx-auto leading-relaxed">
               No generic advice, no made-up policy. Every answer comes from the real lease, photo,
@@ -579,8 +579,8 @@ export default function LandingPage() {
           <div className="space-y-3">
             {[
               { q: 'Is this just for finding contractors?', a: "No. Prophandld is built to replace the spreadsheet. Track every property, unit, and tenant, handle maintenance end to end with sealed bidding, and collect rent, all in one dashboard. Your spreadsheet can finally retire." },
-              { q: 'What does it cost?', a: "Your first unit is free. Then $19.99/month for 2–4 units, $39.99 for 5–10, $79.99 for 11–25, flat rates, not per-unit. Past 25 units, $1.75 per unit. AI Assist is a separate optional add-on from $4.99/month if you want it. See the full breakdown and try the calculator at /pricing. Contractors pay nothing: no signup fee, no monthly fee, no cut of a bid." },
-              { q: 'What does AI Assist actually do?', a: "It reads the photo and description a tenant reported an issue with and walks them through safe things to try before a contractor's needed, never anything electrical, gas, or structural. It also reads uploaded leases and compliance documents to fill in fields for you, answers a renter's questions about their own lease, flags a compliance gap before it becomes a fine, drafts routine messages, and gives you a one-line morning briefing of what actually needs attention. It's an optional add-on billed to you, the landlord, from $4.99/month with a 14-day free trial. Turn it on and your tenants get it too, automatically, at no extra cost to them." },
+              { q: 'What does it cost?', a: "Your first unit is free. Then $19.99/month for 2–4 units, $39.99 for 5–10, $79.99 for 11–25, flat rates, not per-unit. Past 25 units, $1.75 per unit. Handld, our AI, is a separate optional add-on from $4.99/month if you want it. See the full breakdown and try the calculator at /pricing. Contractors pay nothing: no signup fee, no monthly fee, no cut of a bid." },
+              { q: 'What does Handld actually do?', a: "It reads the photo and description a tenant reported an issue with and walks them through safe things to try before a contractor's needed, never anything electrical, gas, or structural. It also reads uploaded leases and compliance documents to fill in fields for you, answers a renter's questions about their own lease, flags a compliance gap before it becomes a fine, drafts routine messages, and gives you a one-line morning briefing of what actually needs attention. It's an optional add-on billed to you, the landlord, from $4.99/month with a 14-day free trial. Turn it on and your tenants get it too, automatically, at no extra cost to them." },
               { q: 'How does sealed bidding actually work?', a: "Contractors near the property are alerted when you open a job for bids. They submit their price privately and never see what anyone else bid. You choose who you trust, not just the lowest number. No bidding wars, no “my cousin quoted less”." },
               { q: 'Do I have to use a contractor?', a: "No. For anything small enough to handle yourself, mark it fixed directly, no bidding required. Contractors are there for when you want one, not a requirement for every repair." },
               { q: "What if the contractor's price changes?", a: 'If a contractor needs to adjust their price once work has started, they show you the new labor and parts breakdown, and you approve it before they move forward. No surprise invoices.' },

@@ -63,7 +63,7 @@ export default function PricingPage() {
               Optional add-on
             </span>
             <div>
-              <p className="text-white text-sm font-semibold mb-1">AI Assist</p>
+              <p className="text-white text-sm font-semibold mb-1">Handld, our AI</p>
               <p className="text-white/50 text-sm leading-relaxed">
                 Reads a tenant&apos;s photo and talks them through fixing it themselves, reads an
                 uploaded lease or compliance document and fills in the fields for you, answers a
