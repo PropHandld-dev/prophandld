@@ -30,7 +30,7 @@ export async function POST() {
 
     if (propertiesError) {
       console.error('subscription/sync: error fetching properties', propertiesError)
-      return NextResponse.json({ error: 'Could not load properties', detail: propertiesError.message }, { status: 500 })
+      return NextResponse.json({ error: 'Could not load properties' }, { status: 500 })
     }
 
     const propertyIds = (properties || []).map((p) => p.id)
@@ -43,7 +43,7 @@ export async function POST() {
 
       if (unitsError) {
         console.error('subscription/sync: error counting units', unitsError)
-        return NextResponse.json({ error: 'Could not count units', detail: unitsError.message }, { status: 500 })
+        return NextResponse.json({ error: 'Could not count units' }, { status: 500 })
       }
       unitCount = count || 0
     }
@@ -58,7 +58,7 @@ export async function POST() {
 
     if (existingError) {
       console.error('subscription/sync: error fetching existing subscription', existingError)
-      return NextResponse.json({ error: 'Could not load subscription', detail: existingError.message }, { status: 500 })
+      return NextResponse.json({ error: 'Could not load subscription' }, { status: 500 })
     }
 
     const hasActiveStripeSub = existing?.stripe_subscription_id && existing.status === 'active'
