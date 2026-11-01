@@ -1951,10 +1951,16 @@ export default function JobDetailPage() {
             <div className="mb-4">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-white/70 text-xs font-medium">{t('afterLabel', lang)} ({afterPhotos.length})</p>
-                <label>
-                  <input type="file" accept="image/*,video/*" multiple onChange={(e) => handleDiyPhotoUpload(e, 'after')} className="hidden" />
-                  <span className="text-[#12A5A9] text-xs hover:underline cursor-pointer">{t('addPhotosLink', lang)}</span>
-                </label>
+                <div className="flex items-center gap-3">
+                  <label>
+                    <input type="file" accept="image/*" capture="environment" onChange={(e) => handleDiyPhotoUpload(e, 'after')} className="hidden" />
+                    <span className="text-[#12A5A9] text-xs hover:underline cursor-pointer">{t('takePhotoLink', lang)}</span>
+                  </label>
+                  <label>
+                    <input type="file" accept="image/*,video/*" multiple onChange={(e) => handleDiyPhotoUpload(e, 'after')} className="hidden" />
+                    <span className="text-[#12A5A9] text-xs hover:underline cursor-pointer">{t('addPhotosLink', lang)}</span>
+                  </label>
+                </div>
               </div>
               {afterPhotos.length > 0 && <PhotoGrid photos={afterPhotos} columns={4} />}
             </div>
@@ -1962,10 +1968,16 @@ export default function JobDetailPage() {
             <div className="mb-4">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-white/70 text-xs font-medium">{t('beforeLabel', lang)} ({beforePhotos.length})</p>
-                <label>
-                  <input type="file" accept="image/*,video/*" multiple onChange={(e) => handleDiyPhotoUpload(e, 'before')} className="hidden" />
-                  <span className="text-[#12A5A9] text-xs hover:underline cursor-pointer">{t('addPhotosLink', lang)}</span>
-                </label>
+                <div className="flex items-center gap-3">
+                  <label>
+                    <input type="file" accept="image/*" capture="environment" onChange={(e) => handleDiyPhotoUpload(e, 'before')} className="hidden" />
+                    <span className="text-[#12A5A9] text-xs hover:underline cursor-pointer">{t('takePhotoLink', lang)}</span>
+                  </label>
+                  <label>
+                    <input type="file" accept="image/*,video/*" multiple onChange={(e) => handleDiyPhotoUpload(e, 'before')} className="hidden" />
+                    <span className="text-[#12A5A9] text-xs hover:underline cursor-pointer">{t('addPhotosLink', lang)}</span>
+                  </label>
+                </div>
               </div>
               {beforePhotos.length > 0 && <PhotoGrid photos={beforePhotos} columns={4} />}
             </div>

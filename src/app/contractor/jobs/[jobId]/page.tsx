@@ -810,10 +810,16 @@ export default function ContractorJobDetailPage() {
               <div className="flex items-center justify-between mb-2">
                 <p className="text-white/70 text-sm font-medium">{t('beforeLabel', lang)} ({beforePhotos.length})</p>
                 {job.status === 'in_progress' && (
-                  <label>
-                    <input type="file" accept="image/*,video/*" multiple onChange={(e) => handlePhotoUpload(e, 'before')} className="hidden" />
-                    <span className="text-[#12A5A9] text-xs hover:underline cursor-pointer">{t('addPhotosLink', lang)}</span>
-                  </label>
+                  <div className="flex items-center gap-3">
+                    <label>
+                      <input type="file" accept="image/*" capture="environment" onChange={(e) => handlePhotoUpload(e, 'before')} className="hidden" />
+                      <span className="text-[#12A5A9] text-xs hover:underline cursor-pointer">{t('takePhotoLink', lang)}</span>
+                    </label>
+                    <label>
+                      <input type="file" accept="image/*,video/*" multiple onChange={(e) => handlePhotoUpload(e, 'before')} className="hidden" />
+                      <span className="text-[#12A5A9] text-xs hover:underline cursor-pointer">{t('addPhotosLink', lang)}</span>
+                    </label>
+                  </div>
                 )}
               </div>
               {beforePhotos.length === 0 ? (
@@ -832,10 +838,16 @@ export default function ContractorJobDetailPage() {
               <div className="flex items-center justify-between mb-2">
                 <p className="text-white/70 text-sm font-medium">{t('afterLabel', lang)} ({afterPhotos.length})</p>
                 {job.status === 'in_progress' && (
-                  <label>
-                    <input type="file" accept="image/*,video/*" multiple onChange={(e) => handlePhotoUpload(e, 'after')} className="hidden" />
-                    <span className="text-[#12A5A9] text-xs hover:underline cursor-pointer">{t('addPhotosLink', lang)}</span>
-                  </label>
+                  <div className="flex items-center gap-3">
+                    <label>
+                      <input type="file" accept="image/*" capture="environment" onChange={(e) => handlePhotoUpload(e, 'after')} className="hidden" />
+                      <span className="text-[#12A5A9] text-xs hover:underline cursor-pointer">{t('takePhotoLink', lang)}</span>
+                    </label>
+                    <label>
+                      <input type="file" accept="image/*,video/*" multiple onChange={(e) => handlePhotoUpload(e, 'after')} className="hidden" />
+                      <span className="text-[#12A5A9] text-xs hover:underline cursor-pointer">{t('addPhotosLink', lang)}</span>
+                    </label>
+                  </div>
                 )}
               </div>
               {afterPhotos.length === 0 ? (
@@ -859,10 +871,16 @@ export default function ContractorJobDetailPage() {
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-white/70 text-sm font-medium">{t('materialReceiptsLabel', lang)} ({receiptPhotos.length})</p>
                   {job.status === 'in_progress' && (
-                    <label>
-                      <input type="file" accept="image/*,video/*" multiple onChange={(e) => handlePhotoUpload(e, 'receipt')} className="hidden" />
-                      <span className="text-[#12A5A9] text-xs hover:underline cursor-pointer">{t('addReceiptLink', lang)}</span>
-                    </label>
+                    <div className="flex items-center gap-3">
+                      <label>
+                        <input type="file" accept="image/*" capture="environment" onChange={(e) => handlePhotoUpload(e, 'receipt')} className="hidden" />
+                        <span className="text-[#12A5A9] text-xs hover:underline cursor-pointer">{t('takePhotoLink', lang)}</span>
+                      </label>
+                      <label>
+                        <input type="file" accept="image/*,video/*" multiple onChange={(e) => handlePhotoUpload(e, 'receipt')} className="hidden" />
+                        <span className="text-[#12A5A9] text-xs hover:underline cursor-pointer">{t('addReceiptLink', lang)}</span>
+                      </label>
+                    </div>
                   )}
                 </div>
                 {receiptPhotos.length === 0 ? (

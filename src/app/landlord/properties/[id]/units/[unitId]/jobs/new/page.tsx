@@ -272,18 +272,32 @@ export default function NewLandlordJobPage() {
           <div>
             <label className="text-white/70 text-sm block mb-1">{t('photosOrVideosOptionalLabel', lang)}</label>
             <p className="text-white/40 text-xs mb-2">{t('videoLengthHint', lang)}</p>
-            <label className="block">
-              <input
-                type="file"
-                accept="image/*,video/*"
-                multiple
-                onChange={handleFileChange}
-                className="hidden"
-              />
-              <span className="inline-block bg-white/8 text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-white/12 transition cursor-pointer">
-                {files.length > 0 ? t('addMoreBtn', lang) : t('addPhotosOrVideosPlain', lang)}
-              </span>
-            </label>
+            <div className="flex items-center gap-2 flex-wrap">
+              <label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                <span className="inline-block bg-white/8 text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-white/12 transition cursor-pointer">
+                  {t('takePhotoLink', lang)}
+                </span>
+              </label>
+              <label>
+                <input
+                  type="file"
+                  accept="image/*,video/*"
+                  multiple
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                <span className="inline-block bg-white/8 text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-white/12 transition cursor-pointer">
+                  {files.length > 0 ? t('addMoreBtn', lang) : t('addPhotosOrVideosPlain', lang)}
+                </span>
+              </label>
+            </div>
             {files.length > 0 && (
               <div className="grid grid-cols-4 gap-2 mt-3">
                 {files.map((file, i) => (

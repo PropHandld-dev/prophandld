@@ -1104,6 +1104,7 @@ const STRINGS = {
   proposeATimeBtn: { en: 'Propose a time', es: 'Proponer un horario' },
   waitingOnLandlordOrTenant: { en: 'Waiting on the landlord or tenant to confirm.', es: 'Esperando confirmación del propietario o del inquilino.' },
   addPhotosLink: { en: '+ Add photos', es: '+ Agregar fotos' },
+  takePhotoLink: { en: '+ Take photo', es: '+ Tomar foto' },
   addAfterPhotoRequired: { en: 'Add at least one after photo. It is required before you can mark the job complete.', es: 'Agrega al menos una foto de después. Es obligatoria antes de poder marcar el trabajo como completado.' },
   addReceiptLink: { en: '+ Add receipt', es: '+ Agregar recibo' },
   receiptHelpText: { en: 'If you buy parts for this job, snap a photo of the receipt here. It backs up any parts cost in a price change request below.', es: 'Si compras piezas para este trabajo, toma una foto del recibo aquí. Respalda cualquier costo de piezas en una solicitud de cambio de precio abajo.' },
