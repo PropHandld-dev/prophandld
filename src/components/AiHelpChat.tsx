@@ -14,9 +14,18 @@ type Turn = { role: 'user' | 'assistant'; content: string; suggestEscalate?: boo
 // when it isn't confident, it says so and offers the same human-escalation
 // path the old static contact form always used
 // (/api/support-escalate), never leaves someone stuck with just an AI.
+//
+// Explicitly ephemeral (2026-11-01, product decision): used to persist 30
+// days of history server-side and silently reload it on every open. Now
+// nothing is saved at all — a conversation exists only in this
+// component's own state, for as long as it's open, and "End Conversation"
+// (or just closing the bubble, which unmounts this and wipes `turns`
+// either way) is the only way it ever goes away. Users are told this up
+// front rather than finding out by it just not being there next time.
 export function AiHelpChat({ initialMessage }: { initialMessage?: string | null } = {}) {
   const lang = useLanguage()
   const [email, setEmail] = useState<string | null>(null)
+  const [started, setStarted] = useState(false)
   const [turns, setTurns] = useState<Turn[]>([])
   const [draft, setDraft] = useState('')
   const [sending, setSending] = useState(false)
@@ -24,6 +33,7 @@ export function AiHelpChat({ initialMessage }: { initialMessage?: string | null 
   const [escalating, setEscalating] = useState(false)
   const [escalateNote, setEscalateNote] = useState('')
   const [escalateStatus, setEscalateStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
+  const [confirmingEnd, setConfirmingEnd] = useState(false)
   const listRef = useRef<HTMLDivElement>(null)
   const sentInitialRef = useRef(false)
 
@@ -31,38 +41,17 @@ export function AiHelpChat({ initialMessage }: { initialMessage?: string | null 
     supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email || null))
   }, [])
 
-  // Closing the bubble unmounts this component and wipes `turns` — reload
-  // the last 30 days of this person's own history on every fresh mount so
-  // reopening (or coming back a different day) picks up where they left
-  // off instead of a blank slate. Combined with the initialMessage
-  // auto-send (a question typed elsewhere, e.g. the dashboard's "Ask AI"
-  // box — see openAiHelp.ts) into one effect on purpose: these used to be
-  // two independent mount effects, and whichever one's fetch resolved
-  // LAST would win — if the history GET landed after the question's own
-  // POST finished, it silently overwrote the fresh exchange with stale
-  // history, so clicking Ask could feel like nothing happened. Now the
-  // question is sent (if any) using the just-loaded history as its base,
-  // not racing against it.
+  // A question typed elsewhere on the app (the dashboard's "Ask" box, see
+  // openAiHelp.ts) skips the "Start Conversation" tap entirely — typing
+  // and submitting a question already is starting one.
   useEffect(() => {
-    let cancelled = false
-    const sendInitialIfNeeded = (history: Turn[]) => {
-      if (initialMessage && !sentInitialRef.current) {
-        sentInitialRef.current = true
-        doSend(initialMessage, history)
-      }
+    if (initialMessage && !sentInitialRef.current) {
+      sentInitialRef.current = true
+      setStarted(true)
+      doSend(initialMessage, [])
     }
-    fetch('/api/ai-assist/help-chat')
-      .then((res) => res.json())
-      .then((data) => {
-        if (cancelled) return
-        const loaded: Turn[] = Array.isArray(data.turns) ? data.turns : []
-        if (loaded.length) setTurns(loaded)
-        sendInitialIfNeeded(loaded)
-      })
-      .catch(() => { if (!cancelled) sendInitialIfNeeded([]) })
-    return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [initialMessage])
 
   useEffect(() => {
     const el = listRef.current
@@ -100,6 +89,15 @@ export function AiHelpChat({ initialMessage }: { initialMessage?: string | null 
 
   const send = () => doSend(draft.trim())
 
+  const endConversation = () => {
+    setTurns([])
+    setDraft('')
+    setError(null)
+    setEscalating(false)
+    setConfirmingEnd(false)
+    setStarted(false)
+  }
+
   const submitEscalate = async () => {
     if (!email) return
     setEscalateStatus('sending')
@@ -117,6 +115,21 @@ export function AiHelpChat({ initialMessage }: { initialMessage?: string | null 
     } catch {
       setEscalateStatus('error')
     }
+  }
+
+  if (!started) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-center px-4">
+        <p className="text-white/70 text-sm mb-1.5">{t('aiHelpChatIntro', lang)}</p>
+        <p className="text-white/40 text-xs mb-5">{t('aiHelpChatNotSavedNote', lang)}</p>
+        <RippleButton
+          onClick={() => setStarted(true)}
+          className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:opacity-90 transition"
+        >
+          {t('aiHelpStartConversationBtn', lang)}
+        </RippleButton>
+      </div>
+    )
   }
 
   if (escalating) {
@@ -158,10 +171,8 @@ export function AiHelpChat({ initialMessage }: { initialMessage?: string | null 
 
   return (
     <div className="flex flex-col h-full">
+      <p className="text-white/30 text-[10px] text-center mb-2 shrink-0">{t('aiHelpChatNotSavedNote', lang)}</p>
       <div ref={listRef} className="flex-1 min-h-0 overflow-y-auto space-y-2.5 mb-2.5">
-        {turns.length === 0 && (
-          <p className="text-white/40 text-xs text-center py-4">{t('aiHelpChatIntro', lang)}</p>
-        )}
         {turns.map((turn, i) => (
           <div key={i} className={`flex ${turn.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className="max-w-[85%]">
@@ -208,9 +219,27 @@ export function AiHelpChat({ initialMessage }: { initialMessage?: string | null 
           {t('aiLeaseQaAskBtn', lang)}
         </RippleButton>
       </div>
-      <button onClick={() => setEscalating(true)} className="text-white/30 hover:text-white/60 text-[11px] mt-2 text-center transition">
-        {t('aiHelpTalkToHuman', lang)}
-      </button>
+      <div className="flex items-center justify-center gap-4 mt-2">
+        <button onClick={() => setEscalating(true)} className="text-white/30 hover:text-white/60 text-[11px] transition">
+          {t('aiHelpTalkToHuman', lang)}
+        </button>
+        <span className="text-white/15 text-[11px]">·</span>
+        {confirmingEnd ? (
+          <span className="flex items-center gap-2 text-[11px]">
+            <span className="text-white/40">{t('aiHelpEndConfirm', lang)}</span>
+            <button onClick={endConversation} className="text-red-400/80 hover:text-red-400 font-semibold transition">
+              {t('aiHelpEndConversationBtn', lang)}
+            </button>
+            <button onClick={() => setConfirmingEnd(false)} className="text-white/40 hover:text-white/60 transition">
+              {t('cancel', lang)}
+            </button>
+          </span>
+        ) : (
+          <button onClick={() => setConfirmingEnd(true)} className="text-white/30 hover:text-white/60 text-[11px] transition">
+            {t('aiHelpEndConversationBtn', lang)}
+          </button>
+        )}
+      </div>
     </div>
   )
 }

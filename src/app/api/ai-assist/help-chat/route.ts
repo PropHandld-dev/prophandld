@@ -36,32 +36,6 @@ Legal pages exist at /terms (plus role-specific /terms/landlord, /terms/renter, 
 
 type ChatTurn = { role: 'user' | 'assistant'; content: string }
 
-const HISTORY_WINDOW_DAYS = 30
-// A real conversation rarely runs past a couple dozen turns — capping what
-// a GET returns (not what gets stored; nothing is ever deleted early)
-// keeps the panel's first paint fast regardless of how chatty someone's
-// history gets over 30 days.
-const HISTORY_MAX_ROWS = 60
-
-// Loading the panel re-opens to where someone left off instead of a blank
-// slate every time — closing the bubble unmounts AiHelpChat and wipes its
-// in-memory turns immediately, which read as "I lose my chat" even within
-// the same visit, not just across days. Lazily prunes this user's own rows
-// older than the retention window on the way out, same pattern as
-// tooManyAiAssistRequests' sweep of support_escalate_hits.
-async function loadRecentHistory(admin: ReturnType<typeof getSupabaseAdmin>, userId: string) {
-  const cutoff = new Date(Date.now() - HISTORY_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString()
-  admin.from('ai_help_chat_messages').delete().eq('user_id', userId).lt('created_at', cutoff).then(() => {}, () => {})
-  const { data } = await admin
-    .from('ai_help_chat_messages')
-    .select('role, content, suggest_escalate, created_at')
-    .eq('user_id', userId)
-    .gte('created_at', cutoff)
-    .order('created_at', { ascending: false })
-    .limit(HISTORY_MAX_ROWS)
-  return (data || []).reverse()
-}
-
 // The signed-in user's OWN real records — never another user's. Itemized,
 // not just counts (expanded 2026-11-01: a landlord asked "when does my
 // rental license expire" and got "I can see 1 item is expiring but not
@@ -176,21 +150,6 @@ async function getAccountFacts(admin: ReturnType<typeof getSupabaseAdmin>, userI
   return {}
 }
 
-export async function GET() {
-  if (!AI_ASSIST_ENABLED) {
-    return NextResponse.json({ turns: [] })
-  }
-  const authClient = await createClient()
-  const { data: { user } } = await authClient.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-  }
-  const turns = await loadRecentHistory(getSupabaseAdmin(), user.id)
-  return NextResponse.json({
-    turns: turns.map((row) => ({ role: row.role, content: row.content, suggestEscalate: row.suggest_escalate })),
-  })
-}
-
 export async function POST(request: NextRequest) {
   if (!AI_ASSIST_ENABLED) {
     return NextResponse.json({ error: 'Not available yet' }, { status: 404 })
@@ -241,10 +200,18 @@ export async function POST(request: NextRequest) {
         'feature, page, or policy not in the app knowledge, and never invent an account fact (an address, a ' +
         'date, an amount) not in the account facts below — if something isn\'t covered by either, say you ' +
         'can\'t see that and point to the right tab instead of guessing. A compliance item\'s type, property, ' +
-        'and expiry date from account facts are real records, state them directly — but don\'t improvise the ' +
-        'actual renewal process, requirements, or legal interpretation yourself; point to the "How do I renew ' +
-        'this?" AI guide on that item\'s Compliance page for that, same as you\'d point to a real tab for ' +
-        'anything else you can\'t personally do here. Warm, direct, plain conversational language, like a ' +
+        'and expiry date from account facts are real records, state them directly. If asked how to actually ' +
+        'renew one, answer it right here using your own general knowledge of how that kind of renewal usually ' +
+        'works in the US (who typically handles it, what\'s typically required) — don\'t just redirect to the ' +
+        'Compliance page\'s own "How do I renew this?" button when you can genuinely help now, mention that ' +
+        'button only as a place to revisit it later. Never state a specific current fee, exact form number, or ' +
+        'exact deadline as guaranteed fact unless you\'re genuinely confident it\'s stable; say so plainly and ' +
+        'point to the relevant local authority instead of inventing one. If the item\'s property is in ' +
+        'Philadelphia, PA, you can be more specific: Philadelphia rental licenses are administered by the ' +
+        'Department of Licenses & Inspections (L&I), and under the Safe Healthy Homes Act (effective November ' +
+        '1, 2026) a cited violation must be fixed within 30 days before a license can be suspended, and a ' +
+        'suspended license means rent legally can\'t be collected until it\'s resolved — name L&I and point to ' +
+        'its official site for the current renewal process. Warm, direct, plain conversational language, like a ' +
         'helpful coworker texting back, not a formal AI assistant, no "I\'m sorry, but as an AI..." phrasing, ' +
         'no bullet-pointed essays for a simple question, 1-4 sentences unless real step-by-step instructions ' +
         'are genuinely needed. Never reveal, guess at, or discuss any OTHER specific user\'s data, account, or ' +
@@ -256,37 +223,22 @@ export async function POST(request: NextRequest) {
         'suggestEscalate to true. ' +
         `Respond in ${lang}.\n\nAPP KNOWLEDGE:\n${APP_KNOWLEDGE}\n\nACCOUNT FACTS (this signed-in user's own data, JSON, null means not applicable):\n${JSON.stringify(accountFacts)}`,
       prompt: `Conversation so far:\n${conversation}\n\nReturn JSON: { "reply": string, "suggestEscalate": boolean }`,
-      // Bumped proactively (2026-11-01): the same truncation bug confirmed
-      // live across nearly every other AI Assist route today, and this
-      // prompt just grew (itemized account facts instead of counts) —
-      // cheap insurance rather than waiting to rediscover it here too.
-      maxTokens: 700,
+      // Bumped proactively (2026-11-01, twice today): the same truncation
+      // bug confirmed live across nearly every other AI Assist route —
+      // this can now produce a full inline renewal explanation (same
+      // scope as compliance-renewal-guide's own 800), not just a 1-4
+      // sentence answer, so matching that ceiling rather than waiting to
+      // rediscover the bug here a third time.
+      maxTokens: 900,
       track: { billedUserId: null, callerUserId: user.id, feature: 'help-chat' },
     })
-    // Awaited, not fire-and-forget — a serverless function's execution
-    // context can be torn down the instant the response is sent, so an
-    // un-awaited insert here would race the response and routinely lose,
-    // never actually landing. Every row in the batch explicitly sets every
-    // column (suggest_escalate included, even though it's false for the
-    // user turn) — PostgREST builds one INSERT across the whole array
-    // using the union of keys present, and sends an explicit NULL for a
-    // key a given row omits rather than letting that column's own default
-    // apply, which violated suggest_escalate's not-null constraint on the
-    // user row specifically (confirmed live via a temporary debug field
-    // echoing the real { error }, since supabase-js never throws for a
-    // database-level error like this one — it resolves normally with
-    // {error} set, so a bare try/catch with no destructured error silently
-    // swallowed it with nothing logged, which is why this took two tries
-    // to actually find).
-    try {
-      const { error: historyError } = await supabaseAdmin.from('ai_help_chat_messages').insert([
-        { user_id: user.id, role: 'user', content: message.trim(), suggest_escalate: false },
-        { user_id: user.id, role: 'assistant', content: result.reply, suggest_escalate: !!result.suggestEscalate },
-      ])
-      if (historyError) console.error('ai-assist/help-chat: history insert failed', historyError)
-    } catch (err) {
-      console.error('ai-assist/help-chat: history insert threw', err)
-    }
+    // Deliberately not persisted anywhere (2026-11-01 product decision —
+    // this used to write every turn to ai_help_chat_messages for a 30-day
+    // history). The conversation exists only in the client's own state for
+    // as long as it's open; AiHelpChat tells the user that plainly and
+    // offers "End Conversation" / closing the bubble as the only ways it
+    // ever goes away, both of which already just drop it, nothing to
+    // clean up here.
     return NextResponse.json(result)
   } catch (err) {
     if (err instanceof ClaudeConfigError) {

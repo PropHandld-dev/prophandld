@@ -9,7 +9,7 @@ export default function RenterTermsPage() {
   return (
     <LegalPageShell
       title="Terms of Service for Renters"
-      lastUpdated="October 20, 2026"
+      lastUpdated="November 1, 2026"
       footerLinks={
         <>
           <Link href="/terms" className="hover:text-white transition">General Terms</Link>
@@ -135,6 +135,15 @@ export default function RenterTermsPage() {
           display it to the people it&apos;s meant for (for example, your issue-report photos are visible
           to your landlord and the contractor assigned to that job). Don&apos;t upload anything you don&apos;t
           have the right to share, and don&apos;t upload anything illegal, harassing, or knowingly false.
+        </p>
+        <p>
+          If your landlord has Prophandld AI turned on for their account, content relevant to a
+          specific AI feature you use — a photo and description for a troubleshooting suggestion, a
+          question about your own lease — is sent to a third-party AI service to generate a
+          response. See our{' '}
+          <Link href="/privacy" className="text-[#12A5A9] hover:underline">Privacy Policy</Link> and{' '}
+          <Link href="/terms" className="text-[#12A5A9] hover:underline">general Terms</Link> for
+          details.
         </p>
       </section>
 
