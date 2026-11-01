@@ -66,12 +66,14 @@ export async function POST(request: NextRequest) {
         `Already tracked: ${existingTypes.length > 0 ? existingTypes.join(', ') : 'nothing yet'}\n\n` +
         'Return JSON: { "suggestions": [{ "itemType": string, "why": string }] } — itemType is a short name ' +
         '(e.g. "Rental License"), why is one short sentence on why it\'s commonly required.',
-      // Confirmed live (same root cause found earlier for troubleshoot's
-      // DIY tips): 400 wasn't enough headroom for up to 3 suggestions each
-      // with their own "why" sentence — the model's raw output was getting
-      // cut off mid-string, which produces truncated, invalid JSON. Not a
-      // formatting problem, an actual length one.
-      maxTokens: 700,
+      // Confirmed live TWICE now (same root cause found earlier for
+      // troubleshoot's DIY tips): first at 400, then again at 700 — 3
+      // suggestions with real "why" sentences can run longer than either
+      // ceiling covered, cutting the model's raw output off mid-string
+      // and producing truncated, invalid JSON. Not a formatting problem,
+      // an actual length one; giving this real headroom instead of
+      // nudging the number up by increments each time it's rediscovered.
+      maxTokens: 1000,
       track: { billedUserId: user.id, callerUserId: user.id, feature: 'compliance-gap-check' },
     })
     return NextResponse.json(result)
@@ -80,6 +82,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'This isn’t set up yet.' }, { status: 503 })
     }
     console.error('ai-assist/compliance-gap-check: unhandled error', err)
-    return NextResponse.json({ error: 'Could not check that right now.', _debug: err instanceof Error ? err.message : String(err) } as any, { status: 500 })
+    return NextResponse.json({ error: 'Could not check that right now.' }, { status: 500 })
   }
 }

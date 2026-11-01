@@ -72,6 +72,25 @@ export default function SubmitBidPage() {
     not_included: '',
   })
 
+  // Auto-fills the total the moment both rate and hours are real numbers,
+  // instead of making a contractor do the multiplication themselves or
+  // tap a separate "use this" suggestion — amount stays a normal editable
+  // field afterward, so overriding it (a round number, a minimum charge)
+  // still works, this just removes the friction of the common case where
+  // rate × hours IS the bid. Static placeholder="450" on the amount field
+  // below was never a real value, but a contractor reported it looking
+  // like a wrong auto-filled number sitting right above the correct
+  // "$200.00 (rate × hours)" hint — confusing even though nothing was
+  // actually broken, worth removing that friction either way.
+  useEffect(() => {
+    if (form.pricing_type !== 'hourly') return
+    const rate = parseFloat(form.labor_rate)
+    const hours = parseFloat(form.estimated_hours)
+    if (!(rate > 0) || !(hours > 0)) return
+    setForm((prev) => ({ ...prev, amount: (rate * hours).toFixed(2) }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.pricing_type, form.labor_rate, form.estimated_hours])
+
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -464,22 +483,11 @@ export default function SubmitBidPage() {
                   required
                   min="1"
                   step="0.01"
-                  placeholder="450"
+                  placeholder={form.pricing_type === 'hourly' ? '' : '450'}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
                 />
                 {form.pricing_type === 'hourly' && form.labor_rate && form.estimated_hours && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setForm({
-                        ...form,
-                        amount: (parseFloat(form.labor_rate) * parseFloat(form.estimated_hours)).toFixed(2),
-                      })
-                    }
-                    className="text-[#12A5A9] text-xs font-medium mt-1.5 hover:underline"
-                  >
-                    {t('useRateHours', lang)} ${(parseFloat(form.labor_rate) * parseFloat(form.estimated_hours)).toFixed(2)} {t('rateHoursSuffix', lang)}
-                  </button>
+                  <p className="text-white/40 text-xs mt-1.5">{t('rateHoursAutoFillNote', lang)}</p>
                 )}
               </div>
               </>
