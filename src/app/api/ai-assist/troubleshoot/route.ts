@@ -4,11 +4,18 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { hasAiAssistAccess } from '@/lib/aiAssist'
 import { tooManyAiAssistRequests } from '@/lib/aiAssistRateLimit'
 import { claudeJson, ClaudeConfigError } from '@/lib/claude'
+import { isNoTroubleshootCategory } from '@/lib/categories'
 
 export const maxDuration = 30
 
 type ChatTurn = { role: 'user' | 'assistant'; content: string }
-type Reply = { reply: string; resolved: boolean }
+// skipReason is only set on an empty first-call reply, and only when it's
+// worth actually telling the renter something — a rate limit is a real,
+// if temporary, technical limitation, not the same as "this category
+// genuinely has nothing to try" (emergency/excluded category) or
+// "AI Assist isn't active," which stay silent on purpose since there's
+// nothing actionable to say.
+type Reply = { reply: string; resolved: boolean; skipReason?: 'rate_limited' }
 type KnownAppliance = { name?: string; brand?: string | null; model?: string | null }
 type PhotoInput = { base64: string; mediaType: string }
 
@@ -22,10 +29,10 @@ const ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp
 // same AI, same safety boundaries, same disclaimers, regardless of who's
 // asking (a landlord isn't a licensed contractor either, so there's no
 // reason to loosen anything for them). The caller never calls this at all
-// for an emergency or electrical/gas category — this route also
-// independently refuses those categories as defense in depth, in case a
-// client-side check is ever bypassed.
-const NO_TROUBLESHOOT_CATEGORIES = ['Electrical', 'Gas', 'Structural']
+// for an emergency or electrical/structural category — this route also
+// independently refuses those categories (via isNoTroubleshootCategory,
+// src/lib/categories.ts) as defense in depth, in case a client-side
+// check is ever bypassed.
 
 export async function POST(request: NextRequest) {
   const authClient = await createClient()
@@ -64,7 +71,7 @@ export async function POST(request: NextRequest) {
   if (!category) {
     return NextResponse.json({ error: 'Missing category' }, { status: 400 })
   }
-  if (isEmergency || NO_TROUBLESHOOT_CATEGORIES.some((c) => category.toLowerCase().includes(c.toLowerCase()))) {
+  if (isEmergency || isNoTroubleshootCategory(category)) {
     return NextResponse.json({ reply: '', resolved: false } as Reply)
   }
 
@@ -99,7 +106,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ reply: '', resolved: false } as Reply)
   }
   if (await tooManyAiAssistRequests('troubleshoot', user.id, 30)) {
-    return NextResponse.json({ reply: '', resolved: false } as Reply)
+    return NextResponse.json({ reply: '', resolved: false, skipReason: 'rate_limited' } as Reply)
   }
 
   const { data: profile } = await supabaseAdmin.from('users').select('preferred_language').eq('id', user.id).maybeSingle()

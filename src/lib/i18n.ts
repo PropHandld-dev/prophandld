@@ -1215,6 +1215,8 @@ const STRINGS = {
   troubleshootOfferText: { en: 'Want to try a quick fix first? It only takes a second, and if it works you won’t need to wait on a contractor.', es: '¿Quieres intentar una solución rápida primero? Solo toma un segundo, y si funciona no tendrás que esperar a un contratista.' },
   troubleshootTryBtn: { en: 'Try it', es: 'Intentarlo' },
   troubleshootSkipBtn: { en: 'Skip, just report it', es: 'Omitir, solo reportar' },
+  troubleshootRateLimited: { en: "AI troubleshooting hit today's usage limit on your account — go ahead and report it, nothing's lost.", es: 'La solución con IA alcanzó el límite de uso de hoy en tu cuenta. Continúa y repórtalo, no se pierde nada.' },
+  troubleshootContinueReportingBtn: { en: 'Continue reporting', es: 'Continuar con el reporte' },
   troubleshootThinking: { en: 'One moment...', es: 'Un momento...' },
   aiReviewedPhotoNote: { en: 'AI looked at your photo too', es: 'La IA también revisó tu foto' },
   troubleshootAnswerPlaceholder: { en: 'Type your answer...', es: 'Escribe tu respuesta...' },

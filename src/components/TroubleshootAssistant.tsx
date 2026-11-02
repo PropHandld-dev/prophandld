@@ -63,6 +63,7 @@ export function TroubleshootAssistant({
   const [draft, setDraft] = useState('')
   const [sending, setSending] = useState(false)
   const [photosUsed, setPhotosUsed] = useState(0)
+  const [skipMessage, setSkipMessage] = useState<string | null>(null)
   const encodedPhotosRef = useRef<{ base64: string; mediaType: string }[] | null>(null)
   const listRef = useRef<HTMLDivElement>(null)
 
@@ -100,10 +101,19 @@ export function TroubleshootAssistant({
       })
       const data = await res.json()
       if (!data.reply) {
-        // Nothing worth asking (emergency/excluded category/no AI Assist/
-        // rate-limited) — only meaningful on the very first call; skip
-        // straight through as if troubleshooting was never offered.
+        // Only meaningful on the very first call. Two different shapes of
+        // "nothing to offer" here: emergency/excluded-category/no-AI-
+        // Assist genuinely have nothing to say, so skip straight through
+        // silently, same as before. A rate limit is different — that's a
+        // real (if temporary) technical limit, not "this category has no
+        // self-fix," so it says so and waits for the renter to continue
+        // instead of silently submitting out from under them.
         if (history.length === 0) {
+          if (data.skipReason === 'rate_limited') {
+            setSkipMessage(t('troubleshootRateLimited', lang))
+            setSending(false)
+            return
+          }
           onDone('proceed', null)
           return
         }
@@ -154,6 +164,20 @@ export function TroubleshootAssistant({
             {t('troubleshootSkipBtn', lang)}
           </button>
         </div>
+      </div>
+    )
+  }
+
+  if (skipMessage) {
+    return (
+      <div className="bg-[#12A5A9]/8 border border-[#12A5A9]/25 rounded-2xl p-4">
+        <p className="text-white/70 text-sm mb-3">{skipMessage}</p>
+        <RippleButton
+          onClick={() => onDone('proceed', null)}
+          className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-4 py-2 rounded-xl hover:opacity-90 transition"
+        >
+          {t('troubleshootContinueReportingBtn', lang)}
+        </RippleButton>
       </div>
     )
   }

@@ -13,14 +13,13 @@ import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { AlertTriangleIcon } from '@/components/icons'
 import { RENTER_TABS } from '@/lib/navTabs'
-import { useGroupedCategoryOptions, CATEGORY_TO_ITEM_TYPE } from '@/lib/categories'
+import { useGroupedCategoryOptions, CATEGORY_TO_ITEM_TYPE, isNoTroubleshootCategory } from '@/lib/categories'
 import { LOCATION_OPTIONS } from '@/lib/jobLocations'
 import { TIME_WINDOWS } from '@/lib/scheduleWindows'
 import { useLanguage, t } from '@/lib/i18n'
 import { TroubleshootAssistant } from '@/components/TroubleshootAssistant'
 import { AI_ASSIST_ENABLED } from '@/lib/aiAssist'
 
-const NO_TROUBLESHOOT_CATEGORIES = ['Electrical', 'Gas', 'Structural']
 
 const MAX_AVAILABILITY_SLOTS = 3
 
@@ -160,7 +159,7 @@ export default function ReportIssuePage() {
     aiAvailable &&
     !form.is_emergency &&
     !!form.category &&
-    !NO_TROUBLESHOOT_CATEGORIES.some((c) => form.category.toLowerCase().includes(c.toLowerCase())) &&
+    !isNoTroubleshootCategory(form.category) &&
     !troubleshootCleared
 
   const toggleEmergency = () => {

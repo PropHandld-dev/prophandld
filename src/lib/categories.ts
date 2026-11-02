@@ -85,6 +85,28 @@ export const CATEGORY_TO_ITEM_TYPE: Record<string, string> = Object.fromEntries(
   ...CATEGORY_GROUPS[4].categories.map((c) => [c, 'structural']),
 ])
 
+// AI troubleshooting (src/components/TroubleshootAssistant.tsx + its
+// backing route) shouldn't be offered at all for anything genuinely
+// electrical or a real structural/foundation issue — found to be silently
+// broken: the previous check was `category.includes('Electrical' |
+// 'Gas' | 'Structural')`, a plain substring match against values like
+// "Outlet or Switch" or "Circuit Breaker or Power Outage" that never
+// contain those words at all, so it almost never actually fired for real
+// electrical categories. Built from the real taxonomy instead: every
+// specific category in the Electrical group, exactly, plus "Foundation
+// or Structural" specifically — not the whole Structural & Carpentry
+// group, since most of that group (drywall, a cabinet door, flooring) is
+// genuinely safe to try fixing and shouldn't lose the feature. No "Gas"
+// category exists in this taxonomy at all (a gas smell is reported as an
+// emergency, a separate, already-independent exclusion).
+const NO_TROUBLESHOOT_SET = new Set<string>([
+  ...(CATEGORY_GROUPS.find((g) => g.label === 'Electrical')?.categories || []),
+  'Foundation or Structural',
+])
+export function isNoTroubleshootCategory(category: string): boolean {
+  return NO_TROUBLESHOOT_SET.has(category)
+}
+
 // A short-lived "Previously added" trailing group (surfacing old
 // custom_categories entries, from back when "Other" existed) shipped
 // alongside the comprehensive list above and was removed the same day on
