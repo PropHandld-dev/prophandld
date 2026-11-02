@@ -1225,6 +1225,9 @@ const STRINGS = {
   troubleshootStillReportBtn: { en: 'Still report it', es: 'Reportarlo de todas formas' },
   troubleshootPostJobBtn: { en: 'Post the report', es: 'Publicar el reporte' },
   troubleshootResolvedFooter: { en: "Good to know, nothing's been reported.", es: 'Bueno saberlo, no se ha reportado nada.' },
+  aiResolvedStatLine: { en: 'Prophandld AI walked tenants through fixing {count} issue(s) themselves in the last 30 days — no contractor visit needed.', es: 'Prophandld AI ayudó a los inquilinos a resolver {count} problema(s) por sí mismos en los últimos 30 días, sin necesidad de un contratista.' },
+  aiResolvedStatAllTime: { en: '{count} total since you turned it on', es: '{count} en total desde que lo activaste' },
+  reportPageAiTeaser: { en: 'Pick what\'s wrong below and Prophandld AI may be able to walk you through fixing it yourself, right now.', es: 'Elige el problema abajo y Prophandld AI podría guiarte para solucionarlo tú mismo, ahora mismo.' },
 
 
   aiDraftBtnLabel: { en: 'Draft with AI', es: 'Redactar con IA' },

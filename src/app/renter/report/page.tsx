@@ -357,7 +357,14 @@ export default function ReportIssuePage() {
 
       <main className="max-w-xl mx-auto px-6 py-10 pb-28">
         <h1 className="text-2xl font-bold text-white mb-2">{t('reportTitle', lang)}</h1>
-        <p className="text-white/50 text-sm mb-8">{t('reportSubtitle', lang)}</p>
+        <p className="text-white/50 text-sm mb-4">{t('reportSubtitle', lang)}</p>
+
+        {aiAvailable && !form.category && (
+          <div className="bg-[#12A5A9]/8 border border-[#12A5A9]/25 rounded-2xl px-4 py-3 mb-6 flex items-center gap-2.5">
+            <span className="text-[10px] font-bold uppercase tracking-wide text-[#12A5A9] bg-[#12A5A9]/10 border border-[#12A5A9]/30 rounded-full px-2 py-0.5 shrink-0">✦ AI</span>
+            <p className="text-white/70 text-sm">{t('reportPageAiTeaser', lang)}</p>
+          </div>
+        )}
 
         {unitId && (
           <ScrollReveal>
@@ -527,6 +534,14 @@ export default function ReportIssuePage() {
                   setTroubleshootCleared(true)
                   if (action === 'resolved') {
                     setTroubleshootResolvedNoAction(true)
+                    // Fire-and-forget — this is purely a landlord-facing
+                    // value-proof stat, never something that should hold
+                    // up or fail the renter's own "all set" moment.
+                    fetch('/api/ai-assist/troubleshoot-resolved', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ category: form.category }),
+                    }).catch(() => {})
                     return
                   }
                   handleSubmit(null, transcript)
