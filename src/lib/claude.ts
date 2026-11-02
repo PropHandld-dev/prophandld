@@ -123,7 +123,7 @@ export async function claudeJson<T>({
   }
 
   const textBlock = message.content.find((b): b is Anthropic.TextBlock => b.type === 'text')
-  if (!textBlock) throw new Error('Claude did not return a text response')
+  if (!textBlock) throw new Error('Claude did not return a text response. DEBUG stop_reason=' + message.stop_reason + ' content=' + JSON.stringify(message.content).slice(0, 400))
 
   // Models occasionally wrap JSON in a fence despite instructions not to —
   // strip it rather than fail the whole feature over formatting.
