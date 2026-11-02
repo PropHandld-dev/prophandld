@@ -4,7 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { hasAiAssistAccess } from '@/lib/aiAssist'
 import { tooManyAiAssistRequests } from '@/lib/aiAssistRateLimit'
 import { claudeJson, ClaudeConfigError } from '@/lib/claude'
-import { isNoTroubleshootCategory } from '@/lib/categories'
+import { isNoTroubleshootCategory } from '@/lib/categoryTaxonomy'
 
 export const maxDuration = 30
 
