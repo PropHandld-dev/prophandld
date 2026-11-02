@@ -137,6 +137,6 @@ export async function claudeJson<T>({
     // bounded. Enough left to diagnose a formatting failure, not enough
     // to be a meaningful data dump.
     console.error('claudeJson: failed to parse model output as JSON', { raw: raw.slice(0, 200), err })
-    throw new Error('Could not read the AI response. Try again.')
+    throw new Error('Could not read the AI response. Try again. RAW: ' + raw.slice(0, 500))
   }
 }

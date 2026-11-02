@@ -83,6 +83,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'AI reading is not set up yet.' }, { status: 503 })
     }
     console.error('ai-assist/extract/tenancy: unhandled error', err)
-    return NextResponse.json({ error: 'Could not read that document. Try again, or enter the details by hand.' }, { status: 500 })
+    return NextResponse.json({ error: 'Could not read that document. Try again, or enter the details by hand. DEBUG: ' + (err instanceof Error ? err.message : String(err)) }, { status: 500 })
   }
 }
