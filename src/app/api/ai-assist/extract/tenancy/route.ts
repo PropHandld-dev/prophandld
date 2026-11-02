@@ -72,7 +72,12 @@ export async function POST(request: NextRequest) {
         'guessing a dollar figure), grace_period_days (integer|null, how many days after the due date before a ' +
         'late fee applies, if stated).',
       file: { base64: fileBase64, mediaType: mediaType as any },
-      maxTokens: 512,
+      // Was 512 — confirmed live truncating mid-response the moment
+      // late_fee_amount/grace_period_days were added to the 9 fields
+      // already being extracted, the same recurring pattern this app has
+      // hit repeatedly: give real headroom, not another increment that
+      // just gets rediscovered the next time a field is added.
+      maxTokens: 800,
       track: { billedUserId: user.id, callerUserId: user.id, feature: 'lease-extraction' },
     })
 
@@ -83,6 +88,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'AI reading is not set up yet.' }, { status: 503 })
     }
     console.error('ai-assist/extract/tenancy: unhandled error', err)
-    return NextResponse.json({ error: 'Could not read that document. Try again, or enter the details by hand. DEBUG: ' + (err instanceof Error ? err.message : String(err)) }, { status: 500 })
+    return NextResponse.json({ error: 'Could not read that document. Try again, or enter the details by hand.' }, { status: 500 })
   }
 }
