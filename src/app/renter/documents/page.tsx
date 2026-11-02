@@ -44,12 +44,21 @@ export default function RenterDocumentsPage() {
   const [files, setFiles] = useState<File[]>([])
   const { confirm, ConfirmDialog } = useConfirm()
 
-  const loadDocuments = async (forPropertyId: string) => {
-    const { data: documentsData, error: documentsError } = await supabase
+  const loadDocuments = async (forPropertyId: string, forUnitId: string | null, forUserId: string) => {
+    // A property-wide query alone would also surface another unit's
+    // private paperwork (a deed, another tenant's lease) on a multi-unit
+    // property — scope to property-wide docs (unit_id null) plus this
+    // renter's own unit, and only what's actually meant for a tenant to
+    // see: shared docs, or anything this renter uploaded themselves
+    // (landlord_only still shows to the person who uploaded it).
+    let query = supabase
       .from('documents')
       .select('*')
       .eq('property_id', forPropertyId)
+      .or(forUnitId ? `unit_id.is.null,unit_id.eq.${forUnitId}` : 'unit_id.is.null')
+      .or(`visibility.neq.landlord_only,uploaded_by.eq.${forUserId}`)
       .order('created_at', { ascending: false })
+    const { data: documentsData, error: documentsError } = await query
 
     if (documentsError) {
       console.error('Error loading documents:', documentsError)
@@ -107,7 +116,7 @@ export default function RenterDocumentsPage() {
       }
       setPropertyId(unitData.property_id)
 
-      await loadDocuments(unitData.property_id)
+      await loadDocuments(unitData.property_id, tenancyData.unit_id, user.id)
       setLoading(false)
     }
     init()
@@ -228,7 +237,7 @@ export default function RenterDocumentsPage() {
     if (failed.length === 0) {
       setForm({ document_type: '', custom_document_type: '', visibility: 'landlord_only', expiry_date: '' })
     }
-    await loadDocuments(propertyId)
+    await loadDocuments(propertyId, unitId, userId)
     setUploading(false)
   }
 

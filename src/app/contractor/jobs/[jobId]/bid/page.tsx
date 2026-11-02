@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { expectRow } from '@/lib/expectRow'
 import { useRouter, useParams } from 'next/navigation'
@@ -82,12 +82,24 @@ export default function SubmitBidPage() {
   // like a wrong auto-filled number sitting right above the correct
   // "$200.00 (rate × hours)" hint — confusing even though nothing was
   // actually broken, worth removing that friction either way.
+  //
+  // lastAutoAmount tracks what this effect itself last wrote, so a manual
+  // edit away from that value sticks — a later rate/hours tweak re-runs
+  // this effect, but it only overwrites amount if amount still equals the
+  // last value *this effect* set, never a value the contractor typed in
+  // themselves (a deliberate round number or minimum-charge override).
+  const lastAutoAmountRef = useRef<string | null>(null)
   useEffect(() => {
     if (form.pricing_type !== 'hourly') return
     const rate = parseFloat(form.labor_rate)
     const hours = parseFloat(form.estimated_hours)
     if (!(rate > 0) || !(hours > 0)) return
-    setForm((prev) => ({ ...prev, amount: (rate * hours).toFixed(2) }))
+    const computed = (rate * hours).toFixed(2)
+    setForm((prev) => {
+      if (prev.amount !== '' && prev.amount !== lastAutoAmountRef.current) return prev
+      lastAutoAmountRef.current = computed
+      return { ...prev, amount: computed }
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.pricing_type, form.labor_rate, form.estimated_hours])
 

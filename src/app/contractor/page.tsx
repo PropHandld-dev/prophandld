@@ -141,9 +141,12 @@ export default function ContractorDashboard() {
       // bid history has no date bound here. Not a scale concern for a
       // brand-new account, but a real one over years of active bidding,
       // same class of bug as the landlord dashboard's queries.
-      const [{ data: credentialRows }, { data: verificationData }, jobsResult, { data: bidsData, error: bidsError }] = await Promise.all([
-        supabase.from('contractor_credentials').select('status').eq('contractor_user_id', user.id),
+      const [{ data: credentialRows }, { data: verificationData }, requirementsResult, jobsResult, { data: bidsData, error: bidsError }] = await Promise.all([
+        supabase.from('contractor_credentials').select('requirement_id, status').eq('contractor_user_id', user.id),
         supabase.from('contractor_verifications').select('status').eq('contractor_user_id', user.id).maybeSingle(),
+        fetch('/api/contractor/requirements')
+          .then((res) => (res.ok ? res.json() : null))
+          .catch(() => null),
         fetch('/api/contractor/available-jobs')
           .then(async (res) => ({ ok: res.ok, body: await res.json() }))
           .catch((err) => ({ ok: false, body: err })),
@@ -156,11 +159,19 @@ export default function ContractorDashboard() {
             .range(from, to)
         ),
       ])
-      const credentialStatuses = (credentialRows || []).map((c) => c.status)
+      // Only a REQUIRED credential's status should drive this badge — a
+      // verified "recommended" extra must never mask a rejected or
+      // still-pending required license, and only required credentials are
+      // what landlords/the legacy contractor_verifications flag actually
+      // track. Checked worst-first (rejected > pending > verified) so a
+      // genuine problem on one required credential isn't hidden by another
+      // required credential already being verified.
+      const requiredIds = new Set<string>((requirementsResult?.requirements || []).filter((r: any) => r.level === 'required').map((r: any) => r.id))
+      const requiredStatuses = (credentialRows || []).filter((c) => requiredIds.has(c.requirement_id)).map((c) => c.status)
       setVerificationStatus(
-        credentialStatuses.includes('verified') ? 'verified'
-          : credentialStatuses.includes('pending') ? 'pending'
-          : credentialStatuses.includes('rejected') ? 'rejected'
+        requiredStatuses.includes('rejected') ? 'rejected'
+          : requiredStatuses.includes('pending') ? 'pending'
+          : requiredStatuses.length > 0 && requiredStatuses.every((s) => s === 'verified') ? 'verified'
           : verificationData?.status ?? null
       )
 

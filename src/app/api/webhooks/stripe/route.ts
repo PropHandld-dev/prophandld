@@ -220,6 +220,13 @@ export async function POST(request: NextRequest) {
           // it, so a landlord who cancelled there saw "Active" right up
           // until the day it silently wasn't, no warning anywhere in the
           // app itself. Mirrors the same fields on ai_assist_subscriptions.
+          //
+          // Also scoped to this exact subscription id, not just the
+          // landlord — same stale-event guard as the ai_assist branch
+          // above: a landlord who cancelled down to free tier and later
+          // re-subscribed gets a brand-new Stripe subscription id, and a
+          // delayed/retried event for the old, already-replaced one must
+          // not stomp the row's current, newer subscription.
           const basePeriodEnd = subscription.items.data[0]?.current_period_end
           const { error } = await supabaseAdmin
             .from('landlord_subscriptions')
@@ -230,6 +237,7 @@ export async function POST(request: NextRequest) {
               updated_at: new Date().toISOString(),
             })
             .eq('landlord_user_id', landlordUserId)
+            .eq('stripe_subscription_id', subscription.id)
           if (error) console.error('stripe webhook: customer.subscription.updated failed', error)
         }
         break

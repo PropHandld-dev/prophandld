@@ -94,9 +94,14 @@ export default function NewTenancyPage() {
     // "pending" even after the tenant signed up and got linked.
     const renterEmail = contactMode === 'email' ? form.renter_email.trim().toLowerCase() : null
 
-    // Find renter by email or phone using secure functions
+    // Find renter by email or phone using secure functions — both scoped
+    // to role_input: 'renter' so a landlord typing in an email that
+    // belongs to one of their own other-role accounts (a contractor
+    // they've worked with, a co-owner, another landlord) can't
+    // accidentally get that account linked in as the tenant instead of
+    // being sent a normal invite.
     const { data: renterId, error: renterError } = renterEmail
-      ? await supabase.rpc('get_user_id_by_email', { email_input: renterEmail })
+      ? await supabase.rpc('get_user_id_by_email', { email_input: renterEmail, role_input: 'renter' })
       : await supabase.rpc('get_user_id_by_phone', { phone_input: form.renter_email.trim(), role_input: 'renter' })
 
     if (renterError || !renterId) {
