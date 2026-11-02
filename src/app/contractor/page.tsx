@@ -54,6 +54,23 @@ export default function ContractorDashboard() {
     { key: 'completed', label: t('filterCompleted', lang) },
     { key: 'archived', label: t('filterArchived', lang) },
   ]
+  // Same labels as the job-detail page's own statusLabel() — this list
+  // used to render the raw DB value (e.g. "Pending_review", underscore
+  // and all) since it only had CSS `capitalize` applied, not a real
+  // translation.
+  const pastJobStatusLabel = (status: string | undefined) => {
+    const labels: Record<string, string> = {
+      bidding: t('statusBidding', lang),
+      bid_selected: t('statusSelected', lang),
+      scheduled: t('statusScheduledFull', lang),
+      in_progress: t('statusInProgressFull', lang),
+      pending_review: t('statusAwaitingLandlordReview', lang),
+      completed: t('statusCompleted', lang),
+      archived: t('statusArchived', lang),
+      disputed: t('statusDisputedFull', lang),
+    }
+    return (status && labels[status]) || status || ''
+  }
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [hasProfile, setHasProfile] = useState<boolean | null>(null)
@@ -565,7 +582,7 @@ export default function ContractorDashboard() {
                           >
                             <div className="flex items-center justify-between">
                               <p className="text-white font-medium text-sm">{bid.jobs?.category}</p>
-                              <span className="text-xs text-white/50 capitalize">{bid.jobs?.status}</span>
+                              <span className="text-xs text-white/50">{pastJobStatusLabel(bid.jobs?.status)}</span>
                             </div>
                             <p className="text-white/50 text-xs mt-1">{jobLocation(bid)}</p>
                             <p className="text-white/50 text-xs mt-1">${bid.amount}</p>

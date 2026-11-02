@@ -1425,9 +1425,10 @@ export default function JobDetailPage() {
 
         {job.status === 'bidding' && (
           <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
-            <h3 className="text-white font-semibold mb-4">
+            <h3 className="text-white font-semibold mb-1">
               {t('sealedBidsHeading', lang)} {openBids.length > 0 && `(${openBids.length})`}
             </h3>
+            <p className="text-white/40 text-xs mb-4">{t('sealedBidsLandlordExplain', lang)}</p>
             {noMatchingContractorsNotice && (
               <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl px-4 py-3 mb-3">
                 <p className="text-yellow-400 text-sm">{t('noContractorsMatchedNotice', lang)}</p>

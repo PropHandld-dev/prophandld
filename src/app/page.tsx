@@ -540,6 +540,10 @@ export default function LandingPage() {
           </div>
 
           <AiAssistShowcase />
+          <p className="text-white/40 text-xs text-center max-w-xl mx-auto leading-relaxed mt-4">
+            It never handles anything electrical, gas, or structural — those always get a
+            contractor, every time.
+          </p>
 
           <div className="mt-16 max-w-3xl mx-auto bg-white/3 border border-white/8 rounded-2xl p-6 sm:p-8">
             <h3 className="text-white font-semibold text-center mb-2">One subscription, two people benefit</h3>

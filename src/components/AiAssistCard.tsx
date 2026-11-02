@@ -98,6 +98,24 @@ export function AiAssistCard() {
     }
   }
 
+  const handleUpdatePayment = async () => {
+    setWorking(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/stripe/billing-portal', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok || !data.url) {
+        setError(data.error || t('couldNotOpenBillingPortal', lang))
+        setWorking(false)
+        return
+      }
+      goToStripe(data.url)
+    } catch {
+      setError(t('couldNotOpenBillingPortal', lang))
+      setWorking(false)
+    }
+  }
+
   const handleUndoCancel = async () => {
     setWorking(true)
     setError(null)
@@ -182,6 +200,23 @@ export function AiAssistCard() {
           >
             {working ? t('redirecting', lang) : t('aiAssistUndoCancelBtn', lang)}
           </RippleButton>
+        ) : status === 'past_due' ? (
+          <div className="flex flex-wrap gap-2">
+            <RippleButton
+              onClick={handleUpdatePayment}
+              disabled={working}
+              className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50"
+            >
+              {working ? t('redirecting', lang) : t('updatePaymentMethodBtn', lang)}
+            </RippleButton>
+            <RippleButton
+              onClick={handleCancel}
+              disabled={working}
+              className="bg-white/5 border border-white/10 text-white/70 text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-white/8 transition disabled:opacity-50"
+            >
+              {working ? t('redirecting', lang) : t('aiAssistManageBtn', lang)}
+            </RippleButton>
+          </div>
         ) : (
           <RippleButton
             onClick={handleCancel}

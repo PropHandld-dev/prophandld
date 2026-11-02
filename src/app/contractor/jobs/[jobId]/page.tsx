@@ -499,6 +499,16 @@ export default function ContractorJobDetailPage() {
       job?.landlord_approved_at &&
       Date.now() - new Date(job.landlord_approved_at).getTime() < 48 * 60 * 60 * 1000)
 
+  // Only meaningful once the 48h post-approval window is actually
+  // running — the dispute button just stays up indefinitely during
+  // pending_review, no clock there. Without this, the button quietly
+  // disappears on hour 49 with nothing ever having told anyone there was
+  // a deadline at all.
+  const disputeHoursLeft =
+    job?.status === 'completed' && job?.landlord_approved_at
+      ? Math.max(0, Math.ceil(48 - (Date.now() - new Date(job.landlord_approved_at).getTime()) / (60 * 60 * 1000)))
+      : null
+
   if (loading) return (
     <div className="min-h-screen bg-[#0C1A2E]">
       <nav className="border-b border-white/8 px-6 py-4 flex items-center justify-between">
@@ -630,6 +640,9 @@ export default function ContractorJobDetailPage() {
           {myBid && (
             <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 mt-4">
               <p className="text-white/50 text-xs">{t('yourAcceptedBid', lang)}</p>
+              {job.status === 'bidding' && (
+                <p className="text-white/40 text-xs mt-1">{t('sealedBidReminder', lang)}</p>
+              )}
               {myBid.price_change_status === 'pending' ? (
                 <div>
                   <p className="text-white/60 text-sm line-through">${myBid.amount}</p>
@@ -700,6 +713,9 @@ export default function ContractorJobDetailPage() {
         {myBid?.status === 'accepted' && disputeEligible && (
           <div className="mb-4">
             <RaiseDisputeButton jobId={jobId} onRaised={fetchJob} />
+            {disputeHoursLeft !== null && (
+              <p className="text-white/40 text-xs mt-2">{t('disputeWindowHoursLeft', lang).replace('{hours}', String(disputeHoursLeft))}</p>
+            )}
           </div>
         )}
 
@@ -767,7 +783,7 @@ export default function ContractorJobDetailPage() {
             ) : (
               <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
                 <p className="text-yellow-400/80 text-xs mb-1">
-                  {t('proposedByLabel', lang)} {job.proposed_by === 'contractor' ? t('you', lang) : job.proposed_by}
+                  {t('proposedByLabel', lang)} {job.proposed_by === 'contractor' ? t('you', lang) : job.proposed_by === 'renter' ? t('renterLabel', lang) : job.proposed_by === 'landlord' ? t('landlordLabel', lang) : job.proposed_by}
                 </p>
                 <p className="text-white text-sm">
                   {new Date(job.proposed_date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })} · {windowLabel(job.proposed_window, lang)}

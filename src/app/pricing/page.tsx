@@ -61,6 +61,10 @@ export default function PricingPage() {
               per unit after that, one rate, no fine print. Renters and contractors pay
               Prophandld nothing.
             </p>
+            <p className="text-white/40 text-sm max-w-xl mx-auto leading-relaxed mt-3">
+              &ldquo;Unit&rdquo; means a rentable unit on the platform — a single-family rental
+              counts as one, a triplex counts as three.
+            </p>
           </div>
         </div>
 
@@ -130,9 +134,8 @@ export default function PricingPage() {
 
         <div className="text-center mb-10">
           <p className="text-white/50 text-sm max-w-xl mx-auto leading-relaxed">
-            &ldquo;Unit&rdquo; means a rentable unit on the platform. A single-family rental
-            counts as one, a triplex counts as three. A 14-day free trial starts the first time
-            you actually exceed 1 unit, not from the day you sign up.
+            A 14-day free trial starts the first time you actually add a 2nd unit, not from the
+            day you sign up — your first unit stays free with no trial clock running at all.
           </p>
         </div>
 

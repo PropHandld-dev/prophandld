@@ -142,6 +142,10 @@ function SignupForm() {
       setError(t('pleaseAgreeToTerms', lang))
       return
     }
+    if (form.password.length < 8) {
+      setError(t('passwordTooShort', lang))
+      return
+    }
     setLoading(true)
     setError(null)
     setAlreadyRegistered(false)
