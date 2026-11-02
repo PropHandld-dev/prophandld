@@ -195,13 +195,13 @@ export default function ProfilePage() {
       return
     }
 
-    // Turning SMS ON for the first time on an unverified number starts
-    // the OTP flow instead of flipping the preference straight away —
-    // turning it OFF never needs verification. Re-verification is also
-    // needed if the number on file has quietly drifted out of sync with
-    // phoneVerified (e.g. the clear-on-change trigger fired since this
-    // page loaded).
-    if (!smsOptIn && !phoneVerified) {
+    // Every OFF -> ON transition re-sends a code, even on an already-
+    // verified number — Joshua's call: confirms the number is still
+    // actually reachable (and still actually theirs) at the moment
+    // they're turning alerts back on, not just whenever it first got
+    // verified, possibly a long time ago. Turning it OFF never needs
+    // verification.
+    if (!smsOptIn) {
       setVerifyError(null)
       setVerifyStep('sending')
       const res = await fetch('/api/phone/send-code', {
