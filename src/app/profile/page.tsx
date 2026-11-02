@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { SITE_URL } from '@/lib/site'
 import { getAccountRole } from '@/lib/accountRole'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -74,6 +75,7 @@ export default function ProfilePage() {
   const [smsOptIn, setSmsOptIn] = useState(false)
   const [smsSaving, setSmsSaving] = useState(false)
   const [emailVerified, setEmailVerified] = useState(false)
+  const [emailResendStatus, setEmailResendStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
   const [phoneVerified, setPhoneVerified] = useState(false)
   const [verifyStep, setVerifyStep] = useState<'idle' | 'sending' | 'code' | 'verifying'>('idle')
   const [verifyCode, setVerifyCode] = useState('')
@@ -319,6 +321,21 @@ export default function ProfilePage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })
+  }
+
+  const handleResendEmailVerification = async () => {
+    if (!form.email || emailResendStatus === 'sending') return
+    setEmailResendStatus('sending')
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: form.email,
+      options: { emailRedirectTo: `${SITE_URL}/login` },
+    })
+    setEmailResendStatus(error ? 'error' : 'sent')
+  }
+
+  const scrollToTextAlerts = () => {
+    document.getElementById('text-alerts-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   const handleSaveProfile = async (e: React.FormEvent) => {
@@ -592,6 +609,18 @@ export default function ProfilePage() {
               <div className="flex items-center gap-2 mb-1">
                 <label className="text-white/70 text-sm">{t('email', lang)}</label>
                 <VerifiedBadge verified={emailVerified} lang={lang} />
+                {!emailVerified && emailResendStatus !== 'sent' && (
+                  <button
+                    type="button"
+                    onClick={handleResendEmailVerification}
+                    disabled={emailResendStatus === 'sending'}
+                    className="text-[#12A5A9] text-xs font-semibold hover:underline disabled:opacity-50"
+                  >
+                    {emailResendStatus === 'sending' ? t('sendingCodeDots', lang) : t('verifyNowLink', lang)}
+                  </button>
+                )}
+                {emailResendStatus === 'sent' && <span className="text-white/50 text-xs">{t('verificationEmailSent', lang)}</span>}
+                {emailResendStatus === 'error' && <span className="text-red-400 text-xs">{t('couldNotSendCode', lang)}</span>}
               </div>
               <input
                 type="email"
@@ -607,6 +636,11 @@ export default function ProfilePage() {
               <div className="flex items-center gap-2 mb-1">
                 <label className="text-white/70 text-sm">{t('phone', lang)}</label>
                 {form.phone.trim() && <VerifiedBadge verified={phoneVerified} lang={lang} />}
+                {form.phone.trim() && !phoneVerified && (
+                  <button type="button" onClick={scrollToTextAlerts} className="text-[#12A5A9] text-xs font-semibold hover:underline">
+                    {t('verifyNowLink', lang)}
+                  </button>
+                )}
               </div>
               <input
                 type="tel"
@@ -765,7 +799,7 @@ export default function ProfilePage() {
         )}
 
         {/* Notification preferences */}
-        <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
+        <div id="text-alerts-section" className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
           <h2 className="text-white font-semibold mb-2">{t('notificationPreferences', lang)}</h2>
           <p className="text-white/60 text-sm mb-6">{t('notifPrefDesc', lang)}</p>
           <div className="space-y-4">
