@@ -56,8 +56,13 @@ export async function POST(request: NextRequest) {
     .filter((p): p is PhotoInput & { mediaType: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp' } => !!p?.base64 && ALLOWED_PHOTO_TYPES.includes(p.mediaType))
     .slice(0, 2)
 
-  if (!category || !description?.trim()) {
-    return NextResponse.json({ error: 'Missing category or description' }, { status: 400 })
+  // Description is no longer required to start — the offer now appears
+  // the moment a category is picked, before anyone's necessarily typed
+  // anything, so the model has to be able to open with "what's going on?"
+  // from just a category (and a photo, if one's already attached) rather
+  // than demanding a description be typed first.
+  if (!category) {
+    return NextResponse.json({ error: 'Missing category' }, { status: 400 })
   }
   if (isEmergency || NO_TROUBLESHOOT_CATEGORIES.some((c) => category.toLowerCase().includes(c.toLowerCase()))) {
     return NextResponse.json({ reply: '', resolved: false } as Reply)
@@ -145,11 +150,16 @@ export async function POST(request: NextRequest) {
         'only way this gets fixed. Set resolved: true only when their LATEST message actually indicates it\'s ' +
         'fixed now, not just that something sounds promising.' +
         (validPhotos.length ? ' A photo of the issue is attached — actually look at it and factor in what you can see.' : '') +
+        (!description?.trim()
+          ? validPhotos.length
+            ? ' No description has been typed yet, only a photo — open by asking one short, specific question based on what you actually see in the photo, don\'t invent symptoms.'
+            : ' Nothing has been described yet and there\'s no photo either — your first reply should just ask them to briefly say what\'s happening, don\'t guess or invent an issue.'
+          : '') +
         ` Respond in ${lang}.\n\n` +
         'Output EXACTLY one JSON object and nothing else — no reply text before it, no repeated or paraphrased ' +
         'version of the reply after it, no commentary, just { "reply": string, "resolved": boolean } once.',
       prompt:
-        `Category: ${category}\nDescription: ${description.trim()}${knownApplianceLine}\n\n` +
+        `Category: ${category}\nDescription: ${description?.trim() || '(not described yet)'}${knownApplianceLine}\n\n` +
         (conversation ? `Conversation so far:\n${conversation}\n\n` : '(Nothing said yet — write your opening reply.)\n\n') +
         'Return JSON: { "reply": string, "resolved": boolean }.',
       files: validPhotos.length ? validPhotos : undefined,

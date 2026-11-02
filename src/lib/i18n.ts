@@ -101,7 +101,6 @@ const STRINGS = {
   selectALocation: { en: "Not sure, or doesn't apply", es: 'No estoy seguro, o no aplica' },
   description: { en: 'Description', es: 'Descripción' },
   descriptionPlaceholder: { en: "What's going on? Be as specific as you can.", es: '¿Qué está pasando? Sea lo más específico posible.' },
-  aiTroubleshootComingHint: { en: '✦ Once you describe it, Prophandld AI may be able to help you try a fix first.', es: '✦ Una vez que lo describas, Prophandld AI podría ayudarte a probar una solución primero.' },
   thisIsEmergency: { en: 'This is an emergency', es: 'Esto es una emergencia' },
   emergencyExplain: {
     en: 'Only use this for issues that need attention right away: active leaks, gas smells, no heat, broken locks.',

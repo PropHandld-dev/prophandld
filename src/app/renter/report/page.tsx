@@ -151,12 +151,16 @@ export default function ReportIssuePage() {
   // real candidate, without duplicating the filter logic.
   const matchingSystems = form.category ? systems.filter((s) => s.item_type === CATEGORY_TO_ITEM_TYPE[form.category]) : []
 
+  // Shows the moment a category is picked, not after a description is
+  // typed — "right after reporting," per Nevin, instead of waiting on
+  // text the renter may not have gotten to yet. The route itself now
+  // handles an empty description gracefully (its first reply just asks
+  // what's going on), so there's nothing left requiring the wait.
   const showTroubleshoot =
     aiAvailable &&
     !form.is_emergency &&
     !!form.category &&
     !NO_TROUBLESHOOT_CATEGORIES.some((c) => form.category.toLowerCase().includes(c.toLowerCase())) &&
-    form.description.trim().length > 0 &&
     !troubleshootCleared
 
   const toggleEmergency = () => {
@@ -423,13 +427,6 @@ export default function ReportIssuePage() {
                 placeholder={t('descriptionPlaceholder', lang)}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition resize-none"
               />
-              {aiAvailable &&
-                !form.is_emergency &&
-                !!form.category &&
-                !NO_TROUBLESHOOT_CATEGORIES.some((c) => form.category.toLowerCase().includes(c.toLowerCase())) &&
-                !form.description.trim() && (
-                  <p className="text-[#12A5A9] text-xs mt-1.5">{t('aiTroubleshootComingHint', lang)}</p>
-                )}
             </div>
 
             {mentionsNonMaintenanceIssue(form.category, form.description) && (
