@@ -1179,6 +1179,7 @@ const STRINGS = {
   aiAssistStatusActive: { en: 'Active', es: 'Activo' },
   aiAssistStatusPastDue: { en: 'Payment issue', es: 'Problema de pago' },
   aiAssistStatusNotStarted: { en: 'Not added', es: 'No agregado' },
+  aiAssistStatusFree: { en: 'Free', es: 'Gratis' },
   aiAssistStatusEnding: { en: 'Ending soon', es: 'Termina pronto' },
   aiAssistStartTrialBtn: { en: 'Try free for 14 days', es: 'Prueba gratis por 14 días' },
   aiAssistManageBtn: { en: 'Turn off Prophandld AI', es: 'Desactivar Prophandld AI' },

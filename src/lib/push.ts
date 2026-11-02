@@ -70,7 +70,10 @@ export async function sendPush(
         return
       }
 
-      if (!process.env.VAPID_PRIVATE_KEY || !process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) return
+      if (!process.env.VAPID_PRIVATE_KEY || !process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) {
+        console.error('sendPush: VAPID keys not set — web push is inert')
+        return
+      }
       try {
         await webpush.sendNotification(
           {

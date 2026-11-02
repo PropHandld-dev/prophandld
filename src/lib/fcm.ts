@@ -67,7 +67,10 @@ export async function sendFcmPush(
   { title, body, url }: { title: string; body: string; url?: string }
 ): Promise<{ ok: boolean; invalid?: boolean }> {
   const serviceAccount = getServiceAccount()
-  if (!serviceAccount) return { ok: false }
+  if (!serviceAccount) {
+    console.error('fcm: FCM_SERVICE_ACCOUNT_JSON is not set — Android native push is inert')
+    return { ok: false }
+  }
 
   const accessToken = await getAccessToken(serviceAccount)
   if (!accessToken) return { ok: false }

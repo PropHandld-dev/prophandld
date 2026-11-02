@@ -52,7 +52,10 @@ export async function sendApnsPush(
 ): Promise<{ ok: boolean; invalid?: boolean }> {
   const bundleId = process.env.APNS_BUNDLE_ID?.trim()
   const providerToken = getProviderToken()
-  if (!providerToken || !bundleId) return { ok: false }
+  if (!providerToken || !bundleId) {
+    console.error('apns: APNS_KEY/APNS_KEY_ID/APNS_TEAM_ID/APNS_BUNDLE_ID not fully set — iOS native push is inert')
+    return { ok: false }
+  }
 
   // Debug/TestFlight builds (not signed with a production push
   // entitlement) only work against the sandbox host — api.push.apple.com

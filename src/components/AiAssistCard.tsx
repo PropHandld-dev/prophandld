@@ -24,6 +24,7 @@ export function AiAssistCard() {
   const [error, setError] = useState<string | null>(null)
   const [cancelAtPeriodEnd, setCancelAtPeriodEnd] = useState(false)
   const [currentPeriodEnd, setCurrentPeriodEnd] = useState<string | null>(null)
+  const [freeForever, setFreeForever] = useState(false)
 
   const load = async () => {
     // The route itself already checks this and returns instantly, but
@@ -44,6 +45,7 @@ export function AiAssistCard() {
       setMonthlyPrice(typeof data.monthlyPrice === 'number' ? data.monthlyPrice : null)
       setCancelAtPeriodEnd(!!data.cancelAtPeriodEnd)
       setCurrentPeriodEnd(data.currentPeriodEnd ?? null)
+      setFreeForever(!!data.freeForever)
     } catch {
       setEnabled(false)
     }
@@ -126,20 +128,22 @@ export function AiAssistCard() {
 
   if (!enabled) return null
 
-  const isOn = status === 'trialing' || status === 'active' || status === 'past_due'
+  const isOn = freeForever || status === 'trialing' || status === 'active' || status === 'past_due'
   const periodEndLabel = currentPeriodEnd
     ? new Date(currentPeriodEnd).toLocaleDateString(undefined, { month: 'long', day: 'numeric' })
     : null
 
-  const badge = cancelAtPeriodEnd
-    ? { label: t('aiAssistStatusEnding', lang), cls: 'bg-yellow-500/15 text-yellow-400' }
-    : status === 'trialing'
-      ? { label: t('aiAssistStatusTrialing', lang), cls: 'bg-[#0A7B7E]/20 text-[#12A5A9]' }
-      : status === 'active'
-        ? { label: t('aiAssistStatusActive', lang), cls: 'bg-[#0A7B7E]/20 text-[#12A5A9]' }
-        : status === 'past_due'
-          ? { label: t('aiAssistStatusPastDue', lang), cls: 'bg-red-500/15 text-red-400' }
-          : { label: t('aiAssistStatusNotStarted', lang), cls: 'bg-white/8 text-white/50' }
+  const badge = freeForever
+    ? { label: t('aiAssistStatusFree', lang), cls: 'bg-[#0A7B7E]/20 text-[#12A5A9]' }
+    : cancelAtPeriodEnd
+      ? { label: t('aiAssistStatusEnding', lang), cls: 'bg-yellow-500/15 text-yellow-400' }
+      : status === 'trialing'
+        ? { label: t('aiAssistStatusTrialing', lang), cls: 'bg-[#0A7B7E]/20 text-[#12A5A9]' }
+        : status === 'active'
+          ? { label: t('aiAssistStatusActive', lang), cls: 'bg-[#0A7B7E]/20 text-[#12A5A9]' }
+          : status === 'past_due'
+            ? { label: t('aiAssistStatusPastDue', lang), cls: 'bg-red-500/15 text-red-400' }
+            : { label: t('aiAssistStatusNotStarted', lang), cls: 'bg-white/8 text-white/50' }
 
   return (
     <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6">
@@ -169,7 +173,7 @@ export function AiAssistCard() {
         </div>
       )}
 
-      {isOn ? (
+      {freeForever ? null : isOn ? (
         cancelAtPeriodEnd ? (
           <RippleButton
             onClick={handleUndoCancel}

@@ -49,6 +49,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Could not confirm verification' }, { status: 500 })
   }
 
+  // Keep auth user_metadata.phone (what the profile form reads on load)
+  // in sync with users.phone (what just got verified) — the profile
+  // page's "verified" check compares the two, and the two had been
+  // drifting apart whenever someone verified a freshly-typed number
+  // without separately hitting "Save profile" first.
+  await admin.auth.admin.updateUserById(user.id, { user_metadata: { ...user.user_metadata, phone: row.phone } })
+
   await admin.from('phone_verification_codes').delete().eq('user_id', user.id)
 
   return NextResponse.json({ ok: true })
