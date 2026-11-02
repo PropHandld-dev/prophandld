@@ -30,18 +30,18 @@ export async function POST(request: NextRequest) {
 
   const supabaseAdmin = getSupabaseAdmin()
 
-  // The primary-tenant case only for v1 — get_my_active_tenancy_id (used
-  // elsewhere for the co-renter case too, via tenancy_occupants) runs in
-  // the caller's own RLS context and has no variant that takes an explicit
-  // user id, so it can't be reused from this service-role route.
-  const { data: tenancy } = await supabaseAdmin
-    .from('tenancies')
-    .select('*')
-    .eq('renter_user_id', user.id)
-    .eq('ended', false)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+  // get_my_active_tenancy_id() is security-definer against auth.uid(), so
+  // it runs on the caller's own session (authClient) rather than the
+  // service-role one — that's all it needs, and it's what correctly
+  // covers the co-renter case via tenancy_occupants (same fix applied to
+  // renter-status/route.ts and already the established pattern in
+  // co-renter/list/route.ts). Previously this only ever matched the
+  // primary tenant, so a co-renter got "No active lease found" even with
+  // a real, active lease.
+  const { data: tenancyId } = await authClient.rpc('get_my_active_tenancy_id')
+  const { data: tenancy } = tenancyId
+    ? await supabaseAdmin.from('tenancies').select('*').eq('id', tenancyId).maybeSingle()
+    : { data: null }
 
   if (!tenancy) {
     return NextResponse.json({ error: 'No active lease found on your account.' }, { status: 404 })

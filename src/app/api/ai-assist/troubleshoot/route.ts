@@ -69,14 +69,15 @@ export async function POST(request: NextRequest) {
   // to themselves directly, no tenancy lookup needed.
   let landlordUserId: string | null = null
   if (role === 'renter') {
-    const { data: tenancy } = await supabaseAdmin
-      .from('tenancies')
-      .select('unit_id')
-      .eq('renter_user_id', user.id)
-      .eq('ended', false)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
+    // get_my_active_tenancy_id() runs on the caller's own session
+    // (security-definer against auth.uid()) and correctly covers a
+    // co-renter via tenancy_occupants — querying tenancies by
+    // renter_user_id directly only ever matched the primary tenant, same
+    // gap already fixed on renter-status and lease-qa.
+    const { data: tenancyId } = await authClient.rpc('get_my_active_tenancy_id')
+    const { data: tenancy } = tenancyId
+      ? await supabaseAdmin.from('tenancies').select('unit_id').eq('id', tenancyId).maybeSingle()
+      : { data: null }
     if (!tenancy) {
       return NextResponse.json({ error: 'No active lease found on your account.' }, { status: 404 })
     }

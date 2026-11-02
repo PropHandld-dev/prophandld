@@ -18,14 +18,18 @@ export async function GET() {
 
   const supabaseAdmin = getSupabaseAdmin()
 
-  const { data: tenancy } = await supabaseAdmin
-    .from('tenancies')
-    .select('unit_id')
-    .eq('renter_user_id', user.id)
-    .eq('ended', false)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+  // get_my_active_tenancy_id() is security-definer against auth.uid(), so
+  // it runs on the caller's own session (authClient), not the service-role
+  // one — but that's all it needs, and it's what correctly resolves a
+  // co-renter (tenancy_occupants) to the same tenancy as the primary
+  // tenant. Querying tenancies by renter_user_id directly, like this route
+  // used to, only ever matched the primary tenant — a co-renter got
+  // available: false regardless of whether their landlord actually has
+  // Prophandld AI on.
+  const { data: tenancyId } = await authClient.rpc('get_my_active_tenancy_id')
+  const { data: tenancy } = tenancyId
+    ? await supabaseAdmin.from('tenancies').select('unit_id').eq('id', tenancyId).maybeSingle()
+    : { data: null }
 
   if (!tenancy) {
     return NextResponse.json({ available: false })
