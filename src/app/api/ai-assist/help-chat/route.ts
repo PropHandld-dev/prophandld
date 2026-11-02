@@ -5,6 +5,7 @@ import { AI_ASSIST_ENABLED } from '@/lib/aiAssist'
 import { tooManyAiAssistRequests } from '@/lib/aiAssistRateLimit'
 import { getLandlordIdsAdmin } from '@/lib/landlordIds'
 import { claudeJson, ClaudeConfigError } from '@/lib/claude'
+import { PHILADELPHIA_COMPLIANCE_FACTS } from '@/lib/complianceFacts'
 
 export const maxDuration = 30
 
@@ -207,11 +208,8 @@ export async function POST(request: NextRequest) {
         'button only as a place to revisit it later. Never state a specific current fee, exact form number, or ' +
         'exact deadline as guaranteed fact unless you\'re genuinely confident it\'s stable; say so plainly and ' +
         'point to the relevant local authority instead of inventing one. If the item\'s property is in ' +
-        'Philadelphia, PA, you can be more specific: Philadelphia rental licenses are administered by the ' +
-        'Department of Licenses & Inspections (L&I), and under the Safe Healthy Homes Act (effective November ' +
-        '1, 2026) a cited violation must be fixed within 30 days before a license can be suspended, and a ' +
-        'suspended license means rent legally can\'t be collected until it\'s resolved — name L&I and point to ' +
-        'its official site for the current renewal process. Warm, direct, plain conversational language, like a ' +
+        `Philadelphia, PA, you can be more specific: ${PHILADELPHIA_COMPLIANCE_FACTS} ` +
+        'Warm, direct, plain conversational language, like a ' +
         'helpful coworker texting back, not a formal AI assistant, no "I\'m sorry, but as an AI..." phrasing, ' +
         'no bullet-pointed essays for a simple question, 1-4 sentences unless real step-by-step instructions ' +
         'are genuinely needed. Never reveal, guess at, or discuss any OTHER specific user\'s data, account, or ' +

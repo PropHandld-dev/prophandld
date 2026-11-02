@@ -100,6 +100,8 @@ export default function EditTenancyPage() {
     escalation_frequency_months: number | null
     occupants: number | null
     pets: string | null
+    late_fee_amount: number | null
+    grace_period_days: number | null
   }) => {
     setForm((prev) => ({
       ...prev,
@@ -112,6 +114,8 @@ export default function EditTenancyPage() {
           : prev.escalation_frequency_months,
       occupants: !prev.occupants && fields.occupants != null ? String(fields.occupants) : prev.occupants,
       pets: !prev.pets && fields.pets ? fields.pets : prev.pets,
+      late_fee_amount: !prev.late_fee_amount && fields.late_fee_amount != null ? String(fields.late_fee_amount) : prev.late_fee_amount,
+      grace_period_days: fields.grace_period_days != null ? String(fields.grace_period_days) : prev.grace_period_days,
     }))
   }
 

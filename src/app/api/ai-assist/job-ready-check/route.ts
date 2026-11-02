@@ -45,7 +45,11 @@ export async function POST(request: NextRequest) {
         'to bid on, for a property management app. Only flag something if it would genuinely leave a contractor ' +
         'unable to bid confidently (too vague to know the scope, missing an obviously relevant detail for that ' +
         'category). Don\'t nitpick fine writing, a short-but-clear description is fine. Be generous — most ' +
-        'descriptions should pass.',
+        'descriptions should pass. For a category where a contractor would normally want to SEE the problem to ' +
+        'bid confidently (visible damage, a leak, a stain, anything about appearance or extent of damage) and no ' +
+        'photo is attached, that absence alone is worth flagging even if the text itself reads fine — say so ' +
+        'plainly in the suggestion. For a category where a photo wouldn\'t really change anything (no heat, a ' +
+        'strange noise, a smell), don\'t ask for one just because it\'s missing.',
       prompt:
         `Category: ${category}\nDescription: ${description.trim()}\nHas a photo attached: ${hasPhoto ? 'yes' : 'no'}\n\n` +
         'Return JSON: { "ready": boolean, "suggestion": string|null } — suggestion is one short, friendly ' +

@@ -27,7 +27,16 @@ export function LeaseQaCard() {
       const res = await fetch('/api/ai-assist/lease-qa', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: q }),
+        body: JSON.stringify({
+          question: q,
+          // Renders as a running Q&A list, so it needs to actually behave
+          // like one — previously every question was a stateless one-shot
+          // call with no memory of earlier turns in this same exchange.
+          history: history.flatMap((ex) => [
+            { role: 'user' as const, content: ex.question },
+            { role: 'assistant' as const, content: ex.answer },
+          ]),
+        }),
       })
       const data = await res.json()
       if (!res.ok) {

@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { hasAiAssistAccess } from '@/lib/aiAssist'
 import { tooManyAiAssistRequests } from '@/lib/aiAssistRateLimit'
 import { claudeJson, ClaudeConfigError } from '@/lib/claude'
+import { PHILADELPHIA_COMPLIANCE_FACTS } from '@/lib/complianceFacts'
 
 export const maxDuration = 30
 
@@ -63,14 +64,7 @@ export async function POST(request: NextRequest) {
         'number, or exact deadline as guaranteed fact unless you\'re genuinely confident it\'s stable; when ' +
         'you\'re not sure of an exact current number, say so plainly and tell them to confirm it with the ' +
         'relevant local authority instead of inventing one. 4-7 sentences, plain language, no markdown.' +
-        (isPhiladelphia
-          ? ' This property is in Philadelphia, PA — you can be more specific here: Philadelphia rental ' +
-            'licenses are administered by the Department of Licenses & Inspections (L&I). Under the Safe ' +
-            'Healthy Homes Act (effective November 1, 2026), a cited violation must be fixed within 30 days ' +
-            'before a license can be suspended, and a suspended license means rent legally can\'t be collected ' +
-            'until it\'s resolved. Mention L&I by name and point them to the official L&I site for the current ' +
-            'online renewal process, since exact portal/fee details change.'
-          : ''),
+        (isPhiladelphia ? ` This property is in Philadelphia, PA — you can be more specific here: ${PHILADELPHIA_COMPLIANCE_FACTS}` : ''),
       prompt:
         `Compliance item: ${item.item_type}\n` +
         `Expires: ${item.expiry_date || 'no date on file'}\n` +

@@ -13,6 +13,8 @@ type TenancyExtraction = {
   escalation_frequency_months: number | null
   occupants: number | null
   pets: string | null
+  late_fee_amount: number | null
+  grace_period_days: number | null
 }
 
 const ACCEPTED = 'application/pdf,image/jpeg,image/png'

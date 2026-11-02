@@ -17,6 +17,8 @@ type TenancyExtraction = {
   escalation_frequency_months: number | null
   occupants: number | null
   pets: string | null
+  late_fee_amount: number | null
+  grace_period_days: number | null
 }
 
 const ALLOWED_MEDIA_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf']
@@ -65,7 +67,10 @@ export async function POST(request: NextRequest) {
         'security_deposit (number|null), escalation_percent (number|null, the rent increase percentage per escalation period, ' +
         'if the lease has a rent escalation/increase clause), escalation_frequency_months (integer|null, how often the ' +
         'escalation applies, e.g. 12 for annually), occupants (integer|null, the number of listed occupants/tenants), ' +
-        'pets (string|null).',
+        'pets (string|null), late_fee_amount (number|null, the flat dollar amount or computed amount charged for ' +
+        'late rent — if the lease states a percentage instead of a flat amount, leave this null rather than ' +
+        'guessing a dollar figure), grace_period_days (integer|null, how many days after the due date before a ' +
+        'late fee applies, if stated).',
       file: { base64: fileBase64, mediaType: mediaType as any },
       maxTokens: 512,
       track: { billedUserId: user.id, callerUserId: user.id, feature: 'lease-extraction' },

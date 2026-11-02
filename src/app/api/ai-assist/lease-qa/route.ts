@@ -23,7 +23,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Only renters can ask about their lease here' }, { status: 403 })
   }
 
-  const { question } = (await request.json()) as { question?: string }
+  const { question, history } = (await request.json()) as {
+    question?: string
+    history?: { role: 'user' | 'assistant'; content: string }[]
+  }
   if (!question || !question.trim() || question.length > 500) {
     return NextResponse.json({ error: 'Ask a question up to 500 characters.' }, { status: 400 })
   }
@@ -81,16 +84,31 @@ export async function POST(request: NextRequest) {
     lease_notes: tenancy.lease_notes,
   }
 
+  // Previously stateless — every question was a fresh call with no memory
+  // of what was asked before, even though the UI renders it as a running
+  // Q&A list that looks like a chat. "What's my late fee?" followed by
+  // "what if I'm 5 days late?" used to get answered with zero awareness
+  // of the first question. Same trimmed-history pattern already used by
+  // troubleshoot/help-chat.
+  const trimmedHistory = (history || []).slice(-12).filter((t) => t.role === 'user' || t.role === 'assistant')
+  const conversation = trimmedHistory.map((t) => `${t.role === 'user' ? 'Renter' : 'Assistant'}: ${t.content}`).join('\n')
+
   try {
     const result = await claudeJson<{ answer: string }>({
       system:
-        'You answer a renter\'s question about their own lease for a property management app. Answer ONLY ' +
-        'using the lease facts provided below — never generic "typically, leases allow..." advice that may ' +
-        'not apply to this actual lease. If the facts don\'t cover the question, say so plainly rather than ' +
-        'guessing. This is informational, not legal advice, and you should make that clear if the question ' +
-        'sounds like it needs a real legal opinion (an eviction, a dispute, anything adversarial). Keep the ' +
-        'answer to 2-4 sentences, plain language, no markdown formatting.',
-      prompt: `Lease facts (JSON, null means not on file): ${JSON.stringify(leaseFacts)}\n\nQuestion: ${question.trim()}\n\nReturn JSON: { "answer": string }`,
+        'You answer a renter\'s question about their own lease for a property management app, as part of an ' +
+        'ongoing back-and-forth — later questions may refer back to something asked or answered earlier in ' +
+        'the conversation ("what if I\'m 5 days late" after asking about the late fee), so read the ' +
+        'conversation so far before answering. Answer ONLY using the lease facts provided below — never ' +
+        'generic "typically, leases allow..." advice that may not apply to this actual lease. If the facts ' +
+        'don\'t cover the question, say so plainly rather than guessing. This is informational, not legal ' +
+        'advice, and you should make that clear if the question sounds like it needs a real legal opinion (an ' +
+        'eviction, a dispute, anything adversarial). Keep the answer to 2-4 sentences, plain language, no ' +
+        'markdown formatting.',
+      prompt:
+        `Lease facts (JSON, null means not on file): ${JSON.stringify(leaseFacts)}\n\n` +
+        (conversation ? `Conversation so far:\n${conversation}\n\n` : '') +
+        `New question: ${question.trim()}\n\nReturn JSON: { "answer": string }`,
       // Same 2-4 sentence prose scope that truncated at 400 elsewhere
       // (draft-message, compliance-gap-check) and was already flagged here
       // as transiently failing in production.

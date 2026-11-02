@@ -170,6 +170,13 @@ export default function TermsPage() {
               answer a renter's question about their own lease, or draft a routine message.
             </p>
             <p>
+              Separate from Prophandld AI, every signed-in user — landlord, renter, or contractor —
+              has access to a basic, free in-app help assistant (the chat bubble) that answers
+              general questions and plain facts about your own account, regardless of whether any
+              landlord has Prophandld AI turned on. It uses the same third-party AI service, on a
+              limited set of your own account details.
+            </p>
+            <p>
               These suggestions are generated automatically. They are not professional, legal, or
               contracting advice, and we don't guarantee they're accurate, complete, or safe for
               your specific situation. Never attempt an electrical, gas, or structural repair

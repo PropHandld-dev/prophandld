@@ -13,7 +13,11 @@ export const maxDuration = 30
 // of re-extracted from `text` with a regex, which previously grabbed the
 // first digit sequence in the rendered string (often a street number) and
 // sorted by that instead of by actual urgency.
-type Nudge = { icon: 'calendar' | 'warning' | 'wrench'; text: string; sortDays?: number }
+// href previously didn't exist at all — every nudge rendered as plain
+// static text with nowhere to go, which undercuts the "feels worth
+// paying for" moment this card is supposed to be: reading "Unit 4B
+// renews in 12 days" and having no way to act on it right there.
+type Nudge = { icon: 'calendar' | 'warning' | 'wrench'; text: string; sortDays?: number; href?: string }
 
 // The one page the AI Features Proposal PDF called the strongest "feels
 // worth paying for" moment — bundles the weekly-digest idea and proactive
@@ -96,7 +100,12 @@ export async function GET() {
       const address = unit ? propertyAddressById.get(unit.property_id) : null
       const label = unit?.unit_number ? `${address}, Unit ${unit.unit_number}` : address
       const days = Math.round((new Date(t.lease_end + 'T00:00:00').getTime() - today.getTime()) / 86400000)
-      nudges.push({ icon: 'calendar', text: `${label} renews in ${days} day${days === 1 ? '' : 's'}`, sortDays: days })
+      nudges.push({
+        icon: 'calendar',
+        text: `${label} renews in ${days} day${days === 1 ? '' : 's'}`,
+        sortDays: days,
+        href: unit ? `/landlord/properties/${unit.property_id}/units/${unit.id}/tenancy/edit` : undefined,
+      })
     }
 
     // Compliance-expiring used to be its own nudge here too, computed from
@@ -114,7 +123,7 @@ export async function GET() {
       const createdAt = new Date(j.created_at)
       if (createdAt > sevenDaysAgo) continue
       const days = Math.round((today.getTime() - createdAt.getTime()) / 86400000)
-      nudges.push({ icon: 'wrench', text: `${j.category} job open ${days} days, no bids yet`, sortDays: -days })
+      nudges.push({ icon: 'wrench', text: `${j.category} job open ${days} days, no bids yet`, sortDays: -days, href: `/landlord/jobs/${j.id}` })
     }
 
     // Predictive maintenance — the only one of the four nudge sources that
@@ -146,7 +155,13 @@ export async function GET() {
           track: { billedUserId: user.id, callerUserId: user.id, feature: 'portfolio-digest' },
         })
         for (const f of lifespanResult.flagged || []) {
-          nudges.push({ icon: 'warning', text: f.note })
+          const matchedSystem = (systems || []).find((s) => s.name === f.name)
+          const unit: any = matchedSystem ? unitById.get(matchedSystem.unit_id) : null
+          nudges.push({
+            icon: 'warning',
+            text: f.note,
+            href: unit ? `/landlord/properties/${unit.property_id}/units/${unit.id}/systems` : undefined,
+          })
         }
       } catch (err) {
         console.error('ai-assist/portfolio-digest: lifespan check failed', err)

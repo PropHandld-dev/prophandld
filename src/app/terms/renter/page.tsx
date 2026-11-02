@@ -140,7 +140,11 @@ export default function RenterTermsPage() {
           If your landlord has Prophandld AI turned on for their account, content relevant to a
           specific AI feature you use — a photo and description for a troubleshooting suggestion, a
           question about your own lease — is sent to a third-party AI service to generate a
-          response. See our{' '}
+          response. Separately, the in-app help assistant (the chat bubble that answers general
+          questions and basic facts about your own account) is available to every signed-in user
+          regardless of whether your landlord has Prophandld AI on, and sends a limited set of your
+          own account details to that same third-party service to answer your question. See our
+          {' '}
           <Link href="/privacy" className="text-[#12A5A9] hover:underline">Privacy Policy</Link> and{' '}
           <Link href="/terms" className="text-[#12A5A9] hover:underline">general Terms</Link> for
           details.

@@ -131,7 +131,12 @@ export async function claudeJson<T>({
   try {
     return JSON.parse(raw) as T
   } catch (err) {
-    console.error('claudeJson: failed to parse model output as JSON', { raw, err })
+    // Truncated — `raw` can include real account/lease content the model
+    // was answering with (a rent amount, a compliance item), and this is
+    // the one place in the AI pipeline that log line wasn't already
+    // bounded. Enough left to diagnose a formatting failure, not enough
+    // to be a meaningful data dump.
+    console.error('claudeJson: failed to parse model output as JSON', { raw: raw.slice(0, 200), err })
     throw new Error('Could not read the AI response. Try again.')
   }
 }

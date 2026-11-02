@@ -8,7 +8,7 @@ import { useLanguage, t, type Lang } from '@/lib/i18n'
 import { AI_ASSIST_ENABLED } from '@/lib/aiAssist'
 import { openAiHelp } from '@/lib/openAiHelp'
 
-type Nudge = { icon: 'calendar' | 'warning' | 'wrench'; text: string }
+type Nudge = { icon: 'calendar' | 'warning' | 'wrench'; text: string; href?: string }
 
 const ICON_STYLES: Record<Nudge['icon'], string> = {
   calendar: 'bg-yellow-500/15 text-yellow-400',
@@ -117,14 +117,26 @@ export function PortfolioDigestCard() {
         <>
           {summary && <p className="text-white/70 text-sm bg-white/5 border border-white/8 rounded-xl px-3.5 py-2.5 mb-3">{summary}</p>}
           <div className="space-y-2">
-            {nudges.map((n, i) => (
-              <div key={i} className="flex items-center gap-3 bg-white/3 border border-white/8 rounded-xl px-3.5 py-2.5">
-                <span className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-xs ${ICON_STYLES[n.icon]}`}>
-                  {ICON_GLYPH[n.icon]}
-                </span>
-                <span className="text-white/80 text-sm">{n.text}</span>
-              </div>
-            ))}
+            {nudges.map((n, i) => {
+              const content = (
+                <>
+                  <span className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-xs ${ICON_STYLES[n.icon]}`}>
+                    {ICON_GLYPH[n.icon]}
+                  </span>
+                  <span className="text-white/80 text-sm flex-1">{n.text}</span>
+                  {n.href && <span className="text-white/30 text-xs shrink-0">→</span>}
+                </>
+              )
+              return n.href ? (
+                <Link key={i} href={n.href} className="flex items-center gap-3 bg-white/3 border border-white/8 rounded-xl px-3.5 py-2.5 hover:bg-white/6 hover:border-white/15 transition">
+                  {content}
+                </Link>
+              ) : (
+                <div key={i} className="flex items-center gap-3 bg-white/3 border border-white/8 rounded-xl px-3.5 py-2.5">
+                  {content}
+                </div>
+              )
+            })}
           </div>
         </>
       )}
