@@ -26,6 +26,7 @@ export default function NewTenancyPage() {
   const [inviteSent, setInviteSent] = useState(false)
   const [contactMode, setContactMode] = useState<ContactMode>('email')
   const [aiAssistActive, setAiAssistActive] = useState(false)
+  const [unitLabel, setUnitLabel] = useState<string | null>(null)
   const [form, setForm] = useState({
     renter_email: '',
     rent_amount: '',
@@ -48,6 +49,18 @@ export default function NewTenancyPage() {
       .catch(() => setAiAssistActive(false))
   }, [])
 
+  useEffect(() => {
+    supabase
+      .from('units')
+      .select('unit_number, properties(address)')
+      .eq('id', unitId)
+      .maybeSingle()
+      .then(({ data }: any) => {
+        const address = data?.properties?.address
+        if (address) setUnitLabel(data?.unit_number ? `${address}, Unit ${data.unit_number}` : address)
+      })
+  }, [unitId])
+
   const handleExtracted = (fields: {
     rent_amount: number | null
     rent_due_day: number | null
@@ -58,6 +71,9 @@ export default function NewTenancyPage() {
     escalation_frequency_months: number | null
     occupants: number | null
     pets: string | null
+    late_fee_amount: number | null
+    grace_period_days: number | null
+    detected_unit_label: string | null
   }) => {
     // Only overwrite a field the landlord hasn't already typed something
     // into, and only when AI actually found a value — never clobber a
@@ -240,7 +256,7 @@ export default function NewTenancyPage() {
             />
           </div>
 
-          {aiAssistActive && <LeaseUploadExtract onExtracted={handleExtracted} />}
+          {aiAssistActive && <LeaseUploadExtract onExtracted={handleExtracted} currentUnitLabel={unitLabel || undefined} />}
 
           <div>
             <label className="text-white/70 text-sm block mb-1">{t('monthlyRentDollarLabel', lang)}</label>

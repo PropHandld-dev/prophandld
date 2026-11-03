@@ -19,6 +19,11 @@ type TenancyExtraction = {
   pets: string | null
   late_fee_amount: number | null
   grace_period_days: number | null
+  // Whatever property address and/or unit identifier (e.g. "Unit B",
+  // "Apt 2") the document itself states, verbatim, so the caller can warn
+  // if it doesn't match the unit this upload is actually happening on —
+  // null if the document doesn't clearly state one.
+  detected_unit_label: string | null
 }
 
 const ALLOWED_MEDIA_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf']
@@ -70,14 +75,16 @@ export async function POST(request: NextRequest) {
         'pets (string|null), late_fee_amount (number|null, the flat dollar amount or computed amount charged for ' +
         'late rent — if the lease states a percentage instead of a flat amount, leave this null rather than ' +
         'guessing a dollar figure), grace_period_days (integer|null, how many days after the due date before a ' +
-        'late fee applies, if stated).',
+        'late fee applies, if stated), detected_unit_label (string|null, the property address and/or unit ' +
+        'identifier exactly as the document states it, e.g. "8058 Walker Street, Unit B" — null if the document ' +
+        'doesn\'t clearly state one).',
       file: { base64: fileBase64, mediaType: mediaType as any },
       // Was 512 — confirmed live truncating mid-response the moment
       // late_fee_amount/grace_period_days were added to the 9 fields
       // already being extracted, the same recurring pattern this app has
       // hit repeatedly: give real headroom, not another increment that
       // just gets rediscovered the next time a field is added.
-      maxTokens: 800,
+      maxTokens: 900,
       track: { billedUserId: user.id, callerUserId: user.id, feature: 'lease-extraction' },
     })
 

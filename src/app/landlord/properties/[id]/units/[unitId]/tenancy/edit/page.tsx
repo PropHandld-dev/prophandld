@@ -30,6 +30,7 @@ export default function EditTenancyPage() {
   const [error, setError] = useState<string | null>(null)
   const [tenancy, setTenancy] = useState<any>(null)
   const [aiAssistActive, setAiAssistActive] = useState(false)
+  const [unitLabel, setUnitLabel] = useState<string | null>(null)
   const [form, setForm] = useState({
     rent_amount: '',
     rent_due_day: '1',
@@ -63,6 +64,14 @@ export default function EditTenancyPage() {
         router.replace(`/landlord/properties/${propertyId}/units/${unitId}`)
         return
       }
+
+      const { data: unitData } = await supabase
+        .from('units')
+        .select('unit_number, properties(address)')
+        .eq('id', unitId)
+        .maybeSingle()
+      const address = (unitData as any)?.properties?.address
+      if (address) setUnitLabel(unitData?.unit_number ? `${address}, Unit ${unitData.unit_number}` : address)
 
       setTenancy(tenancyData)
       setForm({
@@ -102,6 +111,7 @@ export default function EditTenancyPage() {
     pets: string | null
     late_fee_amount: number | null
     grace_period_days: number | null
+    detected_unit_label: string | null
   }) => {
     setForm((prev) => ({
       ...prev,
@@ -187,7 +197,7 @@ export default function EditTenancyPage() {
 
         <ScrollReveal>
           <div className="space-y-4">
-            {aiAssistActive && <LeaseUploadExtract onExtracted={handleExtracted} />}
+            {aiAssistActive && <LeaseUploadExtract onExtracted={handleExtracted} currentUnitLabel={unitLabel || undefined} />}
 
             <div className="grid grid-cols-2 gap-3">
               <div>
