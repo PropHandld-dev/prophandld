@@ -93,8 +93,21 @@ export async function POST(request: NextRequest) {
   const trimmedHistory = (history || []).slice(-12).filter((t) => t.role === 'user' || t.role === 'assistant')
   const conversation = trimmedHistory.map((t) => `${t.role === 'user' ? 'Renter' : 'Assistant'}: ${t.content}`).join('\n')
 
+  // Same fixed, real path list help-chat uses — "how do I pay rent" used
+  // to get a text-only answer with nowhere to actually tap through to.
+  const RENTER_NAV_PATHS = [
+    { path: '/renter', label: 'Dashboard' },
+    { path: '/renter/report', label: 'Report an issue' },
+    { path: '/renter/rent', label: 'Rent' },
+    { path: '/renter/documents', label: 'Documents' },
+    { path: '/renter/calendar', label: 'Calendar' },
+    { path: '/renter/messages', label: 'Messages' },
+    { path: '/profile', label: 'Profile' },
+  ]
+  const navPathList = RENTER_NAV_PATHS.map((n) => `${n.path} — "${n.label}"`).join('\n')
+
   try {
-    const result = await claudeJson<{ answer: string }>({
+    const result = await claudeJson<{ answer: string; navLink: { path: string; label: string } | null }>({
       system:
         'You answer a renter\'s question about their own lease for a property management app, as part of an ' +
         'ongoing back-and-forth — later questions may refer back to something asked or answered earlier in ' +
@@ -104,19 +117,22 @@ export async function POST(request: NextRequest) {
         'don\'t cover the question, say so plainly rather than guessing. This is informational, not legal ' +
         'advice, and you should make that clear if the question sounds like it needs a real legal opinion (an ' +
         'eviction, a dispute, anything adversarial). Keep the answer to 2-4 sentences, plain language, no ' +
-        'markdown formatting.',
+        'markdown formatting. When the answer is "go do X on page Y," set navLink to the matching entry from ' +
+        'NAVIGATION PATHS below (exact path and label, verbatim) — only ever a path from that list, never ' +
+        'invented, and null if nothing in the list genuinely applies.' +
+        `\n\nNAVIGATION PATHS:\n${navPathList}`,
       prompt:
         `Lease facts (JSON, null means not on file): ${JSON.stringify(leaseFacts)}\n\n` +
         (conversation ? `Conversation so far:\n${conversation}\n\n` : '') +
-        `New question: ${question.trim()}\n\nReturn JSON: { "answer": string }`,
-      // Same 2-4 sentence prose scope that truncated at 400 elsewhere
-      // (draft-message, compliance-gap-check) and was already flagged here
-      // as transiently failing in production.
-      maxTokens: 600,
+        `New question: ${question.trim()}\n\nReturn JSON: { "answer": string, "navLink": { "path": string, "label": string } | null }`,
+      // Was 600 — bumped alongside the navLink field for real headroom,
+      // same recurring truncation pattern hit repeatedly elsewhere this
+      // session every time a schema grew without the ceiling moving too.
+      maxTokens: 700,
       track: { billedUserId: landlordUserId, callerUserId: user.id, feature: 'lease-qa' },
     })
 
-    return NextResponse.json({ answer: result.answer })
+    return NextResponse.json({ answer: result.answer, navLink: result.navLink })
   } catch (err) {
     if (err instanceof ClaudeConfigError) {
       console.error('ai-assist/lease-qa: Claude not configured', err)

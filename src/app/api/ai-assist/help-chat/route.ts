@@ -6,6 +6,7 @@ import { tooManyAiAssistRequests } from '@/lib/aiAssistRateLimit'
 import { getLandlordIdsAdmin } from '@/lib/landlordIds'
 import { claudeJson, ClaudeConfigError } from '@/lib/claude'
 import { PHILADELPHIA_COMPLIANCE_FACTS } from '@/lib/complianceFacts'
+import { rentMonthBounds } from '@/lib/rentAutomation'
 
 export const maxDuration = 30
 
@@ -53,7 +54,7 @@ type ChatTurn = { role: 'user' | 'assistant'; content: string }
 // directly; what to actually DO about one still isn't legal advice — the
 // system prompt below is explicit about pointing to the real "How do I
 // renew this?" AI guide on that item instead of improvising one here.
-async function getAccountFacts(admin: ReturnType<typeof getSupabaseAdmin>, userId: string, role: string): Promise<Record<string, unknown>> {
+async function getAccountFacts(admin: ReturnType<typeof getSupabaseAdmin>, authClient: Awaited<ReturnType<typeof createClient>>, userId: string, role: string): Promise<Record<string, unknown>> {
   const todayKey = new Date().toISOString().slice(0, 10)
   const in30 = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
   const ITEM_CAP = 25
@@ -86,11 +87,35 @@ async function getAccountFacts(admin: ReturnType<typeof getSupabaseAdmin>, userI
         ? admin.from('tenancies').select('lease_end, rent_amount, unit_id').in('unit_id', unitIds).eq('ended', false).not('lease_end', 'is', null).gte('lease_end', todayKey).lte('lease_end', in30).order('lease_end', { ascending: true }).limit(ITEM_CAP)
         : Promise.resolve({ data: [] as any[] }),
       unitIds.length > 0
-        ? admin.from('tenancies').select('unit_id, rent_amount').in('unit_id', unitIds).eq('ended', false).limit(ITEM_CAP)
+        ? admin.from('tenancies').select('id, unit_id, rent_amount, rent_due_day, grace_period_days').in('unit_id', unitIds).eq('ended', false).limit(ITEM_CAP)
         : Promise.resolve({ data: [] as any[] }),
     ])
 
     const monthlyRentRoll = (rentRows || []).reduce((sum, t) => sum + (Number(t.rent_amount) || 0), 0)
+
+    // Rent amounts alone don't say whether this MONTH's rent actually came
+    // in — "who's behind on rent" used to be unanswerable. Same
+    // paid/expected comparison and grace-period math cron/rent-reminder
+    // already uses to decide who gets a late notice, just read-only here.
+    const tenancyIds = (rentRows || []).map((t: any) => t.id)
+    const { month: thisMonth, following: nextMonth, firstDate } = rentMonthBounds(0)
+    const { data: currentRentPayments } = tenancyIds.length > 0
+      ? await admin.from('rent_payments').select('tenancy_id, expected_amount, actual_amount').in('tenancy_id', tenancyIds).gte('month', thisMonth).lt('month', nextMonth)
+      : { data: [] as any[] }
+    const paymentByTenancy = new Map((currentRentPayments || []).map((p: any) => [p.tenancy_id, p]))
+    const rentStatusByUnit = (rentRows || [])
+      .map((t: any) => {
+        const payment = paymentByTenancy.get(t.id)
+        if (!payment) return null
+        const expected = Number(payment.expected_amount || 0)
+        const paid = Number(payment.actual_amount || 0)
+        if (paid >= expected) return null
+        const dueDate = new Date(firstDate.getFullYear(), firstDate.getMonth(), t.rent_due_day ?? 1)
+        const daysSinceDue = Math.floor((Date.now() - dueDate.getTime()) / (24 * 60 * 60 * 1000))
+        const isLate = daysSinceDue >= (t.grace_period_days ?? 5)
+        return { unit: unitLabelById.get(t.unit_id) || null, amountDue: Math.round((expected - paid) * 100) / 100, daysSinceDue, isLate }
+      })
+      .filter((x): x is { unit: string | null; amountDue: number; daysSinceDue: number; isLate: boolean } => x !== null)
 
     return {
       propertyCount: propertyIds.length,
@@ -103,6 +128,10 @@ async function getAccountFacts(admin: ReturnType<typeof getSupabaseAdmin>, userI
       // units, because this is the only place rent_amount was fetched by
       // unit.
       rentByUnit: (rentRows || []).map((t: any) => ({ unit: unitLabelById.get(t.unit_id) || null, rentAmount: t.rent_amount })),
+      // Only units NOT fully paid for the current calendar month — an
+      // empty array means everyone's current, state that plainly rather
+      // than listing every unit as "paid."
+      rentStatusThisMonth: rentStatusByUnit,
       // Not filtered to "expiring soon" — a landlord asking about a
       // specific license should get an answer even if it's 90 days out,
       // not just when it's already urgent. Sorted soonest-first, capped.
@@ -117,18 +146,50 @@ async function getAccountFacts(admin: ReturnType<typeof getSupabaseAdmin>, userI
   }
 
   if (role === 'renter') {
-    const { data: tenancy } = await admin
-      .from('tenancies')
-      .select('rent_amount, rent_due_day, lease_end, units(unit_number, properties(address))')
-      .eq('renter_user_id', userId)
-      .eq('ended', false)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
+    // get_my_active_tenancy_id() covers the co-renter case via
+    // tenancy_occupants (security-definer against auth.uid(), so it runs
+    // on the caller's own session, not the admin one) — querying by
+    // renter_user_id directly only ever matched the primary tenant, same
+    // gap already fixed on renter-status/lease-qa/troubleshoot. A
+    // co-renter asking help-chat about their own lease used to get
+    // hasActiveLease: false despite a real, active one.
+    const { data: tenancyId } = await authClient.rpc('get_my_active_tenancy_id')
+    const { data: tenancy } = tenancyId
+      ? await admin
+          .from('tenancies')
+          .select('id, rent_amount, rent_due_day, grace_period_days, lease_end, units(unit_number, properties(address))')
+          .eq('id', tenancyId)
+          .maybeSingle()
+      : { data: null }
     const { data: jobs } = await admin.from('jobs').select('category, status').eq('reported_by', userId).not('status', 'in', '(completed,archived,declined)').limit(ITEM_CAP)
 
     if (!tenancy) return { hasActiveLease: false, openJobs: (jobs || []).map((j) => ({ category: j.category, status: j.status })) }
     const unit: any = (tenancy as any).units
+
+    // Same paid-vs-expected check as the landlord side — "have I paid
+    // rent yet" used to be unanswerable even though the renter's own
+    // payment row already has the real answer.
+    const { month: thisMonth, following: nextMonth, firstDate } = rentMonthBounds(0)
+    const { data: currentPayment } = await admin
+      .from('rent_payments')
+      .select('expected_amount, actual_amount')
+      .eq('tenancy_id', tenancy.id)
+      .gte('month', thisMonth)
+      .lt('month', nextMonth)
+      .maybeSingle()
+    let rentStatusThisMonth: { amountDue: number; daysSinceDue: number; isLate: boolean } | 'paid' | null = null
+    if (currentPayment) {
+      const expected = Number(currentPayment.expected_amount || 0)
+      const paid = Number(currentPayment.actual_amount || 0)
+      if (paid >= expected) {
+        rentStatusThisMonth = 'paid'
+      } else {
+        const dueDate = new Date(firstDate.getFullYear(), firstDate.getMonth(), tenancy.rent_due_day ?? 1)
+        const daysSinceDue = Math.floor((Date.now() - dueDate.getTime()) / (24 * 60 * 60 * 1000))
+        rentStatusThisMonth = { amountDue: Math.round((expected - paid) * 100) / 100, daysSinceDue, isLate: daysSinceDue >= (tenancy.grace_period_days ?? 5) }
+      }
+    }
+
     return {
       hasActiveLease: true,
       propertyAddress: unit?.properties?.address || null,
@@ -136,6 +197,7 @@ async function getAccountFacts(admin: ReturnType<typeof getSupabaseAdmin>, userI
       monthlyRent: tenancy.rent_amount,
       rentDueDay: tenancy.rent_due_day,
       leaseEnd: tenancy.lease_end,
+      rentStatusThisMonth,
       openJobs: (jobs || []).map((j) => ({ category: j.category, status: j.status })),
     }
   }
@@ -188,7 +250,7 @@ export async function POST(request: NextRequest) {
   const supabaseAdmin = getSupabaseAdmin()
   const [{ data: profile }, accountFacts] = await Promise.all([
     supabaseAdmin.from('users').select('preferred_language').eq('id', user.id).maybeSingle(),
-    getAccountFacts(supabaseAdmin, user.id, role),
+    getAccountFacts(supabaseAdmin, authClient, user.id, role),
   ])
   const lang = profile?.preferred_language === 'es' ? 'Spanish' : 'English'
 
@@ -248,7 +310,12 @@ export async function POST(request: NextRequest) {
         'feature, page, or policy not in the app knowledge, and never invent an account fact (an address, a ' +
         'date, an amount) not in the account facts below — if something isn\'t covered by either, say you ' +
         'can\'t see that and point to the right tab instead of guessing. A compliance item\'s type, property, ' +
-        'and expiry date from account facts are real records, state them directly. If asked how to actually ' +
+        'and expiry date from account facts are real records, state them directly. For a landlord, ' +
+        'rentStatusThisMonth lists only units NOT yet fully paid this month (empty array means everyone is ' +
+        'current) — if asked "who\'s behind on rent" or similar, name the unit(s) and how much/how many days, or ' +
+        'say plainly that everyone is caught up if the list is empty. For a renter, rentStatusThisMonth is either ' +
+        '"paid", null (no payment on file yet), or an object with amountDue/daysSinceDue/isLate — answer "have I ' +
+        'paid rent" directly from it. If asked how to actually ' +
         'renew one, answer it right here using your own general knowledge of how that kind of renewal usually ' +
         'works in the US (who typically handles it, what\'s typically required) — don\'t just redirect to the ' +
         'Compliance page\'s own "How do I renew this?" button when you can genuinely help now, mention that ' +

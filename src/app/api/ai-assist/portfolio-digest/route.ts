@@ -5,6 +5,7 @@ import { hasAiAssistAccess } from '@/lib/aiAssist'
 import { tooManyAiAssistRequests } from '@/lib/aiAssistRateLimit'
 import { getLandlordIdsAdmin } from '@/lib/landlordIds'
 import { claudeJson, ClaudeConfigError } from '@/lib/claude'
+import { rentMonthBounds } from '@/lib/rentAutomation'
 
 export const maxDuration = 30
 
@@ -66,7 +67,7 @@ export async function GET() {
     const in30 = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
     const todayKey = today.toISOString().slice(0, 10)
 
-    const [{ data: tenancies }, { data: staleJobs }, { data: systems }] = await Promise.all([
+    const [{ data: tenancies }, { data: staleJobs }, { data: systems }, { data: activeTenancies }] = await Promise.all([
       unitIds.length > 0
         ? supabaseAdmin
             .from('tenancies')
@@ -91,9 +92,50 @@ export async function GET() {
             .in('unit_id', unitIds)
             .not('install_date', 'is', null)
         : Promise.resolve({ data: [] }),
+      // Separate from the lease-renewal query above — this one's
+      // unfiltered by lease_end, since late rent doesn't care how far off
+      // the lease end date is.
+      unitIds.length > 0
+        ? supabaseAdmin.from('tenancies').select('id, unit_id, rent_due_day, grace_period_days').in('unit_id', unitIds).eq('ended', false)
+        : Promise.resolve({ data: [] as any[] }),
     ])
 
     const nudges: Nudge[] = []
+
+    // Late rent — the strongest "feels worth paying for" signal this card
+    // was missing entirely: a flagged earlier gap, closed now that the
+    // same paid-vs-expected + grace-period check already built for
+    // help-chat's rentStatusThisMonth exists to reuse.
+    if ((activeTenancies || []).length > 0) {
+      const { month: thisMonth, following: nextMonth, firstDate } = rentMonthBounds(0)
+      const tenancyIds = (activeTenancies || []).map((t: any) => t.id)
+      const { data: currentPayments } = await supabaseAdmin
+        .from('rent_payments')
+        .select('tenancy_id, expected_amount, actual_amount')
+        .in('tenancy_id', tenancyIds)
+        .gte('month', thisMonth)
+        .lt('month', nextMonth)
+      const paymentByTenancy = new Map((currentPayments || []).map((p: any) => [p.tenancy_id, p]))
+      for (const tenancy of activeTenancies || []) {
+        const payment = paymentByTenancy.get(tenancy.id)
+        if (!payment) continue
+        const expected = Number(payment.expected_amount || 0)
+        const paid = Number(payment.actual_amount || 0)
+        if (paid >= expected) continue
+        const dueDate = new Date(firstDate.getFullYear(), firstDate.getMonth(), tenancy.rent_due_day ?? 1)
+        const daysSinceDue = Math.floor((today.getTime() - dueDate.getTime()) / 86400000)
+        if (daysSinceDue < (tenancy.grace_period_days ?? 5)) continue
+        const unit: any = unitById.get(tenancy.unit_id)
+        const address = unit ? propertyAddressById.get(unit.property_id) : null
+        const label = unit?.unit_number ? `${address}, Unit ${unit.unit_number}` : address
+        nudges.push({
+          icon: 'warning',
+          text: `${label} is ${daysSinceDue} day${daysSinceDue === 1 ? '' : 's'} late on rent`,
+          sortDays: -1000 - daysSinceDue,
+          href: unit ? `/landlord/properties/${unit.property_id}/units/${unit.id}/rent` : undefined,
+        })
+      }
+    }
 
     for (const t of tenancies || []) {
       const unit: any = unitById.get(t.unit_id)

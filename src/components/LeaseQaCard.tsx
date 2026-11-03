@@ -1,11 +1,12 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { useLanguage, t } from '@/lib/i18n'
 
-type Exchange = { question: string; answer: string }
+type Exchange = { question: string; answer: string; navLink?: { path: string; label: string } | null }
 
 // Only rendered by the parent once it's confirmed the renter's landlord
 // has AI Assist active (see renter/documents/page.tsx) — the route itself
@@ -44,7 +45,7 @@ export function LeaseQaCard() {
         setAsking(false)
         return
       }
-      setHistory((prev) => [...prev, { question: q, answer: data.answer }])
+      setHistory((prev) => [...prev, { question: q, answer: data.answer, navLink: data.navLink || null }])
       setQuestion('')
     } catch {
       setError(t('aiLeaseQaFailed', lang))
@@ -77,6 +78,11 @@ export function LeaseQaCard() {
             <div key={i}>
               <p className="text-white/70 text-sm font-medium mb-1">{ex.question}</p>
               <p className="text-white/50 text-sm bg-white/5 border border-white/8 rounded-xl px-3.5 py-2.5">{ex.answer}</p>
+              {ex.navLink && (
+                <Link href={ex.navLink.path} className="inline-flex items-center gap-1 text-[#12A5A9] text-xs font-semibold hover:underline mt-1.5">
+                  {ex.navLink.label} →
+                </Link>
+              )}
             </div>
           ))}
         </div>
