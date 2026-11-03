@@ -135,10 +135,14 @@ async function getAccountFacts(admin: ReturnType<typeof getSupabaseAdmin>, authC
       // Not filtered to "expiring soon" — a landlord asking about a
       // specific license should get an answer even if it's 90 days out,
       // not just when it's already urgent. Sorted soonest-first, capped.
+      // isOverdue computed here rather than left for the model to infer
+      // from a bare date — an external audit caught it describing an
+      // already-past expiry as merely "due" instead of "overdue."
       complianceItems: (complianceItems || []).map((c) => ({
         itemType: c.item_type,
         expiryDate: c.expiry_date,
         property: addressById.get(c.property_id) || null,
+        isOverdue: !!c.expiry_date && c.expiry_date < todayKey,
       })),
       openJobs: (openJobs || []).map((j) => ({ category: j.category, status: j.status, unit: unitLabelById.get(j.unit_id) || null })),
       leaseRenewalsNext30Days: (upcomingRenewals || []).map((t) => ({ unit: unitLabelById.get(t.unit_id) || null, leaseEnd: t.lease_end, rentAmount: t.rent_amount })),
@@ -310,7 +314,9 @@ export async function POST(request: NextRequest) {
         'feature, page, or policy not in the app knowledge, and never invent an account fact (an address, a ' +
         'date, an amount) not in the account facts below — if something isn\'t covered by either, say you ' +
         'can\'t see that and point to the right tab instead of guessing. A compliance item\'s type, property, ' +
-        'and expiry date from account facts are real records, state them directly. For a landlord, ' +
+        'and expiry date from account facts are real records, state them directly — and use its isOverdue flag ' +
+        'precisely: a past expiry date is "overdue"/"expired," never softened to merely "due" or "coming up." ' +
+        'For a landlord, ' +
         'rentStatusThisMonth lists only units NOT yet fully paid this month (empty array means everyone is ' +
         'current) — if asked "who\'s behind on rent" or similar, name the unit(s) and how much/how many days, or ' +
         'say plainly that everyone is caught up if the list is empty. For a renter, rentStatusThisMonth is either ' +

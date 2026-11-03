@@ -150,6 +150,10 @@ export default function ContractorJobDetailPage() {
       setError(t('pleasePickADate', lang))
       return
     }
+    if (scheduleDate < new Date().toLocaleDateString('en-CA')) {
+      setError(t('scheduleDateInPast', lang))
+      return
+    }
     const timeError = validateScheduleTime(scheduleWindow, scheduleTime)
     if (timeError) {
       setError(timeError)
@@ -820,7 +824,7 @@ export default function ContractorJobDetailPage() {
           </ScrollReveal>
         )}
 
-        {myBid?.status === 'accepted' && ['in_progress', 'pending_review', 'completed', 'archived'].includes(job.status) && (
+        {myBid?.status === 'accepted' && ['in_progress', 'pending_review', 'completed', 'archived', 'disputed'].includes(job.status) && (
           <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
             <h3 className="text-white font-semibold mb-1">{t('proofOfWorkHeading', lang)}</h3>
             {job.status === 'in_progress' && <p className="text-white/40 text-xs mb-4">{t('videoLengthHint', lang)}</p>}
@@ -1005,6 +1009,7 @@ export default function ContractorJobDetailPage() {
             <input
               type="date"
               value={scheduleDate}
+              min={new Date().toLocaleDateString('en-CA')}
               onChange={(e) => setScheduleDate(e.target.value)}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition mb-4"
             />

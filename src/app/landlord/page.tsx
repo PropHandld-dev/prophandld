@@ -297,8 +297,16 @@ export default function LandlordDashboard() {
       // Everything below is sorting the jobs already loaded, no more queries.
       const byStatus = (...statuses: string[]) => openJobs.filter((j) => statuses.includes(j.status))
 
-      const needsApprovalCount = byStatus('pending_approval', 'approved').length
-      const inProgressCount = byStatus('approved', 'bidding', 'bid_selected', 'scheduled', 'in_progress', 'pending_review').length
+      // Caught live by an external audit: a completed job sitting in
+      // pending_review (awaiting the landlord's own approval) showed "0
+      // Needs action" on this tile while the jobs list's own
+      // needs_approval filter (src/app/landlord/jobs/page.tsx) already
+      // included pending_review — two places computing "the same" count
+      // differently. pending_review also doesn't belong in "In progress"
+      // either; it's not still being worked on, it's waiting on the
+      // landlord specifically, which is what "needs action" means.
+      const needsApprovalCount = byStatus('pending_approval', 'approved', 'pending_review').length
+      const inProgressCount = byStatus('approved', 'bidding', 'bid_selected', 'scheduled', 'in_progress').length
       const newIssuesList = byStatus('pending_approval')
       const readyToBidList = byStatus('approved')
 

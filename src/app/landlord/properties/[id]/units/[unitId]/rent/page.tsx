@@ -586,6 +586,7 @@ export default function UnitRentPage() {
                               onChange={(e) => setAdjustAmount(e.target.value)}
                               placeholder={String(payment.expected_amount)}
                               min={0}
+                              step={0.01}
                               className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
                             />
                             <RippleButton
@@ -648,6 +649,7 @@ export default function UnitRentPage() {
                         value={addForm.expected_amount}
                         onChange={(e) => setAddForm({ ...addForm, expected_amount: e.target.value })}
                         min={0}
+                        step={0.01}
                         className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
                       />
                     </div>

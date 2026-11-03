@@ -135,6 +135,10 @@ export default function RenterJobDetailPage() {
       setError(t('pleasePickADate', lang))
       return
     }
+    if (scheduleDate < new Date().toLocaleDateString('en-CA')) {
+      setError(t('scheduleDateInPast', lang))
+      return
+    }
 
     const timeError = validateScheduleTime(scheduleWindow, scheduleTime)
     if (timeError) {
@@ -491,7 +495,7 @@ export default function RenterJobDetailPage() {
           </ScrollReveal>
         )}
 
-        {['in_progress', 'pending_review', 'completed'].includes(job.status) && (beforePhotos.length > 0 || afterPhotos.length > 0) && (
+        {['in_progress', 'pending_review', 'completed', 'archived', 'disputed'].includes(job.status) && (beforePhotos.length > 0 || afterPhotos.length > 0) && (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
             <h3 className="text-white font-semibold mb-4">{t('proofOfWorkHeading', lang)}</h3>
             {beforePhotos.length > 0 && (
@@ -553,6 +557,7 @@ export default function RenterJobDetailPage() {
             <input
               type="date"
               value={scheduleDate}
+              min={new Date().toLocaleDateString('en-CA')}
               onChange={(e) => setScheduleDate(e.target.value)}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition mb-4"
             />

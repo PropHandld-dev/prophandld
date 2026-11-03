@@ -346,21 +346,28 @@ export default function LandlordReportsPage() {
                     <DollarSignIcon className="w-3.5 h-3.5 text-[#12A5A9]" />
                     <p className="text-white/50 text-[11px]">{t('rentCollectedLabel', lang)}</p>
                   </div>
-                  <CountUp value={totalCollected} format={(n) => `$${n.toFixed(2)}`} className="text-white text-lg font-bold" />
+                  {/* CountUp's own animation always rounds its internal
+                      display value to a whole number on every frame,
+                      including the final one — passing raw dollars here
+                      with a .toFixed(2) format silently dropped the
+                      cents (caught live: $23,888.85 displayed as
+                      $23,889.00). Same cents-as-the-raw-value workaround
+                      PricingCalculator.tsx already uses. */}
+                  <CountUp value={Math.round(totalCollected * 100)} format={(cents) => `$${(cents / 100).toFixed(2)}`} className="text-white text-lg font-bold" />
                 </div>
                 <div className="bg-white/3 border border-white/8 rounded-2xl p-4">
                   <div className="flex items-center gap-1.5 mb-1">
                     <DollarSignIcon className="w-3.5 h-3.5 text-white/50" />
                     <p className="text-white/50 text-[11px]">{t('paidToContractorsLabel', lang)}</p>
                   </div>
-                  <CountUp value={totalPaidOut} format={(n) => `$${n.toFixed(2)}`} className="text-white text-lg font-bold" />
+                  <CountUp value={Math.round(totalPaidOut * 100)} format={(cents) => `$${(cents / 100).toFixed(2)}`} className="text-white text-lg font-bold" />
                 </div>
                 <div className="bg-white/3 border border-white/8 rounded-2xl p-4">
                   <div className="flex items-center gap-1.5 mb-1">
                     <DollarSignIcon className="w-3.5 h-3.5 text-white/50" />
                     <p className="text-white/50 text-[11px]">{t('netLabel', lang)}</p>
                   </div>
-                  <CountUp value={net} format={(n) => `$${n.toFixed(2)}`} className="text-white text-lg font-bold" />
+                  <CountUp value={Math.round(net * 100)} format={(cents) => `$${(cents / 100).toFixed(2)}`} className="text-white text-lg font-bold" />
                 </div>
               </div>
             </ScrollReveal>

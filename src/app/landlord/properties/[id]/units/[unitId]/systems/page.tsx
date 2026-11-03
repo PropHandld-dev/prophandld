@@ -473,6 +473,7 @@ export default function UnitSystemsPage() {
                 value={form.replacement_cost}
                 onChange={handleChange}
                 min={0}
+                step={0.01}
                 placeholder="1200"
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
               />
@@ -611,6 +612,7 @@ export default function UnitSystemsPage() {
                             value={logForm.cost}
                             onChange={handleLogChange}
                             min={0}
+                            step={0.01}
                             placeholder={t('costPlaceholder', lang)}
                             className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-xs placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
                           />

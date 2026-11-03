@@ -784,6 +784,13 @@ export default function JobDetailPage() {
       setError(t('pleasePickADate', lang))
       return
     }
+    // Caught live by an external audit: a date input with no min bound
+    // let a visibly past date (e.g. yesterday) through, since the browser
+    // alone won't stop it and nothing here re-checked it before saving.
+    if (scheduleDate < new Date().toLocaleDateString('en-CA')) {
+      setError(t('scheduleDateInPast', lang))
+      return
+    }
 
     const timeError = validateScheduleTime(scheduleWindow, scheduleTime)
     if (timeError) {
@@ -1566,7 +1573,15 @@ export default function JobDetailPage() {
           </ScrollReveal>
         )}
 
-        {['bid_selected', 'scheduled', 'in_progress', 'pending_review', 'completed', 'archived'].includes(job.status) && acceptedBid && (
+        {/* 'disputed' added to all three status lists below — caught live
+            by an external audit: a dispute flips job.status to 'disputed'
+            itself, which matched none of these lists, so the selected
+            contractor, proof-of-work photos, and payment/receipt sections
+            all silently disappeared the moment a job was disputed. A
+            dispute pauses the job, it doesn't erase what already
+            happened — this evidence needs to stay visible precisely
+            because a dispute is open. */}
+        {['bid_selected', 'scheduled', 'in_progress', 'pending_review', 'completed', 'archived', 'disputed'].includes(job.status) && acceptedBid && (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
             <h3 className="text-white font-semibold mb-3">{t('selectedContractorHeading', lang)}</h3>
             {acceptedBid && (
@@ -1660,7 +1675,7 @@ export default function JobDetailPage() {
           </div>
         )}
 
-        {['completed', 'archived'].includes(job.status) && acceptedBid && (
+        {['completed', 'archived', 'disputed'].includes(job.status) && acceptedBid && (
           <div id="pay-contractor" className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4 scroll-mt-24">
             {paidBanner && (
               <div
@@ -1811,7 +1826,7 @@ export default function JobDetailPage() {
           </div>
         )}
 
-        {['in_progress', 'pending_review', 'completed', 'archived'].includes(job.status) && (
+        {['in_progress', 'pending_review', 'completed', 'archived', 'disputed'].includes(job.status) && (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
             <h3 className="text-white font-semibold mb-4">{t('proofOfWorkHeading', lang)}</h3>
             <div className="mb-5">
@@ -2145,6 +2160,7 @@ export default function JobDetailPage() {
             <input
               type="date"
               value={scheduleDate}
+              min={new Date().toLocaleDateString('en-CA')}
               onChange={(e) => setScheduleDate(e.target.value)}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition mb-4"
             />
@@ -2374,9 +2390,15 @@ export default function JobDetailPage() {
           clientSecret={paymentModal.clientSecret}
           amount={paymentModal.amount}
           title={t('payContractorHeading', lang)}
+          // Caught live by an external audit: this used to say the FULL
+          // charged amount (job price + processing fee) was "sent to"
+          // the contractor — only the job price actually is; the fee
+          // never reaches them. Named separately so the big "$X" shown
+          // above this message (the real total charged) doesn't read as
+          // the contractor's own payout.
           successMessage={
             acceptedBid?.contractor?.full_name
-              ? `${t('sentTo', lang)} ${acceptedBid.contractor.full_name}. ${t('receiptSavedOnJob', lang)}`
+              ? `$${payOnApproveAmount.toFixed(2)} ${t('sentTo', lang).toLowerCase()} ${acceptedBid.contractor.full_name}${paymentModal && paymentModal.amount > payOnApproveAmount ? ` (${t('totalChargedIncludesFeePrefix', lang)}$${paymentModal.amount.toFixed(2)}${t('totalChargedIncludesFeeSuffix', lang)})` : ''}. ${t('receiptSavedOnJob', lang)}`
               : undefined
           }
           onClose={() => setPaymentModal(null)}
