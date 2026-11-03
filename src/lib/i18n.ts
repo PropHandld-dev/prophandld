@@ -838,6 +838,8 @@ const STRINGS = {
   submitSealedBid: { en: 'Submit bid', es: 'Enviar oferta' },
   jobNoLongerAvailable: { en: 'This job is no longer available to bid on.', es: 'Este trabajo ya no está disponible para ofertar.' },
   enterValidBidAmount: { en: 'Enter a valid bid amount.', es: 'Ingresa un monto de oferta válido.' },
+  bidAmountTooLow: { en: 'Bids need to be at least ${min} — this looks like a typo.', es: 'Las ofertas deben ser de al menos ${min}: esto parece un error.' },
+  workOrderPrefix: { en: 'Work order #', es: 'Orden de trabajo n.º' },
   couldNotSendQuestion: { en: 'Could not send your question.', es: 'No se pudo enviar tu pregunta.' },
   couldNotSubmitBid: { en: 'Could not submit your bid. Please try again.', es: 'No se pudo enviar tu oferta. Inténtalo de nuevo.' },
 

@@ -15,6 +15,7 @@ import { PropertiesMap } from '@/components/PropertiesMap'
 import { fetchAllPagesOrEmpty } from '@/lib/pagedQuery'
 import { useLanguage, t } from '@/lib/i18n'
 import { getLandlordIds } from '@/lib/landlordIds'
+import { useConfirm } from '@/lib/useConfirm'
 
 export default function PropertiesPage() {
   const router = useRouter()
@@ -23,6 +24,7 @@ export default function PropertiesPage() {
   const [loading, setLoading] = useState(true)
   const [showArchived, setShowArchived] = useState(false)
   const [search, setSearch] = useState('')
+  const { confirm, ConfirmDialog } = useConfirm()
   // Remembered per-device only — a light convenience, not something that
   // needs to sync across a landlord's phone and laptop.
   const [view, setView] = useState<'list' | 'map'>('list')
@@ -75,6 +77,13 @@ export default function PropertiesPage() {
   }, [])
 
   const handleArchiveToggle = async (propertyId: string, currentlyArchived: boolean) => {
+    // Only archiving (not unarchiving) asks first — a bare one-tap text
+    // button sitting right next to the card's own navigation arrow was too
+    // easy to hit by accident, and archiving actually removes a property
+    // from the normal active view, unlike unarchive which just brings it
+    // back (already reversible with nothing at stake).
+    if (!currentlyArchived && !(await confirm({ body: t('confirmArchiveProperty', lang) }))) return
+
     const { error } = await supabase
       .from('properties')
       .update({ archived: !currentlyArchived })
@@ -294,6 +303,7 @@ export default function PropertiesPage() {
       </main>
 
       <BottomTabBar tabs={LANDLORD_TABS} />
+      {ConfirmDialog}
     </div>
   )
 }

@@ -500,12 +500,16 @@ export default function PropertyDetailPage() {
               {complianceItems.slice(0, 3).map((item) => {
                 const status = getComplianceStatus(item)
                 return (
-                  <div key={item.id} className="bg-white/3 border border-white/8 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+                  <Link
+                    key={item.id}
+                    href={`/landlord/properties/${propertyId}/compliance?item=${item.id}`}
+                    className="bg-white/3 border border-white/8 rounded-xl px-4 py-3 flex items-center justify-between gap-3 hover:bg-white/5 hover:border-white/15 transition"
+                  >
                     <p className="text-white text-sm font-medium truncate">{item.item_type}</p>
                     <span className={`text-xs rounded-full px-2.5 py-0.5 shrink-0 ${status.color}`}>
                       {status.label}
                     </span>
-                  </div>
+                  </Link>
                 )
               })}
               {complianceItems.length > 3 && (

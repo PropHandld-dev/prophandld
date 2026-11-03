@@ -19,6 +19,14 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
   return <label className="text-white/70 text-sm block mb-1">{children}</label>
 }
 
+// A plain ">0" check let through $1/$2 bids — technically valid, never a
+// real bid for actual repair labor, more often a typo or someone testing
+// the form. $15 is a low floor (doesn't block a genuinely small job) but
+// rules out the obvious junk bids. Enforced again at the DB level (see
+// scripts/2026-11-03-bid-minimum-amount.sql) since this page writes bids
+// straight to Supabase with no API route in between to rely on.
+const MIN_BID_AMOUNT = 15
+
 export default function SubmitBidPage() {
   const router = useRouter()
   const params = useParams()
@@ -203,8 +211,8 @@ export default function SubmitBidPage() {
   }
 
   const handleContinueToDetails = () => {
-    if (!form.amount || parseFloat(form.amount) <= 0) {
-      setError(t('enterValidBidAmount', lang))
+    if (!form.amount || parseFloat(form.amount) < MIN_BID_AMOUNT) {
+      setError(t('bidAmountTooLow', lang).replace('{min}', String(MIN_BID_AMOUNT)))
       return
     }
     if (form.pricing_type === 'hourly' && (!form.labor_rate || parseFloat(form.labor_rate) <= 0)) {
@@ -218,8 +226,8 @@ export default function SubmitBidPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!form.amount || parseFloat(form.amount) <= 0) {
-      setError(t('enterValidBidAmount', lang))
+    if (!form.amount || parseFloat(form.amount) < MIN_BID_AMOUNT) {
+      setError(t('bidAmountTooLow', lang).replace('{min}', String(MIN_BID_AMOUNT)))
       return
     }
 

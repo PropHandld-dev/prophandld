@@ -16,7 +16,7 @@ const FAQS: Record<Role, { q: string; a: string }[]> = {
   general: [
     {
       q: 'What is Prophandld?',
-      a: 'The tools a property-management company would use, without hiring one, for you and the tenants and contractors connected to your properties. One place to track properties, handle maintenance through sealed bidding, and collect rent, whether you manage a couple of units or a growing portfolio.',
+      a: 'One place for you and the tenants and contractors connected to your properties: track properties, handle maintenance through sealed bidding, and collect rent, whether you manage a couple of units or a growing portfolio. Built for independent landlords and property management companies alike.',
     },
     {
       q: 'How will I know when something happens?',

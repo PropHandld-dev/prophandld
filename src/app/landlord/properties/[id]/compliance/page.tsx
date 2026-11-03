@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { Skeleton } from '@/components/Skeleton'
@@ -16,6 +16,7 @@ import { validateDocumentFile } from '@/lib/mediaValidation'
 import { getComplianceStatus } from '@/lib/complianceStatus'
 import { useConfirm } from '@/lib/useConfirm'
 import { AI_ASSIST_ENABLED } from '@/lib/aiAssist'
+import { openAiHelp } from '@/lib/openAiHelp'
 
 const ITEM_TYPE_KEYS: ('complianceItemRentalLicense' | 'complianceItemLeadCertification' | 'complianceItemSmokeDetector' | 'complianceItemCoDetector' | 'complianceItemFireExtinguisher' | 'complianceItemInsuranceRenewal')[] = [
   'complianceItemRentalLicense',
@@ -48,6 +49,8 @@ const itemTypeDisplayLabel = (value: string, lang: Lang) => {
 export default function PropertyCompliancePage() {
   const router = useRouter()
   const params = useParams()
+  const searchParams = useSearchParams()
+  const highlightedItemId = searchParams.get('item')
   const lang = useLanguage()
   const propertyId = params.id as string
 
@@ -66,7 +69,6 @@ export default function PropertyCompliancePage() {
   // Keyed by compliance item id — per item, not global, since a landlord
   // with several items due might want to check more than one in the same
   // visit without losing the first answer.
-  const [renewalGuides, setRenewalGuides] = useState<Record<string, { loading: boolean; text: string | null; error: string | null }>>({})
 
   const [form, setForm] = useState({
     item_type: '',
@@ -122,6 +124,17 @@ export default function PropertyCompliancePage() {
     }
     init()
   }, [propertyId, router])
+
+  // Lets a compliance item be linked to directly (e.g. from the property
+  // page's own compliance preview, which used to be plain unclickable
+  // text) — scrolls to and briefly highlights it once the real items have
+  // actually loaded, not on every render.
+  useEffect(() => {
+    if (loading || !highlightedItemId) return
+    const el = document.getElementById(`compliance-item-${highlightedItemId}`)
+    el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, highlightedItemId])
 
   useEffect(() => {
     if (!AI_ASSIST_ENABLED) return
@@ -220,35 +233,17 @@ export default function PropertyCompliancePage() {
     setGapChecking(false)
   }
 
-  const fetchRenewalGuide = async (itemId: string) => {
-    // Toggle closed if already open with an answer, same as expanding/
-    // collapsing any other inline panel — re-opening later re-fetches
-    // rather than caching, since the item's own expiry date could have
-    // changed via a renewal in between.
-    if (renewalGuides[itemId]?.text) {
-      setRenewalGuides((prev) => {
-        const next = { ...prev }
-        delete next[itemId]
-        return next
-      })
-      return
-    }
-    setRenewalGuides((prev) => ({ ...prev, [itemId]: { loading: true, text: null, error: null } }))
-    try {
-      const res = await fetch('/api/ai-assist/compliance-renewal-guide', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ complianceItemId: itemId }),
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        setRenewalGuides((prev) => ({ ...prev, [itemId]: { loading: false, text: null, error: data.error || t('aiRenewalGuideFailed', lang) } }))
-        return
-      }
-      setRenewalGuides((prev) => ({ ...prev, [itemId]: { loading: false, text: data.guide, error: null } }))
-    } catch {
-      setRenewalGuides((prev) => ({ ...prev, [itemId]: { loading: false, text: null, error: t('aiRenewalGuideFailed', lang) } }))
-    }
+  // Used to fetch its own answer into an inline panel on this page — moved
+  // to the floating chat bubble instead (Joshua's call), since the
+  // dedicated AI help chat already grounds this exact kind of question the
+  // same way (same Philadelphia-specific facts, see complianceFacts.ts)
+  // and a landlord can keep asking follow-ups there instead of a one-shot
+  // answer stuck on this page.
+  const askRenewalInChat = (item: { item_type: string; expiry_date: string | null }) => {
+    const itemLabel = itemTypeDisplayLabel(item.item_type, lang)
+    const propertyLabel = property?.address || 'this property'
+    const expiryLabel = item.expiry_date ? new Date(item.expiry_date + 'T00:00:00').toLocaleDateString() : 'no date on file'
+    openAiHelp(`How do I renew my ${itemLabel} for ${propertyLabel} (expires ${expiryLabel})?`)
   }
 
   const trackSuggestion = (itemType: string) => {
@@ -740,8 +735,13 @@ export default function PropertyCompliancePage() {
             {items.map((item) => {
               const status = getExpiryStatus(item)
               const isRenewing = renewingId === item.id
+              const isHighlighted = highlightedItemId === item.id
               return (
-                <div key={item.id} className="bg-white/3 border border-white/8 rounded-2xl p-5">
+                <div
+                  key={item.id}
+                  id={`compliance-item-${item.id}`}
+                  className={`bg-white/3 border rounded-2xl p-5 transition-colors ${isHighlighted ? 'border-[#12A5A9]/60 bg-[#12A5A9]/5' : 'border-white/8'}`}
+                >
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
                       <h3 className="text-white font-semibold truncate">{itemTypeDisplayLabel(item.item_type, lang)}</h3>
@@ -769,11 +769,10 @@ export default function PropertyCompliancePage() {
                       )}
                       {aiAssistActive && (
                         <button
-                          onClick={() => fetchRenewalGuide(item.id)}
-                          disabled={renewalGuides[item.id]?.loading}
-                          className="text-[#12A5A9] text-xs font-semibold hover:underline disabled:opacity-50"
+                          onClick={() => askRenewalInChat(item)}
+                          className="text-[#12A5A9] text-xs font-semibold hover:underline"
                         >
-                          {renewalGuides[item.id]?.loading ? `✦ ${t('aiCheckingDots', lang)}` : `✦ ${t('aiRenewalGuideBtn', lang)}`}
+                          ✦ {t('aiRenewalGuideBtn', lang)}
                         </button>
                       )}
                       <button
@@ -784,18 +783,6 @@ export default function PropertyCompliancePage() {
                       </button>
                     </div>
                   </div>
-
-                  {renewalGuides[item.id]?.error && (
-                    <p className="text-red-400 text-xs mt-3">{renewalGuides[item.id].error}</p>
-                  )}
-                  {renewalGuides[item.id]?.text && (
-                    <div className="mt-3 bg-[#12A5A9]/8 border border-[#12A5A9]/25 rounded-xl px-3.5 py-3">
-                      <p className="text-[#12A5A9] text-[11px] font-semibold uppercase tracking-wide mb-1.5">
-                        ✦ {t('aiRenewalGuideTitle', lang)}
-                      </p>
-                      <p className="text-white/80 text-sm leading-relaxed whitespace-pre-wrap">{renewalGuides[item.id].text}</p>
-                    </div>
-                  )}
 
                   {isRenewing && (
                     <div className="mt-4 space-y-2.5">

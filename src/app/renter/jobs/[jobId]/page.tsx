@@ -328,6 +328,9 @@ export default function RenterJobDetailPage() {
               </span>
             )}
           </div>
+          {job.work_order_number && (
+            <p className="text-white/40 text-xs font-mono mb-1">{t('workOrderPrefix', lang)}{job.work_order_number}</p>
+          )}
           {job.location && (
             <p className="text-white/50 text-xs mt-1 flex items-center gap-1">
               <MapPinIcon className="w-3 h-3" />

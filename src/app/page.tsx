@@ -81,7 +81,7 @@ const STRUCTURED_DATA = {
       name: 'Prophandld',
       applicationCategory: 'BusinessApplication',
       operatingSystem: 'Web',
-      description: 'The tools a property-management company would use, without hiring one. Track properties and tenants, get contractor bids through sealed bidding, and collect rent online.',
+      description: 'The software landlords and property managers use to track properties and tenants, get contractor bids through sealed bidding, and collect rent online, all in one dashboard.',
       url: 'https://www.prophandld.com',
       publisher: { '@id': 'https://www.prophandld.com/#organization' },
       areaServed: { '@type': 'City', name: 'Philadelphia' },
@@ -172,8 +172,8 @@ export default function LandingPage() {
           <RotatingHeroPhrase />
         </h1>
         <p className="text-lg text-white/50 max-w-2xl mx-auto mb-10">
-          Prophandld gives you the tools a property-management company would
-          use, without hiring one. Simple enough to start with a couple of
+          Prophandld gives landlords and property managers one place to run
+          it all. Simple enough to start with a couple of
           units, built to keep up as your portfolio grows. Track your
           properties and tenants, get competitive contractor bids through
           sealed bidding, and collect rent online, all in one place.

@@ -1,11 +1,12 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { RippleButton } from '@/components/RippleButton'
 import { useLanguage, t } from '@/lib/i18n'
 
-type Turn = { role: 'user' | 'assistant'; content: string; suggestEscalate?: boolean }
+type Turn = { role: 'user' | 'assistant'; content: string; suggestEscalate?: boolean; navLink?: { path: string; label: string } | null }
 
 // Shared chat body used both inside the Profile "Contact us" modal and the
 // floating widget's "Ask AI for help" panel, so the behavior (and the
@@ -80,7 +81,7 @@ export function AiHelpChat({ initialMessage }: { initialMessage?: string | null 
         setSending(false)
         return
       }
-      setTurns((prev) => [...prev, { role: 'assistant', content: data.reply, suggestEscalate: !!data.suggestEscalate }])
+      setTurns((prev) => [...prev, { role: 'assistant', content: data.reply, suggestEscalate: !!data.suggestEscalate, navLink: data.navLink || null }])
     } catch {
       setError(t('aiHelpChatFailed', lang))
     }
@@ -185,10 +186,18 @@ export function AiHelpChat({ initialMessage }: { initialMessage?: string | null 
               >
                 <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{turn.content}</p>
               </div>
+              {turn.role === 'assistant' && turn.navLink && (
+                <Link
+                  href={turn.navLink.path}
+                  className="inline-flex items-center gap-1 text-[#12A5A9] text-xs font-semibold hover:underline mt-1.5"
+                >
+                  {turn.navLink.label} →
+                </Link>
+              )}
               {turn.role === 'assistant' && turn.suggestEscalate && (
                 <button
                   onClick={() => setEscalating(true)}
-                  className="text-[#12A5A9] text-xs font-semibold hover:underline mt-1"
+                  className="block text-[#12A5A9] text-xs font-semibold hover:underline mt-1"
                 >
                   {t('aiHelpEscalateBtn', lang)}
                 </button>

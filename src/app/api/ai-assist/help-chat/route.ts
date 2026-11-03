@@ -86,7 +86,7 @@ async function getAccountFacts(admin: ReturnType<typeof getSupabaseAdmin>, userI
         ? admin.from('tenancies').select('lease_end, rent_amount, unit_id').in('unit_id', unitIds).eq('ended', false).not('lease_end', 'is', null).gte('lease_end', todayKey).lte('lease_end', in30).order('lease_end', { ascending: true }).limit(ITEM_CAP)
         : Promise.resolve({ data: [] as any[] }),
       unitIds.length > 0
-        ? admin.from('tenancies').select('rent_amount').in('unit_id', unitIds).eq('ended', false)
+        ? admin.from('tenancies').select('unit_id, rent_amount').in('unit_id', unitIds).eq('ended', false).limit(ITEM_CAP)
         : Promise.resolve({ data: [] as any[] }),
     ])
 
@@ -97,6 +97,12 @@ async function getAccountFacts(admin: ReturnType<typeof getSupabaseAdmin>, userI
       properties: (properties || []).map((p) => ({ address: addressById.get(p.id) })),
       unitCount: unitCount || 0,
       monthlyRentRoll,
+      // The per-unit breakdown monthlyRentRoll alone can't answer — a
+      // landlord asking "what's the rent for each unit" used to only get
+      // the portfolio-wide total back, with no way to name individual
+      // units, because this is the only place rent_amount was fetched by
+      // unit.
+      rentByUnit: (rentRows || []).map((t: any) => ({ unit: unitLabelById.get(t.unit_id) || null, rentAmount: t.rent_amount })),
       // Not filtered to "expiring soon" — a landlord asking about a
       // specific license should get an answer even if it's 90 days out,
       // not just when it's already urgent. Sorted soonest-first, capped.
@@ -190,8 +196,49 @@ export async function POST(request: NextRequest) {
     .map((t) => `${t.role === 'user' ? 'User' : 'Assistant'}: ${t.content}`)
     .join('\n')
 
+  // A fixed, real, per-role navigation list — not left to the model to
+  // guess a path from a feature description, which is exactly how a
+  // previous version of this prompt produced a plausible-sounding but
+  // wrong link for contractor invites before that page was named here.
+  // Only top-level pages with no dynamic ID segment are listed; a
+  // property/unit-specific page can't be linked reliably without that
+  // unit's real id, so the model is told to name the tab instead for those.
+  const NAV_PATHS: Record<string, { path: string; label: string }[]> = {
+    landlord: [
+      { path: '/landlord', label: 'Dashboard' },
+      { path: '/landlord/properties', label: 'Properties' },
+      { path: '/landlord/properties/new', label: 'Add a property' },
+      { path: '/landlord/jobs', label: 'Jobs' },
+      { path: '/landlord/rent', label: 'Rent' },
+      { path: '/landlord/reports', label: 'Reports' },
+      { path: '/landlord/contractors', label: 'Contractors' },
+      { path: '/landlord/contractors/invite', label: 'Invite a contractor' },
+      { path: '/landlord/calendar', label: 'Calendar' },
+      { path: '/landlord/messages', label: 'Messages' },
+      { path: '/profile', label: 'Profile' },
+    ],
+    renter: [
+      { path: '/renter', label: 'Dashboard' },
+      { path: '/renter/report', label: 'Report an issue' },
+      { path: '/renter/rent', label: 'Rent' },
+      { path: '/renter/documents', label: 'Documents' },
+      { path: '/renter/calendar', label: 'Calendar' },
+      { path: '/renter/messages', label: 'Messages' },
+      { path: '/profile', label: 'Profile' },
+    ],
+    contractor: [
+      { path: '/contractor', label: 'Dashboard' },
+      { path: '/contractor/settings', label: 'Settings' },
+      { path: '/contractor/earnings', label: 'Earnings' },
+      { path: '/contractor/calendar', label: 'Calendar' },
+      { path: '/contractor/messages', label: 'Messages' },
+      { path: '/profile', label: 'Profile' },
+    ],
+  }
+  const navPathList = (NAV_PATHS[role] || []).map((n) => `${n.path} — "${n.label}"`).join('\n')
+
   try {
-    const result = await claudeJson<{ reply: string; suggestEscalate: boolean }>({
+    const result = await claudeJson<{ reply: string; suggestEscalate: boolean; navLink: { path: string; label: string } | null }>({
       system:
         `You are Prophandld's in-app help assistant, talking to a signed-in ${role}. Answer using the app ` +
         'knowledge below, and you may also answer questions about THIS person\'s own account using the account ' +
@@ -218,16 +265,21 @@ export async function POST(request: NextRequest) {
         'assistant), say warmly that you\'re just here for Prophandld itself and ask what they need help ' +
         'finding, don\'t lecture or over-explain the refusal. If the question needs a real person (a bug, a ' +
         'billing dispute, anything you genuinely can\'t answer from what\'s given), say so plainly and set ' +
-        'suggestEscalate to true. ' +
-        `Respond in ${lang}.\n\nAPP KNOWLEDGE:\n${APP_KNOWLEDGE}\n\nACCOUNT FACTS (this signed-in user's own data, JSON, null means not applicable):\n${JSON.stringify(accountFacts)}`,
-      prompt: `Conversation so far:\n${conversation}\n\nReturn JSON: { "reply": string, "suggestEscalate": boolean }`,
+        'suggestEscalate to true. When the answer is "go do X on page Y," set navLink to the matching entry from ' +
+        'NAVIGATION PATHS below (exact path and label, verbatim) so the UI can show a real clickable button — ' +
+        'only ever use a path from that list, never invent or guess one, and leave navLink null for anything ' +
+        'that isn\'t a top-level page (a specific unit/property\'s own page has no fixed link; name the tab in ' +
+        'words instead, e.g. "open that unit, then Compliance"). Only set navLink on the single most relevant ' +
+        'destination, never more than one. ' +
+        `Respond in ${lang}.\n\nAPP KNOWLEDGE:\n${APP_KNOWLEDGE}\n\nNAVIGATION PATHS (role: ${role}):\n${navPathList}\n\nACCOUNT FACTS (this signed-in user's own data, JSON, null means not applicable):\n${JSON.stringify(accountFacts)}`,
+      prompt: `Conversation so far:\n${conversation}\n\nReturn JSON: { "reply": string, "suggestEscalate": boolean, "navLink": { "path": string, "label": string } | null }`,
       // Bumped proactively (2026-11-01, twice today): the same truncation
       // bug confirmed live across nearly every other AI Assist route —
       // this can now produce a full inline renewal explanation (same
       // scope as compliance-renewal-guide's own 800), not just a 1-4
       // sentence answer, so matching that ceiling rather than waiting to
       // rediscover the bug here a third time.
-      maxTokens: 900,
+      maxTokens: 1000,
       track: { billedUserId: null, callerUserId: user.id, feature: 'help-chat' },
     })
     // Deliberately not persisted anywhere (2026-11-01 product decision —

@@ -570,6 +570,9 @@ export default function ContractorJobDetailPage() {
               </span>
             )}
           </div>
+          {job.work_order_number && (
+            <p className="text-white/40 text-xs font-mono mb-1">{t('workOrderPrefix', lang)}{job.work_order_number}</p>
+          )}
           <p className="text-white/60 text-sm">
             {myBid?.status === 'accepted' ? (
               <AddressLink address={job.units?.properties?.address} city={job.units?.properties?.city} />
