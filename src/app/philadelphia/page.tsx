@@ -41,11 +41,11 @@ const COMPLIANCE_FEATURES = [
 const FAQS: { q: string; a: string }[] = [
   {
     q: "What is Philadelphia's Safe Healthy Homes Act?",
-    a: "A new city law taking effect November 1, 2026. It requires cited violations to be fixed within 30 days, ties rent collection directly to having a valid rental license, and gives tenants the right to sue for $1,000 or more per unresolved violation.",
+    a: "A city law that took effect November 1, 2026. It requires cited violations to be fixed within 30 days, ties rent collection directly to having a valid rental license, and gives tenants the right to sue for $1,000 or more per unresolved violation.",
   },
   {
     q: 'What happens if my license lapses and I miss it?',
-    a: "Under the new law, a suspended license means you legally cannot collect rent until it's resolved. Not a fine you can pay later and move on from, a hard stop on your income from that property. Prophandld's compliance tracking exists specifically to make sure you see it coming.",
+    a: "Under the law now in effect, a suspended license means you legally cannot collect rent until it's resolved. Not a fine you can pay later and move on from, a hard stop on your income from that property. Prophandld's compliance tracking exists specifically to make sure you see it coming.",
   },
   {
     q: 'Does this replace checking with the city or an attorney?',
@@ -97,15 +97,15 @@ export default function PhiladelphiaLandingPage() {
           Philadelphia landlords · Safe Healthy Homes Act
         </div>
         <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-tight mb-6">
-          Philadelphia rentals change<br />
+          Philadelphia rentals changed<br />
           <span className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] bg-clip-text text-transparent">on November 1, 2026.</span>
         </h1>
         <p className="text-lg text-white/50 max-w-2xl mx-auto mb-10">
-          A lapsed rental license under the new law means you legally can&apos;t
-          collect rent until it&apos;s fixed, and unresolved violations give
-          tenants the right to sue for $1,000 or more per violation.
-          Prophandld tracks every license and certificate for you, and warns
-          you before one expires.
+          A lapsed rental license under the law now in effect means you
+          legally can&apos;t collect rent until it&apos;s fixed, and unresolved
+          violations give tenants the right to sue for $1,000 or more per
+          violation. Prophandld tracks every license and certificate for
+          you, and warns you before one expires.
         </p>
         <div className="flex items-center justify-center gap-4 flex-wrap">
           <MagneticLink

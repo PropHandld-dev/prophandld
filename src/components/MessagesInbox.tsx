@@ -29,6 +29,15 @@ export function MessagesInbox({ basePath }: { basePath: string }) {
   }, [])
 
   const { loading, conversations, unreadIds } = useConversations(userId)
+  const [search, setSearch] = useState('')
+
+  const visibleConversations = (() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return conversations
+    return conversations.filter((c) =>
+      [c.otherName, c.category, c.propertyLabel, c.lastMessage].some((field) => field.toLowerCase().includes(q))
+    )
+  })()
 
   const handleStarted = (c: StartedConversation) => {
     // The draft prefill (e.g. the rehire starter message) can't travel
@@ -51,12 +60,26 @@ export function MessagesInbox({ basePath }: { basePath: string }) {
   return (
     <div className="space-y-3">
       <DmContactsStrip myRole={myRole} onStart={handleStarted} onSeeAll={() => router.push(`${basePath}/messages/new`)} />
+      {conversations.length > 0 && (
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={t('searchMessagesPlaceholder', lang)}
+          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder-white/40 focus:outline-none focus:border-[#12A5A9] transition"
+        />
+      )}
       {conversations.length === 0 && (
         <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
           <p className="text-white/50 text-sm">{t('noConversationsYet', lang)}</p>
         </div>
       )}
-      {conversations.map((c) => {
+      {conversations.length > 0 && visibleConversations.length === 0 && (
+        <div className="bg-white/3 border border-white/8 rounded-2xl p-8 text-center">
+          <p className="text-white/50 text-sm">{t('noMatchingConversations', lang)}</p>
+        </div>
+      )}
+      {visibleConversations.map((c) => {
         const isMine = c.lastSenderId === userId
         const isUnread = unreadIds.has(`${c.kind}:${c.id}`)
         return (

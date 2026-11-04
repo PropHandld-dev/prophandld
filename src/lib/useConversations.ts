@@ -207,6 +207,13 @@ export function useConversations(userId: string | null) {
       }
     })
 
+    // Caught live by an external audit: this relied entirely on
+    // get_recent_conversation_previews's own row order, with no
+    // guarantee enforced client-side — sorting explicitly here is what
+    // actually promises "most recent conversation first," regardless of
+    // what the RPC does internally.
+    list.sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime())
+
     setConversations(list)
     setLoading(false)
   }, [userId, lang])

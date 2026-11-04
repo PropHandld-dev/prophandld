@@ -215,10 +215,10 @@ export default function LandingPage() {
                 Philadelphia landlords
               </div>
               <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4 leading-tight">
-                Philadelphia&apos;s Safe Healthy Homes Act takes effect November 1, 2026.
+                Philadelphia&apos;s Safe Healthy Homes Act took effect November 1, 2026.
               </h2>
               <p className="text-white/60 leading-relaxed mb-8 max-w-2xl">
-                A lapsed rental license under the new law means you legally can&apos;t collect rent
+                A lapsed rental license under the law now in effect means you legally can&apos;t collect rent
                 until it&apos;s fixed, and unresolved violations give tenants the right to sue for
                 $1,000 or more per violation. Prophandld&apos;s compliance tracking warns you before a
                 license or certificate expires, not after an inspector or a lawsuit tells you.
@@ -583,7 +583,7 @@ export default function LandingPage() {
           <div className="space-y-3">
             {[
               { q: 'Is this just for finding contractors?', a: "No. Prophandld is built to replace the spreadsheet. Track every property, unit, and tenant, handle maintenance end to end with sealed bidding, and collect rent, all in one dashboard. Your spreadsheet can finally retire." },
-              { q: 'What does it cost?', a: "Your first unit is free. Then $19.99/month for 2–4 units, $39.99 for 5–10, $79.99 for 11–25, flat rates, not per-unit. Past 25 units, $1.75 per unit. Prophandld AI is a separate optional add-on from $4.99/month if you want it. See the full breakdown and try the calculator at /pricing. Contractors pay nothing: no signup fee, no monthly fee, no cut of a bid." },
+              { q: 'What does it cost?', a: "Your first unit is free. Then $19.99/month for 2–4 units, $39.99 for 5–10, $79.99 for 11–25, flat rates, not per-unit. Past 25 units, $1.75 per unit. Prophandld AI is a separate optional add-on from $4.99/month if you want it. See the full breakdown and try the calculator at /pricing. Contractors pay nothing during this pilot program: no signup fee, no monthly fee, no cut of a bid. If that ever changes, contractors get at least 60 days' written notice first, and it never applies retroactively to work already bid, scheduled, or completed." },
               { q: 'What does Prophandld AI actually do?', a: "It handles the parts of this job that eat your evenings: talks a tenant through a safe fix before a contractor's ever needed (never anything electrical, gas, or structural), reads an uploaded lease or compliance document straight into the right fields, answers a renter's own lease questions directly, flags a compliance gap before it becomes a fine, drafts the routine messages you'd otherwise type yourself, and gives you a one-line morning briefing of what actually needs your attention. It's an optional add-on billed to you, the landlord, from $4.99/month with a 14-day free trial. Turn it on and your tenants get it too, automatically, at no extra cost to them." },
               { q: 'How does sealed bidding actually work?', a: "Contractors near the property are alerted when you open a job for bids. They submit their price privately and never see what anyone else bid. You choose who you trust, not just the lowest number. No bidding wars, no “my cousin quoted less”." },
               { q: 'Do I have to use a contractor?', a: "No. For anything small enough to handle yourself, mark it fixed directly, no bidding required. Contractors are there for when you want one, not a requirement for every repair." },
@@ -594,7 +594,7 @@ export default function LandingPage() {
               { q: 'What if a contractor cancels?', a: "The job reopens for sealed bids, nearby contractors are alerted again, and the landlord and renter are told. Photos, notes, and other bids stay put." },
               { q: "What if something isn't right after the job?", a: 'After the landlord approves, any side has 48 hours to raise a dispute. The job pauses while the Prophandld team reviews it. If nobody responds, finished work is approved automatically after 3 days so contractors are not left waiting.' },
               { q: 'Is Prophandld available in my area?', a: "We're currently onboarding beta landlords in the Philadelphia area, with more markets opening soon." },
-              { q: "What is Philadelphia's Safe Healthy Homes Act?", a: "A new city law taking effect November 1, 2026. It requires cited violations to be fixed within 30 days, ties rent collection directly to having a valid rental license, and gives tenants the right to sue for $1,000 or more per unresolved violation. Prophandld's compliance tracking is built to keep your licenses and certificates from ever lapsing without you knowing." },
+              { q: "What is Philadelphia's Safe Healthy Homes Act?", a: "A city law that took effect November 1, 2026. It requires cited violations to be fixed within 30 days, ties rent collection directly to having a valid rental license, and gives tenants the right to sue for $1,000 or more per unresolved violation. Prophandld's compliance tracking is built to keep your licenses and certificates from ever lapsing without you knowing." },
               { q: 'Does it work in Spanish?', a: 'The whole app does, not a translated homepage that quietly drops you back into English the moment you sign in. Switch anytime from your profile.' },
               { q: 'Can I use Prophandld as more than one role?', a: "Yes. If you're a landlord who also does contract work, or a renter who's also a landlord, link a second profile from your account menu and switch between dashboards instantly, no second signup, no second password." },
               { q: 'Can someone else help manage my properties?', a: "Yes. Invite a business partner or a property manager you hire as a co-owner, from your profile. They get their own login with full access to your properties, units, tenants, jobs, rent, and compliance tracking, same as you have. Billing stays yours alone, and you can remove their access anytime." },

@@ -152,9 +152,13 @@ function NewPropertyForm() {
 
     const numUnits = parseInt(form.num_units)
     if (numUnits > 0) {
+      // Caught live by an external audit: every display site in the app
+      // (receipts, dashboard tiles, notifications, AI replies) already
+      // prepends "Unit " in front of unit_number — generating it here AS
+      // "Unit 1", "Unit 2" etc. made every one of those read "Unit Unit 1".
       const units = Array.from({ length: numUnits }, (_, i) => ({
         property_id: property.id,
-        unit_number: numUnits === 1 ? 'Main' : `Unit ${i + 1}`,
+        unit_number: numUnits === 1 ? 'Main' : `${i + 1}`,
       }))
 
       const { error: unitsError } = await supabase

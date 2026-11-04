@@ -110,7 +110,7 @@ export default function NewUnitPage() {
               required
               value={form.unit_number}
               onChange={handleChange}
-              placeholder="Unit 3"
+              placeholder="3"
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
             />
           </div>

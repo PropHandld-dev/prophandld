@@ -1983,6 +1983,8 @@ const STRINGS = {
   showPasswordAriaLabel: { en: 'Show password', es: 'Mostrar contraseña' },
   hidePasswordAriaLabel: { en: 'Hide password', es: 'Ocultar contraseña' },
   ratingLabel: { en: 'Rating', es: 'Calificación' },
+  searchMessagesPlaceholder: { en: 'Search messages', es: 'Buscar mensajes' },
+  noMatchingConversations: { en: 'No conversations match your search.', es: 'Ninguna conversación coincide con tu búsqueda.' },
   goHomeBtn: { en: 'Go home', es: 'Ir al inicio' },
 
   // Access instructions (report form + renter job page + contractor/landlord display)
