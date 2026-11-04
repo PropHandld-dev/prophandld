@@ -2,6 +2,7 @@
 
 import { useState, type ComponentType, type InputHTMLAttributes } from 'react'
 import { EyeIcon, EyeOffIcon } from '@/components/icons'
+import { useLanguage, t } from '@/lib/i18n'
 
 type AuthInputProps = {
   icon?: ComponentType<{ className?: string }>
@@ -9,6 +10,7 @@ type AuthInputProps = {
 
 export function AuthInput({ icon: Icon, className, type, ...props }: AuthInputProps) {
   const [visible, setVisible] = useState(false)
+  const lang = useLanguage()
   const isPassword = type === 'password'
 
   return (
@@ -26,7 +28,7 @@ export function AuthInput({ icon: Icon, className, type, ...props }: AuthInputPr
           type="button"
           onClick={() => setVisible((v) => !v)}
           tabIndex={-1}
-          aria-label={visible ? 'Hide password' : 'Show password'}
+          aria-label={visible ? t('hidePasswordAriaLabel', lang) : t('showPasswordAriaLabel', lang)}
           className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition"
         >
           {visible ? <EyeOffIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}

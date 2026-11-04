@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useLanguage, t } from '@/lib/i18n'
 
 function Star({ filled, className }: { filled: boolean; className?: string }) {
   return (
@@ -23,18 +24,23 @@ export function StarRatingInput({
   size?: 'sm' | 'md'
   label?: string
 }) {
+  const lang = useLanguage()
   const [hover, setHover] = useState<number | null>(null)
   const display = hover ?? value
   const starSize = size === 'sm' ? 'w-4 h-4' : 'w-6 h-6'
+  const groupLabel = label || t('ratingLabel', lang)
 
   return (
     <div>
       {label && <p className="text-white/70 text-sm mb-1">{label}</p>}
-      <div className="flex items-center gap-1">
+      <div role="radiogroup" aria-label={groupLabel} className="flex items-center gap-1">
         {[1, 2, 3, 4, 5].map((n) => (
           <button
             key={n}
             type="button"
+            role="radio"
+            aria-checked={n === value}
+            aria-label={`${groupLabel}: ${n} ${t('ofWord', lang)} 5`}
             disabled={readOnly}
             onClick={() => onChange?.(n)}
             onMouseEnter={() => !readOnly && setHover(n)}

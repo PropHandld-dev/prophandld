@@ -1980,6 +1980,9 @@ const STRINGS = {
   errorBoundaryDesc: { en: "That didn't work. Try again, or head back. Nothing else was affected.", es: 'Eso no funcionó. Inténtalo de nuevo, o vuelve atrás. Nada más se vio afectado.' },
   tryAgainBtn: { en: 'Try again', es: 'Intentar de nuevo' },
   errorReferencePrefix: { en: 'ref', es: 'ref' },
+  showPasswordAriaLabel: { en: 'Show password', es: 'Mostrar contraseña' },
+  hidePasswordAriaLabel: { en: 'Hide password', es: 'Ocultar contraseña' },
+  ratingLabel: { en: 'Rating', es: 'Calificación' },
   goHomeBtn: { en: 'Go home', es: 'Ir al inicio' },
 
   // Access instructions (report form + renter job page + contractor/landlord display)
