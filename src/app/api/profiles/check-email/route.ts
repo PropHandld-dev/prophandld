@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
+import { tooManyRequests } from '@/lib/rateLimit'
 
 export const maxDuration = 10
 
@@ -10,28 +11,17 @@ export const maxDuration = 10
 // bare "already registered." Nothing actually enforces that call order
 // server-side, though: hit directly, this route lets anyone probe an
 // arbitrary email for both existence and role, which is more than
-// signUp's own tell ever reveals (it never gives up role). A real fix
-// needs a shared rate-limit store (new table, new migration); as an
-// immediate, zero-migration mitigation this caps requests per warm
-// serverless instance so scripted enumeration can't run unthrottled.
+// signUp's own tell ever reveals (it never gives up role). Rate-limited
+// through the shared, cross-instance table (see rateLimit.ts) rather than
+// an in-memory per-warm-instance cap, which reset on every cold start and
+// shared nothing across Vercel's serverless instances — trivially
+// bypassable by spreading requests over time.
 const RATE_LIMIT = 8
-const RATE_WINDOW_MS = 60_000
-const hits = new Map<string, number[]>()
-
-function rateLimited(key: string): boolean {
-  const now = Date.now()
-  const recent = (hits.get(key) || []).filter((t) => now - t < RATE_WINDOW_MS)
-  recent.push(now)
-  hits.set(key, recent)
-  if (hits.size > 5000) {
-    for (const [k, v] of hits) if (v.every((t) => now - t >= RATE_WINDOW_MS)) hits.delete(k)
-  }
-  return recent.length > RATE_LIMIT
-}
+const RATE_WINDOW_MINUTES = 1
 
 export async function POST(request: NextRequest) {
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
-  if (rateLimited(ip)) {
+  if (await tooManyRequests(`check-email:${ip}`, RATE_LIMIT, RATE_WINDOW_MINUTES)) {
     return NextResponse.json({ error: 'Too many requests, try again shortly' }, { status: 429 })
   }
 

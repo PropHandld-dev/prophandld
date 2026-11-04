@@ -1,29 +1,14 @@
 import { NextResponse } from 'next/server'
 import { sendEventInterestAdminEmail, sendEventInterestConfirmationEmail } from '@/lib/email'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
+import { tooManyRequests } from '@/lib/rateLimit'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
-// Same shared-table rate-limit shape as api/support-escalate — this is
-// also a public, unauthenticated form, same abuse surface.
-const WINDOW_MS = 15 * 60 * 1000
-async function tooMany(key: string, limit: number) {
-  const admin = getSupabaseAdmin()
-  const windowStart = new Date(Date.now() - WINDOW_MS).toISOString()
-  admin.from('support_escalate_hits').delete().lt('created_at', windowStart).then(() => {})
-  const { count } = await admin
-    .from('support_escalate_hits')
-    .select('id', { count: 'exact', head: true })
-    .eq('rate_key', key)
-    .gte('created_at', windowStart)
-  await admin.from('support_escalate_hits').insert({ rate_key: key })
-  return (count || 0) >= limit
-}
 
 export async function POST(req: Request) {
   try {
     const ip = (req.headers.get('x-forwarded-for') || 'unknown').split(',')[0].trim()
-    if (await tooMany(`event:ip:${ip}`, 5)) {
+    if (await tooManyRequests(`event:ip:${ip}`, 5, 15)) {
       return NextResponse.json({ error: 'Too many requests. Please try again in a few minutes.' }, { status: 429 })
     }
 

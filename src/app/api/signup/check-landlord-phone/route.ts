@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
+import { tooManyRequests } from '@/lib/rateLimit'
 
 export const maxDuration = 10
 
@@ -15,22 +16,10 @@ export const maxDuration = 10
 // webhooks/stripe/route.ts) is the other half, catching the same loophole
 // from the payout side once a bank account is actually linked.
 //
-// Same unauthenticated-enumeration shape as /api/profiles/check-email, so
-// the same per-warm-instance rate limit applies here too.
+// Same unauthenticated-enumeration shape as /api/profiles/check-email —
+// rate-limited through the same shared, cross-instance table.
 const RATE_LIMIT = 8
-const RATE_WINDOW_MS = 60_000
-const hits = new Map<string, number[]>()
-
-function rateLimited(key: string): boolean {
-  const now = Date.now()
-  const recent = (hits.get(key) || []).filter((t) => now - t < RATE_WINDOW_MS)
-  recent.push(now)
-  hits.set(key, recent)
-  if (hits.size > 5000) {
-    for (const [k, v] of hits) if (v.every((t) => now - t >= RATE_WINDOW_MS)) hits.delete(k)
-  }
-  return recent.length > RATE_LIMIT
-}
+const RATE_WINDOW_MINUTES = 1
 
 // Digits-only, last 10 — tolerant of "(215) 555-1234" vs "215-555-1234"
 // vs "+12155551234" all meaning the same real number, without requiring
@@ -42,7 +31,7 @@ function normalizePhone(phone: string): string {
 
 export async function POST(request: NextRequest) {
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
-  if (rateLimited(ip)) {
+  if (await tooManyRequests(`check-landlord-phone:${ip}`, RATE_LIMIT, RATE_WINDOW_MINUTES)) {
     return NextResponse.json({ error: 'Too many requests, try again shortly' }, { status: 429 })
   }
 

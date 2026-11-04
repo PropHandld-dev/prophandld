@@ -1,38 +1,16 @@
 import { NextResponse } from 'next/server'
 import { sendSupportEscalationEmail, sendSupportConfirmationEmail } from '@/lib/email'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
+import { tooManyRequests } from '@/lib/rateLimit'
 
 export const runtime = 'nodejs'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-// This form is public, so it must not be usable to email arbitrary people
-// on demand. Used to be an in-memory Map, which doesn't actually limit
-// anything on Vercel — serverless functions scale across many instances,
-// each with its own empty Map, so a burst of concurrent requests (or just
-// bad luck landing on a fresh instance) sailed straight through. A shared
-// table is the fix: every instance sees the same hit history.
-const WINDOW_MS = 15 * 60 * 1000
-async function tooMany(key: string, limit: number) {
-  const admin = getSupabaseAdmin()
-  const windowStart = new Date(Date.now() - WINDOW_MS).toISOString()
-  // Best-effort row-level housekeeping, same spirit as the old Map's
-  // "clear everything past 5000 keys" — keeps this table from growing
-  // unbounded on an endpoint that's deliberately public and abuse-prone.
-  admin.from('support_escalate_hits').delete().lt('created_at', windowStart).then(() => {})
-  const { count } = await admin
-    .from('support_escalate_hits')
-    .select('id', { count: 'exact', head: true })
-    .eq('rate_key', key)
-    .gte('created_at', windowStart)
-  await admin.from('support_escalate_hits').insert({ rate_key: key })
-  return (count || 0) >= limit
-}
-
 export async function POST(req: Request) {
   try {
     const ip = (req.headers.get('x-forwarded-for') || 'unknown').split(',')[0].trim()
-    if (await tooMany(`ip:${ip}`, 3)) {
+    if (await tooManyRequests(`ip:${ip}`, 3, 15)) {
       return NextResponse.json({ error: 'Too many messages. Please try again in a few minutes.' }, { status: 429 })
     }
 
@@ -51,7 +29,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'question required' }, { status: 400 })
     }
 
-    if (await tooMany(`email:${email.toLowerCase()}`, 2)) {
+    if (await tooManyRequests(`email:${email.toLowerCase()}`, 2, 15)) {
       return NextResponse.json({ error: 'Too many messages. Please try again in a few minutes.' }, { status: 429 })
     }
 
