@@ -87,11 +87,14 @@ export default function LandlordTermsPage() {
           changes; you have to approve it before the new price applies.
         </p>
         <p>
-          Once a contractor marks a job done, you have three days to review and approve it yourself,
-          which is what releases payment to them. You&apos;ll be notified as that window gets close; if
-          you still haven&apos;t acted when it closes, the job auto-approves and payment releases the
-          same way, so a contractor isn&apos;t left waiting indefinitely on a job that&apos;s actually
-          finished.
+          Once a contractor marks a job done, you have three days to review and approve it yourself.
+          Approving is what makes payment due, not what sends it: you still complete an actual payment
+          step through Stripe (entering a card or confirming a bank payment) right after, which is what
+          actually releases the money to the contractor. You&apos;ll be notified as the three-day window
+          gets close; if you still haven&apos;t acted when it closes, the job auto-approves the same way a
+          manual approval would, so a contractor isn&apos;t left waiting indefinitely on a job that&apos;s
+          actually finished — but auto-approval still doesn&apos;t pay them either, since nothing can
+          complete that Stripe step except you. We&apos;ll email you to pay right away once that happens.
         </p>
       </section>
 

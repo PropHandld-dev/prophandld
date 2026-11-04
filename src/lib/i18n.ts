@@ -1688,7 +1688,7 @@ const STRINGS = {
   inviteEyebrow: { en: 'Free for them', es: 'Gratis para ellos' },
   invitePitchNoFees: { en: 'No platform fee. They keep every dollar they bid.', es: 'Sin comisión de plataforma. Se quedan con cada dólar que cotizan.' },
   invitePitchOneThread: { en: 'One message thread instead of scattered texts.', es: 'Un solo hilo de mensajes en vez de textos dispersos.' },
-  invitePitchPaidFast: { en: 'Paid the moment a job is approved, no chasing checks.', es: 'Se les paga en cuanto se aprueba el trabajo, sin perseguir cheques.' },
+  invitePitchPaidFast: { en: 'Payment due the moment a job is approved, no chasing checks.', es: 'El pago vence en cuanto se aprueba el trabajo, sin perseguir cheques.' },
   jobInviteHeading: { en: "Know a contractor for this?", es: '¿Conoces a un contratista para esto?' },
   jobInviteDesc: { en: "Invite them directly, no bidding needed. They'll see this job waiting for them.", es: 'Invítalo directamente, sin necesidad de ofertas. Verá este trabajo esperándolo.' },
   cancelledStatus: { en: 'Cancelled', es: 'Cancelado' },

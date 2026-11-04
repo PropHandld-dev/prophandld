@@ -97,13 +97,16 @@ export default function ContractorTermsPage() {
           of your bid. As the marketplace grows beyond the pilot, we may introduce pricing for
           contractors, such as a fee on completed jobs or a monthly plan; if we do, we&apos;ll give you at
           least 60 days&apos; written notice (email) before it applies to you, and it will never apply
-          retroactively to work already bid, scheduled, or completed. Once a landlord approves your completed work, payment moves directly from them to you
-          through Stripe, a third-party payment processor; Prophandld does not hold or custody the
-          funds at any point, and never sees or stores your bank account details. That&apos;s handled
-          entirely by Stripe. A completed job auto-approves three days after you mark it done if the
-          landlord hasn&apos;t acted on it, so you&apos;re not left waiting indefinitely for an unresponsive
-          landlord to release payment. Every payment gets a receipt, emailed to you and saved on the
-          job record.
+          retroactively to work already bid, scheduled, or completed. Once a landlord approves your
+          completed work (or it auto-approves three days after you mark it done, if they haven&apos;t acted,
+          so you&apos;re not left waiting indefinitely for an unresponsive landlord), that&apos;s what makes
+          payment due, not what sends it: the landlord still has to separately complete a real payment
+          step through Stripe (entering a card or confirming a bank payment), which is what actually
+          releases money to you. We remind the landlord to do this right away once a job auto-approves.
+          Once they do, payment moves directly from them to you through Stripe, a third-party payment
+          processor; Prophandld does not hold or custody the funds at any point, and never sees or
+          stores your bank account details. That&apos;s handled entirely by Stripe. Every payment gets a
+          receipt, emailed to you and saved on the job record.
         </p>
       </section>
 

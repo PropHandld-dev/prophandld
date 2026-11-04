@@ -25,7 +25,7 @@ const WHY_POINTS = [
   {
     icon: ReceiptIcon,
     title: 'Paid directly, fast',
-    desc: "The moment a landlord approves your finished work, payment goes straight to your account through Stripe. No chasing checks, no 'the check is in the mail.'",
+    desc: "The moment a landlord approves your finished work, payment is due and they're prompted to pay right then. Once they do, it goes straight to your account through Stripe. No chasing checks, no 'the check is in the mail.'",
   },
 ]
 
@@ -33,7 +33,7 @@ const COMPARISON_ROWS: { label: string; typical: string; prophandld: string }[] 
   { label: 'Fee to see local jobs', typical: 'Monthly membership, common', prophandld: '$0' },
   { label: 'Cut of what you bid', typical: 'Often 10–20% off the top', prophandld: '$0' },
   { label: 'How you get picked', typical: 'Usually whoever bids lowest', prophandld: 'Sealed bid, picked on merit and trust' },
-  { label: 'Getting paid', typical: 'Varies, sometimes delayed', prophandld: 'Direct deposit the moment work is approved' },
+  { label: 'Getting paid', typical: 'Varies, sometimes delayed', prophandld: 'Due the moment work is approved, paid as soon as the landlord pays' },
 ]
 
 const FAQS: { q: string; a: string }[] = [
@@ -91,8 +91,8 @@ export default function ContractorsLandingPage() {
         <p className="text-lg text-white/50 max-w-2xl mx-auto mb-10">
           Real repair jobs from real landlords near you, sent straight to your
           phone for your trade. Submit a sealed bid, get picked on merit, and
-          get paid directly the moment the work is approved. Prophandld doesn&apos;t
-          take a cut of what you bid.
+          get paid directly as soon as the landlord pays, due the moment your
+          work is approved. Prophandld doesn&apos;t take a cut of what you bid.
         </p>
         <div className="flex items-center justify-center gap-4 flex-wrap">
           <MagneticLink
