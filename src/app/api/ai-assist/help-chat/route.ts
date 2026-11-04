@@ -7,6 +7,7 @@ import { getLandlordIdsAdmin } from '@/lib/landlordIds'
 import { claudeJson, ClaudeConfigError } from '@/lib/claude'
 import { PHILADELPHIA_COMPLIANCE_FACTS } from '@/lib/complianceFacts'
 import { rentMonthBounds } from '@/lib/rentAutomation'
+import { nextEscalationDate } from '@/lib/leaseEscalation'
 
 export const maxDuration = 30
 
@@ -161,7 +162,7 @@ async function getAccountFacts(admin: ReturnType<typeof getSupabaseAdmin>, authC
     const { data: tenancy } = tenancyId
       ? await admin
           .from('tenancies')
-          .select('id, rent_amount, rent_due_day, grace_period_days, lease_end, units(unit_number, properties(address))')
+          .select('id, rent_amount, rent_due_day, grace_period_days, lease_end, escalation_percent, escalation_frequency_months, lease_start, units(unit_number, properties(address))')
           .eq('id', tenancyId)
           .maybeSingle()
       : { data: null }
@@ -194,6 +195,14 @@ async function getAccountFacts(admin: ReturnType<typeof getSupabaseAdmin>, authC
       }
     }
 
+    // Same escalation fields lease-qa already reads from this exact row —
+    // caught live by the user: asked here, help-chat said "not sure about
+    // rent increase" while the dedicated lease Q&A (reading the same
+    // tenancy row) correctly knew the 7%/year terms. This wasn't a model
+    // confidence issue, the data just was never fetched into this route's
+    // account facts in the first place.
+    const nextIncrease = nextEscalationDate((tenancy as any).lease_start, tenancy.escalation_frequency_months)
+
     return {
       hasActiveLease: true,
       propertyAddress: unit?.properties?.address || null,
@@ -201,6 +210,9 @@ async function getAccountFacts(admin: ReturnType<typeof getSupabaseAdmin>, authC
       monthlyRent: tenancy.rent_amount,
       rentDueDay: tenancy.rent_due_day,
       leaseEnd: tenancy.lease_end,
+      rentEscalationPercent: tenancy.escalation_percent,
+      rentEscalationFrequencyMonths: tenancy.escalation_frequency_months,
+      nextRentIncreaseDate: nextIncrease ? nextIncrease.toISOString().slice(0, 10) : null,
       rentStatusThisMonth,
       openJobs: (jobs || []).map((j) => ({ category: j.category, status: j.status })),
     }
@@ -321,7 +333,10 @@ export async function POST(request: NextRequest) {
         'current) — if asked "who\'s behind on rent" or similar, name the unit(s) and how much/how many days, or ' +
         'say plainly that everyone is caught up if the list is empty. For a renter, rentStatusThisMonth is either ' +
         '"paid", null (no payment on file yet), or an object with amountDue/daysSinceDue/isLate — answer "have I ' +
-        'paid rent" directly from it. If asked how to actually renew one, make clear upfront which kind of ' +
+        'paid rent" directly from it. For a renter asking about a rent increase/escalation, rentEscalationPercent ' +
+        'and rentEscalationFrequencyMonths (e.g. 7 and 12 means 7% every 12 months) and nextRentIncreaseDate are ' +
+        'real values from their actual lease — state them directly when present; if rentEscalationPercent is ' +
+        'null, say plainly their lease has no scheduled increase on file rather than "not sure." If asked how to actually renew one, make clear upfront which kind of ' +
         'answer you\'re giving, since one is a verified fact and the other is general knowledge the landlord ' +
         'should still confirm. If the item\'s property is in Philadelphia, PA, open with that it\'s a verified ' +
         `fact for Philadelphia, then give the specifics: ${PHILADELPHIA_COMPLIANCE_FACTS} Otherwise, open by ` +
