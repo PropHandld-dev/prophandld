@@ -102,7 +102,7 @@ export function ContactUsWidget() {
             </div>
 
             <div className="px-5 py-4 flex-1 min-h-0">
-              {AI_ASSIST_ENABLED ? <AiHelpChat /> : <StaticContactForm />}
+              {AI_ASSIST_ENABLED ? <AiHelpChat onNavigate={() => setOpen(false)} /> : <StaticContactForm />}
             </div>
           </div>
         </div>

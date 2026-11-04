@@ -23,7 +23,7 @@ type Turn = { role: 'user' | 'assistant'; content: string; suggestEscalate?: boo
 // (or just closing the bubble, which unmounts this and wipes `turns`
 // either way) is the only way it ever goes away. Users are told this up
 // front rather than finding out by it just not being there next time.
-export function AiHelpChat({ initialMessage }: { initialMessage?: string | null } = {}) {
+export function AiHelpChat({ initialMessage, onNavigate }: { initialMessage?: string | null; onNavigate?: () => void } = {}) {
   const lang = useLanguage()
   const [email, setEmail] = useState<string | null>(null)
   const [started, setStarted] = useState(false)
@@ -187,8 +187,14 @@ export function AiHelpChat({ initialMessage }: { initialMessage?: string | null 
                 <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{turn.content}</p>
               </div>
               {turn.role === 'assistant' && turn.navLink && (
+                // Caught live by the user: this navigates the page behind
+                // it, but the chat panel is a fixed-position overlay that
+                // stays open on top — nothing visibly changes, so someone
+                // seeing it the first time has no way to tell the tap did
+                // anything. Closing the panel on tap is the fix.
                 <Link
                   href={turn.navLink.path}
+                  onClick={() => onNavigate?.()}
                   className="inline-flex items-center gap-1 text-[#12A5A9] text-xs font-semibold hover:underline mt-1.5"
                 >
                   {turn.navLink.label} →
