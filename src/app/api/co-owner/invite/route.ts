@@ -6,6 +6,7 @@ import { emailAllowed } from '@/lib/notificationPrefs'
 import { sendPush } from '@/lib/push'
 import { sendAlertSms } from '@/lib/sms'
 import { toE164 } from '@/lib/phoneFormat'
+import { tooManyRequests } from '@/lib/rateLimit'
 
 // This route both reveals account existence/role (a real email-
 // enumeration surface, same shape as /api/profiles/check-email) AND
@@ -17,21 +18,11 @@ import { toE164 } from '@/lib/phoneFormat'
 // precise key) rather than left unprotected the way co-renter/add is —
 // the co-renter precedent only ever reaches one unit's household, this
 // reaches a whole portfolio and now SMS too, so it gets the stricter
-// treatment.
+// treatment. Was an in-memory Map until caught live (2026-11-04) via the
+// same cross-instance-reset gap found and fixed on the enumeration routes
+// and phone/send-code — now the shared, real cross-instance limiter.
 const RATE_LIMIT = 5
-const RATE_WINDOW_MS = 60_000
-const hits = new Map<string, number[]>()
-
-function rateLimited(key: string): boolean {
-  const now = Date.now()
-  const recent = (hits.get(key) || []).filter((t) => now - t < RATE_WINDOW_MS)
-  recent.push(now)
-  hits.set(key, recent)
-  if (hits.size > 5000) {
-    for (const [k, v] of hits) if (v.every((t) => now - t >= RATE_WINDOW_MS)) hits.delete(k)
-  }
-  return recent.length > RATE_LIMIT
-}
+const RATE_WINDOW_MINUTES = 1
 
 // Mirrors /api/co-renter/add's shape closely: role lives in app_metadata,
 // which only a service-role client can read, so this has to be a server
@@ -48,7 +39,7 @@ export async function POST(request: NextRequest) {
   if (user.app_metadata?.role !== 'landlord') {
     return NextResponse.json({ error: 'Only landlords can invite a co-owner' }, { status: 403 })
   }
-  if (rateLimited(user.id)) {
+  if (await tooManyRequests(`co-owner-invite:${user.id}`, RATE_LIMIT, RATE_WINDOW_MINUTES)) {
     return NextResponse.json({ error: 'Too many invites sent, try again shortly' }, { status: 429 })
   }
 

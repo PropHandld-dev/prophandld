@@ -3,26 +3,24 @@ import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { sendSms } from '@/lib/sms'
 import { toE164 } from '@/lib/phoneFormat'
+import { tooManyRequests } from '@/lib/rateLimit'
 
 export const maxDuration = 15
 
 // Sends a 6-digit code to verify a phone number before SMS alerts can be
 // turned on — same algorithm/shape as the password-reset and signup
 // email codes elsewhere in the app, just over SMS instead of email.
+//
+// Caught live (2026-11-04) going through a real Twilio delivery log: a
+// burst of ~15 codes to one number over roughly an hour, well past what
+// this was ever meant to allow. Root cause was the same shape already
+// fixed on the enumeration routes earlier today — an in-memory Map
+// rate limit resets on every cold start and shares nothing across
+// Vercel's serverless instances, so it never actually constrained
+// anything in production. Each SMS here costs real money, so this
+// wasn't just a security gap, it was an unbounded cost one.
 const RATE_LIMIT = 5
-const RATE_WINDOW_MS = 60_000
-const hits = new Map<string, number[]>()
-
-function rateLimited(key: string): boolean {
-  const now = Date.now()
-  const recent = (hits.get(key) || []).filter((t) => now - t < RATE_WINDOW_MS)
-  recent.push(now)
-  hits.set(key, recent)
-  if (hits.size > 5000) {
-    for (const [k, v] of hits) if (v.every((t) => now - t >= RATE_WINDOW_MS)) hits.delete(k)
-  }
-  return recent.length > RATE_LIMIT
-}
+const RATE_WINDOW_MINUTES = 1
 
 export async function POST(request: NextRequest) {
   const authClient = await createClient()
@@ -30,7 +28,7 @@ export async function POST(request: NextRequest) {
   if (!user) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
-  if (rateLimited(user.id)) {
+  if (await tooManyRequests(`phone-send-code:${user.id}`, RATE_LIMIT, RATE_WINDOW_MINUTES)) {
     return NextResponse.json({ error: 'Too many attempts, try again shortly' }, { status: 429 })
   }
 
