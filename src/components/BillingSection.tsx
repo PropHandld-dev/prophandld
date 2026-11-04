@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { goToStripe } from '@/lib/externalTab'
-import { formatTierPrice, type LandlordTier } from '@/lib/pricingTiers'
-import { useLanguage, t, tierRangeLabel } from '@/lib/i18n'
+import { formatTierPrice, marketingTierName, marketingTierRange, type LandlordTier } from '@/lib/pricingTiers'
+import { useLanguage, t } from '@/lib/i18n'
 
 type Status = {
   unitCount: number
@@ -143,7 +143,7 @@ export function BillingSection() {
         <div>
           <p className="text-white font-semibold">{formatTierPrice(status.unitCount)}</p>
           <p className="text-white/60 text-xs mt-0.5">
-            {status.unitCount} unit{status.unitCount === 1 ? '' : 's'} · {tierRangeLabel(status.tier, lang)} {t('tierSuffix', lang)}
+            {marketingTierRange(status.unitCount)} · {marketingTierName(status.unitCount)} {t('tierSuffix', lang)}
           </p>
         </div>
         {status.tier !== 'free' && (

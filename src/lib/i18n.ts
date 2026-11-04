@@ -1327,11 +1327,6 @@ const STRINGS = {
   couldNotStartCheckout: { en: 'Could not start checkout.', es: 'No se pudo iniciar el pago.' },
   couldNotOpenBillingPortal: { en: 'Could not open billing portal.', es: 'No se pudo abrir el portal de facturación.' },
   updatePaymentMethodBtn: { en: 'Update payment method', es: 'Actualizar método de pago' },
-  tierRangeFree: { en: '1 unit', es: '1 unidad' },
-  tierRangeStarter: { en: '2–25 units', es: '2–25 unidades' },
-  tierRangeGrowth: { en: '26–100 units', es: '26–100 unidades' },
-  tierRangePortfolio: { en: '101–500 units', es: '101–500 unidades' },
-  tierRangeEnterprise: { en: '500+ units', es: '500+ unidades' },
   subscribeColon: { en: 'Subscribe:', es: 'Suscribirse:' },
   planIsForUnits: { en: 'Your plan is', es: 'Tu plan es' },
   subscribeKeepAddingEnforced: { en: 'Subscribe to keep adding properties and units. Repairs, rent and messages keep working as usual.', es: 'Suscríbete para seguir agregando propiedades y unidades. Reparaciones, renta y mensajes siguen funcionando normalmente.' },
@@ -2144,20 +2139,6 @@ export function windowLabel(value: string | undefined, lang: Lang): string {
 // said "Renter" for the exact same role, a mismatch a viewer would notice
 // switching between the inbox and a conversation. Call this instead of
 // writing a fourth copy.
-// Translated version of pricingTiers.ts's TIER_RANGE_LABELS (kept separate
-// there for a deliberate reason — that file must stay free of anything
-// that isn't safe in a client bundle alongside the `stripe` package — but
-// the range text itself is plain UI copy, so it belongs here with the
-// rest of the translated strings.
-export function tierRangeLabel(tier: string, lang: Lang): string {
-  if (tier === 'free') return t('tierRangeFree', lang)
-  if (tier === 'starter') return t('tierRangeStarter', lang)
-  if (tier === 'growth') return t('tierRangeGrowth', lang)
-  if (tier === 'portfolio') return t('tierRangePortfolio', lang)
-  if (tier === 'enterprise') return t('tierRangeEnterprise', lang)
-  return tier
-}
-
 export function roleLabel(role: string, lang: Lang): string {
   if (role === 'landlord') return t('landlordLabel', lang)
   if (role === 'renter') return t('renterLabel', lang)

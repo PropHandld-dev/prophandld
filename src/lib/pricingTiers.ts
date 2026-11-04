@@ -67,6 +67,22 @@ export function marketingTierName(unitCount: number): string {
   return 'Portfolio'
 }
 
+// The unit-band text for each marketing tier, matching exactly what
+// PricingCalculator.tsx and the /pricing page show — caught live by an
+// external audit: the account billing section used to show the internal
+// LandlordTier's single "2–25 units · Starter" range, while the public
+// pricing page splits that same range into three separately-priced bands
+// (Basic/Pro/Executive) under three different names. A landlord with 6
+// units saw "Starter" on their own bill and "Pro" on the price list for
+// the exact same unit count.
+export function marketingTierRange(unitCount: number): string {
+  if (unitCount <= 1) return '1 unit'
+  if (unitCount <= 4) return '2–4 units'
+  if (unitCount <= 10) return '5–10 units'
+  if (unitCount <= 25) return '11–25 units'
+  return '26+ units'
+}
+
 // The actual graduated formula, mirrored here for anywhere that needs a
 // real dollar figure without calling Stripe (admin reporting, mainly) —
 // Stripe's own tiered Price (configured with matching flat/per-unit
