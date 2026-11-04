@@ -16,6 +16,7 @@ import { ContactInviteInput, type ContactMode } from '@/components/ContactInvite
 import { useLanguage, t } from '@/lib/i18n'
 import { useConfirm } from '@/lib/useConfirm'
 import { ordinal, nextEscalationDate } from '@/lib/leaseEscalation'
+import { rentMonthBounds } from '@/lib/rentAutomation'
 
 const IN_PROGRESS_STATUSES = ['pending_approval', 'approved', 'bidding', 'bid_selected', 'scheduled', 'in_progress']
 
@@ -845,10 +846,18 @@ export default function UnitDetailPage() {
               </Link>
             </div>
             {(() => {
-              // The month that needs attention: the oldest unpaid one, else the latest paid.
+              // The month that needs attention: the oldest unpaid one that's
+              // actually due, else the latest paid. Rent rows get generated
+              // a few days ahead of their due month (rentAutomation.ts) —
+              // caught live by an external audit: with this month already
+              // paid, the unpaid *next* month's row (not yet due at all)
+              // used to win here instead, showing a future month with a
+              // "due" date that hadn't arrived yet.
+              const currentMonthKey = rentMonthBounds().month
               const rows = [...rentRows].sort((a, b) => a.month.localeCompare(b.month))
               const isPaidRow = (r: any) => Number(r.expected_amount) > 0 && Number(r.actual_amount || 0) >= Number(r.expected_amount)
-              const focus = rows.find((r) => !isPaidRow(r)) ?? rows[rows.length - 1]
+              const dueRows = rows.filter((r) => r.month <= currentMonthKey)
+              const focus = dueRows.find((r) => !isPaidRow(r)) ?? dueRows[dueRows.length - 1] ?? rows[0]
               if (!focus) {
                 return <p className="text-white/50 text-sm">{t('rentMonthsAppearHere', lang)}</p>
               }

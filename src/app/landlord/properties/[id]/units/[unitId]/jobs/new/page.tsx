@@ -324,15 +324,18 @@ export default function NewLandlordJobPage() {
             )}
           </div>
 
-          <label className="flex items-center gap-3 bg-white/3 border border-white/8 rounded-xl p-4 cursor-pointer hover:bg-white/5 transition-all">
+          <label className="flex items-start gap-3 bg-white/3 border border-white/8 rounded-xl p-4 cursor-pointer hover:bg-white/5 transition-all">
             <input
               type="checkbox"
               checked={form.is_emergency}
               onChange={(e) => setForm({ ...form, is_emergency: e.target.checked })}
-              className="w-4 h-4"
+              className="w-4 h-4 mt-0.5"
             />
-            <AlertTriangleIcon className="w-4 h-4 text-yellow-400 shrink-0" />
-            <span className="text-white text-sm">{t('markAsEmergency', lang)}</span>
+            <AlertTriangleIcon className="w-4 h-4 text-yellow-400 shrink-0 mt-0.5" />
+            <div>
+              <span className="text-white text-sm">{t('markAsEmergency', lang)}</span>
+              <p className="text-white/50 text-xs mt-0.5">{t('emergencyExplain', lang)}</p>
+            </div>
           </label>
 
           {error && (
