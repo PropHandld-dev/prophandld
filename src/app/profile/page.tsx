@@ -69,6 +69,7 @@ export default function ProfilePage() {
   })
   const [showPasswordToast, setShowPasswordToast] = useState(false)
   const [initialLanguage, setInitialLanguage] = useState<'en' | 'es'>('en')
+  const [initialPhone, setInitialPhone] = useState('')
   const [showLanguageToast, setShowLanguageToast] = useState(false)
   const [showInviteLinkedToast, setShowInviteLinkedToast] = useState(false)
   const [showProfileSavedToast, setShowProfileSavedToast] = useState(false)
@@ -102,13 +103,15 @@ export default function ProfilePage() {
       }
       setRole(getAccountRole(user) || '')
       const loadedLanguage = user.user_metadata?.preferred_language === 'es' ? 'es' : 'en'
+      const loadedPhone = user.user_metadata?.phone || ''
       setForm({
         full_name: user.user_metadata?.full_name || '',
         email: user.email || '',
-        phone: user.user_metadata?.phone || '',
+        phone: loadedPhone,
         preferred_language: loadedLanguage,
       })
       setInitialLanguage(loadedLanguage)
+      setInitialPhone(loadedPhone)
       setEmailVerified(!!user.email_confirmed_at)
 
       // Independent of each other — only depend on user.id, not on one
@@ -376,6 +379,17 @@ export default function ProfilePage() {
         setSaving(false)
         return
       }
+    }
+
+    // Caught live by the user: a phone change correctly nulls
+    // phone_verified_at server-side (clear_phone_verification_on_change
+    // trigger), but this page's own `phoneVerified` state was only ever
+    // set once on load — nothing here ever recomputed it after a save,
+    // so the badge kept showing "Verified" for a brand new, never-actually-
+    // verified number until a manual reload happened to catch up.
+    if (form.phone !== initialPhone) {
+      setPhoneVerified(false)
+      setInitialPhone(form.phone)
     }
 
     setSaving(false)
