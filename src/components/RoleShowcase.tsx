@@ -47,11 +47,6 @@ const RENTER_ISSUES = [
   { title: 'HVAC filter service', status: 'Scheduled for Thursday', tone: 'teal' },
 ] as const
 
-const RENTER_DOCUMENTS = [
-  { icon: FileTextIcon, title: 'Renters insurance.pdf', subtitle: 'Shared with your landlord' },
-  { icon: FileTextIcon, title: 'Lease agreement.pdf', subtitle: 'From your landlord' },
-] as const
-
 const CONTRACTOR_JOBS = [
   { title: 'Bathroom fan replacement', meta: '789 Pine St · 2.1 mi', badge: 'Bid now' },
   { title: 'Water heater inspection', meta: '456 Elm Ave · 4.6 mi', badge: 'Bid now' },
@@ -218,53 +213,46 @@ function RenterPreview() {
         </div>
       </div>
 
+      {/* Matches the real renter dashboard's own layout (and its code
+          comment explaining why): Pay rent and Report an issue as the
+          very first thing, not buried after "Your home" — this mock had
+          drifted from an earlier version of that page and still showed
+          the old order. */}
+      <div className="grid grid-cols-2 gap-3 mb-5">
+        <div className="bg-white/3 border border-white/8 rounded-2xl py-5 px-3 text-center">
+          <div className="w-9 h-9 rounded-full bg-[#0A7B7E]/20 flex items-center justify-center mx-auto mb-2">
+            <DollarSignIcon className="w-4 h-4 text-[#12A5A9]" />
+          </div>
+          <span className="text-white font-semibold text-xs sm:text-sm">Pay rent</span>
+        </div>
+        <div className="bg-gradient-to-br from-[#0A7B7E]/20 to-[#12A5A9]/10 border border-[#12A5A9]/30 rounded-2xl py-5 px-3 text-center">
+          <div className="w-9 h-9 rounded-full bg-[#12A5A9]/20 flex items-center justify-center mx-auto mb-2">
+            <WrenchIcon className="w-4 h-4 text-[#12A5A9]" />
+          </div>
+          <span className="text-white font-semibold text-xs sm:text-sm">Report an issue</span>
+        </div>
+      </div>
+
       <div className="bg-white/3 border border-white/8 rounded-2xl p-4 sm:p-5 mb-4">
         <p className="text-white/70 text-xs font-semibold mb-1">Your home</p>
         <p className="text-white text-sm">789 Pine St · Unit B</p>
       </div>
 
-      <div className="bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/10 border border-[#12A5A9]/30 rounded-2xl p-4 sm:p-5 mb-4 flex items-center justify-between">
-        <div>
-          <p className="text-white font-semibold text-sm">Report an issue</p>
-          <p className="text-white/50 text-xs mt-0.5">Snap a photo, ✦ AI helps you try a fix first.</p>
+      <div className="bg-white/3 border border-white/8 rounded-2xl p-4 sm:p-5 mb-4">
+        <div className="flex items-center gap-2 mb-1">
+          <FileTextIcon className="w-3.5 h-3.5 text-white/60" />
+          <p className="text-white/70 text-xs font-semibold">Documents</p>
         </div>
-        <span className="text-xs font-semibold bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white px-3 py-1.5 rounded-full shrink-0">
-          Report
-        </span>
+        <p className="text-white/60 text-[10px] sm:text-xs">Your lease and anything shared with you.</p>
       </div>
 
-      <div className="bg-white/3 border border-white/8 rounded-2xl p-4 sm:p-5 mb-4">
-        <div className="flex items-center gap-2 mb-3">
-          <DollarSignIcon className="w-3.5 h-3.5 text-white/60" />
-          <p className="text-white/70 text-xs font-semibold">Pay rent</p>
-        </div>
-        <p className="text-white/60 text-[10px] sm:text-xs">Secure online payments, card or bank account.</p>
-      </div>
-
-      <div className="bg-white/3 border border-white/8 rounded-2xl p-4 sm:p-5 mb-4">
+      <div className="bg-white/3 border border-white/8 rounded-2xl p-4 sm:p-5">
         <p className="text-white/70 text-xs font-semibold mb-3">Your issues</p>
         <div className="space-y-2.5">
           {RENTER_ISSUES.map((issue) => (
             <div key={issue.title} className="bg-white/[0.03] rounded-xl px-3 py-2.5">
               <p className="text-white text-xs sm:text-sm font-medium truncate">{issue.title}</p>
               <p className="text-[#12A5A9] text-[10px] sm:text-xs mt-0.5 truncate">{issue.status}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="bg-white/3 border border-white/8 rounded-2xl p-4 sm:p-5">
-        <p className="text-white/70 text-xs font-semibold mb-3">Documents</p>
-        <div className="space-y-2.5">
-          {RENTER_DOCUMENTS.map(({ icon: Icon, title, subtitle }) => (
-            <div key={title} className="flex items-center gap-3 bg-white/[0.03] rounded-xl px-3 py-2.5">
-              <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 bg-[#12A5A9]/15 text-[#12A5A9]">
-                <Icon className="w-3.5 h-3.5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-white text-xs sm:text-sm font-medium truncate">{title}</p>
-                <p className="text-white/60 text-[10px] sm:text-xs truncate">{subtitle}</p>
-              </div>
             </div>
           ))}
         </div>
@@ -286,18 +274,22 @@ function ContractorPreview() {
         </div>
       </div>
 
+      {/* Matches the real contractor dashboard's own three stat tiles —
+          this mock used to show a 4.9★ "Rating" tile that doesn't
+          actually exist anywhere on the real dashboard, alongside "Open
+          jobs"/"This month" labels the real page doesn't use either. */}
       <div className="grid grid-cols-3 gap-3 mb-5">
         <div className="bg-white/3 border border-white/8 rounded-xl p-3 sm:p-4 text-center">
           <div className="text-xl sm:text-2xl font-bold text-white">6</div>
-          <div className="text-white/60 text-[10px] sm:text-xs mt-0.5">Open jobs</div>
+          <div className="text-white/60 text-[10px] sm:text-xs mt-0.5">New Jobs</div>
         </div>
         <div className="bg-white/3 border border-white/8 rounded-xl p-3 sm:p-4 text-center">
-          <div className="text-xl sm:text-2xl font-bold text-white">4.9★</div>
-          <div className="text-white/60 text-[10px] sm:text-xs mt-0.5">Rating</div>
+          <div className="text-xl sm:text-2xl font-bold text-white">3</div>
+          <div className="text-white/60 text-[10px] sm:text-xs mt-0.5">My jobs</div>
         </div>
         <div className="bg-white/3 border border-white/8 rounded-xl p-3 sm:p-4 text-center">
-          <div className="text-xl sm:text-2xl font-bold text-white">$2.4k</div>
-          <div className="text-white/60 text-[10px] sm:text-xs mt-0.5">This month</div>
+          <div className="text-xl sm:text-2xl font-bold text-white">$2,400</div>
+          <div className="text-white/60 text-[10px] sm:text-xs mt-0.5">Earnings</div>
         </div>
       </div>
 
