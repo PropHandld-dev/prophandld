@@ -230,6 +230,11 @@ function RenterPreview() {
             <WrenchIcon className="w-4 h-4 text-[#12A5A9]" />
           </div>
           <span className="text-white font-semibold text-xs sm:text-sm">Report an issue</span>
+          {/* Matches how AI is actually scoped (landlord-paid add-on,
+              benefits their renters automatically) — the AiAssistShowcase
+              section further down the page covers the "optional add-on"
+              framing in full, this is just a glanceable mention. */}
+          <p className="text-[#12A5A9]/80 text-[10px] mt-1">✦ AI tries a fix first</p>
         </div>
       </div>
 
@@ -275,9 +280,9 @@ function ContractorPreview() {
       </div>
 
       {/* Matches the real contractor dashboard's own three stat tiles —
-          this mock used to show a 4.9★ "Rating" tile that doesn't
-          actually exist anywhere on the real dashboard, alongside "Open
-          jobs"/"This month" labels the real page doesn't use either. */}
+          rating is real too (★ average + review count, on Settings, not
+          the dashboard itself), shown lower down in Your credentials
+          instead of mixed into these three. */}
       <div className="grid grid-cols-3 gap-3 mb-5">
         <div className="bg-white/3 border border-white/8 rounded-xl p-3 sm:p-4 text-center">
           <div className="text-xl sm:text-2xl font-bold text-white">6</div>
@@ -314,8 +319,14 @@ function ContractorPreview() {
       </div>
 
       <div className="bg-white/3 border border-white/8 rounded-2xl p-4 sm:p-5">
-        <p className="text-white/70 text-xs font-semibold mb-3">Your credentials</p>
-        <p className="text-white/50 text-[10px] sm:text-xs mb-3 -mt-1.5">Landlords see this before picking a bid.</p>
+        <div className="flex items-center justify-between mb-1">
+          <p className="text-white/70 text-xs font-semibold">Your credentials</p>
+          {/* Real feature, just lives on Settings rather than the
+              dashboard itself — ★ average plus review count, backed by
+              get_contractor_rating_summary. */}
+          <span className="text-xs font-semibold text-white">★ 4.9 <span className="text-white/40 font-normal">(31)</span></span>
+        </div>
+        <p className="text-white/50 text-[10px] sm:text-xs mb-3">Landlords see this before picking a bid.</p>
         <div className="space-y-2.5">
           {CONTRACTOR_CREDENTIALS.map(({ icon: Icon, tone, title, subtitle, badge }) => (
             <div key={title} className="flex items-center gap-3 bg-white/[0.03] rounded-xl px-3 py-2.5">
