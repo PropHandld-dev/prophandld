@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { getAccountRole } from '@/lib/accountRole'
 import { AiHelpChat } from '@/components/AiHelpChat'
 import { AI_ASSIST_ENABLED } from '@/lib/aiAssist'
+import { useAiHelpChatAccess } from '@/lib/useAiHelpChatAccess'
 import { useLanguage, t } from '@/lib/i18n'
 import { onOpenAiHelp } from '@/lib/openAiHelp'
 
@@ -60,9 +61,11 @@ export function AiHelpBubble() {
     return () => sub.subscription.unsubscribe()
   }, [])
 
+  const access = useAiHelpChatAccess(role)
+
   const isLandingPage = pathname === '/'
   const isAuthPage = ['/login', '/signup', '/forgot-password', '/reset-password'].includes(pathname)
-  if (!AI_ASSIST_ENABLED || !role || isLandingPage || isAuthPage) return null
+  if (!AI_ASSIST_ENABLED || !role || isLandingPage || isAuthPage || !access) return null
 
   return (
     <>

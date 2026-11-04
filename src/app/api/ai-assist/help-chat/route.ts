@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
-import { AI_ASSIST_ENABLED } from '@/lib/aiAssist'
+import { AI_ASSIST_ENABLED, hasAiAssistAccess } from '@/lib/aiAssist'
 import { tooManyAiAssistRequests } from '@/lib/aiAssistRateLimit'
 import { getLandlordIdsAdmin } from '@/lib/landlordIds'
 import { claudeJson, ClaudeConfigError } from '@/lib/claude'
@@ -11,11 +11,13 @@ import { nextEscalationDate } from '@/lib/leaseEscalation'
 
 export const maxDuration = 30
 
-// Free for every signed-in user, regardless of role or any landlord's
-// billing — this is platform support, the AI-upgraded version of the
-// static-FAQ contact widget, not a paid add-on. Still gated behind
-// AI_ASSIST_ENABLED, same as everything else in this proposal, since it's
-// part of the same team review.
+// Part of Prophandld AI (the landlord-paid add-on), same gating as every
+// other feature in it — reversed from an earlier "always free for
+// everyone" design (2026-11-04) once that turned out not to be the
+// intended product shape. A landlord needs their own active Prophandld AI
+// to use this; a renter rides on their landlord's, same as lease Q&A;
+// contractors don't get it at all, same as every other Prophandld AI
+// feature.
 //
 // The whole feature map below is the one source of truth for what this
 // assistant is allowed to claim exists — kept in sync by hand with the
@@ -32,7 +34,7 @@ CONTRACTOR can: browse and submit sealed bids on open jobs (nobody, including th
 
 JOB LIFECYCLE (all three roles watch the same job move through this): reported -> approved by landlord -> open for bidding -> landlord selects a bid -> schedule confirmed -> in progress -> landlord reviews finished work -> paid. A job can also be disputed if something goes wrong.
 
-PROPHANDLD AI (also called AI Assist internally, but always refer to it as "Prophandld AI" when talking to a user): a paid landlord add-on (priced by unit count, 14-day free trial) that unlocks more AI features across the app for that landlord's whole portfolio. Benefits the landlord and their renters, automatically, at no extra cost to the renter — NOT contractors, who don't get Prophandld AI's features regardless of whether the landlord has it on. Features: reading uploaded documents to auto-fill lease/compliance/appliance forms, a lease Q&A chat for renters, a troubleshooting assistant for renters (and landlords doing a job themselves) that can review an attached photo and suggest safe things to try before a contractor is needed, AI-verified compliance renewals, a portfolio digest of what needs attention, drafting routine messages, and a few smaller touches elsewhere. Turned on/managed from Profile. This help assistant itself is separate and always free regardless of Prophandld AI, for every role including contractors.
+PROPHANDLD AI (also called AI Assist internally, but always refer to it as "Prophandld AI" when talking to a user): a paid landlord add-on (priced by unit count, 14-day free trial) that unlocks AI features across the app for that landlord's whole portfolio, including this chat itself. Benefits the landlord and their renters, automatically, at no extra cost to the renter — NOT contractors, who don't get Prophandld AI's features regardless of whether the landlord has it on. Features: this chat, reading uploaded documents to auto-fill lease/compliance/appliance forms, a lease Q&A chat for renters, a troubleshooting assistant for renters (and landlords doing a job themselves) that can review an attached photo and suggest safe things to try before a contractor is needed, AI-verified compliance renewals, a portfolio digest of what needs attention, drafting routine messages, and a few smaller touches elsewhere. Turned on/managed from Profile.
 
 Legal pages exist at /terms (plus role-specific /terms/landlord, /terms/renter, /terms/contractor) and /privacy — point people there for anything legal/contractual rather than answering a legal question yourself.
 `.trim()
@@ -246,8 +248,35 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
   const role = user.app_metadata?.role
-  if (role !== 'landlord' && role !== 'renter' && role !== 'contractor') {
-    return NextResponse.json({ error: 'Not available' }, { status: 403 })
+  if (role !== 'landlord' && role !== 'renter') {
+    return NextResponse.json({ error: 'Prophandld AI is not available for this account' }, { status: 403 })
+  }
+
+  const supabaseAdmin = getSupabaseAdmin()
+
+  // Landlord needs their own active Prophandld AI; a renter rides on
+  // whatever their landlord has, same resolution lease-qa/renter-status
+  // already use (tenancy -> unit -> property -> owner_user_id). Also
+  // doubles as who this message's real AI spend bills to.
+  let billedUserId: string
+  if (role === 'landlord') {
+    if (!(await hasAiAssistAccess(supabaseAdmin, user.id))) {
+      return NextResponse.json({ error: 'Turn on Prophandld AI from your Profile to use this.' }, { status: 403 })
+    }
+    billedUserId = user.id
+  } else {
+    const { data: tenancyId } = await authClient.rpc('get_my_active_tenancy_id')
+    const { data: tenancy } = tenancyId
+      ? await supabaseAdmin.from('tenancies').select('unit_id').eq('id', tenancyId).maybeSingle()
+      : { data: null }
+    const { data: unit } = tenancy
+      ? await supabaseAdmin.from('units').select('properties(owner_user_id)').eq('id', tenancy.unit_id).maybeSingle()
+      : { data: null }
+    const landlordUserId = (unit as any)?.properties?.owner_user_id
+    if (!landlordUserId || !(await hasAiAssistAccess(supabaseAdmin, landlordUserId))) {
+      return NextResponse.json({ error: 'Your landlord hasn’t turned on Prophandld AI yet.' }, { status: 403 })
+    }
+    billedUserId = landlordUserId
   }
 
   // Generous — a real back-and-forth conversation easily runs 10+ turns —
@@ -263,7 +292,6 @@ export async function POST(request: NextRequest) {
   }
   const trimmedHistory = (history || []).slice(-8).filter((t) => t.role === 'user' || t.role === 'assistant')
 
-  const supabaseAdmin = getSupabaseAdmin()
   const [{ data: profile }, accountFacts] = await Promise.all([
     supabaseAdmin.from('users').select('preferred_language').eq('id', user.id).maybeSingle(),
     getAccountFacts(supabaseAdmin, authClient, user.id, role),
@@ -371,7 +399,7 @@ export async function POST(request: NextRequest) {
       // sentence answer, so matching that ceiling rather than waiting to
       // rediscover the bug here a third time.
       maxTokens: 1000,
-      track: { billedUserId: null, callerUserId: user.id, feature: 'help-chat' },
+      track: { billedUserId, callerUserId: user.id, feature: 'help-chat' },
     })
     // Deliberately not persisted anywhere (2026-11-01 product decision —
     // this used to write every turn to ai_help_chat_messages for a 30-day

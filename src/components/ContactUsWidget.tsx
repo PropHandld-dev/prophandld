@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { getAccountRole } from '@/lib/accountRole'
 import { useLanguage, t } from '@/lib/i18n'
 import { AiHelpChat } from '@/components/AiHelpChat'
 import { AI_ASSIST_ENABLED } from '@/lib/aiAssist'
+import { useAiHelpChatAccess } from '@/lib/useAiHelpChatAccess'
 
 // Plain static form — unchanged, this is exactly what every visit used
 // before AiHelpChat existed. Kept as the fallback for as long as
@@ -75,6 +77,17 @@ function StaticContactForm() {
 export function ContactUsWidget() {
   const lang = useLanguage()
   const [open, setOpen] = useState(false)
+  const [role, setRole] = useState<'landlord' | 'renter' | 'contractor' | null>(null)
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      const r = getAccountRole(user)
+      setRole(r === 'landlord' || r === 'renter' || r === 'contractor' ? r : null)
+    })
+  }, [])
+
+  const access = useAiHelpChatAccess(role)
+  const showChat = AI_ASSIST_ENABLED && !!access
 
   return (
     <>
@@ -88,7 +101,7 @@ export function ContactUsWidget() {
           onClick={() => setOpen(false)}
         >
           <div
-            className={`w-full max-w-sm bg-[#0F2138] border border-white/10 rounded-3xl shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] overflow-hidden flex flex-col ${AI_ASSIST_ENABLED ? 'h-[70vh] sm:h-[520px]' : ''}`}
+            className={`w-full max-w-sm bg-[#0F2138] border border-white/10 rounded-3xl shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] overflow-hidden flex flex-col ${showChat ? 'h-[70vh] sm:h-[520px]' : ''}`}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-5 py-4 border-b border-white/8 shrink-0">
@@ -102,7 +115,7 @@ export function ContactUsWidget() {
             </div>
 
             <div className="px-5 py-4 flex-1 min-h-0">
-              {AI_ASSIST_ENABLED ? <AiHelpChat onNavigate={() => setOpen(false)} /> : <StaticContactForm />}
+              {showChat ? <AiHelpChat onNavigate={() => setOpen(false)} /> : <StaticContactForm />}
             </div>
           </div>
         </div>
