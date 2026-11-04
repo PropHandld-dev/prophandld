@@ -17,6 +17,9 @@ export function isVideoFile(file: File) {
 
 // Returns an error string to show the user, or null if the file's fine.
 export function validateMediaFile(file: File): string | null {
+  if (file.size === 0) {
+    return `${file.name} is empty (0 bytes). Choose a real file.`
+  }
   if (isVideoFile(file)) {
     if (file.size > MAX_VIDEO_BYTES) {
       return `${file.name} is too large (over 60MB). Trim it or take a shorter clip.`
@@ -48,6 +51,14 @@ const DOCUMENT_MIME_TYPES = [
 // allowedExtensions narrows the list for a form whose accept="" attribute
 // advertises fewer types (e.g. no .doc/.docx) than the general default.
 export function validateDocumentFile(file: File, opts?: { allowedExtensions?: string[] }): string | null {
+  // Caught live by an external audit: a 0-byte file passed straight
+  // through (0 is never over the max) and was accepted as a normal
+  // document. This doesn't validate that a PDF's actual content is
+  // well-formed — that needs real parsing, not a client-side size check —
+  // but it closes the trivial, obviously-broken case.
+  if (file.size === 0) {
+    return `${file.name} is empty (0 bytes). Choose a real file.`
+  }
   if (file.size > MAX_DOCUMENT_BYTES) {
     return `${file.name} is too large (over 20MB). Use a smaller file or a lower-resolution scan.`
   }

@@ -15,8 +15,8 @@ import { CONTRACTOR_TABS } from '@/lib/navTabs'
 import { useLanguage, t } from '@/lib/i18n'
 import { useConfirm } from '@/lib/useConfirm'
 
-function FieldLabel({ children }: { children: React.ReactNode }) {
-  return <label className="text-white/70 text-sm block mb-1">{children}</label>
+function FieldLabel({ children, htmlFor }: { children: React.ReactNode; htmlFor?: string }) {
+  return <label htmlFor={htmlFor} className="text-white/70 text-sm block mb-1">{children}</label>
 }
 
 // A plain ">0" check let through $1/$2 bids — technically valid, never a
@@ -219,6 +219,13 @@ export default function SubmitBidPage() {
       setError(t('enterValidBidAmount', lang))
       return
     }
+    // Caught live by an external audit: 0 or negative estimated hours
+    // reached Step 2 and Submit, with an overridden positive total
+    // masking the nonsensical rate/hours combination underneath it.
+    if (form.pricing_type === 'hourly' && (!form.estimated_hours || parseFloat(form.estimated_hours) <= 0)) {
+      setError(t('enterValidEstimatedHours', lang))
+      return
+    }
     setError(null)
     setStep('details')
   }
@@ -228,6 +235,10 @@ export default function SubmitBidPage() {
 
     if (!form.amount || parseFloat(form.amount) < MIN_BID_AMOUNT) {
       setError(t('bidAmountTooLow', lang).replace('{min}', String(MIN_BID_AMOUNT)))
+      return
+    }
+    if (form.pricing_type === 'hourly' && (!form.estimated_hours || parseFloat(form.estimated_hours) <= 0)) {
+      setError(t('enterValidEstimatedHours', lang))
       return
     }
 
@@ -405,6 +416,7 @@ export default function SubmitBidPage() {
               <div className="flex gap-2">
                 <input
                   type="text"
+                  aria-label={t('askBeforeYouBid', lang)}
                   value={questionText}
                   onChange={(e) => setQuestionText(e.target.value)}
                   placeholder={t('askBeforeYouBid', lang)}
@@ -462,8 +474,9 @@ export default function SubmitBidPage() {
 
               {form.pricing_type === 'hourly' && (
                 <div>
-                  <FieldLabel>{t('laborRateLabel', lang)}</FieldLabel>
+                  <FieldLabel htmlFor="bid-labor-rate">{t('laborRateLabel', lang)}</FieldLabel>
                   <input
+                    id="bid-labor-rate"
                     type="number"
                     name="labor_rate"
                     value={form.labor_rate}
@@ -478,8 +491,9 @@ export default function SubmitBidPage() {
               )}
 
               <div>
-                <FieldLabel>{t('estimatedHoursLabel', lang)}</FieldLabel>
+                <FieldLabel htmlFor="bid-estimated-hours">{t('estimatedHoursLabel', lang)}</FieldLabel>
                 <input
+                  id="bid-estimated-hours"
                   type="number"
                   name="estimated_hours"
                   value={form.estimated_hours}
@@ -492,10 +506,11 @@ export default function SubmitBidPage() {
               </div>
 
               <div>
-                <FieldLabel>
+                <FieldLabel htmlFor="bid-amount">
                   {form.pricing_type === 'hourly' ? t('totalBidAmountLabel', lang) : t('yourBidAmountLabel', lang)}
                 </FieldLabel>
                 <input
+                  id="bid-amount"
                   type="number"
                   name="amount"
                   value={form.amount}
@@ -532,8 +547,9 @@ export default function SubmitBidPage() {
               {step === 'details' && (
               <>
               <div>
-                <FieldLabel>{t('availabilityLabel', lang)}</FieldLabel>
+                <FieldLabel htmlFor="bid-availability">{t('availabilityLabel', lang)}</FieldLabel>
                 <input
+                  id="bid-availability"
                   type="text"
                   name="availability"
                   value={form.availability}
@@ -544,8 +560,9 @@ export default function SubmitBidPage() {
               </div>
 
               <div>
-                <FieldLabel>{t('notesOptionalLabel', lang)}</FieldLabel>
+                <FieldLabel htmlFor="bid-notes">{t('notesOptionalLabel', lang)}</FieldLabel>
                 <textarea
+                  id="bid-notes"
                   name="notes"
                   value={form.notes}
                   onChange={handleChange}
@@ -556,8 +573,9 @@ export default function SubmitBidPage() {
               </div>
 
               <div>
-                <FieldLabel>{t('notIncludedLabel', lang)}</FieldLabel>
+                <FieldLabel htmlFor="bid-not-included">{t('notIncludedLabel', lang)}</FieldLabel>
                 <textarea
+                  id="bid-not-included"
                   name="not_included"
                   value={form.not_included}
                   onChange={handleChange}

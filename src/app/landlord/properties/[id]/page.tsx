@@ -18,6 +18,7 @@ import { StreetView } from '@/components/StreetView'
 import { useLanguage, t, type Lang } from '@/lib/i18n'
 import { getLandlordIds } from '@/lib/landlordIds'
 import { useConfirm } from '@/lib/useConfirm'
+import { expectRow } from '@/lib/expectRow'
 
 function getTourSteps(lang: Lang): TourStep[] {
   return [
@@ -44,6 +45,7 @@ export default function PropertyDetailPage() {
   const [loading, setLoading] = useState(true)
   const [editingUnitId, setEditingUnitId] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
+  const [editOriginalValue, setEditOriginalValue] = useState('')
   const [savingUnit, setSavingUnit] = useState(false)
   const [unitError, setUnitError] = useState<string | null>(null)
   const { confirm, ConfirmDialog } = useConfirm()
@@ -134,12 +136,14 @@ export default function PropertyDetailPage() {
   const startEditing = (unit: any) => {
     setEditingUnitId(unit.id)
     setEditValue(unit.unit_number)
+    setEditOriginalValue(unit.unit_number)
     setUnitError(null)
   }
 
   const cancelEditing = () => {
     setEditingUnitId(null)
     setEditValue('')
+    setEditOriginalValue('')
     setUnitError(null)
   }
 
@@ -152,20 +156,30 @@ export default function PropertyDetailPage() {
     setSavingUnit(true)
     setUnitError(null)
 
-    const { error: updateError } = await supabase
+    // Caught live by an external QA batch: two tabs editing the same unit
+    // name, the stale one saved last and silently overwrote the newer
+    // name with no warning — a plain unconditional update, no way to
+    // tell "the row changed since I opened this editor." Matching on the
+    // value this editor actually started from turns that into a real
+    // conflict: zero rows match if someone else already changed it,
+    // which expectRow treats as a failure instead of a false success.
+    const { error: updateError } = await expectRow(supabase
       .from('units')
       .update({ unit_number: editValue.trim() })
       .eq('id', unitId)
+      .eq('unit_number', editOriginalValue))
 
     if (updateError) {
       console.error('Error updating unit:', updateError)
-      setUnitError('Could not save changes.')
+      setUnitError('Someone else changed this unit’s name since you opened this editor. Refreshing with the latest value.')
       setSavingUnit(false)
+      await fetchProperty()
       return
     }
 
     setEditingUnitId(null)
     setEditValue('')
+    setEditOriginalValue('')
     setSavingUnit(false)
     await fetchProperty()
   }

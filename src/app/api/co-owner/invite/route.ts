@@ -28,8 +28,13 @@ const RATE_WINDOW_MINUTES = 1
 // which only a service-role client can read, so this has to be a server
 // route, not a client-side insert. Unlike co-renter, this grants access
 // to an entire portfolio rather than one unit, so it needs one extra
-// guard a co-renter invite never needed: a co-owner has no portfolio of
-// their own to invite someone into.
+// guard a co-renter invite never needed: a co-owner with no portfolio of
+// their own has nothing to invite someone into. Caught live by an
+// external audit: this used to block ANY accepted co-owner from ever
+// inviting their own co-owner, full stop — wrong for a landlord who owns
+// their own properties AND separately co-manages someone else's, a real
+// and intended case. The guard now only fires when the caller genuinely
+// has no portfolio of their own.
 export async function POST(request: NextRequest) {
   const authClient = await createClient()
   const { data: { user } } = await authClient.auth.getUser()
@@ -52,13 +57,20 @@ export async function POST(request: NextRequest) {
 
   const supabaseAdmin = getSupabaseAdmin()
 
-  const { data: existingCoOwnership } = await supabaseAdmin
-    .from('landlord_co_owners')
-    .select('id')
-    .eq('co_owner_user_id', user.id)
-    .eq('status', 'accepted')
-    .maybeSingle()
-  if (existingCoOwnership) {
+  const [{ data: existingCoOwnership }, { count: ownPropertyCount }] = await Promise.all([
+    supabaseAdmin
+      .from('landlord_co_owners')
+      .select('id')
+      .eq('co_owner_user_id', user.id)
+      .eq('status', 'accepted')
+      .maybeSingle(),
+    supabaseAdmin
+      .from('properties')
+      .select('id', { count: 'exact', head: true })
+      .eq('owner_user_id', user.id)
+      .eq('archived', false),
+  ])
+  if (existingCoOwnership && !ownPropertyCount) {
     return NextResponse.json({ error: 'cannot_invite_as_co_owner' }, { status: 403 })
   }
 

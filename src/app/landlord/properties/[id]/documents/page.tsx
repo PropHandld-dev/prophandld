@@ -232,7 +232,13 @@ export default function PropertyDocumentsPage() {
     }
 
     setFiles([])
-    setForm({ document_type: '', custom_document_type: '', unit_id: '', visibility: 'shared' })
+    // Caught live by an external audit: this used to always reset
+    // visibility to 'shared', even right after someone deliberately
+    // chose 'landlord_only' — a landlord uploading several sensitive
+    // documents in a row could have their next, unrelated upload
+    // silently default back to shared with tenants. Carrying the just-used
+    // value forward instead.
+    setForm((prev) => ({ document_type: '', custom_document_type: '', unit_id: '', visibility: prev.visibility }))
     await loadDocuments()
     setUploading(false)
   }

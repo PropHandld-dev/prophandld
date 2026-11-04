@@ -17,7 +17,7 @@ export async function GET() {
 
   const admin = getSupabaseAdmin()
 
-  const [{ data: asPrimary }, { data: asCoOwner }] = await Promise.all([
+  const [{ data: asPrimary }, { data: asCoOwner }, { count: ownPropertyCount }] = await Promise.all([
     admin
       .from('landlord_co_owners')
       .select('id, co_owner_user_id, invited_email, status, invited_at, accepted_at')
@@ -28,6 +28,12 @@ export async function GET() {
       .select('id, primary_landlord_user_id, status, invited_at, accepted_at')
       .eq('co_owner_user_id', user.id)
       .order('invited_at', { ascending: false }),
+    // Caught live by an external audit: a landlord who owns their own
+    // properties AND separately co-manages someone else's used to have
+    // their own invite-a-co-owner UI hidden outright — this distinguishes
+    // "has no portfolio of their own" from "is also a co-owner elsewhere,"
+    // which the UI used to treat as the same thing.
+    admin.from('properties').select('id', { count: 'exact', head: true }).eq('owner_user_id', user.id).eq('archived', false),
   ])
 
   const coOwnerIds = (asPrimary || []).map((r) => r.co_owner_user_id).filter(Boolean) as string[]
@@ -39,6 +45,7 @@ export async function GET() {
   const byId = new Map((people || []).map((p: any) => [p.id, p]))
 
   return NextResponse.json({
+    ownsProperties: !!ownPropertyCount,
     invitedByMe: (asPrimary || []).map((r) => ({
       id: r.id,
       status: r.status,

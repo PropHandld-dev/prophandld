@@ -338,7 +338,15 @@ export default function UnitRentPage() {
 
   const handleAddMonth = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!addForm.month || !addForm.expected_amount || !tenancy) return
+    if (!tenancy) return
+    // Caught live by an external audit: pressing Add with no month
+    // selected did nothing at all — no error, no field guidance, just a
+    // silent no-op that looked identical to a button that hadn't been
+    // clicked.
+    if (!addForm.month || !addForm.expected_amount) {
+      setError(t('pleaseSelectMonthAndAmount', lang))
+      return
+    }
 
     if (payments.some((p) => p.month.slice(0, 7) === addForm.month)) {
       setError(t('monthAlreadyExists', lang))

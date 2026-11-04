@@ -21,6 +21,7 @@ export function CoOwnersSection() {
   const lang = useLanguage()
   const [invitedByMe, setInvitedByMe] = useState<InvitedByMe[]>([])
   const [iAmCoOwnerOf, setIAmCoOwnerOf] = useState<IAmCoOwnerOf[]>([])
+  const [ownsProperties, setOwnsProperties] = useState(true)
   const [loading, setLoading] = useState(true)
   const [mode, setMode] = useState<ContactMode>('email')
   const [contact, setContact] = useState('')
@@ -36,6 +37,7 @@ export function CoOwnersSection() {
       .then((data) => {
         setInvitedByMe(data.invitedByMe || [])
         setIAmCoOwnerOf(data.iAmCoOwnerOf || [])
+        setOwnsProperties(data.ownsProperties !== false)
       })
       .finally(() => setLoading(false))
   }
@@ -109,23 +111,29 @@ export function CoOwnersSection() {
     )
   }
 
-  // A co-owner (of someone else's portfolio) sees a quiet status line,
+  const activeCoOwnerOf = iAmCoOwnerOf.find((c) => c.status === 'accepted')
+
+  // A co-owner with no portfolio of their own sees a quiet status line,
   // not the invite UI — they have no portfolio to invite anyone into.
-  if (iAmCoOwnerOf.length > 0) {
-    const active = iAmCoOwnerOf.find((c) => c.status === 'accepted')
-    if (active) {
-      return (
-        <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6">
-          <h2 className="text-white font-semibold mb-1">{t('coOwnersTitle', lang)}</h2>
-          <p className="text-white/50 text-sm">{t('coOwnerCoManaging', lang).replace('{name}', active.name)}</p>
-        </ScrollReveal>
-      )
-    }
+  // Caught live by an external audit: this used to fire for ANY accepted
+  // co-owner, including one who separately owns their own properties too
+  // — a real, intended case (own one portfolio, manage another) that
+  // this wrongly treated as mutually exclusive.
+  if (activeCoOwnerOf && !ownsProperties) {
+    return (
+      <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6">
+        <h2 className="text-white font-semibold mb-1">{t('coOwnersTitle', lang)}</h2>
+        <p className="text-white/50 text-sm">{t('coOwnerCoManaging', lang).replace('{name}', activeCoOwnerOf.name)}</p>
+      </ScrollReveal>
+    )
   }
 
   return (
     <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6">
       <h2 className="text-white font-semibold mb-1">{t('coOwnersTitle', lang)}</h2>
+      {activeCoOwnerOf && (
+        <p className="text-white/50 text-sm mb-2">{t('coOwnerCoManaging', lang).replace('{name}', activeCoOwnerOf.name)}</p>
+      )}
       <p className="text-white/40 text-[13px] leading-snug mb-4">{t('coOwnersExplainer', lang)}</p>
 
       {invitedByMe.length > 0 && (

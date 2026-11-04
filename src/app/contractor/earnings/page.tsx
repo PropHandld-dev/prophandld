@@ -216,8 +216,9 @@ export default function ContractorEarningsPage() {
               {preset === 'custom' && (
                 <div className="grid grid-cols-2 gap-3 mb-1">
                   <div>
-                    <label className="text-white/50 text-xs block mb-1">{t('fromLabel', lang)}</label>
+                    <label htmlFor="earnings-from-date" className="text-white/50 text-xs block mb-1">{t('fromLabel', lang)}</label>
                     <input
+                      id="earnings-from-date"
                       type="date"
                       value={customFrom}
                       onChange={(e) => setCustomFrom(e.target.value)}
@@ -225,8 +226,9 @@ export default function ContractorEarningsPage() {
                     />
                   </div>
                   <div>
-                    <label className="text-white/50 text-xs block mb-1">{t('toLabel', lang)}</label>
+                    <label htmlFor="earnings-to-date" className="text-white/50 text-xs block mb-1">{t('toLabel', lang)}</label>
                     <input
+                      id="earnings-to-date"
                       type="date"
                       value={customTo}
                       onChange={(e) => setCustomTo(e.target.value)}

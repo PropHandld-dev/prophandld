@@ -99,6 +99,18 @@ export default function ContractorSettingsPage() {
       setSaving(false)
       return
     }
+    // Caught live by an external audit: "ABCDE" saved successfully as a
+    // service ZIP, survived reload, and produced a location the app
+    // could never actually match jobs against — the save succeeded with
+    // no feedback that the value was unusable. A real existence check
+    // (not just format) needs the zipcodes package, server-side only; a
+    // plain 5-digit format check here catches the obvious case before it
+    // ever reaches that.
+    if (!/^\d{5}$/.test(zip.trim())) {
+      setError(t('invalidZipFormat', lang))
+      setSaving(false)
+      return
+    }
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
