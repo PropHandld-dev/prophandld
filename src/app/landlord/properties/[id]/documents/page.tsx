@@ -127,8 +127,19 @@ export default function PropertyDocumentsPage() {
     setDocuments(enriched)
   }
 
+  // Caught live by an external audit: picking a sensitive type like Deed
+  // left the visibility default (shared with tenants) completely
+  // unchanged — the type selector and the audience selector never talked
+  // to each other. Still just a default, not a lock: the landlord can
+  // always flip it back manually right below.
+  const SENSITIVE_DOCUMENT_TYPES = new Set(['Deed', 'Insurance'])
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value })
+    const { name, value } = e.target
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+      ...(name === 'document_type' ? { visibility: SENSITIVE_DOCUMENT_TYPES.has(value) ? 'landlord_only' : prev.visibility } : {}),
+    }))
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

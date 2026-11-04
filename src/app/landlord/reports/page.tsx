@@ -204,6 +204,12 @@ export default function LandlordReportsPage() {
   }, [router])
 
   const range = preset === 'custom' ? { from: customFrom, to: customTo } : presetRange(preset)
+  // Caught live by an external audit: a reversed custom range (From
+  // after To) silently cleared every row/total to zero with no error at
+  // all, while still showing a seemingly valid subscription-cost
+  // estimate below (monthsInRange's own Math.max(1, ...) floor masked
+  // the negative month count a reversed range produces).
+  const isInvalidRange = preset === 'custom' && range.from > range.to
 
   const filteredRent = useMemo(
     () => rentRows.filter((r) => r.date >= range.from && r.date <= range.to && (propertyFilter === 'all' || r.propertyId === propertyFilter)),
@@ -229,7 +235,7 @@ export default function LandlordReportsPage() {
     const months = (to.getFullYear() - from.getFullYear()) * 12 + (to.getMonth() - from.getMonth()) + 1
     return Math.max(1, Math.min(months, 36))
   }, [range.from, range.to])
-  const estimatedSubscriptionCost = unitCount > 1 ? graduatedMonthlyAmount(unitCount) * monthsInRange : 0
+  const estimatedSubscriptionCost = unitCount > 1 && !isInvalidRange ? graduatedMonthlyAmount(unitCount) * monthsInRange : 0
 
   const rangeLabel = `${new Date(range.from + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} – ${new Date(range.to + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`
 
@@ -325,6 +331,10 @@ export default function LandlordReportsPage() {
                 </div>
               )}
 
+              {isInvalidRange && (
+                <p className="text-red-400 text-xs mb-4">{t('reportRangeReversedError', lang)}</p>
+              )}
+
               <label className="text-white/50 text-xs block mb-1">{t('propertyFilterLabel', lang)}</label>
               <select
                 value={propertyFilter}
@@ -382,7 +392,8 @@ export default function LandlordReportsPage() {
             <div className="flex items-center justify-end gap-2 mb-6">
               <RippleButton
                 onClick={() => window.print()}
-                className="inline-flex items-center gap-1.5 bg-white/5 border border-white/10 text-white/70 text-xs font-semibold px-3.5 py-2 rounded-lg hover:bg-white/8 transition"
+                disabled={isInvalidRange}
+                className="inline-flex items-center gap-1.5 bg-white/5 border border-white/10 text-white/70 text-xs font-semibold px-3.5 py-2 rounded-lg hover:bg-white/8 transition disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white/5"
               >
                 <PrinterIcon className="w-3.5 h-3.5" /> {t('printSaveAsPdfBtn', lang)}
               </RippleButton>

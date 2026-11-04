@@ -118,11 +118,13 @@ export default function LandlordTermsPage() {
           through Stripe, same as job payments. Prophandld never sees or stores card or bank account
           details, that&apos;s handled entirely by Stripe. You can also optionally list a Zelle, Venmo, or
           Cash App handle on your Profile for your renter to pay you directly, outside Stripe
-          entirely. Zelle has no fee and no risk to your account either way. Venmo and Cash App both
-          charge a fee for this kind of payment and, under their own terms, aren&apos;t meant for business
-          use like rent. A small number of accounts have been restricted over exactly this, which is
-          why Prophandld shows you that risk plainly before you add either handle; it&apos;s your decision
-          to make, not ours. None of these three methods are confirmed automatically: your own &quot;Mark
+          entirely. Zelle has no fee, but also no purchase-protection program — if something goes
+          wrong, there&apos;s no dispute process to fall back on. Venmo and Cash App both charge a fee
+          for this kind of payment, and their own terms require a business account, not a personal
+          one, to accept it for something like rent; using a personal account this way risks the
+          account being restricted. Prophandld shows you that distinction plainly before you add
+          either handle; it&apos;s your decision to make, not ours. None of these three methods are
+          confirmed automatically: your own &quot;Mark
           received&quot; action on the rent page is what records a payment as received, the same as it
           would for cash or a check. If you change a handle, we freeze new payments to it for 48
           hours and alert you by email/push. If that wasn&apos;t you, contact us right away.
