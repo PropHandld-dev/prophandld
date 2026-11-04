@@ -8,7 +8,6 @@ import { ScheduleCalendar, eventState, CALENDAR_JOB_STATUSES, calendarHistorySta
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { Skeleton } from '@/components/Skeleton'
-import { timeWindowLabel } from '@/lib/constants'
 import { useLanguage, t } from '@/lib/i18n'
 import { RENTER_TABS } from '@/lib/navTabs'
 
@@ -54,7 +53,10 @@ export default function RenterCalendarPage() {
             date: job.proposed_date,
             window: job.proposed_window,
             title: job.category,
-            subtitle: job.proposed_window ? timeWindowLabel(job.proposed_window) : undefined,
+            // Caught live by an external audit: ScheduleCalendar already
+            // renders event.window through windowLabel() — setting
+            // subtitle to the same time-window text too duplicated it,
+            // e.g. "Morning (8am–12pm) · Morning (8am–12pm)".
             href: `/renter/jobs/${job.id}`,
             state: eventState(job.status, job.schedule_confirmed === true),
           }))
