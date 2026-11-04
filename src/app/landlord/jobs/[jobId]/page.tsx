@@ -40,6 +40,7 @@ import { AI_ASSIST_ENABLED } from '@/lib/aiAssist'
 import { FavoriteContractorButton } from '@/components/FavoriteContractorButton'
 import { DiyTroubleshootPanel } from '@/components/DiyTroubleshootPanel'
 import { useLanguage, t, windowLabel } from '@/lib/i18n'
+import { useDialogA11y } from '@/lib/useDialogA11y'
 
 // Shared styling for every secondary action in the status card's action
 // row (decline, handle it myself, chat, ask a question, archive) — one
@@ -106,6 +107,7 @@ export default function JobDetailPage() {
   const [priceAction, setPriceAction] = useState<'approve' | 'reject' | null>(null)
 
   const [showScheduleModal, setShowScheduleModal] = useState(false)
+  const { dialogRef: scheduleDialogRef } = useDialogA11y(showScheduleModal, () => setShowScheduleModal(false))
   const [scheduleDate, setScheduleDate] = useState('')
   const [scheduleWindow, setScheduleWindow] = useState('morning')
   const [scheduleTime, setScheduleTime] = useState('')
@@ -2124,8 +2126,15 @@ export default function JobDetailPage() {
 
       {showScheduleModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
-          <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
-            <h3 className="text-white font-semibold mb-4">{t('proposeATimeHeading', lang)}</h3>
+          <div
+            ref={scheduleDialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="propose-time-dialog-title"
+            tabIndex={-1}
+            className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full outline-none"
+          >
+            <h3 id="propose-time-dialog-title" className="text-white font-semibold mb-4">{t('proposeATimeHeading', lang)}</h3>
 
             {job.schedule_confirmed && job.proposed_date && lateRescheduleWarning(job.proposed_date) && (
               <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl px-4 py-3 mb-4">

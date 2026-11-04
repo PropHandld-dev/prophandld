@@ -20,6 +20,7 @@ import { getUnreadJobIds } from '@/lib/messageReads'
 import { useJobRealtime } from '@/lib/useJobRealtime'
 import { RENTER_TABS } from '@/lib/navTabs'
 import { TIME_WINDOWS, validateScheduleTime, lateRescheduleWarning, shortNoticeWarning } from '@/lib/scheduleWindows'
+import { useDialogA11y } from '@/lib/useDialogA11y'
 import { useLanguage, t, windowLabel } from '@/lib/i18n'
 
 export default function RenterJobDetailPage() {
@@ -38,6 +39,7 @@ export default function RenterJobDetailPage() {
   const [actioning, setActioning] = useState(false)
 
   const [showScheduleModal, setShowScheduleModal] = useState(false)
+  const { dialogRef: scheduleDialogRef } = useDialogA11y(showScheduleModal, () => setShowScheduleModal(false))
   const [scheduleDate, setScheduleDate] = useState('')
   const [scheduleWindow, setScheduleWindow] = useState('morning')
   const [scheduleTime, setScheduleTime] = useState('')
@@ -558,8 +560,15 @@ export default function RenterJobDetailPage() {
 
       {showScheduleModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
-          <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
-            <h3 className="text-white font-semibold mb-4">{t('proposeATimeHeading', lang)}</h3>
+          <div
+            ref={scheduleDialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="propose-time-dialog-title"
+            tabIndex={-1}
+            className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full outline-none"
+          >
+            <h3 id="propose-time-dialog-title" className="text-white font-semibold mb-4">{t('proposeATimeHeading', lang)}</h3>
 
             {job.schedule_confirmed && job.proposed_date && lateRescheduleWarning(job.proposed_date) && (
               <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl px-4 py-3 mb-4">

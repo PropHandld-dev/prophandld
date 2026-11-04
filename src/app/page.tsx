@@ -438,7 +438,7 @@ export default function LandingPage() {
               </div>
               <h3 className="text-white font-semibold mb-1.5">Payments run through Stripe</h3>
               <p className="text-white/50 text-sm leading-relaxed">
-                The same infrastructure banks and major platforms rely on. Every payment goes straight to the recipient&apos;s bank account, never held by Prophandld. Linking your bank takes seconds, not the multi-day microdeposit wait you&apos;re used to.
+                The same infrastructure banks and major platforms rely on. Once a payment is sent, it goes straight to the recipient&apos;s bank account, never held by Prophandld. Instant bank verification for supported accounts, not always the multi-day microdeposit wait you&apos;re used to.
               </p>
             </div>
             <div className="bg-white/3 border border-white/8 rounded-2xl p-6">
@@ -456,7 +456,7 @@ export default function LandingPage() {
               </div>
               <h3 className="text-white font-semibold mb-1.5">A real dispute window</h3>
               <p className="text-white/50 text-sm leading-relaxed">
-                48 hours after a job&apos;s approved for either side to flag a problem before it&apos;s final. Not a policy, an actual pause.
+                48 hours after a job&apos;s approved for either side to flag a problem — the job itself pauses for review if one comes in. Not a policy, an actual pause.
               </p>
             </div>
             <div className="bg-white/3 border border-white/8 rounded-2xl p-6">
@@ -533,16 +533,18 @@ export default function LandingPage() {
               Meet Prophandld AI, the AI that&apos;s actually read your lease, not the internet&apos;s best guess.
             </h2>
             <p className="text-white/50 max-w-2xl mx-auto leading-relaxed">
-              No generic advice, no made-up policy. Every answer comes from the real lease, photo,
-              or document on your account, or it tells you it doesn&apos;t know, out loud, instead
-              of guessing and hoping you don&apos;t check.
+              No generic advice, no made-up policy. Ask about your lease or a document you&apos;ve
+              uploaded, and the answer comes from that real file, not a guess — or it tells you
+              plainly it can&apos;t find it, instead of inventing one. Other questions use your real
+              account details, not a document, which it&apos;ll also tell you.
             </p>
           </div>
 
           <AiAssistShowcase />
           <p className="text-white/40 text-xs text-center max-w-xl mx-auto leading-relaxed mt-4">
-            It never handles anything electrical, gas, or structural — those always get a
-            contractor, every time.
+            It never gives repair instructions for anything electrical, gas, or structural — those
+            always get a contractor. In a genuine emergency it can point you to safety basics (get
+            out, call for help), but it&apos;s not a substitute for calling 911 or your gas company.
           </p>
 
           <div className="mt-16 max-w-3xl mx-auto bg-white/3 border border-white/8 rounded-2xl p-6 sm:p-8">

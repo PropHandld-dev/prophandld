@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { getAccountRole } from '@/lib/accountRole'
 import { useLanguage, t } from '@/lib/i18n'
@@ -78,6 +78,8 @@ export function ContactUsWidget() {
   const lang = useLanguage()
   const [open, setOpen] = useState(false)
   const [role, setRole] = useState<'landlord' | 'renter' | 'contractor' | null>(null)
+  const launcherRef = useRef<HTMLButtonElement>(null)
+  const dialogRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -89,33 +91,83 @@ export function ContactUsWidget() {
   const access = useAiHelpChatAccess(role)
   const showChat = AI_ASSIST_ENABLED && !!access
 
+  const close = () => {
+    setOpen(false)
+    // Caught live by an external audit: this popup had no accessible
+    // dialog behavior at all — no role=dialog, Escape didn't dismiss it,
+    // and Tab from inside it moved focus to the Home link behind it
+    // instead of staying contained. Restoring focus to the link that
+    // opened it is the other half of correct modal behavior, not just
+    // closing the panel.
+    launcherRef.current?.focus()
+  }
+
+  // Escape to close, and a focus trap so Tab/Shift+Tab cycle only
+  // through the dialog's own focusable elements instead of escaping to
+  // whatever sits behind it in the page.
+  useEffect(() => {
+    if (!open) return
+    const dialog = dialogRef.current
+    dialog?.focus()
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        close()
+        return
+      }
+      if (e.key !== 'Tab' || !dialog) return
+      const focusable = dialog.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      )
+      if (focusable.length === 0) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault()
+        first.focus()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
+
   return (
     <>
-      <button onClick={() => setOpen(true)} className="hover:text-white/70 transition">
+      <button ref={launcherRef} onClick={() => setOpen(true)} className="hover:text-white/70 transition">
         {t('contactUsTitle', lang)}
       </button>
 
       {open && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 motion-safe:animate-[fadeIn_0.15s_ease-out]"
-          onClick={() => setOpen(false)}
+          onClick={close}
         >
           <div
-            className={`w-full max-w-sm bg-[#0F2138] border border-white/10 rounded-3xl shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] overflow-hidden flex flex-col ${showChat ? 'h-[70vh] sm:h-[520px]' : ''}`}
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="contact-us-dialog-title"
+            tabIndex={-1}
+            className={`w-full max-w-sm bg-[#0F2138] border border-white/10 rounded-3xl shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] overflow-hidden flex flex-col outline-none ${showChat ? 'h-[70vh] sm:h-[520px]' : ''}`}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-5 py-4 border-b border-white/8 shrink-0">
               <div>
-                <p className="text-white text-sm font-semibold">{t('contactUsTitle', lang)}</p>
+                <p id="contact-us-dialog-title" className="text-white text-sm font-semibold">{t('contactUsTitle', lang)}</p>
                 <p className="text-white/60 text-xs mt-0.5">{t('contactUsSubtitle', lang)}</p>
               </div>
-              <button onClick={() => setOpen(false)} aria-label={t('closeBtn', lang)} className="text-white/60 hover:text-white text-lg leading-none transition shrink-0">
+              <button onClick={close} aria-label={t('closeBtn', lang)} className="text-white/60 hover:text-white text-lg leading-none transition shrink-0">
                 ×
               </button>
             </div>
 
             <div className="px-5 py-4 flex-1 min-h-0">
-              {showChat ? <AiHelpChat onNavigate={() => setOpen(false)} /> : <StaticContactForm />}
+              {showChat ? <AiHelpChat onNavigate={close} /> : <StaticContactForm />}
             </div>
           </div>
         </div>

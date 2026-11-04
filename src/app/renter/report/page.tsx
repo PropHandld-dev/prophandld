@@ -19,6 +19,7 @@ import { TIME_WINDOWS } from '@/lib/scheduleWindows'
 import { useLanguage, t } from '@/lib/i18n'
 import { TroubleshootAssistant } from '@/components/TroubleshootAssistant'
 import { AI_ASSIST_ENABLED } from '@/lib/aiAssist'
+import { useDialogA11y } from '@/lib/useDialogA11y'
 
 
 const MAX_AVAILABILITY_SLOTS = 3
@@ -57,6 +58,7 @@ export default function ReportIssuePage() {
   const [unitId, setUnitId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [showEmergencyInfo, setShowEmergencyInfo] = useState(false)
+  const { dialogRef: emergencyDialogRef } = useDialogA11y(showEmergencyInfo, () => setShowEmergencyInfo(false))
   const [files, setFiles] = useState<File[]>([])
   // Stable per-file preview URLs — recomputed only when the file list
   // itself changes, not on every keystroke elsewhere on the page. Without
@@ -371,8 +373,9 @@ export default function ReportIssuePage() {
           <form onSubmit={handleSubmit} className="space-y-4">
 
             <div>
-              <label className="text-white/70 text-sm block mb-1">{t('category', lang)}</label>
+              <label htmlFor="report-category" className="text-white/70 text-sm block mb-1">{t('category', lang)}</label>
               <select
+                id="report-category"
                 name="category"
                 value={form.category}
                 onChange={handleChange}
@@ -391,8 +394,9 @@ export default function ReportIssuePage() {
             </div>
 
             <div>
-              <label className="text-white/70 text-sm block mb-1">{t('locationOptional', lang)}</label>
+              <label htmlFor="report-location" className="text-white/70 text-sm block mb-1">{t('locationOptional', lang)}</label>
               <select
+                id="report-location"
                 name="location"
                 value={form.location}
                 onChange={handleChange}
@@ -407,8 +411,9 @@ export default function ReportIssuePage() {
 
             {matchingSystems.length > 0 && (
               <div>
-                <label className="text-white/70 text-sm block mb-1">{t('relatedSystemOptionalLabel', lang)}</label>
+                <label htmlFor="report-related-system" className="text-white/70 text-sm block mb-1">{t('relatedSystemOptionalLabel', lang)}</label>
                 <select
+                  id="report-related-system"
                   name="maintenance_item_id"
                   value={form.maintenance_item_id}
                   onChange={handleChange}
@@ -423,8 +428,9 @@ export default function ReportIssuePage() {
             )}
 
             <div>
-              <label className="text-white/70 text-sm block mb-1">{t('description', lang)}</label>
+              <label htmlFor="report-description" className="text-white/70 text-sm block mb-1">{t('description', lang)}</label>
               <textarea
+                id="report-description"
                 name="description"
                 value={form.description}
                 onChange={handleChange}
@@ -444,8 +450,9 @@ export default function ReportIssuePage() {
 
             {!form.is_emergency && (
               <div>
-                <label className="text-white/70 text-sm block mb-1">{t('urgencyLabel', lang)}</label>
+                <label htmlFor="report-urgency" className="text-white/70 text-sm block mb-1">{t('urgencyLabel', lang)}</label>
                 <select
+                  id="report-urgency"
                   name="urgency"
                   value={form.urgency}
                   onChange={handleChange}
@@ -566,12 +573,14 @@ export default function ReportIssuePage() {
                 <div key={i} className="flex gap-2 mb-2">
                   <input
                     type="date"
+                    aria-label={`${t('whenAreYouAroundLabel', lang)} ${i + 1}: ${t('dateLabel', lang)}`}
                     value={slot.date}
                     min={new Date().toISOString().split('T')[0]}
                     onChange={(e) => updateAvailabilitySlot(i, 'date', e.target.value)}
                     className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#12A5A9] transition"
                   />
                   <select
+                    aria-label={`${t('whenAreYouAroundLabel', lang)} ${i + 1}: ${t('timeWindowLabel', lang)}`}
                     value={slot.window}
                     onChange={(e) => updateAvailabilitySlot(i, 'window', e.target.value)}
                     className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#12A5A9] transition"
@@ -583,6 +592,7 @@ export default function ReportIssuePage() {
                   <button
                     type="button"
                     onClick={() => removeAvailabilitySlot(i)}
+                    aria-label={`${t('removeBtn', lang)} ${t('whenAreYouAroundLabel', lang)} ${i + 1}`}
                     className="text-red-400/70 hover:text-red-400 text-xs px-2 transition shrink-0"
                   >
                     ×
@@ -601,8 +611,9 @@ export default function ReportIssuePage() {
             </div>
 
             <div>
-              <label className="text-white/70 text-sm block mb-1">{t('accessNotesLabel', lang)}</label>
+              <label htmlFor="report-access-notes" className="text-white/70 text-sm block mb-1">{t('accessNotesLabel', lang)}</label>
               <textarea
+                id="report-access-notes"
                 name="access_notes"
                 value={form.access_notes}
                 onChange={handleChange}
@@ -669,8 +680,15 @@ export default function ReportIssuePage() {
 
       {showEmergencyInfo && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
-          <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
-            <h3 className="text-white font-semibold mb-3">{t('emergencyModalTitle', lang)}</h3>
+          <div
+            ref={emergencyDialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="emergency-dialog-title"
+            tabIndex={-1}
+            className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full outline-none"
+          >
+            <h3 id="emergency-dialog-title" className="text-white font-semibold mb-3">{t('emergencyModalTitle', lang)}</h3>
             <p className="text-white/50 text-sm mb-3">{t('emergencyModalSubtitle', lang)}</p>
             <ul className="space-y-1.5 mb-5">
               {EMERGENCY_EXAMPLE_KEYS.map((key) => (
@@ -679,6 +697,20 @@ export default function ReportIssuePage() {
                 </li>
               ))}
             </ul>
+            {/* Caught live by an external audit: this popup listed hazard
+                examples (gas smell, exposed wiring) with no actual safety
+                instruction, just queue-priority framing — and crucially,
+                this guidance has to be here unconditionally, not behind
+                Prophandld AI, since AI Assist can be off or unavailable at
+                the exact moment someone needs it. */}
+            <div className="bg-red-500/10 border border-red-500/25 rounded-xl p-3.5 mb-5">
+              <p className="text-red-400 text-xs font-semibold mb-2">{t('emergencyModalSafetyHeading', lang)}</p>
+              <ul className="space-y-1.5">
+                <li className="text-white/70 text-xs">{t('emergencyModalSafetyGas', lang)}</li>
+                <li className="text-white/70 text-xs">{t('emergencyModalSafetyElectrical', lang)}</li>
+              </ul>
+              <p className="text-white/50 text-xs mt-2">{t('emergencyModalSafetyGeneral', lang)}</p>
+            </div>
             <p className="text-white/50 text-xs mb-5">
               {t('emergencyModalWarning', lang)}
             </p>

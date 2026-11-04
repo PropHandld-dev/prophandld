@@ -122,8 +122,10 @@ export default function RenterTermsPage() {
           part of gets a receipt, emailed to you and saved on the payment record.
         </p>
         <p>
-          Using Prophandld as a renter has no fee to you beyond your actual rent. Prophandld&apos;s
-          subscription fee is paid by your landlord, never passed through to you.
+          There&apos;s no Prophandld subscription fee to you as a renter — that&apos;s paid by your
+          landlord, never passed through to you. Paying rent by debit card does carry a small Stripe
+          processing fee on top of the rent amount, shown and disclosed before you pay; bank transfer
+          does not.
         </p>
       </section>
 
@@ -139,11 +141,10 @@ export default function RenterTermsPage() {
         <p>
           If your landlord has Prophandld AI turned on for their account, content relevant to a
           specific AI feature you use — a photo and description for a troubleshooting suggestion, a
-          question about your own lease — is sent to a third-party AI service to generate a
-          response. Separately, the in-app help assistant (the chat bubble that answers general
-          questions and basic facts about your own account) is available to every signed-in user
-          regardless of whether your landlord has Prophandld AI on, and sends a limited set of your
-          own account details to that same third-party service to answer your question. See our
+          question about your own lease, or a general question in the in-app help assistant (the
+          chat bubble) — is sent to a third-party AI service to generate a response. All of this,
+          including the help assistant, rides on your landlord&apos;s Prophandld AI status, not a
+          separate always-available feature. See our
           {' '}
           <Link href="/privacy" className="text-[#12A5A9] hover:underline">Privacy Policy</Link> and{' '}
           <Link href="/terms" className="text-[#12A5A9] hover:underline">general Terms</Link> for

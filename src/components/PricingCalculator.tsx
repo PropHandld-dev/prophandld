@@ -13,7 +13,7 @@ type TierDef = {
 }
 
 const TIERS: TierDef[] = [
-  { name: 'Free', range: '1 unit', min: 1, max: 1, detail: 'Full access to everything. No credit card required.' },
+  { name: 'Free', range: '1 unit', min: 1, max: 1, detail: 'All core features included. No credit card required. Prophandld AI is a separate optional add-on.' },
   { name: 'Basic', range: '2–4 units', min: 2, max: 4, detail: 'Flat rate, not per-unit.' },
   { name: 'Pro', range: '5–10 units', min: 5, max: 10, detail: 'Flat rate, not per-unit.' },
   { name: 'Executive', range: '11–25 units', min: 11, max: 25, detail: 'Flat rate, not per-unit.' },

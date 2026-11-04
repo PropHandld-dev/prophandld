@@ -14,7 +14,7 @@ export const metadata = {
 const INCLUDED = [
   'Every property, unit, and tenant you manage',
   'Sealed bidding and the full maintenance job lifecycle',
-  'Online rent collection, escrow-style job payments, and the rent roll',
+  'Online rent collection, approval-gated job payments, and the rent roll',
   'Compliance tracking with automatic reminders',
   'Document vault, systems/CapEx tracking, and exportable reports',
   'Co-owner access for a business partner or property manager',
