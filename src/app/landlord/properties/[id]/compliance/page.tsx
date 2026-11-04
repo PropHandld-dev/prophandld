@@ -66,6 +66,7 @@ export default function PropertyCompliancePage() {
   const [gapSuggestions, setGapSuggestions] = useState<{ itemType: string; why: string }[] | null>(null)
   const [gapChecking, setGapChecking] = useState(false)
   const [gapError, setGapError] = useState<string | null>(null)
+  const [gapErrorRef, setGapErrorRef] = useState<string | null>(null)
   // Keyed by compliance item id — per item, not global, since a landlord
   // with several items due might want to check more than one in the same
   // visit without losing the first answer.
@@ -214,6 +215,7 @@ export default function PropertyCompliancePage() {
   const checkComplianceGaps = async () => {
     setGapChecking(true)
     setGapError(null)
+    setGapErrorRef(null)
     try {
       const res = await fetch('/api/ai-assist/compliance-gap-check', {
         method: 'POST',
@@ -223,6 +225,7 @@ export default function PropertyCompliancePage() {
       const data = await res.json()
       if (!res.ok) {
         setGapError(data.error || t('aiGapCheckFailed', lang))
+        setGapErrorRef(data.errorRef || null)
         setGapChecking(false)
         return
       }
@@ -598,7 +601,22 @@ export default function PropertyCompliancePage() {
                 <p className="text-white/30 text-[11px] pt-1">{t('aiGapCheckDisclaimer', lang)}</p>
               </div>
             )}
-            {gapError && <p className="text-red-400 text-xs mt-2">{gapError}</p>}
+            {gapError && (
+              <div className="mt-2">
+                <p className="text-red-400 text-xs">
+                  {gapError}
+                  {gapErrorRef && <span className="text-red-400/50"> ({t('errorReferencePrefix', lang)} {gapErrorRef})</span>}
+                </p>
+                <button
+                  type="button"
+                  onClick={checkComplianceGaps}
+                  disabled={gapChecking}
+                  className="text-xs font-semibold text-[#12A5A9] hover:underline mt-1 disabled:opacity-50"
+                >
+                  {gapChecking ? t('aiGapChecking', lang) : t('tryAgainBtn', lang)}
+                </button>
+              </div>
+            )}
           </div>
         )}
 

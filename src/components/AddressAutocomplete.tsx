@@ -25,6 +25,7 @@ export function AddressAutocomplete({
   placeholder,
   className,
   required,
+  id,
 }: {
   value: string
   onChange: (value: string) => void
@@ -32,6 +33,7 @@ export function AddressAutocomplete({
   placeholder?: string
   className?: string
   required?: boolean
+  id?: string
 }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const onPlaceSelectedRef = useRef(onPlaceSelected)
@@ -95,6 +97,7 @@ export function AddressAutocomplete({
   return (
     <input
       ref={inputRef}
+      id={id}
       type="text"
       value={value}
       onChange={(e) => onChange(e.target.value)}

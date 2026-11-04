@@ -311,8 +311,9 @@ export default function LandlordReportsPage() {
               {preset === 'custom' && (
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div>
-                    <label className="text-white/50 text-xs block mb-1">{t('fromLabel', lang)}</label>
+                    <label htmlFor="report-from-date" className="text-white/50 text-xs block mb-1">{t('fromLabel', lang)}</label>
                     <input
+                      id="report-from-date"
                       type="date"
                       value={customFrom}
                       onChange={(e) => setCustomFrom(e.target.value)}
@@ -320,8 +321,9 @@ export default function LandlordReportsPage() {
                     />
                   </div>
                   <div>
-                    <label className="text-white/50 text-xs block mb-1">{t('toLabel', lang)}</label>
+                    <label htmlFor="report-to-date" className="text-white/50 text-xs block mb-1">{t('toLabel', lang)}</label>
                     <input
+                      id="report-to-date"
                       type="date"
                       value={customTo}
                       onChange={(e) => setCustomTo(e.target.value)}
@@ -335,8 +337,9 @@ export default function LandlordReportsPage() {
                 <p className="text-red-400 text-xs mb-4">{t('reportRangeReversedError', lang)}</p>
               )}
 
-              <label className="text-white/50 text-xs block mb-1">{t('propertyFilterLabel', lang)}</label>
+              <label htmlFor="report-property-filter" className="text-white/50 text-xs block mb-1">{t('propertyFilterLabel', lang)}</label>
               <select
+                id="report-property-filter"
                 value={propertyFilter}
                 onChange={(e) => setPropertyFilter(e.target.value)}
                 className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#12A5A9] transition"

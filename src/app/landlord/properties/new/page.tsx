@@ -204,8 +204,9 @@ function NewPropertyForm() {
         <form onSubmit={handleSubmit} className="space-y-4">
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">{t('streetAddressLabel', lang)}</label>
+            <label htmlFor="property-address" className="text-white/70 text-sm block mb-1">{t('streetAddressLabel', lang)}</label>
             <AddressAutocomplete
+              id="property-address"
               value={form.address}
               onChange={handleAddressChange}
               onPlaceSelected={handlePlaceSelected}
@@ -218,8 +219,9 @@ function NewPropertyForm() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-white/70 text-sm block mb-1">{t('cityLabel', lang)}</label>
+              <label htmlFor="property-city" className="text-white/70 text-sm block mb-1">{t('cityLabel', lang)}</label>
               <input
+                id="property-city"
                 type="text"
                 name="city"
                 required
@@ -230,8 +232,9 @@ function NewPropertyForm() {
               />
             </div>
             <div>
-              <label className="text-white/70 text-sm block mb-1">{t('stateLabel', lang)}</label>
+              <label htmlFor="property-state" className="text-white/70 text-sm block mb-1">{t('stateLabel', lang)}</label>
               <input
+                id="property-state"
                 type="text"
                 name="state"
                 required
@@ -245,8 +248,9 @@ function NewPropertyForm() {
           </div>
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">{t('zipCodeLabel', lang)}</label>
+            <label htmlFor="property-zip" className="text-white/70 text-sm block mb-1">{t('zipCodeLabel', lang)}</label>
             <input
+              id="property-zip"
               type="text"
               name="zip"
               value={form.zip}
@@ -257,8 +261,9 @@ function NewPropertyForm() {
           </div>
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">{t('propertyTypeLabel', lang)}</label>
+            <label htmlFor="property-type" className="text-white/70 text-sm block mb-1">{t('propertyTypeLabel', lang)}</label>
             <select
+              id="property-type"
               name="property_type"
               value={form.property_type}
               onChange={handleChange}
@@ -271,8 +276,9 @@ function NewPropertyForm() {
           </div>
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">{t('numberOfUnitsLabel', lang)}</label>
+            <label htmlFor="property-num-units" className="text-white/70 text-sm block mb-1">{t('numberOfUnitsLabel', lang)}</label>
             <input
+              id="property-num-units"
               type="number"
               name="num_units"
               required

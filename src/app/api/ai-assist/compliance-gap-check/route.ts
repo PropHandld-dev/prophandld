@@ -81,7 +81,13 @@ export async function POST(request: NextRequest) {
     if (err instanceof ClaudeConfigError) {
       return NextResponse.json({ error: 'This isn’t set up yet.' }, { status: 503 })
     }
-    console.error('ai-assist/compliance-gap-check: unhandled error', err)
-    return NextResponse.json({ error: 'Could not check that right now.' }, { status: 500 })
+    // Caught live by an external audit: this call fails intermittently
+    // (model timeout, truncated output) with nothing for a landlord to
+    // give us if it keeps happening. A short reference id, logged
+    // alongside the real error server-side and echoed back to the
+    // client, turns "it's broken" into something we can actually look up.
+    const errorRef = crypto.randomUUID().slice(0, 8)
+    console.error(`ai-assist/compliance-gap-check: unhandled error [ref ${errorRef}]`, err)
+    return NextResponse.json({ error: 'Could not check that right now.', errorRef }, { status: 500 })
   }
 }
