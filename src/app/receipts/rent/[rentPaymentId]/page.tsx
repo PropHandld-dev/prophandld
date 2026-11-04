@@ -23,6 +23,21 @@ export default function RentReceiptPage() {
   // what actually landed in their account.
   const [isRenterViewer, setIsRenterViewer] = useState(false)
 
+  // Caught live by an external audit: a receipt left open in a background
+  // tab kept showing names, property and payment details after signing
+  // out in another tab, until that tab happened to be refreshed. The
+  // one-shot getUser() check below only ever runs once on mount — this
+  // reacts to the session actually changing later, in this same tab.
+  useEffect(() => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') {
+        setReceipt(null)
+        router.replace('/login')
+      }
+    })
+    return () => sub.subscription.unsubscribe()
+  }, [router])
+
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()

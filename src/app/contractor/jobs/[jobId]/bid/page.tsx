@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { expectRow } from '@/lib/expectRow'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { notify } from '@/lib/notify'
@@ -271,27 +270,23 @@ export default function SubmitBidPage() {
       status: 'pending',
     }
 
-    // A job that reopened for bidding (the previously-selected contractor
-    // cancelled) can already have a 'declined' bid row from this same
-    // contractor's earlier round — reuse it instead of inserting a
-    // second row for the same job+contractor.
-    const { data: existingBid } = await supabase
-      .from('bids')
-      .select('id')
-      .eq('job_id', jobId)
-      .eq('contractor_user_id', user.id)
-      .maybeSingle()
+    // Goes through a server route (admin client) rather than a direct
+    // client update/insert — a job that reopened for bidding (the
+    // previously-selected contractor cancelled) can already have a
+    // 'declined' bid row from this same contractor's earlier round, and
+    // the bids table's own UPDATE policy may not permit a contractor to
+    // touch their own row once it's no longer 'pending'. The route does
+    // its own explicit authorization check instead of depending on that.
+    const res = await fetch('/api/bids/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jobId, ...bidFields }),
+    }).catch(() => null)
+    const resData = await res?.json().catch(() => ({}))
 
-    const { error: submitError } = existingBid
-      ? await expectRow(supabase
-          .from('bids')
-          .update({ ...bidFields, selected_at: null, price_change_status: null })
-          .eq('id', existingBid.id))
-      : await supabase.from('bids').insert({ job_id: jobId, contractor_user_id: user.id, ...bidFields })
-
-    if (submitError) {
-      console.error('Error submitting bid:', submitError)
-      setError(t('couldNotSubmitBid', lang))
+    if (!res?.ok) {
+      console.error('Error submitting bid:', resData)
+      setError(resData?.error || t('couldNotSubmitBid', lang))
       setSubmitting(false)
       return
     }

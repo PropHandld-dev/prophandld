@@ -103,11 +103,13 @@ export default function NewUnitPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">{t('unitNumberLabel', lang)}</label>
+            <label htmlFor="new-unit-number" className="text-white/70 text-sm block mb-1">{t('unitNumberLabel', lang)}</label>
             <input
+              id="new-unit-number"
               type="text"
               name="unit_number"
               required
+              maxLength={50}
               value={form.unit_number}
               onChange={handleChange}
               placeholder="3"
@@ -117,24 +119,29 @@ export default function NewUnitPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-white/70 text-sm block mb-1">{t('floorOptional', lang)}</label>
+              <label htmlFor="new-unit-floor" className="text-white/70 text-sm block mb-1">{t('floorOptional', lang)}</label>
               <input
+                id="new-unit-floor"
                 type="number"
                 name="floor"
                 value={form.floor}
                 onChange={handleChange}
                 placeholder="2"
+                min={-5}
+                max={200}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
               />
             </div>
             <div>
-              <label className="text-white/70 text-sm block mb-1">{t('sqftOptional', lang)}</label>
+              <label htmlFor="new-unit-sqft" className="text-white/70 text-sm block mb-1">{t('sqftOptional', lang)}</label>
               <input
+                id="new-unit-sqft"
                 type="number"
                 name="sqft"
                 value={form.sqft}
                 onChange={handleChange}
                 placeholder="850"
+                min={0}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
               />
             </div>

@@ -1111,7 +1111,7 @@ const STRINGS = {
   howThisWorksStep6: { en: 'The landlord reviews and approves. It auto-approves after 3 days either way, then you get paid', es: 'El propietario revisa y aprueba. Se aprueba automáticamente después de 3 días de todos modos, luego recibes el pago' },
   youCancelledReopened: { en: "You cancelled this job, so it's back to sealed bidding for the landlord to pick someone else.", es: 'Cancelaste este trabajo, así que volvió a ofertas selladas para que el propietario elija a alguien más.' },
   landlordWentWithAnother: { en: 'The landlord went with another contractor for this job.', es: 'El propietario eligió a otro contratista para este trabajo.' },
-  paymentReleasedOnApproval: { en: 'Once the landlord reviews and approves, your payment is released.', es: 'Una vez que el propietario revise y apruebe, tu pago se libera.' },
+  paymentReleasedOnApproval: { en: 'Once the landlord reviews and approves, payment is due — they still complete a separate checkout step to actually send it.', es: 'Una vez que el propietario revise y apruebe, el pago queda pendiente: aún debe completar un paso de pago aparte para enviarlo realmente.' },
   yourAcceptedBid: { en: 'Your accepted bid', es: 'Tu oferta aceptada' },
   yourSubmittedBid: { en: 'Your bid', es: 'Tu oferta' },
   pendingLandlordApproval: { en: '(pending landlord approval)', es: '(pendiente de aprobación del propietario)' },

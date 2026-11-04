@@ -20,6 +20,21 @@ export default function JobPaymentReceiptPage() {
   // should never see a receipt implying otherwise.
   const [isLandlordViewer, setIsLandlordViewer] = useState(false)
 
+  // Caught live by an external audit: a receipt left open in a background
+  // tab kept showing names, property and payment details after signing
+  // out in another tab, until that tab happened to be refreshed. The
+  // one-shot getUser() check above only ever runs once on mount — this
+  // reacts to the session actually changing later, in this same tab.
+  useEffect(() => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') {
+        setReceipt(null)
+        router.replace('/login')
+      }
+    })
+    return () => sub.subscription.unsubscribe()
+  }, [router])
+
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()

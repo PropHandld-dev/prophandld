@@ -15,6 +15,7 @@ import { fetchAllPages } from '@/lib/pagedQuery'
 type Bid = {
   id: string
   amount: number
+  status: string
   payment_status: string | null
   paid_at: string | null
   created_at: string
@@ -80,7 +81,7 @@ export default function ContractorEarningsPage() {
       const { data, error } = await fetchAllPages<any>((from, to) =>
         supabase
           .from('bids')
-          .select('id, amount, payment_status, paid_at, created_at, job_id, jobs(category, status, units(unit_number, properties(address, city)))')
+          .select('id, amount, status, payment_status, paid_at, created_at, job_id, jobs(category, status, units(unit_number, properties(address, city)))')
           .eq('contractor_user_id', user.id)
           .order('created_at', { ascending: false })
           .range(from, to)
@@ -103,13 +104,31 @@ export default function ContractorEarningsPage() {
     init()
   }, [router])
 
+  // Caught live by an external audit: a non-accepted (declined/not-
+  // selected) bid on a completed job still counted as "unpaid"/Awaiting
+  // Payment here — nothing ever checked whether this contractor actually
+  // won the job, only whether its own payment_status wasn't 'paid',
+  // which is trivially true for every bid that was never going to be
+  // paid at all.
   const paidAll = bids.filter((b) => b.payment_status === 'paid')
-  const unpaid = bids.filter((b) => b.payment_status !== 'paid')
+  const unpaid = bids.filter((b) => b.status === 'accepted' && b.payment_status !== 'paid')
+
+  // One consistent local-calendar-day key for a paid bid, used for
+  // filtering, grouping, on-screen display AND CSV export — caught live
+  // by an external audit: the CSV used to slice the raw ISO timestamp
+  // (effectively UTC) while the on-screen "Paid on" label formatted the
+  // same timestamp in the browser's local timezone, so several rows'
+  // exported Date disagreed with their own on-screen date by a day.
+  const paidDateKey = (b: Bid) => new Date(b.paid_at || b.created_at).toLocaleDateString('en-CA')
 
   const range = preset === 'custom' ? { from: customFrom, to: customTo } : presetRange(preset)
+  // Caught live by an external audit: a reversed custom range (From
+  // after To) was silently accepted, showed $0 with no error — same bug
+  // already fixed on the landlord reports page, applied here too.
+  const isInvalidRange = preset === 'custom' && range.from > range.to
   const paid = useMemo(
     () => paidAll.filter((b) => {
-      const d = (b.paid_at || b.created_at).slice(0, 10)
+      const d = paidDateKey(b)
       return d >= range.from && d <= range.to
     }),
     [paidAll, range.from, range.to]
@@ -125,7 +144,16 @@ export default function ContractorEarningsPage() {
 
   const allTimeTotal = paidAll.reduce((sum, b) => sum + (b.amount || 0), 0)
   const thisYear = new Date().getFullYear().toString()
-  const thisYearTotal = (byYear.get(thisYear) || []).reduce((sum, b) => sum + (b.amount || 0), 0)
+  // Caught live by an external audit: this card is labeled "This Year
+  // (2026)" unconditionally, but used to be computed from `paid` — the
+  // range-FILTERED set — so selecting "Last year" or any range that
+  // excludes the current year made a card that never changes its own
+  // label silently show $0. Computed from the unfiltered paidAll instead,
+  // so it always means what its label says regardless of which preset is
+  // selected.
+  const thisYearTotal = paidAll
+    .filter((b) => new Date(b.paid_at || b.created_at).getFullYear().toString() === thisYear)
+    .reduce((sum, b) => sum + (b.amount || 0), 0)
   const rangeTotal = paid.reduce((sum, b) => sum + (b.amount || 0), 0)
 
   const rangeLabel = `${new Date(range.from + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} – ${new Date(range.to + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`
@@ -134,7 +162,7 @@ export default function ContractorEarningsPage() {
     downloadCsv(
       `prophandld-earnings-${range.from}-to-${range.to}.csv`,
       [t('dateHeader', lang), t('categoryHeader', lang), t('propertyLabel', lang), t('amountHeader', lang)],
-      paid.map((b) => [(b.paid_at || b.created_at).slice(0, 10), b.jobs?.category || '', jobLocation(b, lang), (b.amount || 0).toFixed(2)]),
+      paid.map((b) => [paidDateKey(b), b.jobs?.category || '', jobLocation(b, lang), (b.amount || 0).toFixed(2)]),
       { heading: `Prophandld · ${t('pastJobsEarnings', lang)}`, subheading: `${contractorName || ''} · ${rangeLabel}` }
     )
   }
@@ -201,12 +229,17 @@ export default function ContractorEarningsPage() {
                   ))}
                 </div>
                 <div className="flex items-center gap-2">
-                  <button onClick={exportCsv} className="inline-flex items-center gap-1 text-[#12A5A9] text-xs font-semibold hover:underline">
+                  <button
+                    onClick={exportCsv}
+                    disabled={isInvalidRange}
+                    className="inline-flex items-center gap-1 text-[#12A5A9] text-xs font-semibold hover:underline disabled:opacity-40 disabled:pointer-events-none"
+                  >
                     <DownloadIcon className="w-3.5 h-3.5" /> {t('exportCsvBtn', lang)}
                   </button>
                   <RippleButton
                     onClick={() => window.print()}
-                    className="inline-flex items-center gap-1.5 bg-white/5 border border-white/10 text-white/70 text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-white/8 transition"
+                    disabled={isInvalidRange}
+                    className="inline-flex items-center gap-1.5 bg-white/5 border border-white/10 text-white/70 text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-white/8 transition disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white/5"
                   >
                     <PrinterIcon className="w-3.5 h-3.5" /> {t('printSaveAsPdfBtn', lang)}
                   </RippleButton>
@@ -237,7 +270,11 @@ export default function ContractorEarningsPage() {
                   </div>
                 </div>
               )}
-              <p className="text-white/40 text-xs mt-3">{rangeLabel} · <span className="text-white/60 font-medium">${rangeTotal.toFixed(2)}</span></p>
+              {isInvalidRange ? (
+                <p className="text-red-400 text-xs mt-3">{t('reportRangeReversedError', lang)}</p>
+              ) : (
+                <p className="text-white/40 text-xs mt-3">{rangeLabel} · <span className="text-white/60 font-medium">${rangeTotal.toFixed(2)}</span></p>
+              )}
             </div>
 
             {years.length === 0 && unpaid.length === 0 && (
