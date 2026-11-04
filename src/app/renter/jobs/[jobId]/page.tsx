@@ -201,6 +201,15 @@ export default function RenterJobDetailPage() {
   }
 
   const confirmSchedule = async () => {
+    // Caught live by an external audit: a proposal valid when first sent
+    // can go stale by the time the other side gets to confirming it — the
+    // propose-side already blocks a past date, but confirming had no
+    // equivalent check, so a since-passed date could be locked in as
+    // 'scheduled' with no warning.
+    if (job.proposed_date && job.proposed_date < new Date().toLocaleDateString('en-CA')) {
+      setError(t('proposedDateNowPast', lang))
+      return
+    }
     setActioning(true)
     // Matches the proposal currently on screen, not just the job id — the
     // other side could have overwritten their own proposal (submitProposal
@@ -251,8 +260,19 @@ export default function RenterJobDetailPage() {
       // at approved (acknowledged) the landlord hasn't opened it to
       // bidding yet either. Confirmed in testing: a job showed this to
       // the tenant before the landlord had even acknowledged it.
-      pending_approval: t('statusWaitingOnLandlordReview', lang),
-      approved: t('statusWaitingOnLandlordReview', lang),
+      //
+      // Caught live by an external audit: 'approved' reused the same
+      // "You reported this, waiting for your landlord to review it" text
+      // as pending_approval — wrong on both counts once a job is actually
+      // approved (review already happened; it's just not open for bids
+      // yet), and worse for a job the landlord created directly
+      // themselves (status starts at 'approved', skipping
+      // pending_approval entirely), where the renter never reported it
+      // at all. pending_approval itself now only says "you reported"
+      // when this exact viewer actually did (not a co-renter whose
+      // roommate filed the report).
+      pending_approval: job.reported_by === userId ? t('statusWaitingOnLandlordReview', lang) : t('statusReportedWaitingOnLandlordReview', lang),
+      approved: t('statusAcknowledgedAwaitingBids', lang),
       bidding: t('statusLandlordFinding', lang),
       scheduled: t('statusScheduledFull', lang),
       in_progress: t('statusWorkInProgress', lang),

@@ -843,6 +843,15 @@ export default function JobDetailPage() {
   }
 
   const confirmSchedule = async () => {
+    // Caught live by an external audit: a proposal valid when first sent
+    // can go stale by the time the other side gets to confirming it — the
+    // propose-side already blocks a past date, but confirming had no
+    // equivalent check, so a since-passed date could be locked in as
+    // 'scheduled' with no warning.
+    if (job.proposed_date && job.proposed_date < new Date().toLocaleDateString('en-CA')) {
+      setError(t('proposedDateNowPast', lang))
+      return
+    }
     setActioning(true)
     // Matches the proposal currently on screen, not just the job id — the
     // other side could have overwritten their own proposal (submitProposal

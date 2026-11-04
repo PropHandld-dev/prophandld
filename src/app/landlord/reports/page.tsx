@@ -58,8 +58,14 @@ type JobRow = {
 
 type Preset = 'thisYear' | 'lastYear' | 'allTime' | 'custom'
 
+// Caught live by an external audit: toISOString() converts to UTC first,
+// so an evening load in the US (e.g. 9pm Eastern) turned "today" into
+// tomorrow's date — a report defaulted to a range ending Nov 4 while the
+// viewer's own clock still read Nov 3. en-CA gives YYYY-MM-DD in the
+// browser's local timezone instead, the same fix already applied to
+// rentAutomation.ts's own month-bounds helper for the same reason.
 function isoDate(d: Date) {
-  return d.toISOString().slice(0, 10)
+  return d.toLocaleDateString('en-CA')
 }
 
 function presetRange(preset: Preset): { from: string; to: string } {

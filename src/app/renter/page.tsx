@@ -177,8 +177,20 @@ export default function RenterDashboard() {
   // pending_approval/approved used to both show "Landlord is finding a
   // contractor" — premature by a stage or two, confirmed in testing: a
   // job showed this before the landlord had even acknowledged it.
-  if (['pending_approval', 'approved'].includes(job.status)) {
-    return t('statusWaitingOnLandlordReview', lang)
+  //
+  // Caught live by an external audit: 'approved' reused the "You
+  // reported this, waiting for your landlord to review it" text — wrong
+  // once review has actually happened (that's what 'approved' means),
+  // and worse for a job the landlord created directly themselves (status
+  // starts at 'approved', skipping pending_approval entirely, so the
+  // renter never reported it at all). pending_approval itself now only
+  // says "you reported" when this exact viewer actually did, not a
+  // co-renter whose roommate filed the report.
+  if (job.status === 'pending_approval') {
+    return job.reported_by === user?.id ? t('statusWaitingOnLandlordReview', lang) : t('statusReportedWaitingOnLandlordReview', lang)
+  }
+  if (job.status === 'approved') {
+    return t('statusAcknowledgedAwaitingBids', lang)
   }
   if (job.status === 'bidding') {
     return t('statusLandlordFinding', lang)

@@ -221,7 +221,11 @@ export default function UnitRentPage() {
       .from('rent_payments')
       .update({
         actual_amount: amount ?? payment.expected_amount,
-        paid_date: new Date().toISOString().slice(0, 10),
+        // en-CA, not toISOString(): the latter converts to UTC first, so
+        // marking a payment received in the evening (US) recorded it as
+        // received the NEXT calendar day — caught live by an external
+        // audit elsewhere in reporting, same root cause.
+        paid_date: new Date().toLocaleDateString('en-CA'),
         // Carries the renter's own "I've sent this via X" signal through
         // to the existing payment_method field, so it doesn't just go
         // stale for P2P payments — Mark Received itself is still what
@@ -277,7 +281,7 @@ export default function UnitRentPage() {
       changes.push('Water bill period updated')
     }
     if (values.note) changes.push(values.note)
-    const stamp = new Date().toISOString().slice(0, 10)
+    const stamp = new Date().toLocaleDateString('en-CA')
     const notes = [payment.notes, `${stamp}: ${changes.join(' · ')}`].filter(Boolean).join('\n')
 
     const update: Record<string, any> = {

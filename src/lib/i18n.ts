@@ -281,6 +281,8 @@ const STRINGS = {
   statusLandlordFinding: { en: 'Landlord is finding a contractor', es: 'El propietario está buscando un contratista' },
   statusLandlordDiy: { en: 'Your landlord is handling this themselves', es: 'Tu propietario se está encargando de esto' },
   statusWaitingOnLandlordReview: { en: "You reported this, waiting for your landlord to review it", es: 'Reportaste esto, esperando a que tu propietario lo revise' },
+  statusReportedWaitingOnLandlordReview: { en: "Waiting for your landlord to review it", es: 'Esperando a que tu propietario lo revise' },
+  statusAcknowledgedAwaitingBids: { en: "Your landlord has acknowledged this and is about to open it for bids", es: 'Tu propietario ya lo reconoció y está por abrirlo a ofertas' },
   statusContractorSelected: { en: 'A contractor has been selected', es: 'Se ha seleccionado un contratista' },
   statusScheduled: { en: 'Scheduled', es: 'Programado' },
   statusWorkInProgress: { en: 'Work in progress', es: 'Trabajo en progreso' },
@@ -805,6 +807,7 @@ const STRINGS = {
   paidOn: { en: 'Paid', es: 'Pagado el' },
   awaitingPaymentHeading: { en: 'Awaiting payment', es: 'Pendiente de pago' },
   pendingStatus: { en: 'Pending', es: 'Pendiente' },
+  disputedStatus: { en: 'Disputed', es: 'En disputa' },
   addressNotSet: { en: 'Address not set for this property', es: 'Dirección no configurada para esta propiedad' },
 
   // Contractor bid page
@@ -1431,6 +1434,7 @@ const STRINGS = {
   bidSelectedStatusFailed: { en: 'Bid selected, but job status failed to update.', es: 'Oferta seleccionada, pero el estado del trabajo no se actualizó.' },
   pleasePickADate: { en: 'Please pick a date.', es: 'Por favor elige una fecha.' },
   scheduleDateInPast: { en: "That date has already passed — pick today or later.", es: 'Esa fecha ya pasó: elige hoy o una fecha posterior.' },
+  proposedDateNowPast: { en: "That proposed date has already passed. Propose a new time instead of confirming this one.", es: 'Esa fecha propuesta ya pasó. Propón un nuevo horario en lugar de confirmar este.' },
   couldNotProposeSchedule: { en: 'Could not propose a schedule.', es: 'No se pudo proponer un horario.' },
   couldNotSendRequest: { en: 'Could not send request.', es: 'No se pudo enviar la solicitud.' },
   couldNotConfirmSchedule: { en: 'Could not confirm the schedule.', es: 'No se pudo confirmar el horario.' },

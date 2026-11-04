@@ -35,8 +35,13 @@ function jobLocation(bid: Bid, lang: import('@/lib/i18n').Lang) {
   return [address, city].filter(Boolean).join(', ')
 }
 
+// Caught live by an external audit: toISOString() converts to UTC first,
+// so an evening load in the US (e.g. 9pm Eastern) turned "today" into
+// tomorrow's date — the same fix already applied to rentAutomation.ts's
+// own month-bounds helper for the same reason. en-CA gives YYYY-MM-DD in
+// the browser's local timezone instead.
 function isoDate(d: Date) {
-  return d.toISOString().slice(0, 10)
+  return d.toLocaleDateString('en-CA')
 }
 
 function presetRange(preset: Preset): { from: string; to: string } {
@@ -87,7 +92,12 @@ export default function ContractorEarningsPage() {
         return
       }
 
-      setBids(((data || []) as any[]).filter((b) => ['completed', 'archived'].includes(b.jobs?.status)))
+      // Caught live by an external audit: a paid bid whose job later went
+      // to 'disputed' used to be silently dropped from this whole page —
+      // the dashboard's own total (contractor/page.tsx) has no such filter,
+      // so the two screens disagreed by exactly the disputed job's amount,
+      // with nothing telling the contractor it was ever paid at all.
+      setBids(((data || []) as any[]).filter((b) => ['completed', 'archived', 'disputed'].includes(b.jobs?.status)))
       setLoading(false)
     }
     init()
@@ -241,7 +251,14 @@ export default function ContractorEarningsPage() {
                   {byYear.get(year)!.map((b) => (
                     <div key={b.id} className="flex items-center justify-between gap-3 px-5 py-4">
                       <div className="min-w-0 flex-1">
-                        <p className="text-white font-medium text-sm truncate">{b.jobs?.category}</p>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <p className="text-white font-medium text-sm truncate">{b.jobs?.category}</p>
+                          {b.jobs?.status === 'disputed' && (
+                            <span className="text-[10px] font-semibold text-red-400 bg-red-500/10 border border-red-500/25 rounded-full px-1.5 py-0.5 shrink-0">
+                              {t('disputedStatus', lang)}
+                            </span>
+                          )}
+                        </div>
                         <p className="text-white/60 text-xs truncate">{jobLocation(b, lang)}</p>
                         <p className="text-white/50 text-xs mt-0.5">
                           {t('paidOn', lang)} {new Date(b.paid_at || b.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}

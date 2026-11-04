@@ -517,13 +517,19 @@ export default function ContractorDashboard() {
                                 {bid.status === 'accepted' && unreadJobIds.has(bid.job_id) && <UnreadDot />}
                               </span>
                               <span className={
-                                bid.status === 'accepted'
+                                bid.jobs?.status === 'disputed'
+                                  ? 'text-xs bg-red-500/15 text-red-400 border border-red-500/25 rounded-full px-2 py-0.5'
+                                  : bid.status === 'accepted'
                                   ? 'text-xs bg-[#0A7B7E]/20 text-[#12A5A9] border border-[#12A5A9]/30 rounded-full px-2 py-0.5'
                                   : bid.status === 'declined'
                                   ? 'text-xs bg-white/5 text-white/50 border border-white/10 rounded-full px-2 py-0.5'
                                   : 'text-xs bg-yellow-500/15 text-yellow-400 border border-yellow-500/25 rounded-full px-2 py-0.5'
                               }>
-                                {bid.status === 'accepted' ? t('badgeSelected', lang) : bid.status === 'declined' ? t('badgeNotSelected', lang) : t('badgePending', lang)}
+                                {/* Caught live by an external audit: a paid, disputed job
+                                    still showed the plain "Selected" bid badge, with no
+                                    indication its actual job status had moved well past
+                                    bid selection into a dispute. */}
+                                {bid.jobs?.status === 'disputed' ? t('disputedStatus', lang) : bid.status === 'accepted' ? t('badgeSelected', lang) : bid.status === 'declined' ? t('badgeNotSelected', lang) : t('badgePending', lang)}
                               </span>
                             </div>
                             <p className="text-white/50 text-xs mt-1">{jobLocation(bid)}</p>

@@ -34,11 +34,19 @@ export function isLateReschedule(confirmedDate: string): boolean {
 // true — proposing still works, this just sets expectations that it'll
 // reach the other side as an urgent, wake-the-phone notification instead
 // of an ordinary one, since a change this close to the date shouldn't sit
-// unread.
+// unread. Caught live by an external audit: daysUntil going negative for
+// an already-passed confirmed date still satisfied `< RESCHEDULE_LOCKOUT_DAYS`,
+// so a date that had already come and gone was described as "very soon"
+// instead of past — distinguishing the two here, not just at the date math.
 export function lateRescheduleWarning(confirmedDate: string): string | null {
   if (!isLateReschedule(confirmedDate)) return null
   const apptDate = new Date(confirmedDate + 'T00:00:00')
   const label = apptDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  if (apptDate < today) {
+    return `Heads up: the current appointment was ${label}, which has already passed. The other side will get an urgent alert the moment you propose a new time, so let them know to check as soon as they can.`
+  }
   return `Heads up: the current appointment is ${label}, very soon. The other side will get an urgent alert the moment you propose a new time, so let them know to check as soon as they can.`
 }
 
