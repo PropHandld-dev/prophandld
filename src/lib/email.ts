@@ -2682,6 +2682,32 @@ export async function sendSmsRegistrationErrorAdminEmail({
   return sendToAdmins('URGENT: SMS sending is misconfigured (A2P registration error)', html)
 }
 
+// Separate from the registration-error alert above: this fires when the
+// sending number(s) are correctly configured but a meaningful share of
+// messages still aren't reaching the handset (Twilio's own "1003 ACCEPTED,
+// never confirmed 1004 DELIVERED" pattern) — carrier-side filtering, not a
+// Prophandld or Twilio account misconfiguration, but worth real visibility
+// into rather than discovering it from a screenshot of one phone's history.
+export async function sendSmsDeliveryRateAdminEmail({
+  undeliveredCount,
+  checkedCount,
+  sampleSids,
+}: {
+  undeliveredCount: number
+  checkedCount: number
+  sampleSids: { sid: string; status: string }[]
+}) {
+  const html = baseTemplate({
+    lang: 'en',
+    eyebrow: 'Warning',
+    heading: 'SMS delivery rate looks low',
+    bodyHtml: `<strong>${undeliveredCount} of the last ${checkedCount}</strong> SMS sends checked did not reach a confirmed "delivered" status with Twilio (undelivered, failed, or still stuck at sent/accepted after 24+ hours). This usually means carrier-side filtering on the A2P campaign, not a sending misconfiguration — no error code attached to these. Sample message SIDs and their status: ${sampleSids.map((s) => `${escapeHtml(s.sid)} (${escapeHtml(s.status)})`).join(', ')}<br /><br />Worth a look if this keeps showing up, especially as evidence for an open Twilio support thread.`,
+    ctaLabel: 'Open Twilio Console',
+    ctaUrl: 'https://console.twilio.com',
+  })
+  return sendToAdmins('SMS delivery rate looks low', html)
+}
+
 export async function sendDuplicateLandlordBankAccountAdminEmail({
   accountA,
   accountB,
