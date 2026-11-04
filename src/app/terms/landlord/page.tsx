@@ -87,9 +87,11 @@ export default function LandlordTermsPage() {
           changes; you have to approve it before the new price applies.
         </p>
         <p>
-          A completed job auto-approves three days after a contractor marks it done if you haven&apos;t
-          acted on it. You&apos;ll be notified before that happens, and you&apos;re still the one who
-          actually releases payment.
+          Once a contractor marks a job done, you have three days to review and approve it yourself,
+          which is what releases payment to them. You&apos;ll be notified as that window gets close; if
+          you still haven&apos;t acted when it closes, the job auto-approves and payment releases the
+          same way, so a contractor isn&apos;t left waiting indefinitely on a job that&apos;s actually
+          finished.
         </p>
       </section>
 
