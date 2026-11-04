@@ -28,11 +28,11 @@ Prophandld is a rental-maintenance marketplace connecting landlords, renters, an
 
 LANDLORD can: manage properties (Properties tab) and units, set up a tenant's lease (a unit's Tenancy page), track rent (Rent tab, Reports), post or approve maintenance jobs, review sealed contractor bids and pick one, message anyone via DMs or job chat, track property compliance items (licenses, inspections, insurance) and building systems (HVAC, water heater, etc.), invite contractors (Contractors tab -> Invite button, at /landlord/contractors/invite), see a calendar of due dates, invite another landlord to co-manage your whole portfolio (Profile -> Co-Owners section), add a second role-profile such as a renter account under the same email (Profile -> Linked Profiles section). Subscription is priced by unit count: Free (1 unit), Basic $19.99/mo (2-4 units), Pro $39.99/mo (5-10), Executive $79.99/mo (11-25), Portfolio $79.99 + $1.75/unit above 25 — a 14-day free trial starts the first time a landlord goes past 1 unit.
 
-RENTER can: report a maintenance issue (Report tab), track a reported job's status and chat about it, pay rent by card or bank transfer (Rent tab), upload/view lease and other documents, message their landlord or an assigned contractor, see a calendar of rent due dates and job appointments.
+RENTER can: report a maintenance issue (Report tab), track a reported job's status and chat about it, pay rent (Rent tab) by debit card (instant) or bank transfer (usually 1-3 business days to clear) — credit cards are never accepted for rent and get refunded if tried, upload/view lease and other documents, message their landlord or an assigned contractor, see a calendar of rent due dates and job appointments.
 
-CONTRACTOR can: browse and submit sealed bids on open jobs (nobody, including the contractor, sees competing bids), chat about a job, track earnings and payments (paid directly via Stripe once the landlord approves finished work, no platform cut on the bid amount), set their service area/categories, message landlords.
+CONTRACTOR can: browse and submit sealed bids on open jobs (nobody, including the contractor, sees competing bids), chat about a job, track earnings and payments (paid directly via Stripe, card or bank transfer — unlike rent, a job payment isn't restricted to debit-only — once the landlord approves finished work and separately completes that payment, no platform cut on the bid amount), set their service area/categories, message landlords. A contractor's own payment/checkout questions belong on that specific job's detail page, not the landlord's Rent tab, which is rent only.
 
-JOB LIFECYCLE (all three roles watch the same job move through this): reported -> approved by landlord -> open for bidding -> landlord selects a bid -> schedule confirmed -> in progress -> landlord reviews finished work -> paid. A job can also be disputed if something goes wrong.
+JOB LIFECYCLE (all three roles watch the same job move through this): reported -> approved by landlord -> open for bidding -> landlord selects a bid -> schedule confirmed -> in progress -> landlord reviews finished work (approves it, or it auto-approves after 3 days if they don't act) -> that approval makes payment due, which the landlord then pays by separately completing a real Stripe payment step -> paid once that completes. A job can also be disputed if something goes wrong.
 
 PROPHANDLD AI (also called AI Assist internally, but always refer to it as "Prophandld AI" when talking to a user): a paid landlord add-on (priced by unit count, 14-day free trial) that unlocks AI features across the app for that landlord's whole portfolio, including this chat itself. Benefits the landlord and their renters, automatically, at no extra cost to the renter — NOT contractors, who don't get Prophandld AI's features regardless of whether the landlord has it on. Features: this chat, reading uploaded documents to auto-fill lease/compliance/appliance forms, a lease Q&A chat for renters, a troubleshooting assistant for renters (and landlords doing a job themselves) that can review an attached photo and suggest safe things to try before a contractor is needed, AI-verified compliance renewals, a portfolio digest of what needs attention, drafting routine messages, and a few smaller touches elsewhere. Turned on/managed from Profile.
 
@@ -361,7 +361,14 @@ export async function POST(request: NextRequest) {
         'current) — if asked "who\'s behind on rent" or similar, name the unit(s) and how much/how many days, or ' +
         'say plainly that everyone is caught up if the list is empty. For a renter, rentStatusThisMonth is either ' +
         '"paid", null (no payment on file yet), or an object with amountDue/daysSinceDue/isLate — answer "have I ' +
-        'paid rent" directly from it. For a renter asking about a rent increase/escalation, rentEscalationPercent ' +
+        'paid rent" directly from it. If someone gives you their OWN numbers in the question (e.g. "I paid ' +
+        '$15.74 including a $0.74 fee, what was the rent portion?"), do the arithmetic plainly — $15.74 minus ' +
+        '$0.74 is $15 — but be explicit that you\'re only calculating from what they told you, not confirming it ' +
+        'against a real record, and never let simple arithmetic on a small stated amount imply anything about ' +
+        'whether their full rent for the month is satisfied; only account facts above establish that. Refusing ' +
+        'to do basic math you\'re plainly capable of is not more careful, it\'s just unhelpful — the honesty is ' +
+        'in labeling the number as calculated-from-what-they-said, not in declining to calculate at all. ' +
+        'For a renter asking about a rent increase/escalation, rentEscalationPercent ' +
         'and rentEscalationFrequencyMonths (e.g. 7 and 12 means 7% every 12 months) and nextRentIncreaseDate are ' +
         'real values from their actual lease — state them directly when present; if rentEscalationPercent is ' +
         'null, say plainly their lease has no scheduled increase on file rather than "not sure." If asked how to actually renew one, make clear upfront which kind of ' +
@@ -413,7 +420,15 @@ export async function POST(request: NextRequest) {
     if (err instanceof ClaudeConfigError) {
       return NextResponse.json({ error: 'Not set up yet' }, { status: 503 })
     }
-    console.error('ai-assist/help-chat: unhandled error', err)
-    return NextResponse.json({ error: 'Could not respond right now. Try again in a moment.' }, { status: 500 })
+    // Caught live by a second audit: this fails intermittently across a
+    // wide range of unrelated prompts (a simple unit count, a privacy
+    // question) with nothing for a landlord to report beyond "Try again
+    // in a moment" — same errorRef pattern already added to
+    // compliance-gap-check for the same reason: a short id, logged
+    // alongside the real error server-side and echoed to the client,
+    // turns "it's broken" into something actually traceable.
+    const errorRef = crypto.randomUUID().slice(0, 8)
+    console.error(`ai-assist/help-chat: unhandled error [ref ${errorRef}]`, err)
+    return NextResponse.json({ error: 'Could not respond right now. Try again in a moment.', errorRef }, { status: 500 })
   }
 }

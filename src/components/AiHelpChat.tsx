@@ -31,6 +31,8 @@ export function AiHelpChat({ initialMessage, onNavigate }: { initialMessage?: st
   const [draft, setDraft] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [errorRef, setErrorRef] = useState<string | null>(null)
+  const [lastFailed, setLastFailed] = useState<{ message: string; history: Turn[] } | null>(null)
   const [escalating, setEscalating] = useState(false)
   const [escalateNote, setEscalateNote] = useState('')
   const [escalateStatus, setEscalateStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
@@ -59,12 +61,12 @@ export function AiHelpChat({ initialMessage, onNavigate }: { initialMessage?: st
     if (el) el.scrollTop = el.scrollHeight
   }, [turns.length, sending])
 
-  const doSend = async (message: string, historyOverride?: Turn[]) => {
-    if (!message || sending) return
-    const baseHistory = historyOverride ?? turns
-    setDraft('')
+  // Shared by a fresh send and a retry of a previously failed one — a
+  // retry must NOT push a second copy of the user's own message, since
+  // doSend already left it in `turns` from the attempt that failed.
+  const postMessage = async (message: string, baseHistory: Turn[]) => {
     setError(null)
-    setTurns((prev) => [...prev, { role: 'user', content: message }])
+    setErrorRef(null)
     setSending(true)
     try {
       const res = await fetch('/api/ai-assist/help-chat', {
@@ -77,23 +79,45 @@ export function AiHelpChat({ initialMessage, onNavigate }: { initialMessage?: st
       })
       const data = await res.json()
       if (!res.ok) {
+        // Caught live by an external audit: a failed send used to force
+        // retyping the whole message — kept here so Retry can resend the
+        // exact same text/history instead.
         setError(data.error || t('aiHelpChatFailed', lang))
+        setErrorRef(data.errorRef || null)
+        setLastFailed({ message, history: baseHistory })
         setSending(false)
         return
       }
+      setLastFailed(null)
       setTurns((prev) => [...prev, { role: 'assistant', content: data.reply, suggestEscalate: !!data.suggestEscalate, navLink: data.navLink || null }])
     } catch {
       setError(t('aiHelpChatFailed', lang))
+      setLastFailed({ message, history: baseHistory })
     }
     setSending(false)
   }
 
+  const doSend = async (message: string, historyOverride?: Turn[]) => {
+    if (!message || sending) return
+    const baseHistory = historyOverride ?? turns
+    setDraft('')
+    setTurns((prev) => [...prev, { role: 'user', content: message }])
+    await postMessage(message, baseHistory)
+  }
+
   const send = () => doSend(draft.trim())
+
+  const retryLastFailed = () => {
+    if (!lastFailed || sending) return
+    postMessage(lastFailed.message, lastFailed.history)
+  }
 
   const endConversation = () => {
     setTurns([])
     setDraft('')
     setError(null)
+    setErrorRef(null)
+    setLastFailed(null)
     setEscalating(false)
     setConfirmingEnd(false)
     setStarted(false)
@@ -214,7 +238,24 @@ export function AiHelpChat({ initialMessage, onNavigate }: { initialMessage?: st
         {sending && <p className="text-white/40 text-xs">{t('aiHelpChatThinking', lang)}</p>}
       </div>
 
-      {error && <p className="text-red-400 text-xs mb-2">{error}</p>}
+      {error && (
+        <div className="mb-2">
+          <p className="text-red-400 text-xs">
+            {error}
+            {errorRef && <span className="text-red-400/50"> ({t('errorReferencePrefix', lang)} {errorRef})</span>}
+          </p>
+          {lastFailed && (
+            <button
+              type="button"
+              onClick={retryLastFailed}
+              disabled={sending}
+              className="text-xs font-semibold text-[#12A5A9] hover:underline mt-1 disabled:opacity-50"
+            >
+              {sending ? t('aiHelpChatThinking', lang) : t('tryAgainBtn', lang)}
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="flex items-center gap-2 shrink-0">
         <input
