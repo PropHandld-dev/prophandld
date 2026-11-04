@@ -27,6 +27,7 @@ import { CONTRACTOR_TABS } from '@/lib/navTabs'
 import { TIME_WINDOWS, validateScheduleTime, lateRescheduleWarning, shortNoticeWarning } from '@/lib/scheduleWindows'
 import { useLanguage, t, windowLabel } from '@/lib/i18n'
 import { useConfirm } from '@/lib/useConfirm'
+import { useDialogA11y } from '@/lib/useDialogA11y'
 
 export default function ContractorJobDetailPage() {
   const router = useRouter()
@@ -39,12 +40,20 @@ export default function ContractorJobDetailPage() {
   const [hasUnread, setHasUnread] = useState(false)
   const [job, setJob] = useState<any>(null)
   const [myBid, setMyBid] = useState<any>(null)
+  // Fetched separately through a security-definer RPC, never from the raw
+  // jobs row — see get_job_access_notes_for_contractor. A non-selected
+  // contractor used to see this tenant-private field just by loading a
+  // job's detail page with a known/guessed id, since the main jobs query
+  // (select('*'), for bidding purposes) returned it with no further
+  // restriction. Caught live by an external isolation review.
+  const [accessNotes, setAccessNotes] = useState<string | null>(null)
   const [photos, setPhotos] = useState<any[]>([])
   const [error, setError] = useState<string | null>(null)
   const [actioning, setActioning] = useState(false)
   const [uploading, setUploading] = useState(false)
 
   const [showScheduleModal, setShowScheduleModal] = useState(false)
+  const { dialogRef: scheduleDialogRef } = useDialogA11y(showScheduleModal, () => setShowScheduleModal(false))
   const [scheduleDate, setScheduleDate] = useState('')
   const [scheduleWindow, setScheduleWindow] = useState('morning')
   const [scheduleTime, setScheduleTime] = useState('')
@@ -113,10 +122,23 @@ export default function ContractorJobDetailPage() {
       }
     }
 
+    // Never kept in client state from the raw row, even though the
+    // underlying query may still return it under today's RLS policy —
+    // the real, authorized value is fetched separately below, through a
+    // check that doesn't depend on that policy being correct.
+    delete jobData.access_notes
     setJob(jobData)
     setResponseText(jobData.clarification_response || '')
 
     setMyBid(bidData)
+    if (bidData?.status === 'accepted') {
+      supabase.rpc('get_job_access_notes_for_contractor', { target_job_id: jobId }).then(({ data, error: notesError }) => {
+        if (notesError) console.error('Error loading access notes:', notesError)
+        else setAccessNotes(data)
+      })
+    } else {
+      setAccessNotes(null)
+    }
 
     if (photosData && photosData.length > 0) {
       // One batched request for every photo link instead of one per photo.
@@ -646,16 +668,20 @@ export default function ContractorJobDetailPage() {
           )}
           <p className="text-white/70 text-sm leading-relaxed">{job.description}</p>
 
-          {job.access_notes && (
+          {accessNotes && (
             <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 mt-3">
               <p className="text-white/50 text-xs font-semibold mb-1">{t('accessNotesForContractorHeading', lang)}</p>
-              <p className="text-white/70 text-sm">{job.access_notes}</p>
+              <p className="text-white/70 text-sm">{accessNotes}</p>
             </div>
           )}
 
           {myBid && (
             <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 mt-4">
-              <p className="text-white/50 text-xs">{t('yourAcceptedBid', lang)}</p>
+              {/* Caught live by an external audit: this said "Your accepted
+                  bid" unconditionally, even for a pending or declined bid —
+                  a losing bid on a filled job showed "Not selected" right
+                  above a label still calling it accepted. */}
+              <p className="text-white/50 text-xs">{myBid.status === 'accepted' ? t('yourAcceptedBid', lang) : t('yourSubmittedBid', lang)}</p>
               {job.status === 'bidding' && (
                 <p className="text-white/40 text-xs mt-1">{t('sealedBidReminder', lang)}</p>
               )}
@@ -973,8 +999,15 @@ export default function ContractorJobDetailPage() {
 
       {showScheduleModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
-          <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
-            <h3 className="text-white font-semibold mb-4">{t('proposeATimeHeading', lang)}</h3>
+          <div
+            ref={scheduleDialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="propose-time-dialog-title"
+            tabIndex={-1}
+            className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full outline-none"
+          >
+            <h3 id="propose-time-dialog-title" className="text-white font-semibold mb-4">{t('proposeATimeHeading', lang)}</h3>
 
             {job.schedule_confirmed && job.proposed_date && lateRescheduleWarning(job.proposed_date) && (
               <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl px-4 py-3 mb-4">
