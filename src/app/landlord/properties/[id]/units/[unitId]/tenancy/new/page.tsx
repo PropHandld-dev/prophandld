@@ -101,8 +101,22 @@ export default function NewTenancyPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
     setError(null)
+
+    // Confirmed bug (external audit, 2026-11-05): submitting this form
+    // completely blank still showed "Invite sent" and left a permanent
+    // pending invitation with no recipient — ContactInviteInput has no
+    // `required` attribute of its own, so nothing stopped it. Checked here
+    // before anything else happens; the DB-level check constraint (see
+    // 2026-11-05-tenancy-invite-contact-check.sql) is the real backstop in
+    // case this client check is ever bypassed.
+    const trimmedContact = form.renter_email.trim()
+    if (!trimmedContact) {
+      setError(contactMode === 'email' ? t('enterRenterEmailError', lang) : t('enterRenterPhoneError', lang))
+      return
+    }
+
+    setLoading(true)
 
     // Normalized to lowercase so it matches however the tenant actually
     // capitalized their email at signup — mismatched case here was why

@@ -1639,6 +1639,8 @@ const STRINGS = {
   linkedOnceSignUp: { en: "They'll be linked to this unit automatically once they sign up as a renter.", es: 'Se vincularán a esta unidad automáticamente una vez que se registren como inquilinos.' },
   renterEmailLabel: { en: 'Renter email', es: 'Correo electrónico del inquilino' },
   renterPhoneLabel: { en: 'Renter phone', es: 'Teléfono del inquilino' },
+  enterRenterEmailError: { en: "Enter the renter's email before sending an invite.", es: 'Ingresa el correo del inquilino antes de enviar una invitación.' },
+  enterRenterPhoneError: { en: "Enter the renter's phone number before sending an invite.", es: 'Ingresa el teléfono del inquilino antes de enviar una invitación.' },
   monthlyRentDollarLabel: { en: 'Monthly rent ($)', es: 'Renta mensual ($)' },
   rentDueDayLabel: { en: 'Rent due day of month', es: 'Día de vencimiento de la renta' },
   pick1to28Desc: { en: 'Pick 1–28 so it lands on every month, including February.', es: 'Elige entre 1 y 28 para que caiga en todos los meses, incluyendo febrero.' },
