@@ -74,6 +74,20 @@ export default function RenterDashboard() {
       setUser(user)
       setLoading(false)
 
+      // Safety net for a pending tenancy invite matching this renter's own
+      // email/phone. Normally closed out by login/page.tsx's one-time check
+      // right after a password sign-in — but that only runs on an actual
+      // form submit through /login. A session established any other way
+      // (an already-open tab resuming, a restored session) never reaches
+      // that code at all. An external audit (2026-11-05) found exactly
+      // this: an invite whose email and role both matched the signed-in
+      // account stayed stuck pending even after a reported fresh
+      // logout/login. Fire-and-forget and safe on every dashboard load —
+      // the route itself is a no-op once already linked.
+      fetch('/api/tenancy/link-invite', { method: 'POST' }).catch((err) =>
+        console.error('renter dashboard: link-invite safety net failed', err)
+      )
+
       // Resolves to the caller's tenancy whether they're the primary
       // tenant or a co-renter added on the unit (tenancy_occupants) —
       // both land on the same household lease.

@@ -140,6 +140,9 @@ export function CoOwnersSection() {
         <div className="space-y-2 mb-4">
           {invitedByMe.map((c) => (
             <div key={c.id} className="flex items-center gap-3 bg-white/5 rounded-xl px-4 py-3">
+              <span className="shrink-0 w-7 h-7 rounded-full bg-[#12A5A9]/15 text-[#12A5A9] text-[11px] font-bold flex items-center justify-center">
+                {c.name.trim().charAt(0).toUpperCase() || '?'}
+              </span>
               <span className="text-white/80 text-sm flex-1 truncate">{c.name}</span>
               <span className={
                 c.status === 'accepted'

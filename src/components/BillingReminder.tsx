@@ -46,7 +46,7 @@ export function BillingReminder() {
     <div className="bg-yellow-500/8 border border-yellow-500/25 rounded-2xl p-5 mb-6" role="status">
       <p className="text-yellow-400 text-xs font-semibold uppercase tracking-wide mb-1">{t('paymentNeededBadge', lang)}</p>
       <p className="text-white font-semibold">
-        {t('planIsForUnits', lang)} {formatTierPrice(unitCount)} {t('forLabel', lang)} {unitCount} unit{unitCount === 1 ? '' : 's'}.
+        {t('planIsForUnits', lang)} {formatTierPrice(unitCount)} {t('forLabel', lang)} {unitCount} unit{unitCount === 1 ? '' : 's'} {t('unitsYouOwnSuffix', lang)}.
       </p>
       <p className="text-white/60 text-sm mt-1">
         {!trialExpired && daysLeftInTrial !== null
@@ -85,7 +85,7 @@ export function SubscribeToAdd({ what }: { what: string }) {
     <div className="bg-white/3 border border-yellow-500/25 rounded-2xl p-6 text-center" role="status">
       <p className="text-white font-semibold text-lg">{t('subscribeToAdd', lang)} {what}</p>
       <p className="text-white/60 text-sm mt-2 max-w-sm mx-auto">
-        {t('planIsForUnits', lang)} {formatTierPrice(unitCount)} {t('forLabel', lang)} {unitCount} unit{unitCount === 1 ? '' : 's'}. {t('onceActiveAddMore', lang)}
+        {t('planIsForUnits', lang)} {formatTierPrice(unitCount)} {t('forLabel', lang)} {unitCount} unit{unitCount === 1 ? '' : 's'} {t('unitsYouOwnSuffix', lang)}. {t('onceActiveAddMore', lang)}
       </p>
       {error && <p className="text-red-400 text-sm mt-3">{error}</p>}
       <RippleButton

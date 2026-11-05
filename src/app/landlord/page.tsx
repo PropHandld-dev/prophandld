@@ -67,6 +67,15 @@ export default function LandlordDashboard() {
     pendingBids: 0,
   })
   const [properties, setProperties] = useState<any[]>([])
+  // True once this account is an accepted co-owner/manager of at least one
+  // OTHER landlord's portfolio — the dashboard stat below counts units
+  // across every portfolio you can see (yours plus managed), while billing
+  // (subscription/status) only ever counts what you personally own, since
+  // a manager doesn't pay for the portfolio they manage. An external audit
+  // (2026-11-05) found this surfaced as two unexplained, different unit
+  // counts in the same account with no indication why — real numbers, not
+  // a bug, just needing a one-line explanation wherever both appear.
+  const [managesOtherPortfolios, setManagesOtherPortfolios] = useState(false)
   const [newIssues, setNewIssues] = useState<any[]>([])
   const [readyToBid, setReadyToBid] = useState<any[]>([])
   const [priceChangeRequests, setPriceChangeRequests] = useState<any[]>([])
@@ -128,6 +137,7 @@ export default function LandlordDashboard() {
       setUser(user)
 
       const landlordIds = await getLandlordIds(supabase, user.id)
+      setManagesOtherPortfolios(landlordIds.some((id) => id !== user.id))
 
       // Paged: Supabase silently caps a single response at 1000 rows and
       // drops the rest with no error. The top pricing tier now goes to
@@ -615,6 +625,9 @@ export default function LandlordDashboard() {
                 </div>
                 <CountUp value={stats.totalUnits} className="text-3xl font-bold text-white block" />
                 <div className="text-white/60 text-sm mt-1">{t('totalUnits', lang)}</div>
+                {managesOtherPortfolios && (
+                  <div className="text-white/35 text-xs mt-1">{t('totalUnitsIncludesManagedNote', lang)}</div>
+                )}
               </div>
 
               <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
