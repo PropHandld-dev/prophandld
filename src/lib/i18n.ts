@@ -867,6 +867,7 @@ const STRINGS = {
   withLabel: { en: 'With', es: 'Con' },
   unknownPerson: { en: 'Unknown', es: 'Desconocido' },
   noMessagesYet: { en: 'No messages yet. Say hello.', es: 'Aún no hay mensajes. Saluda.' },
+  conversationNotAccessible: { en: "You don't have access to this conversation.", es: 'No tienes acceso a esta conversación.' },
   youLabel: { en: 'You', es: 'Tú' },
   sentLabel: { en: 'Sent', es: 'Enviado' },
   seeTranslationBtn: { en: 'See translation', es: 'Ver traducción' },

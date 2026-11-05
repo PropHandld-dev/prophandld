@@ -82,6 +82,15 @@ export function ChatPanel({
   const [draft, setDraft] = useState(initialDraft)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Caught live by an external audit: an unauthorized conversation used
+  // to render exactly like a real empty one — "No messages yet. Say
+  // hello." with a live composer — and only revealed anything was wrong
+  // once a send actually failed. Distinct from a generic load error
+  // (network blip, etc): this is a real 404 from the access check
+  // itself, so the whole conversation UI (composer, AI replies,
+  // translation, scheduling) gets replaced with an explicit denial
+  // instead of just an error banner bolted onto a misleading empty state.
+  const [accessDenied, setAccessDenied] = useState(false)
   const [showSchedule, setShowSchedule] = useState(false)
   // Per-message, on tap only — see /api/translate for why this isn't
   // automatic. Cached here so tapping a message twice doesn't call the
@@ -148,13 +157,14 @@ export function ChatPanel({
     // restrict thread_id-scoped rows to real participants. Used for both
     // the initial load and the polling refetch below, so neither vector
     // relies on that policy being correct.
-    const fetchMessages = async (): Promise<{ data: Message[] | null; error: unknown }> => {
+    const fetchMessages = async (): Promise<{ data: Message[] | null; error: unknown; status: number | null }> => {
       const res = await fetch(`/api/chat/messages?${jobId ? `jobId=${jobId}` : `threadId=${threadId}`}`).catch(() => null)
-      if (!res?.ok) return { data: null, error: res ? await res.json().catch(() => ({})) : 'network error' }
+      if (!res?.ok) return { data: null, error: res ? await res.json().catch(() => ({})) : 'network error', status: res?.status ?? null }
       const body = await res.json().catch(() => ({}))
-      return { data: (body.messages || []) as Message[], error: null }
+      return { data: (body.messages || []) as Message[], error: null, status: res.status }
     }
     let currentUserId: string | null = null
+    let denied = false
 
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -178,12 +188,19 @@ export function ChatPanel({
         })
       const messagesQuery = fetchMessages()
 
-      const [{ data: participantsData }, { data: messagesData, error: loadError }] = await Promise.all([
+      const [{ data: participantsData }, { data: messagesData, error: loadError, status: loadStatus }] = await Promise.all([
         participantsQuery,
         messagesQuery,
       ])
 
       setParticipants(participantsData || [])
+
+      if (loadStatus === 404) {
+        denied = true
+        setAccessDenied(true)
+        setLoading(false)
+        return
+      }
 
       if (loadError) {
         console.error('Error loading messages:', loadError)
@@ -211,7 +228,7 @@ export function ChatPanel({
     // gap on jobs/bids (that one still just doesn't deliver; it was never
     // shown to leak data the way this one was).
     const refetch = async () => {
-      if (document.visibilityState !== 'visible' || !currentUserId) return
+      if (document.visibilityState !== 'visible' || !currentUserId || denied) return
       const { data } = await fetchMessages()
       if (!data) return
       const known = new Set(messagesRef.current.map((m) => m.id))
@@ -486,6 +503,14 @@ export function ChatPanel({
         <Skeleton className="h-14" />
         <Skeleton className="h-14 w-2/3" />
         <Skeleton className="h-14" />
+      </div>
+    )
+  }
+
+  if (accessDenied) {
+    return (
+      <div className={`flex flex-col items-center justify-center text-center ${heightClassName}`}>
+        <p className="text-white/60 text-sm max-w-xs">{t('conversationNotAccessible', lang)}</p>
       </div>
     )
   }
