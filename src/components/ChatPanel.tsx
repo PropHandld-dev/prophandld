@@ -139,10 +139,21 @@ export function ChatPanel({
   }
 
   useEffect(() => {
-    const buildMessagesQuery = () =>
-      jobId
-        ? supabase.from('messages').select('id, job_id, thread_id, sender_user_id, body, created_at').eq('job_id', jobId).order('created_at', { ascending: true })
-        : supabase.from('messages').select('id, job_id, thread_id, sender_user_id, body, created_at').eq('thread_id', threadId).order('created_at', { ascending: true })
+    // Goes through the server (admin client, after its own explicit
+    // membership check via loadChatParticipants) rather than a direct
+    // `messages` table query from the browser's own client — caught live
+    // by an external audit: a non-participant contractor could read a
+    // DM thread's full message bodies by opening its URL directly,
+    // because the table's own RLS SELECT policy didn't actually
+    // restrict thread_id-scoped rows to real participants. Used for both
+    // the initial load and the polling refetch below, so neither vector
+    // relies on that policy being correct.
+    const fetchMessages = async (): Promise<{ data: Message[] | null; error: unknown }> => {
+      const res = await fetch(`/api/chat/messages?${jobId ? `jobId=${jobId}` : `threadId=${threadId}`}`).catch(() => null)
+      if (!res?.ok) return { data: null, error: res ? await res.json().catch(() => ({})) : 'network error' }
+      const body = await res.json().catch(() => ({}))
+      return { data: (body.messages || []) as Message[], error: null }
+    }
     let currentUserId: string | null = null
 
     const init = async () => {
@@ -165,7 +176,7 @@ export function ChatPanel({
             : await supabase.rpc('get_dm_thread_participants', { target_thread_id: threadId })
           return { data: (fallback.data || []) as Participant[] }
         })
-      const messagesQuery = buildMessagesQuery()
+      const messagesQuery = fetchMessages()
 
       const [{ data: participantsData }, { data: messagesData, error: loadError }] = await Promise.all([
         participantsQuery,
@@ -187,36 +198,21 @@ export function ChatPanel({
     }
     init()
 
-    const filter = jobId ? `job_id=eq.${jobId}` : `thread_id=eq.${threadId}`
-    const channel = supabase
-      .channel(`messages:${jobId ? 'job' : 'thread'}:${jobId || threadId}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages', filter },
-        (payload) => {
-          const incoming = payload.new as Message
-          setMessages((prev) => (prev.some((m) => m.id === incoming.id) ? prev : [...prev, incoming]))
-          supabase.auth.getUser().then(({ data: { user } }) => {
-            if (user) markRead(user.id)
-          })
-        }
-      )
-      .subscribe()
-
-    // Confirmed live (2026-10-06, timed test with two open sessions): the
-    // postgres_changes INSERT event for this table doesn't actually reach
-    // an already-open tab — subscribes fine, never fires. This poll is the
-    // real delivery mechanism right now, not just a rare safety net for a
-    // dropped connection, hence the shorter interval than a true fallback
-    // would need. See useJobRealtime.ts for the matching gap on jobs/bids.
-    // This is the single highest-visibility case of that gap — two people
-    // actively looking at the same open chat thread — so it gets a much
-    // tighter interval than the inbox/job-list polls (useConversations.ts,
-    // useJobRealtime.ts) that only affect an unread badge or a status
-    // label, not an in-progress conversation.
+    // No postgres_changes subscription here on purpose (removed
+    // 2026-11-05): it queried the `messages` table directly over
+    // Supabase Realtime's own WebSocket channel, bypassing the
+    // membership-checked /api/chat/messages route above entirely — the
+    // exact same gap just fixed for the raw table query, just over a
+    // different transport. It was already confirmed non-functional for
+    // its intended purpose (see the original 2026-10-06 finding: events
+    // never reached an already-open tab), so removing it costs nothing —
+    // this polling loop was already the real, documented delivery
+    // mechanism, not a fallback. See useJobRealtime.ts for the matching
+    // gap on jobs/bids (that one still just doesn't deliver; it was never
+    // shown to leak data the way this one was).
     const refetch = async () => {
       if (document.visibilityState !== 'visible' || !currentUserId) return
-      const { data } = await buildMessagesQuery()
+      const { data } = await fetchMessages()
       if (!data) return
       const known = new Set(messagesRef.current.map((m) => m.id))
       if (!data.some((m) => !known.has(m.id))) return
@@ -233,7 +229,6 @@ export function ChatPanel({
     return () => {
       clearInterval(timer)
       document.removeEventListener('visibilitychange', refetch)
-      supabase.removeChannel(channel)
     }
   }, [jobId, threadId])
 
