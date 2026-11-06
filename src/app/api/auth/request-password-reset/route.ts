@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { sendPasswordResetEmail } from '@/lib/email'
 import { SITE_URL } from '@/lib/site'
+import { tooManyRequests } from '@/lib/rateLimit'
 
 export const maxDuration = 15
 
@@ -17,12 +18,36 @@ export const maxDuration = 15
 // posture resetPasswordForEmail() already had. A missing account or any
 // other generateLink failure is logged and still answered with ok:true;
 // only a real email actually gets a real email.
+//
+// SECURITY FIX (found during a pre-launch vulnerability pass, 2026-11-06):
+// going straight through generateLink() (the privileged admin API) rather
+// than Supabase's own rate-limited public resetPasswordForEmail() meant
+// this had NO rate limit of its own — anyone could flood an arbitrary
+// victim's inbox with real reset emails (real Resend cost per send, plus
+// straightforward harassment), or spray many emails per IP. Limited by
+// both IP and target email, same shared cross-instance limiter already
+// used on the other enumeration-shaped routes.
+const IP_RATE_LIMIT = 8
+const EMAIL_RATE_LIMIT = 3
+const RATE_WINDOW_MINUTES = 15
+
 export async function POST(request: NextRequest) {
   const { email } = (await request.json().catch(() => ({}))) as { email?: string }
   if (!email || !email.trim()) {
     return NextResponse.json({ error: 'Missing email' }, { status: 400 })
   }
   const trimmedEmail = email.trim()
+
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+  if (
+    (await tooManyRequests(`pw-reset-ip:${ip}`, IP_RATE_LIMIT, RATE_WINDOW_MINUTES)) ||
+    (await tooManyRequests(`pw-reset-email:${trimmedEmail.toLowerCase()}`, EMAIL_RATE_LIMIT, RATE_WINDOW_MINUTES))
+  ) {
+    // Still ok:true — a rate-limit response must not reveal anything an
+    // ordinary response wouldn't, same enumeration posture as everywhere
+    // else in this route.
+    return NextResponse.json({ ok: true })
+  }
 
   const admin = getSupabaseAdmin()
 
