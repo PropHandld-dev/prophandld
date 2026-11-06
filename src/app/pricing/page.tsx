@@ -45,7 +45,7 @@ export default function PricingPage() {
       </nav>
 
       <main className="max-w-4xl mx-auto px-6 py-16 sm:py-20">
-        <div className="relative text-center mb-14">
+        <div className="relative text-center mb-14 overflow-hidden">
           <div
             aria-hidden
             className="absolute left-1/2 -top-24 -translate-x-1/2 w-[560px] h-[560px] rounded-full pointer-events-none"
