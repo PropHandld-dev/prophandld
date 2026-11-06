@@ -105,6 +105,23 @@ export default function ContractorJobDetailPage() {
       return
     }
 
+    // SECURITY FIX (external audit, 2026-11-06, PRIV-02): this query had
+    // no eligibility check of its own beyond the row id, trusting the
+    // `jobs` table's own RLS policy to keep a contractor from reading a
+    // report before the landlord has even acknowledged it — a report in
+    // pending_approval/approved never appears in a contractor's job list
+    // (it correctly isn't open to bidding yet), but it was still fully
+    // readable by just visiting its URL directly. A contractor who
+    // already has a real bid on this job (any status) is always allowed
+    // through; anyone else only once the landlord has actually opened it
+    // up, same boundary the landlord's own dashboard already enforces.
+    if (['pending_approval', 'approved'].includes(jobData.status) && !bidData) {
+      console.error('Blocked pre-bidding job access attempt:', jobId, jobData.status)
+      setError(t('jobNotFoundAccessible', lang))
+      setLoading(false)
+      return
+    }
+
     if (jobData.status === 'pending_review' && jobData.contractor_completed_at) {
       const completedAt = new Date(jobData.contractor_completed_at).getTime()
       const threeDaysMs = 3 * 24 * 60 * 60 * 1000

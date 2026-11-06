@@ -30,19 +30,13 @@ function fresh<T>(entry: Cached<T> | undefined): entry is Cached<T> {
   return !!entry && Date.now() - entry.at < CACHE_TTL_MS
 }
 
-// Shared by the full-page inbox and the floating widget. Deliberately
-// has no server-side "who can you message" logic of its own — it only
-// ever surfaces conversations that already exist. A job conversation
-// can only exist because someone inserted a message, which the
-// `messages` RLS policy restricts to actual job participants (see
-// is_job_participant). A DM conversation can only exist because a
-// `dm_threads` row was created by start_landlord_tenant_thread /
-// start_landlord_contractor_thread, both of which independently
-// re-derive the relationship from real tenancy/bid rows — never an
-// open contact list. Querying "all messages, most recent first" and
-// grouping by job_id/thread_id client-side is safe precisely because
-// RLS has already filtered the rows to conversations this user is
-// legitimately part of.
+// Shared by the full-page inbox and the floating widget. Used to rely
+// entirely on the `messages` table's own RLS policy to scope
+// get_recent_conversation_previews() to real participants — proven wrong
+// by the same external audit that found the single-thread fetch had the
+// identical gap (see /api/chat/inbox-previews, which this now calls
+// instead of hitting the RPC directly). The authorization now actually
+// lives there, re-checked per conversation via loadChatParticipants.
 export function useConversations(userId: string | null) {
   const lang = useLanguage()
   const [loading, setLoading] = useState(true)
@@ -61,13 +55,23 @@ export function useConversations(userId: string | null) {
     // One row per conversation (the latest message in it), computed in the
     // database rather than a JS-side cap on the N most recent messages
     // globally — see get_recent_conversation_previews for why that matters.
-    const { data: previews, error } = await supabase.rpc('get_recent_conversation_previews')
-
-    if (error) {
-      console.error('Error loading messages:', error)
+    //
+    // Goes through /api/chat/inbox-previews rather than calling the RPC
+    // directly — caught live by an external audit (2026-11-06): calling
+    // it straight from here trusted its rows completely, on the same
+    // since-disproven assumption that `messages`' own RLS policy already
+    // restricts them to real participants. That route re-checks every row
+    // against loadChatParticipants (the same authorization helper the
+    // single-thread fetch already uses) before this ever sees it, so a
+    // non-member's conversation can no longer surface here, in search, or
+    // in unread counts, all of which are derived from this one list.
+    const res = await fetch('/api/chat/inbox-previews').catch(() => null)
+    if (!res?.ok) {
+      console.error('Error loading messages:', res ? await res.json().catch(() => ({})) : 'network error')
       setLoading(false)
       return
     }
+    const { previews } = await res.json().catch(() => ({ previews: [] }))
 
     const entries = ((previews || []) as { kind: 'job' | 'dm'; conv_id: string; body: string; created_at: string; sender_user_id: string }[])
       .map((m) => ({ kind: m.kind, id: m.conv_id, body: m.body, created_at: m.created_at, sender_user_id: m.sender_user_id }))
