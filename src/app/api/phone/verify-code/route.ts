@@ -1,14 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
+import { tooManyRequests } from '@/lib/rateLimit'
 
 export const maxDuration = 15
+
+// SECURITY FIX (found during a pre-launch vulnerability pass, 2026-11-06):
+// this had NO rate limit at all on guesses, while the code itself is only
+// 6 digits (900,000 possibilities) valid for 10 minutes — completely
+// brute-forceable by an unthrottled authenticated caller. Worse than a
+// generic OTP brute force: send-code lets you request a code for ANY
+// phone number, not just your own, and phone_verified_at is the exact
+// control tenancy/link-invite's phone-match auto-link relies on to stop
+// someone typing in a stranger's number and getting auto-linked into
+// their pending tenancy (see that route's own comment). Without this
+// limit, brute-forcing the code was a real path around that control, not
+// just a theoretical one. 8 attempts per 10-minute window — comfortably
+// more than anyone will ever need to retype a code correctly, nowhere
+// close to viable against 900,000 possibilities.
+const RATE_LIMIT = 8
+const RATE_WINDOW_MINUTES = 10
 
 export async function POST(request: NextRequest) {
   const authClient = await createClient()
   const { data: { user } } = await authClient.auth.getUser()
   if (!user) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+  }
+  if (await tooManyRequests(`phone-verify-code:${user.id}`, RATE_LIMIT, RATE_WINDOW_MINUTES)) {
+    return NextResponse.json({ error: 'Too many attempts. Request a new code and try again.' }, { status: 429 })
   }
 
   const { code } = (await request.json().catch(() => ({}))) as { code?: string }
