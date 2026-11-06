@@ -198,7 +198,22 @@ export default function ContractorJobDetailPage() {
 
     if (updateError) {
       console.error('Error proposing schedule:', updateError)
-      setError(t('couldNotProposeSchedule', lang))
+      // Confirmed live (external audit, 2026-11-05): an already-open
+      // reschedule form left open in one tab while the assignment got
+      // canceled in another correctly failed here (no RLS grant on a job
+      // you're no longer assigned to), but with a generic error and no
+      // indication why — the stale dialog itself also just stayed open.
+      // A quick, direct status check distinguishes "you're no longer
+      // assigned" from any other genuine failure, and closes the now-
+      // meaningless dialog instead of leaving it sitting there.
+      const { data: freshJob } = await supabase.from('jobs').select('status').eq('id', jobId).maybeSingle()
+      if (freshJob && !['bid_selected', 'scheduled'].includes(freshJob.status)) {
+        setError(t('jobNoLongerAssignedError', lang))
+        setShowScheduleModal(false)
+        await fetchJob()
+      } else {
+        setError(t('couldNotProposeSchedule', lang))
+      }
       setActioning(false)
       return
     }

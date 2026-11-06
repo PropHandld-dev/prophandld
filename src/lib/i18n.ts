@@ -1459,6 +1459,7 @@ const STRINGS = {
   scheduleDateInPast: { en: "That date has already passed — pick today or later.", es: 'Esa fecha ya pasó: elige hoy o una fecha posterior.' },
   proposedDateNowPast: { en: "That proposed date has already passed. Propose a new time instead of confirming this one.", es: 'Esa fecha propuesta ya pasó. Propón un nuevo horario en lugar de confirmar este.' },
   couldNotProposeSchedule: { en: 'Could not propose a schedule.', es: 'No se pudo proponer un horario.' },
+  jobNoLongerAssignedError: { en: "You're no longer assigned to this job, so you can't change its schedule.", es: 'Ya no estás asignado a este trabajo, por lo que no puedes cambiar su horario.' },
   couldNotSendRequest: { en: 'Could not send request.', es: 'No se pudo enviar la solicitud.' },
   couldNotConfirmSchedule: { en: 'Could not confirm the schedule.', es: 'No se pudo confirmar el horario.' },
   couldNotArchiveJob: { en: 'Could not archive job.', es: 'No se pudo archivar el trabajo.' },
