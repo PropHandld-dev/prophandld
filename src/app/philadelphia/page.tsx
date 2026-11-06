@@ -121,6 +121,7 @@ export default function PhiladelphiaLandingPage() {
             Sign in
           </Link>
         </div>
+        <p className="text-white/35 text-xs mt-5">iOS &amp; Android apps coming soon — the web app works great on your phone's browser today.</p>
       </section>
 
       {/* The law, in numbers */}

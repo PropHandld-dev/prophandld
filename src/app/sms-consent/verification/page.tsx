@@ -38,8 +38,9 @@ export default function PhoneVerificationConsentPage() {
           <section>
             <h2 className="text-white font-semibold text-lg mb-2">What this looks like</h2>
             <p className="mb-4">
-              This screenshot is taken directly from a live Prophandld account&apos;s Profile page,
-              showing the disclosure a user sees immediately before a verification code is sent.
+              This recreates the exact Profile page panel, with a fictional phone number in place
+              of a real one, showing the disclosure a user sees immediately before a verification
+              code is sent.
             </p>
             <figure>
               <img

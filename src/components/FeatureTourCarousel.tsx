@@ -19,9 +19,9 @@ const SLIDES: Record<Role, Slide[]> = {
     { icon: MessageCircleIcon, title: 'Direct messaging', desc: 'Message a tenant or a contractor you trust directly, job or no job. No phone numbers exchanged.' },
   ],
   contractor: [
-    { icon: WrenchIcon, title: 'Free leads. No cut. Ever.', desc: 'Real jobs near you, sent straight to your phone for your trade. No signup fee, no monthly fee, no cut of your bid.' },
+    { icon: WrenchIcon, title: 'Free leads. No cut.', desc: 'Free during our Philadelphia pilot: real jobs near you, sent straight to your phone for your trade. No signup fee, no monthly fee, no cut of your bid.' },
     { icon: LockIcon, title: 'Picked on merit, not lowballing', desc: 'Submit a sealed bid. Nobody undercuts you, because nobody can see your price.' },
-    { icon: DollarSignIcon, title: "Get paid the moment you're approved", desc: 'Payment lands directly, by bank transfer or debit card, the instant a landlord approves your finished work.' },
+    { icon: DollarSignIcon, title: "Payment due the moment you're approved", desc: 'Once a landlord approves your finished work, payment is due and they\'re prompted to pay right then, by bank transfer or debit card, straight to your account through Stripe.' },
     { icon: ShieldIcon, title: 'Verified credentials, shown automatically', desc: "Submit your license and insurance once. Landlords see you're verified before they ever pick a bid." },
     { icon: ReceiptIcon, title: 'Earnings & tax reports', desc: 'Every paid job with a receipt. Filter by date range and export your earnings for tax time.' },
   ],
