@@ -93,7 +93,7 @@ export default function LandlordTermsPage() {
           actually releases the money to the contractor. You&apos;ll be notified as the three-day window
           gets close; if you still haven&apos;t acted when it closes, the job auto-approves the same way a
           manual approval would, so a contractor isn&apos;t left waiting indefinitely on a job that&apos;s
-          actually finished — but auto-approval still doesn&apos;t pay them either, since nothing can
+          actually finished, but auto-approval still doesn&apos;t pay them either, since nothing can
           complete that Stripe step except you. We&apos;ll email you to pay right away once that happens.
         </p>
       </section>
@@ -123,7 +123,7 @@ export default function LandlordTermsPage() {
           through Stripe, same as job payments. Prophandld never sees or stores card or bank account
           details, that&apos;s handled entirely by Stripe. You can also optionally list a Zelle, Venmo, or
           Cash App handle on your Profile for your renter to pay you directly, outside Stripe
-          entirely. Zelle has no fee, but also no purchase-protection program — if something goes
+          entirely. Zelle has no fee, but also no purchase-protection program: if something goes
           wrong, there&apos;s no dispute process to fall back on. Venmo and Cash App both charge a fee
           for this kind of payment, and their own terms require a business account, not a personal
           one, to accept it for something like rent; using a personal account this way risks the

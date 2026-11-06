@@ -122,7 +122,7 @@ export default function RenterTermsPage() {
           part of gets a receipt, emailed to you and saved on the payment record.
         </p>
         <p>
-          There&apos;s no Prophandld subscription fee to you as a renter — that&apos;s paid by your
+          There&apos;s no Prophandld subscription fee to you as a renter, that&apos;s paid by your
           landlord, never passed through to you. Paying rent by debit card or bank transfer through
           Stripe does carry a small processing fee on top of the rent amount, shown and disclosed
           before you pay. Paying your landlord directly via Zelle, Venmo, or Cash App has no
@@ -142,9 +142,9 @@ export default function RenterTermsPage() {
         </p>
         <p>
           If your landlord has Prophandld AI turned on for their account, content relevant to a
-          specific AI feature you use — a photo and description for a troubleshooting suggestion, a
-          question about your own lease, or a general question in the in-app help assistant (the
-          chat bubble) — is sent to a third-party AI service to generate a response. All of this,
+          specific AI feature you use, such as a photo and description for a troubleshooting
+          suggestion, a question about your own lease, or a general question in the in-app help
+          assistant (the chat bubble), is sent to a third-party AI service to generate a response. All of this,
           including the help assistant, rides on your landlord&apos;s Prophandld AI status, not a
           separate always-available feature. See our
           {' '}

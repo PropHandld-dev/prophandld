@@ -171,7 +171,7 @@ export default function TermsPage() {
             </p>
             <p>
               The in-app help assistant (the chat bubble that answers general questions and plain
-              facts about your own account) is part of Prophandld AI, not a separate free feature —
+              facts about your own account) is part of Prophandld AI, not a separate free feature:
               a landlord needs it active on their own account to use it, and a renter's access rides
               on their landlord's, the same as every other Prophandld AI feature. Contractors don't
               have access to it. It uses the same third-party AI service, on a limited set of your

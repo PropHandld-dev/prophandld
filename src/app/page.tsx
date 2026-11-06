@@ -196,7 +196,6 @@ export default function LandingPage() {
             Sign in
           </Link>
         </div>
-        <p className="text-white/35 text-xs mt-5">iOS &amp; Android apps coming soon — the web app works great on your phone's browser today.</p>
       </section>
 
       {/* Product preview */}
@@ -461,7 +460,7 @@ export default function LandingPage() {
               </div>
               <h3 className="text-white font-semibold mb-1.5">A real dispute window</h3>
               <p className="text-white/50 text-sm leading-relaxed">
-                48 hours after a job&apos;s approved for either side to flag a problem — the job itself pauses for review if one comes in. Not a policy, an actual pause.
+                48 hours after a job&apos;s approved for either side to flag a problem, and the job itself pauses for review if one comes in. Not a policy, an actual pause.
               </p>
             </div>
             <div className="bg-white/3 border border-white/8 rounded-2xl p-6">
@@ -539,7 +538,7 @@ export default function LandingPage() {
             </h2>
             <p className="text-white/50 max-w-2xl mx-auto leading-relaxed">
               Ask about your lease or a document you&apos;ve uploaded, and it&apos;s built to answer
-              from that real file, not a guess — pointing you to it when it can, and saying so
+              from that real file, not a guess, pointing you to it when it can, and saying so
               plainly when it can&apos;t find an answer there, rather than inventing one. Other
               questions use your real account details, not a document, which it&apos;ll also tell
               you. Like any AI, it can still get things wrong, so always use your own judgment
@@ -550,7 +549,7 @@ export default function LandingPage() {
           <AiAssistShowcase />
           <p className="text-white/40 text-xs text-center max-w-xl mx-auto leading-relaxed mt-4">
             It&apos;s built to never give repair instructions for anything electrical, gas, or
-            structural — those should always go to a contractor. In a genuine emergency it can point
+            structural. Those should always go to a contractor. In a genuine emergency it can point
             you to safety basics (get out, call for help), but it&apos;s not a substitute for calling
             911 or your gas company.
           </p>
@@ -598,7 +597,7 @@ export default function LandingPage() {
               { q: 'How does sealed bidding actually work?', a: "Contractors near the property are alerted when you open a job for bids. They submit their price privately and never see what anyone else bid. You choose who you trust, not just the lowest number. No bidding wars, no “my cousin quoted less”." },
               { q: 'Do I have to use a contractor?', a: "No. For anything small enough to handle yourself, mark it fixed directly, no bidding required. Contractors are there for when you want one, not a requirement for every repair." },
               { q: "What if the contractor's price changes?", a: 'If a contractor needs to adjust their price once work has started, they show you the new labor and parts breakdown, and you approve it before they move forward. No surprise invoices.' },
-              { q: 'How do rent and contractor payments work?', a: "Renters pay rent by bank transfer or debit card, not credit cards, so nobody goes into card debt to make rent. For a contractor, a landlord reviews and approves a finished job (or it auto-approves after 3 days if they don't act, so a contractor isn't left waiting) — approving makes payment due, and the landlord then completes an actual payment step by card or bank transfer, which is what actually releases it. Everything runs through Stripe, the same infrastructure banks and major platforms rely on, and the money goes straight to the person being paid, never held by Prophandld." },
+              { q: 'How do rent and contractor payments work?', a: "Renters pay rent by bank transfer or debit card, not credit cards, so nobody goes into card debt to make rent. For a contractor, a landlord reviews and approves a finished job (or it auto-approves after 3 days if they don't act, so a contractor isn't left waiting), approving makes payment due, and the landlord then completes an actual payment step by card or bank transfer, which is what actually releases it. Everything runs through Stripe, the same infrastructure banks and major platforms rely on, and the money goes straight to the person being paid, never held by Prophandld." },
               { q: 'How will I know when something happens?', a: "Email, push, and text, your choice, not one primary channel with the others as an afterthought. Every step of a job (a bid arrives, a time is proposed or confirmed, work is ready for review) emails you and, if you've added Prophandld to your phone's Home Screen, pushes an instant alert too. Opt in to text messages for the same key moments from your Notifications settings." },
               { q: 'Do I get receipts and records?', a: 'Yes. Every rent payment and every contractor payment gets a receipt, emailed to you and saved on the job or rent record, so finding one later is a lookup, not a hunt.' },
               { q: 'What if a contractor cancels?', a: "The job reopens for sealed bids, nearby contractors are alerted again, and the landlord and renter are told. Photos, notes, and other bids stay put." },
@@ -638,13 +637,16 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="border-t border-white/8 py-8">
-        <div className="max-w-5xl mx-auto px-6 flex items-center justify-between text-sm text-white/60 flex-wrap gap-3">
-          <span>© 2026 Prophandld LLC · Your Property. Handled.</span>
-          <div className="flex gap-6 flex-wrap">
-            <Link href="/terms" className="hover:text-white transition">Terms</Link>
-            <Link href="/privacy" className="hover:text-white transition">Privacy</Link>
-            <Link href="/login" className="hover:text-white transition">Sign in</Link>
-            <Link href="/signup" className="hover:text-white transition">Sign up</Link>
+        <div className="max-w-5xl mx-auto px-6">
+          <p className="text-center text-white/35 text-xs mb-5">iOS &amp; Android apps coming soon. The web app works great on your phone&apos;s browser today.</p>
+          <div className="flex items-center justify-between text-sm text-white/60 flex-wrap gap-3">
+            <span>© 2026 Prophandld LLC · Your Property. Handled.</span>
+            <div className="flex gap-6 flex-wrap">
+              <Link href="/terms" className="hover:text-white transition">Terms</Link>
+              <Link href="/privacy" className="hover:text-white transition">Privacy</Link>
+              <Link href="/login" className="hover:text-white transition">Sign in</Link>
+              <Link href="/signup" className="hover:text-white transition">Sign up</Link>
+            </div>
           </div>
         </div>
       </footer>

@@ -21,9 +21,9 @@ type Audience = 'tenant' | 'landlord'
 // type their washer's model number themselves.
 const TENANT_TRANSCRIPT = [
   { role: 'user' as const, text: 'The washer makes a loud banging noise during the spin cycle.' },
-  { role: 'ai' as const, text: "I can see the Samsung washer on file for this unit (model WF45T6000AW) — banging during spin on that model is usually just an unbalanced load. Pause the cycle, spread the clothes out evenly, and run it again." },
+  { role: 'ai' as const, text: "I can see the Samsung washer on file for this unit (model WF45T6000AW). Banging during spin on that model is usually just an unbalanced load. Pause the cycle, spread the clothes out evenly, and run it again." },
   { role: 'user' as const, text: "Still banging, what else can I try?" },
-  { role: 'ai' as const, text: "Check whether it's level — Samsung's own guidance for this model is to adjust the rear feet first. Still banging after that? Totally fine to report it. Nothing here's a guarantee." },
+  { role: 'ai' as const, text: "Check whether it's level. Samsung's own guidance for this model is to adjust the rear feet first. Still banging after that? Totally fine to report it. Nothing here's a guarantee." },
 ]
 
 // Same property names already used in RoleShowcase's own mockups further
