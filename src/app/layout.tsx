@@ -5,6 +5,7 @@ import { CursorGlow } from "@/components/CursorGlow";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { StagingBadge } from "@/components/StagingBadge";
 import { AiHelpBubble } from "@/components/AiHelpBubble";
+import { AppLaunchIntro } from "@/components/AppLaunchIntro";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -80,6 +81,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <AppLaunchIntro />
         <CursorGlow />
         <ServiceWorkerRegister />
         <ViewTransition>{children}</ViewTransition>
