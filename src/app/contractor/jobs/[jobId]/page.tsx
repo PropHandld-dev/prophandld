@@ -490,6 +490,18 @@ export default function ContractorJobDetailPage() {
       setError(t('partsCostCannotBeNegative', lang))
       return
     }
+    // Confirmed live (external audit, 2026-11-05): 280.005 and 0.005 both
+    // passed straight through to a $280.01 request with sub-cent amounts
+    // stored and displayed as-is (Labor $280.005, Parts $0.005) — neither
+    // input actually enforced its own step=0.01. Checked against the
+    // rounded cent value with a small epsilon for float imprecision
+    // rather than string-parsing the typed text, since that also catches
+    // a sub-cent value arriving some other way (e.g. a future API caller).
+    const hasCentPrecision = (n: number) => Math.abs(n * 100 - Math.round(n * 100)) < 1e-6
+    if (!hasCentPrecision(labor) || !hasCentPrecision(parts)) {
+      setError(t('amountMustBeWholeCents', lang))
+      return
+    }
     const newTotal = labor + parts
     if (!priceChangeReason.trim()) {
       setError(t('explainPriceChangeReason', lang))

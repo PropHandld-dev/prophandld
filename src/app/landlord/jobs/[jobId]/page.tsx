@@ -167,8 +167,21 @@ export default function JobDetailPage() {
 
     if (jobError || !jobData) {
       console.error('Error loading job:', jobError)
-      setError(t('jobNotFound', lang))
-      setLoading(false)
+      // Confirmed live (external audit, 2026-11-05): a successful payment
+      // fires fetchJob() three times in quick succession (handlePaid's own
+      // "catch up with the webhook" backstop, at 0s/3s/8s) to pick up the
+      // just-paid status. If any single one of those three overlapping
+      // calls hits a transient blip, this used to blow away an already
+      // correctly-loaded job and show a permanent "Job not found" even
+      // though the job obviously still exists and was on screen a moment
+      // earlier. Only treat this as fatal on the very first load, when
+      // there's no already-good job state to protect — a background
+      // refresh failing just logs and leaves the existing view alone,
+      // since one of the other two scheduled retries will pick it back up.
+      if (!job) {
+        setError(t('jobNotFound', lang))
+        setLoading(false)
+      }
       return
     }
 
@@ -994,6 +1007,17 @@ export default function JobDetailPage() {
     setActioning(true)
     setError(null)
 
+    // Confirmed live (external audit, 2026-11-05): a confirmation dialog
+    // opened before a decision was made (e.g. a second tab, or just a
+    // slow click) could still apply its decision afterward, because
+    // neither branch checked that the request was still actually pending —
+    // only that this bid's id matched. A landlord who rejected a request
+    // in one tab, then clicked an already-open Approve dialog from
+    // another, ended up with the rejected price applied anyway. Guarding
+    // on price_change_status = 'pending' (via expectRow) makes whichever
+    // decision lands first the only one that can ever take effect; a
+    // stale second decision now gets a clean conflict instead of silently
+    // overriding the real outcome.
     if (priceAction === 'approve') {
       const { error: updateError } = await expectRow(supabase
         .from('bids')
@@ -1001,24 +1025,32 @@ export default function JobDetailPage() {
           amount: acceptedBid.proposed_amount,
           price_change_status: 'approved',
         })
-        .eq('id', acceptedBid.id))
+        .eq('id', acceptedBid.id)
+        .eq('price_change_status', 'pending'))
 
       if (updateError) {
         console.error('Error approving price change:', updateError)
-        setError(t('couldNotApprovePriceChange', lang))
+        setError(t('priceChangeAlreadyDecided', lang))
         setActioning(false)
+        setShowPriceModal(false)
+        setPriceAction(null)
+        await fetchJob()
         return
       }
     } else {
       const { error: updateError } = await expectRow(supabase
         .from('bids')
         .update({ price_change_status: 'rejected' })
-        .eq('id', acceptedBid.id))
+        .eq('id', acceptedBid.id)
+        .eq('price_change_status', 'pending'))
 
       if (updateError) {
         console.error('Error rejecting price change:', updateError)
-        setError(t('couldNotRejectPriceChange', lang))
+        setError(t('priceChangeAlreadyDecided', lang))
         setActioning(false)
+        setShowPriceModal(false)
+        setPriceAction(null)
+        await fetchJob()
         return
       }
     }
@@ -2349,6 +2381,18 @@ export default function JobDetailPage() {
                 ? t('priceApproveDesc', lang)
                 : t('priceRejectDesc', lang)}
             </p>
+            {acceptedBid?.price_change_status === 'pending' && (
+              <div className="bg-white/5 border border-white/10 rounded-xl p-3 mb-6 text-sm">
+                <p className="text-white/50 line-through">${acceptedBid.amount}</p>
+                <p className="text-white font-bold">${acceptedBid.proposed_amount}</p>
+                {(acceptedBid.price_change_labor || acceptedBid.price_change_parts) && (
+                  <p className="text-white/40 text-xs mt-1">
+                    {t('laborColonLabel', lang)} ${acceptedBid.price_change_labor}
+                    {acceptedBid.price_change_parts ? ` · ${t('partsColonLabel', lang)} $${acceptedBid.price_change_parts}` : ''}
+                  </p>
+                )}
+              </div>
+            )}
             <div className="flex gap-3">
               <button
                 onClick={() => setShowPriceModal(false)}
