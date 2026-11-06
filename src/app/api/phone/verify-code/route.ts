@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { tooManyRequests } from '@/lib/rateLimit'
+import { toE164 } from '@/lib/phoneFormat'
 
 export const maxDuration = 15
 
@@ -75,6 +76,23 @@ export async function POST(request: NextRequest) {
   // drifting apart whenever someone verified a freshly-typed number
   // without separately hitting "Save profile" first.
   await admin.auth.admin.updateUserById(user.id, { user_metadata: { ...user.user_metadata, phone: row.phone } })
+
+  // Also link this now-proven-owned number onto the Supabase auth record
+  // itself, so signInWithPassword({ phone, password }) works for it going
+  // forward (see login/page.tsx) — same password, just a second way in.
+  // Best-effort and never blocks the verification itself: Supabase
+  // requires phone to be globally unique across auth.users, which a
+  // linked-profile sibling account sharing this same phone number (see
+  // createLinkedProfile) would violate, and that's an expected, harmless
+  // case to just skip rather than fail on — whichever profile claimed it
+  // first keeps phone-login; the other stays email-only.
+  const e164 = toE164(row.phone)
+  if (e164) {
+    const { error: linkError } = await admin.auth.admin.updateUserById(user.id, { phone: e164, phone_confirm: true })
+    if (linkError) {
+      console.log('phone/verify-code: could not link phone to auth record (likely already claimed elsewhere)', linkError.message)
+    }
+  }
 
   await admin.from('phone_verification_codes').delete().eq('user_id', user.id)
 

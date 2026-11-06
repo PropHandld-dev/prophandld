@@ -1486,6 +1486,7 @@ const STRINGS = {
   contactNameLabel: { en: 'Name', es: 'Nombre' },
   roleRelationLabel: { en: 'Role / relation', es: 'Rol / relación' },
   phoneLabel: { en: 'Phone', es: 'Teléfono' },
+  invalidPhoneForLogin: { en: "That doesn't look like a valid phone number.", es: 'Ese no parece ser un número de teléfono válido.' },
   emailLabel: { en: 'Email', es: 'Correo electrónico' },
   appliesToLabel: { en: 'Applies to', es: 'Aplica a' },
   allUnitsPropertyDefault: { en: 'All units (property default)', es: 'Todas las unidades (predeterminado)' },

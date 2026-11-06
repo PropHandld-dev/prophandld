@@ -142,6 +142,15 @@ export function MailIcon({ className }: IconProps) {
   )
 }
 
+export function PhoneIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <rect x="7" y="2" width="10" height="20" rx="2" />
+      <line x1="11" y1="18" x2="13" y2="18" />
+    </svg>
+  )
+}
+
 export function LockIcon({ className }: IconProps) {
   return (
     <svg {...base} className={className}>
