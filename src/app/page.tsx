@@ -638,7 +638,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-white/8 py-8">
         <div className="max-w-5xl mx-auto px-6">
-          <p className="text-center text-white/35 text-xs mb-5">iOS &amp; Android apps coming soon. The web app works great on your phone&apos;s browser today.</p>
+          <p className="text-center text-white/35 text-xs mb-5 px-16 sm:px-0">iOS &amp; Android apps coming soon. The web app works great on your phone&apos;s browser today.</p>
           <div className="flex items-center justify-between text-sm text-white/60 flex-wrap gap-3">
             <span>© 2026 Prophandld LLC · Your Property. Handled.</span>
             <div className="flex gap-6 flex-wrap">
