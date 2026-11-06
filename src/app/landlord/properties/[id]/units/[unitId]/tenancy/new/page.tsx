@@ -116,6 +116,20 @@ export default function NewTenancyPage() {
       return
     }
 
+    // Confirmed live (2026-11-05): the `tenancies` table requires
+    // lease_start, but this field has always been optional here — so an
+    // invite submitted without one created a tenancy_invites row that
+    // could NEVER actually link. Not a UI glitch: the later INSERT into
+    // tenancies genuinely fails with a database constraint error, and
+    // that failure happened server-side (either /api/tenancy/link-invite
+    // on the renter's side, or silently inside this same form's own direct
+    // insert below) with nothing surfacing it anywhere — the invite just
+    // sat on "pending" forever with no error for anyone to see.
+    if (!form.lease_start) {
+      setError(t('enterLeaseStartError', lang))
+      return
+    }
+
     setLoading(true)
 
     // Normalized to lowercase so it matches however the tenant actually
@@ -313,10 +327,11 @@ export default function NewTenancyPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-white/70 text-sm block mb-1">{t('leaseStartLabel', lang)}</label>
+              <label className="text-white/70 text-sm block mb-1">{t('leaseStartLabel', lang)} *</label>
               <input
                 type="date"
                 name="lease_start"
+                required
                 value={form.lease_start}
                 onChange={handleChange}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
