@@ -718,11 +718,38 @@ export default function JobDetailPage() {
     setActioning(true)
     setError(null)
 
-    // Guarding on status='pending' (not just id) is what makes this safe
-    // against two concurrent accept attempts — a double-click, or two tabs
-    // racing on the same job — since only the first one still finds a
-    // 'pending' row to match; the second gets zero rows and expectRow
-    // surfaces that as a real error instead of silently "succeeding" twice.
+    // Caught live by an external audit (2026-11-05): selecting Jose's bid in
+    // one tab and Noel's in another, nearly simultaneously, persisted BOTH
+    // as "selected" with no conflict shown to either tab — because the old
+    // guard here (bids.status = 'pending') only protects against re-selecting
+    // the SAME bid twice. Two DIFFERENT bids on the same job are each
+    // independently still 'pending' right up until the moment they're
+    // chosen, so nothing stopped both accept+decline-others sequences from
+    // running concurrently and overwriting each other's work.
+    //
+    // The real one-winner guarantee has to anchor on the JOB row, not the
+    // bid row, since a job can only be "decided" once: this update only
+    // succeeds while the job is still 'bidding', and Postgres serializes
+    // concurrent UPDATEs to the same row, so only one of two racing tabs
+    // can ever win this compare-and-set. The loser gets zero affected rows
+    // here and never touches any bid at all — no accept, no decline, no
+    // chat message — instead of silently racing through all three steps.
+    const { error: jobLockError } = await expectRow(supabase
+      .from('jobs')
+      .update({ status: 'bid_selected' })
+      .eq('id', jobId)
+      .eq('status', 'bidding'))
+
+    if (jobLockError) {
+      console.error('Error locking job for bid selection:', jobLockError)
+      setError(t('bidAlreadySelectedByOther', lang))
+      setShowSelectModal(false)
+      setSelectedBidId(null)
+      await fetchJob()
+      setActioning(false)
+      return
+    }
+
     const { error: selectError } = await expectRow(supabase
       .from('bids')
       .update({ status: 'accepted', selected_at: new Date().toISOString() })
@@ -752,20 +779,10 @@ export default function JobDetailPage() {
       console.error('Error declining other bids:', declineOthersError)
     }
 
-    const { error: jobUpdateError } = await expectRow(supabase
-      .from('jobs')
-      .update({ status: 'bid_selected' })
-      .eq('id', jobId))
-
-    if (jobUpdateError) {
-      console.error('Error updating job status:', jobUpdateError)
-      setError(t('bidSelectedStatusFailed', lang))
-    } else {
-      notify('contractor_selected', jobId)
-      if (userId) {
-        const contractorName = selectedBid?.contractor?.full_name || 'Contractor'
-        postJobStatusMessage(jobId, userId, `✓ ${contractorName} selected for this job`)
-      }
+    notify('contractor_selected', jobId)
+    if (userId) {
+      const contractorName = selectedBid?.contractor?.full_name || 'Contractor'
+      postJobStatusMessage(jobId, userId, `✓ ${contractorName} selected for this job`)
     }
 
     setShowSelectModal(false)

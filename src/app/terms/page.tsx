@@ -253,7 +253,7 @@ export default function TermsPage() {
             <h2>14. Changes to these terms</h2>
             <p>
               We may update these terms as the platform evolves. For example, when new features like
-              in-app rent payments launch. We'll update the date at the top of this page when we do.
+              native iOS and Android apps launch. We'll update the date at the top of this page when we do.
               Continuing to use Prophandld after a change means you accept the updated terms.
             </p>
           </section>

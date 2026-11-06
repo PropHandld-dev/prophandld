@@ -41,7 +41,7 @@ const FAQS: { q: string; a: string }[] = [
   { q: 'How do I get matched with jobs?', a: "Set your trade categories, your home ZIP code, and how far you are willing to travel. You are alerted the moment a matching job opens for bidding near you, by email and on your phone if you add Prophandld to your Home Screen." },
   { q: 'What if I already work with a landlord who is not on here?', a: 'They can invite you directly with your email, no bidding required. Everything from the first message to the final payment happens in one place instead of scattered texts and paper receipts.' },
   { q: 'How does sealed bidding actually help me?', a: "You submit your real price without seeing what anyone else bid, and nobody sees yours. That means no race to undercut the next guy just because you are worried they will. Landlords pick based on your reviews and your price, not only the lowest number in the room." },
-  { q: 'Where is Prophandld available?', a: "We're currently onboarding contractors in the Philadelphia area, with more markets opening soon." },
+  { q: 'Where is Prophandld available?', a: "Coming soon to the Philadelphia area, with more markets opening after that." },
 ]
 
 export default function ContractorsLandingPage() {
@@ -82,7 +82,7 @@ export default function ContractorsLandingPage() {
         <div aria-hidden className="absolute -top-20 -right-24 w-80 h-80 rounded-full bg-[#12A5A9]/20 blur-3xl -z-10 motion-safe:animate-[drift_11s_ease-in-out_infinite_1s]" />
 
         <div className="inline-flex items-center gap-2 bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 text-[#12A5A9] border border-[#12A5A9]/30 text-xs font-semibold px-3 py-1.5 rounded-full mb-6">
-          Now onboarding contractors in Philadelphia
+          Coming soon to Philadelphia
         </div>
         <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-tight mb-6">
           Free local leads.<br />

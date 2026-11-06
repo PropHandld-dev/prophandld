@@ -59,9 +59,9 @@ export default function SmsConsentPage() {
           <section>
             <h2 className="text-white font-semibold text-lg mb-2">What this looks like</h2>
             <p className="mb-4">
-              The screenshots below are taken directly from a live Prophandld account&apos;s Notifications
-              settings: the toggle off (not yet opted in) and on (opted in), with the phone number and
-              full disclosure visible in both.
+              The screenshots below recreate the exact Notifications settings screen, cropped to just
+              the notification toggles with a fictional phone number in place of a real one: the toggle
+              off (not yet opted in) and on (opted in), with the full disclosure visible in both.
             </p>
             <div className="space-y-6">
               <figure>

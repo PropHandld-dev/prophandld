@@ -470,14 +470,27 @@ export default function ContractorJobDetailPage() {
   }
 
   const submitPriceChange = async () => {
-    const labor = parseFloat(laborAmount) || 0
-    const parts = parseFloat(partsAmount) || 0
-    const newTotal = labor + parts
+    const labor = parseFloat(laborAmount)
+    // Confirmed bug (external audit, 2026-11-05): labor 280 + parts -10 only
+    // checked that their SUM was positive, so a negative parts cost (a
+    // credit with no label, a typo, or someone testing) sailed straight
+    // through to the landlord's approval view as a normal request. Labor
+    // and parts are now validated separately — labor has to be a real,
+    // positive charge (same rule as a blank/negative labor-only request
+    // already correctly blocked), and parts can be omitted or zero but
+    // never negative. A real credit/discount needs its own labeled field,
+    // not a negative parts cost — that's a separate feature, not this fix.
+    const parts = partsAmount.trim() ? parseFloat(partsAmount) : 0
 
-    if (newTotal <= 0) {
+    if (!Number.isFinite(labor) || labor <= 0) {
       setError(t('enterLaborCost', lang))
       return
     }
+    if (!Number.isFinite(parts) || parts < 0) {
+      setError(t('partsCostCannotBeNegative', lang))
+      return
+    }
+    const newTotal = labor + parts
     if (!priceChangeReason.trim()) {
       setError(t('explainPriceChangeReason', lang))
       return

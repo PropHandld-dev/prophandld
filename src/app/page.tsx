@@ -164,8 +164,12 @@ export default function LandingPage() {
         <div aria-hidden className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-[#0A7B7E]/20 blur-3xl -z-10 motion-safe:animate-[drift_9s_ease-in-out_infinite]" />
         <div aria-hidden className="absolute -top-20 -right-24 w-80 h-80 rounded-full bg-[#12A5A9]/20 blur-3xl -z-10 motion-safe:animate-[drift_11s_ease-in-out_infinite_1s]" />
 
+        {/* "Coming soon" (was "Now onboarding") until Stripe goes live —
+            an external audit (2026-11-05) correctly flagged "now onboarding"
+            as misleading while checkout is still in test mode. Flip this
+            and the matching line on contractors/page.tsx back once it is. */}
         <div className="inline-flex items-center gap-2 bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 text-[#12A5A9] border border-[#12A5A9]/30 text-xs font-semibold px-3 py-1.5 rounded-full mb-6">
-          Now onboarding landlords in Philadelphia
+          Coming soon to Philadelphia
         </div>
         <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-tight mb-6">
           Run your rentals,<br />
@@ -392,7 +396,7 @@ export default function LandingPage() {
             {[
               { label: 'Getting quotes', typical: "Contractors call and text you directly, you're juggling comparisons yourself.", prophandld: 'Every bid lands in one dashboard, side by side.' },
               { label: 'Bidding fairness', typical: "Contractors can tell roughly how many others are bidding, some don't bother competing seriously.", prophandld: "Sealed bidding, nobody sees another's number, so you get real prices, not posturing." },
-              { label: 'What it costs the contractor', typical: 'Many apps charge contractors per lead, win or not.', prophandld: 'Free, so the contractors who show up actually want the job.' },
+              { label: 'What it costs the contractor', typical: 'Many apps charge contractors per lead, win or not.', prophandld: 'Free during our Philadelphia pilot, so the contractors who show up actually want the job.' },
               { label: 'After you pick someone', typical: "You're often on your own, no tracking, no proof of work, no built-in payment.", prophandld: 'Scheduling, before/after photos, and payment all stay in one place.' },
             ].map((row, i, arr) => (
               <div
@@ -533,18 +537,21 @@ export default function LandingPage() {
               Meet Prophandld AI, the AI that&apos;s actually read your lease, not the internet&apos;s best guess.
             </h2>
             <p className="text-white/50 max-w-2xl mx-auto leading-relaxed">
-              No generic advice, no made-up policy. Ask about your lease or a document you&apos;ve
-              uploaded, and the answer comes from that real file, not a guess — or it tells you
-              plainly it can&apos;t find it, instead of inventing one. Other questions use your real
-              account details, not a document, which it&apos;ll also tell you.
+              Ask about your lease or a document you&apos;ve uploaded, and it&apos;s built to answer
+              from that real file, not a guess — pointing you to it when it can, and saying so
+              plainly when it can&apos;t find an answer there, rather than inventing one. Other
+              questions use your real account details, not a document, which it&apos;ll also tell
+              you. Like any AI, it can still get things wrong, so always use your own judgment
+              before acting on something that matters.
             </p>
           </div>
 
           <AiAssistShowcase />
           <p className="text-white/40 text-xs text-center max-w-xl mx-auto leading-relaxed mt-4">
-            It never gives repair instructions for anything electrical, gas, or structural — those
-            always get a contractor. In a genuine emergency it can point you to safety basics (get
-            out, call for help), but it&apos;s not a substitute for calling 911 or your gas company.
+            It&apos;s built to never give repair instructions for anything electrical, gas, or
+            structural — those should always go to a contractor. In a genuine emergency it can point
+            you to safety basics (get out, call for help), but it&apos;s not a substitute for calling
+            911 or your gas company.
           </p>
 
           <div className="mt-16 max-w-3xl mx-auto bg-white/3 border border-white/8 rounded-2xl p-6 sm:p-8">
@@ -595,7 +602,7 @@ export default function LandingPage() {
               { q: 'Do I get receipts and records?', a: 'Yes. Every rent payment and every contractor payment gets a receipt, emailed to you and saved on the job or rent record, so finding one later is a lookup, not a hunt.' },
               { q: 'What if a contractor cancels?', a: "The job reopens for sealed bids, nearby contractors are alerted again, and the landlord and renter are told. Photos, notes, and other bids stay put." },
               { q: "What if something isn't right after the job?", a: 'After the landlord approves, any side has 48 hours to raise a dispute. The job pauses while the Prophandld team reviews it. If nobody responds, finished work is approved automatically after 3 days so contractors are not left waiting.' },
-              { q: 'Is Prophandld available in my area?', a: "We're currently onboarding beta landlords in the Philadelphia area, with more markets opening soon." },
+              { q: 'Is Prophandld available in my area?', a: "Coming soon to the Philadelphia area, with more markets opening after that." },
               { q: "What is Philadelphia's Safe Healthy Homes Act?", a: "A city law that took effect November 1, 2026. It requires cited violations to be fixed within 30 days, ties rent collection directly to having a valid rental license, and gives tenants the right to sue for $1,000 or more per unresolved violation. Prophandld's compliance tracking is built to keep your licenses and certificates from ever lapsing without you knowing." },
               { q: 'Does it work in Spanish?', a: 'The whole app does, not a translated homepage that quietly drops you back into English the moment you sign in. Switch anytime from your profile.' },
               { q: 'Can I use Prophandld as more than one role?', a: "Yes. If you're a landlord who also does contract work, or a renter who's also a landlord, link a second profile from your account menu and switch between dashboards instantly, no second signup, no second password." },
