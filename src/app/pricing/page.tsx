@@ -58,8 +58,8 @@ export default function PricingPage() {
             </h1>
             <p className="text-white/60 max-w-xl mx-auto leading-relaxed">
               Your first unit is free, full stop. Flat monthly plans through 25 units, then $1.75
-              per unit after that, one rate, no fine print. Renters and contractors pay
-              Prophandld nothing.
+              per unit after that, one rate, no fine print. Renters pay Prophandld nothing, and
+              so do contractors during our Philadelphia pilot.
             </p>
             <p className="text-white/40 text-sm max-w-xl mx-auto leading-relaxed mt-3">
               &ldquo;Unit&rdquo; means a rentable unit on the platform — a single-family rental

@@ -20,7 +20,7 @@ export default function PrivacyPage() {
 
       <main className="max-w-3xl mx-auto px-6 py-16">
         <h1 className="text-3xl font-bold mb-2">Privacy Policy</h1>
-        <p className="text-white/60 text-sm mb-12">Last updated November 3, 2026</p>
+        <p className="text-white/60 text-sm mb-12">Last updated November 6, 2026</p>
 
         <div className="space-y-10 text-white/60 text-sm leading-relaxed [&_h2]:text-white [&_h2]:font-semibold [&_h2]:text-lg [&_h2]:mb-3 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5">
 
@@ -72,6 +72,7 @@ export default function PrivacyPage() {
               <li><strong className="text-white/80">Sentry:</strong> error tracking, so we know when something breaks.</li>
               <li><strong className="text-white/80">Vercel:</strong> hosts the application itself.</li>
               <li><strong className="text-white/80">Google Cloud Translation:</strong> translates a chat message if you tap "See translation" on it. Only that specific message's text is sent, only when you tap it. Nothing is translated automatically.</li>
+              <li><strong className="text-white/80">Google Maps / Places:</strong> powers address autocomplete when a landlord enters a property, and the map view of a portfolio. What you type into an address field is sent to Google as you type it, the same as any address-autocomplete field on the web.</li>
               <li><strong className="text-white/80">Anthropic:</strong> powers Prophandld AI (AI Assist), the optional, paid add-on a landlord turns on for their own account, including the in-app help assistant (the chat bubble that answers "how do I..." questions and basic facts about your own account, like how many properties or open jobs you have). Whatever a specific feature needs (a job description and photo for a troubleshooting suggestion, an uploaded lease or compliance document, your own account details for the help assistant) is sent to Anthropic's API only when it's on for your landlord's account — nothing from these features is sent for anyone whose landlord hasn't turned it on, and a renter's help assistant rides on their own landlord's status, not a separate one. Contractors don't have access to Prophandld AI, including the help assistant.</li>
             </ul>
             <p>

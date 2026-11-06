@@ -9,7 +9,7 @@ export default function RenterTermsPage() {
   return (
     <LegalPageShell
       title="Terms of Service for Renters"
-      lastUpdated="November 1, 2026"
+      lastUpdated="November 6, 2026"
       footerLinks={
         <>
           <Link href="/terms" className="hover:text-white transition">General Terms</Link>
@@ -202,7 +202,7 @@ export default function RenterTermsPage() {
         <h2>12. Changes to these terms</h2>
         <p>
           We may update these terms as the platform evolves, for example, when a new feature like
-          in-app rent payments launches. We&apos;ll update the date at the top of this page when we do.
+          native iOS and Android apps launches. We&apos;ll update the date at the top of this page when we do.
           Continuing to use Prophandld after a change means you accept the updated terms.
         </p>
       </section>

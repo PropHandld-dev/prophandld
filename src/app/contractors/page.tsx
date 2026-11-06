@@ -15,7 +15,7 @@ const WHY_POINTS = [
   {
     icon: DollarSignIcon,
     title: 'No cut',
-    desc: 'Not a signup fee, not a monthly membership, not a percentage off your bid. What you bid is what lands in your account.',
+    desc: 'Free during our Philadelphia pilot: not a signup fee, not a monthly membership, not a percentage off your bid. What you bid is what lands in your account.',
   },
   {
     icon: LockIcon,
@@ -92,7 +92,8 @@ export default function ContractorsLandingPage() {
           Real repair jobs from real landlords near you, sent straight to your
           phone for your trade. Submit a sealed bid, get picked on merit, and
           get paid directly as soon as the landlord pays, due the moment your
-          work is approved. Prophandld doesn&apos;t take a cut of what you bid.
+          work is approved. Free during our Philadelphia pilot, Prophandld
+          doesn&apos;t take a cut of what you bid.
         </p>
         <div className="flex items-center justify-center gap-4 flex-wrap">
           <MagneticLink

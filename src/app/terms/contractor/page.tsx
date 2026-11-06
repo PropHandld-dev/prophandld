@@ -9,7 +9,7 @@ export default function ContractorTermsPage() {
   return (
     <LegalPageShell
       title="Terms of Service for Contractors"
-      lastUpdated="October 24, 2026"
+      lastUpdated="November 6, 2026"
       footerLinks={
         <>
           <Link href="/terms" className="hover:text-white transition">General Terms</Link>
