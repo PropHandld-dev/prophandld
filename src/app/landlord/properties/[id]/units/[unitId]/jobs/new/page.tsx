@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { compressImage } from '@/lib/imageCompress'
 import { validateMediaFile, isVideoFile } from '@/lib/mediaValidation'
@@ -14,6 +14,9 @@ import { RippleButton } from '@/components/RippleButton'
 import { useGroupedCategoryOptions } from '@/lib/categories'
 import { LOCATION_OPTIONS } from '@/lib/jobLocations'
 import { useLanguage, t } from '@/lib/i18n'
+import { saveDraft, loadDraft, clearDraft } from '@/lib/formDraft'
+
+type DraftForm = { category: string; location: string; urgency: string; description: string; is_emergency: boolean }
 
 export default function NewLandlordJobPage() {
   const router = useRouter()
@@ -27,14 +30,16 @@ export default function NewLandlordJobPage() {
   // direct nudge (chat message + email) to bid, on top of the job staying
   // open to everyone else the normal way.
   const nudgeThreadId = searchParams.get('nudgeThread')
+  const draftKey = `job-draft:${unitId}`
 
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [files, setFiles] = useState<File[]>([])
   const [readyCheck, setReadyCheck] = useState<{ checked: boolean; suggestion: string | null }>({ checked: false, suggestion: null })
   const [checkingReady, setCheckingReady] = useState(false)
+  const [draftRestored, setDraftRestored] = useState(false)
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<DraftForm>({
     category: '',
     location: '',
     urgency: 'normal',
@@ -42,6 +47,32 @@ export default function NewLandlordJobPage() {
     is_emergency: false,
   })
   const categoryGroups = useGroupedCategoryOptions()
+
+  // Caught live by an external audit (DRAFT-01/JOB-05): a refresh or a Back
+  // navigation silently wiped a half-typed report with no warning and no
+  // way back. Attachments aren't restorable this way (a File can't be
+  // serialized into storage), so this covers the part that actually got
+  // lost in the audit's reproduction — category, location, urgency and the
+  // description text.
+  useEffect(() => {
+    const draft = loadDraft<DraftForm>(draftKey)
+    if (draft && (draft.category || draft.description.trim())) {
+      setForm(draft)
+      setDraftRestored(true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    if (form.category || form.description.trim()) saveDraft(draftKey, form)
+    else clearDraft(draftKey)
+  }, [form, draftKey])
+
+  const discardDraft = () => {
+    clearDraft(draftKey)
+    setForm({ category: '', location: '', urgency: 'normal', description: '', is_emergency: false })
+    setDraftRestored(false)
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLTextAreaElement | HTMLInputElement>) => {
     if (readyCheck.checked) setReadyCheck({ checked: false, suggestion: null })
@@ -161,6 +192,8 @@ export default function NewLandlordJobPage() {
       })
     }
 
+    clearDraft(draftKey)
+
     if (nudgeThreadId) {
       await supabase.from('messages').insert({
         thread_id: nudgeThreadId,
@@ -204,6 +237,15 @@ export default function NewLandlordJobPage() {
             <p className="text-[#12A5A9] text-sm">
               {t('jobWillBePostedNudge', lang)}
             </p>
+          </div>
+        )}
+
+        {draftRestored && (
+          <div className="bg-[#12A5A9]/10 border border-[#12A5A9]/25 rounded-xl px-4 py-3 mb-6 flex items-center justify-between gap-3">
+            <p className="text-[#12A5A9] text-sm">{t('draftRestored', lang)}</p>
+            <button type="button" onClick={discardDraft} className="text-white/60 hover:text-white text-xs font-medium underline shrink-0">
+              {t('discardDraftBtn', lang)}
+            </button>
           </div>
         )}
 

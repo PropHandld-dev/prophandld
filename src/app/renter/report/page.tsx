@@ -20,6 +20,9 @@ import { useLanguage, t } from '@/lib/i18n'
 import { TroubleshootAssistant } from '@/components/TroubleshootAssistant'
 import { AI_ASSIST_ENABLED } from '@/lib/aiAssist'
 import { useDialogA11y } from '@/lib/useDialogA11y'
+import { saveDraft, loadDraft, clearDraft } from '@/lib/formDraft'
+
+type DraftForm = { category: string; location: string; urgency: string; description: string; is_emergency: boolean; maintenance_item_id: string; access_notes: string }
 
 
 const MAX_AVAILABILITY_SLOTS = 3
@@ -80,7 +83,7 @@ export default function ReportIssuePage() {
   // separate back-and-forth after they're selected.
   const [availabilitySlots, setAvailabilitySlots] = useState<{ date: string; window: string }[]>([])
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<DraftForm>({
     category: '',
     location: '',
     urgency: 'normal',
@@ -89,6 +92,7 @@ export default function ReportIssuePage() {
     maintenance_item_id: '',
     access_notes: '',
   })
+  const [draftRestored, setDraftRestored] = useState(false)
   const categoryGroups = useGroupedCategoryOptions()
 
   useEffect(() => {
@@ -99,6 +103,15 @@ export default function ReportIssuePage() {
         return
       }
       setUserId(user.id)
+
+      // Caught live by an external audit (DRAFT-01/JOB-16): a refresh
+      // wiped a half-typed report with no recovery. sessionStorage, not
+      // localStorage — see formDraft.ts for why.
+      const draft = loadDraft<DraftForm>(`renter-report-draft:${user.id}`)
+      if (draft && (draft.category || draft.description.trim())) {
+        setForm(draft)
+        setDraftRestored(true)
+      }
 
       // Resolves to the caller's tenancy whether they're the primary
       // tenant or a co-renter added on the unit (tenancy_occupants).
@@ -133,6 +146,19 @@ export default function ReportIssuePage() {
       .then((data) => setAiAvailable(!!data.available))
       .catch(() => setAiAvailable(false))
   }, [])
+
+  useEffect(() => {
+    if (!userId) return
+    const key = `renter-report-draft:${userId}`
+    if (form.category || form.description.trim()) saveDraft(key, form)
+    else clearDraft(key)
+  }, [form, userId])
+
+  const discardDraft = () => {
+    if (userId) clearDraft(`renter-report-draft:${userId}`)
+    setForm({ category: '', location: '', urgency: 'normal', description: '', is_emergency: false, maintenance_item_id: '', access_notes: '' })
+    setDraftRestored(false)
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLTextAreaElement | HTMLInputElement>) => {
     // A category change is a big enough shift that any troubleshooting
@@ -322,6 +348,7 @@ export default function ReportIssuePage() {
       return
     }
 
+    if (userId) clearDraft(`renter-report-draft:${userId}`)
     router.push('/renter')
   }
 
@@ -366,6 +393,15 @@ export default function ReportIssuePage() {
           <div className="bg-[#12A5A9]/8 border border-[#12A5A9]/25 rounded-2xl px-4 py-3 mb-6 flex items-center gap-2.5">
             <span className="text-[10px] font-bold uppercase tracking-wide text-[#12A5A9] bg-[#12A5A9]/10 border border-[#12A5A9]/30 rounded-full px-2 py-0.5 shrink-0">✦ AI</span>
             <p className="text-white/70 text-sm">{t('reportPageAiTeaser', lang)}</p>
+          </div>
+        )}
+
+        {draftRestored && (
+          <div className="bg-[#12A5A9]/10 border border-[#12A5A9]/25 rounded-xl px-4 py-3 mb-6 flex items-center justify-between gap-3">
+            <p className="text-[#12A5A9] text-sm">{t('draftRestored', lang)}</p>
+            <button type="button" onClick={discardDraft} className="text-white/60 hover:text-white text-xs font-medium underline shrink-0">
+              {t('discardDraftBtn', lang)}
+            </button>
           </div>
         )}
 

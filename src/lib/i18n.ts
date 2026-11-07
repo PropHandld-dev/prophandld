@@ -1672,6 +1672,8 @@ const STRINGS = {
   createAJobHeading: { en: 'Create a job', es: 'Crear un trabajo' },
   createJobDesc: { en: "Start a maintenance job directly. No approval needed since you're the landlord.", es: 'Inicia un trabajo de mantenimiento directamente. No se necesita aprobación ya que eres el propietario.' },
   jobWillBePostedNudge: { en: 'This job will be posted openly, and the contractor you were messaging will be notified directly to bid on it first.', es: 'Este trabajo se publicará abiertamente, y el contratista con quien estabas conversando será notificado directamente para que sea el primero en ofertar.' },
+  draftRestored: { en: 'Restored your unsaved draft.', es: 'Se restauró tu borrador sin guardar.' },
+  discardDraftBtn: { en: 'Discard', es: 'Descartar' },
   whatKindOfJobIsIt: { en: 'What kind of job is it?', es: '¿Qué tipo de trabajo es?' },
   categoryOtherPlaceholder: { en: 'e.g. Landscaping, Locksmith, Painting', es: 'ej. Jardinería, Cerrajería, Pintura' },
   whatNeedsToBeDone: { en: 'What needs to be done?', es: '¿Qué se necesita hacer?' },
