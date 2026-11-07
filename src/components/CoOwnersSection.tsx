@@ -8,6 +8,7 @@ import { PlusIcon } from '@/components/icons'
 import { useLanguage, t } from '@/lib/i18n'
 import { supabase } from '@/lib/supabase'
 import { useConfirm } from '@/lib/useConfirm'
+import { expectRow } from '@/lib/expectRow'
 
 type InvitedByMe = { id: string; status: 'pending' | 'accepted'; name: string; pendingSignup: boolean }
 type IAmCoOwnerOf = { id: string; status: 'pending' | 'accepted'; name: string }
@@ -98,7 +99,16 @@ export function CoOwnersSection() {
 
   const handleRemove = async (id: string) => {
     if (!(await confirm({ body: t('coOwnerRemoveConfirm', lang), danger: true }))) return
-    await supabase.from('landlord_co_owners').delete().eq('id', id)
+    // Caught live by an external audit (TEAM-01): this delete had nothing
+    // checking whether it actually matched a row — a missing or broken
+    // RLS policy let it silently affect zero rows, closing the confirm
+    // dialog and reloading the (unchanged) list as if removal had
+    // worked, with the co-owner's access fully intact the whole time.
+    const { error } = await expectRow(supabase.from('landlord_co_owners').delete().eq('id', id))
+    if (error) {
+      setError(error.message)
+      return
+    }
     load()
   }
 
