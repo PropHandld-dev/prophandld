@@ -42,9 +42,9 @@ export function LandingLaunchIntro() {
     }
     hasPlayedThisSession = true
 
-    const toHold = setTimeout(() => setPhase('hold'), 650)
-    const toOut = setTimeout(() => setPhase('out'), 1350)
-    const toDone = setTimeout(() => setPhase('done'), 1700)
+    const toHold = setTimeout(() => setPhase('hold'), 700)
+    const toOut = setTimeout(() => setPhase('out'), 1500)
+    const toDone = setTimeout(() => setPhase('done'), 1850)
     return () => {
       clearTimeout(toHold)
       clearTimeout(toOut)
@@ -57,29 +57,43 @@ export function LandingLaunchIntro() {
   return (
     <div
       aria-hidden
-      className={`fixed inset-0 z-[100] flex flex-col items-center justify-center gap-4 bg-[#0C1A2E] transition-opacity duration-300 ${
+      className={`fixed inset-0 z-[100] flex flex-col items-center justify-center gap-5 bg-[#0C1A2E] transition-opacity duration-300 ${
         phase === 'out' ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
     >
-      <div className="relative">
+      <div className="relative flex items-center gap-4">
         <div
-          className={`absolute inset-0 -m-6 rounded-full bg-[#12A5A9]/25 blur-2xl transition-all duration-700 ease-out ${
+          className={`absolute inset-0 -m-10 rounded-full bg-[#12A5A9]/30 blur-3xl transition-all duration-700 ease-out ${
             phase === 'in' ? 'opacity-0 scale-50' : 'opacity-100 scale-100'
           }`}
         />
         <Logo
-          className={`relative w-20 h-20 transition-all duration-500 ease-out ${
-            phase === 'in' ? 'opacity-0 scale-75' : 'opacity-100 scale-100'
+          className={`relative w-16 h-16 sm:w-20 sm:h-20 transition-all duration-500 ease-out ${
+            phase === 'in' ? 'opacity-0 scale-75 translate-y-2' : 'opacity-100 scale-100 translate-y-0'
+          }`}
+        />
+        <span
+          className={`relative text-white font-bold text-4xl sm:text-5xl tracking-tight transition-all duration-500 ease-out ${
+            phase === 'in' ? 'opacity-0 scale-75 translate-y-2' : 'opacity-100 scale-100 translate-y-0'
+          }`}
+        >
+          Prophandld
+        </span>
+      </div>
+      <div className="flex flex-col items-center gap-2">
+        <p
+          className={`text-white/70 text-base sm:text-lg font-medium tracking-wide transition-all duration-500 delay-150 ease-out ${
+            phase === 'in' ? 'opacity-0 translate-y-1' : 'opacity-100 translate-y-0'
+          }`}
+        >
+          Your Property. Handled.
+        </p>
+        <div
+          className={`h-[2px] bg-[#12A5A9] transition-all duration-500 delay-300 ease-out ${
+            phase === 'in' ? 'w-0' : 'w-16'
           }`}
         />
       </div>
-      <p
-        className={`text-white/70 text-sm font-medium tracking-wide transition-all duration-500 delay-150 ease-out ${
-          phase === 'in' ? 'opacity-0 translate-y-1' : 'opacity-100 translate-y-0'
-        }`}
-      >
-        Your Property. Handled.
-      </p>
     </div>
   )
 }
