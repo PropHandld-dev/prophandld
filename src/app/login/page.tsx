@@ -11,10 +11,9 @@ import { RippleButton } from '@/components/RippleButton'
 import { AuthLayout } from '@/components/AuthLayout'
 import { Logo } from '@/components/Logo'
 import { AuthInput } from '@/components/AuthInput'
-import { MailIcon, LockIcon, PhoneIcon, CheckCircleIcon } from '@/components/icons'
+import { MailIcon, LockIcon, CheckCircleIcon } from '@/components/icons'
 import type { Role } from '@/components/RolePicker'
 import { getLandlordIds } from '@/lib/landlordIds'
-import { toE164 } from '@/lib/phoneFormat'
 import { useLanguage, t, roleLabel, type Lang } from '@/lib/i18n'
 
 // Purely cosmetic — sets which flavor of copy shows on the brand panel.
@@ -98,11 +97,6 @@ function LoginForm() {
     email: '',
     password: '',
   })
-  // Phone login: possible once a number is verified (api/phone/verify-code
-  // links it onto the Supabase auth record), so this is a second way in
-  // with the same password, not a separate account. Defaults to email
-  // since that's the one every account always has.
-  const [identifierMode, setIdentifierMode] = useState<'email' | 'phone'>('email')
   // MFA is opt-in for every role (unlike admin, where it's mandatory) — set
   // up from Profile settings. A password-only account never sees any of
   // this; it only activates for someone who already enrolled a verified
@@ -311,20 +305,10 @@ function LoginForm() {
     setLoading(true)
     setError(null)
 
-    if (identifierMode === 'phone') {
-      const e164 = toE164(form.email)
-      if (!e164) {
-        setError(t('invalidPhoneForLogin', lang))
-        setLoading(false)
-        return
-      }
-    }
-
-    const { data, error: loginError } = await supabase.auth.signInWithPassword(
-      identifierMode === 'phone'
-        ? { phone: toE164(form.email) || '', password: form.password }
-        : { email: form.email, password: form.password }
-    )
+    const { data, error: loginError } = await supabase.auth.signInWithPassword({
+      email: form.email,
+      password: form.password,
+    })
 
     if (loginError) {
       setError(loginError.message)
@@ -581,31 +565,15 @@ function LoginForm() {
       <form onSubmit={handleLogin} className="space-y-4">
 
         <div>
-          <div className="flex items-center justify-between mb-1">
-            <label className="text-white/70 text-sm">{identifierMode === 'email' ? t('email', lang) : t('phoneLabel', lang)}</label>
-            <div className="inline-flex bg-white/5 border border-white/10 rounded-lg p-0.5">
-              {(['email', 'phone'] as const).map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => { setIdentifierMode(m); setForm({ ...form, email: '' }) }}
-                  className={`text-[11px] font-semibold px-2.5 py-1 rounded-md transition ${
-                    identifierMode === m ? 'bg-[#12A5A9] text-white' : 'text-white/50 hover:text-white'
-                  }`}
-                >
-                  {m === 'email' ? t('email', lang) : t('phoneLabel', lang)}
-                </button>
-              ))}
-            </div>
-          </div>
+          <label className="text-white/70 text-sm block mb-1">{t('email', lang)}</label>
           <AuthInput
-            icon={identifierMode === 'email' ? MailIcon : PhoneIcon}
-            type={identifierMode === 'email' ? 'email' : 'tel'}
+            icon={MailIcon}
+            type="email"
             name="email"
             required
             value={form.email}
             onChange={handleChange}
-            placeholder={identifierMode === 'email' ? 'you@email.com' : '(555) 555-5555'}
+            placeholder="you@email.com"
           />
         </div>
 
