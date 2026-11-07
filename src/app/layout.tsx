@@ -7,6 +7,7 @@ import { StagingBadge } from "@/components/StagingBadge";
 import { AiHelpBubble } from "@/components/AiHelpBubble";
 import { AppLaunchIntro } from "@/components/AppLaunchIntro";
 import { LandingLaunchIntro } from "@/components/LandingLaunchIntro";
+import { PostHogPageview } from "@/components/PostHogPageview";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -84,6 +85,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <AppLaunchIntro />
         <LandingLaunchIntro />
+        <PostHogPageview />
         <CursorGlow />
         <ServiceWorkerRegister />
         <ViewTransition>{children}</ViewTransition>
