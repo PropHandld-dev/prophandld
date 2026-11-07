@@ -128,6 +128,15 @@ function LandlordPreview() {
         </div>
       </div>
 
+      {/* Matches the real dashboard's own "Your portfolio" card — now
+          the first thing a landlord sees, not an afterthought. Missing
+          here entirely used to be the gap: the mock showed none of the
+          AI morning-briefing feature at all. */}
+      <div className="bg-gradient-to-br from-[#0A7B7E]/15 to-white/[0.02] border border-[#12A5A9]/25 rounded-2xl p-4 mb-4">
+        <span className="text-[#12A5A9] text-[10px] font-semibold tracking-wide">✦ PROPHANDLD AI</span>
+        <p className="text-white/70 text-xs mt-1.5">Rent at 2230 Logan Circle is 6 days late, worth following up soon.</p>
+      </div>
+
       <div className="grid grid-cols-3 gap-3 mb-5">
         {[['4', 'Properties'], ['11', 'Total units'], ['9', 'Occupied']].map(([value, label]) => (
           <div key={label} className="bg-white/3 border border-white/8 rounded-xl p-3 sm:p-4 text-center">
@@ -238,6 +247,23 @@ function RenterPreview() {
         </div>
       </div>
 
+      {/* Matches the real renter dashboard's own "Needs your attention"
+          card — a proposed schedule time waiting on the tenant's review
+          is a common, real alert state, missing from this mock before. */}
+      <div className="bg-white/3 border border-white/8 rounded-2xl p-4 sm:p-5 mb-4">
+        <p className="text-white/70 text-xs font-semibold mb-3">Needs your attention</p>
+        <div className="flex items-center gap-3 bg-white/[0.03] rounded-xl px-3 py-2.5">
+          <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 bg-yellow-500/15 text-yellow-400">
+            <WrenchIcon className="w-3.5 h-3.5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-white text-xs sm:text-sm font-medium truncate">Electrical</p>
+            <p className="text-white/60 text-[10px] sm:text-xs truncate">New time proposed</p>
+          </div>
+          <span className="text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 bg-yellow-500/15 text-yellow-400">Review</span>
+        </div>
+      </div>
+
       <div className="bg-white/3 border border-white/8 rounded-2xl p-4 sm:p-5 mb-4">
         <p className="text-white/70 text-xs font-semibold mb-1">Your home</p>
         <p className="text-white text-sm">789 Pine St · Unit B</p>
@@ -295,6 +321,20 @@ function ContractorPreview() {
         <div className="bg-white/3 border border-white/8 rounded-xl p-3 sm:p-4 text-center">
           <div className="text-xl sm:text-2xl font-bold text-white">$2,400</div>
           <div className="text-white/60 text-[10px] sm:text-xs mt-0.5">Earnings</div>
+        </div>
+      </div>
+
+      {/* Matches the real contractor dashboard's own Payouts/Verification
+          row — real trust signals shown to every contractor, missing
+          from this mock before. */}
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <div className="bg-white/3 border border-white/8 rounded-xl p-3 text-center">
+          <p className="text-white font-semibold text-xs sm:text-sm">Payouts</p>
+          <p className="text-[#12A5A9] text-[10px] sm:text-xs mt-0.5">Active</p>
+        </div>
+        <div className="bg-white/3 border border-white/8 rounded-xl p-3 text-center">
+          <p className="text-white font-semibold text-xs sm:text-sm">Verification</p>
+          <p className="text-white/50 text-[10px] sm:text-xs mt-0.5">Under review</p>
         </div>
       </div>
 
