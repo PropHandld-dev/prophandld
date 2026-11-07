@@ -135,6 +135,18 @@ function LandlordPreview() {
       <div className="bg-gradient-to-br from-[#0A7B7E]/15 to-white/[0.02] border border-[#12A5A9]/25 rounded-2xl p-4 mb-4">
         <span className="text-[#12A5A9] text-[10px] font-semibold tracking-wide">✦ PROPHANDLD AI</span>
         <p className="text-white/70 text-xs mt-1.5">Rent at 2230 Logan Circle is 6 days late, worth following up soon.</p>
+        {/* Matches the real portfolio-digest card's own ask bar
+            (PortfolioDigestCard.tsx) — the demo previously only showed the
+            passive digest line and dropped the fact that it's a real,
+            two-way AI you can ask things, not just a notification. */}
+        <div className="flex items-center gap-2 mt-3">
+          <div className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-white/40 text-xs truncate">
+            Ask something, like 'when does my rental license expire?'
+          </div>
+          <span className="shrink-0 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2.5 rounded-xl">
+            Ask
+          </span>
+        </div>
       </div>
 
       <div className="grid grid-cols-3 gap-3 mb-5">
