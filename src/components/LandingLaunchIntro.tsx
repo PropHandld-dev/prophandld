@@ -43,8 +43,8 @@ export function LandingLaunchIntro() {
     hasPlayedThisSession = true
 
     const toHold = setTimeout(() => setPhase('hold'), 700)
-    const toOut = setTimeout(() => setPhase('out'), 1500)
-    const toDone = setTimeout(() => setPhase('done'), 1850)
+    const toOut = setTimeout(() => setPhase('out'), 2500)
+    const toDone = setTimeout(() => setPhase('done'), 2850)
     return () => {
       clearTimeout(toHold)
       clearTimeout(toOut)
@@ -68,12 +68,12 @@ export function LandingLaunchIntro() {
           }`}
         />
         <Logo
-          className={`relative w-16 h-16 sm:w-20 sm:h-20 transition-all duration-500 ease-out ${
+          className={`relative w-20 h-20 sm:w-28 sm:h-28 transition-all duration-500 ease-out ${
             phase === 'in' ? 'opacity-0 scale-75 translate-y-2' : 'opacity-100 scale-100 translate-y-0'
           }`}
         />
         <span
-          className={`relative text-white font-bold text-4xl sm:text-5xl tracking-tight transition-all duration-500 ease-out ${
+          className={`relative text-white font-bold text-5xl sm:text-7xl tracking-tight transition-all duration-500 ease-out ${
             phase === 'in' ? 'opacity-0 scale-75 translate-y-2' : 'opacity-100 scale-100 translate-y-0'
           }`}
         >
@@ -82,7 +82,7 @@ export function LandingLaunchIntro() {
       </div>
       <div className="flex flex-col items-center gap-2">
         <p
-          className={`text-white/70 text-base sm:text-lg font-medium tracking-wide transition-all duration-500 delay-150 ease-out ${
+          className={`text-white/70 text-lg sm:text-xl font-medium tracking-wide transition-all duration-500 delay-150 ease-out ${
             phase === 'in' ? 'opacity-0 translate-y-1' : 'opacity-100 translate-y-0'
           }`}
         >
@@ -90,7 +90,7 @@ export function LandingLaunchIntro() {
         </p>
         <div
           className={`h-[2px] bg-[#12A5A9] transition-all duration-500 delay-300 ease-out ${
-            phase === 'in' ? 'w-0' : 'w-16'
+            phase === 'in' ? 'w-0' : 'w-20'
           }`}
         />
       </div>
