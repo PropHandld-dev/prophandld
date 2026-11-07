@@ -607,6 +607,24 @@ export default function LandlordDashboard() {
             <BillingReminder />
 
             <ScrollReveal className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6" data-tour="stats">
+              {/* Caught live by an external audit (TEAM-07): these tiles
+                  rendered immediately with their default zero state, so a
+                  managed portfolio briefly showed "0 properties / 0 units"
+                  while its property cards further down the page (a
+                  separate section, already populated from the same fetch
+                  by the time it resolves) looked fully loaded — a
+                  misleading flash, not a real inconsistency, but confusing
+                  enough to read as one. Skeleton tiles until the real
+                  numbers are actually in. */}
+              {loading ? (
+                <>
+                  <Skeleton className="h-[122px]" />
+                  <Skeleton className="h-[122px]" />
+                  <Skeleton className="h-[122px]" />
+                  <Skeleton className="h-[122px]" />
+                </>
+              ) : (
+                <>
               <Link
                 href="/landlord/properties"
                 className="bg-white/3 border border-white/8 rounded-2xl p-5 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all group"
@@ -649,6 +667,8 @@ export default function LandlordDashboard() {
                 <div className="text-3xl font-bold text-white">{formatCurrency(stats.monthlyRentRoll)}</div>
                 <div className="text-white/60 text-sm mt-1">{t('monthlyRentRoll', lang)}</div>
               </Link>
+                </>
+              )}
             </ScrollReveal>
 
             <div className="grid grid-cols-3 gap-4 mb-10" data-tour="pipeline">
