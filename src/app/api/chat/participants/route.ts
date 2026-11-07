@@ -28,13 +28,33 @@ async function membersForNaming(admin: any, ref: { jobId?: string | null; thread
     add(job?.reported_by, 'renter')
 
     if (job?.unit_id) {
-      const { data: tenancies } = await admin.from('tenancies').select('id, renter_user_id').eq('unit_id', job.unit_id)
-      for (const t of tenancies || []) add(t.renter_user_id, 'renter')
-      if ((tenancies || []).length > 0) {
+      // Deliberately includes ended tenancies too — a job that happened
+      // during a now-former tenant's occupancy should still name them,
+      // not show "Unknown". But caught live by an external audit
+      // (TURN-07): with no date bound at all, EVERY tenant this unit has
+      // ever had got named on EVERY job on that unit, including a
+      // brand-new tenant's own report created entirely after a prior
+      // tenant moved out. Each tenancy's `created_at` (a DB-assigned
+      // timestamp, not the landlord-editable `lease_start`) marks
+      // exactly when that occupancy began; ordering tenancies by it and
+      // treating each one's window as ending where the next one begins
+      // (or still open, for whichever is current) tells you which single
+      // tenant was actually in place when this job happened.
+      const { data: tenancies } = await admin.from('tenancies').select('id, renter_user_id, created_at').eq('unit_id', job.unit_id).order('created_at', { ascending: true })
+      const ordered = tenancies || []
+      const coveringTenancyIds: string[] = []
+      ordered.forEach((t: any, i: number) => {
+        const windowEnd = ordered[i + 1]?.created_at ?? null
+        if (job.created_at >= t.created_at && (!windowEnd || job.created_at < windowEnd)) {
+          add(t.renter_user_id, 'renter')
+          coveringTenancyIds.push(t.id)
+        }
+      })
+      if (coveringTenancyIds.length > 0) {
         const { data: occupants } = await admin
           .from('tenancy_occupants')
           .select('renter_user_id')
-          .in('tenancy_id', (tenancies || []).map((t: any) => t.id))
+          .in('tenancy_id', coveringTenancyIds)
         for (const o of occupants || []) add(o.renter_user_id, 'renter')
       }
     }

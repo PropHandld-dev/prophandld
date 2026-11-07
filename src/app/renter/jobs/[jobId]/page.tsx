@@ -97,20 +97,25 @@ export default function RenterJobDetailPage() {
     // despite their own dashboard correctly showing no active unit,
     // still read a brand-new tenant's report via its direct URL
     // (TURN-02) — a two-way cross-tenant leak through tenant turnover.
-    // A renter (or co-renter) can only access a job if they currently
-    // have an active tenancy on that exact unit AND the job was reported
-    // on or after that tenancy's own lease start — so it actually
-    // happened during their tenancy, not a prior one on the same unit.
-    // Reporting it themselves is always allowed too, covering any edge
-    // case where that comparison alone wouldn't.
+    //
+    // First attempt anchored this on `lease_start`, a plain date field —
+    // which an external re-audit (2026-11-07) caught still failing
+    // whenever the old and new tenancy started on the SAME calendar day:
+    // a full timestamp like "2026-11-06T15:22:10Z" string-compares as
+    // >= the bare date "2026-11-06" regardless of the actual time of
+    // day, so a job reported hours before the new tenant's lease_start
+    // date still passed. `tenancies.created_at` is the real fix — it's
+    // the exact moment this renter was actually linked to the unit (a
+    // DB-assigned timestamp, not a landlord-editable date), so comparing
+    // the job against it orders same-day turnovers correctly.
     let tenancyEligible = jobData.reported_by === user.id
     if (!tenancyEligible && activeTenancyId) {
       const { data: tenancy } = await supabase
         .from('tenancies')
-        .select('unit_id, lease_start')
+        .select('unit_id, created_at')
         .eq('id', activeTenancyId)
         .maybeSingle()
-      tenancyEligible = !!tenancy && tenancy.unit_id === jobData.unit_id && (!tenancy.lease_start || jobData.created_at >= tenancy.lease_start)
+      tenancyEligible = !!tenancy && tenancy.unit_id === jobData.unit_id && jobData.created_at >= tenancy.created_at
     }
     if (!tenancyEligible) {
       console.error('Blocked cross-tenancy job access attempt:', jobId)

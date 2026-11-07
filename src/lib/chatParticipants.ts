@@ -37,15 +37,21 @@ export async function loadChatParticipants(admin: any, ref: { jobId?: string | n
     const { data: bid } = await admin.from('bids').select('contractor_user_id').eq('job_id', job.id).eq('status', 'accepted').maybeSingle()
     if (bid?.contractor_user_id) participants.push({ userId: bid.contractor_user_id, role: 'contractor' })
 
-    // SECURITY FIX (external audit, 2026-11-06, TURN-01): "active tenancy
-    // on this unit" alone isn't enough — a brand-new tenant is also
-    // "active" the moment they're linked, but the job itself may predate
-    // their lease entirely (it happened during a previous tenant's
-    // occupancy). Require the job to have actually happened on/after the
-    // tenancy's own lease_start too, so turnover doesn't hand a new
-    // tenant the previous tenant's old job chats.
-    const { data: tenancies } = await admin.from('tenancies').select('id, renter_user_id, lease_start').eq('unit_id', job.unit_id).eq('ended', false)
-    const currentTenancies = (tenancies || []).filter((t: any) => !t.lease_start || job.created_at >= t.lease_start)
+    // SECURITY FIX (external audit, 2026-11-06, TURN-01; corrected
+    // 2026-11-07): "active tenancy on this unit" alone isn't enough — a
+    // brand-new tenant is also "active" the moment they're linked, but
+    // the job itself may predate their lease entirely (it happened
+    // during a previous tenant's occupancy). The first fix anchored this
+    // on `lease_start`, a plain date — which a re-audit caught still
+    // leaking whenever the old and new tenant's dates fell on the same
+    // calendar day, since a full timestamp always string-compares as
+    // >= a bare date on the same day regardless of actual time of day.
+    // `tenancies.created_at` is the real fix: it's the exact moment this
+    // renter was actually linked to the unit (a DB-assigned timestamp,
+    // not a landlord-editable date), so same-day turnovers order
+    // correctly.
+    const { data: tenancies } = await admin.from('tenancies').select('id, renter_user_id, created_at').eq('unit_id', job.unit_id).eq('ended', false)
+    const currentTenancies = (tenancies || []).filter((t: any) => job.created_at >= t.created_at)
     for (const t of currentTenancies) participants.push({ userId: t.renter_user_id, role: 'renter' })
     if (currentTenancies.length > 0) {
       const { data: occupants } = await admin
