@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { isVideoPath } from '@/lib/mediaValidation'
 import { useLanguage, t } from '@/lib/i18n'
 import { useConfirm } from '@/lib/useConfirm'
+import { useDialogA11y } from '@/lib/useDialogA11y'
 
 interface Photo {
   id: string
@@ -30,6 +31,8 @@ export function PhotoGrid({
   const { confirm, ConfirmDialog } = useConfirm()
 
   const colClass = columns === 2 ? 'grid-cols-2' : columns === 4 ? 'grid-cols-4' : 'grid-cols-3'
+  const closeZoom = () => setZoomed(null)
+  const { dialogRef } = useDialogA11y(!!zoomed, closeZoom)
 
   const handleDelete = async (e: React.MouseEvent, photo: Photo) => {
     e.stopPropagation()
@@ -91,9 +94,21 @@ export function PhotoGrid({
 
       {zoomed && (
         <div
-          className="fixed inset-0 bg-black/90 flex items-center justify-center p-6 z-30 cursor-zoom-out"
-          onClick={() => setZoomed(null)}
+          ref={dialogRef}
+          role="dialog"
+          aria-modal="true"
+          tabIndex={-1}
+          className="fixed inset-0 bg-black/90 flex items-center justify-center p-6 z-30 cursor-zoom-out outline-none"
+          onClick={closeZoom}
         >
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); closeZoom() }}
+            aria-label={t('closeBtn', lang)}
+            className="absolute top-4 right-4 bg-black/60 text-white text-xl w-9 h-9 rounded-full flex items-center justify-center hover:bg-black/80 transition cursor-pointer"
+          >
+            ×
+          </button>
           {zoomed.video ? (
             <video
               src={zoomed.url}

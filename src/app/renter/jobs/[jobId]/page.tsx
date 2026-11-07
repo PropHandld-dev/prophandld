@@ -47,6 +47,9 @@ export default function RenterJobDetailPage() {
 
   const [editingAccessNotes, setEditingAccessNotes] = useState(false)
   const [accessNotesDraft, setAccessNotesDraft] = useState('')
+  // What the note actually was when this editor opened — the anchor for
+  // saveAccessNotes' own staleness guard below.
+  const [accessNotesAtOpen, setAccessNotesAtOpen] = useState<string | null>(null)
   const [savingAccessNotes, setSavingAccessNotes] = useState(false)
 
   const fetchJob = async () => {
@@ -179,21 +182,32 @@ export default function RenterJobDetailPage() {
 
   const startEditingAccessNotes = () => {
     setAccessNotesDraft(job.access_notes || '')
+    setAccessNotesAtOpen(job.access_notes || null)
     setEditingAccessNotes(true)
   }
 
   const saveAccessNotes = async () => {
     setSavingAccessNotes(true)
     setError(null)
-    const { error: updateError } = await expectRow(supabase
-      .from('jobs')
-      .update({ access_notes: accessNotesDraft.trim() || null })
-      .eq('id', jobId))
+
+    // Confirmed live (external audit, 2026-11-06): two tabs opening this
+    // editor, both starting from the same old note, let the second save
+    // silently overwrite the first with no warning — a real lost update,
+    // same shape as the stale price-change approval fixed yesterday.
+    // Anchored on whatever the note actually was when THIS editor opened,
+    // not just the job id, so a save only succeeds while nobody else has
+    // changed it since. A stale save gets a clean conflict and the real
+    // current note, instead of quietly replacing it.
+    let query = supabase.from('jobs').update({ access_notes: accessNotesDraft.trim() || null }).eq('id', jobId)
+    query = accessNotesAtOpen === null ? query.is('access_notes', null) : query.eq('access_notes', accessNotesAtOpen)
+    const { error: updateError } = await expectRow(query)
 
     if (updateError) {
       console.error('Error saving access notes:', updateError)
-      setError(t('couldNotSaveAccessNotes', lang))
+      setError(t('accessNotesChangedElsewhere', lang))
       setSavingAccessNotes(false)
+      setEditingAccessNotes(false)
+      await fetchJob()
       return
     }
 

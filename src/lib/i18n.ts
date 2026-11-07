@@ -2026,6 +2026,7 @@ const STRINGS = {
   addAccessNotesBtn: { en: '+ Add access notes', es: '+ Agregar notas de acceso' },
   editAccessNotesBtn: { en: 'Edit', es: 'Editar' },
   couldNotSaveAccessNotes: { en: 'Could not save access notes.', es: 'No se pudieron guardar las notas de acceso.' },
+  accessNotesChangedElsewhere: { en: 'These notes changed elsewhere since you opened this. Showing the current version.', es: 'Estas notas cambiaron en otro lugar desde que las abriste. Mostrando la versión actual.' },
   accessNotesForContractorHeading: { en: 'Access notes from the tenant', es: 'Notas de acceso del inquilino' },
 
   // Renter rent page: payment history year filter + total
