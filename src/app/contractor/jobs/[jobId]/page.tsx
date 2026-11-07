@@ -342,7 +342,7 @@ export default function ContractorJobDetailPage() {
     if (!files || files.length === 0 || !userId) return
 
     for (const file of Array.from(files)) {
-      const problem = validateMediaFile(file)
+      const problem = await validateMediaFile(file)
       if (problem) {
         setError(problem)
         e.target.value = ''

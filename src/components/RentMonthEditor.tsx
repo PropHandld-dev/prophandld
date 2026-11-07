@@ -143,19 +143,20 @@ export function RentMonthEditor({
                   accept=".pdf,.jpg,.jpeg,.png"
                   className="hidden"
                   disabled={uploading}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0]
+                  onChange={async (e) => {
+                    const input = e.target
+                    const file = input.files?.[0]
                     if (file) {
-                      const problem = validateDocumentFile(file, { allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'] })
+                      const problem = await validateDocumentFile(file, { allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'] })
                       if (problem) {
                         setSizeError(problem)
-                        e.target.value = ''
+                        input.value = ''
                         return
                       }
                       setSizeError(null)
                       onAttach(file)
                     }
-                    e.target.value = ''
+                    input.value = ''
                   }}
                 />
               </label>

@@ -104,7 +104,7 @@ export function ContractorCredentials({ userId }: { userId: string }) {
 
     let documentUrl = existing?.document_url || null
     if (form.file) {
-      const validationError = validateDocumentFile(form.file, { allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'] })
+      const validationError = await validateDocumentFile(form.file, { allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'] })
       if (validationError) {
         setError(validationError)
         setSavingId(null)
@@ -342,13 +342,14 @@ export function ContractorCredentials({ userId }: { userId: string }) {
                 <input
                   type="file"
                   accept=".pdf,.jpg,.jpeg,.png"
-                  onChange={(e) => {
-                    const selected = e.target.files?.[0] || null
+                  onChange={async (e) => {
+                    const input = e.target
+                    const selected = input.files?.[0] || null
                     if (selected) {
-                      const validationError = validateDocumentFile(selected, { allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'] })
+                      const validationError = await validateDocumentFile(selected, { allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'] })
                       if (validationError) {
                         setError(validationError)
-                        e.target.value = ''
+                        input.value = ''
                         return
                       }
                     }

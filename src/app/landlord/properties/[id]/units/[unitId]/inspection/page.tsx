@@ -159,7 +159,7 @@ export default function InspectionPage() {
     if (!files || files.length === 0 || !inspection || !currentUserId || !userRole) return
 
     for (const file of Array.from(files)) {
-      const problem = validateMediaFile(file)
+      const problem = await validateMediaFile(file)
       if (problem) {
         setError(problem)
         if (fileInputRef.current) fileInputRef.current.value = ''

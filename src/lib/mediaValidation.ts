@@ -15,8 +15,29 @@ export function isVideoFile(file: File) {
   return file.type.startsWith('video/')
 }
 
+// Caught live by an external audit: a plain-text file renamed to .jpg or
+// .mp4 sailed through every check here, since nothing actually looked at
+// the bytes — extension and MIME are both just labels the browser trusts
+// the file picker (or a direct API call) to report honestly. This doesn't
+// attempt real format parsing (that's a much bigger job, and still
+// wouldn't catch every malformed file), but it catches the exact failure
+// mode demonstrated: every real image, video, PDF or Office document
+// starts with binary bytes, never a page of printable text, so a file
+// that's >95% printable ASCII in its first chunk is never a valid one of
+// these, whatever its name claims.
+async function looksLikePlainText(file: File): Promise<boolean> {
+  const sample = await file.slice(0, 512).arrayBuffer()
+  const bytes = new Uint8Array(sample)
+  if (bytes.length === 0) return false
+  let printable = 0
+  for (const b of bytes) {
+    if (b === 9 || b === 10 || b === 13 || (b >= 32 && b <= 126)) printable++
+  }
+  return printable / bytes.length > 0.95
+}
+
 // Returns an error string to show the user, or null if the file's fine.
-export function validateMediaFile(file: File): string | null {
+export async function validateMediaFile(file: File): Promise<string | null> {
   if (file.size === 0) {
     return `${file.name} is empty (0 bytes). Choose a real file.`
   }
@@ -24,10 +45,11 @@ export function validateMediaFile(file: File): string | null {
     if (file.size > MAX_VIDEO_BYTES) {
       return `${file.name} is too large (over 60MB). Trim it or take a shorter clip.`
     }
-    return null
-  }
-  if (file.size > MAX_IMAGE_BYTES) {
+  } else if (file.size > MAX_IMAGE_BYTES) {
     return `${file.name} is too large (over 20MB). Use a smaller file or a lower-resolution photo.`
+  }
+  if (await looksLikePlainText(file)) {
+    return `${file.name} doesn't look like a valid photo or video. It may be corrupted or renamed from a different file type.`
   }
   return null
 }
@@ -50,7 +72,7 @@ const DOCUMENT_MIME_TYPES = [
 // Returns an error string to show the user, or null if the file's fine.
 // allowedExtensions narrows the list for a form whose accept="" attribute
 // advertises fewer types (e.g. no .doc/.docx) than the general default.
-export function validateDocumentFile(file: File, opts?: { allowedExtensions?: string[] }): string | null {
+export async function validateDocumentFile(file: File, opts?: { allowedExtensions?: string[] }): Promise<string | null> {
   // Caught live by an external audit: a 0-byte file passed straight
   // through (0 is never over the max) and was accepted as a normal
   // document. This doesn't validate that a PDF's actual content is
@@ -71,6 +93,14 @@ export function validateDocumentFile(file: File, opts?: { allowedExtensions?: st
   // fine when that happens, and vice versa for an extensionless file.
   if (!typeOk && !extOk) {
     return `${file.name} isn't a supported file type. Use a PDF, Word doc, or photo (JPG/PNG).`
+  }
+  // Caught live by an external audit: a plain-text file renamed to .jpg
+  // passed the extension/MIME check above (both are just labels) and was
+  // stored as a real document. See looksLikePlainText's own note — no
+  // real PDF, Word doc or photo is ever mostly-printable-text in its
+  // first bytes, whatever its name claims.
+  if (await looksLikePlainText(file)) {
+    return `${file.name} doesn't look like a valid file. It may be corrupted or renamed from a different file type.`
   }
   return null
 }

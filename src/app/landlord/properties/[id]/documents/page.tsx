@@ -142,21 +142,22 @@ export default function PropertyDocumentsPage() {
     }))
   }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const incoming = Array.from(e.target.files)
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target
+    if (input.files) {
+      const incoming = Array.from(input.files)
       for (const file of incoming) {
-        const validationError = validateDocumentFile(file)
+        const validationError = await validateDocumentFile(file)
         if (validationError) {
           setError(validationError)
-          e.target.value = ''
+          input.value = ''
           return
         }
       }
       setError(null)
       setFiles([...files, ...incoming])
     }
-    e.target.value = ''
+    input.value = ''
   }
 
   const removeFile = (index: number) => {
@@ -179,7 +180,7 @@ export default function PropertyDocumentsPage() {
       return
     }
     for (const file of files) {
-      const validationError = validateDocumentFile(file)
+      const validationError = await validateDocumentFile(file)
       if (validationError) {
         setError(validationError)
         return

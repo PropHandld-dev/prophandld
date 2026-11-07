@@ -156,7 +156,7 @@ export default function UnitRentPage() {
 
   const handleAttachWaterBill = async (payment: any, file: File) => {
     if (!userId) return
-    const validationError = validateDocumentFile(file, { allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'] })
+    const validationError = await validateDocumentFile(file, { allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'] })
     if (validationError) {
       setError(validationError)
       return

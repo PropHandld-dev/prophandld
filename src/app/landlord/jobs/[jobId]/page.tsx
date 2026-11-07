@@ -111,6 +111,7 @@ export default function JobDetailPage() {
   const [scheduleDate, setScheduleDate] = useState('')
   const [scheduleWindow, setScheduleWindow] = useState('morning')
   const [scheduleTime, setScheduleTime] = useState('')
+  const [proposalAtOpen, setProposalAtOpen] = useState<{ date: string | null; window: string | null; time: string | null }>({ date: null, window: null, time: null })
 
   // A job sitting with zero bids is the single moment most likely to make a
   // landlord give up on the app entirely, per Nevin's own reasoning: a
@@ -628,7 +629,7 @@ export default function JobDetailPage() {
     if (!files || files.length === 0 || !userId) return
 
     for (const file of Array.from(files)) {
-      const problem = validateMediaFile(file)
+      const problem = await validateMediaFile(file)
       if (problem) {
         setDiyError(problem)
         e.target.value = ''
@@ -808,6 +809,7 @@ export default function JobDetailPage() {
     setScheduleDate(job.proposed_date || '')
     setScheduleWindow(job.proposed_window || 'morning')
     setScheduleTime(job.proposed_time || '')
+    setProposalAtOpen({ date: job.proposed_date || null, window: job.proposed_window || null, time: job.proposed_time || null })
     setShowScheduleModal(true)
   }
 
@@ -833,7 +835,16 @@ export default function JobDetailPage() {
     setActioning(true)
     setError(null)
 
-    const { error: updateError } = await expectRow(supabase
+    // Caught live by an external audit (SCH-01): a proposal form opened in
+    // one tab before any appointment existed, left open while another tab
+    // (or just a slower click) saved its own proposal first, could still
+    // submit afterward and silently replace it — nothing here checked
+    // that the job's proposal was still in the same state it was in when
+    // this form opened. Anchoring the update on that snapshot (via
+    // expectRow) means whichever proposal actually lands first is the
+    // only one that can take effect; a stale second submit now gets a
+    // clean conflict instead of quietly overwriting the real one.
+    let query = supabase
       .from('jobs')
       .update({
         proposed_date: scheduleDate,
@@ -843,12 +854,18 @@ export default function JobDetailPage() {
         schedule_confirmed: false,
         schedule_ask_tenant: false,
       })
-      .eq('id', jobId))
+      .eq('id', jobId)
+    query = proposalAtOpen.date ? query.eq('proposed_date', proposalAtOpen.date) : query.is('proposed_date', null)
+    query = proposalAtOpen.window ? query.eq('proposed_window', proposalAtOpen.window) : query.is('proposed_window', null)
+    query = proposalAtOpen.time ? query.eq('proposed_time', proposalAtOpen.time) : query.is('proposed_time', null)
+    const { error: updateError } = await expectRow(query)
 
     if (updateError) {
       console.error('Error proposing schedule:', updateError)
-      setError(t('couldNotProposeSchedule', lang))
+      setError(t('scheduleProposalChangedElsewhere', lang))
       setActioning(false)
+      setShowScheduleModal(false)
+      await fetchJob()
       return
     }
 

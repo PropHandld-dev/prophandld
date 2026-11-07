@@ -134,22 +134,23 @@ export default function RenterDocumentsPage() {
     setForm({ ...form, [e.target.name]: e.target.value })
   }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const incoming = Array.from(e.target.files)
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target
+    if (input.files) {
+      const incoming = Array.from(input.files)
       // Only reject the bad file(s), named in the error — previously one
       // invalid file in a multi-file selection discarded the entire batch.
       const valid: File[] = []
       const rejected: string[] = []
       for (const file of incoming) {
-        const validationError = validateDocumentFile(file)
+        const validationError = await validateDocumentFile(file)
         if (validationError) rejected.push(`${file.name}: ${validationError}`)
         else valid.push(file)
       }
       setError(rejected.length > 0 ? rejected.join(' ') : null)
       if (valid.length > 0) setFiles([...files, ...valid])
     }
-    e.target.value = ''
+    input.value = ''
   }
 
   const removeFile = (index: number) => {
@@ -172,7 +173,7 @@ export default function RenterDocumentsPage() {
       return
     }
     for (const file of files) {
-      const validationError = validateDocumentFile(file)
+      const validationError = await validateDocumentFile(file)
       if (validationError) {
         setError(validationError)
         return

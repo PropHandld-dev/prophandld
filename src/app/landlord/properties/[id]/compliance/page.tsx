@@ -299,7 +299,7 @@ export default function PropertyCompliancePage() {
   const uploadComplianceDocument = async (complianceItemId: string, documentType: string, docFile: File) => {
     if (!userId) return
 
-    const validationError = validateDocumentFile(docFile)
+    const validationError = await validateDocumentFile(docFile)
     if (validationError) {
       setError(validationError)
       return
@@ -696,13 +696,14 @@ export default function PropertyCompliancePage() {
               <input
                 type="file"
                 accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                onChange={(e) => {
-                  const selected = e.target.files?.[0] || null
+                onChange={async (e) => {
+                  const input = e.target
+                  const selected = input.files?.[0] || null
                   if (selected) {
-                    const validationError = validateDocumentFile(selected)
+                    const validationError = await validateDocumentFile(selected)
                     if (validationError) {
                       setError(validationError)
-                      e.target.value = ''
+                      input.value = ''
                       return
                     }
                   }
@@ -808,13 +809,14 @@ export default function PropertyCompliancePage() {
                         <input
                           type="file"
                           accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                          onChange={(e) => {
-                            const selected = e.target.files?.[0] || null
+                          onChange={async (e) => {
+                            const input = e.target
+                            const selected = input.files?.[0] || null
                             if (selected) {
-                              const validationError = validateDocumentFile(selected)
+                              const validationError = await validateDocumentFile(selected)
                               if (validationError) {
                                 setError(validationError)
-                                e.target.value = ''
+                                input.value = ''
                                 return
                               }
                             }

@@ -48,20 +48,22 @@ export default function NewLandlordJobPage() {
     setForm({ ...form, [e.target.name]: e.target.value })
   }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const incoming = Array.from(e.target.files)
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target
+    if (input.files) {
+      const incoming = Array.from(input.files)
       for (const file of incoming) {
-        const problem = validateMediaFile(file)
+        const problem = await validateMediaFile(file)
         if (problem) {
           setError(problem)
+          input.value = ''
           return
         }
       }
       setError(null)
       setFiles([...files, ...incoming])
     }
-    e.target.value = ''
+    input.value = ''
   }
 
   const removeFile = (index: number) => {
@@ -208,8 +210,9 @@ export default function NewLandlordJobPage() {
         <ScrollReveal>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-white/70 text-sm block mb-1">{t('category', lang)}</label>
+            <label htmlFor="landlord-job-category" className="text-white/70 text-sm block mb-1">{t('category', lang)}</label>
             <select
+              id="landlord-job-category"
               name="category"
               value={form.category}
               onChange={handleChange}
@@ -228,8 +231,9 @@ export default function NewLandlordJobPage() {
           </div>
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">{t('locationOptional', lang)}</label>
+            <label htmlFor="landlord-job-location" className="text-white/70 text-sm block mb-1">{t('locationOptional', lang)}</label>
             <select
+              id="landlord-job-location"
               name="location"
               value={form.location}
               onChange={handleChange}
@@ -243,8 +247,9 @@ export default function NewLandlordJobPage() {
           </div>
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">{t('description', lang)}</label>
+            <label htmlFor="landlord-job-description" className="text-white/70 text-sm block mb-1">{t('description', lang)}</label>
             <textarea
+              id="landlord-job-description"
               name="description"
               value={form.description}
               onChange={handleChange}
@@ -256,8 +261,9 @@ export default function NewLandlordJobPage() {
           </div>
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">{t('urgencyLabel', lang)}</label>
+            <label htmlFor="landlord-job-urgency" className="text-white/70 text-sm block mb-1">{t('urgencyLabel', lang)}</label>
             <select
+              id="landlord-job-urgency"
               name="urgency"
               value={form.urgency}
               onChange={handleChange}
@@ -270,30 +276,32 @@ export default function NewLandlordJobPage() {
           </div>
 
           <div>
-            <label className="text-white/70 text-sm block mb-1">{t('photosOrVideosOptionalLabel', lang)}</label>
+            <span className="text-white/70 text-sm block mb-1">{t('photosOrVideosOptionalLabel', lang)}</span>
             <p className="text-white/40 text-xs mb-2">{t('videoLengthHint', lang)}</p>
             <div className="flex items-center gap-2 flex-wrap">
-              <label>
+              <label className="relative">
                 <input
                   type="file"
                   accept="image/*"
                   capture="environment"
                   onChange={handleFileChange}
-                  className="hidden"
+                  aria-label={t('takePhotoLink', lang)}
+                  className="sr-only peer"
                 />
-                <span className="inline-block bg-white/8 text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-white/12 transition cursor-pointer">
+                <span className="inline-block bg-white/8 text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-white/12 transition cursor-pointer peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-[#12A5A9]">
                   {t('takePhotoLink', lang)}
                 </span>
               </label>
-              <label>
+              <label className="relative">
                 <input
                   type="file"
                   accept="image/*,video/*"
                   multiple
                   onChange={handleFileChange}
-                  className="hidden"
+                  aria-label={files.length > 0 ? t('addMoreBtn', lang) : t('addPhotosOrVideosPlain', lang)}
+                  className="sr-only peer"
                 />
-                <span className="inline-block bg-white/8 text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-white/12 transition cursor-pointer">
+                <span className="inline-block bg-white/8 text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-white/12 transition cursor-pointer peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-[#12A5A9]">
                   {files.length > 0 ? t('addMoreBtn', lang) : t('addPhotosOrVideosPlain', lang)}
                 </span>
               </label>
@@ -314,6 +322,7 @@ export default function NewLandlordJobPage() {
                     <button
                       type="button"
                       onClick={() => removeFile(i)}
+                      aria-label={t('closeBtn', lang)}
                       className="absolute top-1 right-1 bg-black/60 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center hover:bg-black/80 transition-all"
                     >
                       ×
