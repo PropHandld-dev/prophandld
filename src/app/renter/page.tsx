@@ -106,6 +106,15 @@ export default function RenterDashboard() {
       // The unit (with its property) and this unit's open jobs only need the
       // lease we already have, so they load together instead of one at a
       // time; contacts and the landlord's backup contacts then load together.
+      // SECURITY FIX (external audit, TURN-01, 2026-11-07): the detail
+      // page and chatParticipants.ts both already anchor eligibility on
+      // tenancies.created_at (the real moment this tenancy began — see
+      // their own notes for why a plain unit_id match isn't enough
+      // through tenant turnover), but this dashboard list never got the
+      // same treatment — a new tenant's issue history still listed a
+      // prior tenant's jobs (description, status), even though opening
+      // one was already correctly denied. Same filter here closes the
+      // list/detail mismatch.
       const [{ data: unitData }, jobsResult] = await Promise.all([
         supabase.from('units').select('*, properties(*)').eq('id', tenancyData.unit_id).maybeSingle(),
         supabase
@@ -113,6 +122,7 @@ export default function RenterDashboard() {
           .select('*')
           .eq('unit_id', tenancyData.unit_id)
           .not('status', 'in', '(completed,archived,declined)')
+          .or(`created_at.gte.${tenancyData.created_at},reported_by.eq.${user.id}`)
           .order('created_at', { ascending: false }),
       ])
 
