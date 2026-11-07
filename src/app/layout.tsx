@@ -6,6 +6,7 @@ import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { StagingBadge } from "@/components/StagingBadge";
 import { AiHelpBubble } from "@/components/AiHelpBubble";
 import { AppLaunchIntro } from "@/components/AppLaunchIntro";
+import { LandingLaunchIntro } from "@/components/LandingLaunchIntro";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -82,6 +83,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <AppLaunchIntro />
+        <LandingLaunchIntro />
         <CursorGlow />
         <ServiceWorkerRegister />
         <ViewTransition>{children}</ViewTransition>

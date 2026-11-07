@@ -1,0 +1,85 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
+import { Logo } from '@/components/Logo'
+import { useIsNativePlatform } from '@/lib/useIsNativePlatform'
+
+// The web counterpart to AppLaunchIntro's native splash handoff — a first-
+// visit moment for the marketing site itself, not just the installed app.
+// Purely decorative: a fixed overlay on top of the real page, which is
+// already rendering underneath it the whole time, so this never delays or
+// hides anything from a crawler, never shifts layout (fixed positioning,
+// out of flow), and never affects the real Largest Contentful Paint
+// element's own render time — it only affects how soon a human's eyes can
+// see it.
+//
+// Landing page only (same pathname gate CursorGlow already uses), skipped
+// entirely for prefers-reduced-motion, and once per tab session via a
+// module-level flag — reloading the page is a fresh "cold open" and is
+// expected to replay it, same reasoning as the native version; navigating
+// away and back within the same tab should not.
+let hasPlayedThisSession = false
+
+export function LandingLaunchIntro() {
+  const pathname = usePathname()
+  const isNative = useIsNativePlatform()
+  // AppLaunchIntro already owns the native case — skip here even if the
+  // wrapped app's first route ever happens to be '/', so the two never
+  // stack.
+  const isLanding = pathname === '/' && !isNative
+  const [phase, setPhase] = useState<'in' | 'hold' | 'out' | 'done'>('in')
+
+  useEffect(() => {
+    if (!isLanding || hasPlayedThisSession) {
+      setPhase('done')
+      return
+    }
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      hasPlayedThisSession = true
+      setPhase('done')
+      return
+    }
+    hasPlayedThisSession = true
+
+    const toHold = setTimeout(() => setPhase('hold'), 650)
+    const toOut = setTimeout(() => setPhase('out'), 1350)
+    const toDone = setTimeout(() => setPhase('done'), 1700)
+    return () => {
+      clearTimeout(toHold)
+      clearTimeout(toOut)
+      clearTimeout(toDone)
+    }
+  }, [isLanding])
+
+  if (phase === 'done') return null
+
+  return (
+    <div
+      aria-hidden
+      className={`fixed inset-0 z-[100] flex flex-col items-center justify-center gap-4 bg-[#0C1A2E] transition-opacity duration-300 ${
+        phase === 'out' ? 'opacity-0 pointer-events-none' : 'opacity-100'
+      }`}
+    >
+      <div className="relative">
+        <div
+          className={`absolute inset-0 -m-6 rounded-full bg-[#12A5A9]/25 blur-2xl transition-all duration-700 ease-out ${
+            phase === 'in' ? 'opacity-0 scale-50' : 'opacity-100 scale-100'
+          }`}
+        />
+        <Logo
+          className={`relative w-20 h-20 transition-all duration-500 ease-out ${
+            phase === 'in' ? 'opacity-0 scale-75' : 'opacity-100 scale-100'
+          }`}
+        />
+      </div>
+      <p
+        className={`text-white/70 text-sm font-medium tracking-wide transition-all duration-500 delay-150 ease-out ${
+          phase === 'in' ? 'opacity-0 translate-y-1' : 'opacity-100 translate-y-0'
+        }`}
+      >
+        Your Property. Handled.
+      </p>
+    </div>
+  )
+}
