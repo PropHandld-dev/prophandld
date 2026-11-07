@@ -46,7 +46,7 @@ export default function JobPaymentReceiptPage() {
       const { data } = await supabase
         .from('bids')
         .select(
-          'id, amount, proposed_amount, card_surcharge_amount, payment_status, paid_at, contractor_user_id, jobs(category, created_at, units(unit_number, properties(address, city, state, owner_user_id)))'
+          'id, amount, proposed_amount, card_surcharge_amount, payment_status, paid_at, payment_method, contractor_user_id, jobs(category, created_at, units(unit_number, properties(address, city, state, owner_user_id)))'
         )
         .eq('id', bidId)
         .maybeSingle()
@@ -110,8 +110,25 @@ export default function JobPaymentReceiptPage() {
         // paid it; the contractor's own receipt never mentions it, since
         // they received exactly the bid amount.
         ...(surcharge > 0 ? [{ label: t('cardProcessingFeeLabel', lang), value: `$${surcharge.toFixed(2)}` }] : []),
-        { label: t('paidOnLabel', lang), value: receipt.paid_at ? new Date(receipt.paid_at).toLocaleDateString(lang === 'es' ? 'es-ES' : undefined) : '—' },
-        { label: t('methodLabelReceipt', lang), value: t('cardOrBankTransferValue', lang) },
+        // Caught live by an external audit (PAY-04): this read paid_at in
+        // the viewer's own browser timezone, while the financial report
+        // (landlord/reports/page.tsx) always reads its UTC calendar date —
+        // an evening payment in the US could show one date here and the
+        // next day's date there. Matching the report's own convention
+        // instead of introducing a third one.
+        { label: t('paidOnLabel', lang), value: receipt.paid_at ? new Date(receipt.paid_at.slice(0, 10) + 'T00:00:00').toLocaleDateString(lang === 'es' ? 'es-ES' : undefined) : '—' },
+        // Caught live by an external audit (PAY-03): this always showed
+        // the same generic placeholder regardless of which was actually
+        // used — see the webhook/confirm-route note for why `bids` didn't
+        // record it until now. Same per-method labels rent receipts
+        // already use.
+        {
+          label: t('methodLabelReceipt', lang),
+          value:
+            receipt.payment_method === 'card' ? t('debitCardValue', lang)
+            : receipt.payment_method === 'bank' ? t('bankTransferValue', lang)
+            : t('cardOrBankTransferValue', lang),
+        },
       ]}
       totalLabel={t('amountPaidLabel', lang)}
       totalValue={`$${totalCharged.toFixed(2)}`}

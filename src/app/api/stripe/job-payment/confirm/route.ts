@@ -73,9 +73,13 @@ export async function POST(request: NextRequest) {
       const baseAmountPaid = paymentIntent.metadata?.prophandld_base_amount
         ? Number(paymentIntent.metadata.prophandld_base_amount)
         : paymentIntent.amount / 100
+      // Same reasoning as the surcharge above, and fixing the same gap the
+      // webhook branch fixes (external audit PAY-03): whichever of the two
+      // wins the race needs to record the real method, not just status.
+      const paymentMethod = paymentIntent.payment_method_types?.[0] === 'card' ? 'card' : 'bank'
       const { data: updatedBid, error } = await supabaseAdmin
         .from('bids')
-        .update({ payment_status: 'paid', paid_at: paymentPaidAt(paymentIntent), card_surcharge_amount: cardSurcharge })
+        .update({ payment_status: 'paid', paid_at: paymentPaidAt(paymentIntent), card_surcharge_amount: cardSurcharge, payment_method: paymentMethod })
         .eq('id', bid.id)
         .neq('payment_status', 'paid')
         .select('id')

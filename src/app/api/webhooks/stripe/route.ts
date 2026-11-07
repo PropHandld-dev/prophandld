@@ -331,10 +331,18 @@ export async function POST(request: NextRequest) {
           const cardSurcharge = paymentIntent.metadata?.prophandld_card_surcharge
             ? Number(paymentIntent.metadata.prophandld_card_surcharge)
             : 0
+          // Caught live by an external audit (PAY-03): the job receipt
+          // always showed a generic "Card or bank transfer" regardless of
+          // which was actually used, since nothing ever recorded it — only
+          // the amount and surcharge were saved. payment_method_types is
+          // always a single-element array here (the create-payment-intent
+          // route sets exactly one), matching the rent-receipt pattern
+          // that already does this correctly for rent_payments.
+          const paymentMethod = paymentIntent.payment_method_types?.[0] === 'card' ? 'card' : 'bank'
           if (bidId) {
             const { data: updatedBid, error } = await supabaseAdmin
               .from('bids')
-              .update({ payment_status: 'paid', paid_at: new Date().toISOString(), card_surcharge_amount: cardSurcharge })
+              .update({ payment_status: 'paid', paid_at: new Date().toISOString(), card_surcharge_amount: cardSurcharge, payment_method: paymentMethod })
               .eq('id', bidId)
               .neq('payment_status', 'paid')
               .select('id')
