@@ -65,7 +65,7 @@ export default function RenterJobDetailPage() {
     // keyed only on jobId — so they load together instead of one after
     // another (same fix already applied on the landlord/contractor job
     // pages).
-    const [{ data: jobData, error: jobError }, { data: photosData }, { data: hasAcceptedBidData }] = await Promise.all([
+    const [{ data: jobData, error: jobError }, { data: photosData }, { data: hasAcceptedBidData }, { data: activeTenancyId }] = await Promise.all([
       supabase.from('jobs').select('*').eq('id', jobId).maybeSingle(),
       supabase.from('job_photos').select('*').eq('job_id', jobId).order('created_at', { ascending: false }),
       // Only used to tell a DIY job (landlord handling it themselves, no
@@ -77,10 +77,43 @@ export default function RenterJobDetailPage() {
       // policy that keeps bid amounts and contractor identity hidden
       // from the tenant — this reveals nothing except yes/no.
       supabase.rpc('job_has_accepted_bid', { target_job_id: jobId }),
+      supabase.rpc('get_my_active_tenancy_id'),
     ])
 
     if (jobError || !jobData) {
       console.error('Error loading job:', jobError)
+      setError(t('jobNotFoundAccessible', lang))
+      setLoading(false)
+      return
+    }
+
+    // SECURITY FIX (external audit, 2026-11-06, TURN-01/TURN-02): this
+    // query had no eligibility check beyond the row id, trusting the
+    // `jobs` table's own RLS policy to scope it to "a renter who's ever
+    // had a tenancy on this unit" — not "the renter whose CURRENT active
+    // tenancy this job actually belongs to." That let a brand-new tenant
+    // read and even edit the previous tenant's old reports and job chat
+    // on the same unit (TURN-01), and let a moved-out former tenant,
+    // despite their own dashboard correctly showing no active unit,
+    // still read a brand-new tenant's report via its direct URL
+    // (TURN-02) — a two-way cross-tenant leak through tenant turnover.
+    // A renter (or co-renter) can only access a job if they currently
+    // have an active tenancy on that exact unit AND the job was reported
+    // on or after that tenancy's own lease start — so it actually
+    // happened during their tenancy, not a prior one on the same unit.
+    // Reporting it themselves is always allowed too, covering any edge
+    // case where that comparison alone wouldn't.
+    let tenancyEligible = jobData.reported_by === user.id
+    if (!tenancyEligible && activeTenancyId) {
+      const { data: tenancy } = await supabase
+        .from('tenancies')
+        .select('unit_id, lease_start')
+        .eq('id', activeTenancyId)
+        .maybeSingle()
+      tenancyEligible = !!tenancy && tenancy.unit_id === jobData.unit_id && (!tenancy.lease_start || jobData.created_at >= tenancy.lease_start)
+    }
+    if (!tenancyEligible) {
+      console.error('Blocked cross-tenancy job access attempt:', jobId)
       setError(t('jobNotFoundAccessible', lang))
       setLoading(false)
       return

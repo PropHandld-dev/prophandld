@@ -17,7 +17,7 @@ export async function loadChatParticipants(admin: any, ref: { jobId?: string | n
   if (ref.jobId) {
     const { data: job } = await admin
       .from('jobs')
-      .select('id, category, unit_id, units(properties(address, owner_user_id))')
+      .select('id, category, unit_id, created_at, units(properties(address, owner_user_id))')
       .eq('id', ref.jobId)
       .maybeSingle()
     if (!job) return null
@@ -37,13 +37,21 @@ export async function loadChatParticipants(admin: any, ref: { jobId?: string | n
     const { data: bid } = await admin.from('bids').select('contractor_user_id').eq('job_id', job.id).eq('status', 'accepted').maybeSingle()
     if (bid?.contractor_user_id) participants.push({ userId: bid.contractor_user_id, role: 'contractor' })
 
-    const { data: tenancies } = await admin.from('tenancies').select('id, renter_user_id').eq('unit_id', job.unit_id).eq('ended', false)
-    for (const t of tenancies || []) participants.push({ userId: t.renter_user_id, role: 'renter' })
-    if ((tenancies || []).length > 0) {
+    // SECURITY FIX (external audit, 2026-11-06, TURN-01): "active tenancy
+    // on this unit" alone isn't enough — a brand-new tenant is also
+    // "active" the moment they're linked, but the job itself may predate
+    // their lease entirely (it happened during a previous tenant's
+    // occupancy). Require the job to have actually happened on/after the
+    // tenancy's own lease_start too, so turnover doesn't hand a new
+    // tenant the previous tenant's old job chats.
+    const { data: tenancies } = await admin.from('tenancies').select('id, renter_user_id, lease_start').eq('unit_id', job.unit_id).eq('ended', false)
+    const currentTenancies = (tenancies || []).filter((t: any) => !t.lease_start || job.created_at >= t.lease_start)
+    for (const t of currentTenancies) participants.push({ userId: t.renter_user_id, role: 'renter' })
+    if (currentTenancies.length > 0) {
       const { data: occupants } = await admin
         .from('tenancy_occupants')
         .select('renter_user_id')
-        .in('tenancy_id', (tenancies || []).map((t: any) => t.id))
+        .in('tenancy_id', currentTenancies.map((t: any) => t.id))
       for (const o of occupants || []) participants.push({ userId: o.renter_user_id, role: 'renter' })
     }
 
