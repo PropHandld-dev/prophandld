@@ -646,10 +646,18 @@ export default function ContractorJobDetailPage() {
           {t('dashboard', lang)}
         </Link>
         <Link href="/contractor" className="text-white font-semibold text-sm hover:opacity-80 transition">Prophandld</Link>
-        <a href="#chat" onClick={scrollToChat} aria-label={t('goToChat', lang)} className="relative text-white/50 hover:text-white transition">
-          <MessageCircleIcon className="w-5 h-5" />
-          {hasUnread && <UnreadDot className="absolute -top-0.5 -right-0.5" />}
-        </a>
+        {/* Caught live by an external audit (MSG-02): this shortcut used
+            to render unconditionally, including for a contractor whose
+            bid is no longer accepted (reassigned, cancelled) — JobChatCard
+            below only renders for an accepted bid, so #chat didn't exist
+            on the page at all and the icon just did nothing. Same
+            condition as the card it points to. */}
+        {myBid?.status === 'accepted' && (
+          <a href="#chat" onClick={scrollToChat} aria-label={t('goToChat', lang)} className="relative text-white/50 hover:text-white transition">
+            <MessageCircleIcon className="w-5 h-5" />
+            {hasUnread && <UnreadDot className="absolute -top-0.5 -right-0.5" />}
+          </a>
+        )}
       </nav>
 
       <main className="max-w-2xl mx-auto px-6 py-10 pb-28">

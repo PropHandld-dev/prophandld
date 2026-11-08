@@ -36,6 +36,24 @@ async function looksLikePlainText(file: File): Promise<boolean> {
   return printable / bytes.length > 0.95
 }
 
+// Caught live by an external audit (UPLOAD-09): an 8-byte file holding
+// only the PNG magic bytes (no actual image data after them) isn't
+// plain text, so looksLikePlainText lets it straight through — the
+// preview itself even showed naturalWidth/Height 0, but nothing turned
+// that into a rejection. createImageBitmap actually decodes the file
+// the same way a real <img> would; a genuine photo always decodes to a
+// real width/height, a truncated or fabricated one never does.
+async function imageFailsToDecode(file: File): Promise<boolean> {
+  try {
+    const bitmap = await createImageBitmap(file)
+    const ok = bitmap.width > 0 && bitmap.height > 0
+    bitmap.close()
+    return !ok
+  } catch {
+    return true
+  }
+}
+
 // Returns an error string to show the user, or null if the file's fine.
 export async function validateMediaFile(file: File): Promise<string | null> {
   if (file.size === 0) {
@@ -50,6 +68,9 @@ export async function validateMediaFile(file: File): Promise<string | null> {
   }
   if (await looksLikePlainText(file)) {
     return `${file.name} doesn't look like a valid photo or video. It may be corrupted or renamed from a different file type.`
+  }
+  if (!isVideoFile(file) && (await imageFailsToDecode(file))) {
+    return `${file.name} doesn't look like a valid photo. It may be corrupted or renamed from a different file type.`
   }
   return null
 }
@@ -101,6 +122,10 @@ export async function validateDocumentFile(file: File, opts?: { allowedExtension
   // first bytes, whatever its name claims.
   if (await looksLikePlainText(file)) {
     return `${file.name} doesn't look like a valid file. It may be corrupted or renamed from a different file type.`
+  }
+  const isImageExt = ext === 'jpg' || ext === 'jpeg' || ext === 'png'
+  if (isImageExt && (await imageFailsToDecode(file))) {
+    return `${file.name} doesn't look like a valid photo. It may be corrupted or renamed from a different file type.`
   }
   return null
 }

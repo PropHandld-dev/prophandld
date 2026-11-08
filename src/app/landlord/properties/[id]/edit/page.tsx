@@ -14,6 +14,7 @@ import { AddressAutocomplete, type AutocompletePlace } from '@/components/Addres
 import { useLanguage, t } from '@/lib/i18n'
 import { getLandlordIds } from '@/lib/landlordIds'
 import { useConfirm } from '@/lib/useConfirm'
+import { expectRow } from '@/lib/expectRow'
 
 export default function EditPropertyPage() {
   const router = useRouter()
@@ -31,6 +32,9 @@ export default function EditPropertyPage() {
     zip: '',
     property_type: 'residential',
   })
+  // Snapshot of the row as loaded, to anchor the save against — see its
+  // use in handleSubmit for why.
+  const [originalForm, setOriginalForm] = useState(form)
   const [placeGeo, setPlaceGeo] = useState<{ lat: number; lng: number } | null>(null)
   const [archived, setArchived] = useState(false)
   const [archiving, setArchiving] = useState(false)
@@ -61,13 +65,15 @@ export default function EditPropertyPage() {
         return
       }
 
-      setForm({
+      const loaded = {
         address: propertyData.address || '',
         city: propertyData.city || '',
         state: propertyData.state || '',
         zip: propertyData.zip || '',
         property_type: propertyData.property_type || 'residential',
-      })
+      }
+      setForm(loaded)
+      setOriginalForm(loaded)
       setArchived(!!propertyData.archived)
       setLoading(false)
     }
@@ -133,7 +139,20 @@ export default function EditPropertyPage() {
     // was re-picked; otherwise re-geocode in case the ZIP changed
     const geo = placeGeo ?? (form.zip ? await geocodeZip(form.zip) : null)
 
-    const { error: updateError } = await supabase
+    // Caught live by an external audit (REL-02): two tabs editing
+    // different fields on the same property used to silently clobber
+    // each other — this form always submits the whole row from its own
+    // local state, so whichever tab saved second overwrote the first
+    // tab's change to a field it never touched, with its own stale
+    // snapshot of that field. Anchoring on the exact values this tab
+    // loaded (via expectRow) means a save only succeeds if nothing else
+    // changed the row in between; a real conflict surfaces instead of
+    // silently reverting someone else's edit.
+    // A blank loaded value could mean the column is really NULL, not an
+    // empty string — .eq('', '') would never match a NULL column, so
+    // every save would falsely look like a conflict. .is(...) handles
+    // that case instead.
+    let updateQuery = supabase
       .from('properties')
       .update({
         address: form.address,
@@ -145,10 +164,14 @@ export default function EditPropertyPage() {
         lng: geo?.lng ?? null,
       })
       .eq('id', propertyId)
+    for (const [key, value] of Object.entries(originalForm) as [keyof typeof originalForm, string][]) {
+      updateQuery = value ? updateQuery.eq(key, value) : updateQuery.is(key, null)
+    }
+    const { error: updateError } = await expectRow(updateQuery)
 
     if (updateError) {
       console.error('Error updating property:', updateError)
-      setError(t('errorUpdatingPropertyColon', lang))
+      setError(t('propertyChangedElsewhereError', lang))
       setSaving(false)
       return
     }

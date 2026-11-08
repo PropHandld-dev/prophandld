@@ -4,7 +4,18 @@
 // join(',') breaks the moment a property address or contractor name
 // contains a comma, which real addresses regularly do ("123 Main St, Apt 2").
 function csvCell(value: string | number | null | undefined): string {
-  const str = value == null ? '' : String(value)
+  if (value == null) return ''
+  let str = String(value)
+  // Caught live by an external audit (REPORT-04): a free-text field (a
+  // property's own address, set directly by whoever owns it) starting
+  // with =, +, -, or @ exported as a raw, unprotected spreadsheet
+  // formula — opening the CSV in Excel or Sheets runs it. Only applies
+  // to actual string input, never a genuine `number` value passed in
+  // directly: a real negative dollar amount legitimately starts with
+  // "-" and must stay a plain number, not get prefixed.
+  if (typeof value === 'string' && /^[=+\-@\t\r]/.test(str)) {
+    str = `'${str}`
+  }
   if (/[",\n]/.test(str)) return `"${str.replace(/"/g, '""')}"`
   return str
 }
