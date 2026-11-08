@@ -91,9 +91,10 @@ export default function PrivacyPage() {
             <h2>4. Data retention & deletion</h2>
             <p>
               We keep your data for as long as your account is active. If you delete your account,
-              or ask us to, we'll remove your personal information within a reasonable time, except
-              where we need to retain something for legal or legitimate business reasons (for
-              example, records tied to an active or recent maintenance job).
+              we permanently delete your personal information and associated records (jobs, bids,
+              messages, payment history, and documents) right away. This is irreversible — we can't
+              recover it afterward, including for an open dispute or a recent maintenance job, so
+              make sure you don't need anything from your account before deleting it.
             </p>
           </section>
 
