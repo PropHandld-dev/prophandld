@@ -2214,6 +2214,65 @@ export async function sendJobAutoApprovedPayNowEmail({
   return sendEmail({ to, subject: lang === 'es' ? `Acción requerida: paga a ${contractorName} $${amount.toFixed(2)} por ${category}` : `Action needed: pay ${contractorName} $${amount.toFixed(2)} for ${category}`, html })
 }
 
+// PAY-10: a job could sit "completed" with its contractor unpaid forever —
+// the auto-approve path above sends exactly one email at the moment it
+// flips the job to completed, and a manual landlord approval sent none at
+// all. cron/unpaid-job-reminder resends this (roughly once a day, see that
+// route) until the landlord actually pays, instead of a single easy-to-miss
+// nudge with no follow-up.
+export async function sendUnpaidJobReminderEmail({
+  to,
+  landlordName,
+  contractorName,
+  amount,
+  category,
+  propertyLabel,
+  jobId,
+  lang = 'en',
+}: {
+  to: string
+  landlordName: string
+  contractorName: string
+  amount: number
+  category: string
+  propertyLabel: string
+  jobId: string
+  lang?: Lang
+}) {
+  const html = lang === 'es' ? baseTemplate({
+    lang,
+    eyebrow: 'Recordatorio',
+    heading: 'Todavía no se le ha pagado a tu contratista',
+    bodyHtml: `Hola ${escapeHtml(landlordName)}, el trabajo de <strong>${escapeHtml(category)}</strong> en ${escapeHtml(propertyLabel)} está aprobado, pero <strong>${escapeHtml(contractorName)}</strong> todavía no ha recibido el pago.`,
+    preheader: `${escapeHtml(contractorName)} sigue esperando $${amount.toFixed(2)}.`,
+    facts: [
+      { label: fl('Amount due', lang), value: `$${amount.toFixed(2)}` },
+      { label: fl('Contractor', lang), value: contractorName },
+      { label: fl('Job', lang), value: category },
+      { label: fl('Where', lang), value: propertyLabel },
+    ],
+    ctaLabel: 'Pagar ahora',
+    ctaUrl: `${SITE_URL}/landlord/jobs/${jobId}`,
+    note: 'Te seguiremos recordando hasta que se pague.',
+  }) : baseTemplate({
+    lang,
+    eyebrow: 'Reminder',
+    heading: 'Your contractor still hasn’t been paid',
+    bodyHtml: `Hi ${escapeHtml(landlordName)}, the <strong>${escapeHtml(category)}</strong> job at ${escapeHtml(propertyLabel)} is approved, but <strong>${escapeHtml(contractorName)}</strong> still hasn't been paid.`,
+    preheader: `${escapeHtml(contractorName)} is still waiting on $${amount.toFixed(2)}.`,
+    facts: [
+      { label: fl('Amount due', lang), value: `$${amount.toFixed(2)}` },
+      { label: fl('Contractor', lang), value: contractorName },
+      { label: fl('Job', lang), value: category },
+      { label: fl('Where', lang), value: propertyLabel },
+    ],
+    ctaLabel: 'Pay now',
+    ctaUrl: `${SITE_URL}/landlord/jobs/${jobId}`,
+    note: 'We’ll keep reminding you until this is paid.',
+  })
+  return sendEmail({ to, subject: lang === 'es' ? `Recordatorio: paga a ${contractorName} $${amount.toFixed(2)} por ${category}` : `Reminder: pay ${contractorName} $${amount.toFixed(2)} for ${category}`, html })
+}
+
 // One digest to the Prophandld inbox whenever the daily check auto-approves
 // anything, so a person sees it the same day rather than a contractor
 // discovering days later that nobody ever paid them. Internal, always English.
