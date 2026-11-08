@@ -11,6 +11,7 @@ import { BottomTabBar } from '@/components/BottomTabBar'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { AddressAutocomplete, type AutocompletePlace } from '@/components/AddressAutocomplete'
+import { isValidZip } from '@/lib/zipValidation'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 import { useLanguage, t } from '@/lib/i18n'
 import { useConfirm } from '@/lib/useConfirm'
@@ -61,6 +62,14 @@ function NewPropertyForm() {
     e.preventDefault()
     setLoading(true)
     setError(null)
+
+    // Caught live by an external audit (SEC-02): "QA-INVALID-ZIP" saved
+    // straight to the properties table with no format check at all.
+    if (form.zip && !isValidZip(form.zip)) {
+      setError(t('invalidZipFormat', lang))
+      setLoading(false)
+      return
+    }
 
     const { data: { user }, error: userError } = await supabase.auth.getUser()
 

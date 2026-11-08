@@ -15,6 +15,7 @@ import { useLanguage, t } from '@/lib/i18n'
 import { getLandlordIds } from '@/lib/landlordIds'
 import { useConfirm } from '@/lib/useConfirm'
 import { expectRow } from '@/lib/expectRow'
+import { isValidZip } from '@/lib/zipValidation'
 
 export default function EditPropertyPage() {
   const router = useRouter()
@@ -106,6 +107,14 @@ export default function EditPropertyPage() {
     e.preventDefault()
     setSaving(true)
     setError(null)
+
+    // Caught live by an external audit (SEC-02): "QA-INVALID-ZIP" saved
+    // straight to the properties table with no format check at all.
+    if (form.zip && !isValidZip(form.zip)) {
+      setError(t('invalidZipFormat', lang))
+      setSaving(false)
+      return
+    }
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
