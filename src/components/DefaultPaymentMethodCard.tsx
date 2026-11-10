@@ -207,6 +207,7 @@ export function DefaultPaymentMethodCard() {
   }
 
   return (
+    <>
     <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6">
       <h2 className="text-white font-semibold mb-1">{t('defaultPaymentMethodTitle', lang)}</h2>
       <p className="text-white/50 text-sm mb-4">{t('defaultPaymentMethodBody', lang)}</p>
@@ -321,15 +322,24 @@ export function DefaultPaymentMethodCard() {
         </div>
       )}
 
-      {setupSecret && (
-        <SetupPaymentMethodModal
-          clientSecret={setupSecret}
-          title={t('addCardModalTitle', lang)}
-          note={t('defaultPaymentMethodConsent', lang)}
-          onClose={() => setSetupSecret(null)}
-          onSaved={handleSaved}
-        />
-      )}
     </ScrollReveal>
+    {/* Rendered as a sibling, not a child, of ScrollReveal on purpose —
+        ScrollReveal applies a CSS transform (translate-y) once visible,
+        and any transform on an ancestor breaks position:fixed for
+        descendants, trapping this modal's overlay inside the card's own
+        box instead of covering the viewport. Confirmed live: the Save
+        button was unreachable/mis-targeted until this moved out. Every
+        other Stripe payment modal in the app (StripePaymentModal) is
+        already rendered at a page's top level for the same reason. */}
+    {setupSecret && (
+      <SetupPaymentMethodModal
+        clientSecret={setupSecret}
+        title={t('addCardModalTitle', lang)}
+        note={t('defaultPaymentMethodConsent', lang)}
+        onClose={() => setSetupSecret(null)}
+        onSaved={handleSaved}
+      />
+    )}
+    </>
   )
 }
