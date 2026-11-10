@@ -15,7 +15,7 @@ import { FeatureTourCarousel } from '@/components/FeatureTourCarousel'
 import { HowItWorksTracker, NotificationPreview } from '@/components/LandingTracker'
 import { BellIcon, ReceiptIcon } from '@/components/icons'
 import { LandingHelpWidget } from '@/components/LandingHelpWidget'
-import { LaunchEventSection } from '@/components/LaunchEventSection'
+import { EarlyAccessSection } from '@/components/EarlyAccessSection'
 import { AiAssistShowcase } from '@/components/AiAssistShowcase'
 
 const OPERATIONS_FEATURES = [
@@ -367,7 +367,7 @@ export default function LandingPage() {
       {/* Launch event interest */}
       <section className="max-w-5xl mx-auto px-6 pb-16">
         <ScrollReveal>
-          <LaunchEventSection />
+          <EarlyAccessSection />
         </ScrollReveal>
       </section>
 

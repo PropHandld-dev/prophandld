@@ -2273,6 +2273,66 @@ export async function sendUnpaidJobReminderEmail({
   return sendEmail({ to, subject: lang === 'es' ? `Recordatorio: paga a ${contractorName} $${amount.toFixed(2)} por ${category}` : `Reminder: pay ${contractorName} $${amount.toFixed(2)} for ${category}`, html })
 }
 
+// cron/unpaid-job-reminder's autocharge step tried the landlord's card on
+// file and it didn't go through (declined, expired, or needs their bank's
+// own 3D Secure confirmation, which can't complete without them present).
+// Distinct from the plain reminder above so a landlord understands
+// something was actually attempted, not just nagged again the same way.
+export async function sendAutochargeFailedEmail({
+  to,
+  landlordName,
+  contractorName,
+  amount,
+  category,
+  propertyLabel,
+  jobId,
+  reason,
+  lang = 'en',
+}: {
+  to: string
+  landlordName: string
+  contractorName: string
+  amount: number
+  category: string
+  propertyLabel: string
+  jobId: string
+  reason: string
+  lang?: Lang
+}) {
+  const html = lang === 'es' ? baseTemplate({
+    lang,
+    eyebrow: 'Acción requerida',
+    heading: 'No pudimos cobrar tu tarjeta registrada',
+    bodyHtml: `Hola ${escapeHtml(landlordName)}, intentamos cobrar tu tarjeta registrada por el trabajo de <strong>${escapeHtml(category)}</strong> en ${escapeHtml(propertyLabel)} y no se pudo completar: <strong>${escapeHtml(reason)}</strong>. ${escapeHtml(contractorName)} todavía no ha recibido el pago.`,
+    preheader: `Tu tarjeta registrada fue rechazada: ${escapeHtml(reason)}.`,
+    facts: [
+      { label: fl('Amount due', lang), value: `$${amount.toFixed(2)}` },
+      { label: fl('Contractor', lang), value: contractorName },
+      { label: fl('Job', lang), value: category },
+      { label: fl('Where', lang), value: propertyLabel },
+    ],
+    ctaLabel: 'Pagar ahora',
+    ctaUrl: `${SITE_URL}/landlord/jobs/${jobId}`,
+    note: 'Actualiza tu tarjeta registrada o paga este trabajo manualmente.',
+  }) : baseTemplate({
+    lang,
+    eyebrow: 'Action needed',
+    heading: 'We couldn’t charge your card on file',
+    bodyHtml: `Hi ${escapeHtml(landlordName)}, we tried to charge your card on file for the <strong>${escapeHtml(category)}</strong> job at ${escapeHtml(propertyLabel)} and it didn't go through: <strong>${escapeHtml(reason)}</strong>. ${escapeHtml(contractorName)} still hasn't been paid.`,
+    preheader: `Your card on file was declined: ${escapeHtml(reason)}.`,
+    facts: [
+      { label: fl('Amount due', lang), value: `$${amount.toFixed(2)}` },
+      { label: fl('Contractor', lang), value: contractorName },
+      { label: fl('Job', lang), value: category },
+      { label: fl('Where', lang), value: propertyLabel },
+    ],
+    ctaLabel: 'Pay now',
+    ctaUrl: `${SITE_URL}/landlord/jobs/${jobId}`,
+    note: 'Update your card on file, or pay this job manually.',
+  })
+  return sendEmail({ to, subject: lang === 'es' ? `Acción requerida: tu tarjeta fue rechazada para ${category}` : `Action needed: your card was declined for ${category}`, html })
+}
+
 // One digest to the Prophandld inbox whenever the daily check auto-approves
 // anything, so a person sees it the same day rather than a contractor
 // discovering days later that nobody ever paid them. Internal, always English.
@@ -3279,6 +3339,31 @@ export async function sendEventInterestConfirmationEmail({ to }: { to: string })
     footerText: "You're receiving this because you asked to be notified about the Prophandld landlord launch event.",
   })
   return sendEmail({ to, subject: "You're on the list for the Prophandld launch event", html })
+}
+
+export async function sendEarlyAccessAdminEmail({ email }: { email: string }) {
+  const html = baseTemplate({
+    lang: 'en',
+    eyebrow: 'Early access',
+    heading: 'New early access signup',
+    bodyHtml: `<strong>${escapeHtml(email)}</strong> asked for early access from the landing page.`,
+    ctaLabel: 'Reply',
+    ctaUrl: `mailto:${escapeHtml(email)}`,
+  })
+  return sendToAdmins(`Early access signup from ${email}`, html)
+}
+
+export async function sendEarlyAccessConfirmationEmail({ to }: { to: string }) {
+  const html = baseTemplate({
+    lang: 'en',
+    eyebrow: 'Early access',
+    heading: "You're on the list",
+    bodyHtml: "Thanks for your interest in Prophandld. We'll email this address as soon as early access opens up.",
+    ctaLabel: 'Visit Prophandld',
+    ctaUrl: SITE_URL,
+    footerText: "You're receiving this because you asked for early access on the Prophandld landing page.",
+  })
+  return sendEmail({ to, subject: "You're on the list for Prophandld early access", html })
 }
 
 export async function sendDmScheduleEmail({
