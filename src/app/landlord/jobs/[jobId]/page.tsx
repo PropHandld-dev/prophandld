@@ -103,6 +103,10 @@ export default function JobDetailPage() {
   const [paymentModal, setPaymentModal] = useState<{ clientSecret: string; amount: number } | null>(null)
   const [paymentError, setPaymentError] = useState<string | null>(null)
   const [showPaymentMethodChoice, setShowPaymentMethodChoice] = useState(false)
+  // Only used for the "this will auto-charge on {date}" expectation-setting
+  // hint below the unpaid Pay now button — not involved in the actual
+  // charge, which the cron re-checks server-side regardless of this.
+  const [hasDefaultPaymentMethod, setHasDefaultPaymentMethod] = useState(false)
   const [showPriceModal, setShowPriceModal] = useState(false)
   const [priceAction, setPriceAction] = useState<'approve' | 'reject' | null>(null)
 
@@ -362,6 +366,13 @@ export default function JobDetailPage() {
 
   useJobRealtime(jobId, fetchJob)
 
+  useEffect(() => {
+    fetch('/api/stripe/default-payment-method')
+      .then((res) => res.json())
+      .then((data) => setHasDefaultPaymentMethod(!!data?.paymentMethod))
+      .catch(() => setHasDefaultPaymentMethod(false))
+  }, [])
+
   // A payment can be left showing "processing" if Stripe's confirmation was
   // late or never arrived. Check Stripe once per job when the page opens, so
   // the card corrects itself instead of offering a second payment.
@@ -490,14 +501,12 @@ export default function JobDetailPage() {
 
   const confirmStartBidding = async () => {
     setActioning(true)
-    const { error: biddingError } = await expectRow(supabase
-      .from('jobs')
-      .update({ status: 'bidding', bidding_opened_at: new Date().toISOString() })
-      .eq('id', jobId))
+    const res = await fetch(`/api/landlord/jobs/${jobId}/start-bidding`, { method: 'POST' })
+    const data = await res.json().catch(() => ({}))
 
-    if (biddingError) {
-      console.error('Error starting bidding:', biddingError)
-      setError(t('acknowledgedButNoBidding', lang))
+    if (!res.ok) {
+      console.error('Error starting bidding:', data.error)
+      setError(data.error === 'needs_payment_method' ? t('needsPaymentMethodForBidding', lang) : t('acknowledgedButNoBidding', lang))
     } else {
       const result = await notifyJobOpen(jobId)
       setNoMatchingContractorsNotice(result?.sent === 0)
@@ -552,14 +561,12 @@ export default function JobDetailPage() {
 
   const handleStartBidding = async () => {
     setActioning(true)
-    const { error: updateError } = await expectRow(supabase
-      .from('jobs')
-      .update({ status: 'bidding', bidding_opened_at: new Date().toISOString() })
-      .eq('id', jobId))
+    const res = await fetch(`/api/landlord/jobs/${jobId}/start-bidding`, { method: 'POST' })
+    const data = await res.json().catch(() => ({}))
 
-    if (updateError) {
-      console.error('Error starting bidding:', updateError)
-      setError(t('couldNotStartBidding', lang))
+    if (!res.ok) {
+      console.error('Error starting bidding:', data.error)
+      setError(data.error === 'needs_payment_method' ? t('needsPaymentMethodForBidding', lang) : t('couldNotStartBidding', lang))
     } else {
       const result = await notifyJobOpen(jobId)
       setNoMatchingContractorsNotice(result?.sent === 0)
@@ -1812,6 +1819,11 @@ export default function JobDetailPage() {
               <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm mt-3">
                 {paymentError}
               </div>
+            )}
+            {hasDefaultPaymentMethod && acceptedBid.payment_status !== 'paid' && paidBanner !== 'succeeded' && job.landlord_approved_at && (
+              <p className="text-white/40 text-xs mt-3">
+                {t('autochargeNotice', lang).replace('{date}', new Date(new Date(job.landlord_approved_at).getTime() + 3 * 24 * 60 * 60 * 1000).toLocaleDateString())}
+              </p>
             )}
           </div>
         )}

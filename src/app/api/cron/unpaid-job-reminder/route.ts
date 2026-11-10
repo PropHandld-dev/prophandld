@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cronAuthorized } from '@/lib/cronAuth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
-import { sendUnpaidJobReminderEmail } from '@/lib/email'
+import { getStripe, paymentPaidAt } from '@/lib/stripe'
+import { cardProcessingFee } from '@/lib/cardSurcharge'
+import { sendUnpaidJobReminderEmail, sendAutochargeFailedEmail } from '@/lib/email'
+import { sendJobPaymentNotifications } from '@/lib/jobPaymentNotify'
 import { sendPush } from '@/lib/push'
 import { emailAllowed } from '@/lib/notificationPrefs'
 import { notifyLandlordIds } from '@/lib/landlordCoOwners'
@@ -15,6 +18,11 @@ const DAY_MS = 24 * 60 * 60 * 1000
 // cron's own 24h cadence, so a daily run never skips a day).
 const FIRST_REMINDER_AFTER_MS = DAY_MS
 const REMIND_AGAIN_AFTER_MS = 20 * 60 * 60 * 1000
+// Separate from the reminder cadence above: the actual autocharge attempt
+// against the landlord's card on file, once, 3 days after approval — the
+// same 3-day window the user asked for when a landlord has a card saved
+// (DefaultPaymentMethodCard / start-bidding's gate).
+const AUTOCHARGE_AFTER_MS = 3 * DAY_MS
 const ID_CHUNK = 100
 const CONCURRENCY = 10
 
@@ -54,7 +62,7 @@ export async function GET(request: NextRequest) {
   for (let from = 0; ; from += PAGE_SIZE) {
     const { data, error: jobsError } = await supabaseAdmin
       .from('jobs')
-      .select('id, category, landlord_approved_at, unpaid_reminder_last_sent_at, units(properties(address, city, owner_user_id))')
+      .select('id, category, landlord_approved_at, unpaid_reminder_last_sent_at, autocharge_attempted_at, units(properties(address, city, owner_user_id))')
       .eq('status', 'completed')
       .not('landlord_approved_at', 'is', null)
       .lte('landlord_approved_at', approvedCutoff)
@@ -69,44 +77,37 @@ export async function GET(request: NextRequest) {
     if (!data || data.length < PAGE_SIZE) break
   }
 
-  // Only jobs due for a reminder right now: never reminded yet, or the last
-  // reminder was far enough back that today's cron run is the next tick.
-  const dueJobs = candidateJobs.filter((j) => {
-    if (!j.unpaid_reminder_last_sent_at) return true
-    return now - new Date(j.unpaid_reminder_last_sent_at).getTime() >= REMIND_AGAIN_AFTER_MS
-  })
-
-  if (dueJobs.length === 0) {
-    return NextResponse.json({ ok: true, reminded: 0, checked: candidateJobs.length })
+  if (candidateJobs.length === 0) {
+    return NextResponse.json({ ok: true, reminded: 0, autocharged: 0, checked: 0 })
   }
 
-  const jobIds = dueJobs.map((j) => j.id)
+  const allIds = candidateJobs.map((j) => j.id)
 
   const bidByJob = new Map<string, any>()
-  for (const ids of chunk(jobIds, ID_CHUNK)) {
+  for (const ids of chunk(allIds, ID_CHUNK)) {
     const { data } = await supabaseAdmin
       .from('bids')
-      .select('job_id, contractor_user_id, amount, payment_status')
+      .select('id, job_id, contractor_user_id, amount, payment_status')
       .in('job_id', ids)
       .eq('status', 'accepted')
     for (const b of data || []) bidByJob.set(b.job_id, b)
   }
 
   // Skip anything already paid — this cron only exists to chase the unpaid
-  // case, and a paid job simply has nothing to remind anyone about.
-  const unpaidJobs = dueJobs.filter((j) => {
+  // case, and a paid job simply has nothing to remind or charge anyone for.
+  const unpaidCandidates = candidateJobs.filter((j) => {
     const bid = bidByJob.get(j.id)
     return bid && bid.payment_status !== 'paid'
   })
 
-  if (unpaidJobs.length === 0) {
-    return NextResponse.json({ ok: true, reminded: 0, checked: candidateJobs.length })
+  if (unpaidCandidates.length === 0) {
+    return NextResponse.json({ ok: true, reminded: 0, autocharged: 0, checked: candidateJobs.length })
   }
 
   const property = (j: any) => (j.units as any)?.properties
 
   const ownerByJob = new Map<string, string>()
-  for (const j of unpaidJobs) {
+  for (const j of unpaidCandidates) {
     const owner = property(j)?.owner_user_id
     if (owner) ownerByJob.set(j.id, owner)
   }
@@ -118,8 +119,37 @@ export async function GET(request: NextRequest) {
     })
   )
 
+  // Owner payment-method and contractor Connect readiness — only needed
+  // for jobs actually due for an autocharge attempt below, but cheap
+  // enough to fetch for every owner/contractor in this batch at once.
+  const ownerIds = Array.from(new Set(Array.from(ownerByJob.values())))
+  const paymentMethodByOwner = new Map<string, { pmId: string; customerId: string | null }>()
+  for (const ids of chunk(ownerIds, ID_CHUNK)) {
+    const { data } = await supabaseAdmin
+      .from('users')
+      .select('id, default_payment_method_id, default_payment_method_type, stripe_customer_id')
+      .in('id', ids)
+    for (const u of data || []) {
+      if (u.default_payment_method_id && u.default_payment_method_type === 'card') {
+        paymentMethodByOwner.set(u.id, { pmId: u.default_payment_method_id, customerId: u.stripe_customer_id })
+      }
+    }
+  }
+
+  const contractorIds = Array.from(new Set(Array.from(bidByJob.values()).map((b) => b.contractor_user_id).filter(Boolean)))
+  const contractorStripeById = new Map<string, { acctId: string | null; status: string | null; frozenUntil: string | null }>()
+  for (const ids of chunk(contractorIds, ID_CHUNK)) {
+    const { data } = await supabaseAdmin
+      .from('users')
+      .select('id, stripe_connect_account_id, stripe_connect_status, payout_frozen_until')
+      .in('id', ids)
+    for (const u of data || []) {
+      contractorStripeById.set(u.id, { acctId: u.stripe_connect_account_id, status: u.stripe_connect_status, frozenUntil: u.payout_frozen_until })
+    }
+  }
+
   const userIds = new Set<string>()
-  for (const j of unpaidJobs) {
+  for (const j of unpaidCandidates) {
     const bid = bidByJob.get(j.id)
     if (bid?.contractor_user_id) userIds.add(bid.contractor_user_id)
     const ownerId = ownerByJob.get(j.id)
@@ -136,8 +166,140 @@ export async function GET(request: NextRequest) {
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'
   let reminded = 0
+  let autocharged = 0
+  const succeededThisRun = new Set<string>()
 
-  await runInBatches(unpaidJobs, async (job) => {
+  // Due for a one-time autocharge attempt: 3+ days since approval, never
+  // attempted before, and the landlord actually has a card on file — a
+  // job without one just falls through to the plain reminder below,
+  // exactly like before this feature existed.
+  const dueForAutocharge = unpaidCandidates.filter((j) => {
+    if (j.autocharge_attempted_at) return false
+    if (!j.landlord_approved_at) return false
+    if (now - new Date(j.landlord_approved_at).getTime() < AUTOCHARGE_AFTER_MS) return false
+    const ownerId = ownerByJob.get(j.id)
+    return !!ownerId && paymentMethodByOwner.has(ownerId)
+  })
+
+  await runInBatches(dueForAutocharge, async (job) => {
+    // Claimed first — a single attempt per job, ever. A decline or
+    // requires_action result still lets the landlord pay manually
+    // afterward; this never retries on its own.
+    const { data: claimed, error: claimError } = await supabaseAdmin
+      .from('jobs')
+      .update({ autocharge_attempted_at: new Date().toISOString() })
+      .eq('id', job.id)
+      .is('autocharge_attempted_at', null)
+      .select('id')
+
+    if (claimError) {
+      console.error('cron/unpaid-job-reminder: could not claim autocharge', { jobId: job.id, claimError })
+      return
+    }
+    if (!claimed || claimed.length === 0) return
+
+    const bid = bidByJob.get(job.id)
+    const ownerId = ownerByJob.get(job.id)
+    const pm = ownerId ? paymentMethodByOwner.get(ownerId) : null
+    const contractorStripe = bid?.contractor_user_id ? contractorStripeById.get(bid.contractor_user_id) : null
+    const propRow = property(job)
+    const propertyLabel = propRow?.address || 'the property'
+    const amount = Number(bid?.amount ?? 0)
+    const landlordRecipients = ownerId ? (landlordRecipientsByPrimary.get(ownerId) || [ownerId]) : []
+    const contractor = bid?.contractor_user_id ? userById.get(bid.contractor_user_id) : null
+
+    const notifyFailure = async (reason: string) => {
+      for (const recipientId of landlordRecipients) {
+        const landlord = userById.get(recipientId)
+        if (landlord?.email && emailAllowed(landlord)) {
+          await sendAutochargeFailedEmail({
+            to: landlord.email,
+            landlordName: landlord.full_name || 'there',
+            contractorName: contractor?.full_name || 'your contractor',
+            amount,
+            category: job.category,
+            propertyLabel,
+            jobId: job.id,
+            reason,
+            lang: langOf(landlord),
+          }).catch((err) => console.error('cron/unpaid-job-reminder: autocharge-failed email failed', { jobId: job.id, err }))
+        }
+      }
+    }
+
+    // Contractor not actually payable right now (never finished Connect
+    // onboarding, or their payout account changed in the last 48h) —
+    // same guard create-payment-intent applies for a manual payment.
+    // Not worth a special email for this one; it's rare and the plain
+    // reminder below still covers it.
+    if (!pm || !contractorStripe?.acctId || contractorStripe.status !== 'active' || (contractorStripe.frozenUntil && new Date(contractorStripe.frozenUntil) > new Date())) {
+      await supabaseAdmin.from('jobs').update({ autocharge_result: 'declined' }).eq('id', job.id)
+      return
+    }
+
+    try {
+      const stripe = getStripe()
+      const surcharge = cardProcessingFee(amount)
+      const amountCents = Math.round((amount + surcharge) * 100)
+      const applicationFeeCents = Math.round(surcharge * 100)
+
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amountCents,
+        currency: 'usd',
+        customer: pm.customerId || undefined,
+        payment_method: pm.pmId,
+        off_session: true,
+        confirm: true,
+        payment_method_types: ['card'],
+        transfer_data: { destination: contractorStripe.acctId },
+        application_fee_amount: applicationFeeCents,
+        metadata: {
+          prophandld_type: 'job_payment_autocharge',
+          prophandld_bid_id: bid.id,
+          prophandld_base_amount: amount.toFixed(2),
+          prophandld_card_surcharge: surcharge.toFixed(2),
+        },
+      })
+
+      if (paymentIntent.status === 'succeeded') {
+        const { data: updatedBid } = await supabaseAdmin
+          .from('bids')
+          .update({ payment_status: 'paid', paid_at: paymentPaidAt(paymentIntent), card_surcharge_amount: surcharge, payment_method: 'card', stripe_payment_intent_id: paymentIntent.id })
+          .eq('id', bid.id)
+          .neq('payment_status', 'paid')
+          .select('id')
+
+        await supabaseAdmin.from('jobs').update({ autocharge_result: 'succeeded' }).eq('id', job.id)
+        if (updatedBid && updatedBid.length > 0) {
+          await sendJobPaymentNotifications(supabaseAdmin, { bidId: bid.id, baseAmountPaid: amount, cardSurcharge: surcharge })
+        }
+        succeededThisRun.add(job.id)
+        autocharged++
+      } else {
+        // requires_action (the bank wants 3DS, which can't finish
+        // off-session) lands here too — confirm: true above means Stripe
+        // already tried and couldn't get further without the landlord
+        // present.
+        await supabaseAdmin.from('jobs').update({ autocharge_result: 'requires_action' }).eq('id', job.id)
+        await notifyFailure('your bank needs you to confirm this payment directly')
+      }
+    } catch (err: any) {
+      await supabaseAdmin.from('jobs').update({ autocharge_result: 'declined' }).eq('id', job.id)
+      await notifyFailure(err?.message || 'your card was declined')
+      console.error('cron/unpaid-job-reminder: autocharge attempt failed', { jobId: job.id, err })
+    }
+  })
+
+  // Only jobs due for a reminder right now: never reminded yet, or the last
+  // reminder was far enough back that today's cron run is the next tick.
+  // Excludes anything the autocharge step above just paid.
+  const dueForReminder = unpaidCandidates.filter((j) => {
+    if (succeededThisRun.has(j.id)) return false
+    if (!j.unpaid_reminder_last_sent_at) return true
+    return now - new Date(j.unpaid_reminder_last_sent_at).getTime() >= REMIND_AGAIN_AFTER_MS
+  })
+
+  await runInBatches(dueForReminder, async (job) => {
     // Claimed first, same reasoning as job-auto-approve's status update: if
     // two overlapping runs (or a run and a landlord paying mid-run) race on
     // this job, only one actually sends. A job the landlord paid between
@@ -189,5 +351,5 @@ export async function GET(request: NextRequest) {
     reminded++
   })
 
-  return NextResponse.json({ ok: true, reminded, checked: candidateJobs.length })
+  return NextResponse.json({ ok: true, reminded, autocharged, checked: candidateJobs.length })
 }

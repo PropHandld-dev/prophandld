@@ -149,14 +149,12 @@ function LandlordJobsList() {
     if (!biddingJobId) return
     setActioningId(biddingJobId)
 
-    const { error: biddingError } = await expectRow(supabase
-      .from('jobs')
-      .update({ status: 'bidding', bidding_opened_at: new Date().toISOString() })
-      .eq('id', biddingJobId))
+    const res = await fetch(`/api/landlord/jobs/${biddingJobId}/start-bidding`, { method: 'POST' })
+    const data = await res.json().catch(() => ({}))
 
-    if (biddingError) {
-      console.error('Error starting bidding:', biddingError)
-      setError(t('acknowledgedButNoBidding', lang))
+    if (!res.ok) {
+      console.error('Error starting bidding:', data.error)
+      setError(data.error === 'needs_payment_method' ? t('needsPaymentMethodForBidding', lang) : t('acknowledgedButNoBidding', lang))
     } else {
       const result = await notifyJobOpen(biddingJobId)
       setNoMatchingContractorsNotice(result?.sent === 0)

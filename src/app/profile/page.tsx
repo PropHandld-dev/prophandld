@@ -15,6 +15,7 @@ import { LogOutIcon } from '@/components/icons'
 import { TABS_BY_ROLE } from '@/lib/navTabs'
 import { StripeConnectCard } from '@/components/StripeConnectCard'
 import { ZelleVenmoCashAppCard } from '@/components/ZelleVenmoCashAppCard'
+import { DefaultPaymentMethodCard } from '@/components/DefaultPaymentMethodCard'
 import { ReferralCard } from '@/components/ReferralCard'
 import { AiAssistCard } from '@/components/AiAssistCard'
 import { RentPaymentDefaultCard } from '@/components/RentPaymentDefaultCard'
@@ -787,6 +788,13 @@ export default function ProfilePage() {
             </div>
             <div className="mb-6">
               <ZelleVenmoCashAppCard />
+            </div>
+            <div className="mb-2">
+              <h2 className="text-white font-semibold mb-1">{t('payForRepairsTitle', lang)}</h2>
+              <p className="text-white/50 text-sm mb-4">{t('payForRepairsSectionIntro', lang)}</p>
+            </div>
+            <div className="mb-6">
+              <DefaultPaymentMethodCard />
             </div>
             <ReferralCard />
           </>

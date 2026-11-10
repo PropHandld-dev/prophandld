@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { notifyMatchingContractors } from '@/lib/openJobAlerts'
+import { hasValidDefaultPaymentMethod } from '@/lib/defaultPaymentMethod'
 
 // A contractor backs out of a job they were selected for. The job goes back
 // to open bidding and their bid is declined, together.
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
 
   const { data: job } = await admin
     .from('jobs')
-    .select('id, status, proposed_date, proposed_window, proposed_time, proposed_by, schedule_confirmed, schedule_ask_tenant')
+    .select('id, status, proposed_date, proposed_window, proposed_time, proposed_by, schedule_confirmed, schedule_ask_tenant, units(properties(owner_user_id))')
     .eq('id', jobId)
     .maybeSingle()
 
@@ -52,11 +53,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'This job has already been paid, so it can’t be cancelled here.' }, { status: 400 })
   }
 
+  // Re-checks the same card-on-file requirement start-bidding enforces —
+  // a landlord could have removed their card since this job first opened
+  // for bidding. If so, this drops back to 'approved' instead of
+  // reopening bidding, so the landlord has to go through the normal
+  // start-bidding gate again rather than contractors seeing a job that
+  // can't actually be paid automatically.
+  const landlordUserId = (job.units as any)?.properties?.owner_user_id
+  const canReopenBidding = landlordUserId ? await hasValidDefaultPaymentMethod(admin, landlordUserId) : false
+
   const { error: jobError } = await admin
     .from('jobs')
     .update({
-      status: 'bidding',
-      bidding_opened_at: new Date().toISOString(),
+      status: canReopenBidding ? 'bidding' : 'approved',
+      bidding_opened_at: canReopenBidding ? new Date().toISOString() : null,
       proposed_date: null,
       proposed_window: null,
       proposed_time: null,
@@ -91,9 +101,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Could not cancel. Please try again.' }, { status: 500 })
   }
 
-  // The job is open again, so contractors who could take it hear about it
-  // (except the one who just backed out). Never blocks the cancellation.
-  await notifyMatchingContractors(admin, jobId, user.id).catch((err) => console.error('contractor/cancel-job: alerts failed', err))
+  // Only alert contractors if the job is actually biddable again —
+  // skipped when canReopenBidding is false, since 'approved' isn't a
+  // status contractors can see or bid on at all.
+  if (canReopenBidding) {
+    await notifyMatchingContractors(admin, jobId, user.id).catch((err) => console.error('contractor/cancel-job: alerts failed', err))
+  }
 
   return NextResponse.json({ ok: true })
 }
