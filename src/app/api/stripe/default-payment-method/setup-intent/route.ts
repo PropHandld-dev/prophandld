@@ -21,17 +21,30 @@ export async function POST(request: NextRequest) {
 
   const { password } = (await request.json().catch(() => ({}))) as { password?: string }
 
-  const mfa = await mfaStepUpStatus(authClient)
-  if (mfa.enrolled && !mfa.satisfied) {
-    return NextResponse.json({ error: 'mfa_required' }, { status: 428 })
-  }
-  if (!mfa.satisfied) {
-    if (!user.email || !(await verifyPassword(user.email, password || ''))) {
-      return NextResponse.json({ error: 'Incorrect password' }, { status: 401 })
+  const supabaseAdmin = getSupabaseAdmin()
+
+  // Only a REPLACE is a hijack risk — nothing to protect on a first-time
+  // add, same distinction ZelleVenmoCashAppCard's isChange makes. Checked
+  // server-side (not just inferred from the client skipping its reauth
+  // prompt), so this can't be bypassed by calling the route directly.
+  const { data: existing } = await supabaseAdmin
+    .from('users')
+    .select('default_payment_method_id')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  if (existing?.default_payment_method_id) {
+    const mfa = await mfaStepUpStatus(authClient)
+    if (mfa.enrolled && !mfa.satisfied) {
+      return NextResponse.json({ error: 'mfa_required' }, { status: 428 })
+    }
+    if (!mfa.satisfied) {
+      if (!user.email || !(await verifyPassword(user.email, password || ''))) {
+        return NextResponse.json({ error: 'Incorrect password' }, { status: 401 })
+      }
     }
   }
 
-  const supabaseAdmin = getSupabaseAdmin()
   const customerId = await getOrCreateStripeCustomer(supabaseAdmin, user.id)
 
   const stripe = getStripe()
