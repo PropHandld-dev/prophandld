@@ -13,6 +13,14 @@
 const CARD_FEE_PERCENT = 0.029
 const CARD_FEE_FIXED = 0.3
 
+// Not currently called anywhere as of 2026-11-10 — both card-payment flows
+// (rent, job payments) market their card option specifically as "debit
+// card," and Visa/Mastercard network rules prohibit surcharging debit
+// cards at all. Stripe only reports whether a card was actually
+// debit/credit after a charge completes, so there's no reliable way to
+// apply this compliantly today. Left defined, not deleted, since it's
+// still correct math for a future credit-only surcharge mechanism once
+// one exists.
 export function cardProcessingFee(baseAmount: number): number {
   return Math.round((baseAmount * CARD_FEE_PERCENT + CARD_FEE_FIXED) * 100) / 100
 }

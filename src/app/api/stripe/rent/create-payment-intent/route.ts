@@ -3,7 +3,7 @@ import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { getStripe } from '@/lib/stripe'
 import { syncRentPayment } from '@/lib/rentPaymentSync'
-import { cardProcessingFee, achProcessingFee } from '@/lib/cardSurcharge'
+import { achProcessingFee } from '@/lib/cardSurcharge'
 import { friendlyStripeError } from '@/lib/stripeErrorMessage'
 
 export const maxDuration = 20
@@ -87,17 +87,27 @@ export async function POST(request: NextRequest) {
 
   const stripe = getStripe()
 
-  // Both bank transfer and card add Stripe's real processing fee on top as
-  // a visible surcharge, and application_fee_amount retains exactly that
-  // surcharge for Prophandld, so the landlord still receives the full rent
-  // amount and the platform doesn't pay Stripe's cut out of its own
-  // pocket. Decided 2026-10-20: this used to absorb the ACH fee itself,
-  // but that goes net-negative against subscription revenue as the
-  // platform scales — the tenant now covers it, same as job payments
-  // already do (see achProcessingFee's own comment) and the same way
+  // Bank transfer adds Stripe's real processing fee on top as a visible
+  // surcharge, and application_fee_amount retains exactly that surcharge
+  // for Prophandld, so the landlord still receives the full rent amount
+  // and the platform doesn't pay Stripe's cut out of its own pocket.
+  // Decided 2026-10-20: this used to absorb the ACH fee itself, but that
+  // goes net-negative against subscription revenue as the platform
+  // scales — the tenant now covers it, same as job payments already do
+  // (see achProcessingFee's own comment) and the same way
   // TurboTenant/TenantCloud pass a flat ACH fee to the tenant rather than
   // eating it as a platform cost.
-  const surcharge = paymentMethod === 'bank' ? achProcessingFee(amountDue) : cardProcessingFee(amountDue)
+  //
+  // Card is charged with NO surcharge, as of 2026-11-10 — a live-site
+  // finding, not part of the ACH decision above: this rent flow's "card"
+  // option is specifically marketed as a debit card (debitCardOptionLabel),
+  // and Visa/Mastercard network rules prohibit surcharging debit cards at
+  // all. Stripe only reports whether a card was actually debit/credit
+  // *after* a charge completes, so there's no reliable way to surcharge
+  // compliantly here today. Revisit once there's an actual mechanism to
+  // confirm credit-vs-debit before the charge (or legal confirms a
+  // different approach) — see the fee-absorption/feature-flag rebuild.
+  const surcharge = paymentMethod === 'bank' ? achProcessingFee(amountDue) : 0
   const chargeAmount = amountDue + surcharge
   const amountCents = Math.round(chargeAmount * 100)
   const applicationFeeCents = Math.round(surcharge * 100)

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { getStripe, paymentPaidAt } from '@/lib/stripe'
-import { cardProcessingFee, achProcessingFee } from '@/lib/cardSurcharge'
+import { achProcessingFee } from '@/lib/cardSurcharge'
 import { friendlyStripeError } from '@/lib/stripeErrorMessage'
 
 export const maxDuration = 20
@@ -76,20 +76,28 @@ export async function POST(request: NextRequest) {
   //
   // The contractor still receives exactly `amount` either way — "no
   // platform fee, ever" was a promise about their side of this, not about
-  // what the landlord's total charge looks like. A landlord paying a
-  // contractor covers Stripe's real processing fee on top either way, as a
-  // visible surcharge shown before they commit — they're already choosing
-  // to pay for real work at a price they picked, so this isn't a new
-  // barrier the way a fee on rent would be. Rent works the same way now
-  // too (as of 2026-10-20 — see cardSurcharge.ts): both flows surcharge
+  // what the landlord's total charge looks like. A landlord paying by bank
+  // transfer covers Stripe's real processing fee on top, as a visible
+  // surcharge shown before they commit — they're already choosing to pay
+  // for real work at a price they picked, so this isn't a new barrier the
+  // way a fee on rent would be. Rent works the same way for bank transfer
+  // (as of 2026-10-20 — see cardSurcharge.ts): both flows surcharge
   // whoever's paying rather than the platform absorbing anything out of
-  // its own balance. application_fee_amount retains exactly that surcharge
-  // for Prophandld, whichever method is used. Restricting
-  // payment_method_types to the one chosen method is what makes a
-  // method-specific amount possible — the amount has to be fixed before
-  // the PaymentIntent is created, so the method has to be picked first.
+  // its own balance.
+  //
+  // Card is NOT surcharged, as of 2026-11-10 — same live-site finding as
+  // rent's own fix: this flow's "card" option is marketed as a debit card
+  // (debitCardOptionLabel), and Visa/Mastercard network rules prohibit
+  // surcharging debit cards at all. Stripe can't confirm debit-vs-credit
+  // before a charge completes, so there's no compliant way to surcharge
+  // here today.
+  // application_fee_amount retains exactly the (bank-only) surcharge for
+  // Prophandld. Restricting payment_method_types to the one chosen method
+  // is what makes a method-specific amount possible — the amount has to be
+  // fixed before the PaymentIntent is created, so the method has to be
+  // picked first.
   const amount = Number(bid.amount)
-  const surcharge = method === 'card' ? cardProcessingFee(amount) : achProcessingFee(amount)
+  const surcharge = method === 'bank' ? achProcessingFee(amount) : 0
   const chargeAmount = amount + surcharge
   const stripe = getStripe()
   const amountCents = Math.round(chargeAmount * 100)

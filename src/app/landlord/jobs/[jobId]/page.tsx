@@ -35,7 +35,7 @@ import { useJobRealtime } from '@/lib/useJobRealtime'
 import { requirementById } from '@/lib/credentialRequirements'
 import { TIME_WINDOWS, validateScheduleTime, lateRescheduleWarning, shortNoticeWarning } from '@/lib/scheduleWindows'
 import { AddressLink } from '@/components/AddressLink'
-import { cardProcessingFee, achProcessingFee } from '@/lib/cardSurcharge'
+import { achProcessingFee } from '@/lib/cardSurcharge'
 import { AI_ASSIST_ENABLED } from '@/lib/aiAssist'
 import { FavoriteContractorButton } from '@/components/FavoriteContractorButton'
 import { DiyTroubleshootPanel } from '@/components/DiyTroubleshootPanel'
@@ -2448,7 +2448,6 @@ export default function JobDetailPage() {
 
       {showPaymentMethodChoice && acceptedBid && (() => {
         const baseAmount = Number(acceptedBid.amount)
-        const cardFee = cardProcessingFee(baseAmount)
         const bankFee = achProcessingFee(baseAmount)
         return (
           <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
@@ -2474,10 +2473,10 @@ export default function JobDetailPage() {
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-white font-medium text-sm">{t('debitCardOptionLabel', lang)}</span>
-                    <span className="text-white font-semibold text-sm tabular-nums">${(baseAmount + cardFee).toFixed(2)}</span>
+                    <span className="text-white font-semibold text-sm tabular-nums">${baseAmount.toFixed(2)}</span>
                   </div>
                   <p className="text-white/50 text-xs mt-1">
-                    +${cardFee.toFixed(2)} {t('processingFeeSuffix', lang)}
+                    {t('debitCardOptionDescPrefix', lang)}
                   </p>
                 </button>
               </div>

@@ -18,7 +18,7 @@ const StripePaymentModal = dynamic(() => import('@/components/StripePaymentModal
 import { CheckCircleIcon, CalendarIcon, FileTextIcon } from '@/components/icons'
 import { RENTER_TABS } from '@/lib/navTabs'
 import { ensureCurrentMonthRentPayment, ensureNextMonthRentPayment } from '@/lib/rentAutomation'
-import { cardProcessingFee, achProcessingFee } from '@/lib/cardSurcharge'
+import { achProcessingFee } from '@/lib/cardSurcharge'
 import { useLanguage, t, type Lang } from '@/lib/i18n'
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -597,7 +597,6 @@ export default function RenterRentPage() {
 
       {methodChoicePayment && (() => {
         const amountDue = Number(methodChoicePayment.expected_amount) - Number(methodChoicePayment.actual_amount || 0)
-        const fee = cardProcessingFee(amountDue)
         const achFee = achProcessingFee(amountDue)
         const closeModal = () => { setMethodChoicePayment(null); setP2pPanelMethod(null); setP2pSent(false); setP2pError(null) }
 
@@ -728,10 +727,10 @@ export default function RenterRentPage() {
                         <span className="text-[#12A5A9] text-[10px] font-semibold bg-[#12A5A9]/10 rounded-full px-2 py-0.5">{t('usualChoiceLabel', lang)}</span>
                       )}
                     </span>
-                    <span className="text-white font-semibold text-sm tabular-nums">{money(amountDue + fee)}</span>
+                    <span className="text-white font-semibold text-sm tabular-nums">{money(amountDue)}</span>
                   </div>
                   <p className="text-white/50 text-xs mt-1">
-                    +{money(fee)} {t('processingFeeSuffix', lang)} · {t('debitCardOptionDescPrefix', lang)}
+                    {t('debitCardOptionDescPrefix', lang)}
                   </p>
                 </button>
               </div>

@@ -123,11 +123,11 @@ export default function RenterTermsPage() {
         </p>
         <p>
           There&apos;s no Prophandld subscription fee to you as a renter, that&apos;s paid by your
-          landlord, never passed through to you. Paying rent by debit card or bank transfer through
-          Stripe does carry a small processing fee on top of the rent amount, shown and disclosed
-          before you pay. Paying your landlord directly via Zelle, Venmo, or Cash App has no
-          Prophandld or Stripe fee, though Venmo and Cash App may charge their own fee outside
-          Prophandld.
+          landlord, never passed through to you. Paying rent by bank transfer through Stripe
+          carries a small processing fee on top of the rent amount, shown and disclosed before you
+          pay. Paying by debit card has no fee. Paying your landlord directly via Zelle, Venmo, or
+          Cash App has no Prophandld or Stripe fee, though Venmo and Cash App may charge their own
+          fee outside Prophandld.
         </p>
       </section>
 
