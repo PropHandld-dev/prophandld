@@ -40,12 +40,12 @@ const COMPLIANCE_FEATURES = [
 
 const FAQS: { q: string; a: string }[] = [
   {
-    q: "What is Philadelphia's Safe Healthy Homes Act?",
-    a: "A city law that took effect November 1, 2026. It requires cited violations to be fixed within 30 days, ties rent collection directly to having a valid rental license, and gives tenants the right to sue for $1,000 or more per unresolved violation.",
+    q: "What is Philadelphia's Safe Healthy Homes legislation?",
+    a: "Bill 250329-AA, which took effect November 1, 2026. It requires serious cited violations to be corrected within 30 days or a landlord can lose the right to collect rent, ties rent collection to having a valid rental license (with a 15-day grace period to renew a lapsed one), and lets tenants sue for at least $1,000 per violation, or actual damages if higher, plus attorney's fees.",
   },
   {
     q: 'What happens if my license lapses and I miss it?',
-    a: "Under the law now in effect, a suspended license means you legally cannot collect rent until it's resolved. Not a fine you can pay later and move on from, a hard stop on your income from that property. Prophandld's compliance tracking exists specifically to make sure you see it coming.",
+    a: "Past the 15-day renewal grace period, a lapsed license means you legally cannot collect rent until it's resolved. Not a fine you can pay later and move on from, a hard stop on your income from that property. Prophandld's compliance tracking exists specifically to make sure you see it coming.",
   },
   {
     q: 'Does this replace checking with the city or an attorney?',
@@ -94,18 +94,19 @@ export default function PhiladelphiaLandingPage() {
         <div aria-hidden className="absolute -top-20 -right-24 w-80 h-80 rounded-full bg-[#12A5A9]/20 blur-3xl -z-10 motion-safe:animate-[drift_11s_ease-in-out_infinite_1s]" />
 
         <div className="inline-flex items-center gap-2 bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 text-[#12A5A9] border border-[#12A5A9]/30 text-xs font-semibold px-3 py-1.5 rounded-full mb-6">
-          Philadelphia landlords · Safe Healthy Homes Act
+          Philadelphia landlords · Safe Healthy Homes legislation (Bill 250329-AA)
         </div>
         <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-tight mb-6">
           Philadelphia rentals changed<br />
           <span className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] bg-clip-text text-transparent">on November 1, 2026.</span>
         </h1>
         <p className="text-lg text-white/50 max-w-2xl mx-auto mb-10">
-          A lapsed rental license under the law now in effect means you
-          legally can&apos;t collect rent until it&apos;s fixed, and unresolved
-          violations give tenants the right to sue for $1,000 or more per
-          violation. Prophandld tracks every license and certificate for
-          you, and warns you before one expires.
+          Let a license lapse past the 15-day renewal grace period and you
+          legally can&apos;t collect rent, and an unresolved serious violation
+          can cost you that same right even with an active license. Tenants
+          can sue for at least $1,000 per violation, or actual damages if
+          higher, plus attorney&apos;s fees. Prophandld tracks every license
+          and certificate for you, and reminds you before one expires.
         </p>
         <div className="flex items-center justify-center gap-4 flex-wrap">
           <MagneticLink
@@ -129,15 +130,15 @@ export default function PhiladelphiaLandingPage() {
           <div className="grid sm:grid-cols-3 gap-4">
             <div className="bg-white/3 border border-white/8 rounded-2xl p-6">
               <p className="text-white font-bold text-2xl mb-1">30 days</p>
-              <p className="text-white/50 text-sm">to fix a cited violation before your license can be suspended</p>
+              <p className="text-white/50 text-sm">to correct a serious cited violation, or you can lose the right to collect rent</p>
             </div>
             <div className="bg-white/3 border border-white/8 rounded-2xl p-6">
-              <p className="text-white font-bold text-2xl mb-1">No license, no rent</p>
-              <p className="text-white/50 text-sm">a suspended license means you can&apos;t legally collect rent at all</p>
+              <p className="text-white font-bold text-2xl mb-1">15-day grace period</p>
+              <p className="text-white/50 text-sm">to renew a lapsed license before you lose the right to collect rent</p>
             </div>
             <div className="bg-white/3 border border-white/8 rounded-2xl p-6">
               <p className="text-white font-bold text-2xl mb-1">$1,000+</p>
-              <p className="text-white/50 text-sm">per violation a tenant can sue for, on top of attorney&apos;s fees</p>
+              <p className="text-white/50 text-sm">per violation a tenant can sue for, plus attorney&apos;s fees</p>
             </div>
           </div>
         </ScrollReveal>
@@ -228,6 +229,8 @@ export default function PhiladelphiaLandingPage() {
         <Link href="/terms" className="hover:text-white transition">Terms</Link>
         <span className="mx-2">·</span>
         <Link href="/privacy" className="hover:text-white transition">Privacy</Link>
+        <span className="mx-2">·</span>
+        <a href="mailto:admin@prophandld.com" className="hover:text-white transition">Contact</a>
       </footer>
     </div>
   )

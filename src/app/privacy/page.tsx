@@ -5,6 +5,7 @@ import { BackHomeLink } from '@/components/BackHomeLink'
 
 export const metadata = {
   title: 'Privacy Policy | Prophandld',
+  alternates: { canonical: '/privacy' },
 }
 
 export default function PrivacyPage() {
@@ -92,9 +93,12 @@ export default function PrivacyPage() {
             <p>
               We keep your data for as long as your account is active. If you delete your account,
               we permanently delete your personal information and associated records (jobs, bids,
-              messages, payment history, and documents) right away. This is irreversible — we can't
-              recover it afterward, including for an open dispute or a recent maintenance job, so
-              make sure you don't need anything from your account before deleting it.
+              messages, and documents) right away. This is irreversible — we can't recover it
+              afterward, including for an open dispute or a recent maintenance job, so make sure you
+              don't need anything from your account before deleting it. The facts of any completed
+              payment (amount, date, and method, with no name or contact info attached) are kept for
+              7 years before being purged, for the same tax and accounting recordkeeping reasons any
+              business keeps financial records.
             </p>
           </section>
 

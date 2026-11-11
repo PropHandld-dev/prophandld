@@ -27,6 +27,15 @@ export const metadata: Metadata = {
   title: SITE_TITLE,
   description: SITE_DESCRIPTION,
   manifest: "/manifest.json",
+  // An external review (2026-11-10) flagged that every page was
+  // effectively telling search engines "I am the homepage" — this root
+  // metadata (and its openGraph.url below) had no per-page override
+  // anywhere, and two pages (/philadelphia, /contractors) had no page
+  // metadata at all since they're client components (added layout.tsx
+  // wrappers for those). This canonical is this layout's own fallback;
+  // every page with its own `metadata` export now sets its own
+  // `alternates.canonical` instead of inheriting this one.
+  alternates: { canonical: "/" },
   icons: {
     icon: "/icon-192.png",
     apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],

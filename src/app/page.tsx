@@ -164,12 +164,17 @@ export default function LandingPage() {
         <div aria-hidden className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-[#0A7B7E]/20 blur-3xl -z-10 motion-safe:animate-[drift_9s_ease-in-out_infinite]" />
         <div aria-hidden className="absolute -top-20 -right-24 w-80 h-80 rounded-full bg-[#12A5A9]/20 blur-3xl -z-10 motion-safe:animate-[drift_11s_ease-in-out_infinite_1s]" />
 
-        {/* "Coming soon" (was "Now onboarding") until Stripe goes live —
-            an external audit (2026-11-05) correctly flagged "now onboarding"
-            as misleading while checkout is still in test mode. Flip this
-            and the matching line on contractors/page.tsx back once it is. */}
+        {/* A second external review (2026-11-10) flagged "Coming soon" as
+            its own problem: it contradicts the very next CTA ("Get started
+            free"), which is real and already works — signup, dashboards,
+            and every non-payment feature are live today. Rather than
+            revert to the flatly-misleading "Now onboarding" this replaced
+            on 2026-11-05 (which implied live payments too), this says both
+            true things at once: you can onboard now, Stripe payments
+            specifically aren't live yet. Flip to a plain "Now onboarding"
+            once they are. Mirrored on contractors/page.tsx. */}
         <div className="inline-flex items-center gap-2 bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 text-[#12A5A9] border border-[#12A5A9]/30 text-xs font-semibold px-3 py-1.5 rounded-full mb-6">
-          Coming soon to Philadelphia
+          Onboarding Philadelphia landlords now — live payments coming soon
         </div>
         <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-tight mb-6">
           Run your rentals,<br />
@@ -205,12 +210,18 @@ export default function LandingPage() {
         </ScrollReveal>
       </section>
 
-      {/* Safe Healthy Homes Act — a real, dated deadline for Philadelphia
-          landlords, deliberately given its own prominent section rather than
-          buried as one card among many. Facts below (30-day cure window,
-          license suspension blocking rent collection, $1,000-per-violation
-          private right of action) are sourced from actual legal coverage of
-          the ordinance, not asserted from memory. */}
+      {/* Safe Healthy Homes legislation (Bill 250329-AA) — a real, dated
+          deadline for Philadelphia landlords, deliberately given its own
+          prominent section rather than buried as one card among many.
+          Facts below corrected 2026-11-10 after a direct read of the bill
+          text flagged the original wording as going further than the bill
+          actually says (missing the 30-day fix applying only to serious
+          violations, the "or actual damages, whichever is more" clause,
+          the 15-day renewal grace period, and that it's one violation, not
+          one per day) — see that review for the specifics. "Safe Healthy
+          Homes" is the name used in public reporting/advocacy for this
+          legislation, not its own formal title, so it's paired with the
+          bill number rather than stated alone. */}
       <section className="max-w-5xl mx-auto px-6 py-16">
         <ScrollReveal>
           <div className="relative overflow-hidden bg-gradient-to-br from-[#0A7B7E]/15 via-white/3 to-white/3 border border-[#12A5A9]/25 rounded-3xl p-8 sm:p-12">
@@ -219,26 +230,27 @@ export default function LandingPage() {
                 Philadelphia landlords
               </div>
               <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4 leading-tight">
-                Philadelphia&apos;s Safe Healthy Homes Act took effect November 1, 2026.
+                Philadelphia&apos;s Safe Healthy Homes legislation (Bill 250329-AA) took effect November 1, 2026.
               </h2>
               <p className="text-white/60 leading-relaxed mb-8 max-w-2xl">
-                A lapsed rental license under the law now in effect means you legally can&apos;t collect rent
-                until it&apos;s fixed, and unresolved violations give tenants the right to sue for
-                $1,000 or more per violation. Prophandld&apos;s compliance tracking warns you before a
-                license or certificate expires, not after an inspector or a lawsuit tells you.
+                Let a license lapse past the 15-day renewal grace period and you can&apos;t legally collect
+                rent, and an unresolved serious violation can cost you that same right even with an active
+                license. Tenants can sue for at least $1,000 per violation, or actual damages if higher, plus
+                attorney&apos;s fees. Prophandld tracks your license and certificate dates and reminds you
+                before they expire, not after an inspector or a lawsuit tells you.
               </p>
               <div className="grid sm:grid-cols-3 gap-4 mb-8">
                 <div className="bg-white/5 border border-white/10 rounded-xl p-4">
                   <p className="text-white font-bold text-lg">30 days</p>
-                  <p className="text-white/50 text-xs mt-1">to fix a cited violation before your license can be suspended</p>
+                  <p className="text-white/50 text-xs mt-1">to correct a serious cited violation, or you can lose the right to collect rent</p>
                 </div>
                 <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-                  <p className="text-white font-bold text-lg">No license, no rent</p>
-                  <p className="text-white/50 text-xs mt-1">a suspended license means you can&apos;t legally collect rent at all</p>
+                  <p className="text-white font-bold text-lg">15-day grace period</p>
+                  <p className="text-white/50 text-xs mt-1">to renew a lapsed license before you lose the right to collect rent</p>
                 </div>
                 <div className="bg-white/5 border border-white/10 rounded-xl p-4">
                   <p className="text-white font-bold text-lg">$1,000+</p>
-                  <p className="text-white/50 text-xs mt-1">per violation a tenant can sue for, on top of attorney&apos;s fees</p>
+                  <p className="text-white/50 text-xs mt-1">per violation a tenant can sue for, plus attorney&apos;s fees</p>
                 </div>
               </div>
               <Link
@@ -442,7 +454,7 @@ export default function LandingPage() {
               </div>
               <h3 className="text-white font-semibold mb-1.5">Payments run through Stripe</h3>
               <p className="text-white/50 text-sm leading-relaxed">
-                The same infrastructure banks and major platforms rely on. Once a payment is sent, it goes straight to the recipient&apos;s bank account, never held by Prophandld. Instant bank verification for supported accounts, not always the multi-day microdeposit wait you&apos;re used to.
+                The same infrastructure banks and major platforms rely on. Once a payment is sent, Stripe routes it automatically to the recipient&apos;s own account — Prophandld never keeps it or decides when it moves. Instant bank verification for supported accounts, not always the multi-day microdeposit wait you&apos;re used to.
               </p>
             </div>
             <div className="bg-white/3 border border-white/8 rounded-2xl p-6">
@@ -491,7 +503,7 @@ export default function LandingPage() {
             <p className="text-white/50 max-w-xl mx-auto leading-relaxed mb-2">
               Your first unit is free, full stop. Then <strong className="text-white/80">$19.99/month</strong> for
               2–4 units, <strong className="text-white/80">$39.99</strong> for 5–10, <strong className="text-white/80">$79.99</strong> for
-              11–25, flat rates, not per-unit. Past 25 units, $1.75 per unit.
+              11–25, flat rates, not per-unit. Past 25 units, $79.99 plus $1.75 for every unit over 25.
             </p>
             <p className="text-white/50 max-w-xl mx-auto leading-relaxed mb-6">
               Renters and contractors pay Prophandld nothing.
@@ -568,7 +580,7 @@ export default function LandingPage() {
                 ['2–4 units', '$9.99'],
                 ['5–10 units', '$14.99'],
                 ['11–25 units', '$24.99'],
-                ['25+ units', '+$0.50/unit'],
+                ['26+ units', '+$0.50/unit'],
               ].map(([range, price]) => (
                 <div key={range} className="bg-white/[0.03] border border-white/8 rounded-xl py-3">
                   <p className="text-white font-bold text-sm">{price}</p>
@@ -592,18 +604,18 @@ export default function LandingPage() {
           <div className="space-y-3">
             {[
               { q: 'Is this just for finding contractors?', a: "No. Prophandld is built to replace the spreadsheet. Track every property, unit, and tenant, handle maintenance end to end with sealed bidding, and collect rent, all in one dashboard. Your spreadsheet can finally retire." },
-              { q: 'What does it cost?', a: "Your first unit is free. Then $19.99/month for 2–4 units, $39.99 for 5–10, $79.99 for 11–25, flat rates, not per-unit. Past 25 units, $1.75 per unit. Prophandld AI is a separate optional add-on from $4.99/month if you want it. See the full breakdown and try the calculator at /pricing. Contractors pay nothing during this pilot program: no signup fee, no monthly fee, no cut of a bid. If that ever changes, contractors get at least 60 days' written notice first, and it never applies retroactively to work already bid, scheduled, or completed." },
+              { q: 'What does it cost?', a: "Your first unit is free. Then $19.99/month for 2–4 units, $39.99 for 5–10, $79.99 for 11–25, flat rates, not per-unit. Past 25 units, $79.99 plus $1.75 for every unit over 25. Prophandld AI is a separate optional add-on from $4.99/month if you want it. See the full breakdown and try the calculator at /pricing. Contractors pay nothing during this pilot program: no signup fee, no monthly fee, no cut of a bid. If that ever changes, contractors get at least 60 days' written notice first, and it never applies retroactively to work already bid, scheduled, or completed." },
               { q: 'What does Prophandld AI actually do?', a: "It handles the parts of this job that eat your evenings: talks a tenant through a safe fix before a contractor's ever needed (never anything electrical, gas, or structural), reads an uploaded lease or compliance document straight into the right fields, answers a renter's own lease questions directly, flags a compliance gap before it becomes a fine, drafts the routine messages you'd otherwise type yourself, and gives you a one-line morning briefing of what actually needs your attention. It's an optional add-on billed to you, the landlord, from $4.99/month with a 14-day free trial. Turn it on and your tenants get it too, automatically, at no extra cost to them." },
               { q: 'How does sealed bidding actually work?', a: "Contractors near the property are alerted when you open a job for bids. They submit their price privately and never see what anyone else bid. You choose who you trust, not just the lowest number. No bidding wars, no “my cousin quoted less”." },
               { q: 'Do I have to use a contractor?', a: "No. For anything small enough to handle yourself, mark it fixed directly, no bidding required. Contractors are there for when you want one, not a requirement for every repair." },
               { q: "What if the contractor's price changes?", a: 'If a contractor needs to adjust their price once work has started, they show you the new labor and parts breakdown, and you approve it before they move forward. No surprise invoices.' },
-              { q: 'How do rent and contractor payments work?', a: "Renters pay rent by bank transfer or debit card, not credit cards, so nobody goes into card debt to make rent. For a contractor, a landlord reviews and approves a finished job (or it auto-approves after 3 days if they don't act, so a contractor isn't left waiting), approving makes payment due, and the landlord then completes an actual payment step by card or bank transfer, which is what actually releases it. Everything runs through Stripe, the same infrastructure banks and major platforms rely on, and the money goes straight to the person being paid, never held by Prophandld." },
+              { q: 'How do rent and contractor payments work?', a: "Renters pay rent by bank transfer or debit card, not credit cards, so nobody goes into card debt to make rent — the bank transfer processing fee is shown to, and paid by, the renter, not the landlord. For a contractor, a landlord reviews and approves a finished job (or it auto-approves after 3 days if they don't act, so a contractor isn't left waiting), approving makes payment due, and the landlord then completes an actual payment step by card or bank transfer, which is what actually releases it; the landlord absorbs that processing fee so the contractor always receives their full agreed amount. Everything runs through Stripe, the same infrastructure banks and major platforms rely on, and Stripe routes the money automatically to the person being paid — Prophandld never keeps it or decides when it moves." },
               { q: 'How will I know when something happens?', a: "Email, push, and text, your choice, not one primary channel with the others as an afterthought. Every step of a job (a bid arrives, a time is proposed or confirmed, work is ready for review) emails you and, if you've added Prophandld to your phone's Home Screen, pushes an instant alert too. Opt in to text messages for the same key moments from your Notifications settings." },
               { q: 'Do I get receipts and records?', a: 'Yes. Every rent payment and every contractor payment gets a receipt, emailed to you and saved on the job or rent record, so finding one later is a lookup, not a hunt.' },
               { q: 'What if a contractor cancels?', a: "The job reopens for sealed bids, nearby contractors are alerted again, and the landlord and renter are told. Photos, notes, and other bids stay put." },
               { q: "What if something isn't right after the job?", a: 'After the landlord approves, any side has 48 hours to raise a dispute. The job pauses while the Prophandld team reviews it. If nobody responds, finished work is approved automatically after 3 days so contractors are not left waiting.' },
-              { q: 'Is Prophandld available in my area?', a: "Coming soon to the Philadelphia area, with more markets opening after that." },
-              { q: "What is Philadelphia's Safe Healthy Homes Act?", a: "A city law that took effect November 1, 2026. It requires cited violations to be fixed within 30 days, ties rent collection directly to having a valid rental license, and gives tenants the right to sue for $1,000 or more per unresolved violation. Prophandld's compliance tracking is built to keep your licenses and certificates from ever lapsing without you knowing." },
+              { q: 'Is Prophandld available in my area?', a: "Onboarding landlords in the Philadelphia area now, with more markets opening after that." },
+              { q: "What is Philadelphia's Safe Healthy Homes legislation?", a: "Bill 250329-AA, which took effect November 1, 2026. It requires serious cited violations to be corrected within 30 days or a landlord can lose the right to collect rent, ties rent collection to having a valid rental license (with a 15-day grace period to renew a lapsed one), and lets tenants sue for at least $1,000 per violation, or actual damages if higher, plus attorney's fees. Prophandld tracks your license and certificate dates and reminds you before they expire." },
               { q: 'Does it work in Spanish?', a: 'The whole app does, not a translated homepage that quietly drops you back into English the moment you sign in. Switch anytime from your profile.' },
               { q: 'Can I use Prophandld as more than one role?', a: "Yes. If you're a landlord who also does contract work, or a renter who's also a landlord, link a second profile from your account menu and switch between dashboards instantly, no second signup, no second password." },
               { q: 'Can someone else help manage my properties?', a: "Yes. Invite a business partner or a property manager you hire as a co-owner, from your profile. They get their own login with full access to your properties, units, tenants, jobs, rent, and compliance tracking, same as you have. Billing stays yours alone, and you can remove their access anytime." },
@@ -644,6 +656,7 @@ export default function LandingPage() {
             <div className="flex gap-6 flex-wrap">
               <Link href="/terms" className="hover:text-white transition">Terms</Link>
               <Link href="/privacy" className="hover:text-white transition">Privacy</Link>
+              <a href="mailto:admin@prophandld.com" className="hover:text-white transition">Contact</a>
               <Link href="/login" className="hover:text-white transition">Sign in</Link>
               <Link href="/signup" className="hover:text-white transition">Sign up</Link>
             </div>

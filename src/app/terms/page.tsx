@@ -5,6 +5,7 @@ import { BackHomeLink } from '@/components/BackHomeLink'
 
 export const metadata = {
   title: 'Terms of Service | Prophandld',
+  alternates: { canonical: '/terms' },
 }
 
 export default function TermsPage() {

@@ -8,7 +8,8 @@ import { PricingCalculator } from '@/components/PricingCalculator'
 
 export const metadata = {
   title: 'Pricing | Prophandld',
-  description: 'Simple, graduated pricing for landlords: free for your first unit, flat monthly plans through 25 units, then $1.75 per unit after that. Try the calculator.',
+  description: 'Simple, graduated pricing for landlords: free for your first unit, flat monthly plans through 25 units, then $79.99 plus $1.75 per unit after that. Try the calculator.',
+  alternates: { canonical: '/pricing' },
 }
 
 const INCLUDED = [
@@ -20,6 +21,7 @@ const INCLUDED = [
   'Co-owner access for a business partner or property manager',
   'Unlimited contractors and renters linked to your properties',
   'Bank transfer rent collection, with the processing fee shown to, and paid by, your tenant, not you',
+  'Job payments to contractors: you cover the processing fee, so they always get their full agreed amount',
 ]
 
 const AI_INCLUDED = [
@@ -57,8 +59,8 @@ export default function PricingPage() {
               Pricing that grows the way your portfolio does
             </h1>
             <p className="text-white/60 max-w-xl mx-auto leading-relaxed">
-              Your first unit is free, full stop. Flat monthly plans through 25 units, then $1.75
-              per unit after that, one rate, no fine print. Renters pay Prophandld nothing, and
+              Your first unit is free, full stop. Flat monthly plans through 25 units, then $79.99
+              plus $1.75 for every unit after that, one rate, no fine print. Renters pay Prophandld nothing, and
               so do contractors during our Philadelphia pilot.
             </p>
             <p className="text-white/40 text-sm max-w-xl mx-auto leading-relaxed mt-3">
@@ -95,7 +97,7 @@ export default function PricingPage() {
               { name: '2–4 units', price: '$9.99' },
               { name: '5–10 units', price: '$14.99' },
               { name: '11–25 units', price: '$24.99' },
-              { name: '25+ units', price: '+$0.50/unit' },
+              { name: '26+ units', price: '+$0.50/unit' },
             ].map((tier) => (
               <div key={tier.name} className="rounded-2xl border border-white/8 bg-white/[0.02] px-4 py-5">
                 <p className="text-white/40 text-xs mb-3">{tier.name}</p>
@@ -154,6 +156,7 @@ export default function PricingPage() {
           <span>© 2026 Prophandld LLC</span>
           <Link href="/terms/landlord" className="hover:text-white transition">Terms</Link>
           <Link href="/privacy" className="hover:text-white transition">Privacy</Link>
+          <a href="mailto:admin@prophandld.com" className="hover:text-white transition">Contact</a>
         </div>
       </footer>
     </div>

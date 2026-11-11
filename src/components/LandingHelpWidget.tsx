@@ -42,7 +42,7 @@ const FAQS: Record<Role, { q: string; a: string }[]> = {
     },
     {
       q: 'How much does it cost?',
-      a: 'Your first unit is free, full stop. Flat monthly plans through 25 units, then $1.75 per unit after that. See the full breakdown and try the calculator at /pricing. Contractors pay nothing during our Philadelphia pilot: no cut of a bid.',
+      a: 'Your first unit is free, full stop. Flat monthly plans through 25 units, then $79.99 plus $1.75 for every unit after that. See the full breakdown and try the calculator at /pricing. Contractors pay nothing during our Philadelphia pilot: no cut of a bid.',
     },
     {
       q: 'Do contractors need a license?',
