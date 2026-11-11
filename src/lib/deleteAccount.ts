@@ -2,13 +2,20 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { getStripe } from '@/lib/stripe'
 import { logAdminAudit } from '@/lib/auditLog'
 
+const RETENTION_MS = 7 * 365 * 24 * 60 * 60 * 1000 // 7 years — see scripts/2026-11-10-financial-record-retention.sql
+
 // Extracted from the self-service account-delete route (api/account/delete)
 // so an admin-driven deletion (e.g. cleaning up a leftover linked-profile
 // test account) can reuse the exact same, already-proven cascade instead of
 // a second copy that could drift out of sync with it. Deletes everything
 // the account owns, in FK-safe order, then the auth user itself — not a
 // soft-delete/anonymize model, consistent with how this app's data has
-// been treated everywhere else.
+// been treated everywhere else, EXCEPT payment records: a reviewer flagged
+// immediately hard-deleting financial history as a recordkeeping/tax-law
+// risk, so bids and rent_payments get their financial facts archived
+// (amount, date, method, Stripe id — no name/email, keyed only to this
+// account's bare UUID) with a 7-year purge date before the live rows are
+// deleted as before.
 export async function deleteAccountCascade(
   supabaseAdmin: SupabaseClient,
   userId: string,
@@ -20,6 +27,53 @@ export async function deleteAccountCascade(
     if (!clean.length) return
     const { error } = await supabaseAdmin.storage.from(bucket).remove(clean)
     if (error) console.error(`deleteAccountCascade: could not remove files from ${bucket}`, { userId, error })
+  }
+
+  const purgeAfter = new Date(Date.now() + RETENTION_MS).toISOString()
+
+  const archiveBids = async (column: 'job_id' | 'contractor_user_id', values: string[]) => {
+    if (!values.length) return
+    const { data: rows } = await supabaseAdmin
+      .from('bids')
+      .select('amount, payment_method, paid_at, stripe_payment_intent_id, jobs(category)')
+      .in(column, values)
+      .eq('status', 'accepted')
+    const toArchive = (rows || []).filter((r: any) => r.paid_at)
+    if (!toArchive.length) return
+    await supabaseAdmin.from('deleted_account_financial_archive').insert(
+      toArchive.map((r: any) => ({
+        purge_after: purgeAfter,
+        original_user_id: userId,
+        record_type: 'job_payment',
+        amount: r.amount,
+        payment_method: r.payment_method,
+        paid_at: r.paid_at,
+        stripe_payment_intent_id: r.stripe_payment_intent_id,
+        context_label: r.jobs?.category || null,
+      }))
+    )
+  }
+
+  const archiveRentPayments = async (tenancyIds: string[]) => {
+    if (!tenancyIds.length) return
+    const { data: rows } = await supabaseAdmin
+      .from('rent_payments')
+      .select('actual_amount, payment_method, paid_date, stripe_payment_intent_id')
+      .in('tenancy_id', tenancyIds)
+      .not('paid_date', 'is', null)
+    if (!rows?.length) return
+    await supabaseAdmin.from('deleted_account_financial_archive').insert(
+      rows.map((r: any) => ({
+        purge_after: purgeAfter,
+        original_user_id: userId,
+        record_type: 'rent_payment',
+        amount: r.actual_amount,
+        payment_method: r.payment_method,
+        paid_at: r.paid_date,
+        stripe_payment_intent_id: r.stripe_payment_intent_id,
+        context_label: 'rent',
+      }))
+    )
   }
 
   try {
@@ -48,11 +102,13 @@ export async function deleteAccountCascade(
           const { data: jobPhotos } = await supabaseAdmin.from('job_photos').select('photo_url').in('job_id', jobIds)
           await removeStorageFiles('job-photos', (jobPhotos || []).map((p) => p.photo_url))
           await supabaseAdmin.from('job_photos').delete().in('job_id', jobIds)
+          await archiveBids('job_id', jobIds)
           await supabaseAdmin.from('bids').delete().in('job_id', jobIds)
           await supabaseAdmin.from('messages').delete().in('job_id', jobIds)
           await supabaseAdmin.from('jobs').delete().in('id', jobIds)
         }
         if (tenancyIds.length) {
+          await archiveRentPayments(tenancyIds)
           await supabaseAdmin.from('rent_payments').delete().in('tenancy_id', tenancyIds)
           await supabaseAdmin.from('tenancy_occupants').delete().in('tenancy_id', tenancyIds)
         }
@@ -118,6 +174,7 @@ export async function deleteAccountCascade(
         const { data: jobPhotos } = await supabaseAdmin.from('job_photos').select('photo_url').in('job_id', jobIds)
         await removeStorageFiles('job-photos', (jobPhotos || []).map((p) => p.photo_url))
         await supabaseAdmin.from('job_photos').delete().in('job_id', jobIds)
+        await archiveBids('job_id', jobIds)
         await supabaseAdmin.from('bids').delete().in('job_id', jobIds)
         await supabaseAdmin.from('messages').delete().in('job_id', jobIds)
         await supabaseAdmin.from('jobs').delete().in('id', jobIds)
@@ -125,6 +182,7 @@ export async function deleteAccountCascade(
       const { data: tenancies } = await supabaseAdmin.from('tenancies').select('id').eq('renter_user_id', userId)
       const tenancyIds = (tenancies || []).map((t) => t.id)
       if (tenancyIds.length) {
+        await archiveRentPayments(tenancyIds)
         await supabaseAdmin.from('rent_payments').delete().in('tenancy_id', tenancyIds)
         await supabaseAdmin.from('tenancy_occupants').delete().in('tenancy_id', tenancyIds)
       }
@@ -135,6 +193,7 @@ export async function deleteAccountCascade(
     if (role === 'contractor') {
       await supabaseAdmin.from('job_questions').delete().eq('contractor_user_id', userId)
       await supabaseAdmin.from('contractor_reviews').delete().eq('contractor_user_id', userId)
+      await archiveBids('contractor_user_id', [userId])
       await supabaseAdmin.from('bids').delete().eq('contractor_user_id', userId)
       const { data: verifications } = await supabaseAdmin
         .from('contractor_verifications')
