@@ -1,18 +1,22 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
-import { getStripe, isPayoutReady } from '@/lib/stripe'
+import { getProviderAdapter } from '@/lib/payments'
 import { friendlyStripeError } from '@/lib/stripeErrorMessage'
-import { toE164 } from '@/lib/phoneFormat'
+import { getStripe } from '@/lib/stripe'
 
-// This route makes up to 4 sequential Stripe calls in the worst case
-// (retrieve, update, accounts.create, accountLinks.create) — the 10s
-// default Vercel function timeout a retry or two of real network latency
-// away from being hit, which surfaces to Stripe's own SDK as a connection
+// This route makes up to 3 sequential Stripe calls in the worst case
+// (retrieve, accounts.create, accountLinks.create) — the 10s default
+// Vercel function timeout a retry or two of real network latency away
+// from being hit, which surfaces to Stripe's own SDK as a connection
 // error indistinguishable from a real outage. Raising this is free and
 // directly addresses the likely cause of a "retried 2 times" report.
 export const maxDuration = 30
 
+// Connect account creation always goes through the Stripe adapter
+// directly (not getProviderAdapter(user's ach_provider)) — the payout
+// account itself is Stripe-specific infrastructure, separate from which
+// provider eventually processes an individual ACH charge against it.
 export async function POST() {
   const authClient = await createClient()
   const { data: { user } } = await authClient.auth.getUser()
@@ -26,7 +30,7 @@ export async function POST() {
   }
 
   const supabaseAdmin = getSupabaseAdmin()
-  const stripe = getStripe()
+  const adapter = getProviderAdapter('stripe')
 
   try {
     const { data: userRow, error: userRowError } = await supabaseAdmin
@@ -40,47 +44,29 @@ export async function POST() {
       return NextResponse.json({ error: 'Could not load account' }, { status: 500 })
     }
 
-    let accountId = userRow?.stripe_connect_account_id as string | null
+    const existingAccountId = (userRow?.stripe_connect_account_id as string | null) ?? null
+    const returnPath = role === 'landlord' ? '/profile' : '/contractor/settings'
 
-    const businessProfile = {
-      mcc: role === 'landlord' ? '6513' : '1799',
-      url: process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com',
-      product_description: role === 'landlord'
-        ? 'Rental property owner receiving rent payments through Prophandld'
-        : 'Home repair and maintenance contractor paid for jobs through Prophandld',
+    if (existingAccountId && (await adapter.isPayoutReady(existingAccountId))) {
+      // Already fully onboarded — send them to their own Stripe dashboard
+      // (controller.stripe_dashboard: 'full' from account creation is what
+      // makes this a real, full dashboard login, not an Express one).
+      const stripe = getStripe()
+      const loginLink = await stripe.accounts.createLoginLink(existingAccountId)
+      return NextResponse.json({ url: loginLink.url })
     }
 
-    // Everything we already know, so Stripe doesn't ask for it again.
-    const nameParts = (userRow?.full_name || '').trim().split(/\s+/).filter(Boolean)
-    const phone = toE164(userRow?.phone)
-    const individual = {
-      ...(nameParts.length > 0 ? { first_name: nameParts[0] } : {}),
-      ...(nameParts.length > 1 ? { last_name: nameParts.slice(1).join(' ') } : {}),
-      ...(userRow?.email || user.email ? { email: userRow?.email || user.email! } : {}),
-      ...(phone ? { phone } : {}),
-    }
+    const { url, accountId } = await adapter.getOnboardingLink({
+      userId: user.id,
+      existingAccountId,
+      email: userRow?.email || user.email || null,
+      fullName: userRow?.full_name || null,
+      phone: userRow?.phone || null,
+      role,
+      returnPath,
+    })
 
-    if (!accountId) {
-      const account = await stripe.accounts.create({
-        type: 'express',
-        email: userRow?.email || user.email || undefined,
-        business_type: 'individual',
-        // Payments are destination charges with Prophandld as the merchant,
-        // so payout accounts only receive transfers. Requesting
-        // card_payments is what made Stripe ask each person for a website,
-        // statement descriptor and product description.
-        capabilities: {
-          transfers: { requested: true },
-        },
-        business_profile: businessProfile,
-        individual,
-        metadata: {
-          prophandld_user_id: user.id,
-          prophandld_role: role,
-        },
-      })
-      accountId = account.id
-
+    if (!existingAccountId) {
       const { error: updateError } = await supabaseAdmin
         .from('users')
         .update({ stripe_connect_account_id: accountId, stripe_connect_status: 'onboarding' })
@@ -92,36 +78,7 @@ export async function POST() {
       }
     }
 
-    const origin = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'
-    const returnPath = role === 'landlord' ? '/profile' : '/contractor/settings'
-
-    const account = await stripe.accounts.retrieve(accountId)
-    if (isPayoutReady(account)) {
-      const loginLink = await stripe.accounts.createLoginLink(accountId)
-      return NextResponse.json({ url: loginLink.url })
-    }
-
-    // An account created before onboarding was simplified still carries
-    // the extra card_payments requirements. Bring unfinished accounts in
-    // line; best-effort, since Stripe may refuse to change a capability
-    // that's already active.
-    try {
-      await stripe.accounts.update(accountId, {
-        capabilities: { card_payments: { requested: false } },
-        business_profile: businessProfile,
-      })
-    } catch (updateErr) {
-      console.warn('connect/onboard: could not simplify existing account', updateErr)
-    }
-
-    const accountLink = await stripe.accountLinks.create({
-      account: accountId,
-      refresh_url: `${origin}${returnPath}?stripe=refresh`,
-      return_url: `${origin}${returnPath}?stripe=return`,
-      type: 'account_onboarding',
-    })
-
-    return NextResponse.json({ url: accountLink.url })
+    return NextResponse.json({ url })
   } catch (err) {
     console.error('connect/onboard: unhandled error', err)
     return NextResponse.json({ error: friendlyStripeError(err, 'set up payouts') }, { status: 500 })
