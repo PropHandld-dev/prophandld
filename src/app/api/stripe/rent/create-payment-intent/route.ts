@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { getStripe } from '@/lib/stripe'
+import { getProviderAdapter } from '@/lib/payments'
 import { syncRentPayment } from '@/lib/rentPaymentSync'
 import { achProcessingFee } from '@/lib/cardSurcharge'
+import { isAchFeeAbsorbed } from '@/lib/appSettings'
 import { friendlyStripeError } from '@/lib/stripeErrorMessage'
 
 export const maxDuration = 20
@@ -67,7 +69,7 @@ export async function POST(request: NextRequest) {
 
   const { data: landlordRow } = await supabaseAdmin
     .from('users')
-    .select('stripe_connect_account_id, stripe_connect_status, payout_frozen_until')
+    .select('stripe_connect_account_id, stripe_connect_status, payout_frozen_until, ach_provider')
     .eq('id', landlordUserId)
     .maybeSingle()
 
@@ -85,29 +87,29 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  const connectedAccountId = landlordRow.stripe_connect_account_id
+  const adapter = getProviderAdapter((landlordRow.ach_provider as 'stripe' | 'dwolla') || 'stripe')
+  // accounts.retrieve/accountLinks and the idempotency-check retrieve below
+  // still go through plain Stripe directly — those are platform-level or
+  // read-only calls, not part of the provider-swappable charge path itself.
   const stripe = getStripe()
 
   // Bank transfer adds Stripe's real processing fee on top as a visible
-  // surcharge, and application_fee_amount retains exactly that surcharge
-  // for Prophandld, so the landlord still receives the full rent amount
-  // and the platform doesn't pay Stripe's cut out of its own pocket.
-  // Decided 2026-10-20: this used to absorb the ACH fee itself, but that
-  // goes net-negative against subscription revenue as the platform
-  // scales — the tenant now covers it, same as job payments already do
-  // (see achProcessingFee's own comment) and the same way
-  // TurboTenant/TenantCloud pass a flat ACH fee to the tenant rather than
-  // eating it as a platform cost.
-  //
-  // Card is charged with NO surcharge, as of 2026-11-10 — a live-site
-  // finding, not part of the ACH decision above: this rent flow's "card"
-  // option is specifically marketed as a debit card (debitCardOptionLabel),
-  // and Visa/Mastercard network rules prohibit surcharging debit cards at
-  // all. Stripe only reports whether a card was actually debit/credit
-  // *after* a charge completes, so there's no reliable way to surcharge
-  // compliantly here today. Revisit once there's an actual mechanism to
-  // confirm credit-vs-debit before the charge (or legal confirms a
-  // different approach) — see the fee-absorption/feature-flag rebuild.
-  const surcharge = paymentMethod === 'bank' ? achProcessingFee(amountDue) : 0
+  // surcharge UNLESS the ach_fee_absorption flag covers this landlord right
+  // now — see src/lib/appSettings.ts. When absorbed, Stripe's own
+  // controller.fees.payer: 'application' setting (set at account creation)
+  // means the real processing cost already comes out of Prophandld's
+  // balance instead of the landlord's, natively — nothing extra to do here
+  // except not charge the tenant for it, and record what was absorbed for
+  // the finance report.
+  const absorbed = paymentMethod === 'bank' ? await isAchFeeAbsorbed(supabaseAdmin, landlordUserId) : false
+  const realAchFee = paymentMethod === 'bank' ? achProcessingFee(amountDue) : 0
+  const surcharge = absorbed ? 0 : realAchFee
+  const absorbedFeeAmount = absorbed ? realAchFee : 0
+
+  // Card is charged with NO surcharge — see cardSurcharge.ts's own comment:
+  // this flow's "card" option is marketed as a debit card, and network
+  // rules prohibit surcharging debit cards at all.
   const chargeAmount = amountDue + surcharge
   const amountCents = Math.round(chargeAmount * 100)
   const applicationFeeCents = Math.round(surcharge * 100)
@@ -118,7 +120,7 @@ export async function POST(request: NextRequest) {
   // behind an attempt they walked away from.
   if (rentPayment.stripe_payment_intent_id && ['requires_payment', 'processing'].includes(rentPayment.stripe_status || '')) {
     try {
-      const synced = await syncRentPayment(supabaseAdmin, stripe, rentPayment.id)
+      const synced = await syncRentPayment(supabaseAdmin, stripe, rentPayment.id, connectedAccountId)
       if (synced === 'paid' || synced === 'already_paid') {
         return NextResponse.json({ error: 'This month is already paid.', alreadyPaid: true }, { status: 409 })
       }
@@ -129,7 +131,9 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      const existing = await stripe.paymentIntents.retrieve(rentPayment.stripe_payment_intent_id)
+      // Direct-charge PaymentIntents live on the connected account, not the
+      // platform — retrieving one needs that account's context too.
+      const existing = await stripe.paymentIntents.retrieve(rentPayment.stripe_payment_intent_id, undefined, { stripeAccount: connectedAccountId })
       if (existing.status !== 'canceled' && existing.status !== 'succeeded') {
         // Must match on the chosen method too, not just the amount — a
         // stale bank-only intent from a previous attempt is never reusable
@@ -139,13 +143,12 @@ export async function POST(request: NextRequest) {
           ['requires_payment_method', 'requires_confirmation', 'requires_action'].includes(existing.status) &&
           existing.amount === amountCents &&
           existing.client_secret &&
-          existing.transfer_data?.destination === landlordRow.stripe_connect_account_id &&
           existing.payment_method_types?.length === paymentMethodTypes.length &&
           existing.payment_method_types?.every((t) => paymentMethodTypes.includes(t))
         if (reusable) {
-          return NextResponse.json({ clientSecret: existing.client_secret, amount: chargeAmount, baseAmount: amountDue, fee: surcharge })
+          return NextResponse.json({ clientSecret: existing.client_secret, amount: chargeAmount, baseAmount: amountDue, fee: surcharge, connectedAccountId })
         }
-        await stripe.paymentIntents.cancel(existing.id).catch((err) => {
+        await stripe.paymentIntents.cancel(existing.id, undefined, { stripeAccount: connectedAccountId }).catch((err) => {
           console.error('rent/create-payment-intent: could not cancel old intent', err)
         })
       }
@@ -155,26 +158,31 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: amountCents,
-      currency: 'usd',
-      payment_method_types: paymentMethodTypes,
-      transfer_data: { destination: landlordRow.stripe_connect_account_id },
-      ...(applicationFeeCents ? { application_fee_amount: applicationFeeCents } : {}),
+    const charge = await adapter.createDirectCharge({
+      amountCents,
+      connectedAccountId,
+      applicationFeeCents,
+      paymentMethodTypes,
       metadata: {
         prophandld_type: 'rent_payment',
         prophandld_rent_payment_id: rentPayment.id,
         prophandld_base_amount: amountDue.toFixed(2),
         prophandld_card_surcharge: surcharge.toFixed(2),
+        prophandld_absorbed_fee: absorbedFeeAmount.toFixed(2),
       },
     })
 
     await supabaseAdmin
       .from('rent_payments')
-      .update({ stripe_payment_intent_id: paymentIntent.id, stripe_status: 'requires_payment' })
+      .update({
+        stripe_payment_intent_id: charge.providerChargeId,
+        stripe_status: 'requires_payment',
+        provider: landlordRow.ach_provider || 'stripe',
+        absorbed_fee_amount: absorbedFeeAmount || null,
+      })
       .eq('id', rentPayment.id)
 
-    return NextResponse.json({ clientSecret: paymentIntent.client_secret, amount: chargeAmount, baseAmount: amountDue, fee: surcharge })
+    return NextResponse.json({ clientSecret: charge.clientSecret, amount: chargeAmount, baseAmount: amountDue, fee: surcharge, connectedAccountId })
   } catch (err) {
     console.error('rent/create-payment-intent: unhandled error', err)
     return NextResponse.json({ error: friendlyStripeError(err, 'start that payment') }, { status: 500 })

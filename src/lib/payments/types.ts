@@ -6,11 +6,16 @@ export type PaymentProvider = 'stripe' | 'dwolla'
 
 export interface ChargeParams {
   amountCents: number
-  paymentMethodId: string
   connectedAccountId: string
   applicationFeeCents: number
   paymentMethodTypes: string[]
   metadata: Record<string, string>
+  // Omitted for a one-time payment the client confirms itself via Stripe
+  // Elements (renter/landlord picks a method, enters details, the returned
+  // clientSecret finishes the charge client-side). Set, together with
+  // offSession: true, only for an off-session attempt against an already-
+  // saved payment method (the job-payment/tenant-autopay autocharge shape).
+  paymentMethodId?: string
   offSession?: boolean
 }
 

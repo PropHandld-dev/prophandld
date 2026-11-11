@@ -13,7 +13,8 @@ export type RentSyncStatus = 'none' | 'paid' | 'already_paid' | 'processing' | '
 export async function syncRentPayment(
   admin: SupabaseClient,
   stripe: Stripe,
-  rentPaymentId: string
+  rentPaymentId: string,
+  connectedAccountId: string
 ): Promise<RentSyncStatus> {
   const { data: rent } = await admin
     .from('rent_payments')
@@ -30,9 +31,14 @@ export async function syncRentPayment(
   if (rent.stripe_status === 'succeeded') return 'already_paid'
   if (rent.stripe_status === 'refunded_credit_card') return 'refunded_credit_card'
 
-  const paymentIntent = await stripe.paymentIntents.retrieve(rent.stripe_payment_intent_id, {
-    expand: ['latest_charge', 'payment_method'],
-  })
+  // Direct-charge PaymentIntents (the Standard-accounts rebuild) live on
+  // the connected account, not the platform — retrieving one without this
+  // context returns "No such payment_intent", not a useful 404.
+  const paymentIntent = await stripe.paymentIntents.retrieve(
+    rent.stripe_payment_intent_id,
+    { expand: ['latest_charge', 'payment_method'] },
+    { stripeAccount: connectedAccountId }
+  )
 
   // Never trust an intent that doesn't belong to this rent month.
   if (paymentIntent.metadata?.prophandld_rent_payment_id !== rent.id) return 'none'
@@ -52,12 +58,14 @@ export async function syncRentPayment(
   // Rent takes debit cards and bank transfers only. Stripe reports credit and
   // debit both as 'card', so credit cards are caught here and refunded.
   if (method?.card?.funding === 'credit') {
-    // reverse_transfer takes the money back from the landlord's connected account;
-    // without it the platform would refund the renter out of its own balance.
+    // No reverse_transfer here — that was a destination-charge concept
+    // (pulling money back from a separate transfer). A direct charge has
+    // no separate transfer to reverse; refunding it debits the connected
+    // account's own balance directly, which is the same practical result.
     try {
       await stripe.refunds.create(
-        { payment_intent: paymentIntent.id, reverse_transfer: true },
-        { idempotencyKey: `rent-credit-card-refund-${paymentIntent.id}` }
+        { payment_intent: paymentIntent.id },
+        { idempotencyKey: `rent-credit-card-refund-${paymentIntent.id}`, stripeAccount: connectedAccountId }
       )
     } catch (err) {
       // Not refunded (for example the landlord's balance can't cover it).

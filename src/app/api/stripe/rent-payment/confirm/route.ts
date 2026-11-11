@@ -38,6 +38,14 @@ export async function POST(request: NextRequest) {
 
   const tenancy = rent?.tenancies as any
   const landlordId = tenancy?.units?.properties?.owner_user_id
+
+  // Direct-charge PaymentIntents (the Standard-accounts rebuild) live on
+  // the landlord's connected account, not the platform — every Stripe call
+  // below needs that context.
+  const { data: landlordRow } = landlordId
+    ? await admin.from('users').select('stripe_connect_account_id').eq('id', landlordId).maybeSingle()
+    : { data: null }
+  const connectedAccountId = landlordRow?.stripe_connect_account_id as string | undefined
   let allowed = !!rent && (tenancy?.renter_user_id === user.id || landlordId === user.id)
   if (rent && !allowed) {
     // A co-renter on the tenancy may check too.
@@ -52,10 +60,13 @@ export async function POST(request: NextRequest) {
   if (!rent || !allowed) {
     return NextResponse.json({ error: 'Rent payment not found' }, { status: 404 })
   }
+  if (!connectedAccountId) {
+    return NextResponse.json({ error: 'Could not determine payout account' }, { status: 500 })
+  }
 
   try {
     const stripe = getStripe()
-    const status = await syncRentPayment(admin, stripe, rent.id)
+    const status = await syncRentPayment(admin, stripe, rent.id, connectedAccountId)
 
     // The webhook sends the "rent paid"/"card rejected" notification when
     // IT wins the race to apply a payment — but the renter's own browser
@@ -72,7 +83,7 @@ export async function POST(request: NextRequest) {
         .maybeSingle()
       if (freshRent?.stripe_payment_intent_id) {
         try {
-          const paymentIntent = await stripe.paymentIntents.retrieve(freshRent.stripe_payment_intent_id)
+          const paymentIntent = await stripe.paymentIntents.retrieve(freshRent.stripe_payment_intent_id, undefined, { stripeAccount: connectedAccountId })
           if (status === 'paid') {
             const amount = paymentIntent.metadata?.prophandld_base_amount
               ? Number(paymentIntent.metadata.prophandld_base_amount)

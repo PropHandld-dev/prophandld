@@ -48,7 +48,7 @@ export default function RenterRentPage() {
   const [payments, setPayments] = useState<any[]>([])
   const [error, setError] = useState<string | null>(null)
   const [payingId, setPayingId] = useState<string | null>(null)
-  const [modal, setModal] = useState<{ clientSecret: string; amount: number; rentPaymentId: string } | null>(null)
+  const [modal, setModal] = useState<{ clientSecret: string; amount: number; rentPaymentId: string; connectedAccountId: string } | null>(null)
   const [methodChoicePayment, setMethodChoicePayment] = useState<any>(null)
   // 'all' by default — a tenant's own history rarely spans enough years for
   // filtering to matter the way it does for a landlord's whole portfolio,
@@ -231,7 +231,7 @@ export default function RenterRentPage() {
         setPayingId(null)
         return
       }
-      setModal({ clientSecret: data.clientSecret, amount: data.amount, rentPaymentId: payment.id })
+      setModal({ clientSecret: data.clientSecret, amount: data.amount, rentPaymentId: payment.id, connectedAccountId: data.connectedAccountId })
     } catch {
       setError(t('couldNotStartPayment', lang))
     }
@@ -790,6 +790,7 @@ export default function RenterRentPage() {
           amount={modal.amount}
           title={t('payRentModalTitle', lang)}
           note={t('payRentModalNote', lang)}
+          connectedAccountId={modal.connectedAccountId}
           onClose={() => setModal(null)}
           verify={async () => {
             // Asks Stripe what actually happened and records it — the same

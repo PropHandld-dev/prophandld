@@ -33,12 +33,14 @@ export const stripeProvider: PaymentProviderAdapter = {
       {
         amount: params.amountCents,
         currency: 'usd',
-        payment_method: params.paymentMethodId,
         payment_method_types: params.paymentMethodTypes,
         application_fee_amount: params.applicationFeeCents || undefined,
         metadata: params.metadata,
-        confirm: !!params.offSession,
-        off_session: params.offSession || undefined,
+        // Only set when charging an already-saved method off-session
+        // (tenant/landlord autopay) — a one-time payment leaves these out
+        // entirely and lets the client fill in and confirm via Elements.
+        ...(params.paymentMethodId ? { payment_method: params.paymentMethodId } : {}),
+        ...(params.offSession ? { confirm: true, off_session: true } : {}),
       },
       { stripeAccount: params.connectedAccountId }
     )
@@ -49,25 +51,24 @@ export const stripeProvider: PaymentProviderAdapter = {
     }
   },
 
-  async getChargeStatus(providerChargeId: string): Promise<ChargeStatus> {
+  async getChargeStatus(providerChargeId: string, connectedAccountId: string): Promise<ChargeStatus> {
     const stripe = getStripe()
     // Direct-charge PaymentIntents live on the connected account, not the
     // platform — retrieving one without the Stripe-Account header returns
-    // "No such payment_intent", not a 404 with a useful message, so this
-    // needs the connected account id too in a real call site. Callers that
-    // only have the charge id (e.g. a webhook already carrying `account`)
-    // should prefer reading status directly off the event instead of
-    // calling this.
-    const paymentIntent = await stripe.paymentIntents.retrieve(providerChargeId)
+    // "No such payment_intent", not a 404 with a useful message.
+    const paymentIntent = await stripe.paymentIntents.retrieve(providerChargeId, undefined, { stripeAccount: connectedAccountId })
     return mapStatus(paymentIntent.status)
   },
 
-  async refund(providerChargeId: string, amountCents?: number): Promise<void> {
+  async refund(providerChargeId: string, connectedAccountId: string, amountCents?: number): Promise<void> {
     const stripe = getStripe()
-    await stripe.refunds.create({
-      payment_intent: providerChargeId,
-      ...(amountCents ? { amount: amountCents } : {}),
-    })
+    await stripe.refunds.create(
+      {
+        payment_intent: providerChargeId,
+        ...(amountCents ? { amount: amountCents } : {}),
+      },
+      { stripeAccount: connectedAccountId }
+    )
   },
 
   async getOnboardingLink(params: OnboardingLinkParams): Promise<OnboardingLinkResult> {

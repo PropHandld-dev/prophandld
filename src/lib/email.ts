@@ -3035,6 +3035,53 @@ export async function sendCreditCardRejectedEmail({
   return sendEmail({ to, subject: lang === 'es' ? 'Tu pago de renta fue reembolsado' : 'Your rent payment was refunded', html })
 }
 
+// A bank-transfer rent payment can look "succeeded" for days before the
+// tenant's bank reverses it (insufficient funds, closed account, etc) —
+// distinct from sendCreditCardRejectedEmail above (an immediate, same-day
+// rejection the renter caused by using the wrong card type). This fires
+// later, on charge.refunded, for a payment that genuinely already looked
+// paid to both sides.
+export async function sendRentPaymentReversedEmail({
+  to,
+  name,
+  amount,
+  unitLabel,
+  isLandlord,
+  lang = 'en',
+}: {
+  to: string
+  name: string
+  amount: number
+  unitLabel?: string | null
+  isLandlord: boolean
+  lang?: Lang
+}) {
+  const unitFact: EmailFact | null = unitLabel ? { label: fl('Unit', lang), value: unitLabel } : null
+  const html = lang === 'es' ? baseTemplate({
+    lang,
+    eyebrow: 'Pago',
+    heading: 'Un pago de renta fue revertido',
+    bodyHtml: isLandlord
+      ? `Hola ${escapeHtml(name)}, un pago de renta de $${amount.toFixed(2)} que parecía completado fue revertido por el banco del inquilino (por ejemplo, fondos insuficientes). La renta ya no está marcada como pagada.`
+      : `Hola ${escapeHtml(name)}, tu banco revirtió un pago de renta de $${amount.toFixed(2)} que parecía completado. La renta sigue pendiente; por favor vuelve a intentarlo.`,
+    preheader: `$${amount.toFixed(2)} revertido por el banco.`,
+    facts: [{ label: fl('Amount', lang), value: `$${amount.toFixed(2)}` }, unitFact].filter((f): f is EmailFact => !!f),
+    ctaLabel: isLandlord ? 'Ver panel' : 'Pagar de nuevo',
+    ctaUrl: isLandlord ? `${SITE_URL}/landlord` : `${SITE_URL}/renter/rent`,
+  }) : baseTemplate({
+    lang,
+    eyebrow: 'Payment',
+    heading: 'A rent payment was reversed',
+    bodyHtml: isLandlord
+      ? `Hi ${escapeHtml(name)}, a $${amount.toFixed(2)} rent payment that looked complete was reversed by the tenant's bank (for example, insufficient funds). Rent is no longer marked as paid.`
+      : `Hi ${escapeHtml(name)}, your bank reversed a $${amount.toFixed(2)} rent payment that looked complete. Rent is still due — please try again.`,
+    preheader: `$${amount.toFixed(2)} reversed by the bank.`,
+    facts: [{ label: fl('Amount', lang), value: `$${amount.toFixed(2)}` }, unitFact].filter((f): f is EmailFact => !!f),
+    ctaLabel: isLandlord ? 'View dashboard' : 'Pay again',
+    ctaUrl: isLandlord ? `${SITE_URL}/landlord` : `${SITE_URL}/renter/rent`,
+  })
+  return sendEmail({ to, subject: lang === 'es' ? 'Un pago de renta fue revertido' : 'A rent payment was reversed', html })
+}
 
 export async function sendRentDueEmail({ to, landlordName, unitLabels, lang = 'en' }: { to: string; landlordName: string; unitLabels: string[]; lang?: Lang }) {
   const monthLabel = new Date().toLocaleDateString(lang === 'es' ? 'es-ES' : undefined, { month: 'long', year: 'numeric' })

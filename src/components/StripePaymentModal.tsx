@@ -221,6 +221,7 @@ export function StripePaymentModal({
   onPaid,
   onSuccess,
   verify,
+  connectedAccountId,
 }: {
   clientSecret: string
   amount: number
@@ -231,6 +232,12 @@ export function StripePaymentModal({
   onPaid?: (outcome: PaymentOutcome) => void
   onSuccess: () => void
   verify?: (outcome: PaymentOutcome) => Promise<VerifyResult>
+  // Only set for a direct-charge PaymentIntent (rent, post-Standard-accounts
+  // rebuild) — it lives in the connected account's own namespace, so
+  // Stripe.js needs that account's context to confirm it. Left undefined
+  // for job payments, which stay on destination charges against the
+  // platform account.
+  connectedAccountId?: string
 }) {
   const [outcome, setOutcome] = useState<PaymentOutcome | null>(null)
   const [verifying, setVerifying] = useState(false)
@@ -274,7 +281,7 @@ export function StripePaymentModal({
           <>
             <h3 className="text-white font-semibold text-lg mb-4">{title}</h3>
             <Elements
-              stripe={getStripeClient()}
+              stripe={getStripeClient(connectedAccountId)}
               options={{
                 clientSecret,
                 appearance: {

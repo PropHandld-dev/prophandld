@@ -7,8 +7,8 @@ import type { ChargeParams, ChargeResult, ChargeStatus, OnboardingLinkParams, On
 // framework built ahead of an actual second provider.
 export interface PaymentProviderAdapter {
   createDirectCharge(params: ChargeParams): Promise<ChargeResult>
-  getChargeStatus(providerChargeId: string): Promise<ChargeStatus>
-  refund(providerChargeId: string, amountCents?: number): Promise<void>
+  getChargeStatus(providerChargeId: string, connectedAccountId: string): Promise<ChargeStatus>
+  refund(providerChargeId: string, connectedAccountId: string, amountCents?: number): Promise<void>
   getOnboardingLink(params: OnboardingLinkParams): Promise<OnboardingLinkResult>
   isPayoutReady(connectedAccountId: string): Promise<boolean>
 }

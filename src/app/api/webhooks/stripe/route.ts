@@ -5,7 +5,7 @@ import { getStripe, isPayoutReady } from '@/lib/stripe'
 import { syncRentPayment } from '@/lib/rentPaymentSync'
 import { sendPayoutDetailsChangedEmail, sendDuplicateLandlordBankAccountAdminEmail } from '@/lib/email'
 import { sendJobPaymentNotifications } from '@/lib/jobPaymentNotify'
-import { sendRentPaymentReceivedNotifications, sendRentCreditCardRejectedNotifications } from '@/lib/rentPaymentNotify'
+import { sendRentPaymentReceivedNotifications, sendRentCreditCardRejectedNotifications, sendRentPaymentReversedNotifications } from '@/lib/rentPaymentNotify'
 
 export const maxDuration = 30
 
@@ -285,10 +285,17 @@ export async function POST(request: NextRequest) {
 
         if (type === 'rent_payment') {
           const rentPaymentId = paymentIntent.metadata?.prophandld_rent_payment_id
-          if (rentPaymentId) {
+          // Direct-charge PaymentIntents (the Standard-accounts rebuild) fire
+          // as connected-account events — Stripe includes `account` directly
+          // on the event itself in that case, no extra lookup needed. This
+          // webhook endpoint also needs "Listen to events on Connected
+          // accounts" turned on in the Stripe Dashboard for this event to
+          // ever actually arrive — a one-time manual step, not something
+          // this code can configure on an existing endpoint.
+          if (rentPaymentId && event.account) {
             // One shared, idempotent step: credit cards are refunded, bank and
             // debit payments are applied once even if this event is retried.
-            const synced = await syncRentPayment(supabaseAdmin, stripe, rentPaymentId)
+            const synced = await syncRentPayment(supabaseAdmin, stripe, rentPaymentId, event.account)
 
             if (synced === 'refunded_credit_card') {
               await sendRentCreditCardRejectedNotifications(supabaseAdmin, {
@@ -398,6 +405,77 @@ export async function POST(request: NextRequest) {
               .eq('stripe_payment_intent_id', paymentIntent.id)
               .neq('payment_status', 'paid')
             if (error) console.error('stripe webhook: job payment_intent.payment_failed failed', error)
+          }
+        }
+        break
+      }
+
+      // ACH's multi-day pending window — previously only caught by the
+      // page-load/confirm-route polling in syncRentPayment, never pushed.
+      // Rent only (job payments don't take ACH on a schedule that needs
+      // this — their own create-payment-intent route already polls the
+      // same way rent used to).
+      case 'payment_intent.processing': {
+        const paymentIntent = event.data.object as Stripe.PaymentIntent
+        if (paymentIntent.metadata?.prophandld_type === 'rent_payment') {
+          const rentPaymentId = paymentIntent.metadata?.prophandld_rent_payment_id
+          if (rentPaymentId) {
+            const { error } = await supabaseAdmin
+              .from('rent_payments')
+              .update({ stripe_status: 'processing' })
+              .eq('id', rentPaymentId)
+              .eq('stripe_payment_intent_id', paymentIntent.id)
+              .neq('stripe_status', 'succeeded')
+            if (error) console.error('stripe webhook: rent payment_intent.processing failed', error)
+          }
+        }
+        break
+      }
+
+      // Catches a bank-transfer rent payment that looked "succeeded" for
+      // days before the tenant's bank reversed it — previously had no
+      // listener at all (only the immediate credit-card-rejection path in
+      // syncRentPayment was handled, which is a same-day, different case).
+      // Also catches any refund a landlord or Stripe support issues
+      // directly from the Stripe dashboard.
+      case 'charge.refunded': {
+        const charge = event.data.object as Stripe.Charge
+        if (charge.metadata?.prophandld_type === 'rent_payment') {
+          const rentPaymentId = charge.metadata?.prophandld_rent_payment_id
+          if (rentPaymentId && charge.refunded) {
+            const { data: rentPayment } = await supabaseAdmin
+              .from('rent_payments')
+              .select('actual_amount')
+              .eq('id', rentPaymentId)
+              .eq('stripe_payment_intent_id', charge.payment_intent as string)
+              .eq('stripe_status', 'succeeded')
+              .maybeSingle()
+
+            // Only acts on a payment THIS app had already recorded as
+            // succeeded — the immediate credit-card-rejection path in
+            // syncRentPayment handles its own refund differently and never
+            // reaches 'succeeded' in the first place, so there's no double
+            // handling between the two.
+            if (rentPayment) {
+              const baseAmount = charge.metadata?.prophandld_base_amount
+                ? Number(charge.metadata.prophandld_base_amount)
+                : charge.amount_refunded / 100
+              const { error } = await supabaseAdmin
+                .from('rent_payments')
+                .update({
+                  stripe_status: 'failed',
+                  actual_amount: Math.max(0, Number(rentPayment.actual_amount || 0) - baseAmount),
+                })
+                .eq('id', rentPaymentId)
+                .eq('stripe_status', 'succeeded')
+              if (error) {
+                console.error('stripe webhook: rent charge.refunded failed', error)
+              } else {
+                await sendRentPaymentReversedNotifications(supabaseAdmin, { rentPaymentId, amount: baseAmount }).catch((err) =>
+                  console.error('stripe webhook: reversed-payment notification failed', err)
+                )
+              }
+            }
           }
         }
         break

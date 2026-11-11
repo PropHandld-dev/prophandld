@@ -3,6 +3,7 @@ import {
   sendRentPaymentReceivedEmail,
   sendRentPaymentConfirmationEmail,
   sendCreditCardRejectedEmail,
+  sendRentPaymentReversedEmail,
 } from '@/lib/email'
 import { sendPush } from '@/lib/push'
 import { emailAllowed } from '@/lib/notificationPrefs'
@@ -136,5 +137,77 @@ export async function sendRentCreditCardRejectedNotifications(
     body: "Credit cards aren't accepted for rent. Use a debit card or bank account instead.",
     url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/renter/rent`,
   }).catch((err) => console.error('sendRentCreditCardRejectedNotifications: sendPush failed', err))
+}
+
+// A bank-transfer rent payment can look "succeeded" for days before the
+// tenant's bank reverses it — the charge.refunded webhook catches this,
+// but needs both sides told: the landlord that rent they thought they had
+// is gone, and the renter that it's still due.
+export async function sendRentPaymentReversedNotifications(
+  supabaseAdmin: SupabaseClient,
+  { rentPaymentId, amount }: { rentPaymentId: string; amount: number }
+) {
+  const { data: rentPayment } = await supabaseAdmin
+    .from('rent_payments')
+    .select('tenancies(renter_user_id, units(unit_number, properties(address, owner_user_id)))')
+    .eq('id', rentPaymentId)
+    .maybeSingle()
+
+  const tenancy = rentPayment?.tenancies as any
+  const unit = tenancy?.units
+  const landlordUserId = unit?.properties?.owner_user_id
+  const unitLabel = unit?.properties?.address
+    ? `${unit.properties.address}${unit.unit_number ? `, Unit ${unit.unit_number}` : ''}`
+    : null
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'
+
+  if (landlordUserId) {
+    const landlordIds = await notifyLandlordIds(supabaseAdmin, landlordUserId)
+    const { data: landlords } = await supabaseAdmin
+      .from('users')
+      .select('id, email, full_name, preferred_language, email_notifications_enabled')
+      .in('id', landlordIds)
+    for (const landlord of landlords || []) {
+      if (landlord?.email && emailAllowed(landlord)) {
+        await sendRentPaymentReversedEmail({
+          to: landlord.email,
+          name: landlord.full_name || 'there',
+          amount,
+          unitLabel,
+          isLandlord: true,
+          lang: landlord.preferred_language === 'es' ? 'es' : 'en',
+        }).catch((err) => console.error('sendRentPaymentReversedNotifications: landlord email failed', err))
+      }
+      await sendPush(landlord.id, {
+        title: 'A rent payment was reversed',
+        body: `$${amount.toFixed(2)} for ${unitLabel || 'a unit'} is no longer marked paid`,
+        url: `${siteUrl}/landlord`,
+      }).catch((err) => console.error('sendRentPaymentReversedNotifications: landlord push failed', err))
+    }
+  }
+
+  const renterUserId = tenancy?.renter_user_id
+  if (renterUserId) {
+    const { data: renter } = await supabaseAdmin
+      .from('users')
+      .select('email, full_name, preferred_language, email_notifications_enabled')
+      .eq('id', renterUserId)
+      .maybeSingle()
+    if (renter?.email && emailAllowed(renter)) {
+      await sendRentPaymentReversedEmail({
+        to: renter.email,
+        name: renter.full_name || 'there',
+        amount,
+        unitLabel,
+        isLandlord: false,
+        lang: renter.preferred_language === 'es' ? 'es' : 'en',
+      }).catch((err) => console.error('sendRentPaymentReversedNotifications: renter email failed', err))
+    }
+    await sendPush(renterUserId, {
+      title: 'Your rent payment was reversed',
+      body: `$${amount.toFixed(2)} is still due — your bank reversed the payment.`,
+      url: `${siteUrl}/renter/rent`,
+    }).catch((err) => console.error('sendRentPaymentReversedNotifications: renter push failed', err))
+  }
 }
 
