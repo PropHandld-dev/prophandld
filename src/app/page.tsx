@@ -347,6 +347,19 @@ export default function LandingPage() {
             </Link>
           </div>
           <div className="bg-white/3 border border-white/8 rounded-2xl p-7 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all duration-200">
+            <span className="text-xs font-semibold text-[#12A5A9] bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 border border-[#12A5A9]/30 px-2.5 py-1 rounded-full">Property Managers</span>
+            <h3 className="text-white font-bold text-lg mt-4 mb-2">Ten clients. One login.</h3>
+            <p className="text-white/50 text-sm leading-relaxed mb-5">
+              Run every landlord client&apos;s properties from a single
+              dashboard — a portfolio switcher per client, staff access you
+              control, and approval thresholds so owners sign off on big
+              repairs automatically, no phone call required.
+            </p>
+            <Link href="/property-managers" className="text-[#12A5A9] text-sm font-semibold hover:underline">
+              See how it works for property managers →
+            </Link>
+          </div>
+          <div className="bg-white/3 border border-white/8 rounded-2xl p-7 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all duration-200">
             <span className="text-xs font-semibold text-[#12A5A9] bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 border border-[#12A5A9]/30 px-2.5 py-1 rounded-full">Renters</span>
             <h3 className="text-white font-bold text-lg mt-4 mb-2">Get things fixed, fast</h3>
             <p className="text-white/50 text-sm leading-relaxed mb-5">
@@ -370,19 +383,6 @@ export default function LandingPage() {
             </p>
             <Link href="/contractors" className="text-[#12A5A9] text-sm font-semibold hover:underline">
               See how it works for contractors →
-            </Link>
-          </div>
-          <div className="bg-white/3 border border-white/8 rounded-2xl p-7 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all duration-200">
-            <span className="text-xs font-semibold text-[#12A5A9] bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 border border-[#12A5A9]/30 px-2.5 py-1 rounded-full">Property Managers</span>
-            <h3 className="text-white font-bold text-lg mt-4 mb-2">Ten clients. One login.</h3>
-            <p className="text-white/50 text-sm leading-relaxed mb-5">
-              Run every landlord client&apos;s properties from a single
-              dashboard — a portfolio switcher per client, staff access you
-              control, and approval thresholds so owners sign off on big
-              repairs automatically, no phone call required.
-            </p>
-            <Link href="/property-managers" className="text-[#12A5A9] text-sm font-semibold hover:underline">
-              See how it works for property managers →
             </Link>
           </div>
         </div>

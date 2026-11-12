@@ -2144,7 +2144,6 @@ const STRINGS = {
   firstWhoAreYouHeadline: { en: 'First, who are you?', es: 'Primero, ¿quién eres?' },
   weWillSetThingsUpSubtext: { en: "We'll set things up just right, depending on your answer.", es: 'Configuraremos todo según tu respuesta.' },
   createYourAccountHeading: { en: 'Create your account', es: 'Crea tu cuenta' },
-  yourPropertyHandledTagline: { en: 'Your property, handled.', es: 'Tu propiedad, resuelta.' },
   alreadyHaveAccountQ: { en: 'Already have an account?', es: '¿Ya tienes una cuenta?' },
   notRightChange: { en: 'Not right? Change', es: '¿No es correcto? Cambiar' },
   fullNameLabel: { en: 'Full name', es: 'Nombre completo' },

@@ -73,6 +73,16 @@ const VALID_ROLES: Role[] = ['landlord', 'renter', 'contractor']
 // (see pricingTiers.ts), never from a number typed in here; this exists so
 // pricing isn't a surprise discovered only after they're already in.
 function UnitPriceEstimator({ lang, units, onUnitsChange }: { lang: Lang; units: number; onUnitsChange: (units: number) => void }) {
+  // Own string state for the input, separate from the numeric `units` the
+  // price calculation below actually uses. Driving the input directly off
+  // `units` meant every keystroke ran parseInt(e.target.value) || 1 --
+  // backspacing the field to empty parses to NaN, `NaN || 1` is 1, and
+  // the input snapped straight back to "1" before the field ever looked
+  // empty, so it could never actually be cleared to type a new number.
+  // This lets the field sit empty while typing and only clamps to a real
+  // number (min 1) on blur.
+  const [raw, setRaw] = useState(String(units))
+
   return (
     <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 mb-6">
       <p className="text-white/70 text-xs font-semibold uppercase tracking-wide mb-2">{t('seeYourPriceLabel', lang)}</p>
@@ -85,8 +95,17 @@ function UnitPriceEstimator({ lang, units, onUnitsChange }: { lang: Lang; units:
           type="number"
           min={1}
           max={9999}
-          value={units}
-          onChange={(e) => onUnitsChange(Math.max(1, parseInt(e.target.value, 10) || 1))}
+          value={raw}
+          onChange={(e) => {
+            setRaw(e.target.value)
+            const parsed = parseInt(e.target.value, 10)
+            if (!isNaN(parsed) && parsed >= 1) onUnitsChange(parsed)
+          }}
+          onBlur={() => {
+            const parsed = Math.max(1, parseInt(raw, 10) || 1)
+            setRaw(String(parsed))
+            onUnitsChange(parsed)
+          }}
           className="w-20 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-white text-sm text-center focus:outline-none focus:border-[#12A5A9] transition"
         />
       </div>
@@ -594,7 +613,6 @@ function SignupForm() {
       >
         <div className="text-center mb-8 lg:text-left">
           <h1 className="text-2xl font-bold text-white">{t('createYourAccountHeading', lang)}</h1>
-          <p className="text-white/50 text-sm mt-1">{t('yourPropertyHandledTagline', lang)}</p>
         </div>
 
         <RolePicker onSelect={(r, intent) => { setRole(r); setRoleIntent(intent) }} />
