@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { getStripe, paymentPaidAt } from '@/lib/stripe'
 import { achProcessingFee } from '@/lib/cardSurcharge'
 import { friendlyStripeError } from '@/lib/stripeErrorMessage'
+import { getActionableOwnerIdsAdmin, approvalNeedsOwnerSignoff, logPmAction, getPmMembership } from '@/lib/pm'
 
 export const maxDuration = 20
 
@@ -38,7 +39,16 @@ export async function POST(request: NextRequest) {
   const job = bid?.jobs as any
   const landlordUserId = job?.units?.properties?.owner_user_id
 
-  if (!bid || bid.status !== 'accepted' || !job || landlordUserId !== user.id) {
+  if (!bid || bid.status !== 'accepted' || !job || !landlordUserId) {
+    return NextResponse.json({ error: 'Job not found' }, { status: 404 })
+  }
+
+  // Not just the literal owner any more — a co-owner or an accepted PM
+  // org member managing this owner's portfolio can trigger payment too.
+  // getActionableOwnerIdsAdmin covers both; previously this route only
+  // ever recognized the exact owner_user_id match.
+  const actionableOwnerIds = await getActionableOwnerIdsAdmin(supabaseAdmin, user.id)
+  if (!actionableOwnerIds.includes(landlordUserId)) {
     return NextResponse.json({ error: 'Job not found' }, { status: 404 })
   }
 
@@ -48,6 +58,29 @@ export async function POST(request: NextRequest) {
 
   if (bid.payment_status === 'paid') {
     return NextResponse.json({ error: 'This job has already been paid.', alreadyPaid: true }, { status: 409 })
+  }
+
+  // A PM staff/admin acting for a client over that client's own approval
+  // threshold needs the client's own sign-off first — see pm.ts. Doesn't
+  // apply to the owner paying their own job, or to a plain co-owner (no
+  // threshold concept there).
+  const signoff = await approvalNeedsOwnerSignoff(supabaseAdmin, user.id, landlordUserId, Number(bid.amount))
+  if (signoff.blocked) {
+    if (signoff.organizationId) {
+      await logPmAction(supabaseAdmin, {
+        organizationId: signoff.organizationId,
+        ownerUserId: landlordUserId,
+        actorUserId: user.id,
+        action: 'job_payment_blocked_needs_owner_signoff',
+        jobId: bid.job_id,
+        bidId: bid.id,
+        amount: Number(bid.amount),
+      })
+    }
+    return NextResponse.json(
+      { error: "This job's cost is over the owner's approval threshold — they need to approve it themselves before it can be paid." },
+      { status: 403 }
+    )
   }
 
   const { data: contractorRow } = await supabaseAdmin
@@ -172,6 +205,21 @@ export async function POST(request: NextRequest) {
       .from('bids')
       .update({ stripe_payment_intent_id: paymentIntent.id, payment_status: 'processing' })
       .eq('id', bid.id)
+
+    if (user.id !== landlordUserId) {
+      const membership = await getPmMembership(supabaseAdmin, user.id)
+      if (membership) {
+        await logPmAction(supabaseAdmin, {
+          organizationId: membership.organizationId,
+          ownerUserId: landlordUserId,
+          actorUserId: user.id,
+          action: 'job_payment_started',
+          jobId: bid.job_id,
+          bidId: bid.id,
+          amount,
+        })
+      }
+    }
 
     return NextResponse.json({ clientSecret: paymentIntent.client_secret, amount: chargeAmount, baseAmount: amount, fee: surcharge })
   } catch (err) {

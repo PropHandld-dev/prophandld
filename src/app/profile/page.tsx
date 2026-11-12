@@ -22,6 +22,7 @@ import { RentPaymentDefaultCard } from '@/components/RentPaymentDefaultCard'
 import { LinkedProfilesSection } from '@/components/LinkedProfilesSection'
 import { LINKED_PROFILES_ENABLED } from '@/lib/featureFlags'
 import { CoOwnersSection } from '@/components/CoOwnersSection'
+import { PropertyManagementCard } from '@/components/PropertyManagementCard'
 import { CoRentersSection } from '@/components/CoRentersSection'
 import { BillingSection } from '@/components/BillingSection'
 import { Switch } from '@/components/Switch'
@@ -694,6 +695,12 @@ export default function ProfilePage() {
         {LINKED_PROFILES_ENABLED && (role === 'landlord' || role === 'renter' || role === 'contractor') && (
           <div className="mb-6">
             <LinkedProfilesSection currentRole={role as 'landlord' | 'renter' | 'contractor'} />
+          </div>
+        )}
+
+        {role === 'landlord' && (
+          <div className="mb-6">
+            <PropertyManagementCard />
           </div>
         )}
 

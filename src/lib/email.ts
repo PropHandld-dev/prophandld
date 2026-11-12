@@ -575,6 +575,96 @@ export async function sendCoOwnerAcceptedEmail({
   return sendEmail({ to, subject: lang === 'es' ? 'Tu copropietario se unió a Prophandld' : 'Your co-owner joined Prophandld', html })
 }
 
+// A PM org inviting an existing landlord's whole portfolio into their
+// client list — mirrors sendCoOwnerInvitedExistingAccountEmail's shape,
+// but frames it as "manages your portfolio for you" rather than
+// "co-manages alongside you," since the relationship is different (a
+// client, not a peer).
+export async function sendPmClientInviteEmail({
+  to,
+  pmOrgName,
+  lang = 'en',
+}: {
+  to: string
+  pmOrgName: string
+  lang?: Lang
+}) {
+  const html = lang === 'es' ? baseTemplate({
+    lang,
+    eyebrow: 'Invitación',
+    heading: `${escapeHtml(pmOrgName)} quiere administrar tu propiedad`,
+    bodyHtml: `<strong>${escapeHtml(pmOrgName)}</strong> te invitó a que administren tu propiedad en Prophandld. Tú sigues siendo el dueño — ellos podrán publicar y aprobar trabajos de mantenimiento por ti, hasta el límite que tú elijas. Inicia sesión para aceptar o rechazar la invitación.`,
+    ctaLabel: 'Ver invitación',
+    ctaUrl: `${SITE_URL}/landlord`,
+  }) : baseTemplate({
+    lang,
+    eyebrow: 'Invite',
+    heading: `${escapeHtml(pmOrgName)} wants to manage your property`,
+    bodyHtml: `<strong>${escapeHtml(pmOrgName)}</strong> invited you to let them manage your property on Prophandld. You stay the owner — they'll be able to post and approve maintenance jobs on your behalf, up to a limit you choose. Log in to accept or decline.`,
+    ctaLabel: 'View invite',
+    ctaUrl: `${SITE_URL}/landlord`,
+  })
+  return sendEmail({ to, subject: lang === 'es' ? `${pmOrgName} quiere administrar tu propiedad` : `${pmOrgName} wants to manage your property`, html })
+}
+
+export async function sendPmClientAcceptedEmail({
+  to,
+  ownerName,
+  lang = 'en',
+}: {
+  to: string
+  ownerName: string
+  lang?: Lang
+}) {
+  const html = lang === 'es' ? baseTemplate({
+    lang,
+    eyebrow: 'Invitación',
+    heading: 'Nuevo cliente aceptado',
+    bodyHtml: `<strong>${escapeHtml(ownerName)}</strong> aceptó tu invitación. Ya puedes ver y administrar su propiedad desde tu panel de administración.`,
+    ctaLabel: 'Ver mi panel',
+    ctaUrl: `${SITE_URL}/landlord/pm`,
+  }) : baseTemplate({
+    lang,
+    eyebrow: 'Invite',
+    heading: 'New client accepted',
+    bodyHtml: `<strong>${escapeHtml(ownerName)}</strong> accepted your invite. You can now see and manage their property from your management dashboard.`,
+    ctaLabel: 'View my dashboard',
+    ctaUrl: `${SITE_URL}/landlord/pm`,
+  })
+  return sendEmail({ to, subject: lang === 'es' ? 'Nuevo cliente aceptado' : 'New client accepted', html })
+}
+
+// Staff invite: deliberately doesn't name the organization's client list
+// or dollar thresholds in the email itself — just enough to get them to
+// log in and accept, same minimal-disclosure-by-email instinct as every
+// other invite email here.
+export async function sendPmStaffInviteEmail({
+  to,
+  pmOrgName,
+  lang = 'en',
+}: {
+  to: string
+  pmOrgName: string
+  lang?: Lang
+}) {
+  const html = lang === 'es' ? baseTemplate({
+    lang,
+    eyebrow: 'Invitación',
+    heading: `${escapeHtml(pmOrgName)} te invitó a su equipo`,
+    bodyHtml: `<strong>${escapeHtml(pmOrgName)}</strong> te invitó a unirte a su equipo en Prophandld. Inicia sesión y acepta la invitación desde tu panel para empezar.`,
+    ctaLabel: 'Ver invitación',
+    ctaUrl: `${SITE_URL}/landlord`,
+  }) : baseTemplate({
+    lang,
+    eyebrow: 'Invite',
+    heading: `${escapeHtml(pmOrgName)} invited you to their team`,
+    bodyHtml: `<strong>${escapeHtml(pmOrgName)}</strong> invited you to join their team on Prophandld. Log in and accept the invite from your dashboard to get started.`,
+    ctaLabel: 'View invite',
+    ctaUrl: `${SITE_URL}/landlord`,
+  })
+  return sendEmail({ to, subject: lang === 'es' ? `${pmOrgName} te invitó a su equipo` : `${pmOrgName} invited you to their team`, html })
+}
+
 // Same reasoning as sendRenterInviteEmail: pre-signup, no known preference.
 export async function sendContractorInviteEmail({
   to,
