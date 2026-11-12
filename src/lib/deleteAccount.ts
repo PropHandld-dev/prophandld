@@ -162,6 +162,30 @@ export async function deleteAccountCascade(
       await supabaseAdmin.from('landlord_subscriptions').delete().eq('landlord_user_id', userId)
       await supabaseAdmin.from('landlord_co_owners').delete().eq('primary_landlord_user_id', userId)
       await supabaseAdmin.from('landlord_co_owners').delete().eq('co_owner_user_id', userId)
+
+      // Property Manager tables all reference users(id) with no ON DELETE
+      // CASCADE -- without this, deleting the users row below would fail
+      // outright on a foreign-key violation for any PM admin, staff
+      // member, or managed client, the moment any of them had ever used
+      // the feature. No admin-succession concept exists yet, so an org
+      // this user administers is deleted outright along with it, not
+      // handed off -- same "nothing soft-deleted" policy as the rest of
+      // this cascade.
+      const { data: ownedOrgs } = await supabaseAdmin.from('pm_organizations').select('id').eq('admin_user_id', userId)
+      const ownedOrgIds = (ownedOrgs || []).map((o) => o.id)
+      if (ownedOrgIds.length) {
+        await supabaseAdmin.from('pm_audit_log').delete().in('organization_id', ownedOrgIds)
+        await supabaseAdmin.from('pm_client_portfolios').delete().in('organization_id', ownedOrgIds)
+        await supabaseAdmin.from('pm_organization_members').delete().in('organization_id', ownedOrgIds)
+        await supabaseAdmin.from('pm_organizations').delete().in('id', ownedOrgIds)
+      }
+      // This user's own membership elsewhere (staff) or client-portfolio
+      // link, plus any audit rows naming them either side -- independent
+      // of whether they also happened to own an org above.
+      await supabaseAdmin.from('pm_organization_members').delete().eq('user_id', userId)
+      await supabaseAdmin.from('pm_client_portfolios').delete().eq('owner_user_id', userId)
+      await supabaseAdmin.from('pm_audit_log').delete().eq('owner_user_id', userId)
+      await supabaseAdmin.from('pm_audit_log').delete().eq('actor_user_id', userId)
     }
 
     if (role === 'renter') {
