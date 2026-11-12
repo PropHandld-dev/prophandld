@@ -30,10 +30,17 @@ export function OAuthButtons({
   role,
   intent,
   referrerId,
+  disabled,
 }: {
   role?: string
   intent?: string
   referrerId?: string
+  // Signup only: true until the Terms/Privacy checkbox is checked.
+  // Caught in testing -- these buttons used to sit above the signup form
+  // entirely and fired immediately on click, so a brand-new OAuth
+  // account could be created without ever agreeing to anything, the
+  // exact thing the form's own submit button was already gated on.
+  disabled?: boolean
 }) {
   const [loadingProvider, setLoadingProvider] = useState<OAuthProvider | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -56,7 +63,7 @@ export function OAuthButtons({
       <button
         type="button"
         onClick={() => handleClick('google')}
-        disabled={loadingProvider !== null}
+        disabled={disabled || loadingProvider !== null}
         className="w-full flex items-center justify-center gap-2.5 bg-white text-[#1F1F1F] text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-white/90 transition disabled:opacity-50"
       >
         <GoogleIcon />
@@ -65,7 +72,7 @@ export function OAuthButtons({
       <button
         type="button"
         onClick={() => handleClick('apple')}
-        disabled={loadingProvider !== null}
+        disabled={disabled || loadingProvider !== null}
         className="w-full flex items-center justify-center gap-2.5 bg-black text-white text-sm font-semibold px-4 py-2.5 rounded-xl border border-white/15 hover:bg-black/80 transition disabled:opacity-50"
       >
         <AppleIcon />

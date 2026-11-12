@@ -667,7 +667,61 @@ function SignupForm() {
         </>
       )}
 
-      <OAuthButtons role={role} intent={roleIntent} referrerId={referrerId || undefined} />
+      {/* Shared by both paths below -- Google/Apple used to be able to
+          complete a signup without ever seeing this at all, since the
+          buttons sat above the form that contained it and fired
+          immediately on click. Moved above both, with the OAuth buttons
+          themselves disabled until it's checked, so neither path can
+          skip it. */}
+      <label className="flex items-start gap-2.5 text-white/60 text-xs cursor-pointer select-none mb-4">
+        <input
+          type="checkbox"
+          checked={agreedToTerms}
+          onChange={(e) => setAgreedToTerms(e.target.checked)}
+          className="mt-0.5 w-4 h-4 shrink-0 rounded border-white/20 bg-white/5 accent-[#12A5A9]"
+        />
+        <span>
+          {t('agreeToTermsPrefix', lang)}{' '}
+          <button type="button" onClick={() => setLegalModal('terms')} className="text-[#12A5A9]/80 hover:underline">
+            {t('termsOfService', lang)}
+          </button>
+          {reviewedTerms && <span className="text-[#12A5A9]/70"> ✓ reviewed</span>}
+          {' '}{t('agreeToTermsMiddle', lang)}{' '}
+          <button type="button" onClick={() => setLegalModal('privacy')} className="text-[#12A5A9]/80 hover:underline">
+            {t('privacyPolicy', lang)}
+          </button>
+          {reviewedPrivacy && <span className="text-[#12A5A9]/70"> ✓ reviewed</span>}
+          {t('agreeToTermsSuffix', lang)}.
+        </span>
+      </label>
+
+      {legalModal === 'terms' && (
+        <LegalModal
+          title={t('termsOfService', lang)}
+          lastUpdated="November 6, 2026"
+          onClose={() => {
+            setLegalModal(null)
+            setReviewedTerms(true)
+          }}
+        >
+          {role === 'renter' ? <RenterTermsContent /> : role === 'contractor' ? <ContractorTermsContent /> : <LandlordTermsContent />}
+        </LegalModal>
+      )}
+
+      {legalModal === 'privacy' && (
+        <LegalModal
+          title={t('privacyPolicy', lang)}
+          lastUpdated="November 6, 2026"
+          onClose={() => {
+            setLegalModal(null)
+            setReviewedPrivacy(true)
+          }}
+        >
+          <PrivacyContent />
+        </LegalModal>
+      )}
+
+      <OAuthButtons role={role} intent={roleIntent} referrerId={referrerId || undefined} disabled={!agreedToTerms} />
 
       <div className="flex items-center gap-3 my-5">
         <div className="h-px bg-white/10 flex-1" />
@@ -753,53 +807,6 @@ function SignupForm() {
           </div>
         )}
 
-        <label className="flex items-start gap-2.5 text-white/60 text-xs cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={agreedToTerms}
-            onChange={(e) => setAgreedToTerms(e.target.checked)}
-            className="mt-0.5 w-4 h-4 shrink-0 rounded border-white/20 bg-white/5 accent-[#12A5A9]"
-          />
-          <span>
-            {t('agreeToTermsPrefix', lang)}{' '}
-            <button type="button" onClick={() => setLegalModal('terms')} className="text-[#12A5A9]/80 hover:underline">
-              {t('termsOfService', lang)}
-            </button>
-            {reviewedTerms && <span className="text-[#12A5A9]/70"> ✓ reviewed</span>}
-            {' '}{t('agreeToTermsMiddle', lang)}{' '}
-            <button type="button" onClick={() => setLegalModal('privacy')} className="text-[#12A5A9]/80 hover:underline">
-              {t('privacyPolicy', lang)}
-            </button>
-            {reviewedPrivacy && <span className="text-[#12A5A9]/70"> ✓ reviewed</span>}
-            {t('agreeToTermsSuffix', lang)}.
-          </span>
-        </label>
-
-        {legalModal === 'terms' && (
-          <LegalModal
-            title={t('termsOfService', lang)}
-            lastUpdated="November 6, 2026"
-            onClose={() => {
-              setLegalModal(null)
-              setReviewedTerms(true)
-            }}
-          >
-            {role === 'renter' ? <RenterTermsContent /> : role === 'contractor' ? <ContractorTermsContent /> : <LandlordTermsContent />}
-          </LegalModal>
-        )}
-
-        {legalModal === 'privacy' && (
-          <LegalModal
-            title={t('privacyPolicy', lang)}
-            lastUpdated="November 6, 2026"
-            onClose={() => {
-              setLegalModal(null)
-              setReviewedPrivacy(true)
-            }}
-          >
-            <PrivacyContent />
-          </LegalModal>
-        )}
 
         <RippleButton
           type="submit"
