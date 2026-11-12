@@ -17,12 +17,32 @@
 -- policy allows, and the same "one active relationship at a time" rule
 -- for unambiguous scope.
 --
+-- RLS is enabled explicitly on every new table below. A brand-new table
+-- created through the SQL editor (unlike one created via the Supabase
+-- dashboard's table UI) does NOT get RLS turned on by default — the
+-- policies that follow would otherwise be silently inert, and the
+-- `grant ... to authenticated` statements would leave every row in these
+-- tables readable/writable by any signed-in user. Confirmed against
+-- 2026-11-10-rent-rebuild-schema.sql's own app_settings table, the one
+-- other brand-new table in this repo's scripts/, which already does
+-- this — this script was missing it until caught live.
+--
 -- What this does NOT attempt: row-level "sees no financials" enforcement
 -- via RLS. pm_organization_members.can_view_financials is checked at the
 -- application layer (specific finance-reporting routes/pages), not as a
 -- Postgres policy — Postgres RLS is table/row scoped, not "this row but
 -- redact this column," and building that properly is a bigger project
 -- than this pass. Documented here so it isn't mistaken for a guarantee.
+
+-- ============================================================
+-- Tables first, every one of them, before any policy — a policy's
+-- USING/WITH CHECK clause is validated against the schema at CREATE
+-- POLICY time, so a policy on table A that queries table B fails outright
+-- if B doesn't exist yet. (The bug this fixes: pm_org_select_own used to
+-- sit right after pm_organizations but query pm_organization_members,
+-- which this script didn't create until later — "relation
+-- pm_organization_members does not exist" on a fresh run.)
+-- ============================================================
 
 create table if not exists public.pm_organizations (
   id uuid primary key default gen_random_uuid(),
@@ -39,18 +59,9 @@ create table if not exists public.pm_organizations (
 create unique index if not exists idx_pm_organizations_one_per_admin
   on public.pm_organizations(admin_user_id);
 
+alter table public.pm_organizations enable row level security;
 grant select on public.pm_organizations to authenticated;
 grant select, insert, update, delete on public.pm_organizations to service_role;
-
--- No INSERT/UPDATE policy for authenticated at all: created and renamed
--- only through a service-role route (/api/pm/organizations), same
--- no-self-insert stance as landlord_co_owners.
-create policy "pm_org_select_own"
-on public.pm_organizations for select to authenticated
-using (
-  admin_user_id = auth.uid()
-  or id in (select organization_id from public.pm_organization_members where user_id = auth.uid() and status = 'accepted')
-);
 
 -- ============================================================
 -- pm_organization_members: PM Admin (one, the creator) + PM Staff
@@ -79,30 +90,9 @@ create unique index if not exists idx_pm_members_org_email
 create unique index if not exists idx_pm_members_one_active_org
   on public.pm_organization_members(user_id) where status = 'accepted';
 
+alter table public.pm_organization_members enable row level security;
 grant select, update, delete on public.pm_organization_members to authenticated;
 grant select, insert, update, delete on public.pm_organization_members to service_role;
-
-create policy "pm_members_select"
-on public.pm_organization_members for select to authenticated
-using (
-  user_id = auth.uid()
-  or organization_id in (select id from public.pm_organizations where admin_user_id = auth.uid())
-  or organization_id in (select organization_id from public.pm_organization_members m2 where m2.user_id = auth.uid() and m2.status = 'accepted')
-);
-
--- Accept own invite: the invitee flips their own pending row.
-create policy "pm_member_accepts_own_invite"
-on public.pm_organization_members for update to authenticated
-using (user_id = auth.uid() and status = 'pending')
-with check (user_id = auth.uid() and status = 'accepted');
-
--- Decline (invitee) or remove (admin, any time): plain delete.
-create policy "pm_member_or_admin_can_end_membership"
-on public.pm_organization_members for delete to authenticated
-using (
-  user_id = auth.uid()
-  or organization_id in (select id from public.pm_organizations where admin_user_id = auth.uid())
-);
 
 -- ============================================================
 -- pm_client_portfolios: which landlord clients an org manages.
@@ -133,8 +123,67 @@ create unique index if not exists idx_pm_portfolios_org_email
 create unique index if not exists idx_pm_portfolios_one_active_pm
   on public.pm_client_portfolios(owner_user_id) where status = 'accepted';
 
+alter table public.pm_client_portfolios enable row level security;
 grant select, update, delete on public.pm_client_portfolios to authenticated;
 grant select, insert, update, delete on public.pm_client_portfolios to service_role;
+
+-- ============================================================
+-- pm_audit_log: every approval-threshold decision, who/what/when/amount
+-- — written only by service-role routes (the threshold gate itself),
+-- never a direct client insert, so it can't be self-written around.
+-- ============================================================
+create table if not exists public.pm_audit_log (
+  id uuid primary key default gen_random_uuid(),
+  organization_id uuid not null references public.pm_organizations(id),
+  owner_user_id uuid not null references public.users(id),
+  actor_user_id uuid not null references public.users(id),
+  action text not null,
+  job_id uuid,
+  bid_id uuid,
+  amount numeric(10, 2),
+  detail text,
+  created_at timestamptz not null default now()
+);
+
+alter table public.pm_audit_log enable row level security;
+grant select on public.pm_audit_log to authenticated;
+grant select, insert on public.pm_audit_log to service_role;
+
+-- ============================================================
+-- Policies — every table referenced below now exists.
+-- ============================================================
+
+-- No INSERT/UPDATE policy for authenticated at all: created and renamed
+-- only through a service-role route (/api/pm/organizations), same
+-- no-self-insert stance as landlord_co_owners.
+create policy "pm_org_select_own"
+on public.pm_organizations for select to authenticated
+using (
+  admin_user_id = auth.uid()
+  or id in (select organization_id from public.pm_organization_members where user_id = auth.uid() and status = 'accepted')
+);
+
+create policy "pm_members_select"
+on public.pm_organization_members for select to authenticated
+using (
+  user_id = auth.uid()
+  or organization_id in (select id from public.pm_organizations where admin_user_id = auth.uid())
+  or organization_id in (select organization_id from public.pm_organization_members m2 where m2.user_id = auth.uid() and m2.status = 'accepted')
+);
+
+-- Accept own invite: the invitee flips their own pending row.
+create policy "pm_member_accepts_own_invite"
+on public.pm_organization_members for update to authenticated
+using (user_id = auth.uid() and status = 'pending')
+with check (user_id = auth.uid() and status = 'accepted');
+
+-- Decline (invitee) or remove (admin, any time): plain delete.
+create policy "pm_member_or_admin_can_end_membership"
+on public.pm_organization_members for delete to authenticated
+using (
+  user_id = auth.uid()
+  or organization_id in (select id from public.pm_organizations where admin_user_id = auth.uid())
+);
 
 create policy "pm_portfolios_select"
 on public.pm_client_portfolios for select to authenticated
@@ -163,27 +212,6 @@ using (
   owner_user_id = auth.uid()
   or organization_id in (select id from public.pm_organizations where admin_user_id = auth.uid())
 );
-
--- ============================================================
--- pm_audit_log: every approval-threshold decision, who/what/when/amount
--- — written only by service-role routes (the threshold gate itself),
--- never a direct client insert, so it can't be self-written around.
--- ============================================================
-create table if not exists public.pm_audit_log (
-  id uuid primary key default gen_random_uuid(),
-  organization_id uuid not null references public.pm_organizations(id),
-  owner_user_id uuid not null references public.users(id),
-  actor_user_id uuid not null references public.users(id),
-  action text not null,
-  job_id uuid,
-  bid_id uuid,
-  amount numeric(10, 2),
-  detail text,
-  created_at timestamptz not null default now()
-);
-
-grant select on public.pm_audit_log to authenticated;
-grant select, insert on public.pm_audit_log to service_role;
 
 -- Staff without can_view_financials still shouldn't see dollar amounts
 -- here either, consistent with the spec's "sees no financials" tier —
