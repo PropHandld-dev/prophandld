@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback, type ReactNode } from 'react'
+import Link from 'next/link'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { CountUp } from '@/components/CountUp'
@@ -329,11 +330,18 @@ export default function PmDashboardPage() {
                   <ScrollReveal key={c.portfolioId} className="bg-white/3 border border-white/8 rounded-2xl p-5">
                     <div className="flex items-center justify-between mb-3">
                       <p className="text-white font-semibold">{c.ownerName}</p>
-                      {membership.memberRole === 'admin' && (
-                        <button onClick={() => handleRemoveClient(c.portfolioId)} className="text-red-400/70 hover:text-red-400 text-xs">
-                          Remove
-                        </button>
-                      )}
+                      <div className="flex items-center gap-3">
+                        {membership.canViewFinancials && (
+                          <Link href={`/landlord/pm/clients/${c.portfolioId}/statement`} className="text-[#12A5A9] text-xs font-semibold hover:underline">
+                            Statement
+                          </Link>
+                        )}
+                        {membership.memberRole === 'admin' && (
+                          <button onClick={() => handleRemoveClient(c.portfolioId)} className="text-red-400/70 hover:text-red-400 text-xs">
+                            Remove
+                          </button>
+                        )}
+                      </div>
                     </div>
                     <div className="grid grid-cols-3 gap-2 mb-3">
                       <StatTile icon={BuildingIcon} label="Properties" value={c.propertyCount} />
