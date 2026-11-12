@@ -639,7 +639,17 @@ function SignupForm() {
           </span>
           <button
             type="button"
-            onClick={() => { setRole(null); setRoleIntent(undefined) }}
+            onClick={() => {
+              setRole(null)
+              setRoleIntent(undefined)
+              // Terms/Privacy content is role-specific -- having reviewed
+              // one role's version doesn't mean they've seen another's,
+              // so the "✓ reviewed" badge (and the agreement itself)
+              // shouldn't carry over to a different role.
+              setReviewedTerms(false)
+              setReviewedPrivacy(false)
+              setAgreedToTerms(false)
+            }}
             className="text-white/60 text-xs hover:text-white transition"
           >
             {t('notRightChange', lang)}
