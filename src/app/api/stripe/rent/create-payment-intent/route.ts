@@ -6,6 +6,7 @@ import { getProviderAdapter } from '@/lib/payments'
 import { syncRentPayment } from '@/lib/rentPaymentSync'
 import { achProcessingFee } from '@/lib/cardSurcharge'
 import { isAchFeeAbsorbed } from '@/lib/appSettings'
+import { hasBlockingComplianceIssue } from '@/lib/complianceGate'
 import { friendlyStripeError } from '@/lib/stripeErrorMessage'
 
 export const maxDuration = 20
@@ -65,6 +66,18 @@ export async function POST(request: NextRequest) {
   const landlordUserId = tenancy.units?.properties?.owner_user_id
   if (!landlordUserId) {
     return NextResponse.json({ error: 'Could not determine landlord' }, { status: 500 })
+  }
+
+  // A lapsed rental license past its 15-day grace period means the
+  // landlord legally cannot collect rent at all under the Safe Healthy
+  // Homes law — not just a late-fee question, a genuine "don't charge
+  // this" gate. See complianceGate.ts.
+  const propertyId = tenancy.units?.property_id
+  if (propertyId && (await hasBlockingComplianceIssue(supabaseAdmin, propertyId))) {
+    return NextResponse.json(
+      { error: "This property's rental license has lapsed, so rent can't be collected right now. Contact your landlord." },
+      { status: 400 }
+    )
   }
 
   const { data: landlordRow } = await supabaseAdmin

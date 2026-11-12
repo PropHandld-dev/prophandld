@@ -6,6 +6,7 @@ import { sendRentDueEmail, sendRentDueRenterEmail, sendRentLateRenterEmail, send
 import { sendPush } from '@/lib/push'
 import { emailAllowed } from '@/lib/notificationPrefs'
 import { notifyLandlordIds } from '@/lib/landlordCoOwners'
+import { hasBlockingComplianceIssue } from '@/lib/complianceGate'
 
 export const maxDuration = 60
 
@@ -57,7 +58,7 @@ export async function GET(request: NextRequest) {
   for (let from = 0; ; from += PAGE_SIZE) {
     const { data, error } = await supabaseAdmin
       .from('tenancies')
-      .select('id, rent_amount, unit_id, renter_user_id, late_fee_amount, grace_period_days, rent_due_day, units(unit_number, properties(address, owner_user_id))')
+      .select('id, rent_amount, unit_id, renter_user_id, late_fee_amount, grace_period_days, rent_due_day, units(unit_number, properties(id, address, owner_user_id))')
       .eq('ended', false)
       .not('rent_amount', 'is', null)
       .order('id')
@@ -198,7 +199,14 @@ export async function GET(request: NextRequest) {
     const updates: Record<string, unknown> = {}
     if (isFirstNotice) updates.reminder_sent_at = new Date().toISOString()
 
-    if (tenancy.late_fee_amount && !rentPayment.late_fee_applied) {
+    // A landlord with a lapsed rental license past its 15-day grace period
+    // legally cannot collect rent at all under the Safe Healthy Homes law —
+    // adding a late fee on top of rent they're not entitled to collect
+    // would make the violation worse, not better. See complianceGate.ts.
+    const propertyId = tenancy.units?.properties?.id
+    const blocked = propertyId ? await hasBlockingComplianceIssue(supabaseAdmin, propertyId) : false
+
+    if (!blocked && tenancy.late_fee_amount && !rentPayment.late_fee_applied) {
       lateFeeAdded = Number(tenancy.late_fee_amount)
       updates.expected_amount = Number(rentPayment.expected_amount) + lateFeeAdded
       updates.late_fee_applied = true

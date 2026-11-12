@@ -33,7 +33,7 @@ export async function GET() {
   const [rentRes, jobRes, subRes, connectRes] = await Promise.all([
     admin
       .from('rent_payments')
-      .select('id, month, expected_amount, actual_amount, paid_date, payment_method, stripe_status, stripe_payment_intent_id, water_amount, late_fee_applied, created_at, tenancies(renter_user_id, units(unit_number, properties(address, city, owner_user_id)))')
+      .select('id, month, expected_amount, actual_amount, paid_date, payment_method, provider, absorbed_fee_amount, stripe_status, stripe_payment_intent_id, water_amount, late_fee_applied, created_at, tenancies(renter_user_id, units(unit_number, properties(address, city, owner_user_id)))')
       .or('actual_amount.gt.0,stripe_status.not.is.null')
       .order('created_at', { ascending: false })
       .limit(500),
@@ -203,6 +203,23 @@ export async function GET() {
   const connect = connectRes.data || []
   const needsAttention = txs.filter((t) => t.flags.some((f) => f.severity !== 'info')).length
 
+  // Rent-rebuild reporting: ACH vs card volume, total absorbed fees, and a
+  // by-provider breakdown ready for a future second ACH provider — reads
+  // straight off the raw rent_payments rows rather than the unified `txs`
+  // view, since payment_method/provider/absorbed_fee_amount are rent-
+  // specific fields that view doesn't carry through.
+  const paidRent = rent.filter((r: any) => r.stripe_status === 'succeeded')
+  const achPaymentsCount = paidRent.filter((r: any) => r.payment_method === 'bank').length
+  const cardPaymentsCount = paidRent.filter((r: any) => r.payment_method === 'card').length
+  const totalAbsorbedFees = paidRent.reduce((total: number, r: any) => total + Number(r.absorbed_fee_amount || 0), 0)
+  const byProvider: Record<string, { count: number; volume: number }> = {}
+  for (const r of paidRent) {
+    const key = r.provider || 'stripe'
+    if (!byProvider[key]) byProvider[key] = { count: 0, volume: 0 }
+    byProvider[key].count += 1
+    byProvider[key].volume += Number(r.actual_amount || 0)
+  }
+
   return NextResponse.json({
     testMode,
     stripeBase,
@@ -220,6 +237,10 @@ export async function GET() {
       manualRent: txs.filter((t) => t.kind === 'rent' && t.status === 'manual').reduce((total, t) => total + t.amount, 0),
       payoutsReady: connect.filter((u: any) => u.stripe_connect_status === 'active').length,
       payoutsNotReady: connect.filter((u: any) => u.stripe_connect_status !== 'active').length,
+      achPaymentsCount,
+      cardPaymentsCount,
+      totalAbsorbedFees,
+      byProvider,
     },
     months,
   })
