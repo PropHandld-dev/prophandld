@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { requirementById } from '@/lib/credentialRequirements'
+import { getActionableOwnerIdsAdmin } from '@/lib/pm'
 
 async function requireLandlord(): Promise<{ id: string } | NextResponse> {
   const authClient = await createClient()
@@ -88,8 +89,13 @@ export async function POST(request: NextRequest) {
   }
 
   // A landlord can only save a contractor they've actually had an accepted
-  // bid from on one of their own properties — not an arbitrary user id.
-  const { data: properties } = await admin.from('properties').select('id').eq('owner_user_id', landlord.id)
+  // bid from on a property they can act on — not an arbitrary user id.
+  // Was literal-owner-only, which blocked a PM admin/staff from favoriting
+  // a contractor hired on a managed CLIENT's property (never their own),
+  // the exact scenario the whole point of a shared contractor network
+  // depends on.
+  const actionableOwnerIds = await getActionableOwnerIdsAdmin(admin, landlord.id)
+  const { data: properties } = await admin.from('properties').select('id').in('owner_user_id', actionableOwnerIds)
   const propertyIds = (properties || []).map((p) => p.id)
   const { data: units } = propertyIds.length
     ? await admin.from('units').select('id').in('property_id', propertyIds)

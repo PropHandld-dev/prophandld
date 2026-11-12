@@ -25,6 +25,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     managementFee?: number | null
     managementFeeFrequency?: 'one_time' | 'monthly' | null
     monthlySummaryEnabled?: boolean
+    ownerReadOnly?: boolean
   }
 
   const update: Record<string, unknown> = {}
@@ -46,6 +47,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ error: 'Invalid value' }, { status: 400 })
     }
     update.monthly_summary_enabled = body.monthlySummaryEnabled
+  }
+  if (body.ownerReadOnly !== undefined) {
+    if (typeof body.ownerReadOnly !== 'boolean') {
+      return NextResponse.json({ error: 'Invalid value' }, { status: 400 })
+    }
+    update.owner_read_only = body.ownerReadOnly
   }
   if (Object.keys(update).length === 0) {
     return NextResponse.json({ error: 'Nothing to update' }, { status: 400 })

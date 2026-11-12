@@ -4,7 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { getStripe, paymentPaidAt } from '@/lib/stripe'
 import { achProcessingFee } from '@/lib/cardSurcharge'
 import { friendlyStripeError } from '@/lib/stripeErrorMessage'
-import { getActionableOwnerIdsAdmin, approvalNeedsOwnerSignoff, logPmAction, getPmMembership } from '@/lib/pm'
+import { getActionableOwnerIdsAdmin, approvalNeedsOwnerSignoff, logPmAction, getPmMembership, isBlockedByOwnerReadOnly } from '@/lib/pm'
 
 export const maxDuration = 20
 
@@ -54,6 +54,13 @@ export async function POST(request: NextRequest) {
 
   if (!['completed', 'archived'].includes(job.status)) {
     return NextResponse.json({ error: 'This job is not marked complete yet.' }, { status: 400 })
+  }
+
+  // A client the PM has marked read-only pays through their PM, not
+  // themselves directly -- the one place owner_read_only is actually
+  // enforced (see its own schema comment for why this isn't RLS-wide).
+  if (await isBlockedByOwnerReadOnly(supabaseAdmin, user.id, landlordUserId)) {
+    return NextResponse.json({ error: 'Your property manager handles payments for this property. Contact them to pay this job.' }, { status: 403 })
   }
 
   if (bid.payment_status === 'paid') {

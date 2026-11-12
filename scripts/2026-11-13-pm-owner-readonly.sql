@@ -1,0 +1,17 @@
+-- Optional, PM-admin-controlled: mark a client as "read-only" -- they
+-- keep full visibility into their own data, but the PM handles the
+-- actual actions (job approval/payment) on their behalf.
+--
+-- Deliberately NOT an RLS-level restriction. Every existing RLS policy
+-- in this schema is additive-only by established convention (see
+-- landlord_co_owners.sql's own comment: "can only grant access, never
+-- narrow the primary owner's existing access") -- actually restricting
+-- what an owner can do to their OWN data would mean editing the real,
+-- untracked policies created directly in the Supabase dashboard, which
+-- is a materially riskier class of change than anything else in this
+-- file. This flag is enforced at the application layer instead: a
+-- banner telling the owner they're read-only, and a check in the one
+-- highest-stakes server route (job payment) that blocks the OWNER
+-- themselves (not PM staff/admin) from paying a job directly when this
+-- is set. It is not a guarantee against every possible write path.
+alter table public.pm_client_portfolios add column if not exists owner_read_only boolean not null default false;

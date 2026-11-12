@@ -1516,7 +1516,34 @@ export function buildSmsMessage(type: NotifyType, role: NotifyRole, info: Notify
   return `Prophandld: ${title}. ${info.category} at ${jobLocation(info)}. Reply STOP to opt out.`
 }
 
-export function buildNotificationEmail(type: NotifyType, role: NotifyRole, rawInfo: NotifyJobInfo, lang: Lang = 'en') {
+// White-label touch: when the property is PM-managed, append "Managed by
+// X" to the footer of a renter/contractor-facing email. Deliberately
+// done as a post-processing step on the already-built HTML rather than
+// threading a new parameter through buildNotificationEmailInner's every
+// switch case (60+ branches, each hand-built) -- baseTemplate's footer
+// block is the one piece of markup every single email type shares
+// unchanged, so splicing into that one fixed anchor is the only
+// surgical way to do this without touching all that per-type content.
+function injectManagedByNote(html: string, pmName: string, lang: Lang): string {
+  const line = lang === 'es' ? `Administrado por ${escapeHtml(pmName)}` : `Managed by ${escapeHtml(pmName)}`
+  const anchor = '<td style="padding:22px 4px 0;color:#6F819A;font-size:12px;line-height:1.7;">'
+  if (!html.includes(anchor)) return html
+  return html.replace(anchor, `${anchor}${line}<br />`)
+}
+
+export function buildNotificationEmail(
+  type: NotifyType,
+  role: NotifyRole,
+  rawInfo: NotifyJobInfo,
+  lang: Lang = 'en',
+  managedByPmName?: string | null
+) {
+  const result = buildNotificationEmailInner(type, role, rawInfo, lang)
+  if (!managedByPmName) return result
+  return { ...result, html: injectManagedByNote(result.html, managedByPmName, lang) }
+}
+
+function buildNotificationEmailInner(type: NotifyType, role: NotifyRole, rawInfo: NotifyJobInfo, lang: Lang = 'en') {
   const info = forRole(role, rawInfo)
   const ctaUrl = `${SITE_URL}/${role}/jobs/${info.jobId}`
   const cat = escapeHtml(info.category)

@@ -9,6 +9,7 @@ import { loadNotifyExtras } from '@/lib/notifyExtras'
 import { emailAllowed } from '@/lib/notificationPrefs'
 import { notifyLandlordIds } from '@/lib/landlordCoOwners'
 import { resolveReportingRenterIds } from '@/lib/resolveReportingTenancy'
+import { getManagingPmName } from '@/lib/pm'
 
 type Role = 'landlord' | 'renter' | 'contractor'
 
@@ -71,6 +72,7 @@ export async function POST(request: NextRequest) {
   // genuine primary-owner action only ever notified themselves, never a
   // co-owner who's supposed to have full access to the same jobs.
   const landlordIds = property?.owner_user_id ? await notifyLandlordIds(supabaseAdmin, property.owner_user_id) : []
+  const managedByPmName = property?.owner_user_id ? await getManagingPmName(supabaseAdmin, property.owner_user_id) : null
   const isLandlord = landlordIds.includes(user.id)
   let allowed = isLandlord
   if (!allowed) {
@@ -173,7 +175,7 @@ export async function POST(request: NextRequest) {
 
       const lang: Lang = recipient.preferred_language === 'es' ? 'es' : 'en'
       if (emailAllowed(recipient)) {
-        const { subject, html } = buildNotificationEmail(type, role, jobInfo, lang)
+        const { subject, html } = buildNotificationEmail(type, role, jobInfo, lang, role !== 'landlord' ? managedByPmName : null)
         const result = await sendEmail({ to: recipient.email, subject, html })
         if (!result.ok) console.error('notify: sendEmail failed', { jobId, role, type })
       }

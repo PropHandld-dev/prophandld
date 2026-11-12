@@ -6,7 +6,10 @@ import dynamic from 'next/dynamic'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { CountUp } from '@/components/CountUp'
-import { BuildingIcon, WrenchIcon, DollarSignIcon, PlusIcon, ShieldIcon, ChevronDownIcon } from '@/components/icons'
+import { useRouter } from 'next/navigation'
+import { BuildingIcon, WrenchIcon, DollarSignIcon, PlusIcon, ShieldIcon, ChevronDownIcon, StarIcon, DownloadIcon } from '@/components/icons'
+import { startDmThread } from '@/lib/dmThreads'
+import { downloadCsv } from '@/lib/csvExport'
 
 const StripePaymentModal = dynamic(() => import('@/components/StripePaymentModal').then((m) => m.StripePaymentModal), { ssr: false })
 
@@ -23,6 +26,7 @@ type ClientRow = {
   managementFee: number | null
   managementFeeFrequency: 'one_time' | 'monthly' | null
   monthlySummaryEnabled: boolean
+  ownerReadOnly: boolean
   status: 'pending' | 'accepted'
   propertyCount?: number
   unitCount?: number
@@ -38,6 +42,16 @@ type Staff = {
   status: 'pending' | 'accepted'
 }
 type AuditEntry = { id: string; action: string; amount: number | null; createdAt: string; ownerName: string; actorName: string }
+type NetworkContractor = {
+  id: string
+  name: string
+  categories: string[]
+  jobsCount: number
+  totalPaid: number
+  lastUsedAt: string | null
+  lastClientAddress: string | null
+  isFavorite: boolean
+}
 type IncomingInvite = {
   id: string
   orgName: string
@@ -45,12 +59,16 @@ type IncomingInvite = {
   approvalThreshold: number
   managementFee: number | null
   managementFeeFrequency: 'one_time' | 'monthly' | null
+  ownerReadOnly: boolean
 }
 
 const ACTION_LABELS: Record<string, string> = {
   job_payment_started: 'approved a job payment',
   job_payment_blocked_needs_owner_signoff: 'tried to approve a payment over threshold',
+  job_bulk_approved: 'approved completed work',
 }
+
+type PendingJob = { id: string; category: string; createdAt: string; ownerUserId: string; ownerName: string; address: string }
 
 function StatTile({ icon: Icon, label, value }: { icon: typeof BuildingIcon; label: string; value: ReactNode }) {
   return (
@@ -102,6 +120,13 @@ export default function PmDashboardPage() {
   const [clients, setClients] = useState<ClientRow[]>([])
   const [staff, setStaff] = useState<Staff[]>([])
   const [auditLog, setAuditLog] = useState<AuditEntry[]>([])
+  const [contractors, setContractors] = useState<NetworkContractor[]>([])
+  const [showContractors, setShowContractors] = useState(false)
+  const [messagingContractorId, setMessagingContractorId] = useState<string | null>(null)
+  const [pendingJobs, setPendingJobs] = useState<PendingJob[]>([])
+  const [selectedJobIds, setSelectedJobIds] = useState<Set<string>>(new Set())
+  const [approving, setApproving] = useState(false)
+  const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [showActivity, setShowActivity] = useState(false)
   const [expandedClient, setExpandedClient] = useState<string | null>(null)
@@ -135,12 +160,16 @@ export default function PmDashboardPage() {
       setIncomingInvites(invitesRes.managedBy || [])
 
       if (orgRes.membership) {
-        const [clientsRes, dashRes, staffRes, auditRes] = await Promise.all([
+        const [clientsRes, dashRes, staffRes, auditRes, contractorsRes, pendingRes] = await Promise.all([
           fetch('/api/pm/clients').then((r) => r.json()),
           fetch('/api/pm/dashboard').then((r) => r.json()),
           fetch('/api/pm/staff').then((r) => r.json()),
           fetch('/api/pm/audit-log').then((r) => r.json()),
+          fetch('/api/pm/contractors').then((r) => r.json()),
+          fetch('/api/pm/jobs/pending-approval').then((r) => r.json()),
         ])
+        setContractors(contractorsRes.contractors || [])
+        setPendingJobs(pendingRes.jobs || [])
         const statsByPortfolio = new Map((dashRes.clients || []).map((c: any) => [c.portfolioId, c]))
         setClients(
           (clientsRes.clients || []).map((c: any) => ({
@@ -298,6 +327,80 @@ export default function PmDashboardPage() {
     setPayingFee(false)
   }
 
+  const handleMessageContractor = async (c: NetworkContractor) => {
+    setMessagingContractorId(c.id)
+    try {
+      const { threadId, initialDraft } = await startDmThread('landlord', {
+        other_user_id: c.id,
+        other_role: 'contractor',
+        full_name: c.name,
+        context_label: null,
+        last_job_category: c.categories[0] || null,
+        last_job_completed_at: c.lastUsedAt,
+        thread_id: null,
+      })
+      if (initialDraft) sessionStorage.setItem(`dm-draft:${threadId}`, initialDraft)
+      router.push(`/landlord/messages/${threadId}`)
+    } catch (err) {
+      console.error('pm: could not start DM with contractor', err)
+      setMessagingContractorId(null)
+    }
+  }
+
+  const [exportingMonth, setExportingMonth] = useState(false)
+
+  const handleExportMonth = async () => {
+    setExportingMonth(true)
+    try {
+      const month = new Date().toISOString().slice(0, 7)
+      const res = await fetch(`/api/pm/export?month=${month}`)
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Could not export')
+      const monthLabel = new Date(month + '-01T00:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+      downloadCsv(
+        `${membership?.organizationName || 'portfolio'}-${month}.csv`.replace(/\s+/g, '-'),
+        ['Client', 'Type', 'Date', 'Property', 'Detail', 'Amount'],
+        (data.rows || []).map((r: any) => [r.client, r.type, r.date, r.place, r.detail, r.amount.toFixed(2)]),
+        { heading: `${membership?.organizationName || 'Portfolio'} — ${monthLabel}` }
+      )
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not export')
+    }
+    setExportingMonth(false)
+  }
+
+  const handleBulkApprove = async () => {
+    if (selectedJobIds.size === 0) return
+    setApproving(true)
+    try {
+      const res = await fetch('/api/pm/jobs/bulk-approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobIds: Array.from(selectedJobIds) }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setPendingJobs((prev) => prev.filter((j) => !selectedJobIds.has(j.id)))
+        setSelectedJobIds(new Set())
+        await loadAll()
+      } else {
+        setError(data.error || 'Could not approve those jobs')
+      }
+    } catch {
+      setError('Could not approve those jobs')
+    }
+    setApproving(false)
+  }
+
+  const handleToggleContractorFavorite = async (contractorId: string, isFavorite: boolean) => {
+    setContractors((prev) => prev.map((c) => (c.id === contractorId ? { ...c, isFavorite: !isFavorite } : c)))
+    await fetch('/api/landlord/favorite-contractors', {
+      method: isFavorite ? 'DELETE' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contractorUserId: contractorId }),
+    }).catch(() => {})
+  }
+
   const handleThresholdChange = async (portfolioId: string, value: number) => {
     setClients((prev) => prev.map((c) => (c.id === portfolioId ? { ...c, approvalThreshold: value } : c)))
     await fetch(`/api/pm/clients/${portfolioId}`, {
@@ -322,6 +425,15 @@ export default function PmDashboardPage() {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ monthlySummaryEnabled: value }),
+    })
+  }
+
+  const handleToggleReadOnly = async (portfolioId: string, value: boolean) => {
+    setClients((prev) => prev.map((c) => (c.id === portfolioId ? { ...c, ownerReadOnly: value } : c)))
+    await fetch(`/api/pm/clients/${portfolioId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ownerReadOnly: value }),
     })
   }
 
@@ -435,6 +547,7 @@ export default function PmDashboardPage() {
               <ShieldIcon className="w-5 h-5 text-[#12A5A9] shrink-0" />
               <p className="text-white/70 text-sm">
                 Managed by <span className="text-white font-semibold">{acceptedIncoming[0].orgName}</span>. Approval threshold ${acceptedIncoming[0].approvalThreshold.toFixed(0)} per job.
+                {acceptedIncoming[0].ownerReadOnly && ' They handle job approvals and payments for you.'}
               </p>
             </div>
             {acceptedIncoming[0].managementFee !== null && (
@@ -485,7 +598,7 @@ export default function PmDashboardPage() {
 
         {membership && (
           <>
-            <div className="grid grid-cols-3 gap-3 mb-6">
+            <div className="grid grid-cols-3 gap-3 mb-3">
               <StatTile icon={BuildingIcon} label="Units managed" value={<CountUp value={combinedUnits} />} />
               <StatTile icon={WrenchIcon} label="Open jobs" value={<CountUp value={combinedOpenJobs} />} />
               {membership.canViewFinancials ? (
@@ -494,6 +607,63 @@ export default function PmDashboardPage() {
                 <StatTile icon={ShieldIcon} label="Your role" value="Staff" />
               )}
             </div>
+
+            {membership.canViewFinancials && (
+              <button
+                onClick={handleExportMonth}
+                disabled={exportingMonth}
+                className="flex items-center gap-1.5 text-white/40 hover:text-white/70 text-xs font-semibold mb-6 transition disabled:opacity-50"
+              >
+                <DownloadIcon className="w-3.5 h-3.5" />
+                {exportingMonth ? 'Exporting…' : 'Export this month, every client (CSV)'}
+              </button>
+            )}
+
+            {pendingJobs.length > 0 && (
+              <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-5 mb-6">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-white font-semibold">
+                    Pending approvals <span className="text-white/30 font-normal">({pendingJobs.length})</span>
+                  </h2>
+                  <RippleButton
+                    onClick={handleBulkApprove}
+                    disabled={selectedJobIds.size === 0 || approving}
+                    className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-xl disabled:opacity-50 whitespace-nowrap"
+                  >
+                    {approving ? 'Approving…' : `Approve selected (${selectedJobIds.size})`}
+                  </RippleButton>
+                </div>
+                <p className="text-white/30 text-xs mb-3">Completed work across every client, waiting on your review. Select the ones you've checked and approve them all at once.</p>
+                <div className="space-y-2">
+                  {pendingJobs.map((j) => (
+                    <label key={j.id} className="flex items-center gap-3 bg-white/4 rounded-xl px-3 py-2.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedJobIds.has(j.id)}
+                        onChange={(e) => {
+                          setSelectedJobIds((prev) => {
+                            const next = new Set(prev)
+                            if (e.target.checked) next.add(j.id)
+                            else next.delete(j.id)
+                            return next
+                          })
+                        }}
+                        className="accent-[#12A5A9]"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-white text-sm truncate">
+                          {j.category} <span className="text-white/40">· {j.address}</span>
+                        </p>
+                        <p className="text-white/30 text-xs">{j.ownerName}</p>
+                      </div>
+                      <Link href={`/landlord/jobs/${j.id}`} className="text-[#12A5A9] text-xs font-semibold hover:underline shrink-0">
+                        View
+                      </Link>
+                    </label>
+                  ))}
+                </div>
+              </ScrollReveal>
+            )}
 
             {membership.memberRole === 'admin' && payoutStatus && payoutStatus !== 'active' && (
               <ScrollReveal className="bg-yellow-500/10 border border-yellow-500/25 rounded-xl px-4 py-3 mb-6 flex items-center justify-between gap-3 flex-wrap">
@@ -603,6 +773,17 @@ export default function PmDashboardPage() {
                             Email {c.ownerName} a monthly summary (rent collected, maintenance paid)
                           </label>
                         )}
+                        {membership.memberRole === 'admin' && (
+                          <label className="flex items-center gap-2 text-xs text-white/50 mt-2">
+                            <input
+                              type="checkbox"
+                              checked={c.ownerReadOnly}
+                              onChange={(e) => handleToggleReadOnly(c.id, e.target.checked)}
+                              className="accent-[#12A5A9]"
+                            />
+                            {c.ownerName} is read-only (you handle job approvals and payments)
+                          </label>
+                        )}
                       </div>
                     )}
                   </div>
@@ -684,6 +865,56 @@ export default function PmDashboardPage() {
                 </label>
                 {staffInviteMsg && <p className="text-white/50 text-xs mt-2">{staffInviteMsg}</p>}
               </Collapsible>
+            )}
+
+            {contractors.length > 0 && (
+              <div className="mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowContractors((v) => !v)}
+                  className="flex items-center gap-1.5 text-white/50 text-sm font-semibold hover:text-white/80 transition mb-3"
+                >
+                  Contractor network <span className="text-white/30 font-normal">({contractors.length})</span>{' '}
+                  <ChevronDownIcon className={`w-4 h-4 transition-transform ${showContractors ? 'rotate-180' : ''}`} />
+                </button>
+                <p className="text-white/30 text-xs mb-3">
+                  Everyone your team has hired across every client, so you can reuse someone reliable without re-inviting them for each portfolio.
+                </p>
+                {showContractors && (
+                  <div className="space-y-2">
+                    {contractors.map((c) => (
+                      <div key={c.id} className="bg-white/3 border border-white/8 rounded-xl p-4 flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-white text-sm font-medium truncate">{c.name}</p>
+                            {c.categories.length > 0 && <span className="text-white/40 text-xs capitalize">{c.categories.join(', ')}</span>}
+                          </div>
+                          <p className="text-white/30 text-xs mt-0.5">
+                            {c.jobsCount} job{c.jobsCount === 1 ? '' : 's'} · ${c.totalPaid.toFixed(0)} paid
+                            {c.lastClientAddress ? ` · last at ${c.lastClientAddress}` : ''}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <button
+                            onClick={() => handleToggleContractorFavorite(c.id, c.isFavorite)}
+                            aria-label={c.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                            className={c.isFavorite ? 'text-yellow-400' : 'text-white/30 hover:text-white/60'}
+                          >
+                            <StarIcon className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleMessageContractor(c)}
+                            disabled={messagingContractorId === c.id}
+                            className="text-[#12A5A9] text-xs font-semibold hover:underline disabled:opacity-50"
+                          >
+                            Message
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
 
             {auditLog.length > 0 && (

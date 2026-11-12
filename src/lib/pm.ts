@@ -79,6 +79,50 @@ export async function approvalNeedsOwnerSignoff(
   return { blocked: amount > Number(portfolio.approval_threshold), organizationId: membership.organizationId }
 }
 
+// Every accepted client's owner_user_id for one org -- the piece several
+// PM-wide features (contractor network, bulk approvals, portfolio
+// exports) all need: "every owner this org manages," not "what can this
+// one actor do" (that's getActionableOwnerIdsAdmin, which also folds in
+// co-owner relationships this doesn't need to).
+export async function getOrgManagedOwnerIds(admin: SupabaseClient, organizationId: string): Promise<string[]> {
+  const { data } = await admin
+    .from('pm_client_portfolios')
+    .select('owner_user_id')
+    .eq('organization_id', organizationId)
+    .eq('status', 'accepted')
+  return (data || []).map((r: any) => r.owner_user_id)
+}
+
+// True only when the OWNER themselves (not PM staff/admin) is acting on a
+// client portfolio that's been marked read-only -- this is the one piece
+// of owner_read_only actually enforced server-side; see the schema
+// script's own comment for why it isn't an RLS-level restriction.
+export async function isBlockedByOwnerReadOnly(admin: SupabaseClient, actorUserId: string, ownerUserId: string): Promise<boolean> {
+  if (actorUserId !== ownerUserId) return false
+  const { data } = await admin
+    .from('pm_client_portfolios')
+    .select('owner_read_only')
+    .eq('owner_user_id', ownerUserId)
+    .eq('status', 'accepted')
+    .maybeSingle()
+  return !!data?.owner_read_only
+}
+
+// For the white-label touch on tenant/contractor-facing emails: if this
+// owner is PM-managed, their org's name, else null. Never resolved for
+// the owner/PM's own notifications -- only for the renter/contractor
+// side, where "Managed by X" is a real, useful signal of who's actually
+// behind the message.
+export async function getManagingPmName(admin: SupabaseClient, ownerUserId: string): Promise<string | null> {
+  const { data } = await admin
+    .from('pm_client_portfolios')
+    .select('pm_organizations(name)')
+    .eq('owner_user_id', ownerUserId)
+    .eq('status', 'accepted')
+    .maybeSingle()
+  return (data?.pm_organizations as any)?.name || null
+}
+
 export async function logPmAction(
   admin: SupabaseClient,
   params: {
