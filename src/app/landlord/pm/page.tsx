@@ -49,6 +49,7 @@ function StatTile({ icon: Icon, label, value }: { icon: typeof BuildingIcon; lab
 export default function PmDashboardPage() {
   const [loading, setLoading] = useState(true)
   const [membership, setMembership] = useState<Membership | null>(null)
+  const [pendingStaffInvite, setPendingStaffInvite] = useState<{ id: string; orgName: string } | null>(null)
   const [invites, setInvites] = useState<Invite[]>([])
   const [clients, setClients] = useState<Client[]>([])
   const [staff, setStaff] = useState<Staff[]>([])
@@ -75,6 +76,7 @@ export default function PmDashboardPage() {
         fetch('/api/pm/invites-for-me').then((r) => r.json()),
       ])
       setMembership(orgRes.membership || null)
+      setPendingStaffInvite(orgRes.pendingStaffInvite || null)
       setInvites(invitesRes.managedBy || [])
 
       if (orgRes.membership) {
@@ -191,6 +193,20 @@ export default function PmDashboardPage() {
     await loadAll()
   }
 
+  const handleAcceptStaffInvite = async (id: string) => {
+    await fetch('/api/pm/staff/accept', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ memberId: id }),
+    })
+    await loadAll()
+  }
+
+  const handleDeclineStaffInvite = async (id: string) => {
+    await fetch(`/api/pm/staff/${id}`, { method: 'DELETE' })
+    await loadAll()
+  }
+
   const handleThresholdChange = async (portfolioId: string, value: number) => {
     setClients((prev) => prev.map((c) => (c.portfolioId === portfolioId ? { ...c, approvalThreshold: value } : c)))
     await fetch(`/api/pm/clients/${portfolioId}`, {
@@ -247,6 +263,29 @@ export default function PmDashboardPage() {
 
         {error && (
           <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm mb-6">{error}</div>
+        )}
+
+        {pendingStaffInvite && (
+          <ScrollReveal className="bg-[#12A5A9]/10 border border-[#12A5A9]/25 rounded-2xl p-5 mb-6">
+            <p className="text-white font-semibold mb-1">{pendingStaffInvite.orgName} invited you to their team</p>
+            <p className="text-white/60 text-sm mb-4">
+              You'll be able to manage their clients' properties alongside them. You can leave at any time.
+            </p>
+            <div className="flex gap-3">
+              <RippleButton
+                onClick={() => handleAcceptStaffInvite(pendingStaffInvite.id)}
+                className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-4 py-2 rounded-xl"
+              >
+                Accept
+              </RippleButton>
+              <RippleButton
+                onClick={() => handleDeclineStaffInvite(pendingStaffInvite.id)}
+                className="bg-white/5 border border-white/10 text-white/70 text-sm font-semibold px-4 py-2 rounded-xl"
+              >
+                Decline
+              </RippleButton>
+            </div>
+          </ScrollReveal>
         )}
 
         {pendingInvites.length > 0 && (
@@ -323,7 +362,9 @@ export default function PmDashboardPage() {
 
             <h2 className="text-white font-semibold mb-3">Clients</h2>
             {clients.length === 0 ? (
-              <p className="text-white/40 text-sm mb-6">No accepted clients yet — invite one below.</p>
+              <p className="text-white/40 text-sm mb-6">
+                {membership.memberRole === 'admin' ? 'No accepted clients yet — invite one below.' : 'No accepted clients yet.'}
+              </p>
             ) : (
               <div className="space-y-3 mb-6">
                 {clients.map((c) => (

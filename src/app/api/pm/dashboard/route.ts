@@ -39,7 +39,7 @@ export async function GET() {
   monthStart.setDate(1)
   monthStart.setHours(0, 0, 0, 0)
 
-  const [{ data: properties }, { data: units }, { data: jobs }, rentRes] = await Promise.all([
+  const [propertiesRes, unitsRes, jobsRes, rentRes] = await Promise.all([
     supabaseAdmin.from('properties').select('id, owner_user_id').in('owner_user_id', ownerIds).eq('archived', false),
     supabaseAdmin.from('units').select('id, property_id, properties!inner(owner_user_id)').in('properties.owner_user_id', ownerIds),
     supabaseAdmin
@@ -54,8 +54,31 @@ export async function GET() {
           .in('tenancies.units.properties.owner_user_id', ownerIds)
           .eq('stripe_status', 'succeeded')
           .gte('paid_date', monthStart.toISOString().slice(0, 10))
-      : Promise.resolve({ data: [] as any[] }),
+      : Promise.resolve({ data: [] as any[], error: null }),
   ])
+
+  // Every one of these uses PostgREST's nested-embed filter syntax
+  // (.in('properties.owner_user_id', ...) through an !inner join) --
+  // an already-proven pattern elsewhere in this codebase (e.g.
+  // invite-contractor/route.ts's .eq('jobs.units.properties.owner_user_id', ...)),
+  // but Supabase's client never throws on a query error, just returns
+  // { data: null, error } -- silently treating that as "zero results"
+  // here would make a malformed filter look like an empty portfolio
+  // instead of a bug. Logged, not surfaced to the response: a partial
+  // dashboard (e.g. rent figures failed but unit counts didn't) is more
+  // useful to a PM than a hard 500.
+  for (const [name, res] of [
+    ['properties', propertiesRes],
+    ['units', unitsRes],
+    ['jobs', jobsRes],
+    ['rent', rentRes],
+  ] as const) {
+    if (res.error) console.error(`pm/dashboard: ${name} query failed`, res.error)
+  }
+
+  const properties = propertiesRes.data
+  const units = unitsRes.data
+  const jobs = jobsRes.data
 
   const propertyCountByOwner = new Map<string, number>()
   for (const p of (properties || []) as any[]) propertyCountByOwner.set(p.owner_user_id, (propertyCountByOwner.get(p.owner_user_id) || 0) + 1)

@@ -52,7 +52,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   const ownerId = portfolio.owner_user_id
 
-  const [{ data: rent }, { data: jobs }] = await Promise.all([
+  const [rentRes, jobsRes] = await Promise.all([
     supabaseAdmin
       .from('rent_payments')
       .select('id, paid_date, actual_amount, payment_method, tenancies!inner(units!inner(unit_number, property_id, properties!inner(address, owner_user_id)))')
@@ -68,6 +68,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       .gte('paid_at', monthStart)
       .lt('paid_at', monthEnd),
   ])
+
+  // See pm/dashboard's own comment: Supabase never throws on a query
+  // error, it just returns { data: null, error } -- silently treating
+  // that as "nothing happened this month" would hide a real bug behind
+  // what looks like a quiet, legitimately empty statement.
+  if (rentRes.error) console.error('pm/statement: rent query failed', rentRes.error)
+  if (jobsRes.error) console.error('pm/statement: jobs query failed', jobsRes.error)
+  const rent = rentRes.data
+  const jobs = jobsRes.data
 
   const place = (p: any) => `${p?.address || ''}${p?.unit_number ? `, Unit ${p.unit_number}` : ''}`
 

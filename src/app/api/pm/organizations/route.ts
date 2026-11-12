@@ -5,8 +5,13 @@ import { getPmMembership } from '@/lib/pm'
 
 export const maxDuration = 20
 
-// Fetch the caller's org (as admin or staff), or null if they aren't in
-// one yet.
+// Fetch the caller's org (as an accepted admin or staff member), or null
+// if they aren't in one yet. Separately surfaces a PENDING staff invite
+// (if any) -- getPmMembership only ever matches status='accepted', so
+// without this a genuine pending team invite was completely invisible:
+// nothing in the UI ever read pm_organization_members' pending rows, so
+// an invited teammate had no way to even see, let alone accept, their
+// own invite. Caught in testing, not by a user report.
 export async function GET() {
   const authClient = await createClient()
   const { data: { user } } = await authClient.auth.getUser()
@@ -16,7 +21,26 @@ export async function GET() {
 
   const supabaseAdmin = getSupabaseAdmin()
   const membership = await getPmMembership(supabaseAdmin, user.id)
-  return NextResponse.json({ membership })
+
+  let pendingStaffInvite: { id: string; orgName: string } | null = null
+  if (!membership) {
+    // No uniqueness constraint blocks more than one PENDING staff invite
+    // (only an accepted one), so this takes the most recent rather than
+    // assuming exactly one row -- .maybeSingle() would error on a second
+    // pending invite instead of degrading gracefully.
+    const { data: pending } = await supabaseAdmin
+      .from('pm_organization_members')
+      .select('id, pm_organizations(name)')
+      .eq('user_id', user.id)
+      .eq('status', 'pending')
+      .order('invited_at', { ascending: false })
+      .limit(1)
+    if (pending?.[0]) {
+      pendingStaffInvite = { id: pending[0].id, orgName: (pending[0].pm_organizations as any)?.name || 'A property manager' }
+    }
+  }
+
+  return NextResponse.json({ membership, pendingStaffInvite })
 }
 
 // Creates a new PM organization with the caller as its one Admin. A

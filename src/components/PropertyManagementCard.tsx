@@ -26,6 +26,8 @@ export function PropertyManagementCard() {
               ? `Admin of ${orgData.membership.organizationName}`
               : `Staff at ${orgData.membership.organizationName}`
           )
+        } else if (orgData?.pendingStaffInvite) {
+          setSummary(`${orgData.pendingStaffInvite.orgName} invited you to their team`)
         } else {
           const pending = (invitesData?.managedBy || []).find((m: any) => m.status === 'pending')
           const accepted = (invitesData?.managedBy || []).find((m: any) => m.status === 'accepted')
