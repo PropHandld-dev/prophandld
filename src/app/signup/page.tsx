@@ -9,10 +9,14 @@ import { AuthLayout } from '@/components/AuthLayout'
 import { AuthInput } from '@/components/AuthInput'
 import { MailIcon, LockIcon } from '@/components/icons'
 import { RolePicker, type Role, type RoleIntent } from '@/components/RolePicker'
+import { LegalModal } from '@/components/legal/LegalModal'
+import { LandlordTermsContent } from '@/components/legal/LandlordTermsContent'
+import { RenterTermsContent } from '@/components/legal/RenterTermsContent'
+import { ContractorTermsContent } from '@/components/legal/ContractorTermsContent'
+import { PrivacyContent } from '@/components/legal/PrivacyContent'
 import { SITE_URL } from '@/lib/site'
 import { setAppMetadataRole } from '@/lib/setAppMetadataRole'
 import { LINKED_PROFILES_ENABLED } from '@/lib/featureFlags'
-import { useIsNativePlatform } from '@/lib/useIsNativePlatform'
 import { t, roleLabel, type Lang } from '@/lib/i18n'
 import { formatTierPrice, formatAiAssistPrice } from '@/lib/pricingTiers'
 
@@ -93,7 +97,6 @@ function UnitPriceEstimator({ lang, units, onUnitsChange }: { lang: Lang; units:
 
 function SignupForm() {
   const router = useRouter()
-  const isNative = useIsNativePlatform()
   const searchParams = useSearchParams()
   const initialRole = searchParams.get('role') as Role | null
   const referrerId = searchParams.get('ref')
@@ -130,6 +133,16 @@ function SignupForm() {
   const [verifyingCode, setVerifyingCode] = useState(false)
   const [otpError, setOtpError] = useState<string | null>(null)
   const [agreedToTerms, setAgreedToTerms] = useState(false)
+  // Which legal doc is open in the in-page modal, if any -- reviewing
+  // Terms/Privacy no longer navigates away from signup at all (not even
+  // in a new tab), which is what used to let someone end up back on the
+  // marketing homepage via the legal page's own "Back home" link. The
+  // reviewed flags are just a lightweight on-screen confirmation; the
+  // real, binding record is still record_terms_acceptance's own
+  // server-side timestamp+version, unchanged by this.
+  const [legalModal, setLegalModal] = useState<'terms' | 'privacy' | null>(null)
+  const [reviewedTerms, setReviewedTerms] = useState(false)
+  const [reviewedPrivacy, setReviewedPrivacy] = useState(false)
   // Lifted out of UnitPriceEstimator so the Prophandld AI price line right below
   // it can scale with the same number instead of showing a hardcoded
   // $4.99 regardless of how many units someone actually enters.
@@ -722,11 +735,44 @@ function SignupForm() {
           />
           <span>
             {t('agreeToTermsPrefix', lang)}{' '}
-            <Link href={role ? `/terms/${role}` : '/terms'} target={isNative ? undefined : '_blank'} className="text-[#12A5A9]/80 hover:underline">{t('termsOfService', lang)}</Link>
+            <button type="button" onClick={() => setLegalModal('terms')} className="text-[#12A5A9]/80 hover:underline">
+              {t('termsOfService', lang)}
+            </button>
+            {reviewedTerms && <span className="text-[#12A5A9]/70"> ✓ reviewed</span>}
             {' '}{t('agreeToTermsMiddle', lang)}{' '}
-            <Link href="/privacy" target={isNative ? undefined : '_blank'} className="text-[#12A5A9]/80 hover:underline">{t('privacyPolicy', lang)}</Link>{t('agreeToTermsSuffix', lang)}.
+            <button type="button" onClick={() => setLegalModal('privacy')} className="text-[#12A5A9]/80 hover:underline">
+              {t('privacyPolicy', lang)}
+            </button>
+            {reviewedPrivacy && <span className="text-[#12A5A9]/70"> ✓ reviewed</span>}
+            {t('agreeToTermsSuffix', lang)}.
           </span>
         </label>
+
+        {legalModal === 'terms' && (
+          <LegalModal
+            title={t('termsOfService', lang)}
+            lastUpdated="November 6, 2026"
+            onClose={() => {
+              setLegalModal(null)
+              setReviewedTerms(true)
+            }}
+          >
+            {role === 'renter' ? <RenterTermsContent /> : role === 'contractor' ? <ContractorTermsContent /> : <LandlordTermsContent />}
+          </LegalModal>
+        )}
+
+        {legalModal === 'privacy' && (
+          <LegalModal
+            title={t('privacyPolicy', lang)}
+            lastUpdated="November 6, 2026"
+            onClose={() => {
+              setLegalModal(null)
+              setReviewedPrivacy(true)
+            }}
+          >
+            <PrivacyContent />
+          </LegalModal>
+        )}
 
         <RippleButton
           type="submit"

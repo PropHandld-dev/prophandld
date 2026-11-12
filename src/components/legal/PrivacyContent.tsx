@@ -1,0 +1,139 @@
+import Link from 'next/link'
+
+export function PrivacyContent() {
+  return (
+    <>
+      <section>
+            <h2>1. What we collect</h2>
+            <p>To run the platform, we collect:</p>
+            <ul>
+              <li><strong className="text-white/80">Account info:</strong> name, email, phone number, role (landlord/renter/contractor), preferred language. If you choose to link more than one role to your identity, each linked profile shares this same contact info so notifications for any of them reach you.</li>
+              <li><strong className="text-white/80">Property data:</strong> addresses, unit details, tenancy terms, rent amounts, entered by landlords</li>
+              <li><strong className="text-white/80">Third-party data landlords provide:</strong> a landlord may enter a renter's or co-owner's name, email, or phone number before that person has signed up, for example to record a tenancy or send an invite. See below for the landlord's responsibility when doing this.</li>
+              <li><strong className="text-white/80">Job data:</strong> maintenance descriptions, categories, bids, photos, and documents you upload</li>
+              <li><strong className="text-white/80">Contractor verification:</strong> license numbers, license/insurance documents, if you submit them for review</li>
+              <li><strong className="text-white/80">Usage data:</strong> pages visited and actions taken, collected automatically to understand how the product is used</li>
+              <li><strong className="text-white/80">Location:</strong> a property's address is geocoded to approximate coordinates, used to match jobs with nearby contractors by service area</li>
+            </ul>
+            <p>
+              When a landlord provides personal data about a renter, co-owner, or contractor who
+              hasn't yet created their own account, the landlord represents that they have the right
+              under applicable law to share that person's information with Prophandld for managing
+              the tenancy or property, including any consent that law requires. A renter or
+              contractor who receives an unwanted notification as a result can ask us to stop at any
+              time (see Section 5).
+            </p>
+          </section>
+
+          <section>
+            <h2>2. How we use it</h2>
+            <p>
+              We use your data to run the core functions of the platform: matching jobs to
+              contractors in range, notifying the right people when something happens (a new issue,
+              a bid, a schedule confirmation), showing landlords and renters what's relevant to their
+              own properties and units, and improving the product based on how it's actually used.
+              We don't sell your personal data.
+            </p>
+          </section>
+
+          <section>
+            <h2>3. Who we share it with</h2>
+            <p>
+              We use a small number of service providers to run Prophandld, and your data passes
+              through them as part of normal operation:
+            </p>
+            <ul>
+              <li><strong className="text-white/80">Supabase:</strong> our database, authentication, and file storage provider. Nearly everything you enter is stored here.</li>
+              <li><strong className="text-white/80">Stripe:</strong> processes job payments, contractor payouts, and rent paid by debit card or bank transfer. Stripe handles your card and bank account details directly; Prophandld never sees or stores them.</li>
+              <li><strong className="text-white/80">Twilio:</strong> sends text message alerts if you opt in to SMS notifications. We do not sell or share your SMS opt-in data or personal information with third parties for marketing purposes.</li>
+              <li><strong className="text-white/80">Resend:</strong> sends transactional emails (job notifications, invites, password resets) on our behalf.</li>
+              <li><strong className="text-white/80">PostHog:</strong> product analytics, so we can see which features are actually being used.</li>
+              <li><strong className="text-white/80">Sentry:</strong> error tracking, so we know when something breaks.</li>
+              <li><strong className="text-white/80">Vercel:</strong> hosts the application itself.</li>
+              <li><strong className="text-white/80">Google Cloud Translation:</strong> translates a chat message if you tap "See translation" on it. Only that specific message's text is sent, only when you tap it. Nothing is translated automatically.</li>
+              <li><strong className="text-white/80">Google Maps / Places:</strong> powers address autocomplete when a landlord enters a property, and the map view of a portfolio. What you type into an address field is sent to Google as you type it, the same as any address-autocomplete field on the web.</li>
+              <li><strong className="text-white/80">Anthropic:</strong> powers Prophandld AI (AI Assist), the optional, paid add-on a landlord turns on for their own account, including the in-app help assistant (the chat bubble that answers "how do I..." questions and basic facts about your own account, like how many properties or open jobs you have). Whatever a specific feature needs (a job description and photo for a troubleshooting suggestion, an uploaded lease or compliance document, your own account details for the help assistant) is sent to Anthropic's API only when it's on for your landlord's account. Nothing from these features is sent for anyone whose landlord hasn't turned it on, and a renter's help assistant rides on their own landlord's status, not a separate one. Contractors don't have access to Prophandld AI, including the help assistant.</li>
+            </ul>
+            <p>
+              Within the platform, your data is also visible to other users where it needs to be.
+              For example, a landlord sees their renters' reported issues and contact info; a
+              contractor with an accepted bid sees the property address and unit for that job.
+              Tenant-facing views are deliberately limited. For instance, renters never see bid
+              amounts or other contractors' information during sealed bidding. If a landlord invites
+              a co-owner to manage their properties, that co-owner can see the same tenant, job, rent,
+              and compliance data the landlord can. The landlord decides who they invite, and a
+              tenant's landlord-of-record doesn't change by adding one.
+            </p>
+          </section>
+
+          <section>
+            <h2>4. Data retention & deletion</h2>
+            <p>
+              We keep your data for as long as your account is active. If you delete your account,
+              we permanently delete your personal information and associated records (jobs, bids,
+              messages, and documents) right away. This is irreversible — we can't recover it
+              afterward, including for an open dispute or a recent maintenance job, so make sure you
+              don't need anything from your account before deleting it. The facts of any completed
+              payment (amount, date, and method, with no name or contact info attached) are kept for
+              7 years before being purged, for the same tax and accounting recordkeeping reasons any
+              business keeps financial records.
+            </p>
+          </section>
+
+          <section>
+            <h2>5. Your rights</h2>
+            <p>
+              You can access, correct, or request deletion of your personal data at any time by
+              emailing us. If you're in a jurisdiction with specific data protection rights (like
+              GDPR or CCPA), we'll honor requests consistent with those laws.
+            </p>
+          </section>
+
+          <section>
+            <h2>6. Cookies & tracking</h2>
+            <p>
+              We use cookies and similar technology to keep you signed in and to understand product
+              usage through PostHog. We don't use tracking for third-party advertising.
+            </p>
+          </section>
+
+          <section>
+            <h2>7. Children's privacy</h2>
+            <p>
+              Prophandld is not intended for anyone under 18. We don't knowingly collect data from
+              children.
+            </p>
+          </section>
+
+          <section>
+            <h2>8. Security</h2>
+            <p>
+              We use reasonable technical and organizational measures to protect your data:
+              encryption in transit, access controls, and the security practices of the providers
+              listed in Section 3. No system is perfectly secure, though. If we learn of a breach
+              affecting your personal information, we'll notify affected users and relevant
+              authorities as required by law, without unreasonable delay. You can help by using a
+              strong, unique password and reporting any suspicious activity on your account to{' '}
+              <a href="mailto:admin@prophandld.com" className="text-[#12A5A9] hover:underline">admin@prophandld.com</a>{' '}
+              right away.
+            </p>
+          </section>
+
+          <section>
+            <h2>9. Changes to this policy</h2>
+            <p>
+              We'll update the date at the top of this page whenever this policy changes, and for
+              significant changes, we'll make a reasonable effort to let you know directly.
+            </p>
+          </section>
+
+          <section>
+            <h2>10. Contact</h2>
+            <p>
+              Questions about your data? Reach out at{' '}
+              <a href="mailto:admin@prophandld.com" className="text-[#12A5A9] hover:underline">admin@prophandld.com</a>.
+            </p>
+          </section>
+    </>
+  )
+}
