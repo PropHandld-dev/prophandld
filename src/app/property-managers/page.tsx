@@ -37,12 +37,12 @@ const COMPARISON_ROWS: { label: string; typical: string; prophandld: string }[] 
 ]
 
 const FAQS: { q: string; a: string }[] = [
-  { q: 'Do I need a new kind of account?', a: "No — you sign up as a regular Prophandld landlord account, then create your property management organization from your dashboard in under a minute. That same login is where your own properties (if you have any) and every client's portfolio both live." },
-  { q: 'Can my team have different access levels?', a: "Yes. Invite teammates by email and choose whether they can see financial details (rent totals, payment amounts) or just operate day-to-day — posting and approving maintenance jobs. You can change this any time." },
-  { q: 'What happens with a repair that costs more than expected?', a: "You set a dollar threshold per client when you take them on. Anything at or under it, you handle yourself. Anything over it needs that specific owner's own approval in the app before a contractor gets paid — automatic, no awkward phone call needed, and it's all logged." },
+  { q: 'Do I need a new kind of account?', a: "No. You sign up as a regular Prophandld landlord account, then create your property management organization from your dashboard in under a minute. That same login is where your own properties (if you have any) and every client's portfolio both live." },
+  { q: 'Can my team have different access levels?', a: "Yes. Invite teammates by email and choose whether they can see financial details (rent totals, payment amounts) or just operate day-to-day, posting and approving maintenance jobs. You can change this any time." },
+  { q: 'What happens with a repair that costs more than expected?', a: "You set a dollar threshold per client when you take them on. Anything at or under it, you handle yourself. Anything over it needs that specific owner's own approval in the app before a contractor gets paid, automatic, no awkward phone call needed, and it's all logged." },
   { q: 'Does Prophandld collect rent on my clients’ behalf?', a: "Not yet, and we're being upfront about that rather than overselling it: rent still runs through each owner's own account exactly as it does today, so nobody's funds pass through a third party that isn't licensed to hold them. We're working through what that would take to do properly and legally before ever touching it." },
-  { q: 'What does it cost?', a: "Pricing follows the same per-unit structure as a regular landlord account, totaled across every client portfolio you manage — no separate PM price list to learn. See our pricing page for current rates." },
-  { q: 'Can an owner still see their own data?', a: "Yes. The owner you invite keeps their own full account and sees their own properties, jobs, rent, and compliance exactly as before — you're managing alongside them, not replacing their access to their own information." },
+  { q: 'What does it cost?', a: "Pricing follows the same per-unit structure as a regular landlord account, totaled across every client portfolio you manage. No separate PM price list to learn. See our pricing page for current rates." },
+  { q: 'Can an owner still see their own data?', a: "Yes. The owner you invite keeps their own full account and sees their own properties, jobs, rent, and compliance exactly as before. You're managing alongside them, not replacing their access to their own information." },
 ]
 
 export default function PropertyManagersLandingPage() {
@@ -89,7 +89,7 @@ export default function PropertyManagersLandingPage() {
           Manage every landlord client&apos;s properties, maintenance, and
           compliance from a single dashboard. A portfolio switcher for each
           client, staff access you control, and approval thresholds that keep
-          owners in the loop automatically — without a phone call for every
+          owners in the loop automatically, without a phone call for every
           repair.
         </p>
         <div className="flex items-center justify-center gap-4 flex-wrap">
@@ -131,7 +131,7 @@ export default function PropertyManagersLandingPage() {
         <ScrollReveal className="max-w-3xl mx-auto px-6">
           <h2 className="text-3xl font-bold text-center mb-3 text-white">How this compares to running it by hand</h2>
           <p className="text-white/50 text-center max-w-2xl mx-auto mb-12">
-            You already know the drill — spreadsheets per client, texts for approvals. Here&apos;s the honest side-by-side.
+            You already know the drill: spreadsheets per client, texts for approvals. Here&apos;s the honest side-by-side.
           </p>
           <div className="bg-white/3 border border-white/8 rounded-2xl overflow-hidden">
             <div className="hidden sm:grid grid-cols-3 text-xs font-semibold uppercase tracking-wide text-white/40 px-5 py-3 border-b border-white/8">
@@ -175,12 +175,12 @@ export default function PropertyManagersLandingPage() {
             <div className="bg-white/3 border border-white/8 rounded-2xl p-6">
               <DollarSignIcon className="w-5 h-5 text-[#12A5A9] mb-3" />
               <h3 className="text-white font-semibold mb-1.5">Clear financial reporting</h3>
-              <p className="text-white/50 text-sm leading-relaxed">Per-client statements your team (or your client) can pull any time — no digging through months of messages to answer "what did we spend here?"</p>
+              <p className="text-white/50 text-sm leading-relaxed">Per-client statements your team (or your client) can pull any time, no digging through months of messages to answer "what did we spend here?"</p>
             </div>
             <div className="bg-white/3 border border-white/8 rounded-2xl p-6">
               <ShieldIcon className="w-5 h-5 text-[#12A5A9] mb-3" />
               <h3 className="text-white font-semibold mb-1.5">Your client stays in control</h3>
-              <p className="text-white/50 text-sm leading-relaxed">They keep their own full account and can see everything you do on their behalf, and remove your access at any time — nothing hidden.</p>
+              <p className="text-white/50 text-sm leading-relaxed">They keep their own full account and can see everything you do on their behalf, and remove your access at any time. Nothing hidden.</p>
             </div>
           </div>
         </ScrollReveal>

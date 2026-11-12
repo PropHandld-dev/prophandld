@@ -15,6 +15,9 @@ type Status = {
   hasStripeCustomer: boolean
   cancelAtPeriodEnd: boolean
   currentPeriodEnd: string | null
+  daysLeftInTrial: number | null
+  trialExpired: boolean
+  freeForever: boolean
 }
 
 export function BillingSection() {
@@ -158,6 +161,18 @@ export function BillingSection() {
           </span>
         )}
       </div>
+
+      {/* The API this reads (subscription/status) already computed
+          daysLeftInTrial/trialExpired server-side -- this card just never
+          rendered either value, the same trial countdown AiAssistCard
+          already shows for its own trial right below this. */}
+      {!status.hasActiveSubscription && !status.freeForever && status.daysLeftInTrial !== null && (
+        <p className={`text-xs font-semibold mb-4 ${status.trialExpired ? 'text-yellow-400/90' : 'text-[#12A5A9]'}`}>
+          {status.trialExpired
+            ? 'Your trial has ended — subscribe to keep your properties active.'
+            : `Trial ends in ${status.daysLeftInTrial} day${status.daysLeftInTrial === 1 ? '' : 's'}.`}
+        </p>
+      )}
 
       {status.cancelAtPeriodEnd && status.currentPeriodEnd && (
         <p className="text-yellow-400/90 text-xs font-semibold mb-4">

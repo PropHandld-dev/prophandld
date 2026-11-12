@@ -665,6 +665,57 @@ export async function sendPmStaffInviteEmail({
   return sendEmail({ to, subject: lang === 'es' ? `${pmOrgName} te invitó a su equipo` : `${pmOrgName} invited you to their team`, html })
 }
 
+// PM-admin-controlled, opt-in per client (see cron/pm-monthly-summary) --
+// a plain-language rollup of a month this owner's PM already has, so
+// they see it without having to ask or log in and dig through the
+// combined dashboard themselves.
+export async function sendPmMonthlySummaryEmail({
+  to,
+  ownerName,
+  pmOrgName,
+  monthLabel,
+  totalIncome,
+  totalExpenses,
+  net,
+  lang = 'en',
+}: {
+  to: string
+  ownerName: string
+  pmOrgName: string
+  monthLabel: string
+  totalIncome: number
+  totalExpenses: number
+  net: number
+  lang?: Lang
+}) {
+  const html = lang === 'es' ? baseTemplate({
+    lang,
+    eyebrow: 'Resumen mensual',
+    heading: `Tu resumen de ${monthLabel}`,
+    bodyHtml: `Hola ${escapeHtml(ownerName)}, aquí tienes el resumen de ${escapeHtml(monthLabel)} de <strong>${escapeHtml(pmOrgName)}</strong> para tu propiedad.`,
+    facts: [
+      { label: fl('Renta cobrada', lang), value: `$${totalIncome.toFixed(2)}` },
+      { label: fl('Mantenimiento pagado', lang), value: `$${totalExpenses.toFixed(2)}` },
+      { label: fl('Neto', lang), value: `$${net.toFixed(2)}` },
+    ],
+    ctaLabel: 'Ver detalles',
+    ctaUrl: `${SITE_URL}/landlord/pm`,
+  }) : baseTemplate({
+    lang,
+    eyebrow: 'Monthly summary',
+    heading: `Your ${monthLabel} summary`,
+    bodyHtml: `Hi ${escapeHtml(ownerName)}, here's <strong>${escapeHtml(pmOrgName)}</strong>'s ${monthLabel} summary for your property.`,
+    facts: [
+      { label: fl('Rent collected', lang), value: `$${totalIncome.toFixed(2)}` },
+      { label: fl('Maintenance paid', lang), value: `$${totalExpenses.toFixed(2)}` },
+      { label: fl('Net', lang), value: `$${net.toFixed(2)}` },
+    ],
+    ctaLabel: 'View details',
+    ctaUrl: `${SITE_URL}/landlord/pm`,
+  })
+  return sendEmail({ to, subject: lang === 'es' ? `Tu resumen de ${monthLabel}` : `Your ${monthLabel} summary`, html })
+}
+
 // Same reasoning as sendRenterInviteEmail: pre-signup, no known preference.
 export async function sendContractorInviteEmail({
   to,

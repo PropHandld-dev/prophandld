@@ -21,6 +21,12 @@ export default function PropertiesPage() {
   const router = useRouter()
   const lang = useLanguage()
   const [properties, setProperties] = useState<any[]>([])
+  // Set only when this viewer's own list spans more than one owner (a
+  // co-owner, or a PM managing several clients) -- the list query already
+  // mixed every managed owner's properties together with nothing telling
+  // them apart, which is fine for one portfolio but genuinely confusing
+  // once there's more than one owner in the mix.
+  const [ownerNames, setOwnerNames] = useState<Map<string, string>>(new Map())
   const [loading, setLoading] = useState(true)
   const [showArchived, setShowArchived] = useState(false)
   const [search, setSearch] = useState('')
@@ -70,6 +76,13 @@ export default function PropertiesPage() {
     )
     setProperties(data)
     setLoading(false)
+
+    if (landlordIds.length > 1) {
+      const { data: owners } = await supabase.from('users').select('id, full_name').in('id', landlordIds)
+      setOwnerNames(new Map((owners || []).map((o: any) => [o.id, o.id === user.id ? 'You' : o.full_name || 'Owner'])))
+    } else {
+      setOwnerNames(new Map())
+    }
   }
 
   useEffect(() => {
@@ -267,6 +280,11 @@ export default function PropertiesPage() {
                         <p className="text-white/50 text-sm mt-1">{property.city}, {property.state} {property.zip}</p>
                         <div className="flex items-center gap-3 mt-3">
                           <span className="text-xs bg-white/8 text-white/60 rounded-full px-3 py-1 capitalize">{property.property_type}</span>
+                          {ownerNames.size > 0 && (
+                            <span className="text-xs bg-[#0A7B7E]/15 text-[#12A5A9] rounded-full px-3 py-1">
+                              {ownerNames.get(property.owner_user_id) || 'Owner'}
+                            </span>
+                          )}
                           {property.archived && (
                             <span className="text-xs bg-yellow-500/10 text-yellow-400/70 border border-yellow-500/20 rounded-full px-3 py-1">
                               {t('archivedBadge', lang)}

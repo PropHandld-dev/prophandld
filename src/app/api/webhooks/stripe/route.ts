@@ -368,6 +368,22 @@ export async function POST(request: NextRequest) {
             await sendJobPaymentNotifications(supabaseAdmin, { bidId, baseAmountPaid, cardSurcharge })
           }
         }
+
+        if (type === 'pm_management_fee') {
+          // A direct charge, same as rent -- arrives as a connected-account
+          // event (event.account set), not a platform event the way
+          // job_payment's destination charge above does.
+          const portfolioId = paymentIntent.metadata?.prophandld_portfolio_id
+          if (portfolioId && event.account) {
+            const { error } = await supabaseAdmin
+              .from('pm_fee_payments')
+              .update({ status: 'paid', paid_at: new Date().toISOString() })
+              .eq('portfolio_id', portfolioId)
+              .eq('stripe_payment_intent_id', paymentIntent.id)
+              .neq('status', 'paid')
+            if (error) console.error('stripe webhook: pm_management_fee payment_intent.succeeded failed', error)
+          }
+        }
         break
       }
 

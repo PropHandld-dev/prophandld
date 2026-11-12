@@ -76,6 +76,11 @@ export default function LandlordDashboard() {
   // counts in the same account with no indication why — real numbers, not
   // a bug, just needing a one-line explanation wherever both appear.
   const [managesOtherPortfolios, setManagesOtherPortfolios] = useState(false)
+  // Set when this account is a PM org admin/staff -- swaps the dashboard's
+  // "Landlord Dashboard" eyebrow label, which read as flatly wrong to
+  // someone who signed up specifically as a Property Manager (confirmed
+  // live: they still land here routinely, not just on /landlord/pm).
+  const [pmOrgName, setPmOrgName] = useState<string | null>(null)
   const [newIssues, setNewIssues] = useState<any[]>([])
   const [readyToBid, setReadyToBid] = useState<any[]>([])
   const [priceChangeRequests, setPriceChangeRequests] = useState<any[]>([])
@@ -138,6 +143,11 @@ export default function LandlordDashboard() {
 
       const landlordIds = await getLandlordIds(supabase, user.id)
       setManagesOtherPortfolios(landlordIds.some((id) => id !== user.id))
+
+      fetch('/api/pm/organizations')
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => setPmOrgName(data?.membership?.organizationName || null))
+        .catch(() => {})
 
       // Paged: Supabase silently caps a single response at 1000 rows and
       // drops the rest with no error. The top pricing tier now goes to
@@ -547,7 +557,7 @@ export default function LandlordDashboard() {
         ) : (
           <>
             <div className="mb-8" data-tour="welcome">
-              <p className="text-[#12A5A9] text-xs font-semibold uppercase tracking-wide mb-1.5">{t('landlordDashboardLabel', lang)}</p>
+              <p className="text-[#12A5A9] text-xs font-semibold uppercase tracking-wide mb-1.5">{pmOrgName || t('landlordDashboardLabel', lang)}</p>
               <h1 className="text-3xl font-bold text-white tracking-tight">
                 {t('welcomeBack', lang)}{' '}
                 <Link href="/profile" className="hover:text-[#12A5A9] transition">

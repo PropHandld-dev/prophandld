@@ -20,14 +20,40 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return NextResponse.json({ error: 'Only a PM organization admin can change a client’s threshold' }, { status: 403 })
   }
 
-  const { approvalThreshold } = (await request.json().catch(() => ({}))) as { approvalThreshold?: number }
-  if (typeof approvalThreshold !== 'number' || approvalThreshold < 0) {
-    return NextResponse.json({ error: 'Invalid threshold' }, { status: 400 })
+  const body = (await request.json().catch(() => ({}))) as {
+    approvalThreshold?: number
+    managementFee?: number | null
+    managementFeeFrequency?: 'one_time' | 'monthly' | null
+    monthlySummaryEnabled?: boolean
+  }
+
+  const update: Record<string, unknown> = {}
+  if (body.approvalThreshold !== undefined) {
+    if (typeof body.approvalThreshold !== 'number' || body.approvalThreshold < 0) {
+      return NextResponse.json({ error: 'Invalid threshold' }, { status: 400 })
+    }
+    update.approval_threshold = body.approvalThreshold
+  }
+  if (body.managementFee !== undefined) {
+    if (body.managementFee !== null && (typeof body.managementFee !== 'number' || body.managementFee < 0)) {
+      return NextResponse.json({ error: 'Invalid management fee' }, { status: 400 })
+    }
+    update.management_fee = body.managementFee
+    update.management_fee_frequency = body.managementFee === null ? null : body.managementFeeFrequency || 'monthly'
+  }
+  if (body.monthlySummaryEnabled !== undefined) {
+    if (typeof body.monthlySummaryEnabled !== 'boolean') {
+      return NextResponse.json({ error: 'Invalid value' }, { status: 400 })
+    }
+    update.monthly_summary_enabled = body.monthlySummaryEnabled
+  }
+  if (Object.keys(update).length === 0) {
+    return NextResponse.json({ error: 'Nothing to update' }, { status: 400 })
   }
 
   const { data: updated, error } = await supabaseAdmin
     .from('pm_client_portfolios')
-    .update({ approval_threshold: approvalThreshold })
+    .update(update)
     .eq('id', portfolioId)
     .eq('organization_id', membership.organizationId)
     .select('id')

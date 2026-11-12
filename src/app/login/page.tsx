@@ -168,6 +168,15 @@ function LoginForm() {
           body: JSON.stringify({ referrerId }),
         }).catch((err) => console.error('login: could not record referral', err))
       }
+      // Same reasoning as referrerId right above -- the AI Assist opt-in
+      // checkbox on signup can only land in user_metadata at signUp()
+      // time, and start-trial needs app_metadata.role (just set on the
+      // line above this) before it'll accept the call.
+      if (user.user_metadata?.ai_assist_opt_in) {
+        fetch('/api/ai-assist/start-trial', { method: 'POST' }).catch((err) =>
+          console.error('login: could not start AI assist trial from signup opt-in', err)
+        )
+      }
     }
     if (accountRole === 'renter') {
       // A renter's real first entry into the app now happens here, not on

@@ -2,21 +2,32 @@
 
 import { useEffect, useState, useCallback, type ReactNode } from 'react'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { CountUp } from '@/components/CountUp'
-import { BuildingIcon, WrenchIcon, DollarSignIcon, PlusIcon, CheckCircleIcon, ShieldIcon } from '@/components/icons'
+import { BuildingIcon, WrenchIcon, DollarSignIcon, PlusIcon, ShieldIcon, ChevronDownIcon } from '@/components/icons'
+
+const StripePaymentModal = dynamic(() => import('@/components/StripePaymentModal').then((m) => m.StripePaymentModal), { ssr: false })
 
 type Membership = { organizationId: string; organizationName: string; memberRole: 'admin' | 'staff'; canViewFinancials: boolean }
-type Client = {
-  portfolioId: string
+// Every client this org has ever invited, any status -- from
+// /api/pm/clients, which already returned this and was simply never
+// read anywhere. Merged with /api/pm/dashboard's stats (accepted only;
+// a pending invite has no portfolio to report on yet).
+type ClientRow = {
+  id: string
   ownerUserId: string
   ownerName: string
   approvalThreshold: number
-  propertyCount: number
-  unitCount: number
-  openJobCount: number
-  rentCollectedThisMonth: number | null
+  managementFee: number | null
+  managementFeeFrequency: 'one_time' | 'monthly' | null
+  monthlySummaryEnabled: boolean
+  status: 'pending' | 'accepted'
+  propertyCount?: number
+  unitCount?: number
+  openJobCount?: number
+  rentCollectedThisMonth?: number | null
 }
 type Staff = {
   id: string
@@ -27,7 +38,14 @@ type Staff = {
   status: 'pending' | 'accepted'
 }
 type AuditEntry = { id: string; action: string; amount: number | null; createdAt: string; ownerName: string; actorName: string }
-type Invite = { id: string; orgName: string; status: 'pending' | 'accepted'; approvalThreshold: number }
+type IncomingInvite = {
+  id: string
+  orgName: string
+  status: 'pending' | 'accepted'
+  approvalThreshold: number
+  managementFee: number | null
+  managementFeeFrequency: 'one_time' | 'monthly' | null
+}
 
 const ACTION_LABELS: Record<string, string> = {
   job_payment_started: 'approved a job payment',
@@ -46,15 +64,52 @@ function StatTile({ icon: Icon, label, value }: { icon: typeof BuildingIcon; lab
   )
 }
 
+function StatusPill({ status }: { status: 'pending' | 'accepted' }) {
+  return status === 'accepted' ? (
+    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#0A7B7E]/20 text-[#12A5A9]">Active</span>
+  ) : (
+    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-yellow-500/15 text-yellow-400">Invite pending</span>
+  )
+}
+
+// Collapsed by default -- a form that's always open, whether or not you're
+// about to use it, was a big part of what made this page feel cluttered.
+function Collapsible({ label, icon, children }: { label: string; icon: typeof PlusIcon; children: ReactNode }) {
+  const [open, setOpen] = useState(false)
+  const Icon = icon
+  return (
+    <div className="mb-3">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between gap-2 bg-white/3 border border-white/8 rounded-xl px-4 py-3 text-left hover:bg-white/5 transition"
+      >
+        <span className="flex items-center gap-2 text-white text-sm font-semibold">
+          <Icon className="w-4 h-4 text-[#12A5A9]" /> {label}
+        </span>
+        <ChevronDownIcon className={`w-4 h-4 text-white/40 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && <div className="bg-white/3 border border-t-0 border-white/8 rounded-b-xl px-4 py-4 -mt-1">{children}</div>}
+    </div>
+  )
+}
+
 export default function PmDashboardPage() {
   const [loading, setLoading] = useState(true)
   const [membership, setMembership] = useState<Membership | null>(null)
   const [pendingStaffInvite, setPendingStaffInvite] = useState<{ id: string; orgName: string } | null>(null)
-  const [invites, setInvites] = useState<Invite[]>([])
-  const [clients, setClients] = useState<Client[]>([])
+  const [incomingInvites, setIncomingInvites] = useState<IncomingInvite[]>([])
+  const [clients, setClients] = useState<ClientRow[]>([])
   const [staff, setStaff] = useState<Staff[]>([])
   const [auditLog, setAuditLog] = useState<AuditEntry[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [showActivity, setShowActivity] = useState(false)
+  const [expandedClient, setExpandedClient] = useState<string | null>(null)
+  // Same Stripe Connect account a landlord already sets up on Profile to
+  // receive rent -- management fees land in that same account, so an
+  // admin who hasn't done that yet needs to know before trying to bill
+  // anyone, not find out only when a client's payment fails.
+  const [payoutStatus, setPayoutStatus] = useState<'not_started' | 'onboarding' | 'active' | null>(null)
 
   const [orgName, setOrgName] = useState('')
   const [creating, setCreating] = useState(false)
@@ -77,17 +132,31 @@ export default function PmDashboardPage() {
       ])
       setMembership(orgRes.membership || null)
       setPendingStaffInvite(orgRes.pendingStaffInvite || null)
-      setInvites(invitesRes.managedBy || [])
+      setIncomingInvites(invitesRes.managedBy || [])
 
       if (orgRes.membership) {
-        const [dashRes, staffRes, auditRes] = await Promise.all([
+        const [clientsRes, dashRes, staffRes, auditRes] = await Promise.all([
+          fetch('/api/pm/clients').then((r) => r.json()),
           fetch('/api/pm/dashboard').then((r) => r.json()),
           fetch('/api/pm/staff').then((r) => r.json()),
           fetch('/api/pm/audit-log').then((r) => r.json()),
         ])
-        setClients(dashRes.clients || [])
+        const statsByPortfolio = new Map((dashRes.clients || []).map((c: any) => [c.portfolioId, c]))
+        setClients(
+          (clientsRes.clients || []).map((c: any) => ({
+            ...c,
+            ...(statsByPortfolio.get(c.id) || {}),
+          }))
+        )
         setStaff(staffRes.staff || [])
         setAuditLog(auditRes.entries || [])
+
+        if (orgRes.membership.memberRole === 'admin') {
+          fetch('/api/stripe/connect/status')
+            .then((r) => (r.ok ? r.json() : null))
+            .then((data) => setPayoutStatus(data?.status || 'not_started'))
+            .catch(() => {})
+        }
       }
     } catch {
       setError('Could not load your property management dashboard.')
@@ -132,7 +201,7 @@ export default function PmDashboardPage() {
       if (!res.ok) {
         setClientInviteMsg(
           data.error === 'no_account_found'
-            ? "No Prophandld landlord account found with that email."
+            ? 'No Prophandld landlord account found with that email.'
             : data.error === 'already_invited_or_managed'
               ? 'That landlord is already invited or managed by a PM.'
               : data.error || 'Could not send that invite.'
@@ -207,12 +276,52 @@ export default function PmDashboardPage() {
     await loadAll()
   }
 
+  const [feePaymentModal, setFeePaymentModal] = useState<{ portfolioId: string; clientSecret: string; amount: number; connectedAccountId: string } | null>(null)
+  const [feePayError, setFeePayError] = useState<string | null>(null)
+  const [payingFee, setPayingFee] = useState(false)
+
+  const handlePayFee = async (portfolioId: string) => {
+    setPayingFee(true)
+    setFeePayError(null)
+    try {
+      const res = await fetch(`/api/pm/clients/${portfolioId}/fee/create-payment-intent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentMethod: 'card' }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Could not start that payment')
+      setFeePaymentModal({ portfolioId, clientSecret: data.clientSecret, amount: data.amount, connectedAccountId: data.connectedAccountId })
+    } catch (err) {
+      setFeePayError(err instanceof Error ? err.message : 'Could not start that payment')
+    }
+    setPayingFee(false)
+  }
+
   const handleThresholdChange = async (portfolioId: string, value: number) => {
-    setClients((prev) => prev.map((c) => (c.portfolioId === portfolioId ? { ...c, approvalThreshold: value } : c)))
+    setClients((prev) => prev.map((c) => (c.id === portfolioId ? { ...c, approvalThreshold: value } : c)))
     await fetch(`/api/pm/clients/${portfolioId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ approvalThreshold: value }),
+    })
+  }
+
+  const handleFeeChange = async (portfolioId: string, amount: number | null, frequency: 'one_time' | 'monthly') => {
+    setClients((prev) => prev.map((c) => (c.id === portfolioId ? { ...c, managementFee: amount, managementFeeFrequency: amount === null ? null : frequency } : c)))
+    await fetch(`/api/pm/clients/${portfolioId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ managementFee: amount, managementFeeFrequency: frequency }),
+    })
+  }
+
+  const handleToggleMonthlySummary = async (portfolioId: string, value: boolean) => {
+    setClients((prev) => prev.map((c) => (c.id === portfolioId ? { ...c, monthlySummaryEnabled: value } : c)))
+    await fetch(`/api/pm/clients/${portfolioId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ monthlySummaryEnabled: value }),
     })
   }
 
@@ -238,7 +347,7 @@ export default function PmDashboardPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0A0F1C] px-4 py-10">
-        <div className="max-w-3xl mx-auto space-y-4">
+        <div className="max-w-2xl mx-auto space-y-4">
           <div className="h-8 w-48 bg-white/5 rounded-lg animate-pulse" />
           <div className="h-32 bg-white/5 rounded-2xl animate-pulse" />
         </div>
@@ -246,16 +355,21 @@ export default function PmDashboardPage() {
     )
   }
 
-  const pendingInvites = invites.filter((i) => i.status === 'pending')
-  const acceptedInvites = invites.filter((i) => i.status === 'accepted')
+  const pendingIncoming = incomingInvites.filter((i) => i.status === 'pending')
+  const acceptedIncoming = incomingInvites.filter((i) => i.status === 'accepted')
+  const acceptedClients = clients.filter((c) => c.status === 'accepted')
 
-  const combinedUnits = clients.reduce((t, c) => t + c.unitCount, 0)
-  const combinedOpenJobs = clients.reduce((t, c) => t + c.openJobCount, 0)
-  const combinedRent = clients.reduce((t, c) => t + (c.rentCollectedThisMonth || 0), 0)
+  const combinedUnits = acceptedClients.reduce((t, c) => t + (c.unitCount || 0), 0)
+  const combinedOpenJobs = acceptedClients.reduce((t, c) => t + (c.openJobCount || 0), 0)
+  const combinedRent = acceptedClients.reduce((t, c) => t + (c.rentCollectedThisMonth || 0), 0)
 
   return (
     <div className="min-h-screen bg-[#0A0F1C] px-4 py-8 pb-24">
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-2xl mx-auto">
+        <Link href="/profile" className="inline-flex items-center gap-1.5 text-white/40 text-sm hover:text-white/70 transition mb-4">
+          ← Back to profile
+        </Link>
+
         <h1 className="text-white font-bold text-2xl mb-1">Property Management</h1>
         <p className="text-white/50 text-sm mb-6">
           {membership ? membership.organizationName : 'Manage every client’s properties from one place.'}
@@ -288,9 +402,9 @@ export default function PmDashboardPage() {
           </ScrollReveal>
         )}
 
-        {pendingInvites.length > 0 && (
+        {pendingIncoming.length > 0 && (
           <div className="space-y-3 mb-6">
-            {pendingInvites.map((inv) => (
+            {pendingIncoming.map((inv) => (
               <ScrollReveal key={inv.id} className="bg-[#12A5A9]/10 border border-[#12A5A9]/25 rounded-2xl p-5">
                 <p className="text-white font-semibold mb-1">{inv.orgName} wants to manage your property</p>
                 <p className="text-white/60 text-sm mb-4">
@@ -315,22 +429,43 @@ export default function PmDashboardPage() {
           </div>
         )}
 
-        {acceptedInvites.length > 0 && !membership && (
-          <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-5 mb-6 flex items-center gap-3">
-            <CheckCircleIcon className="w-5 h-5 text-[#12A5A9] shrink-0" />
-            <p className="text-white/70 text-sm">
-              Managed by <span className="text-white font-semibold">{acceptedInvites[0].orgName}</span> — approval threshold ${acceptedInvites[0].approvalThreshold.toFixed(0)} per job.
-            </p>
+        {acceptedIncoming.length > 0 && !membership && (
+          <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-5 mb-6">
+            <div className="flex items-center gap-3">
+              <ShieldIcon className="w-5 h-5 text-[#12A5A9] shrink-0" />
+              <p className="text-white/70 text-sm">
+                Managed by <span className="text-white font-semibold">{acceptedIncoming[0].orgName}</span>. Approval threshold ${acceptedIncoming[0].approvalThreshold.toFixed(0)} per job.
+              </p>
+            </div>
+            {acceptedIncoming[0].managementFee !== null && (
+              <div className="flex items-center justify-between gap-3 mt-4 pt-4 border-t border-white/8">
+                <p className="text-white/60 text-sm">
+                  Management fee: <span className="text-white font-semibold">${acceptedIncoming[0].managementFee!.toFixed(2)}</span>
+                  {acceptedIncoming[0].managementFeeFrequency === 'monthly' ? '/month' : ' (one time)'}
+                </p>
+                <RippleButton
+                  onClick={() => handlePayFee(acceptedIncoming[0].id)}
+                  disabled={payingFee}
+                  className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-xl disabled:opacity-50 whitespace-nowrap"
+                >
+                  {payingFee ? 'Starting…' : 'Pay now'}
+                </RippleButton>
+              </div>
+            )}
+            {feePayError && <p className="text-red-400 text-xs mt-2">{feePayError}</p>}
           </ScrollReveal>
         )}
 
         {!membership && (
-          <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
+          <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-7 text-center mb-6">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 border border-[#12A5A9]/30 flex items-center justify-center mx-auto mb-4">
+              <BuildingIcon className="w-5 h-5 text-[#12A5A9]" />
+            </div>
             <h2 className="text-white font-semibold mb-2">Run a property management company?</h2>
-            <p className="text-white/50 text-sm mb-4">
-              Create your organization to manage several landlords' properties from one login — invite clients, add staff, and set per-client approval thresholds.
+            <p className="text-white/50 text-sm mb-5 max-w-sm mx-auto">
+              Give your company its own name to get started. You can invite your first client right after.
             </p>
-            <div className="flex gap-3">
+            <div className="flex gap-2 max-w-sm mx-auto">
               <input
                 value={orgName}
                 onChange={(e) => setOrgName(e.target.value)}
@@ -356,67 +491,129 @@ export default function PmDashboardPage() {
               {membership.canViewFinancials ? (
                 <StatTile icon={DollarSignIcon} label="Rent this month" value={`$${combinedRent.toFixed(0)}`} />
               ) : (
-                <StatTile icon={ShieldIcon} label="Role" value="Staff" />
+                <StatTile icon={ShieldIcon} label="Your role" value="Staff" />
               )}
             </div>
 
-            <h2 className="text-white font-semibold mb-3">Clients</h2>
+            {membership.memberRole === 'admin' && payoutStatus && payoutStatus !== 'active' && (
+              <ScrollReveal className="bg-yellow-500/10 border border-yellow-500/25 rounded-xl px-4 py-3 mb-6 flex items-center justify-between gap-3 flex-wrap">
+                <p className="text-yellow-400/90 text-xs">Set up payouts to collect management fees from clients.</p>
+                <Link href="/profile#billing" className="text-yellow-400 text-xs font-semibold hover:underline whitespace-nowrap">
+                  Set up on Profile →
+                </Link>
+              </ScrollReveal>
+            )}
+
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-white font-semibold">Clients {clients.length > 0 && <span className="text-white/30 font-normal">({clients.length})</span>}</h2>
+            </div>
+
             {clients.length === 0 ? (
-              <p className="text-white/40 text-sm mb-6">
-                {membership.memberRole === 'admin' ? 'No accepted clients yet — invite one below.' : 'No accepted clients yet.'}
-              </p>
+              <p className="text-white/40 text-sm mb-4">No clients invited yet.</p>
             ) : (
-              <div className="space-y-3 mb-6">
+              <div className="space-y-2 mb-4">
                 {clients.map((c) => (
-                  <ScrollReveal key={c.portfolioId} className="bg-white/3 border border-white/8 rounded-2xl p-5">
-                    <div className="flex items-center justify-between mb-3">
-                      <p className="text-white font-semibold">{c.ownerName}</p>
-                      <div className="flex items-center gap-3">
-                        {membership.canViewFinancials && (
-                          <Link href={`/landlord/pm/clients/${c.portfolioId}/statement`} className="text-[#12A5A9] text-xs font-semibold hover:underline">
-                            Statement
-                          </Link>
+                  <div key={c.id} className="bg-white/3 border border-white/8 rounded-xl overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setExpandedClient((cur) => (cur === c.id ? null : c.id))}
+                      className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="text-white text-sm font-medium truncate">{c.ownerName}</span>
+                        <StatusPill status={c.status} />
+                      </div>
+                      {c.status === 'accepted' && (
+                        <ChevronDownIcon className={`w-4 h-4 text-white/30 shrink-0 transition-transform ${expandedClient === c.id ? 'rotate-180' : ''}`} />
+                      )}
+                    </button>
+
+                    {c.status === 'accepted' && expandedClient === c.id && (
+                      <div className="px-4 pb-4 border-t border-white/8 pt-3">
+                        <div className="grid grid-cols-3 gap-2 mb-3">
+                          <StatTile icon={BuildingIcon} label="Properties" value={c.propertyCount ?? 0} />
+                          <StatTile icon={WrenchIcon} label="Open jobs" value={c.openJobCount ?? 0} />
+                          {membership.canViewFinancials ? (
+                            <StatTile icon={DollarSignIcon} label="Rent this month" value={`$${(c.rentCollectedThisMonth || 0).toFixed(0)}`} />
+                          ) : (
+                            <StatTile icon={BuildingIcon} label="Units" value={c.unitCount ?? 0} />
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
+                          {membership.memberRole === 'admin' ? (
+                            <label className="flex items-center gap-2 text-xs text-white/50">
+                              Approval threshold: $
+                              <input
+                                type="number"
+                                defaultValue={c.approvalThreshold}
+                                onBlur={(e) => handleThresholdChange(c.id, Number(e.target.value) || 0)}
+                                className="w-20 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white text-xs"
+                              />
+                            </label>
+                          ) : (
+                            <span className="text-xs text-white/40">Approval threshold: ${c.approvalThreshold.toFixed(0)}</span>
+                          )}
+                          <div className="flex items-center gap-3">
+                            {membership.canViewFinancials && (
+                              <Link href={`/landlord/pm/clients/${c.id}/statement`} className="text-[#12A5A9] text-xs font-semibold hover:underline">
+                                Statement
+                              </Link>
+                            )}
+                            {membership.memberRole === 'admin' && (
+                              <button onClick={() => handleRemoveClient(c.id)} className="text-red-400/70 hover:text-red-400 text-xs">
+                                Remove
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        {membership.memberRole === 'admin' && (
+                          <label className="flex items-center gap-2 text-xs text-white/50">
+                            Management fee: $
+                            <input
+                              type="number"
+                              defaultValue={c.managementFee ?? ''}
+                              placeholder="none"
+                              onBlur={(e) => {
+                                const v = e.target.value.trim()
+                                handleFeeChange(c.id, v === '' ? null : Number(v) || 0, c.managementFeeFrequency || 'monthly')
+                              }}
+                              className="w-20 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white text-xs"
+                            />
+                            {c.managementFee !== null && (
+                              <select
+                                value={c.managementFeeFrequency || 'monthly'}
+                                onChange={(e) => handleFeeChange(c.id, c.managementFee, e.target.value as 'one_time' | 'monthly')}
+                                className="bg-white/5 border border-white/10 rounded-lg px-1.5 py-1 text-white text-xs"
+                              >
+                                <option value="monthly" className="bg-[#0C1A2E]">/month</option>
+                                <option value="one_time" className="bg-[#0C1A2E]">one time</option>
+                              </select>
+                            )}
+                            <span className="text-white/30">Billed to {c.ownerName}, paid to you directly.</span>
+                          </label>
                         )}
                         {membership.memberRole === 'admin' && (
-                          <button onClick={() => handleRemoveClient(c.portfolioId)} className="text-red-400/70 hover:text-red-400 text-xs">
-                            Remove
-                          </button>
+                          <label className="flex items-center gap-2 text-xs text-white/50 mt-2">
+                            <input
+                              type="checkbox"
+                              checked={c.monthlySummaryEnabled}
+                              onChange={(e) => handleToggleMonthlySummary(c.id, e.target.checked)}
+                              className="accent-[#12A5A9]"
+                            />
+                            Email {c.ownerName} a monthly summary (rent collected, maintenance paid)
+                          </label>
                         )}
                       </div>
-                    </div>
-                    <div className="grid grid-cols-3 gap-2 mb-3">
-                      <StatTile icon={BuildingIcon} label="Properties" value={c.propertyCount} />
-                      <StatTile icon={WrenchIcon} label="Open jobs" value={c.openJobCount} />
-                      {membership.canViewFinancials ? (
-                        <StatTile icon={DollarSignIcon} label="Rent this month" value={`$${(c.rentCollectedThisMonth || 0).toFixed(0)}`} />
-                      ) : (
-                        <StatTile icon={BuildingIcon} label="Units" value={c.unitCount} />
-                      )}
-                    </div>
-                    {membership.memberRole === 'admin' && (
-                      <label className="flex items-center gap-2 text-xs text-white/50">
-                        Approval threshold: $
-                        <input
-                          type="number"
-                          defaultValue={c.approvalThreshold}
-                          onBlur={(e) => handleThresholdChange(c.portfolioId, Number(e.target.value) || 0)}
-                          className="w-24 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white text-xs"
-                        />
-                        <span>— jobs over this amount need {c.ownerName}'s own approval</span>
-                      </label>
                     )}
-                  </ScrollReveal>
+                  </div>
                 ))}
               </div>
             )}
 
             {membership.memberRole === 'admin' && (
-              <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-5 mb-6">
-                <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
-                  <PlusIcon className="w-4 h-4 text-[#12A5A9]" /> Invite a client
-                </h3>
+              <Collapsible label="Invite a client" icon={PlusIcon}>
                 <p className="text-white/40 text-xs mb-3">Enter the email of an existing landlord account on Prophandld.</p>
-                <div className="flex gap-3">
+                <div className="flex gap-2">
                   <input
                     value={clientEmail}
                     onChange={(e) => setClientEmail(e.target.value)}
@@ -432,19 +629,17 @@ export default function PmDashboardPage() {
                   </RippleButton>
                 </div>
                 {clientInviteMsg && <p className="text-white/50 text-xs mt-2">{clientInviteMsg}</p>}
-              </ScrollReveal>
+              </Collapsible>
             )}
 
-            <h2 className="text-white font-semibold mb-3">Team</h2>
-            <div className="space-y-2 mb-6">
+            <h2 className="text-white font-semibold mb-3 mt-6">Team {staff.length > 0 && <span className="text-white/30 font-normal">({staff.length})</span>}</h2>
+            <div className="space-y-2 mb-4">
               {staff.map((s) => (
                 <div key={s.id} className="bg-white/3 border border-white/8 rounded-xl p-4 flex items-center justify-between gap-3">
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex items-center gap-2.5">
                     <p className="text-white text-sm font-medium truncate">{s.name}</p>
-                    <p className="text-white/40 text-xs capitalize">
-                      {s.memberRole}
-                      {s.status === 'pending' ? ' · invite pending' : ''}
-                    </p>
+                    <span className="text-white/40 text-xs capitalize">{s.memberRole}</span>
+                    {s.status === 'pending' && <StatusPill status="pending" />}
                   </div>
                   {membership.memberRole === 'admin' && s.memberRole === 'staff' && (
                     <div className="flex items-center gap-3 shrink-0">
@@ -467,11 +662,8 @@ export default function PmDashboardPage() {
             </div>
 
             {membership.memberRole === 'admin' && (
-              <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-5 mb-6">
-                <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
-                  <PlusIcon className="w-4 h-4 text-[#12A5A9]" /> Invite staff
-                </h3>
-                <div className="flex gap-3 mb-2">
+              <Collapsible label="Invite staff" icon={PlusIcon}>
+                <div className="flex gap-2 mb-2">
                   <input
                     value={staffEmail}
                     onChange={(e) => setStaffEmail(e.target.value)}
@@ -491,27 +683,50 @@ export default function PmDashboardPage() {
                   Can view financials (rent totals, payment amounts)
                 </label>
                 {staffInviteMsg && <p className="text-white/50 text-xs mt-2">{staffInviteMsg}</p>}
-              </ScrollReveal>
+              </Collapsible>
             )}
 
             {auditLog.length > 0 && (
-              <>
-                <h2 className="text-white font-semibold mb-3">Recent activity</h2>
-                <div className="space-y-2">
-                  {auditLog.map((entry) => (
-                    <div key={entry.id} className="bg-white/3 border border-white/8 rounded-xl px-4 py-3 text-xs text-white/50">
-                      <span className="text-white/80">{entry.actorName}</span> {ACTION_LABELS[entry.action] || entry.action} for{' '}
-                      <span className="text-white/80">{entry.ownerName}</span>
-                      {entry.amount !== null && <span className="text-white/60"> · ${entry.amount.toFixed(2)}</span>}
-                      <span className="text-white/30"> · {new Date(entry.createdAt).toLocaleDateString()}</span>
-                    </div>
-                  ))}
-                </div>
-              </>
+              <div className="mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowActivity((v) => !v)}
+                  className="flex items-center gap-1.5 text-white/50 text-sm font-semibold hover:text-white/80 transition mb-3"
+                >
+                  Recent activity <ChevronDownIcon className={`w-4 h-4 transition-transform ${showActivity ? 'rotate-180' : ''}`} />
+                </button>
+                {showActivity && (
+                  <div className="space-y-2">
+                    {auditLog.map((entry) => (
+                      <div key={entry.id} className="bg-white/3 border border-white/8 rounded-xl px-4 py-3 text-xs text-white/50">
+                        <span className="text-white/80">{entry.actorName}</span> {ACTION_LABELS[entry.action] || entry.action} for{' '}
+                        <span className="text-white/80">{entry.ownerName}</span>
+                        {entry.amount !== null && <span className="text-white/60"> · ${entry.amount.toFixed(2)}</span>}
+                        <span className="text-white/30"> · {new Date(entry.createdAt).toLocaleDateString()}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
           </>
         )}
       </div>
+
+      {feePaymentModal && (
+        <StripePaymentModal
+          clientSecret={feePaymentModal.clientSecret}
+          amount={feePaymentModal.amount}
+          title="Management fee"
+          connectedAccountId={feePaymentModal.connectedAccountId}
+          onClose={() => setFeePaymentModal(null)}
+          onSuccess={async () => {
+            setFeePaymentModal(null)
+            await fetch(`/api/pm/clients/${feePaymentModal.portfolioId}/fee/confirm`, { method: 'POST' }).catch(() => {})
+            await loadAll()
+          }}
+        />
+      )}
     </div>
   )
 }

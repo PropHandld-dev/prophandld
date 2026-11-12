@@ -167,6 +167,12 @@ function SignupForm() {
   // it can scale with the same number instead of showing a hardcoded
   // $4.99 regardless of how many units someone actually enters.
   const [estimatorUnits, setEstimatorUnits] = useState(1)
+  // Carried through user_metadata, same reasoning as referrer_id right
+  // below -- no real session exists yet at signUp() time (email
+  // confirmation defers it), so /api/ai-assist/start-trial (which
+  // requires app_metadata.role) can't be called until first real login,
+  // same place referral recording already happens.
+  const [enableAiAssist, setEnableAiAssist] = useState(false)
   const [form, setForm] = useState({
     full_name: '',
     email: '',
@@ -232,6 +238,7 @@ function SignupForm() {
           // needs real auth, so it's actually called at first login instead,
           // reading this back off the confirmed user.
           ...(referrerId ? { referrer_id: referrerId } : {}),
+          ...(role === 'landlord' && enableAiAssist ? { ai_assist_opt_in: true } : {}),
         },
         // Always the real domain, never window.location.origin — a
         // confirmation link built from a raw Vercel deployment URL lands
@@ -672,7 +679,16 @@ function SignupForm() {
           <div className="bg-gradient-to-br from-[#0A7B7E]/10 to-white/[0.02] border border-[#12A5A9]/25 rounded-xl px-4 py-3.5 mb-6">
             <p className="text-white text-sm font-semibold mb-1">{t('signupAiAssistTitle', lang)}</p>
             <p className="text-[#12A5A9] font-bold text-sm mb-1">{formatAiAssistPrice(estimatorUnits)}</p>
-            <p className="text-white/60 text-xs leading-relaxed">{t('signupAiAssistDesc', lang)}</p>
+            <p className="text-white/60 text-xs leading-relaxed mb-3">{t('signupAiAssistDesc', lang)}</p>
+            <label className="flex items-start gap-2.5 text-white/70 text-xs cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={enableAiAssist}
+                onChange={(e) => setEnableAiAssist(e.target.checked)}
+                className="mt-0.5 w-4 h-4 shrink-0 rounded border-white/20 bg-white/5 accent-[#12A5A9]"
+              />
+              <span>Start my 14-day Prophandld AI trial too. No charge now, cancel anytime from my profile before it ends.</span>
+            </label>
           </div>
         </>
       )}
