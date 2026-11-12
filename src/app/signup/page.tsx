@@ -8,7 +8,7 @@ import { RippleButton } from '@/components/RippleButton'
 import { AuthLayout } from '@/components/AuthLayout'
 import { AuthInput } from '@/components/AuthInput'
 import { MailIcon, LockIcon } from '@/components/icons'
-import { RolePicker, type Role } from '@/components/RolePicker'
+import { RolePicker, type Role, type RoleIntent } from '@/components/RolePicker'
 import { SITE_URL } from '@/lib/site'
 import { setAppMetadataRole } from '@/lib/setAppMetadataRole'
 import { LINKED_PROFILES_ENABLED } from '@/lib/featureFlags'
@@ -32,7 +32,14 @@ const TERMS_VERSION: Record<Role, string> = {
 // the in-progress form's own "Preferred language" select instead (see
 // SignupForm below), same as the handful of spots that already did this
 // before the rest of the page's i18n audit gap was found and fixed.
-function getRoleContent(role: Role, lang: Lang): { headline: string; subtext: string; checklist: string[] } {
+function getRoleContent(role: Role, lang: Lang, intent?: RoleIntent): { headline: string; subtext: string; checklist: string[] } {
+  if (role === 'landlord' && intent === 'property_manager') {
+    return {
+      headline: t('signupHeadlinePropertyManager', lang),
+      subtext: t('signupSubtextPropertyManager', lang),
+      checklist: [t('loginChecklistPropertyManager1', lang), t('loginChecklistPropertyManager2', lang), t('loginChecklistPropertyManager3', lang)],
+    }
+  }
   if (role === 'landlord') {
     return {
       headline: t('signupHeadlineLandlord', lang),
@@ -92,6 +99,14 @@ function SignupForm() {
   const referrerId = searchParams.get('ref')
   const [role, setRole] = useState<Role | null>(
     initialRole && VALID_ROLES.includes(initialRole) ? initialRole : null
+  )
+  // Property Manager isn't a separate role at the data layer (see
+  // RolePicker.tsx's own comment) — this is purely which copy/checklist
+  // to show and where to send them after signup, carried from either the
+  // 4-card picker below or a direct ?intent=property_manager link (used
+  // by the /property-managers landing page's CTA).
+  const [roleIntent, setRoleIntent] = useState<RoleIntent | undefined>(
+    searchParams.get('intent') === 'property_manager' ? 'property_manager' : undefined
   )
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -312,7 +327,9 @@ function SignupForm() {
           ? '/landlord'
           : coOwnerNeedsPhone
             ? '/landlord?pendingInviteNeedsPhone=1'
-            : '/landlord/properties/new?onboarding=1'
+            : roleIntent === 'property_manager'
+              ? '/landlord/pm?onboarding=1'
+              : '/landlord/properties/new?onboarding=1'
       )
     } else if (role === 'renter') {
       const { needsPhone: tenancyNeedsPhone } = await linkPendingInvite()
@@ -566,7 +583,7 @@ function SignupForm() {
           <p className="text-white/50 text-sm mt-1">{t('yourPropertyHandledTagline', lang)}</p>
         </div>
 
-        <RolePicker onSelect={setRole} />
+        <RolePicker onSelect={(r, intent) => { setRole(r); setRoleIntent(intent) }} />
 
         <p className="text-center text-white/60 text-sm mt-6">
           {t('alreadyHaveAccountQ', lang)}{' '}
@@ -578,7 +595,7 @@ function SignupForm() {
     )
   }
 
-  const { headline, subtext, checklist } = getRoleContent(role, lang)
+  const { headline, subtext, checklist } = getRoleContent(role, lang, roleIntent)
 
   return (
     <AuthLayout headline={headline} subtext={subtext} checklist={checklist} showChecklist>
@@ -586,11 +603,11 @@ function SignupForm() {
         <h1 className="text-2xl font-bold text-white">{t('createYourAccountHeading', lang)}</h1>
         <div className="flex items-center justify-center lg:justify-start gap-2 mt-2">
           <span className="text-xs bg-[#0A7B7E]/20 text-[#12A5A9] border border-[#12A5A9]/30 rounded-full px-2.5 py-1 font-semibold capitalize">
-            {roleLabel(role, lang)}
+            {roleIntent === 'property_manager' ? 'Property Manager' : roleLabel(role, lang)}
           </span>
           <button
             type="button"
-            onClick={() => setRole(null)}
+            onClick={() => { setRole(null); setRoleIntent(undefined) }}
             className="text-white/60 text-xs hover:text-white transition"
           >
             {t('notRightChange', lang)}

@@ -65,7 +65,7 @@ export default function PropertyManagersLandingPage() {
           <Link href="/" className="text-sm text-white/50 hover:text-white transition hidden sm:block">For landlords</Link>
           <Link href="/login" className="text-sm font-medium text-white/70 hover:text-white transition">Sign in</Link>
           <MagneticLink
-            href="/signup?role=landlord"
+            href="/signup?role=landlord&intent=property_manager"
             className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-4 py-2 rounded-full hover:opacity-90"
           >
             Get started
@@ -94,7 +94,7 @@ export default function PropertyManagersLandingPage() {
         </p>
         <div className="flex items-center justify-center gap-4 flex-wrap">
           <MagneticLink
-            href="/signup?role=landlord"
+            href="/signup?role=landlord&intent=property_manager"
             className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-7 py-3.5 rounded-full hover:opacity-90"
           >
             Get started
@@ -209,7 +209,7 @@ export default function PropertyManagersLandingPage() {
         <h2 className="text-3xl font-bold text-white mb-4">Bring your whole portfolio under one roof.</h2>
         <p className="text-white/50 mb-8">Sign up, then create your organization from your dashboard in under a minute.</p>
         <MagneticLink
-          href="/signup?role=landlord"
+          href="/signup?role=landlord&intent=property_manager"
           className="inline-block bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-8 py-4 rounded-full hover:opacity-90"
         >
           Get started
