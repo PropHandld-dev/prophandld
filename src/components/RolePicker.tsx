@@ -3,7 +3,7 @@ import { BuildingIcon, HomeIcon, WrenchIcon } from '@/components/icons'
 export type Role = 'landlord' | 'renter' | 'contractor'
 
 const ROLES: { value: Role; label: string; icon: typeof BuildingIcon; desc: string }[] = [
-  { value: 'landlord', label: 'Landlord', icon: BuildingIcon, desc: 'I manage properties' },
+  { value: 'landlord', label: 'Landlord', icon: BuildingIcon, desc: 'I manage properties — my own, or as a property manager for clients' },
   { value: 'renter', label: 'Renter', icon: HomeIcon, desc: 'I rent my home' },
   { value: 'contractor', label: 'Contractor', icon: WrenchIcon, desc: 'I do maintenance work' },
 ]
