@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
+import { getActionableOwnerIdsAdmin } from '@/lib/pm'
 import { sendCoRenterInviteEmail, buildCoRenterInviteSms } from '@/lib/email'
 import { sendAlertSms } from '@/lib/sms'
 import { toE164 } from '@/lib/phoneFormat'
@@ -47,7 +48,9 @@ export async function POST(request: NextRequest) {
   }
 
   const unit = tenancy.units as any
-  if (unit?.properties?.owner_user_id !== user.id) {
+  // Same fix as co-renter/add: was literal-owner-only, inconsistent with
+  // a co-owner's/PM staff's already-documented full access to tenants.
+  if (!unit?.properties?.owner_user_id || !(await getActionableOwnerIdsAdmin(supabaseAdmin, user.id)).includes(unit.properties.owner_user_id)) {
     return NextResponse.json({ error: 'Not authorized for this unit' }, { status: 403 })
   }
 

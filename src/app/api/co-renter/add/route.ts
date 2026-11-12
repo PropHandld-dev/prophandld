@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
+import { getActionableOwnerIdsAdmin } from '@/lib/pm'
 import { sendCoRenterAddedEmail } from '@/lib/email'
 import { emailAllowed } from '@/lib/notificationPrefs'
 import { sendPush } from '@/lib/push'
@@ -56,7 +57,12 @@ export async function POST(request: NextRequest) {
   }
 
   const property = (tenancy.units as any)?.properties
-  if (property?.owner_user_id !== user.id) {
+  // Was literal-owner-only -- a co-owner's own stated full access
+  // ("full access to your properties, units, tenants...") already covers
+  // this exact action elsewhere via RLS; this service-role route just
+  // never extended the same reach, which also quietly blocked PM staff
+  // from managing a client's tenants.
+  if (!property?.owner_user_id || !(await getActionableOwnerIdsAdmin(supabaseAdmin, user.id)).includes(property.owner_user_id)) {
     return NextResponse.json({ error: 'Not authorized for this unit' }, { status: 403 })
   }
 

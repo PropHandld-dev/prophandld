@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { expectRow } from '@/lib/expectRow'
+import { getActionableOwnerIdsAdmin } from '@/lib/pm'
 
 // A landlord marking their own job fixed, no contractor and no payment
 // involved. Deliberately does NOT set landlord_approved_at — that column is
@@ -29,7 +30,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   const property = (job.units as any)?.properties
-  if (property?.owner_user_id !== user.id) {
+  // Was literal-owner-only, same pre-existing gap found and fixed on the
+  // job-payment route -- a co-owner or PM staff/admin managing this
+  // property couldn't mark a DIY job fixed at all, since this route runs
+  // on the service-role client and never checked anything but an exact
+  // owner_user_id match.
+  if (!property?.owner_user_id || !(await getActionableOwnerIdsAdmin(admin, user.id)).includes(property.owner_user_id)) {
     return NextResponse.json({ error: 'Job not found' }, { status: 404 })
   }
 
