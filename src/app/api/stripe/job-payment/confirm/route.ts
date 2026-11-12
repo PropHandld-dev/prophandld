@@ -3,6 +3,7 @@ import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { getStripe, paymentPaidAt } from '@/lib/stripe'
 import { sendJobPaymentNotifications } from '@/lib/jobPaymentNotify'
+import { getActionableOwnerIdsAdmin } from '@/lib/pm'
 
 export const maxDuration = 15
 
@@ -36,9 +37,13 @@ export async function POST(request: NextRequest) {
   }
 
   const landlordUserId = (bid?.jobs as any)?.units?.properties?.owner_user_id
-  // Either side of the payment may ask: the landlord who paid, or the
-  // contractor waiting to see it as earned.
-  if (!bid || (landlordUserId !== user.id && bid.contractor_user_id !== user.id)) {
+  // Either side of the payment may ask: the landlord who paid (or a
+  // co-owner/PM staff member who started the payment on create-payment-
+  // intent -- this is that route's own confirm counterpart, and was
+  // still literal-owner-only, so they'd have hit this wall right after
+  // getting past that one), or the contractor waiting to see it as earned.
+  const actionableOwnerIds = landlordUserId ? await getActionableOwnerIdsAdmin(supabaseAdmin, user.id) : []
+  if (!bid || (!actionableOwnerIds.includes(landlordUserId) && bid.contractor_user_id !== user.id)) {
     return NextResponse.json({ error: 'Job not found' }, { status: 404 })
   }
 

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { hasValidDefaultPaymentMethod } from '@/lib/defaultPaymentMethod'
 import { expectRow } from '@/lib/expectRow'
+import { getActionableOwnerIdsAdmin } from '@/lib/pm'
 
 export const maxDuration = 15
 
@@ -34,7 +35,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   const landlordUserId = (job?.units as any)?.properties?.owner_user_id
-  if (!job || landlordUserId !== user.id) {
+  // Was literal-owner-only -- same fix as complete-diy right next to
+  // this in the jobs domain. hasValidDefaultPaymentMethod below already
+  // correctly checks landlordUserId (the real owner), not the caller, so
+  // this gate was the only thing actually blocking a co-owner/PM staff
+  // member from opening a client's job for bidding at all.
+  if (!job || !landlordUserId || !(await getActionableOwnerIdsAdmin(admin, user.id)).includes(landlordUserId)) {
     return NextResponse.json({ error: 'Job not found' }, { status: 404 })
   }
 
