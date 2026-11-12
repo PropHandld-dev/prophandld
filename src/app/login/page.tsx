@@ -13,6 +13,7 @@ import { Logo } from '@/components/Logo'
 import { AuthInput } from '@/components/AuthInput'
 import { MailIcon, LockIcon, CheckCircleIcon } from '@/components/icons'
 import type { Role } from '@/components/RolePicker'
+import { OAuthButtons } from '@/components/OAuthButtons'
 import { getLandlordIds } from '@/lib/landlordIds'
 import { useLanguage, t, roleLabel, type Lang } from '@/lib/i18n'
 
@@ -561,6 +562,14 @@ function LoginForm() {
           {t('signedOutIdleMessage', lang)}
         </div>
       )}
+
+      <OAuthButtons />
+
+      <div className="flex items-center gap-3 my-5">
+        <div className="h-px bg-white/10 flex-1" />
+        <span className="text-white/30 text-xs">or</span>
+        <div className="h-px bg-white/10 flex-1" />
+      </div>
 
       <form onSubmit={handleLogin} className="space-y-4">
 

@@ -10,6 +10,7 @@ import { AuthInput } from '@/components/AuthInput'
 import { MailIcon, LockIcon } from '@/components/icons'
 import { RolePicker, type Role, type RoleIntent } from '@/components/RolePicker'
 import { LegalModal } from '@/components/legal/LegalModal'
+import { OAuthButtons } from '@/components/OAuthButtons'
 import { LandlordTermsContent } from '@/components/legal/LandlordTermsContent'
 import { RenterTermsContent } from '@/components/legal/RenterTermsContent'
 import { ContractorTermsContent } from '@/components/legal/ContractorTermsContent'
@@ -647,6 +648,14 @@ function SignupForm() {
           </div>
         </>
       )}
+
+      <OAuthButtons role={role} intent={roleIntent} referrerId={referrerId || undefined} />
+
+      <div className="flex items-center gap-3 my-5">
+        <div className="h-px bg-white/10 flex-1" />
+        <span className="text-white/30 text-xs">or</span>
+        <div className="h-px bg-white/10 flex-1" />
+      </div>
 
       <form onSubmit={handleSignup} className="space-y-4">
 
