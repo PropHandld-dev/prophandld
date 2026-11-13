@@ -13,7 +13,7 @@ import {
   ShieldIcon,
 } from '@/components/icons'
 
-type Role = 'landlord' | 'renter' | 'contractor'
+type Role = 'landlord' | 'property_manager' | 'renter' | 'contractor'
 
 const TONE_STYLES: Record<string, string> = {
   red: 'bg-red-500/15 text-red-400',
@@ -23,6 +23,7 @@ const TONE_STYLES: Record<string, string> = {
 
 const TABS: { role: Role; label: string; tagline: string; path: string }[] = [
   { role: 'landlord', label: 'Landlords', tagline: 'Every property, one dashboard.', path: 'app.prophandld.com/landlord' },
+  { role: 'property_manager', label: 'Property Managers', tagline: 'Every client, one login.', path: 'app.prophandld.com/landlord/pm' },
   { role: 'renter', label: 'Renters', tagline: 'Report issues and pay rent in seconds.', path: 'app.prophandld.com/renter' },
   { role: 'contractor', label: 'Contractors', tagline: 'Real jobs, sealed bids, picked on merit.', path: 'app.prophandld.com/contractor' },
 ]
@@ -56,6 +57,14 @@ const CONTRACTOR_CREDENTIALS = [
   { icon: ShieldIcon, tone: 'teal', title: 'License', subtitle: 'HVAC & plumbing', badge: 'Verified' },
   { icon: ShieldIcon, tone: 'teal', title: 'Insurance', subtitle: 'General liability', badge: 'Verified' },
 ] as const
+
+const PM_CLIENTS = [
+  { name: 'Alex Rivera', units: 11, status: 'pending' as const },
+  { name: 'Dana Osei', units: 4, status: 'ok' as const },
+  { name: 'Marcus Lee', units: 7, status: 'ok' as const },
+]
+
+const PM_PENDING_JOB = { category: 'Bathroom fan replacement', address: '789 Pine St', client: 'Alex Rivera' }
 
 // A restrained 3D tilt + cursor-follow glare — desktop/fine-pointer only
 // (touch devices never fire mousemove, so this is naturally inert there),
@@ -216,6 +225,71 @@ function LandlordPreview() {
             </div>
           ))}
         </div>
+      </div>
+    </>
+  )
+}
+
+function PmPreview() {
+  return (
+    <>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <p className="text-white font-semibold">Riverside Property Group</p>
+          <p className="text-white/60 text-xs mt-0.5">3 clients, 22 units, one dashboard</p>
+        </div>
+        <div className="hidden sm:flex w-9 h-9 rounded-full bg-gradient-to-r from-[#0A7B7E]/30 to-[#12A5A9]/30 border border-[#12A5A9]/30 items-center justify-center">
+          <BuildingIcon className="w-4 h-4 text-[#12A5A9]" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3 mb-5">
+        {[['22', 'Units managed'], ['1', 'Open job'], ['$18,400', 'Rent this month']].map(([value, label]) => (
+          <div key={label} className="bg-white/3 border border-white/8 rounded-xl p-3 sm:p-4 text-center">
+            <div className="text-lg sm:text-xl font-bold text-white tabular-nums">{value}</div>
+            <div className="text-white/60 text-[10px] sm:text-xs mt-0.5">{label}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="bg-white/3 border border-white/8 rounded-2xl p-4 sm:p-5 mb-4">
+        <p className="text-white/70 text-xs font-semibold mb-3">Pending approvals</p>
+        <div className="flex items-center gap-3 bg-white/[0.03] rounded-xl px-3 py-2.5">
+          <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 bg-yellow-500/15 text-yellow-400">
+            <WrenchIcon className="w-3.5 h-3.5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-white text-xs sm:text-sm font-medium truncate">{PM_PENDING_JOB.category}</p>
+            <p className="text-white/60 text-[10px] sm:text-xs truncate">
+              {PM_PENDING_JOB.address} · {PM_PENDING_JOB.client}
+            </p>
+          </div>
+          <span className="text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 bg-yellow-500/15 text-yellow-400">Review</span>
+        </div>
+      </div>
+
+      <div className="bg-white/3 border border-white/8 rounded-2xl p-4 sm:p-5 mb-4">
+        <p className="text-white/70 text-xs font-semibold mb-3">Clients</p>
+        <div className="space-y-2.5">
+          {PM_CLIENTS.map((c) => (
+            <div key={c.name} className="flex items-center gap-3 bg-white/[0.03] rounded-xl px-3 py-2.5">
+              <span className={`w-2 h-2 rounded-full shrink-0 ${c.status === 'pending' ? 'bg-yellow-400' : 'bg-[#12A5A9]'}`} />
+              <div className="min-w-0 flex-1">
+                <p className="text-white text-xs sm:text-sm font-medium truncate">{c.name}</p>
+                <p className="text-white/60 text-[10px] sm:text-xs truncate">{c.units} units</p>
+              </div>
+              <span className="text-[10px] sm:text-xs text-white/40 shrink-0">${(c.units * 1600).toLocaleString()}/mo</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-white/3 border border-white/8 rounded-2xl p-4 sm:p-5">
+        <div className="flex items-center gap-2 mb-1">
+          <ShieldIcon className="w-3.5 h-3.5 text-white/60" />
+          <p className="text-white/70 text-xs font-semibold">Approval thresholds</p>
+        </div>
+        <p className="text-white/60 text-[10px] sm:text-xs">Small repairs go through automatically. Bigger ones wait for the owner&apos;s sign-off.</p>
       </div>
     </>
   )
@@ -402,6 +476,7 @@ function ContractorPreview() {
 
 const PREVIEWS: Record<Role, () => React.ReactElement> = {
   landlord: LandlordPreview,
+  property_manager: PmPreview,
   renter: RenterPreview,
   contractor: ContractorPreview,
 }
