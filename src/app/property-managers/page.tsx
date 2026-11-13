@@ -82,7 +82,7 @@ export default function PropertyManagersLandingPage() {
           For property management companies
         </div>
         <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-tight mb-6">
-          Ten clients.<br />
+          All your clients.<br />
           <span className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] bg-clip-text text-transparent">One login.</span>
         </h1>
         <p className="text-lg text-white/50 max-w-2xl mx-auto mb-10">

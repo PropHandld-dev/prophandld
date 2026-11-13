@@ -18,6 +18,7 @@ import { ProfileButton } from '@/components/ProfileButton'
 import { ProfileSwitchedBanner } from '@/components/ProfileSwitchedBanner'
 import { PendingInviteNeedsPhoneBanner } from '@/components/PendingInviteNeedsPhoneBanner'
 import { CoOwnerInviteBanner } from '@/components/CoOwnerInviteBanner'
+import { PmInviteBanner } from '@/components/PmInviteBanner'
 import { MessagesButton } from '@/components/MessagesButton'
 import { CountUp } from '@/components/CountUp'
 import { Logo } from '@/components/Logo'
@@ -575,6 +576,7 @@ export default function LandlordDashboard() {
             <AiResolvedStatCard />
             <ProfileSwitchedBanner />
             <CoOwnerInviteBanner />
+            <PmInviteBanner />
             <PendingInviteNeedsPhoneBanner />
             <AlertsList items={alertItems} />
 

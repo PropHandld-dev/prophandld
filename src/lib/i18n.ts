@@ -940,6 +940,8 @@ const STRINGS = {
   coOwnerCannotInvite: { en: "You're co-managing someone else's properties, so you can't invite your own co-owner.", es: 'Estás co-administrando las propiedades de otra persona, así que no puedes invitar a tu propio copropietario.' },
   coOwnerBannerTitle: { en: '{name} invited you to co-manage their properties', es: '{name} te invitó a co-administrar sus propiedades' },
   coOwnerBannerBody: { en: "Accepting gives you full access to their properties, units, tenants, jobs, rent, and compliance tracking, same as they have minus billing.", es: 'Al aceptar, tendrás acceso completo a sus propiedades, unidades, inquilinos, trabajos, renta y cumplimiento, igual que ellos, menos la facturación.' },
+  pmInviteBannerTitle: { en: '{name} wants to manage your property', es: '{name} quiere administrar tu propiedad' },
+  pmInviteBannerBody: { en: "They'll be able to post and approve maintenance jobs on your behalf, up to ${threshold} per job. You stay the owner, keep your own full access, and can remove them at any time.", es: 'Podrán publicar y aprobar trabajos de mantenimiento en tu nombre, hasta ${threshold} por trabajo. Tú sigues siendo el propietario, mantienes tu acceso completo y puedes eliminarlos en cualquier momento.' },
   coOwnerAcceptBtn: { en: 'Accept', es: 'Aceptar' },
   coOwnerDeclineBtn: { en: 'Decline', es: 'Rechazar' },
   coOwnerAcceptingDots: { en: 'Accepting…', es: 'Aceptando…' },
@@ -2136,7 +2138,7 @@ const STRINGS = {
   // in only ~5 spots across 674 lines, nearly all visible copy hardcoded.
   signupHeadlineLandlord: { en: 'Run your rentals, not a spreadsheet.', es: 'Administra tus alquileres, no una hoja de cálculo.' },
   signupSubtextLandlord: { en: 'Takes about two minutes to get set up. Less time than deciding what to have for dinner.', es: 'Toma unos dos minutos configurarlo. Menos tiempo del que te toma decidir qué cenar.' },
-  signupHeadlinePropertyManager: { en: 'Ten clients. One login.', es: 'Diez clientes. Un solo inicio de sesión.' },
+  signupHeadlinePropertyManager: { en: 'All your clients. One login.', es: 'Todos tus clientes. Un solo inicio de sesión.' },
   signupSubtextPropertyManager: { en: "Set up your account, then create your organization and invite your first client — takes a few minutes.", es: 'Crea tu cuenta, luego crea tu organización e invita a tu primer cliente — toma solo unos minutos.' },
   loginChecklistPropertyManager1: { en: 'A portfolio switcher per client', es: 'Un selector de cartera por cliente' },
   loginChecklistPropertyManager2: { en: 'Staff access you control', es: 'Acceso de personal que tú controlas' },

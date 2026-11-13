@@ -18,20 +18,23 @@ import { LandingHelpWidget } from '@/components/LandingHelpWidget'
 import { EarlyAccessSection } from '@/components/EarlyAccessSection'
 import { AiAssistShowcase } from '@/components/AiAssistShowcase'
 
+// Trimmed from 13 to 10 (2026-11) -- "Job chat" and "Direct messages" were
+// two cards saying "you can message people here," and "Verified
+// contractors" / "Real reviews" were two cards about how to tell a good
+// contractor from a bad one. Merged rather than cut, so nothing a visitor
+// relied on actually disappeared, it just stopped being three near-duplicate
+// cards to scroll past.
 const OPERATIONS_FEATURES = [
   { icon: DollarSignIcon, title: 'Online rent', desc: 'Rent tracks itself every month. Renters pay by bank transfer or debit card. Edit any month, add a credit, or refund an overpayment in a tap.' },
   { icon: BellIcon, title: 'Instant alerts', desc: "The right person hears at the right moment: a new bid, a proposed time, work ready for review. By email, push notification, or text, pick what works for you in Notifications settings." },
   { icon: ReceiptIcon, title: 'Receipts & records', desc: 'Every rent and repair payment gets a receipt, emailed to you and saved on the record.' },
-  { icon: MessageCircleIcon, title: 'Job chat', desc: 'Every job has one thread for the landlord, renter and contractor, with updates and history in one place.' },
-  { icon: MessageCircleIcon, title: 'Direct messages', desc: "Message your tenants, or a contractor you've worked with before, job or no job. No phone numbers exchanged." },
+  { icon: MessageCircleIcon, title: 'Messaging, not phone numbers', desc: "Every job has one thread for the landlord, renter and contractor. Need to reach someone outside a job? Message any tenant, or a contractor you've worked with before, directly." },
   { icon: CalendarIcon, title: 'Schedule calendar', desc: 'Confirmed visits, rent due dates, and expiring compliance items, all in one month view. Rent and compliance reminders both go out automatically, on a schedule you set.' },
   { icon: FileTextIcon, title: 'Documents vault', desc: 'Leases, deeds, insurance, inspection reports. Tenants can upload their own too, like proof of renters insurance, shared with you or kept private.' },
   { icon: WrenchIcon, title: 'Systems & appliances', desc: 'Track HVAC, water heaters, roofs, and panels with install dates and service history.' },
-  { icon: CheckCircleIcon, title: 'Verified contractors', desc: "Contractors can submit license and insurance for review, so you can see who's verified before you pick a bid." },
-  { icon: StarIcon, title: 'Real reviews', desc: 'Landlords and tenants rate every contractor after the job. See the actual feedback, not just a star count, before you pick who to trust.' },
+  { icon: ShieldIcon, title: 'Pick a contractor you can trust', desc: "License and insurance submitted for review, plus real ratings from landlords and tenants after every job, the actual feedback, not just a star count." },
   { icon: AlertTriangleIcon, title: 'Emergency priority', desc: 'Flag something that cannot wait and matching contractors are alerted with an emergency label.' },
   { icon: LockIcon, title: 'Dispute protection', desc: "Hopefully you never need it. After a landlord approves, any side has 48 hours to flag a problem and Prophandld steps in." },
-  { icon: GlobeIcon, title: 'English & Spanish', desc: 'The entire app, not just a translated homepage. Switch anytime from your profile.' },
 ]
 
 // What Prophandld actually replaces, one honest pain point at a time — real
@@ -93,6 +96,11 @@ const STRUCTURED_DATA = {
 export default function LandingPage() {
   const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  // Mobile only (desktop's 4-column grid already shows everything at
+  // once): a phone visitor flagged this as "we keep scrolling" -- 10
+  // full-height cards stacked one per row is a lot of scroll for a
+  // section most people skim rather than read every word of.
+  const [showAllFeatures, setShowAllFeatures] = useState(false)
   // Mobile only: once the hero (with its own "Get started free" button)
   // scrolls out of view, the primary CTA otherwise disappears entirely
   // until a visitor scrolls all the way back to the top -- on a page
@@ -331,10 +339,12 @@ export default function LandingPage() {
             </p>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {OPERATIONS_FEATURES.map(({ icon: Icon, title, desc }) => (
+            {OPERATIONS_FEATURES.map(({ icon: Icon, title, desc }, i) => (
               <div
                 key={title}
-                className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all duration-200"
+                className={`bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all duration-200 ${
+                  i >= 4 && !showAllFeatures ? 'max-sm:hidden' : ''
+                }`}
               >
                 <div className="w-10 h-10 rounded-full bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 border border-[#12A5A9]/30 flex items-center justify-center mb-4">
                   <Icon className="w-4 h-4 text-[#12A5A9]" />
@@ -344,6 +354,13 @@ export default function LandingPage() {
               </div>
             ))}
           </div>
+          <button
+            type="button"
+            onClick={() => setShowAllFeatures((v) => !v)}
+            className="sm:hidden mx-auto mt-5 flex items-center gap-1.5 text-[#12A5A9] text-sm font-semibold"
+          >
+            {showAllFeatures ? 'Show less' : `Show all ${OPERATIONS_FEATURES.length} features`}
+          </button>
         </ScrollReveal>
       </section>
 
@@ -436,7 +453,7 @@ export default function LandingPage() {
               Run a property management company?
             </div>
             <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4 leading-tight max-w-2xl">
-              Ten clients. One login.
+              All your clients. One login.
             </h2>
             <p className="text-white/60 leading-relaxed mb-8 max-w-2xl">
               Manage every landlord client&apos;s properties, maintenance, and
@@ -719,6 +736,8 @@ export default function LandingPage() {
               { q: 'Does it work in Spanish?', a: 'The whole app does, not a translated homepage that quietly drops you back into English the moment you sign in. Switch anytime from your profile.' },
               { q: 'Can I use Prophandld as more than one role?', a: "Yes. If you're a landlord who also does contract work, or a renter who's also a landlord, link a second profile from your account menu and switch between dashboards instantly, no second signup, no second password." },
               { q: 'Can someone else help manage my properties?', a: "Yes, two ways. Invite a business partner as a co-owner from your profile, and they get your own full access to one portfolio alongside you. If you're hiring a property management company instead, they can run their own dashboard across you and every other client they manage, with staff accounts and approval thresholds for bigger repairs — see the Property Managers section above for how that works. Either way, billing stays yours alone, and you can remove access anytime." },
+              { q: 'I run a property management company. Is this for me?', a: "Yes. Sign up as a landlord, then create your own management organization from your dashboard in under a minute. From there you invite each landlord client by email, and once they accept you're running their properties, maintenance, and compliance from the same dashboard as everyone else you manage, a switcher between clients, staff accounts you control, and a dollar threshold per client so owners sign off automatically on bigger repairs. See the Property Managers page for the full picture." },
+              { q: 'How does pricing work for a property management company?', a: "The same per-unit pricing as a regular landlord account, just totaled across every client portfolio you manage instead of one. No separate PM price list to learn, and no extra seat fee for staff accounts. See the calculator at /pricing." },
             ].map((item) => (
               <details key={item.q} className="group bg-white/3 border border-white/8 rounded-2xl px-5 py-4 open:border-[#12A5A9]/30 open:bg-white/5 transition-colors">
                 <summary className="flex items-center justify-between gap-4 cursor-pointer list-none text-white font-semibold [&::-webkit-details-marker]:hidden">

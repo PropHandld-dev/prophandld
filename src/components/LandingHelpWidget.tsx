@@ -3,13 +3,15 @@
 import { useState } from 'react'
 import { HelpCircleIcon } from '@/components/icons'
 
-type Role = 'general' | 'landlord' | 'renter' | 'contractor'
+type Role = 'general' | 'landlord' | 'property_manager' | 'renter' | 'contractor' | 'ai'
 
 const ROLE_TABS: { key: Role; label: string }[] = [
   { key: 'general', label: 'General' },
   { key: 'landlord', label: 'Landlord' },
+  { key: 'property_manager', label: 'Property Manager' },
   { key: 'renter', label: 'Renter' },
   { key: 'contractor', label: 'Contractor' },
+  { key: 'ai', label: 'Prophandld AI' },
 ]
 
 const FAQS: Record<Role, { q: string; a: string }[]> = {
@@ -75,6 +77,28 @@ const FAQS: Record<Role, { q: string; a: string }[]> = {
       a: 'Flag it as an emergency when you report it and it\'s treated with priority. Just use it for things that actually can\'t wait; the app will show you what qualifies.',
     },
   ],
+  property_manager: [
+    {
+      q: 'Do I need a different kind of account?',
+      a: 'No. Sign up as a regular landlord account, then create your management organization from your dashboard in under a minute. That same login holds your own properties, if you have any, and every client\'s portfolio.',
+    },
+    {
+      q: 'How do I take on a new client?',
+      a: 'Invite them by email from your Property Management dashboard. They get a notification, review what they\'re agreeing to, and accept from their own account. They keep their own full access the whole time.',
+    },
+    {
+      q: 'Can my staff have different access levels?',
+      a: 'Yes. Invite teammates by email and choose whether each one can see financial details (rent totals, payment amounts) or just operate day-to-day, posting and approving maintenance. Change it anytime.',
+    },
+    {
+      q: 'What happens with a repair over my approval limit?',
+      a: 'You set a dollar threshold per client when you take them on. Anything at or under it, you handle yourself. Anything over it needs that owner\'s own sign-off in the app before a contractor gets paid, logged automatically, no phone call needed.',
+    },
+    {
+      q: 'How does billing work across my clients?',
+      a: 'The same per-unit pricing as a regular landlord account, totaled across every client portfolio you manage, billed to you. No separate PM price list, and no per-seat charge for staff accounts.',
+    },
+  ],
   contractor: [
     {
       q: 'How does bidding work for me?',
@@ -95,6 +119,40 @@ const FAQS: Record<Role, { q: string; a: string }[]> = {
     {
       q: 'How and when do I get paid?',
       a: 'Directly through the platform once the job\'s marked complete and approved. Money moves straight from the landlord to you via Stripe; Prophandld never holds it.',
+    },
+  ],
+  ai: [
+    {
+      q: 'What can I actually ask it?',
+      a: 'Anything about your own portfolio: when a lease or license expires, what a tenant\'s rent escalation is, what\'s overdue, what a specific property\'s compliance status looks like. It reads your real data to answer, not a generic script.',
+    },
+    {
+      q: 'What won\'t it do?',
+      a: 'It will never advise on anything electrical, gas, or structural, full stop, for either you or your tenants. For a maintenance issue, it suggests one safe thing to try (like checking if a washer is level) and tells a tenant to report it the moment it\'s outside that lane.',
+    },
+    {
+      q: 'Does my tenant get it too?',
+      a: 'Yes, automatically, at no extra cost to them, the moment you turn it on. They can ask it about their own lease (pets, late fees, renewal terms) and get a real answer pulled from the actual document, or an honest "that\'s not in your lease" instead of a guess.',
+    },
+    {
+      q: 'What does it cost?',
+      a: "It's a separate optional add-on from $4.99/month, scaling with how many units you have, with a 14-day free trial. It's billed to you, the landlord; your tenants never pay anything extra for it.",
+    },
+    {
+      q: 'Does it work for every property management client I manage, not just my own?',
+      a: "Not yet. Right now it covers the properties you own directly. Extending it across every client portfolio a property management company manages is on our list, not shipped yet. We'd rather tell you that plainly than let you assume it already covers everyone.",
+    },
+    {
+      q: 'Can I trust what it tells me?',
+      a: "Treat it the way you'd treat a knowledgeable assistant, not a licensed professional. It's reading your real lease and compliance data, not guessing, but it's not a substitute for a lawyer, inspector, or licensed contractor when something actually needs one.",
+    },
+    {
+      q: 'Does it work in Spanish?',
+      a: 'Yes. It responds in whichever language you or your tenant have set as your preferred language in your profile.',
+    },
+    {
+      q: 'Does it replace needing a contractor?',
+      a: "No. It tries one safe fix first for the kind of thing you might already know how to solve yourself, like resetting a tripped breaker or leveling an appliance. Anything beyond that still goes to sealed bidding exactly like it would without AI involved.",
     },
   ],
 }
