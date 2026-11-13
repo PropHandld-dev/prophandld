@@ -192,6 +192,9 @@ export default function PmDashboardPage() {
   const [incomingInvites, setIncomingInvites] = useState<IncomingInvite[]>([])
   const [clients, setClients] = useState<ClientRow[]>([])
   const [months, setMonths] = useState<MonthBucket[]>([])
+  const [complianceAlerts, setComplianceAlerts] = useState<
+    { id: string; itemType: string; daysUntil: number; address: string; city: string; ownerName: string; propertyId: string }[]
+  >([])
   const [activeTab, setActiveTab] = useState<Tab>('overview')
   const [staff, setStaff] = useState<Staff[]>([])
   const [auditLog, setAuditLog] = useState<AuditEntry[]>([])
@@ -267,6 +270,7 @@ export default function PmDashboardPage() {
         setStaff(staffRes.staff || [])
         setAuditLog(auditRes.entries || [])
         setMonths(dashRes.months || [])
+        setComplianceAlerts(dashRes.complianceAlerts || [])
 
         if (orgRes.membership.memberRole === 'admin') {
           // Both awaited here (not fire-and-forget) so loading only
@@ -834,6 +838,38 @@ export default function PmDashboardPage() {
                 )}
 
                 {membership.canViewFinancials && months.length > 0 && <RentTrendChart months={months} />}
+
+                {complianceAlerts.length > 0 && (
+                  <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-5 mb-6">
+                    <h2 className="text-white font-semibold mb-3">
+                      Compliance <span className="text-white/30 font-normal">({complianceAlerts.length})</span>
+                    </h2>
+                    <p className="text-white/30 text-xs mb-3">Licenses and inspections expiring soon across every client.</p>
+                    <div className="space-y-2">
+                      {complianceAlerts.map((a) => (
+                        <Link
+                          key={a.id}
+                          href={`/landlord/properties/${a.propertyId}/compliance`}
+                          className="flex items-center gap-3 bg-white/4 rounded-xl px-3.5 py-2.5 hover:bg-white/8 transition"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="text-white text-sm truncate">
+                              {a.itemType} <span className="text-white/40">· {a.address}</span>
+                            </p>
+                            <p className="text-white/30 text-xs">{a.ownerName}</p>
+                          </div>
+                          <span
+                            className={`text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 ${
+                              a.daysUntil < 0 ? 'bg-red-500/15 text-red-400' : 'bg-yellow-500/15 text-yellow-400'
+                            }`}
+                          >
+                            {a.daysUntil < 0 ? 'Expired' : `${a.daysUntil}d left`}
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+                  </ScrollReveal>
+                )}
 
                 {pendingJobs.length > 0 && (
                   <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-5 mb-6">

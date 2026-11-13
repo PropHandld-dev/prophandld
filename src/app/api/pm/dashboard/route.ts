@@ -32,7 +32,7 @@ export async function GET() {
 
   const ownerIds = (portfolios || []).map((p: any) => p.owner_user_id)
   if (ownerIds.length === 0) {
-    return NextResponse.json({ clients: [], canViewFinancials: membership.canViewFinancials })
+    return NextResponse.json({ clients: [], canViewFinancials: membership.canViewFinancials, months: [], complianceAlerts: [] })
   }
 
   const monthStart = new Date()
@@ -44,7 +44,7 @@ export async function GET() {
   // bucketed client-side below instead of a second query.
   const sixMonthsAgo = new Date(monthStart.getFullYear(), monthStart.getMonth() - 5, 1)
 
-  const [propertiesRes, unitsRes, jobsRes, rentRes] = await Promise.all([
+  const [propertiesRes, unitsRes, jobsRes, rentRes, complianceRes] = await Promise.all([
     supabaseAdmin.from('properties').select('id, owner_user_id').in('owner_user_id', ownerIds).eq('archived', false),
     supabaseAdmin.from('units').select('id, property_id, properties!inner(owner_user_id)').in('properties.owner_user_id', ownerIds),
     supabaseAdmin
@@ -60,6 +60,17 @@ export async function GET() {
           .eq('stripe_status', 'succeeded')
           .gte('paid_date', sixMonthsAgo.toISOString().slice(0, 10))
       : Promise.resolve({ data: [] as any[], error: null }),
+    // A PM is operationally responsible for exactly the kind of thing
+    // this tracks (a license or inspection lapsing can cost the owner
+    // the right to collect rent at all, per the Safe Healthy Homes
+    // section every landlord sees on the homepage) -- this was entirely
+    // absent from the PM dashboard before, even though every owner's own
+    // dashboard has always had it.
+    supabaseAdmin
+      .from('compliance_items')
+      .select('id, item_type, expiry_date, reminder_days, property_id, properties!inner(address, city, owner_user_id)')
+      .in('properties.owner_user_id', ownerIds)
+      .not('expiry_date', 'is', null),
   ])
 
   // Every one of these uses PostgREST's nested-embed filter syntax
@@ -77,6 +88,7 @@ export async function GET() {
     ['units', unitsRes],
     ['jobs', jobsRes],
     ['rent', rentRes],
+    ['compliance', complianceRes],
   ] as const) {
     if (res.error) console.error(`pm/dashboard: ${name} query failed`, res.error)
   }
@@ -120,6 +132,34 @@ export async function GET() {
     }
   }
 
+  const ownerNameById = new Map<string, string>(
+    (portfolios || []).map((p: any) => [p.owner_user_id, p.users?.full_name || p.users?.email || 'Unknown'])
+  )
+
+  // Same "due within its own reminder_days window" rule the owner's own
+  // dashboard already uses -- not a fixed 30 days, since that's set per
+  // item.
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const complianceAlerts = ((complianceRes.data || []) as any[])
+    .map((item) => {
+      const expiry = new Date(item.expiry_date + 'T00:00:00')
+      const daysUntil = Math.round((expiry.getTime() - today.getTime()) / 86400000)
+      return {
+        id: item.id,
+        itemType: item.item_type,
+        daysUntil,
+        reminderDays: item.reminder_days ?? 30,
+        address: item.properties?.address,
+        city: item.properties?.city,
+        ownerName: ownerNameById.get(item.properties?.owner_user_id) || 'Unknown',
+        propertyId: item.property_id,
+      }
+    })
+    .filter((a) => a.daysUntil <= a.reminderDays)
+    .sort((a, b) => a.daysUntil - b.daysUntil)
+    .slice(0, 10)
+
   const clients = (portfolios || []).map((p: any) => ({
     portfolioId: p.id,
     ownerUserId: p.owner_user_id,
@@ -131,5 +171,10 @@ export async function GET() {
     rentCollectedThisMonth: membership.canViewFinancials ? rentByOwner.get(p.owner_user_id) || 0 : null,
   }))
 
-  return NextResponse.json({ clients, canViewFinancials: membership.canViewFinancials, months: membership.canViewFinancials ? months : [] })
+  return NextResponse.json({
+    clients,
+    canViewFinancials: membership.canViewFinancials,
+    months: membership.canViewFinancials ? months : [],
+    complianceAlerts,
+  })
 }
