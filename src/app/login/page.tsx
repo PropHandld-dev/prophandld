@@ -177,6 +177,20 @@ function LoginForm() {
           console.error('login: could not start AI assist trial from signup opt-in', err)
         )
       }
+      // Same carry-through as referrerId above -- a logged-out visitor
+      // who clicked "Request to be managed" on a PM's public profile had
+      // to sign up first, so the actual request call only happens now,
+      // the first real session. Safe to call on every login: the DB's
+      // own unique (org, owner) index makes a repeat call a harmless
+      // no-op 400, not a duplicate request.
+      const pmRequestSlug = user.user_metadata?.pm_request_slug
+      if (pmRequestSlug) {
+        fetch('/api/pm/clients/request', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slug: pmRequestSlug }),
+        }).catch((err) => console.error('login: could not send PM request from signup', err))
+      }
     }
     if (accountRole === 'renter') {
       // A renter's real first entry into the app now happens here, not on

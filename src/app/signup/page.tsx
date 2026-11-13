@@ -120,6 +120,7 @@ function SignupForm() {
   const searchParams = useSearchParams()
   const initialRole = searchParams.get('role') as Role | null
   const referrerId = searchParams.get('ref')
+  const pmRequestSlug = searchParams.get('pmSlug')
   const [role, setRole] = useState<Role | null>(
     initialRole && VALID_ROLES.includes(initialRole) ? initialRole : null
   )
@@ -247,6 +248,11 @@ function SignupForm() {
           // here — they landed on plain DIY "add your first property"
           // onboarding with no idea they'd signed up as a PM at all.
           ...(roleIntent ? { intent: roleIntent } : {}),
+          // Same carry-through pattern: a landlord who clicked "Request to
+          // be managed" on a PM's public profile while logged out needs
+          // that request to actually fire once their account is real,
+          // not get silently dropped the same way PM intent used to be.
+          ...(pmRequestSlug ? { pm_request_slug: pmRequestSlug } : {}),
         },
         // Always the real domain, never window.location.origin — a
         // confirmation link built from a raw Vercel deployment URL lands

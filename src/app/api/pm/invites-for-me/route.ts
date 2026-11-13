@@ -17,7 +17,7 @@ export async function GET() {
   const admin = getSupabaseAdmin()
   const { data: rows } = await admin
     .from('pm_client_portfolios')
-    .select('id, status, invited_at, accepted_at, approval_threshold, management_fee, management_fee_frequency, owner_read_only, pm_organizations(name)')
+    .select('id, status, requested_by, invited_at, accepted_at, approval_threshold, management_fee, management_fee_frequency, owner_read_only, pm_organizations(name)')
     .eq('owner_user_id', user.id)
     .order('invited_at', { ascending: false })
 
@@ -25,6 +25,7 @@ export async function GET() {
     managedBy: (rows || []).map((r: any) => ({
       id: r.id,
       status: r.status,
+      requestedBy: r.requested_by as 'pm' | 'owner',
       invitedAt: r.invited_at,
       acceptedAt: r.accepted_at,
       approvalThreshold: Number(r.approval_threshold),

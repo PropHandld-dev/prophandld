@@ -29,6 +29,7 @@ type ClientRow = {
   monthlySummaryEnabled: boolean
   ownerReadOnly: boolean
   status: 'pending' | 'accepted'
+  requestedBy: 'pm' | 'owner'
   propertyCount?: number
   unitCount?: number
   openJobCount?: number
@@ -57,6 +58,7 @@ type IncomingInvite = {
   id: string
   orgName: string
   status: 'pending' | 'accepted'
+  requestedBy: 'pm' | 'owner'
   approvalThreshold: number
   managementFee: number | null
   managementFeeFrequency: 'one_time' | 'monthly' | null
@@ -208,6 +210,12 @@ export default function PmDashboardPage() {
   // anyone, not find out only when a client's payment fails.
   const [payoutStatus, setPayoutStatus] = useState<'not_started' | 'onboarding' | 'active' | null>(null)
 
+  const [profileSlug, setProfileSlug] = useState<string | null>(null)
+  const [openToClients, setOpenToClients] = useState(false)
+  const [pitch, setPitch] = useState('')
+  const [savingProfile, setSavingProfile] = useState(false)
+  const [profileCopied, setProfileCopied] = useState(false)
+
   const [orgName, setOrgName] = useState('')
   const [creating, setCreating] = useState(false)
 
@@ -264,6 +272,15 @@ export default function PmDashboardPage() {
           fetch('/api/stripe/connect/status')
             .then((r) => (r.ok ? r.json() : null))
             .then((data) => setPayoutStatus(data?.status || 'not_started'))
+            .catch(() => {})
+          fetch('/api/pm/profile-settings')
+            .then((r) => (r.ok ? r.json() : null))
+            .then((data) => {
+              if (!data) return
+              setProfileSlug(data.slug)
+              setOpenToClients(data.openToClients)
+              setPitch(data.pitch || '')
+            })
             .catch(() => {})
         }
       } else if ((invitesRes.managedBy || []).some((m: any) => m.status === 'accepted')) {
@@ -372,6 +389,47 @@ export default function PmDashboardPage() {
   const handleDeclineInvite = async (id: string) => {
     await fetch(`/api/pm/clients/${id}`, { method: 'DELETE' })
     await loadAll()
+  }
+
+  // Admin accepting a request the OWNER started (the reverse of
+  // handleAcceptInvite, which is the owner accepting a PM-started one).
+  const handleAcceptOwnerRequest = async (id: string) => {
+    await fetch(`/api/pm/clients/${id}/accept`, { method: 'POST' })
+    await loadAll()
+  }
+
+  const handleToggleOpenToClients = async (value: boolean) => {
+    setSavingProfile(true)
+    setOpenToClients(value)
+    try {
+      const res = await fetch('/api/pm/profile-settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ openToClients: value }),
+      })
+      const data = await res.json()
+      if (data.slug) setProfileSlug(data.slug)
+    } catch {
+      setOpenToClients(!value)
+    }
+    setSavingProfile(false)
+  }
+
+  const handleSavePitch = async () => {
+    setSavingProfile(true)
+    await fetch('/api/pm/profile-settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pitch }),
+    }).catch(() => {})
+    setSavingProfile(false)
+  }
+
+  const handleCopyProfileLink = () => {
+    if (!profileSlug) return
+    navigator.clipboard.writeText(`${window.location.origin}/property-managers/${profileSlug}`).catch(() => {})
+    setProfileCopied(true)
+    setTimeout(() => setProfileCopied(false), 2000)
   }
 
   const handleAcceptStaffInvite = async (id: string) => {
@@ -602,28 +660,43 @@ export default function PmDashboardPage() {
 
         {pendingIncoming.length > 0 && (
           <div className="space-y-3 mb-6">
-            {pendingIncoming.map((inv) => (
-              <ScrollReveal key={inv.id} className="bg-[#12A5A9]/10 border border-[#12A5A9]/25 rounded-2xl p-5">
-                <p className="text-white font-semibold mb-1">{inv.orgName} wants to manage your property</p>
-                <p className="text-white/60 text-sm mb-4">
-                  They'll be able to post and approve maintenance jobs on your behalf, up to ${inv.approvalThreshold.toFixed(0)} per job. You stay the owner, and can remove them at any time.
-                </p>
-                <div className="flex gap-3">
-                  <RippleButton
-                    onClick={() => handleAcceptInvite(inv.id)}
-                    className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-4 py-2 rounded-xl"
-                  >
-                    Accept
-                  </RippleButton>
+            {pendingIncoming.map((inv) =>
+              inv.requestedBy === 'owner' ? (
+                <ScrollReveal key={inv.id} className="bg-white/3 border border-white/8 rounded-2xl p-5">
+                  <p className="text-white font-semibold mb-1">Waiting on {inv.orgName}</p>
+                  <p className="text-white/60 text-sm mb-4">
+                    You asked them to manage your property. They'll need to accept from their own dashboard before anything changes.
+                  </p>
                   <RippleButton
                     onClick={() => handleDeclineInvite(inv.id)}
                     className="bg-white/5 border border-white/10 text-white/70 text-sm font-semibold px-4 py-2 rounded-xl"
                   >
-                    Decline
+                    Cancel request
                   </RippleButton>
-                </div>
-              </ScrollReveal>
-            ))}
+                </ScrollReveal>
+              ) : (
+                <ScrollReveal key={inv.id} className="bg-[#12A5A9]/10 border border-[#12A5A9]/25 rounded-2xl p-5">
+                  <p className="text-white font-semibold mb-1">{inv.orgName} wants to manage your property</p>
+                  <p className="text-white/60 text-sm mb-4">
+                    They'll be able to post and approve maintenance jobs on your behalf, up to ${inv.approvalThreshold.toFixed(0)} per job. You stay the owner, and can remove them at any time.
+                  </p>
+                  <div className="flex gap-3">
+                    <RippleButton
+                      onClick={() => handleAcceptInvite(inv.id)}
+                      className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-4 py-2 rounded-xl"
+                    >
+                      Accept
+                    </RippleButton>
+                    <RippleButton
+                      onClick={() => handleDeclineInvite(inv.id)}
+                      className="bg-white/5 border border-white/10 text-white/70 text-sm font-semibold px-4 py-2 rounded-xl"
+                    >
+                      Decline
+                    </RippleButton>
+                  </div>
+                </ScrollReveal>
+              )
+            )}
           </div>
         )}
 
@@ -807,6 +880,48 @@ export default function PmDashboardPage() {
                     </Link>
                   </ScrollReveal>
                 )}
+
+                {membership.memberRole === 'admin' && (
+                  <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
+                    <div className="flex items-center justify-between gap-3 mb-1">
+                      <h2 className="text-white font-semibold">Get found on Prophandld</h2>
+                      <label className="flex items-center gap-2 text-xs text-white/50 shrink-0">
+                        <input
+                          type="checkbox"
+                          checked={openToClients}
+                          onChange={(e) => handleToggleOpenToClients(e.target.checked)}
+                          disabled={savingProfile}
+                          className="accent-[#12A5A9]"
+                        />
+                        Open to new clients
+                      </label>
+                    </div>
+                    <p className="text-white/40 text-xs mb-4">
+                      Turn this on to get a public profile landlords can find and share, and to show up in the property manager directory.
+                    </p>
+                    <label className="block text-xs text-white/50 mb-1.5">One-line pitch</label>
+                    <div className="flex gap-2 mb-3">
+                      <input
+                        value={pitch}
+                        onChange={(e) => setPitch(e.target.value)}
+                        onBlur={handleSavePitch}
+                        maxLength={280}
+                        placeholder="What makes your company worth hiring?"
+                        className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-[#12A5A9]/50"
+                      />
+                    </div>
+                    {openToClients && profileSlug && (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Link href={`/property-managers/${profileSlug}`} className="text-[#12A5A9] text-xs font-semibold hover:underline" target="_blank">
+                          View your profile →
+                        </Link>
+                        <button onClick={handleCopyProfileLink} className="text-white/50 hover:text-white text-xs font-semibold">
+                          {profileCopied ? 'Copied!' : 'Copy share link'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </>
             )}
 
@@ -839,6 +954,25 @@ export default function PmDashboardPage() {
                               <ChevronDownIcon className={`w-4 h-4 text-white/30 shrink-0 transition-transform ${expandedClient === c.id ? 'rotate-180' : ''}`} />
                             )}
                           </button>
+
+                          {c.status === 'pending' && c.requestedBy === 'owner' && membership.memberRole === 'admin' && (
+                            <div className="px-4 pb-4 border-t border-white/8 pt-3">
+                              <p className="text-white/50 text-xs mb-3">
+                                {c.ownerName} found your public profile and asked you to manage their property.
+                              </p>
+                              <div className="flex gap-2">
+                                <RippleButton
+                                  onClick={() => handleAcceptOwnerRequest(c.id)}
+                                  className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-lg"
+                                >
+                                  Accept
+                                </RippleButton>
+                                <button onClick={() => handleDeclineInvite(c.id)} className="text-white/50 hover:text-white text-xs font-semibold px-2">
+                                  Decline
+                                </button>
+                              </div>
+                            </div>
+                          )}
 
                           {c.status === 'accepted' && expandedClient === c.id && (
                             <div className="px-4 pb-4 border-t border-white/8 pt-3">

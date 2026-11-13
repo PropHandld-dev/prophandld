@@ -634,6 +634,36 @@ export async function sendPmClientAcceptedEmail({
   return sendEmail({ to, subject: lang === 'es' ? 'Nuevo cliente aceptado' : 'New client accepted', html })
 }
 
+// The reverse of sendPmClientInviteEmail -- a landlord found this
+// company's public profile and asked THEM to take on the property,
+// instead of the PM reaching out first.
+export async function sendPmClientRequestEmail({
+  to,
+  ownerName,
+  lang = 'en',
+}: {
+  to: string
+  ownerName: string
+  lang?: Lang
+}) {
+  const html = lang === 'es' ? baseTemplate({
+    lang,
+    eyebrow: 'Solicitud',
+    heading: `${escapeHtml(ownerName)} quiere que administres su propiedad`,
+    bodyHtml: `<strong>${escapeHtml(ownerName)}</strong> encontró tu perfil en Prophandld y solicitó que tu empresa administre su propiedad. Inicia sesión para aceptar o rechazar la solicitud.`,
+    ctaLabel: 'Ver solicitud',
+    ctaUrl: `${SITE_URL}/landlord/pm`,
+  }) : baseTemplate({
+    lang,
+    eyebrow: 'Request',
+    heading: `${escapeHtml(ownerName)} wants you to manage their property`,
+    bodyHtml: `<strong>${escapeHtml(ownerName)}</strong> found your profile on Prophandld and asked your company to manage their property. Log in to accept or decline.`,
+    ctaLabel: 'View request',
+    ctaUrl: `${SITE_URL}/landlord/pm`,
+  })
+  return sendEmail({ to, subject: lang === 'es' ? `${ownerName} quiere que administres su propiedad` : `${ownerName} wants you to manage their property`, html })
+}
+
 // Staff invite: deliberately doesn't name the organization's client list
 // or dollar thresholds in the email itself — just enough to get them to
 // log in and accept, same minimal-disclosure-by-email instinct as every
