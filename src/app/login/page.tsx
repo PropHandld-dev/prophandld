@@ -242,12 +242,37 @@ function LoginForm() {
       // A co-owner has no properties of their own — counting only their
       // own owner_user_id rows would wrongly send them to "add your first
       // property" even though the portfolio they co-manage has plenty.
+      // Once any accepted PM client portfolio exists, my_landlord_ids()
+      // (what getLandlordIds reads) already folds those owners' properties
+      // in too — a PM admin whose clients own plenty of properties already
+      // skips this branch correctly.
       const landlordIds = await getLandlordIds(supabase, user.id)
       const { count } = await supabase
         .from('properties')
         .select('id', { count: 'exact', head: true })
         .in('owner_user_id', landlordIds)
-      if (!count) router.replace('/landlord/properties/new?onboarding=1')
+
+      // The real gap this doesn't cover: a PM admin/staff with zero
+      // personal properties AND zero accepted clients yet (brand new PM,
+      // or a PM signup whose intent never made it anywhere, since it only
+      // ever lived in this page's React state before -- caught live by
+      // Joshua's 2026-11-12 test). A brand-new PM signup's intent is
+      // carried through user_metadata (see signup/page.tsx), but an
+      // ongoing PM with no clients yet wouldn't have that forever, so an
+      // actual PM org membership check is the real, permanent signal, not
+      // just the one-time signup flag.
+      let isPmIntent = user.user_metadata?.intent === 'property_manager'
+      if (!count && !isPmIntent) {
+        const { data: pmMembership } = await supabase
+          .from('pm_organization_members')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('status', 'accepted')
+          .maybeSingle()
+        isPmIntent = !!pmMembership
+      }
+
+      if (!count) router.replace(isPmIntent ? '/landlord/pm?onboarding=1' : '/landlord/properties/new?onboarding=1')
       else router.replace(coOwnerNeedsPhone ? '/landlord?pendingInviteNeedsPhone=1' : '/landlord')
     }
     else if (accountRole === 'renter') router.replace(tenancyNeedsPhone ? '/renter?pendingInviteNeedsPhone=1' : '/renter')

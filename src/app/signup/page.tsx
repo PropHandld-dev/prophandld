@@ -239,6 +239,14 @@ function SignupForm() {
           // reading this back off the confirmed user.
           ...(referrerId ? { referrer_id: referrerId } : {}),
           ...(role === 'landlord' && enableAiAssist ? { ai_assist_opt_in: true } : {}),
+          // Same gap as the two above, caught live by Joshua's 2026-11-12
+          // test: roleIntent only ever lived in this page's React state,
+          // never carried into user_metadata, so a PM signup's intent was
+          // silently dropped the moment email confirmation (which this
+          // project requires) sent them through /login instead of back
+          // here — they landed on plain DIY "add your first property"
+          // onboarding with no idea they'd signed up as a PM at all.
+          ...(roleIntent ? { intent: roleIntent } : {}),
         },
         // Always the real domain, never window.location.origin — a
         // confirmation link built from a raw Vercel deployment URL lands

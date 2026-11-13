@@ -35,9 +35,13 @@ import { MfaPromptModal } from '@/components/MfaPromptModal'
 import { useLanguage, t, type Lang } from '@/lib/i18n'
 import { useIsNativePlatform } from '@/lib/useIsNativePlatform'
 
-function getTourSteps(lang: Lang): TourStep[] {
+function getTourSteps(lang: Lang, isPm: boolean): TourStep[] {
   return [
-    { target: '[data-tour="welcome"]', title: t('tourLandlordWelcomeTitle', lang), body: t('tourLandlordWelcomeBody', lang) },
+    {
+      target: '[data-tour="welcome"]',
+      title: isPm ? t('tourPmWelcomeTitle', lang) : t('tourLandlordWelcomeTitle', lang),
+      body: isPm ? t('tourPmWelcomeBody', lang) : t('tourLandlordWelcomeBody', lang),
+    },
     { target: '[data-tour="stats"]', title: t('tourLandlordStatsTitle', lang), body: t('tourLandlordStatsBody', lang) },
     { target: '[data-tour="pipeline"]', title: t('tourLandlordPipelineTitle', lang), body: t('tourLandlordPipelineBody', lang) },
     { target: '[data-tour="properties"]', title: t('tourLandlordPropertiesTitle', lang), body: t('tourLandlordPropertiesBody', lang) },
@@ -805,7 +809,7 @@ export default function LandlordDashboard() {
       </main>
 
       <BottomTabBar tabs={LANDLORD_TABS} />
-      {tour.show && <ProductTour steps={getTourSteps(lang)} onDone={tour.dismiss} onNeverAskAgain={tour.dismissForever} />}
+      {tour.show && <ProductTour steps={getTourSteps(lang, !!pmOrgName)} onDone={tour.dismiss} onNeverAskAgain={tour.dismissForever} />}
       {!tour.show && mfaPrompt.show && <MfaPromptModal onDismiss={mfaPrompt.dismiss} />}
     </div>
   )

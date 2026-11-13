@@ -39,6 +39,11 @@ export async function GET() {
   monthStart.setDate(1)
   monthStart.setHours(0, 0, 0, 0)
 
+  // 6 months back covers the trend chart too -- same rent rows this
+  // month's per-client totals already needed, just a wider date range,
+  // bucketed client-side below instead of a second query.
+  const sixMonthsAgo = new Date(monthStart.getFullYear(), monthStart.getMonth() - 5, 1)
+
   const [propertiesRes, unitsRes, jobsRes, rentRes] = await Promise.all([
     supabaseAdmin.from('properties').select('id, owner_user_id').in('owner_user_id', ownerIds).eq('archived', false),
     supabaseAdmin.from('units').select('id, property_id, properties!inner(owner_user_id)').in('properties.owner_user_id', ownerIds),
@@ -50,10 +55,10 @@ export async function GET() {
     membership.canViewFinancials
       ? supabaseAdmin
           .from('rent_payments')
-          .select('actual_amount, tenancies!inner(units!inner(property_id, properties!inner(owner_user_id)))')
+          .select('actual_amount, paid_date, tenancies!inner(units!inner(property_id, properties!inner(owner_user_id)))')
           .in('tenancies.units.properties.owner_user_id', ownerIds)
           .eq('stripe_status', 'succeeded')
-          .gte('paid_date', monthStart.toISOString().slice(0, 10))
+          .gte('paid_date', sixMonthsAgo.toISOString().slice(0, 10))
       : Promise.resolve({ data: [] as any[], error: null }),
   ])
 
@@ -95,10 +100,24 @@ export async function GET() {
     if (ownerId) openJobsByOwner.set(ownerId, (openJobsByOwner.get(ownerId) || 0) + 1)
   }
 
+  const monthStartStr = monthStart.toISOString().slice(0, 10)
   const rentByOwner = new Map<string, number>()
+  const months: { key: string; label: string; rent: number }[] = []
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(monthStart.getFullYear(), monthStart.getMonth() - i, 1)
+    months.push({ key: `${d.getFullYear()}-${d.getMonth()}`, label: d.toLocaleDateString('en-US', { month: 'short' }), rent: 0 })
+  }
   for (const r of (rentRes.data || []) as any[]) {
     const ownerId = r.tenancies?.units?.properties?.owner_user_id
-    if (ownerId) rentByOwner.set(ownerId, (rentByOwner.get(ownerId) || 0) + Number(r.actual_amount || 0))
+    const amount = Number(r.actual_amount || 0)
+    if (ownerId && r.paid_date >= monthStartStr) {
+      rentByOwner.set(ownerId, (rentByOwner.get(ownerId) || 0) + amount)
+    }
+    if (r.paid_date) {
+      const d = new Date(r.paid_date + 'T00:00:00')
+      const bucket = months.find((m) => m.key === `${d.getFullYear()}-${d.getMonth()}`)
+      if (bucket) bucket.rent += amount
+    }
   }
 
   const clients = (portfolios || []).map((p: any) => ({
@@ -112,5 +131,5 @@ export async function GET() {
     rentCollectedThisMonth: membership.canViewFinancials ? rentByOwner.get(p.owner_user_id) || 0 : null,
   }))
 
-  return NextResponse.json({ clients, canViewFinancials: membership.canViewFinancials })
+  return NextResponse.json({ clients, canViewFinancials: membership.canViewFinancials, months: membership.canViewFinancials ? months : [] })
 }

@@ -218,6 +218,15 @@ const STRINGS = {
     en: "Everything about your properties, tenants, and maintenance lives here. Let's take a quick look around.",
     es: 'Todo sobre tus propiedades, inquilinos y mantenimiento vive aquí. Vamos a echar un vistazo rápido.',
   },
+  // Same first tour step, worded for a Property Manager -- this is a
+  // plain landlord-role account underneath (see pm.ts's own reasoning),
+  // but someone who signed up specifically as a PM shouldn't be welcomed
+  // to a "Landlord Dashboard" on their very first screen.
+  tourPmWelcomeTitle: { en: 'Welcome to your dashboard', es: 'Bienvenido a tu panel' },
+  tourPmWelcomeBody: {
+    en: "This is your own portfolio, if you have one. Manage your client portfolios from Property Management in your Profile.",
+    es: 'Este es tu propio portafolio, si tienes uno. Administra los portafolios de tus clientes desde Administración de Propiedades en tu Perfil.',
+  },
   tourLandlordStatsTitle: { en: 'Your portfolio at a glance', es: 'Tu portafolio de un vistazo' },
   tourLandlordStatsBody: {
     en: 'Property count, units, occupancy, and your monthly rent roll, updated live as things change.',

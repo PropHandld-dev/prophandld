@@ -69,15 +69,85 @@ const ACTION_LABELS: Record<string, string> = {
 }
 
 type PendingJob = { id: string; category: string; createdAt: string; ownerUserId: string; ownerName: string; address: string }
+type MonthBucket = { key: string; label: string; rent: number }
 
-function StatTile({ icon: Icon, label, value }: { icon: typeof BuildingIcon; label: string; value: ReactNode }) {
-  return (
-    <div className="bg-white/4 border border-white/8 rounded-xl p-3 flex items-center gap-3">
+type Tab = 'overview' | 'clients' | 'team' | 'activity'
+
+function StatTile({
+  icon: Icon,
+  label,
+  value,
+  onClick,
+}: {
+  icon: typeof BuildingIcon
+  label: string
+  value: ReactNode
+  onClick?: () => void
+}) {
+  const content = (
+    <>
       <Icon className="w-4 h-4 text-[#12A5A9] shrink-0" />
       <div className="min-w-0">
         <p className="text-white font-semibold text-sm tabular-nums">{value}</p>
         <p className="text-white/40 text-xs truncate">{label}</p>
       </div>
+    </>
+  )
+  if (!onClick) {
+    return <div className="bg-white/4 border border-white/8 rounded-xl p-3 flex items-center gap-3">{content}</div>
+  }
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="bg-white/4 border border-white/8 rounded-xl p-3 flex items-center gap-3 text-left hover:bg-white/8 hover:border-white/15 transition w-full"
+    >
+      {content}
+    </button>
+  )
+}
+
+// Reuses the simple CSS-bar pattern from /admin/transactions -- height as
+// a percentage of the widest month, no charting library needed.
+function RentTrendChart({ months }: { months: MonthBucket[] }) {
+  const max = Math.max(1, ...months.map((m) => m.rent))
+  return (
+    <div className="bg-white/3 border border-white/8 rounded-2xl p-5 mb-6">
+      <p className="text-white/50 text-xs font-semibold mb-4">Rent collected, last 6 months</p>
+      <div className="flex items-end gap-2 h-28">
+        {months.map((m) => (
+          <div key={m.key} className="flex-1 flex flex-col items-center min-w-0 h-full">
+            <p className="text-white/60 text-[10px] h-4 tabular-nums truncate max-w-full">{m.rent > 0 ? `$${m.rent.toFixed(0)}` : ''}</p>
+            <div className="flex-1 w-full flex items-end min-h-0">
+              <div
+                className="w-full rounded-t-md bg-gradient-to-t from-[#0A7B7E] to-[#12A5A9]"
+                style={{ height: `${Math.max((m.rent / max) * 100, m.rent > 0 ? 4 : 0)}%` }}
+              />
+            </div>
+            <p className="text-white/30 text-[10px] mt-1.5">{m.label}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function TabBar({ tabs, active, onChange }: { tabs: { key: Tab; label: string; count?: number }[]; active: Tab; onChange: (t: Tab) => void }) {
+  return (
+    <div className="flex gap-1 bg-white/3 border border-white/8 rounded-xl p-1 mb-6 overflow-x-auto">
+      {tabs.map((t) => (
+        <button
+          key={t.key}
+          type="button"
+          onClick={() => onChange(t.key)}
+          className={`flex-1 whitespace-nowrap text-xs font-semibold px-3 py-2 rounded-lg transition ${
+            active === t.key ? 'bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white' : 'text-white/50 hover:text-white/80'
+          }`}
+        >
+          {t.label}
+          {typeof t.count === 'number' && t.count > 0 && <span className={active === t.key ? 'text-white/80' : 'text-white/30'}> ({t.count})</span>}
+        </button>
+      ))}
     </div>
   )
 }
@@ -118,6 +188,8 @@ export default function PmDashboardPage() {
   const [pendingStaffInvite, setPendingStaffInvite] = useState<{ id: string; orgName: string } | null>(null)
   const [incomingInvites, setIncomingInvites] = useState<IncomingInvite[]>([])
   const [clients, setClients] = useState<ClientRow[]>([])
+  const [months, setMonths] = useState<MonthBucket[]>([])
+  const [activeTab, setActiveTab] = useState<Tab>('overview')
   const [staff, setStaff] = useState<Staff[]>([])
   const [auditLog, setAuditLog] = useState<AuditEntry[]>([])
   const [contractors, setContractors] = useState<NetworkContractor[]>([])
@@ -128,7 +200,6 @@ export default function PmDashboardPage() {
   const [approving, setApproving] = useState(false)
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
-  const [showActivity, setShowActivity] = useState(false)
   const [expandedClient, setExpandedClient] = useState<string | null>(null)
   // Same Stripe Connect account a landlord already sets up on Profile to
   // receive rent -- management fees land in that same account, so an
@@ -179,6 +250,7 @@ export default function PmDashboardPage() {
         )
         setStaff(staffRes.staff || [])
         setAuditLog(auditRes.entries || [])
+        setMonths(dashRes.months || [])
 
         if (orgRes.membership.memberRole === 'admin') {
           fetch('/api/stripe/connect/status')
@@ -598,345 +670,372 @@ export default function PmDashboardPage() {
 
         {membership && (
           <>
-            <div className="grid grid-cols-3 gap-3 mb-3">
-              <StatTile icon={BuildingIcon} label="Units managed" value={<CountUp value={combinedUnits} />} />
-              <StatTile icon={WrenchIcon} label="Open jobs" value={<CountUp value={combinedOpenJobs} />} />
+            <div className="grid grid-cols-3 gap-3 mb-6">
+              <StatTile icon={BuildingIcon} label="Units managed" value={<CountUp value={combinedUnits} />} onClick={() => setActiveTab('clients')} />
+              <StatTile icon={WrenchIcon} label="Open jobs" value={<CountUp value={combinedOpenJobs} />} onClick={() => setActiveTab('clients')} />
               {membership.canViewFinancials ? (
-                <StatTile icon={DollarSignIcon} label="Rent this month" value={`$${combinedRent.toFixed(0)}`} />
+                <StatTile icon={DollarSignIcon} label="Rent this month" value={`$${combinedRent.toFixed(0)}`} onClick={() => setActiveTab('clients')} />
               ) : (
                 <StatTile icon={ShieldIcon} label="Your role" value="Staff" />
               )}
             </div>
 
-            {membership.canViewFinancials && (
-              <button
-                onClick={handleExportMonth}
-                disabled={exportingMonth}
-                className="flex items-center gap-1.5 text-white/40 hover:text-white/70 text-xs font-semibold mb-6 transition disabled:opacity-50"
-              >
-                <DownloadIcon className="w-3.5 h-3.5" />
-                {exportingMonth ? 'Exporting…' : 'Export this month, every client (CSV)'}
-              </button>
-            )}
+            <TabBar
+              active={activeTab}
+              onChange={setActiveTab}
+              tabs={[
+                { key: 'overview', label: 'Overview' },
+                { key: 'clients', label: 'Clients', count: clients.length },
+                { key: 'team', label: 'Team', count: staff.length },
+                { key: 'activity', label: 'Activity' },
+              ]}
+            />
 
-            {pendingJobs.length > 0 && (
-              <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-5 mb-6">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-white font-semibold">
-                    Pending approvals <span className="text-white/30 font-normal">({pendingJobs.length})</span>
-                  </h2>
-                  <RippleButton
-                    onClick={handleBulkApprove}
-                    disabled={selectedJobIds.size === 0 || approving}
-                    className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-xl disabled:opacity-50 whitespace-nowrap"
+            {activeTab === 'overview' && (
+              <>
+                {membership.canViewFinancials && (
+                  <button
+                    onClick={handleExportMonth}
+                    disabled={exportingMonth}
+                    className="flex items-center gap-1.5 text-white/40 hover:text-white/70 text-xs font-semibold mb-6 transition disabled:opacity-50"
                   >
-                    {approving ? 'Approving…' : `Approve selected (${selectedJobIds.size})`}
-                  </RippleButton>
-                </div>
-                <p className="text-white/30 text-xs mb-3">Completed work across every client, waiting on your review. Select the ones you've checked and approve them all at once.</p>
-                <div className="space-y-2">
-                  {pendingJobs.map((j) => (
-                    <label key={j.id} className="flex items-center gap-3 bg-white/4 rounded-xl px-3 py-2.5 cursor-pointer">
+                    <DownloadIcon className="w-3.5 h-3.5" />
+                    {exportingMonth ? 'Exporting…' : 'Export this month, every client (CSV)'}
+                  </button>
+                )}
+
+                {membership.canViewFinancials && months.length > 0 && <RentTrendChart months={months} />}
+
+                {pendingJobs.length > 0 && (
+                  <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-5 mb-6">
+                    <div className="flex items-center justify-between mb-3">
+                      <h2 className="text-white font-semibold">
+                        Pending approvals <span className="text-white/30 font-normal">({pendingJobs.length})</span>
+                      </h2>
+                      <RippleButton
+                        onClick={handleBulkApprove}
+                        disabled={selectedJobIds.size === 0 || approving}
+                        className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-xl disabled:opacity-50 whitespace-nowrap"
+                      >
+                        {approving ? 'Approving…' : `Approve selected (${selectedJobIds.size})`}
+                      </RippleButton>
+                    </div>
+                    <p className="text-white/30 text-xs mb-3">Completed work across every client, waiting on your review. Select the ones you've checked and approve them all at once.</p>
+                    <div className="space-y-2">
+                      {pendingJobs.map((j) => (
+                        <label key={j.id} className="flex items-center gap-3 bg-white/4 rounded-xl px-3 py-2.5 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={selectedJobIds.has(j.id)}
+                            onChange={(e) => {
+                              setSelectedJobIds((prev) => {
+                                const next = new Set(prev)
+                                if (e.target.checked) next.add(j.id)
+                                else next.delete(j.id)
+                                return next
+                              })
+                            }}
+                            className="accent-[#12A5A9]"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-white text-sm truncate">
+                              {j.category} <span className="text-white/40">· {j.address}</span>
+                            </p>
+                            <p className="text-white/30 text-xs">{j.ownerName}</p>
+                          </div>
+                          <Link href={`/landlord/jobs/${j.id}`} className="text-[#12A5A9] text-xs font-semibold hover:underline shrink-0">
+                            View
+                          </Link>
+                        </label>
+                      ))}
+                    </div>
+                  </ScrollReveal>
+                )}
+
+                {pendingJobs.length === 0 && (
+                  <p className="text-white/30 text-sm mb-6">No pending approvals. Nothing across your portfolio needs your review right now.</p>
+                )}
+
+                {membership.memberRole === 'admin' && payoutStatus && payoutStatus !== 'active' && (
+                  <ScrollReveal className="bg-yellow-500/10 border border-yellow-500/25 rounded-xl px-4 py-3 mb-6 flex items-center justify-between gap-3 flex-wrap">
+                    <p className="text-yellow-400/90 text-xs">Set up payouts to collect management fees from clients.</p>
+                    <Link href="/profile#billing" className="text-yellow-400 text-xs font-semibold hover:underline whitespace-nowrap">
+                      Set up on Profile →
+                    </Link>
+                  </ScrollReveal>
+                )}
+              </>
+            )}
+
+            {activeTab === 'clients' && (
+              <>
+                {clients.length === 0 ? (
+                  <p className="text-white/40 text-sm mb-4">No clients invited yet.</p>
+                ) : (
+                  <div className="space-y-2 mb-4">
+                    {clients.map((c) => {
+                      const hasPending = pendingJobs.some((j) => j.ownerUserId === c.ownerUserId)
+                      return (
+                        <div key={c.id} className="bg-white/3 border border-white/8 rounded-xl overflow-hidden">
+                          <button
+                            type="button"
+                            onClick={() => setExpandedClient((cur) => (cur === c.id ? null : c.id))}
+                            className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left"
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              {c.status === 'accepted' && (
+                                <span
+                                  className={`w-2 h-2 rounded-full shrink-0 ${hasPending ? 'bg-yellow-400' : 'bg-[#12A5A9]'}`}
+                                  title={hasPending ? 'Needs approval' : 'Up to date'}
+                                />
+                              )}
+                              <span className="text-white text-sm font-medium truncate">{c.ownerName}</span>
+                              <StatusPill status={c.status} />
+                            </div>
+                            {c.status === 'accepted' && (
+                              <ChevronDownIcon className={`w-4 h-4 text-white/30 shrink-0 transition-transform ${expandedClient === c.id ? 'rotate-180' : ''}`} />
+                            )}
+                          </button>
+
+                          {c.status === 'accepted' && expandedClient === c.id && (
+                            <div className="px-4 pb-4 border-t border-white/8 pt-3">
+                              <div className="grid grid-cols-3 gap-2 mb-3">
+                                <StatTile icon={BuildingIcon} label="Properties" value={c.propertyCount ?? 0} />
+                                <StatTile icon={WrenchIcon} label="Open jobs" value={c.openJobCount ?? 0} />
+                                {membership.canViewFinancials ? (
+                                  <StatTile icon={DollarSignIcon} label="Rent this month" value={`$${(c.rentCollectedThisMonth || 0).toFixed(0)}`} />
+                                ) : (
+                                  <StatTile icon={BuildingIcon} label="Units" value={c.unitCount ?? 0} />
+                                )}
+                              </div>
+                              <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
+                                {membership.memberRole === 'admin' ? (
+                                  <label className="flex items-center gap-2 text-xs text-white/50">
+                                    Approval threshold: $
+                                    <input
+                                      type="number"
+                                      defaultValue={c.approvalThreshold}
+                                      onBlur={(e) => handleThresholdChange(c.id, Number(e.target.value) || 0)}
+                                      className="w-20 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white text-xs"
+                                    />
+                                  </label>
+                                ) : (
+                                  <span className="text-xs text-white/40">Approval threshold: ${c.approvalThreshold.toFixed(0)}</span>
+                                )}
+                                <div className="flex items-center gap-3">
+                                  {membership.canViewFinancials && (
+                                    <Link href={`/landlord/pm/clients/${c.id}/statement`} className="text-[#12A5A9] text-xs font-semibold hover:underline">
+                                      Statement
+                                    </Link>
+                                  )}
+                                  {membership.memberRole === 'admin' && (
+                                    <button onClick={() => handleRemoveClient(c.id)} className="text-red-400/70 hover:text-red-400 text-xs">
+                                      Remove
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                              {membership.memberRole === 'admin' && (
+                                <label className="flex items-center gap-2 text-xs text-white/50">
+                                  Management fee: $
+                                  <input
+                                    type="number"
+                                    defaultValue={c.managementFee ?? ''}
+                                    placeholder="none"
+                                    onBlur={(e) => {
+                                      const v = e.target.value.trim()
+                                      handleFeeChange(c.id, v === '' ? null : Number(v) || 0, c.managementFeeFrequency || 'monthly')
+                                    }}
+                                    className="w-20 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white text-xs"
+                                  />
+                                  {c.managementFee !== null && (
+                                    <select
+                                      value={c.managementFeeFrequency || 'monthly'}
+                                      onChange={(e) => handleFeeChange(c.id, c.managementFee, e.target.value as 'one_time' | 'monthly')}
+                                      className="bg-white/5 border border-white/10 rounded-lg px-1.5 py-1 text-white text-xs"
+                                    >
+                                      <option value="monthly" className="bg-[#0C1A2E]">/month</option>
+                                      <option value="one_time" className="bg-[#0C1A2E]">one time</option>
+                                    </select>
+                                  )}
+                                  <span className="text-white/30">Billed to {c.ownerName}, paid to you directly.</span>
+                                </label>
+                              )}
+                              {membership.memberRole === 'admin' && (
+                                <label className="flex items-center gap-2 text-xs text-white/50 mt-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={c.monthlySummaryEnabled}
+                                    onChange={(e) => handleToggleMonthlySummary(c.id, e.target.checked)}
+                                    className="accent-[#12A5A9]"
+                                  />
+                                  Email {c.ownerName} a monthly summary (rent collected, maintenance paid)
+                                </label>
+                              )}
+                              {membership.memberRole === 'admin' && (
+                                <label className="flex items-center gap-2 text-xs text-white/50 mt-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={c.ownerReadOnly}
+                                    onChange={(e) => handleToggleReadOnly(c.id, e.target.checked)}
+                                    className="accent-[#12A5A9]"
+                                  />
+                                  {c.ownerName} is read-only (you handle job approvals and payments)
+                                </label>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {membership.memberRole === 'admin' && (
+                  <Collapsible label="Invite a client" icon={PlusIcon}>
+                    <p className="text-white/40 text-xs mb-3">Enter the email of an existing landlord account on Prophandld.</p>
+                    <div className="flex gap-2">
                       <input
-                        type="checkbox"
-                        checked={selectedJobIds.has(j.id)}
-                        onChange={(e) => {
-                          setSelectedJobIds((prev) => {
-                            const next = new Set(prev)
-                            if (e.target.checked) next.add(j.id)
-                            else next.delete(j.id)
-                            return next
-                          })
-                        }}
-                        className="accent-[#12A5A9]"
+                        value={clientEmail}
+                        onChange={(e) => setClientEmail(e.target.value)}
+                        placeholder="landlord@email.com"
+                        className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-[#12A5A9]/50"
                       />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-white text-sm truncate">
-                          {j.category} <span className="text-white/40">· {j.address}</span>
-                        </p>
-                        <p className="text-white/30 text-xs">{j.ownerName}</p>
-                      </div>
-                      <Link href={`/landlord/jobs/${j.id}`} className="text-[#12A5A9] text-xs font-semibold hover:underline shrink-0">
-                        View
-                      </Link>
-                    </label>
-                  ))}
-                </div>
-              </ScrollReveal>
-            )}
+                      <RippleButton
+                        onClick={handleInviteClient}
+                        disabled={invitingClient}
+                        className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-5 py-2.5 rounded-xl disabled:opacity-50 whitespace-nowrap"
+                      >
+                        {invitingClient ? 'Sending…' : 'Invite'}
+                      </RippleButton>
+                    </div>
+                    {clientInviteMsg && <p className="text-white/50 text-xs mt-2">{clientInviteMsg}</p>}
+                  </Collapsible>
+                )}
 
-            {membership.memberRole === 'admin' && payoutStatus && payoutStatus !== 'active' && (
-              <ScrollReveal className="bg-yellow-500/10 border border-yellow-500/25 rounded-xl px-4 py-3 mb-6 flex items-center justify-between gap-3 flex-wrap">
-                <p className="text-yellow-400/90 text-xs">Set up payouts to collect management fees from clients.</p>
-                <Link href="/profile#billing" className="text-yellow-400 text-xs font-semibold hover:underline whitespace-nowrap">
-                  Set up on Profile →
-                </Link>
-              </ScrollReveal>
-            )}
-
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-white font-semibold">Clients {clients.length > 0 && <span className="text-white/30 font-normal">({clients.length})</span>}</h2>
-            </div>
-
-            {clients.length === 0 ? (
-              <p className="text-white/40 text-sm mb-4">No clients invited yet.</p>
-            ) : (
-              <div className="space-y-2 mb-4">
-                {clients.map((c) => (
-                  <div key={c.id} className="bg-white/3 border border-white/8 rounded-xl overflow-hidden">
+                {contractors.length > 0 && (
+                  <div className="mt-6">
                     <button
                       type="button"
-                      onClick={() => setExpandedClient((cur) => (cur === c.id ? null : c.id))}
-                      className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left"
+                      onClick={() => setShowContractors((v) => !v)}
+                      className="flex items-center gap-1.5 text-white/50 text-sm font-semibold hover:text-white/80 transition mb-3"
                     >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <span className="text-white text-sm font-medium truncate">{c.ownerName}</span>
-                        <StatusPill status={c.status} />
-                      </div>
-                      {c.status === 'accepted' && (
-                        <ChevronDownIcon className={`w-4 h-4 text-white/30 shrink-0 transition-transform ${expandedClient === c.id ? 'rotate-180' : ''}`} />
-                      )}
+                      Contractor network <span className="text-white/30 font-normal">({contractors.length})</span>{' '}
+                      <ChevronDownIcon className={`w-4 h-4 transition-transform ${showContractors ? 'rotate-180' : ''}`} />
                     </button>
-
-                    {c.status === 'accepted' && expandedClient === c.id && (
-                      <div className="px-4 pb-4 border-t border-white/8 pt-3">
-                        <div className="grid grid-cols-3 gap-2 mb-3">
-                          <StatTile icon={BuildingIcon} label="Properties" value={c.propertyCount ?? 0} />
-                          <StatTile icon={WrenchIcon} label="Open jobs" value={c.openJobCount ?? 0} />
-                          {membership.canViewFinancials ? (
-                            <StatTile icon={DollarSignIcon} label="Rent this month" value={`$${(c.rentCollectedThisMonth || 0).toFixed(0)}`} />
-                          ) : (
-                            <StatTile icon={BuildingIcon} label="Units" value={c.unitCount ?? 0} />
-                          )}
-                        </div>
-                        <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
-                          {membership.memberRole === 'admin' ? (
-                            <label className="flex items-center gap-2 text-xs text-white/50">
-                              Approval threshold: $
-                              <input
-                                type="number"
-                                defaultValue={c.approvalThreshold}
-                                onBlur={(e) => handleThresholdChange(c.id, Number(e.target.value) || 0)}
-                                className="w-20 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white text-xs"
-                              />
-                            </label>
-                          ) : (
-                            <span className="text-xs text-white/40">Approval threshold: ${c.approvalThreshold.toFixed(0)}</span>
-                          )}
-                          <div className="flex items-center gap-3">
-                            {membership.canViewFinancials && (
-                              <Link href={`/landlord/pm/clients/${c.id}/statement`} className="text-[#12A5A9] text-xs font-semibold hover:underline">
-                                Statement
-                              </Link>
-                            )}
-                            {membership.memberRole === 'admin' && (
-                              <button onClick={() => handleRemoveClient(c.id)} className="text-red-400/70 hover:text-red-400 text-xs">
-                                Remove
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                        {membership.memberRole === 'admin' && (
-                          <label className="flex items-center gap-2 text-xs text-white/50">
-                            Management fee: $
-                            <input
-                              type="number"
-                              defaultValue={c.managementFee ?? ''}
-                              placeholder="none"
-                              onBlur={(e) => {
-                                const v = e.target.value.trim()
-                                handleFeeChange(c.id, v === '' ? null : Number(v) || 0, c.managementFeeFrequency || 'monthly')
-                              }}
-                              className="w-20 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white text-xs"
-                            />
-                            {c.managementFee !== null && (
-                              <select
-                                value={c.managementFeeFrequency || 'monthly'}
-                                onChange={(e) => handleFeeChange(c.id, c.managementFee, e.target.value as 'one_time' | 'monthly')}
-                                className="bg-white/5 border border-white/10 rounded-lg px-1.5 py-1 text-white text-xs"
+                    <p className="text-white/30 text-xs mb-3">
+                      Everyone your team has hired across every client, so you can reuse someone reliable without re-inviting them for each portfolio.
+                    </p>
+                    {showContractors && (
+                      <div className="space-y-2">
+                        {contractors.map((c) => (
+                          <div key={c.id} className="bg-white/3 border border-white/8 rounded-xl p-4 flex items-center justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="text-white text-sm font-medium truncate">{c.name}</p>
+                                {c.categories.length > 0 && <span className="text-white/40 text-xs capitalize">{c.categories.join(', ')}</span>}
+                              </div>
+                              <p className="text-white/30 text-xs mt-0.5">
+                                {c.jobsCount} job{c.jobsCount === 1 ? '' : 's'} · ${c.totalPaid.toFixed(0)} paid
+                                {c.lastClientAddress ? ` · last at ${c.lastClientAddress}` : ''}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-3 shrink-0">
+                              <button
+                                onClick={() => handleToggleContractorFavorite(c.id, c.isFavorite)}
+                                aria-label={c.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                                className={c.isFavorite ? 'text-yellow-400' : 'text-white/30 hover:text-white/60'}
                               >
-                                <option value="monthly" className="bg-[#0C1A2E]">/month</option>
-                                <option value="one_time" className="bg-[#0C1A2E]">one time</option>
-                              </select>
-                            )}
-                            <span className="text-white/30">Billed to {c.ownerName}, paid to you directly.</span>
-                          </label>
-                        )}
-                        {membership.memberRole === 'admin' && (
-                          <label className="flex items-center gap-2 text-xs text-white/50 mt-2">
-                            <input
-                              type="checkbox"
-                              checked={c.monthlySummaryEnabled}
-                              onChange={(e) => handleToggleMonthlySummary(c.id, e.target.checked)}
-                              className="accent-[#12A5A9]"
-                            />
-                            Email {c.ownerName} a monthly summary (rent collected, maintenance paid)
-                          </label>
-                        )}
-                        {membership.memberRole === 'admin' && (
-                          <label className="flex items-center gap-2 text-xs text-white/50 mt-2">
-                            <input
-                              type="checkbox"
-                              checked={c.ownerReadOnly}
-                              onChange={(e) => handleToggleReadOnly(c.id, e.target.checked)}
-                              className="accent-[#12A5A9]"
-                            />
-                            {c.ownerName} is read-only (you handle job approvals and payments)
-                          </label>
-                        )}
+                                <StarIcon className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleMessageContractor(c)}
+                                disabled={messagingContractorId === c.id}
+                                className="text-[#12A5A9] text-xs font-semibold hover:underline disabled:opacity-50"
+                              >
+                                Message
+                              </button>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>
-                ))}
-              </div>
-            )}
-
-            {membership.memberRole === 'admin' && (
-              <Collapsible label="Invite a client" icon={PlusIcon}>
-                <p className="text-white/40 text-xs mb-3">Enter the email of an existing landlord account on Prophandld.</p>
-                <div className="flex gap-2">
-                  <input
-                    value={clientEmail}
-                    onChange={(e) => setClientEmail(e.target.value)}
-                    placeholder="landlord@email.com"
-                    className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-[#12A5A9]/50"
-                  />
-                  <RippleButton
-                    onClick={handleInviteClient}
-                    disabled={invitingClient}
-                    className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-5 py-2.5 rounded-xl disabled:opacity-50 whitespace-nowrap"
-                  >
-                    {invitingClient ? 'Sending…' : 'Invite'}
-                  </RippleButton>
-                </div>
-                {clientInviteMsg && <p className="text-white/50 text-xs mt-2">{clientInviteMsg}</p>}
-              </Collapsible>
-            )}
-
-            <h2 className="text-white font-semibold mb-3 mt-6">Team {staff.length > 0 && <span className="text-white/30 font-normal">({staff.length})</span>}</h2>
-            <div className="space-y-2 mb-4">
-              {staff.map((s) => (
-                <div key={s.id} className="bg-white/3 border border-white/8 rounded-xl p-4 flex items-center justify-between gap-3">
-                  <div className="min-w-0 flex items-center gap-2.5">
-                    <p className="text-white text-sm font-medium truncate">{s.name}</p>
-                    <span className="text-white/40 text-xs capitalize">{s.memberRole}</span>
-                    {s.status === 'pending' && <StatusPill status="pending" />}
-                  </div>
-                  {membership.memberRole === 'admin' && s.memberRole === 'staff' && (
-                    <div className="flex items-center gap-3 shrink-0">
-                      <label className="flex items-center gap-1.5 text-xs text-white/50">
-                        <input
-                          type="checkbox"
-                          checked={s.canViewFinancials}
-                          onChange={(e) => handleToggleFinancials(s.id, e.target.checked)}
-                          className="accent-[#12A5A9]"
-                        />
-                        Financials
-                      </label>
-                      <button onClick={() => handleRemoveStaff(s.id)} className="text-red-400/70 hover:text-red-400 text-xs">
-                        Remove
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {membership.memberRole === 'admin' && (
-              <Collapsible label="Invite staff" icon={PlusIcon}>
-                <div className="flex gap-2 mb-2">
-                  <input
-                    value={staffEmail}
-                    onChange={(e) => setStaffEmail(e.target.value)}
-                    placeholder="teammate@email.com"
-                    className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-[#12A5A9]/50"
-                  />
-                  <RippleButton
-                    onClick={handleInviteStaff}
-                    disabled={invitingStaff}
-                    className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-5 py-2.5 rounded-xl disabled:opacity-50 whitespace-nowrap"
-                  >
-                    {invitingStaff ? 'Sending…' : 'Invite'}
-                  </RippleButton>
-                </div>
-                <label className="flex items-center gap-1.5 text-xs text-white/50">
-                  <input type="checkbox" checked={staffFinancials} onChange={(e) => setStaffFinancials(e.target.checked)} className="accent-[#12A5A9]" />
-                  Can view financials (rent totals, payment amounts)
-                </label>
-                {staffInviteMsg && <p className="text-white/50 text-xs mt-2">{staffInviteMsg}</p>}
-              </Collapsible>
-            )}
-
-            {contractors.length > 0 && (
-              <div className="mt-6">
-                <button
-                  type="button"
-                  onClick={() => setShowContractors((v) => !v)}
-                  className="flex items-center gap-1.5 text-white/50 text-sm font-semibold hover:text-white/80 transition mb-3"
-                >
-                  Contractor network <span className="text-white/30 font-normal">({contractors.length})</span>{' '}
-                  <ChevronDownIcon className={`w-4 h-4 transition-transform ${showContractors ? 'rotate-180' : ''}`} />
-                </button>
-                <p className="text-white/30 text-xs mb-3">
-                  Everyone your team has hired across every client, so you can reuse someone reliable without re-inviting them for each portfolio.
-                </p>
-                {showContractors && (
-                  <div className="space-y-2">
-                    {contractors.map((c) => (
-                      <div key={c.id} className="bg-white/3 border border-white/8 rounded-xl p-4 flex items-center justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="text-white text-sm font-medium truncate">{c.name}</p>
-                            {c.categories.length > 0 && <span className="text-white/40 text-xs capitalize">{c.categories.join(', ')}</span>}
-                          </div>
-                          <p className="text-white/30 text-xs mt-0.5">
-                            {c.jobsCount} job{c.jobsCount === 1 ? '' : 's'} · ${c.totalPaid.toFixed(0)} paid
-                            {c.lastClientAddress ? ` · last at ${c.lastClientAddress}` : ''}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-3 shrink-0">
-                          <button
-                            onClick={() => handleToggleContractorFavorite(c.id, c.isFavorite)}
-                            aria-label={c.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-                            className={c.isFavorite ? 'text-yellow-400' : 'text-white/30 hover:text-white/60'}
-                          >
-                            <StarIcon className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleMessageContractor(c)}
-                            disabled={messagingContractorId === c.id}
-                            className="text-[#12A5A9] text-xs font-semibold hover:underline disabled:opacity-50"
-                          >
-                            Message
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
                 )}
-              </div>
+              </>
             )}
 
-            {auditLog.length > 0 && (
-              <div className="mt-6">
-                <button
-                  type="button"
-                  onClick={() => setShowActivity((v) => !v)}
-                  className="flex items-center gap-1.5 text-white/50 text-sm font-semibold hover:text-white/80 transition mb-3"
-                >
-                  Recent activity <ChevronDownIcon className={`w-4 h-4 transition-transform ${showActivity ? 'rotate-180' : ''}`} />
-                </button>
-                {showActivity && (
-                  <div className="space-y-2">
-                    {auditLog.map((entry) => (
-                      <div key={entry.id} className="bg-white/3 border border-white/8 rounded-xl px-4 py-3 text-xs text-white/50">
-                        <span className="text-white/80">{entry.actorName}</span> {ACTION_LABELS[entry.action] || entry.action} for{' '}
-                        <span className="text-white/80">{entry.ownerName}</span>
-                        {entry.amount !== null && <span className="text-white/60"> · ${entry.amount.toFixed(2)}</span>}
-                        <span className="text-white/30"> · {new Date(entry.createdAt).toLocaleDateString()}</span>
+            {activeTab === 'team' && (
+              <>
+                <div className="space-y-2 mb-4">
+                  {staff.map((s) => (
+                    <div key={s.id} className="bg-white/3 border border-white/8 rounded-xl p-4 flex items-center justify-between gap-3">
+                      <div className="min-w-0 flex items-center gap-2.5">
+                        <p className="text-white text-sm font-medium truncate">{s.name}</p>
+                        <span className="text-white/40 text-xs capitalize">{s.memberRole}</span>
+                        {s.status === 'pending' && <StatusPill status="pending" />}
                       </div>
-                    ))}
-                  </div>
+                      {membership.memberRole === 'admin' && s.memberRole === 'staff' && (
+                        <div className="flex items-center gap-3 shrink-0">
+                          <label className="flex items-center gap-1.5 text-xs text-white/50">
+                            <input
+                              type="checkbox"
+                              checked={s.canViewFinancials}
+                              onChange={(e) => handleToggleFinancials(s.id, e.target.checked)}
+                              className="accent-[#12A5A9]"
+                            />
+                            Financials
+                          </label>
+                          <button onClick={() => handleRemoveStaff(s.id)} className="text-red-400/70 hover:text-red-400 text-xs">
+                            Remove
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {staff.length === 0 && <p className="text-white/40 text-sm">No teammates yet.</p>}
+                </div>
+
+                {membership.memberRole === 'admin' && (
+                  <Collapsible label="Invite staff" icon={PlusIcon}>
+                    <div className="flex gap-2 mb-2">
+                      <input
+                        value={staffEmail}
+                        onChange={(e) => setStaffEmail(e.target.value)}
+                        placeholder="teammate@email.com"
+                        className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-[#12A5A9]/50"
+                      />
+                      <RippleButton
+                        onClick={handleInviteStaff}
+                        disabled={invitingStaff}
+                        className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-5 py-2.5 rounded-xl disabled:opacity-50 whitespace-nowrap"
+                      >
+                        {invitingStaff ? 'Sending…' : 'Invite'}
+                      </RippleButton>
+                    </div>
+                    <label className="flex items-center gap-1.5 text-xs text-white/50">
+                      <input type="checkbox" checked={staffFinancials} onChange={(e) => setStaffFinancials(e.target.checked)} className="accent-[#12A5A9]" />
+                      Can view financials (rent totals, payment amounts)
+                    </label>
+                    {staffInviteMsg && <p className="text-white/50 text-xs mt-2">{staffInviteMsg}</p>}
+                  </Collapsible>
+                )}
+              </>
+            )}
+
+            {activeTab === 'activity' && (
+              <div className="space-y-2">
+                {auditLog.length === 0 ? (
+                  <p className="text-white/40 text-sm">No activity yet.</p>
+                ) : (
+                  auditLog.map((entry) => (
+                    <div key={entry.id} className="bg-white/3 border border-white/8 rounded-xl px-4 py-3 text-xs text-white/50">
+                      <span className="text-white/80">{entry.actorName}</span> {ACTION_LABELS[entry.action] || entry.action} for{' '}
+                      <span className="text-white/80">{entry.ownerName}</span>
+                      {entry.amount !== null && <span className="text-white/60"> · ${entry.amount.toFixed(2)}</span>}
+                      <span className="text-white/30"> · {new Date(entry.createdAt).toLocaleDateString()}</span>
+                    </div>
+                  ))
                 )}
               </div>
             )}
