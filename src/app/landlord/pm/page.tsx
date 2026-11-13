@@ -402,7 +402,12 @@ export default function PmDashboardPage() {
   // Admin accepting a request the OWNER started (the reverse of
   // handleAcceptInvite, which is the owner accepting a PM-started one).
   const handleAcceptOwnerRequest = async (id: string) => {
-    await fetch(`/api/pm/clients/${id}/accept`, { method: 'POST' })
+    const res = await fetch(`/api/pm/clients/${id}/accept`, { method: 'POST' })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      setError(data.error || 'Could not accept that request')
+      return
+    }
     await loadAll()
   }
 

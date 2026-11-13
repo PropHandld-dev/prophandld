@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
+import { tooManyRequests } from '@/lib/rateLimit'
 
 export const maxDuration = 15
 
@@ -14,6 +15,14 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await authClient.auth.getUser()
   if (!user) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+  }
+
+  // The upsert's unique (org, reviewer) constraint already stops spam
+  // from piling up as duplicate rows, but says nothing about how often
+  // one person can hit the endpoint itself -- cheap defense-in-depth
+  // against a script hammering it.
+  if (await tooManyRequests(`pm-review:${user.id}`, 10, 1)) {
+    return NextResponse.json({ error: 'Too many requests, try again shortly' }, { status: 429 })
   }
 
   const { slug, rating, comment } = (await request.json().catch(() => ({}))) as {

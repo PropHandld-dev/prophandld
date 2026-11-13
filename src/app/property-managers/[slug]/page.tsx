@@ -230,6 +230,7 @@ export default function PmPublicProfilePage() {
                 rows={3}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-[#12A5A9]/50 mb-3"
               />
+              <p className="text-white/30 text-xs mb-3">Your rating and comment are shown publicly on this page with your first name. Your full name and account are never shown.</p>
               <div className="flex items-center gap-3">
                 <RippleButton
                   onClick={handleSubmitReview}

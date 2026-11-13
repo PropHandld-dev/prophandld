@@ -35,7 +35,21 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
     .select('owner_user_id')
     .maybeSingle()
 
-  if (error || !updated) {
+  if (error) {
+    // A landlord can send a pending request to more than one PM company
+    // at once (nothing blocks that -- the unique "one accepted PM"
+    // index only applies once status actually becomes 'accepted'), so
+    // this UPDATE can genuinely fail that constraint if someone else
+    // already accepted them first. Surfaced as its own message instead
+    // of a generic 404, which would read as "this request doesn't
+    // exist" when it actually does, just can't be honored anymore.
+    if (error.code === '23505') {
+      return NextResponse.json({ error: 'This owner is already managed by another company and cannot be accepted.' }, { status: 409 })
+    }
+    console.error('pm/clients/[id]/accept: update failed', error)
+    return NextResponse.json({ error: 'Could not accept that request' }, { status: 500 })
+  }
+  if (!updated) {
     return NextResponse.json({ error: 'Request not found' }, { status: 404 })
   }
 
