@@ -215,6 +215,13 @@ export default function PmDashboardPage() {
   const [invitingClient, setInvitingClient] = useState(false)
   const [clientInviteMsg, setClientInviteMsg] = useState<string | null>(null)
 
+  const [myStatus, setMyStatus] = useState<{
+    propertyCount: number
+    unitCount: number
+    openJobCount: number
+    entries: { id: string; action: string; amount: number | null; createdAt: string; actorName: string }[]
+  } | null>(null)
+
   const [staffEmail, setStaffEmail] = useState('')
   const [staffFinancials, setStaffFinancials] = useState(false)
   const [invitingStaff, setInvitingStaff] = useState(false)
@@ -259,6 +266,9 @@ export default function PmDashboardPage() {
             .then((data) => setPayoutStatus(data?.status || 'not_started'))
             .catch(() => {})
         }
+      } else if ((invitesRes.managedBy || []).some((m: any) => m.status === 'accepted')) {
+        const statusRes = await fetch('/api/pm/my-status').then((r) => r.json())
+        if (statusRes.managed) setMyStatus(statusRes)
       }
     } catch {
       setError('Could not load your property management dashboard.')
@@ -645,7 +655,36 @@ export default function PmDashboardPage() {
           </ScrollReveal>
         )}
 
-        {!membership && (
+        {/* The owner's own side of the relationship: what's actually
+            happening on their property under this company's management,
+            not an unrelated "start your own PM company" upsell -- that
+            card used to show here unconditionally, which made no sense
+            for someone who's already being managed by someone else. */}
+        {myStatus && (
+          <div className="mb-6">
+            <h2 className="text-white font-semibold mb-3">Your property, managed</h2>
+            <div className="grid grid-cols-3 gap-3 mb-4">
+              <StatTile icon={BuildingIcon} label="Properties" value={myStatus.propertyCount} />
+              <StatTile icon={BuildingIcon} label="Units" value={myStatus.unitCount} />
+              <StatTile icon={WrenchIcon} label="Open jobs" value={myStatus.openJobCount} />
+            </div>
+            {myStatus.entries.length === 0 ? (
+              <p className="text-white/30 text-sm">No activity from them yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {myStatus.entries.map((entry) => (
+                  <div key={entry.id} className="bg-white/3 border border-white/8 rounded-xl px-4 py-3 text-xs text-white/50">
+                    <span className="text-white/80">{entry.actorName}</span> {ACTION_LABELS[entry.action] || entry.action}
+                    {entry.amount !== null && <span className="text-white/60"> · ${entry.amount.toFixed(2)}</span>}
+                    <span className="text-white/30"> · {new Date(entry.createdAt).toLocaleDateString()}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {!membership && !myStatus && (
           <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-7 text-center mb-6">
             <div className="w-12 h-12 rounded-full bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 border border-[#12A5A9]/30 flex items-center justify-center mx-auto mb-4">
               <BuildingIcon className="w-5 h-5 text-[#12A5A9]" />
