@@ -36,9 +36,9 @@ export function AppLaunchIntro() {
       .then(({ SplashScreen }) => SplashScreen.hide())
       .catch(() => {})
 
-    const toHold = setTimeout(() => setPhase('hold'), 550)
-    const toOut = setTimeout(() => setPhase('out'), 950)
-    const toDone = setTimeout(() => setPhase('done'), 1300)
+    const toHold = setTimeout(() => setPhase('hold'), 650)
+    const toOut = setTimeout(() => setPhase('out'), 1700)
+    const toDone = setTimeout(() => setPhase('done'), 2050)
     return () => {
       clearTimeout(toHold)
       clearTimeout(toOut)
@@ -51,15 +51,33 @@ export function AppLaunchIntro() {
   return (
     <div
       aria-hidden
-      className={`fixed inset-0 z-[100] flex items-center justify-center bg-[#0C1A2E] transition-opacity duration-300 ${
+      className={`fixed inset-0 z-[100] flex flex-col items-center justify-center gap-4 bg-[#0C1A2E] transition-opacity duration-300 ${
         phase === 'out' ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
     >
-      <Logo
-        className={`w-20 h-20 transition-all duration-500 ease-out ${
-          phase === 'in' ? 'opacity-0 scale-75' : 'opacity-100 scale-100'
+      {/* Brought up to the same recipe as the web landing's own launch
+          moment (LandingLaunchIntro) -- this used to be just the bare
+          logo, a weaker version of the "Netflix-style branded moment"
+          this component's own original comment describes. */}
+      <div className="relative">
+        <div
+          className={`absolute inset-0 -m-8 rounded-full bg-[#12A5A9]/30 blur-2xl transition-all duration-700 ease-out ${
+            phase === 'in' ? 'opacity-0 scale-50' : 'opacity-100 scale-100'
+          }`}
+        />
+        <Logo
+          className={`relative w-16 h-16 transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
+            phase === 'in' ? 'opacity-0 scale-50 -rotate-12' : 'opacity-100 scale-100 rotate-0'
+          }`}
+        />
+      </div>
+      <span
+        className={`font-display text-white font-bold text-3xl tracking-tight transition-all duration-500 delay-100 ease-out ${
+          phase === 'in' ? 'opacity-0 translate-y-1' : 'opacity-100 translate-y-0'
         }`}
-      />
+      >
+        Prophandld
+      </span>
     </div>
   )
 }

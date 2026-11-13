@@ -31,7 +31,7 @@ const syne = Syne({
   weight: ["700", "800"],
 });
 
-const SITE_TITLE = "Prophandld | Property Management Without the Spreadsheet";
+const SITE_TITLE = "Prophandld: Your Property. Handled.";
 const SITE_DESCRIPTION = "Prophandld gives landlords and property managers one place to track every property and tenant, get honest contractor bids through sealed bidding, and collect rent.";
 
 export const metadata: Metadata = {

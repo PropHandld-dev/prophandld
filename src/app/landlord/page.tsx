@@ -572,12 +572,19 @@ export default function LandlordDashboard() {
               <p className="text-white/50 mt-2">{t('portfolioStateNow', lang)}</p>
             </div>
 
-            <PortfolioDigestCard />
-            <AiResolvedStatCard />
+            {/* Access-grant banners first, ahead of the AI cards below --
+                a live test showed PmInviteBanner's fetch taking several
+                seconds to resolve, queued behind PortfolioDigestCard and
+                AiResolvedStatCard's own (heavier) calls firing on mount
+                at the same time. React mounts effects top-down, so this
+                ordering alone gets these three real, time-sensitive
+                decisions off the wire first. */}
             <ProfileSwitchedBanner />
             <CoOwnerInviteBanner />
             <PmInviteBanner />
             <PendingInviteNeedsPhoneBanner />
+            <PortfolioDigestCard />
+            <AiResolvedStatCard />
             <AlertsList items={alertItems} />
 
             <InviteContractorCard />
