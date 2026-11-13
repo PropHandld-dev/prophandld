@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation'
 import { BuildingIcon, WrenchIcon, DollarSignIcon, PlusIcon, ShieldIcon, ChevronDownIcon, StarIcon, DownloadIcon } from '@/components/icons'
 import { startDmThread } from '@/lib/dmThreads'
 import { downloadCsv } from '@/lib/csvExport'
+import { GoogleTranslateToggle } from '@/components/GoogleTranslateToggle'
 
 const StripePaymentModal = dynamic(() => import('@/components/StripePaymentModal').then((m) => m.StripePaymentModal), { ssr: false })
 
@@ -550,9 +551,12 @@ export default function PmDashboardPage() {
   return (
     <div className="min-h-screen bg-[#0A0F1C] px-4 py-8 pb-24">
       <div className="max-w-2xl mx-auto">
-        <Link href="/profile" className="inline-flex items-center gap-1.5 text-white/40 text-sm hover:text-white/70 transition mb-4">
-          ← Back to profile
-        </Link>
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <Link href="/profile" className="inline-flex items-center gap-1.5 text-white/40 text-sm hover:text-white/70 transition">
+            ← Back to profile
+          </Link>
+          <GoogleTranslateToggle />
+        </div>
 
         <h1 className="text-white font-bold text-2xl mb-1">Property Management</h1>
         <p className="text-white/50 text-sm mb-6">

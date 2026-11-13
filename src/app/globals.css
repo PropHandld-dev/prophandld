@@ -1,5 +1,19 @@
 @import "tailwindcss";
 
+/* Google's legacy Website Translator widget (GoogleTranslateToggle.tsx)
+   injects its own top banner iframe by default and pushes body down to
+   make room for it -- redundant and off-brand next to our own toggle
+   button, which already does the same job. These are Google's own fixed
+   class/element names, not app-specific, so nothing else here risks
+   colliding with them. */
+.goog-te-banner-frame.skiptranslate,
+iframe.skiptranslate {
+  display: none !important;
+}
+body {
+  top: 0px !important;
+}
+
 /* This app is a single, deliberately dark theme everywhere — not adaptive
    to the OS light/dark setting, unlike the create-next-app scaffolding
    this block started from (which toggled --background between white and
