@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/auth'
+import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 
 const DASHBOARD_BY_ROLE: Record<string, string> = {
   landlord: '/landlord',
@@ -26,7 +27,25 @@ export async function requireRole(expectedRole: 'landlord' | 'renter' | 'contrac
     redirect('/login')
   }
 
-  const actualRole = user.app_metadata?.role
+  let actualRole = user.app_metadata?.role
+  // Self-heal: app_metadata.role is supposed to get backfilled once, right
+  // after first activation (see setAppMetadataRole's own comment), but
+  // that only ever fires from specific client-side paths -- confirmed live
+  // that a brand-new landlord who confirms via the email OTP code and then
+  // logs in with their password (instead of clicking "Continue to
+  // dashboard" on the code-confirmation screen) skips every one of those
+  // paths, and nothing else ever retries it. Without this fallback that
+  // account is permanently bounced between here and /login on every future
+  // visit, with no visible error -- this is the first and only point that
+  // can still recover it, since app_metadata.role is never client-writable.
+  if (!actualRole && user.user_metadata?.role === expectedRole) {
+    const admin = getSupabaseAdmin()
+    const { error } = await admin.auth.admin.updateUserById(user.id, {
+      app_metadata: { ...user.app_metadata, role: expectedRole },
+    })
+    if (!error) actualRole = expectedRole
+  }
+
   if (actualRole !== expectedRole) {
     redirect(DASHBOARD_BY_ROLE[actualRole as string] || '/login')
   }

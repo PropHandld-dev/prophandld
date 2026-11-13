@@ -145,18 +145,26 @@ function LoginForm() {
     let coOwnerNeedsPhone = false
     let contractorNeedsPhone = false
     let pmRequestOutcome: 'sent' | 'failed' | null = null
+    // Pulled out of the isFirstActivation-gated block below and made
+    // unconditional on "missing" rather than "this happens to be the
+    // first-activation UI flow" -- confirmed live that a brand-new
+    // landlord who confirms via the email OTP code and then logs in with
+    // their password (instead of clicking "Continue to dashboard" on the
+    // code-confirmation screen) reaches completeSignIn with
+    // isFirstActivation still false, so this never ran, app_metadata.role
+    // stayed permanently unset, and every future visit got silently
+    // bounced between /login and the role-gated /landlord layout forever
+    // (requireRole has no fallback once app_metadata.role is the thing
+    // being checked). The route itself is a safe no-op once a role is
+    // already set, so calling it here whenever one's missing costs
+    // nothing on any ordinary login. Awaited for the same reason it was
+    // awaited before: the landlord branch below calls co-owner/link-invite
+    // next, which gates on this having already landed.
+    if (!user.app_metadata?.role && (accountRole === 'landlord' || accountRole === 'renter' || accountRole === 'contractor')) {
+      await setAppMetadataRole(accountRole)
+    }
     if (isFirstActivation && (accountRole === 'landlord' || accountRole === 'renter' || accountRole === 'contractor')) {
       sendWelcomeEmailWithRetry()
-      // Same "first activation" moment signup couldn't use directly (no
-      // session existed yet when the role was chosen, since email
-      // confirmation defers the real session to here) — see
-      // setAppMetadataRole's own comment for why this has to happen
-      // server-side rather than trusting user_metadata.role going forward.
-      // Awaited: the landlord branch below calls co-owner/link-invite next,
-      // which gates on this having already landed — losing that race used
-      // to send a co-owner-invited landlord to "add your first property"
-      // instead of their co-owned portfolio, on their very first login.
-      await setAppMetadataRole(accountRole)
       // Carried from signup via user_metadata (see signup/page.tsx) since
       // no real session existed yet at signUp() time to call this
       // authenticated route directly — first activation, now that a real
@@ -355,7 +363,16 @@ function LoginForm() {
         // on any such visit, for anyone whose welcomed_at hadn't been
         // stamped yet — e.g. a contractor landing back on /login via a
         // stale or deep-linked URL well after their real signup.
-        completeSignIn(session.user)
+        // Wrapped so a failure here can't leave the "Confirming your
+        // account..." spinner frozen forever with zero visible error --
+        // confirmed live as part of the same bug as the app_metadata.role
+        // gap above: each failed redirect remounted this component with
+        // checkingSession reset to true, so the spinner looked permanent
+        // even though the real fix was the role backfill, not this.
+        completeSignIn(session.user).catch((err) => {
+          console.error('login: completeSignIn failed for already-signed-in visit', err)
+          setCheckingSession(false)
+        })
       } else {
         setLinkError(consumeAuthError())
         setCheckingSession(false)
