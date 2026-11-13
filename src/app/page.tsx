@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { getAccountRole } from '@/lib/accountRole'
 import { MagneticLink } from '@/components/MagneticLink'
 import { ScrollReveal } from '@/components/ScrollReveal'
-import { DollarSignIcon, AlertTriangleIcon, FileTextIcon, WrenchIcon, CalendarIcon, CheckCircleIcon, MessageCircleIcon, LockIcon, StarIcon, GlobeIcon, ShieldIcon, BuildingIcon } from '@/components/icons'
+import { DollarSignIcon, AlertTriangleIcon, FileTextIcon, WrenchIcon, CalendarIcon, CheckCircleIcon, MessageCircleIcon, LockIcon, StarIcon, GlobeIcon, ShieldIcon, BuildingIcon, MenuIcon, XIcon } from '@/components/icons'
 import { Logo } from '@/components/Logo'
 import { BrandLink } from '@/components/BrandLink'
 import { RoleShowcase } from '@/components/RoleShowcase'
@@ -92,6 +92,7 @@ const STRUCTURED_DATA = {
 
 export default function LandingPage() {
   const router = useRouter()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   // A returning, already-signed-in visitor (especially one who installed
   // this as a Home Screen app) shouldn't have to look at a pitch for a
@@ -112,36 +113,64 @@ export default function LandingPage() {
     <div className="min-h-screen bg-[#0C1A2E] text-white relative">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(STRUCTURED_DATA) }} />
 
-      {/* Nav */}
-      <nav className="border-b border-white/8 px-6 pb-4 pt-[calc(1rem+env(safe-area-inset-top))] flex items-center justify-between sticky top-0 bg-[#0C1A2E]/90 backdrop-blur-sm z-10">
-        <div className="flex items-center gap-2.5">
-          <BrandLink className="gap-2.5">
-            <Logo className="w-[30px] h-[30px]" />
-            <span className="font-bold text-lg tracking-tight">Prophandld</span>
-          </BrandLink>
-          <span className="hidden md:inline text-white/50 text-xs border-l border-white/15 pl-2.5 ml-0.5">Your Property. Handled.</span>
-        </div>
-        <div className="flex items-center gap-3 sm:gap-6">
-          <a href="#how-it-works" className="text-sm text-white/50 hover:text-white transition hidden sm:block">How it works</a>
-          <a href="#pricing" className="text-sm text-white/50 hover:text-white transition hidden sm:block">Pricing</a>
-          <a href="#roles" className="text-sm text-white/50 hover:text-white transition hidden sm:block">Who it&apos;s for</a>
-          <Link href="/contractors" className="text-sm text-white/50 hover:text-white transition hidden sm:block">For contractors</Link>
-          {/* whitespace-nowrap: at narrow real-device widths (~360px, a
-              common Android phone size — confirmed via an actual
-              screenshot at that width) this had just enough overflow
-              pressure to wrap "Sign in" onto two lines and visually
-              collide with the Get started button right next to it. */}
-          <Link href="/login" className="text-sm font-medium text-white/70 hover:text-white transition whitespace-nowrap shrink-0">
-            Sign in
-          </Link>
-          <MagneticLink
-            href="/signup"
-            className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-4 py-2 rounded-full hover:opacity-90 whitespace-nowrap shrink-0"
-          >
-            Get started
-          </MagneticLink>
-        </div>
-      </nav>
+      {/* Nav — sticky wrapper holds both the row and the mobile dropdown
+          together, so the dropdown stays attached directly under the nav
+          row at any scroll position instead of scrolling away on its own. */}
+      <div className="sticky top-0 z-10 bg-[#0C1A2E]/90 backdrop-blur-sm">
+        <nav className="border-b border-white/8 px-6 pb-4 pt-[calc(1rem+env(safe-area-inset-top))] flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <BrandLink className="gap-2.5">
+              <Logo className="w-[30px] h-[30px]" />
+              <span className="font-bold text-lg tracking-tight">Prophandld</span>
+            </BrandLink>
+            <span className="hidden md:inline text-white/50 text-xs border-l border-white/15 pl-2.5 ml-0.5">Your Property. Handled.</span>
+          </div>
+          <div className="flex items-center gap-3 sm:gap-6">
+            <a href="#how-it-works" className="text-sm text-white/50 hover:text-white transition hidden sm:block">How it works</a>
+            <a href="#pricing" className="text-sm text-white/50 hover:text-white transition hidden sm:block">Pricing</a>
+            <a href="#roles" className="text-sm text-white/50 hover:text-white transition hidden sm:block">Who it&apos;s for</a>
+            <Link href="/contractors" className="text-sm text-white/50 hover:text-white transition hidden sm:block">For contractors</Link>
+            <Link href="/property-managers" className="text-sm text-white/50 hover:text-white transition hidden sm:block">For property managers</Link>
+            {/* whitespace-nowrap: at narrow real-device widths (~360px, a
+                common Android phone size — confirmed via an actual
+                screenshot at that width) this had just enough overflow
+                pressure to wrap "Sign in" onto two lines and visually
+                collide with the Get started button right next to it. */}
+            <Link href="/login" className="text-sm font-medium text-white/70 hover:text-white transition whitespace-nowrap shrink-0">
+              Sign in
+            </Link>
+            <MagneticLink
+              href="/signup"
+              className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-4 py-2 rounded-full hover:opacity-90 whitespace-nowrap shrink-0"
+            >
+              Get started
+            </MagneticLink>
+            {/* Mobile-only hamburger: the five links above are hidden below
+                sm (no room in the tight phone nav row), so this is the
+                only way to reach How it works / Pricing / Who it's for /
+                For contractors / For property managers on a phone. */}
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen((v) => !v)}
+              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={mobileMenuOpen}
+              className="sm:hidden shrink-0 w-9 h-9 flex items-center justify-center rounded-full border border-white/15 text-white/70 hover:text-white hover:border-white/30 transition"
+            >
+              {mobileMenuOpen ? <XIcon className="w-4 h-4" /> : <MenuIcon className="w-4 h-4" />}
+            </button>
+          </div>
+        </nav>
+
+        {mobileMenuOpen && (
+          <div className="sm:hidden border-t border-white/8 px-6 py-4 flex flex-col gap-1">
+            <a href="#how-it-works" onClick={() => setMobileMenuOpen(false)} className="text-white/70 hover:text-white transition py-2.5 text-sm font-medium">How it works</a>
+            <a href="#pricing" onClick={() => setMobileMenuOpen(false)} className="text-white/70 hover:text-white transition py-2.5 text-sm font-medium">Pricing</a>
+            <a href="#roles" onClick={() => setMobileMenuOpen(false)} className="text-white/70 hover:text-white transition py-2.5 text-sm font-medium">Who it&apos;s for</a>
+            <Link href="/contractors" onClick={() => setMobileMenuOpen(false)} className="text-white/70 hover:text-white transition py-2.5 text-sm font-medium">For contractors</Link>
+            <Link href="/property-managers" onClick={() => setMobileMenuOpen(false)} className="text-white/70 hover:text-white transition py-2.5 text-sm font-medium">For property managers</Link>
+          </div>
+        )}
+      </div>
 
       <main>
       {/* Contractor callout — the nav link to /contractors is desktop-only
