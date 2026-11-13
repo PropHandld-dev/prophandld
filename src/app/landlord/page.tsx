@@ -536,7 +536,7 @@ export default function LandlordDashboard() {
           <span className="text-white font-semibold text-lg tracking-tight">Prophandld</span>
           </Link>
           <span className="text-xs bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 text-[#12A5A9] border border-[#12A5A9]/30 rounded-full px-2.5 py-1">
-            Landlord
+            {pmOrgName ? 'Property Management' : 'Landlord'}
           </span>
         </div>
         <div className="flex items-center gap-1.5">
