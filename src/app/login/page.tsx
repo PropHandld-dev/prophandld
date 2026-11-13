@@ -186,31 +186,36 @@ function LoginForm() {
           console.error('login: could not start AI assist trial from signup opt-in', err)
         )
       }
-      // Same carry-through as referrerId above -- a logged-out visitor
-      // who clicked "Request to be managed" on a PM's public profile had
-      // to sign up first, so the actual request call only happens now,
-      // on this same first-activation branch. Scoped here (not every
-      // login) is correct and sufficient: user_metadata.pm_request_slug
-      // is only ever set once, at signUp() time. Awaited (not
-      // fire-and-forget) so the outcome can be carried through to the
-      // dashboard redirect and actually shown -- this used to silently
-      // drop a failure (org no longer open to clients, etc.) with nothing
-      // but a console.error, leaving someone who signed up specifically to
-      // reach this PM with zero indication whether it worked.
-      const pmRequestSlug = user.user_metadata?.pm_request_slug
-      if (pmRequestSlug) {
-        try {
-          const res = await fetch('/api/pm/clients/request', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ slug: pmRequestSlug }),
-          })
-          pmRequestOutcome = res.ok ? 'sent' : 'failed'
-        } catch (err) {
-          console.error('login: could not send PM request from signup', err)
-          pmRequestOutcome = 'failed'
-        }
+    }
+    // Pulled out of the isFirstActivation gate for the same reason
+    // setAppMetadataRole was above -- confirmed live that a logged-out
+    // visitor who clicks "Request to be managed" on a PM's public profile,
+    // signs up, confirms via the email OTP code, then logs in with their
+    // password (rather than clicking "Continue to dashboard" on the
+    // code-confirmation screen) reaches completeSignIn with
+    // isFirstActivation false, so this never ran and the PM request they
+    // signed up specifically to send was silently never sent, forever --
+    // likely the more common path, not an edge case, since typing a
+    // password is the ordinary way to log in. Keyed on the slug's
+    // presence rather than isFirstActivation, and the slug is cleared from
+    // user_metadata after one attempt (success or failure) so it can never
+    // fire twice on a later login.
+    const pmRequestSlug = user.user_metadata?.pm_request_slug
+    if (pmRequestSlug && (accountRole === 'landlord' || accountRole === 'renter' || accountRole === 'contractor')) {
+      try {
+        const res = await fetch('/api/pm/clients/request', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slug: pmRequestSlug }),
+        })
+        pmRequestOutcome = res.ok ? 'sent' : 'failed'
+      } catch (err) {
+        console.error('login: could not send PM request from signup', err)
+        pmRequestOutcome = 'failed'
       }
+      supabase.auth.updateUser({ data: { pm_request_slug: null } }).catch((err) =>
+        console.error('login: could not clear pm_request_slug', err)
+      )
     }
     if (accountRole === 'renter') {
       // A renter's real first entry into the app now happens here, not on
