@@ -269,19 +269,27 @@ export default function PmDashboardPage() {
         setMonths(dashRes.months || [])
 
         if (orgRes.membership.memberRole === 'admin') {
-          fetch('/api/stripe/connect/status')
-            .then((r) => (r.ok ? r.json() : null))
-            .then((data) => setPayoutStatus(data?.status || 'not_started'))
-            .catch(() => {})
-          fetch('/api/pm/profile-settings')
-            .then((r) => (r.ok ? r.json() : null))
-            .then((data) => {
-              if (!data) return
-              setProfileSlug(data.slug)
-              setOpenToClients(data.openToClients)
-              setPitch(data.pitch || '')
-            })
-            .catch(() => {})
+          // Both awaited here (not fire-and-forget) so loading only
+          // flips to false once these have actually landed -- caught
+          // live: an unawaited profile-settings fetch resolving AFTER a
+          // user had already toggled "Open to new clients" clobbered
+          // their click back to the stale pre-load value, since nothing
+          // stopped a slow, already-in-flight GET from overwriting a
+          // newer optimistic update.
+          const [connectData, profileData] = await Promise.all([
+            fetch('/api/stripe/connect/status')
+              .then((r) => (r.ok ? r.json() : null))
+              .catch(() => null),
+            fetch('/api/pm/profile-settings')
+              .then((r) => (r.ok ? r.json() : null))
+              .catch(() => null),
+          ])
+          setPayoutStatus(connectData?.status || 'not_started')
+          if (profileData) {
+            setProfileSlug(profileData.slug)
+            setOpenToClients(profileData.openToClients)
+            setPitch(profileData.pitch || '')
+          }
         }
       } else if ((invitesRes.managedBy || []).some((m: any) => m.status === 'accepted')) {
         const statusRes = await fetch('/api/pm/my-status').then((r) => r.json())
