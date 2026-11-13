@@ -123,6 +123,16 @@ export default function PmPublicProfilePage() {
       } else {
         setReviewMsg('Thanks for the review!')
         setShowReviewForm(false)
+        // The profile data (reviews list, avgRating) was loaded once on
+        // mount and never refetched -- a successful submit updated the row
+        // server-side (confirmed: avgRating and reviewerFirstName list did
+        // change) but the page kept showing the stale pre-submit list and
+        // average, which read as a silent failure right next to "Thanks for
+        // the review!".
+        fetch(`/api/pm/profile/${slug}`)
+          .then((r) => (r.ok ? r.json() : null))
+          .then((fresh) => fresh && setProfile(fresh))
+          .catch(() => {})
       }
     } catch {
       setReviewMsg('Could not save that review.')
