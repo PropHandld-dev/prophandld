@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
-import { getPmMembership, getOrgManagedOwnerIds } from '@/lib/pm'
+import { getPmMembership, getOrgManagedOwnerIds, scopeOwnerIdsForMember } from '@/lib/pm'
 
 export const maxDuration = 30
 
@@ -31,7 +31,8 @@ export async function GET(request: NextRequest) {
   monthEndDate.setMonth(monthEndDate.getMonth() + 1)
   const monthEnd = monthEndDate.toISOString().slice(0, 10)
 
-  const ownerIds = await getOrgManagedOwnerIds(admin, membership.organizationId)
+  const orgOwnerIds = await getOrgManagedOwnerIds(admin, membership.organizationId)
+  const ownerIds = await scopeOwnerIdsForMember(admin, membership, orgOwnerIds)
   if (ownerIds.length === 0) {
     return NextResponse.json({ month, rows: [] })
   }

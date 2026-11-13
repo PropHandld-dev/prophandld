@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
-import { getPmMembership, getOrgManagedOwnerIds } from '@/lib/pm'
+import { getPmMembership, getOrgManagedOwnerIds, scopeOwnerIdsForMember } from '@/lib/pm'
 
 export const maxDuration = 20
 
@@ -27,7 +27,8 @@ export async function GET() {
     return NextResponse.json({ error: 'Not a property management org member' }, { status: 403 })
   }
 
-  const ownerIds = await getOrgManagedOwnerIds(admin, membership.organizationId)
+  const orgOwnerIds = await getOrgManagedOwnerIds(admin, membership.organizationId)
+  const ownerIds = await scopeOwnerIdsForMember(admin, membership, orgOwnerIds)
   if (ownerIds.length === 0) {
     return NextResponse.json({ contractors: [] })
   }

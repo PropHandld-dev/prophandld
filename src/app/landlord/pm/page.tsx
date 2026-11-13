@@ -41,6 +41,9 @@ type Staff = {
   name: string
   memberRole: 'admin' | 'staff'
   canViewFinancials: boolean
+  scopeAllClients: boolean
+  notificationMode: 'realtime' | 'digest'
+  assignedOwnerIds: string[]
   status: 'pending' | 'accepted'
 }
 type AuditEntry = { id: string; action: string; amount: number | null; createdAt: string; ownerName: string; actorName: string }
@@ -155,6 +158,54 @@ function TabBar({ tabs, active, onChange }: { tabs: { key: Tab; label: string; c
   )
 }
 
+function ChecklistRow({
+  done,
+  label,
+  href,
+  onClick,
+  anchor,
+}: {
+  done: boolean
+  label: string
+  href?: string
+  onClick?: () => void
+  anchor?: string
+}) {
+  const content = (
+    <>
+      <span
+        className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 text-[10px] ${
+          done ? 'bg-[#12A5A9] text-white' : 'border border-white/20 text-transparent'
+        }`}
+      >
+        ✓
+      </span>
+      <span className={`text-sm ${done ? 'text-white/40 line-through' : 'text-white'}`}>{label}</span>
+    </>
+  )
+  const className = 'flex items-center gap-2.5 w-full text-left hover:opacity-80 transition'
+  if (done) return <div className={className}>{content}</div>
+  if (href) {
+    return (
+      <Link href={href} className={className}>
+        {content}
+      </Link>
+    )
+  }
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        onClick?.()
+        if (anchor) document.getElementById(anchor)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }}
+      className={className}
+    >
+      {content}
+    </button>
+  )
+}
+
 function StatusPill({ status }: { status: 'pending' | 'accepted' }) {
   return status === 'accepted' ? (
     <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#0A7B7E]/20 text-[#12A5A9]">Active</span>
@@ -207,6 +258,7 @@ export default function PmDashboardPage() {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [expandedClient, setExpandedClient] = useState<string | null>(null)
+  const [expandedStaff, setExpandedStaff] = useState<string | null>(null)
   // Same Stripe Connect account a landlord already sets up on Profile to
   // receive rent -- management fees land in that same account, so an
   // admin who hasn't done that yet needs to know before trying to bill
@@ -218,6 +270,9 @@ export default function PmDashboardPage() {
   const [pitch, setPitch] = useState('')
   const [savingProfile, setSavingProfile] = useState(false)
   const [profileCopied, setProfileCopied] = useState(false)
+  const [viewsTotal, setViewsTotal] = useState(0)
+  const [viewsThisMonth, setViewsThisMonth] = useState(0)
+  const [checklistDismissed, setChecklistDismissed] = useState(false)
 
   const [orgName, setOrgName] = useState('')
   const [creating, setCreating] = useState(false)
@@ -293,6 +348,8 @@ export default function PmDashboardPage() {
             setProfileSlug(profileData.slug)
             setOpenToClients(profileData.openToClients)
             setPitch(profileData.pitch || '')
+            setViewsTotal(profileData.viewsTotal || 0)
+            setViewsThisMonth(profileData.viewsThisMonth || 0)
           }
         }
       } else if ((invitesRes.managedBy || []).some((m: any) => m.status === 'accepted')) {
@@ -307,7 +364,17 @@ export default function PmDashboardPage() {
 
   useEffect(() => {
     loadAll()
+    try {
+      if (localStorage.getItem('pm-checklist-dismissed') === '1') setChecklistDismissed(true)
+    } catch {}
   }, [loadAll])
+
+  const dismissChecklist = () => {
+    setChecklistDismissed(true)
+    try {
+      localStorage.setItem('pm-checklist-dismissed', '1')
+    } catch {}
+  }
 
   const handleCreateOrg = async () => {
     if (!orgName.trim()) return
@@ -604,6 +671,35 @@ export default function PmDashboardPage() {
     })
   }
 
+  const handleSetScopeAllClients = async (memberId: string, value: boolean) => {
+    setStaff((prev) => prev.map((s) => (s.id === memberId ? { ...s, scopeAllClients: value } : s)))
+    await fetch(`/api/pm/staff/${memberId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scopeAllClients: value }),
+    })
+  }
+
+  const handleToggleAssignedClient = async (memberId: string, ownerUserId: string, assigned: boolean) => {
+    const next = staff.find((s) => s.id === memberId)?.assignedOwnerIds || []
+    const updated = assigned ? [...next, ownerUserId] : next.filter((id) => id !== ownerUserId)
+    setStaff((prev) => prev.map((s) => (s.id === memberId ? { ...s, assignedOwnerIds: updated } : s)))
+    await fetch(`/api/pm/staff/${memberId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ assignedOwnerIds: updated }),
+    })
+  }
+
+  const handleSetNotificationMode = async (memberId: string, mode: 'realtime' | 'digest') => {
+    setStaff((prev) => prev.map((s) => (s.id === memberId ? { ...s, notificationMode: mode } : s)))
+    await fetch(`/api/pm/staff/${memberId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ notificationMode: mode }),
+    })
+  }
+
   const handleRemoveStaff = async (memberId: string) => {
     await fetch(`/api/pm/staff/${memberId}`, { method: 'DELETE' })
     await loadAll()
@@ -826,6 +922,28 @@ export default function PmDashboardPage() {
 
             {activeTab === 'overview' && (
               <>
+                {membership.memberRole === 'admin' &&
+                  !checklistDismissed &&
+                  !(clients.some((c) => c.status === 'accepted') && payoutStatus === 'active' && openToClients) && (
+                    <ScrollReveal className="bg-gradient-to-br from-[#0A7B7E]/15 via-white/3 to-white/3 border border-[#12A5A9]/25 rounded-2xl p-5 mb-6">
+                      <div className="flex items-center justify-between gap-3 mb-3">
+                        <h2 className="text-white font-semibold">Get started</h2>
+                        <button onClick={dismissChecklist} aria-label="Dismiss" className="text-white/40 hover:text-white text-sm">
+                          ×
+                        </button>
+                      </div>
+                      <div className="space-y-2">
+                        <ChecklistRow
+                          done={clients.some((c) => c.status === 'accepted')}
+                          label="Invite your first client"
+                          onClick={() => setActiveTab('clients')}
+                        />
+                        <ChecklistRow done={payoutStatus === 'active'} label="Set up payouts" href="/profile#billing" />
+                        <ChecklistRow done={openToClients} label="Turn on your public profile" anchor="get-found" />
+                      </div>
+                    </ScrollReveal>
+                  )}
+
                 {membership.canViewFinancials && (
                   <button
                     onClick={handleExportMonth}
@@ -931,7 +1049,7 @@ export default function PmDashboardPage() {
                 )}
 
                 {membership.memberRole === 'admin' && (
-                  <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
+                  <div id="get-found" className="bg-white/3 border border-white/8 rounded-2xl p-5">
                     <div className="flex items-center justify-between gap-3 mb-1">
                       <h2 className="text-white font-semibold">Get found on Prophandld</h2>
                       <label className="flex items-center gap-2 text-xs text-white/50 shrink-0">
@@ -960,14 +1078,19 @@ export default function PmDashboardPage() {
                       />
                     </div>
                     {openToClients && profileSlug && (
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <Link href={`/property-managers/${profileSlug}`} className="text-[#12A5A9] text-xs font-semibold hover:underline" target="_blank">
-                          View your profile →
-                        </Link>
-                        <button onClick={handleCopyProfileLink} className="text-white/50 hover:text-white text-xs font-semibold">
-                          {profileCopied ? 'Copied!' : 'Copy share link'}
-                        </button>
-                      </div>
+                      <>
+                        <div className="flex items-center gap-2 flex-wrap mb-3">
+                          <Link href={`/property-managers/${profileSlug}`} className="text-[#12A5A9] text-xs font-semibold hover:underline" target="_blank">
+                            View your profile →
+                          </Link>
+                          <button onClick={handleCopyProfileLink} className="text-white/50 hover:text-white text-xs font-semibold">
+                            {profileCopied ? 'Copied!' : 'Copy share link'}
+                          </button>
+                        </div>
+                        <p className="text-white/30 text-xs">
+                          {viewsThisMonth} view{viewsThisMonth === 1 ? '' : 's'} this month · {viewsTotal} all-time
+                        </p>
+                      </>
                     )}
                   </div>
                 )}
@@ -1194,31 +1317,120 @@ export default function PmDashboardPage() {
             {activeTab === 'team' && (
               <>
                 <div className="space-y-2 mb-4">
-                  {staff.map((s) => (
-                    <div key={s.id} className="bg-white/3 border border-white/8 rounded-xl p-4 flex items-center justify-between gap-3">
-                      <div className="min-w-0 flex items-center gap-2.5">
-                        <p className="text-white text-sm font-medium truncate">{s.name}</p>
-                        <span className="text-white/40 text-xs capitalize">{s.memberRole}</span>
-                        {s.status === 'pending' && <StatusPill status="pending" />}
-                      </div>
-                      {membership.memberRole === 'admin' && s.memberRole === 'staff' && (
-                        <div className="flex items-center gap-3 shrink-0">
-                          <label className="flex items-center gap-1.5 text-xs text-white/50">
-                            <input
-                              type="checkbox"
-                              checked={s.canViewFinancials}
-                              onChange={(e) => handleToggleFinancials(s.id, e.target.checked)}
-                              className="accent-[#12A5A9]"
-                            />
-                            Financials
-                          </label>
-                          <button onClick={() => handleRemoveStaff(s.id)} className="text-red-400/70 hover:text-red-400 text-xs">
-                            Remove
+                  {staff.map((s) => {
+                    const canExpand = membership.memberRole === 'admin' && s.memberRole === 'staff' && s.status === 'accepted'
+                    return (
+                      <div key={s.id} className="bg-white/3 border border-white/8 rounded-xl overflow-hidden">
+                        <div className="p-4 flex items-center justify-between gap-3">
+                          <button
+                            type="button"
+                            disabled={!canExpand}
+                            onClick={() => canExpand && setExpandedStaff((cur) => (cur === s.id ? null : s.id))}
+                            className="min-w-0 flex items-center gap-2.5 text-left flex-1"
+                          >
+                            <p className="text-white text-sm font-medium truncate">{s.name}</p>
+                            <span className="text-white/40 text-xs capitalize">{s.memberRole}</span>
+                            {s.status === 'pending' && <StatusPill status="pending" />}
+                            {!s.scopeAllClients && <span className="text-xs text-yellow-400">Scoped</span>}
+                            {s.notificationMode === 'digest' && <span className="text-xs text-white/30">Digest</span>}
                           </button>
+                          {membership.memberRole === 'admin' && s.memberRole === 'staff' && (
+                            <div className="flex items-center gap-3 shrink-0">
+                              <label className="flex items-center gap-1.5 text-xs text-white/50">
+                                <input
+                                  type="checkbox"
+                                  checked={s.canViewFinancials}
+                                  onChange={(e) => handleToggleFinancials(s.id, e.target.checked)}
+                                  className="accent-[#12A5A9]"
+                                />
+                                Financials
+                              </label>
+                              <button onClick={() => handleRemoveStaff(s.id)} className="text-red-400/70 hover:text-red-400 text-xs">
+                                Remove
+                              </button>
+                              {canExpand && (
+                                <ChevronDownIcon
+                                  className={`w-4 h-4 text-white/30 transition-transform ${expandedStaff === s.id ? 'rotate-180' : ''}`}
+                                />
+                              )}
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  ))}
+
+                        {canExpand && expandedStaff === s.id && (
+                          <div className="px-4 pb-4 border-t border-white/8 pt-3 space-y-4">
+                            <div>
+                              <p className="text-white/70 text-xs font-semibold mb-2">Client access</p>
+                              <div className="flex gap-4 mb-2">
+                                <label className="flex items-center gap-1.5 text-xs text-white/60">
+                                  <input
+                                    type="radio"
+                                    checked={s.scopeAllClients}
+                                    onChange={() => handleSetScopeAllClients(s.id, true)}
+                                    className="accent-[#12A5A9]"
+                                  />
+                                  All clients
+                                </label>
+                                <label className="flex items-center gap-1.5 text-xs text-white/60">
+                                  <input
+                                    type="radio"
+                                    checked={!s.scopeAllClients}
+                                    onChange={() => handleSetScopeAllClients(s.id, false)}
+                                    className="accent-[#12A5A9]"
+                                  />
+                                  Specific clients
+                                </label>
+                              </div>
+                              {!s.scopeAllClients && (
+                                <div className="space-y-1.5 bg-white/[0.03] rounded-xl p-3">
+                                  {clients.filter((c) => c.status === 'accepted').length === 0 ? (
+                                    <p className="text-white/30 text-xs">No accepted clients yet.</p>
+                                  ) : (
+                                    clients
+                                      .filter((c) => c.status === 'accepted')
+                                      .map((c) => (
+                                        <label key={c.ownerUserId} className="flex items-center gap-2 text-xs text-white/60">
+                                          <input
+                                            type="checkbox"
+                                            checked={s.assignedOwnerIds.includes(c.ownerUserId)}
+                                            onChange={(e) => handleToggleAssignedClient(s.id, c.ownerUserId, e.target.checked)}
+                                            className="accent-[#12A5A9]"
+                                          />
+                                          {c.ownerName}
+                                        </label>
+                                      ))
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            <div>
+                              <p className="text-white/70 text-xs font-semibold mb-2">Notifications</p>
+                              <div className="flex gap-4">
+                                <label className="flex items-center gap-1.5 text-xs text-white/60">
+                                  <input
+                                    type="radio"
+                                    checked={s.notificationMode === 'realtime'}
+                                    onChange={() => handleSetNotificationMode(s.id, 'realtime')}
+                                    className="accent-[#12A5A9]"
+                                  />
+                                  Real-time
+                                </label>
+                                <label className="flex items-center gap-1.5 text-xs text-white/60">
+                                  <input
+                                    type="radio"
+                                    checked={s.notificationMode === 'digest'}
+                                    onChange={() => handleSetNotificationMode(s.id, 'digest')}
+                                    className="accent-[#12A5A9]"
+                                  />
+                                  Daily digest
+                                </label>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
                   {staff.length === 0 && <p className="text-white/40 text-sm">No teammates yet.</p>}
                 </div>
 

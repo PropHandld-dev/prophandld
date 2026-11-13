@@ -1,10 +1,13 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 export type PmMembership = {
+  memberId: string
   organizationId: string
   organizationName: string
   memberRole: 'admin' | 'staff'
   canViewFinancials: boolean
+  scopeAllClients: boolean
+  notificationMode: 'realtime' | 'digest'
 }
 
 // The PM org a user is an accepted member of, admin or staff — a person
@@ -13,18 +16,38 @@ export type PmMembership = {
 export async function getPmMembership(admin: SupabaseClient, userId: string): Promise<PmMembership | null> {
   const { data } = await admin
     .from('pm_organization_members')
-    .select('organization_id, member_role, can_view_financials, pm_organizations(name)')
+    .select('id, organization_id, member_role, can_view_financials, scope_all_clients, notification_mode, pm_organizations(name)')
     .eq('user_id', userId)
     .eq('status', 'accepted')
     .maybeSingle()
 
   if (!data) return null
   return {
+    memberId: data.id,
     organizationId: data.organization_id,
     organizationName: (data.pm_organizations as any)?.name || 'Property manager',
     memberRole: data.member_role,
     canViewFinancials: data.can_view_financials,
+    scopeAllClients: data.scope_all_clients ?? true,
+    notificationMode: (data.notification_mode as 'realtime' | 'digest') || 'realtime',
   }
+}
+
+// Narrows a full "every accepted client" list down to what one specific
+// member can actually see -- a no-op (returns the list unchanged) for an
+// admin or any staff member who hasn't been scoped, which is every
+// member until an admin deliberately narrows one. Centralized here so
+// every PM-wide route (clients list, dashboard, pending approvals, audit
+// log) applies the same rule instead of each reimplementing it.
+export async function scopeOwnerIdsForMember(
+  admin: SupabaseClient,
+  membership: PmMembership,
+  allAcceptedOwnerIds: string[]
+): Promise<string[]> {
+  if (membership.memberRole === 'admin' || membership.scopeAllClients) return allAcceptedOwnerIds
+  const { data } = await admin.from('pm_staff_client_access').select('owner_user_id').eq('member_id', membership.memberId)
+  const allowed = new Set((data || []).map((r: any) => r.owner_user_id))
+  return allAcceptedOwnerIds.filter((id) => allowed.has(id))
 }
 
 // Same gap landlord_co_owners' own getLandlordIdsAdmin comment flags:
@@ -45,7 +68,9 @@ export async function getActionableOwnerIdsAdmin(admin: SupabaseClient, userId: 
       .select('owner_user_id')
       .eq('organization_id', membership.organizationId)
       .eq('status', 'accepted')
-    for (const row of (portfolios || []) as { owner_user_id: string }[]) ids.add(row.owner_user_id)
+    const orgOwnerIds = (portfolios || []).map((r: any) => r.owner_user_id)
+    const scoped = await scopeOwnerIdsForMember(admin, membership, orgOwnerIds)
+    for (const id of scoped) ids.add(id)
   }
 
   return Array.from(ids)

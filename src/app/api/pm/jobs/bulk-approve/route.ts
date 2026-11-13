@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
-import { getPmMembership, getOrgManagedOwnerIds, logPmAction } from '@/lib/pm'
+import { getPmMembership, getOrgManagedOwnerIds, scopeOwnerIdsForMember, logPmAction } from '@/lib/pm'
 
 export const maxDuration = 30
 
@@ -32,7 +32,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing jobIds' }, { status: 400 })
   }
 
-  const ownerIds = await getOrgManagedOwnerIds(admin, membership.organizationId)
+  const orgOwnerIds = await getOrgManagedOwnerIds(admin, membership.organizationId)
+  const ownerIds = await scopeOwnerIdsForMember(admin, membership, orgOwnerIds)
 
   // Confirm every requested job actually belongs to this org's own
   // managed clients -- a crafted request naming a job from elsewhere

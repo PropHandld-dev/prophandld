@@ -24,9 +24,20 @@ export async function GET() {
 
   const { data: members } = await supabaseAdmin
     .from('pm_organization_members')
-    .select('id, user_id, invited_email, member_role, can_view_financials, status, invited_at, accepted_at, users(full_name, email)')
+    .select('id, user_id, invited_email, member_role, can_view_financials, scope_all_clients, notification_mode, status, invited_at, accepted_at, users(full_name, email)')
     .eq('organization_id', membership.organizationId)
     .order('invited_at', { ascending: false })
+
+  const memberIds = (members || []).map((m: any) => m.id)
+  const { data: access } = memberIds.length > 0
+    ? await supabaseAdmin.from('pm_staff_client_access').select('member_id, owner_user_id').in('member_id', memberIds)
+    : { data: [] as any[] }
+  const accessByMember = new Map<string, string[]>()
+  for (const a of (access || []) as any[]) {
+    const list = accessByMember.get(a.member_id) || []
+    list.push(a.owner_user_id)
+    accessByMember.set(a.member_id, list)
+  }
 
   return NextResponse.json({
     staff: (members || []).map((m: any) => ({
@@ -35,6 +46,9 @@ export async function GET() {
       name: m.users?.full_name || m.invited_email || m.users?.email || 'Unknown',
       memberRole: m.member_role,
       canViewFinancials: m.can_view_financials,
+      scopeAllClients: m.scope_all_clients ?? true,
+      notificationMode: m.notification_mode || 'realtime',
+      assignedOwnerIds: accessByMember.get(m.id) || [],
       status: m.status,
       invitedAt: m.invited_at,
       acceptedAt: m.accepted_at,

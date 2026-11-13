@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
-import { getPmMembership } from '@/lib/pm'
+import { getPmMembership, scopeOwnerIdsForMember } from '@/lib/pm'
 
 export const maxDuration = 15
 
@@ -25,7 +25,14 @@ export async function GET() {
     .order('created_at', { ascending: false })
     .limit(20)
 
-  const entries = (rows || []).map((r: any) => ({
+  // Scoped the same way every other PM-wide route is -- filtered
+  // post-query (the 20-row cap above is a reasonable tradeoff here; a
+  // heavily-scoped staffer may see fewer than 20 even when more exist,
+  // acceptable for an activity feed, not for anything authorizing money).
+  const scopedOwnerIds = new Set(await scopeOwnerIdsForMember(supabaseAdmin, membership, (rows || []).map((r: any) => r.owner_user_id)))
+  const visibleRows = membership.memberRole === 'admin' || membership.scopeAllClients ? rows || [] : (rows || []).filter((r: any) => scopedOwnerIds.has(r.owner_user_id))
+
+  const entries = visibleRows.map((r: any) => ({
     id: r.id,
     action: r.action,
     amount: membership.canViewFinancials ? (r.amount !== null ? Number(r.amount) : null) : null,

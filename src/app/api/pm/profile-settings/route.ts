@@ -25,10 +25,30 @@ export async function GET() {
     .eq('id', membership.organizationId)
     .maybeSingle()
 
+  let viewsTotal = 0
+  let viewsThisMonth = 0
+  if (org?.slug) {
+    const monthStart = new Date()
+    monthStart.setDate(1)
+    monthStart.setHours(0, 0, 0, 0)
+    const [{ count: total }, { count: thisMonth }] = await Promise.all([
+      admin.from('pm_profile_views').select('id', { count: 'exact', head: true }).eq('organization_id', membership.organizationId),
+      admin
+        .from('pm_profile_views')
+        .select('id', { count: 'exact', head: true })
+        .eq('organization_id', membership.organizationId)
+        .gte('viewed_at', monthStart.toISOString()),
+    ])
+    viewsTotal = total || 0
+    viewsThisMonth = thisMonth || 0
+  }
+
   return NextResponse.json({
     slug: org?.slug || null,
     openToClients: !!org?.open_to_clients,
     pitch: org?.pitch || '',
+    viewsTotal,
+    viewsThisMonth,
   })
 }
 

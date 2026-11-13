@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
-import { getPmMembership } from '@/lib/pm'
+import { getPmMembership, scopeOwnerIdsForMember } from '@/lib/pm'
 
 export const maxDuration = 20
 
@@ -24,13 +24,16 @@ export async function GET() {
     return NextResponse.json({ error: 'Not a property management org member' }, { status: 403 })
   }
 
-  const { data: portfolios } = await supabaseAdmin
+  const { data: allPortfolios } = await supabaseAdmin
     .from('pm_client_portfolios')
     .select('id, owner_user_id, approval_threshold, users(full_name, email)')
     .eq('organization_id', membership.organizationId)
     .eq('status', 'accepted')
 
-  const ownerIds = (portfolios || []).map((p: any) => p.owner_user_id)
+  const allOwnerIds = (allPortfolios || []).map((p: any) => p.owner_user_id)
+  const ownerIds = await scopeOwnerIdsForMember(supabaseAdmin, membership, allOwnerIds)
+  const scopedSet = new Set(ownerIds)
+  const portfolios = (allPortfolios || []).filter((p: any) => scopedSet.has(p.owner_user_id))
   if (ownerIds.length === 0) {
     return NextResponse.json({ clients: [], canViewFinancials: membership.canViewFinancials, months: [], complianceAlerts: [] })
   }

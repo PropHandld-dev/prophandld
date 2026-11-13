@@ -746,6 +746,54 @@ export async function sendPmMonthlySummaryEmail({
   return sendEmail({ to, subject: lang === 'es' ? `Tu resumen de ${monthLabel}` : `Your ${monthLabel} summary`, html })
 }
 
+// A PM member who opted into "daily digest" instead of real-time
+// notifications gets this once a day instead of a per-job email for
+// every single event across every client -- same underlying numbers the
+// Overview tab's own cards already show, not a rebuild of the whole
+// notification system into an event log.
+export async function sendPmDailyDigestEmail({
+  to,
+  memberName,
+  orgName,
+  pendingApprovals,
+  complianceAlerts,
+  dateLabel,
+  lang = 'en',
+}: {
+  to: string
+  memberName: string
+  orgName: string
+  pendingApprovals: number
+  complianceAlerts: number
+  dateLabel: string
+  lang?: Lang
+}) {
+  const html = lang === 'es' ? baseTemplate({
+    lang,
+    eyebrow: 'Resumen diario',
+    heading: `Tu resumen de ${orgName}`,
+    bodyHtml: `Hola ${escapeHtml(memberName)}, esto es lo que necesita tu atención hoy en tu portafolio.`,
+    facts: [
+      { label: fl('Aprobaciones pendientes', lang), value: String(pendingApprovals) },
+      { label: fl('Alertas de cumplimiento', lang), value: String(complianceAlerts) },
+    ],
+    ctaLabel: 'Ver panel',
+    ctaUrl: `${SITE_URL}/landlord/pm`,
+  }) : baseTemplate({
+    lang,
+    eyebrow: 'Daily digest',
+    heading: `Your ${orgName} digest`,
+    bodyHtml: `Hi ${escapeHtml(memberName)}, here's what needs your attention today across your portfolio.`,
+    facts: [
+      { label: fl('Pending approvals', lang), value: String(pendingApprovals) },
+      { label: fl('Compliance alerts', lang), value: String(complianceAlerts) },
+    ],
+    ctaLabel: 'View dashboard',
+    ctaUrl: `${SITE_URL}/landlord/pm`,
+  })
+  return sendEmail({ to, subject: lang === 'es' ? `Tu resumen de ${orgName}, ${dateLabel}` : `Your ${orgName} digest, ${dateLabel}`, html })
+}
+
 // Same reasoning as sendRenterInviteEmail: pre-signup, no known preference.
 export async function sendContractorInviteEmail({
   to,

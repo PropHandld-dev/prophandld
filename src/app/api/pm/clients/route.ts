@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
-import { getPmMembership } from '@/lib/pm'
+import { getPmMembership, scopeOwnerIdsForMember } from '@/lib/pm'
 
 export const maxDuration = 20
 
@@ -28,7 +28,20 @@ export async function GET() {
     .eq('organization_id', membership.organizationId)
     .order('invited_at', { ascending: false })
 
-  const clients = (portfolios || []).map((p: any) => ({
+  // Scoped staff member: only shown the clients an admin has assigned
+  // them, same rule every other PM-wide route now applies. A pending
+  // invite with no owner_user_id yet (invited by email, no account
+  // match) has nothing to scope against, so it stays admin/unscoped-
+  // staff only -- a scoped staffer can't be assigned someone who isn't
+  // a real client yet.
+  const allOwnerIds = (portfolios || []).map((p: any) => p.owner_user_id).filter(Boolean)
+  const scopedOwnerIds = new Set(await scopeOwnerIdsForMember(supabaseAdmin, membership, allOwnerIds))
+  const visiblePortfolios =
+    membership.memberRole === 'admin' || membership.scopeAllClients
+      ? portfolios || []
+      : (portfolios || []).filter((p: any) => p.owner_user_id && scopedOwnerIds.has(p.owner_user_id))
+
+  const clients = visiblePortfolios.map((p: any) => ({
     id: p.id,
     ownerUserId: p.owner_user_id,
     ownerName: p.users?.full_name || p.invited_email || p.users?.email || 'Unknown',

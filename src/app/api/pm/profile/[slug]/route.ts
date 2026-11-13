@@ -22,6 +22,13 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
+  // Fire-and-forget: a view is counted on every real page load, including
+  // the org's own admin checking their own profile -- there's no session
+  // on this public route to tell the difference, and a simple honest
+  // "page loads" count is the right scope for this, not a full analytics
+  // rebuild with bot filtering or self-view exclusion.
+  admin.from('pm_profile_views').insert({ organization_id: org.id }).then(() => {}, () => {})
+
   const [{ data: portfolios }, { data: reviews }] = await Promise.all([
     admin.from('pm_client_portfolios').select('owner_user_id').eq('organization_id', org.id).eq('status', 'accepted'),
     admin
