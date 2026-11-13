@@ -140,7 +140,7 @@ const FAQS: Record<Role, { q: string; a: string }[]> = {
     },
     {
       q: 'Does it work for every property management client I manage, not just my own?',
-      a: "Not yet. Right now it covers the properties you own directly. Extending it across every client portfolio a property management company manages is on our list, not shipped yet. We'd rather tell you that plainly than let you assume it already covers everyone.",
+      a: "Yes, for any client who has their own AI Assist turned on. It's billed per account by unit count, so a client's compliance dates, stale jobs, and late rent only show up in your digest once they've subscribed on their own account, same as any other property management client relationship: you're acting on their behalf, not paying their bill for them.",
     },
     {
       q: 'Can I trust what it tells me?',

@@ -3,7 +3,7 @@ import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { hasAiAssistAccess } from '@/lib/aiAssist'
 import { tooManyAiAssistRequests } from '@/lib/aiAssistRateLimit'
-import { getLandlordIdsAdmin } from '@/lib/landlordIds'
+import { getActionableOwnerIdsAdmin } from '@/lib/pm'
 import { claudeJson, ClaudeConfigError } from '@/lib/claude'
 import { rentMonthBounds } from '@/lib/rentAutomation'
 
@@ -49,7 +49,16 @@ export async function GET() {
   }
 
   try {
-    const landlordIds = await getLandlordIdsAdmin(supabaseAdmin, user.id)
+    // Self + co-owner primaries + any PM client portfolios this user
+    // manages — but AI Assist is billed per owner by their own unit
+    // count, so a client's data only belongs in this digest if that
+    // specific owner has their own AI Assist access, not just because
+    // the PM viewing this happens to have it. Otherwise a PM paying for
+    // 1 unit of their own would get free AI coverage of every client's
+    // entire portfolio, unrelated to what anyone's actually billed for.
+    const actionableOwnerIds = await getActionableOwnerIdsAdmin(supabaseAdmin, user.id)
+    const accessChecks = await Promise.all(actionableOwnerIds.map((id) => hasAiAssistAccess(supabaseAdmin, id)))
+    const landlordIds = actionableOwnerIds.filter((_, i) => accessChecks[i])
 
     const { data: properties } = await supabaseAdmin.from('properties').select('id, address').in('owner_user_id', landlordIds).eq('archived', false)
     const propertyIds = (properties || []).map((p) => p.id)
