@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { getAccountRole } from '@/lib/accountRole'
 import { MagneticLink } from '@/components/MagneticLink'
 import { ScrollReveal } from '@/components/ScrollReveal'
-import { DollarSignIcon, AlertTriangleIcon, FileTextIcon, WrenchIcon, CalendarIcon, CheckCircleIcon, MessageCircleIcon, LockIcon, StarIcon, GlobeIcon, ShieldIcon } from '@/components/icons'
+import { DollarSignIcon, AlertTriangleIcon, FileTextIcon, WrenchIcon, CalendarIcon, CheckCircleIcon, MessageCircleIcon, LockIcon, StarIcon, GlobeIcon, ShieldIcon, BuildingIcon } from '@/components/icons'
 import { Logo } from '@/components/Logo'
 import { BrandLink } from '@/components/BrandLink'
 import { RoleShowcase } from '@/components/RoleShowcase'
@@ -331,7 +331,7 @@ export default function LandingPage() {
         <p className="text-white/50 text-center max-w-2xl mx-auto mb-12">
           You run the show. Tenants report issues in seconds, contractors bid fair and get picked on merit. No spreadsheet, no group texts.
         </p>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid sm:grid-cols-3 gap-6">
           <div className="bg-white/3 border border-[#12A5A9]/30 rounded-2xl p-7 hover:border-[#12A5A9]/50 hover:bg-white/5 hover:-translate-y-0.5 transition-all duration-200">
             <span className="text-xs font-semibold text-[#12A5A9] bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 border border-[#12A5A9]/30 px-2.5 py-1 rounded-full">Landlords</span>
             <h3 className="text-white font-bold text-lg mt-4 mb-2">Bring your own guy. Or find a new one.</h3>
@@ -344,19 +344,6 @@ export default function LandingPage() {
             </p>
             <Link href="/signup?role=landlord" className="text-[#12A5A9] text-sm font-semibold hover:underline">
               Sign up as a landlord →
-            </Link>
-          </div>
-          <div className="bg-white/3 border border-white/8 rounded-2xl p-7 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all duration-200">
-            <span className="text-xs font-semibold text-[#12A5A9] bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 border border-[#12A5A9]/30 px-2.5 py-1 rounded-full">Property Managers</span>
-            <h3 className="text-white font-bold text-lg mt-4 mb-2">Ten clients. One login.</h3>
-            <p className="text-white/50 text-sm leading-relaxed mb-5">
-              Run every landlord client&apos;s properties from a single
-              dashboard — a portfolio switcher per client, staff access you
-              control, and approval thresholds so owners sign off on big
-              repairs automatically, no phone call required.
-            </p>
-            <Link href="/property-managers" className="text-[#12A5A9] text-sm font-semibold hover:underline">
-              See how it works for property managers →
             </Link>
           </div>
           <div className="bg-white/3 border border-white/8 rounded-2xl p-7 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all duration-200">
@@ -386,6 +373,58 @@ export default function LandingPage() {
             </Link>
           </div>
         </div>
+        </ScrollReveal>
+      </section>
+
+      {/* Property managers — given the same dedicated weight as the Safe
+          Healthy Homes section further up, rather than one card among
+          four in the roles grid above (which is where it lived before —
+          both Joshua and Nevin said that wasn't enough to register PM as
+          a real, separate audience on a first scroll). */}
+      <section className="max-w-5xl mx-auto px-6 py-16">
+        <ScrollReveal>
+          <div className="relative overflow-hidden bg-gradient-to-br from-[#0A7B7E]/15 via-white/3 to-white/3 border border-[#12A5A9]/25 rounded-3xl p-8 sm:p-12">
+            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 text-[#12A5A9] border border-[#12A5A9]/30 text-xs font-semibold px-3 py-1.5 rounded-full mb-5">
+              Run a property management company?
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4 leading-tight max-w-2xl">
+              Ten clients. One login.
+            </h2>
+            <p className="text-white/60 leading-relaxed mb-8 max-w-2xl">
+              Manage every landlord client&apos;s properties, maintenance, and
+              compliance from a single dashboard, with a portfolio switcher
+              per client and approval thresholds so owners sign off on
+              bigger repairs automatically, no phone call required.
+            </p>
+            <div className="grid sm:grid-cols-3 gap-4 mb-8">
+              <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+                <BuildingIcon className="w-4 h-4 text-[#12A5A9] mb-2" />
+                <p className="text-white font-semibold text-sm">Every client, one login</p>
+                <p className="text-white/50 text-xs mt-1">A portfolio switcher across every landlord you manage, no separate spreadsheets per owner</p>
+              </div>
+              <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+                <ShieldIcon className="w-4 h-4 text-[#12A5A9] mb-2" />
+                <p className="text-white font-semibold text-sm">Approval thresholds built in</p>
+                <p className="text-white/50 text-xs mt-1">Set a dollar limit per client. Anything over it waits for their own sign-off, logged automatically</p>
+              </div>
+              <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+                <WrenchIcon className="w-4 h-4 text-[#12A5A9] mb-2" />
+                <p className="text-white font-semibold text-sm">A real contractor network</p>
+                <p className="text-white/50 text-xs mt-1">Sealed bidding or your own trusted contractor, with quotes and payment in the same place</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 flex-wrap">
+              <Link
+                href="/property-managers"
+                className="inline-block bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-6 py-3 rounded-full hover:opacity-90 transition"
+              >
+                See how it works for property managers →
+              </Link>
+              <Link href="/signup?role=landlord&intent=property_manager" className="text-white/70 text-sm font-semibold hover:text-white transition">
+                Get started
+              </Link>
+            </div>
+          </div>
         </ScrollReveal>
       </section>
 
