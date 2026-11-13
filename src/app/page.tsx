@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
@@ -93,6 +93,23 @@ const STRUCTURED_DATA = {
 export default function LandingPage() {
   const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  // Mobile only: once the hero (with its own "Get started free" button)
+  // scrolls out of view, the primary CTA otherwise disappears entirely
+  // until a visitor scrolls all the way back to the top -- on a page
+  // this long, that's most of the scroll. A sticky bottom bar keeps it
+  // one thumb-tap away. IntersectionObserver instead of a scroll
+  // listener: no per-frame work, just one callback when the hero crosses
+  // the viewport edge.
+  const heroRef = useRef<HTMLDivElement>(null)
+  const [heroVisible, setHeroVisible] = useState(true)
+
+  useEffect(() => {
+    const el = heroRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(([entry]) => setHeroVisible(entry.isIntersecting), { threshold: 0 })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
 
   // A returning, already-signed-in visitor (especially one who installed
   // this as a Home Screen app) shouldn't have to look at a pitch for a
@@ -189,7 +206,7 @@ export default function LandingPage() {
       </Link>
 
       {/* Hero */}
-      <section className="relative max-w-5xl mx-auto px-6 pt-20 pb-16 text-center overflow-hidden">
+      <section ref={heroRef} className="relative max-w-5xl mx-auto px-6 pt-20 pb-16 text-center overflow-hidden">
         <div aria-hidden className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-[#0A7B7E]/20 blur-3xl -z-10 motion-safe:animate-[drift_9s_ease-in-out_infinite]" />
         <div aria-hidden className="absolute -top-20 -right-24 w-80 h-80 rounded-full bg-[#12A5A9]/20 blur-3xl -z-10 motion-safe:animate-[drift_11s_ease-in-out_infinite_1s]" />
 
@@ -735,6 +752,8 @@ export default function LandingPage() {
           <div className="flex items-center justify-between text-sm text-white/60 flex-wrap gap-3">
             <span>© 2026 Prophandld LLC · Your Property. Handled.</span>
             <div className="flex gap-6 flex-wrap">
+              <Link href="/contractors" className="hover:text-white transition">For contractors</Link>
+              <Link href="/property-managers" className="hover:text-white transition">For property managers</Link>
               <Link href="/terms" className="hover:text-white transition">Terms</Link>
               <Link href="/privacy" className="hover:text-white transition">Privacy</Link>
               <a href="mailto:admin@prophandld.com" className="hover:text-white transition">Contact</a>
@@ -746,6 +765,30 @@ export default function LandingPage() {
       </footer>
 
       <LandingHelpWidget />
+
+      {/* Mobile-only sticky CTA: the hero's own "Get started free" button
+          is the only one on the page until the final CTA near the
+          footer, and on a page this long that's most of the scroll.
+          z-40, under the help widget's z-50 (bottom-24) so the two never
+          visually compete even though they never actually overlap. */}
+      {!heroVisible && (
+        <div
+          className="sm:hidden fixed inset-x-0 bottom-0 z-40 px-4 pt-3 bg-gradient-to-t from-[#0C1A2E] via-[#0C1A2E]/95 to-transparent motion-safe:animate-[floatUp_0.25s_ease-out]"
+          style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}
+        >
+          <div className="flex items-center gap-3">
+            <Link href="/login" className="text-white/70 text-sm font-semibold px-4 py-3 shrink-0">
+              Sign in
+            </Link>
+            <MagneticLink
+              href="/signup"
+              className="flex-1 text-center bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-6 py-3 rounded-full hover:opacity-90"
+            >
+              Get started free
+            </MagneticLink>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

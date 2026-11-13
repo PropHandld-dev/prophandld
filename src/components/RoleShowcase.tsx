@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import {
   BuildingIcon,
   AlertTriangleIcon,
@@ -21,11 +22,11 @@ const TONE_STYLES: Record<string, string> = {
   teal: 'bg-[#12A5A9]/15 text-[#12A5A9]',
 }
 
-const TABS: { role: Role; label: string; tagline: string; path: string }[] = [
-  { role: 'landlord', label: 'Landlords', tagline: 'Every property, one dashboard.', path: 'app.prophandld.com/landlord' },
-  { role: 'property_manager', label: 'Property Managers', tagline: 'Every client, one login.', path: 'app.prophandld.com/landlord/pm' },
-  { role: 'renter', label: 'Renters', tagline: 'Report issues and pay rent in seconds.', path: 'app.prophandld.com/renter' },
-  { role: 'contractor', label: 'Contractors', tagline: 'Real jobs, sealed bids, picked on merit.', path: 'app.prophandld.com/contractor' },
+const TABS: { role: Role; label: string; tagline: string; path: string; ctaLabel: string; ctaHref: string }[] = [
+  { role: 'landlord', label: 'Landlords', tagline: 'Every property, one dashboard.', path: 'app.prophandld.com/landlord', ctaLabel: 'Sign up as a landlord', ctaHref: '/signup?role=landlord' },
+  { role: 'property_manager', label: 'Property Managers', tagline: 'Every client, one login.', path: 'app.prophandld.com/landlord/pm', ctaLabel: 'See how it works for property managers', ctaHref: '/property-managers' },
+  { role: 'renter', label: 'Renters', tagline: 'Report issues and pay rent in seconds.', path: 'app.prophandld.com/renter', ctaLabel: 'Sign up as a renter', ctaHref: '/signup?role=renter' },
+  { role: 'contractor', label: 'Contractors', tagline: 'Real jobs, sealed bids, picked on merit.', path: 'app.prophandld.com/contractor', ctaLabel: 'See how it works for contractors', ctaHref: '/contractors' },
 ]
 
 const PROPERTIES = [
@@ -536,7 +537,17 @@ export function RoleShowcase() {
         </WindowChrome>
       </div>
 
-      <p className="text-white/50 text-xs text-center mt-4">Sample dashboard, shown with example data</p>
+      <p className="text-white/50 text-xs text-center mt-4 mb-3">Sample dashboard, shown with example data</p>
+
+      {/* A mobile visitor lands here right under the hero and can already
+          pick their role via the tabs above -- this turns that pick into
+          an actual next step instead of leaving the demo as a dead end
+          they'd have to keep scrolling past everything else to act on. */}
+      <div className="text-center">
+        <Link href={activeTab.ctaHref} className="text-[#12A5A9] text-sm font-semibold hover:underline">
+          {activeTab.ctaLabel} →
+        </Link>
+      </div>
     </div>
   )
 }
