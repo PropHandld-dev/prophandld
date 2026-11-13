@@ -165,10 +165,23 @@ function LoginForm() {
     }
     if (isFirstActivation && (accountRole === 'landlord' || accountRole === 'renter' || accountRole === 'contractor')) {
       sendWelcomeEmailWithRetry()
+    }
+    // Pulled out of the isFirstActivation gate, same bug/fix shape as
+    // setAppMetadataRole and pmRequestSlug above -- confirmed live that a
+    // plain password login after email-code confirmation (the ordinary way
+    // to log in, not an edge case) reaches completeSignIn with
+    // isFirstActivation false, so these never ran either: a referred
+    // signup's referral was never recorded, and an AI Assist opt-in's
+    // trial was never started. Neither needs clearing after one attempt
+    // the way pmRequestSlug does -- /api/referrals/record is naturally
+    // idempotent (unique(referred_user_id)), and /api/ai-assist/start-trial
+    // just returns {alreadyStarted:true} as a no-op once a row exists -- so
+    // a later login retrying a previously-failed attempt is actively
+    // useful here, not something to guard against.
+    if (accountRole === 'landlord' || accountRole === 'renter' || accountRole === 'contractor') {
       // Carried from signup via user_metadata (see signup/page.tsx) since
       // no real session existed yet at signUp() time to call this
-      // authenticated route directly — first activation, now that a real
-      // session exists, is the first point it can actually be recorded.
+      // authenticated route directly.
       const referrerId = user.user_metadata?.referrer_id
       if (referrerId) {
         fetch('/api/referrals/record', {
@@ -179,8 +192,8 @@ function LoginForm() {
       }
       // Same reasoning as referrerId right above -- the AI Assist opt-in
       // checkbox on signup can only land in user_metadata at signUp()
-      // time, and start-trial needs app_metadata.role (just set on the
-      // line above this) before it'll accept the call.
+      // time, and start-trial needs app_metadata.role (set unconditionally
+      // above, whenever missing) before it'll accept the call.
       if (user.user_metadata?.ai_assist_opt_in) {
         fetch('/api/ai-assist/start-trial', { method: 'POST' }).catch((err) =>
           console.error('login: could not start AI assist trial from signup opt-in', err)
