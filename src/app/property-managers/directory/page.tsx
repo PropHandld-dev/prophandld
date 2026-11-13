@@ -6,6 +6,7 @@ import { MagneticLink } from '@/components/MagneticLink'
 import { Logo } from '@/components/Logo'
 import { BrandLink } from '@/components/BrandLink'
 import { BuildingIcon, StarIcon } from '@/components/icons'
+import { GoogleTranslateToggle } from '@/components/GoogleTranslateToggle'
 
 type Org = {
   slug: string
@@ -37,6 +38,7 @@ export default function PmDirectoryPage() {
         </BrandLink>
         <div className="flex items-center gap-6">
           <Link href="/property-managers" className="text-sm text-white/50 hover:text-white transition hidden sm:block">For property managers</Link>
+          <GoogleTranslateToggle />
           <Link href="/login" className="text-sm font-medium text-white/70 hover:text-white transition">Sign in</Link>
           <MagneticLink
             href="/signup?role=landlord"

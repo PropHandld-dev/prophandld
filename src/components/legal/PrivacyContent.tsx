@@ -51,6 +51,7 @@ export function PrivacyContent() {
               <li><strong className="text-white/80">Sentry:</strong> error tracking, so we know when something breaks.</li>
               <li><strong className="text-white/80">Vercel:</strong> hosts the application itself.</li>
               <li><strong className="text-white/80">Google Cloud Translation:</strong> translates a chat message if you tap "See translation" on it. Only that specific message's text is sent, only when you tap it. Nothing is translated automatically.</li>
+              <li><strong className="text-white/80">Google Translate (page-translation widget):</strong> a separate, optional feature on the property management dashboard lets you translate that page into Spanish with a visible toggle. Turning it on sends that page's content to Google's translation service for as long as it's on; it's off by default and only on that page.</li>
               <li><strong className="text-white/80">Google Maps / Places:</strong> powers address autocomplete when a landlord enters a property, and the map view of a portfolio. What you type into an address field is sent to Google as you type it, the same as any address-autocomplete field on the web.</li>
               <li><strong className="text-white/80">Anthropic:</strong> powers Prophandld AI (AI Assist), the optional, paid add-on a landlord turns on for their own account, including the in-app help assistant (the chat bubble that answers "how do I..." questions and basic facts about your own account, like how many properties or open jobs you have). Whatever a specific feature needs (a job description and photo for a troubleshooting suggestion, an uploaded lease or compliance document, your own account details for the help assistant) is sent to Anthropic's API only when it's on for your landlord's account. Nothing from these features is sent for anyone whose landlord hasn't turned it on, and a renter's help assistant rides on their own landlord's status, not a separate one. Contractors don't have access to Prophandld AI, including the help assistant.</li>
             </ul>
@@ -63,6 +64,17 @@ export function PrivacyContent() {
               a co-owner to manage their properties, that co-owner can see the same tenant, job, rent,
               and compliance data the landlord can. The landlord decides who they invite, and a
               tenant's landlord-of-record doesn't change by adding one.
+            </p>
+            <p>
+              A property management organization that opts in to a public profile makes some
+              information visible to anyone on the internet, without an account or login: the
+              organization&apos;s own name, a short description it writes about itself, and aggregate
+              figures like how many clients and units it manages. This never includes a client&apos;s
+              name, a property&apos;s address, or any other client-identifying detail. If you&apos;ve
+              been an accepted client of that organization, a star rating and written review you
+              choose to leave is also shown publicly, with your first name only, never your full
+              name, email, or account. This is the only part of Prophandld visible without logging in
+              beyond the marketing pages themselves.
             </p>
           </section>
 

@@ -10,7 +10,7 @@ export default function LandlordTermsPage() {
   return (
     <LegalPageShell
       title="Terms of Service for Landlords"
-      lastUpdated="November 6, 2026"
+      lastUpdated="November 13, 2026"
       footerLinks={
         <>
           <Link href="/terms" className="hover:text-white transition">General Terms</Link>

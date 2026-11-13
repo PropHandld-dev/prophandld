@@ -42,6 +42,28 @@ export function LandlordTermsContent() {
           access, including any job, payment, or tenant communication they make while they have it. A
           co-owner can manage only one landlord&apos;s portfolio at a time.
         </p>
+        <p>
+          <strong>Property management organizations.</strong> Instead of or alongside a co-owner, you
+          can accept an invitation from (or send a request to) a property management organization on
+          Prophandld to manage your property. This works differently from a co-owner: the organization
+          can manage many clients&apos; properties from one dashboard, you set a dollar approval
+          threshold per job, and anything at or under it, their admin or staff can approve and pay
+          without asking you first; anything over it needs your own sign-off in the app before a
+          contractor is paid. If you agree to a management fee, it&apos;s billed to you through
+          Prophandld and paid directly to the organization&apos;s own account; Prophandld never holds
+          that money. The organization&apos;s staff access is set by its own admin, not by you, and can
+          include seeing your financial details (rent totals, payment amounts) if the admin grants
+          that. You can end the relationship at any time from your dashboard, and you&apos;re
+          responsible for the organization&apos;s use of the access you&apos;ve granted while the
+          relationship is active, the same as you are for a co-owner. An organization that opts in to a
+          public profile on Prophandld may show its name, a short self-written description, and
+          aggregate figures (how many clients and units it manages) to anyone, without requiring a
+          login; it never shows your name, your property&apos;s address, or any other client-identifying
+          detail. If you&apos;ve been an accepted client of that organization, you can leave a public
+          star rating and written review of them, shown with your first name only, visible to anyone
+          without a login; you can&apos;t review an organization you&apos;ve never actually been managed
+          by.
+        </p>
       </section>
 
       <section>
@@ -53,7 +75,7 @@ export function LandlordTermsContent() {
           <li>Respond to reported maintenance issues in a reasonable time, and not use the platform to avoid habitability or repair obligations you have under applicable law</li>
           <li>Pay contractors the full amount you approve for completed work, on the timeline the platform describes, and pay your own Prophandld subscription fee on time</li>
           <li>Respect a renter&apos;s privacy: only use their contact information and personal data for managing the tenancy, never for an unrelated purpose</li>
-          <li>Take responsibility for any co-owner you invite, including their use of the access you grant them (see Section 2)</li>
+          <li>Take responsibility for any co-owner you invite, or property management organization you engage, including their use of the access you grant them (see Section 2)</li>
           <li>If you accept rent via a third-party app like Zelle, Venmo, or Cash App (see Section 6), make your own informed call about any fees or account-use terms that app imposes on you. Prophandld isn&apos;t a party to your account with them</li>
         </ul>
       </section>

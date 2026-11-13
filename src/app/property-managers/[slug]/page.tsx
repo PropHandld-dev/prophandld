@@ -8,6 +8,7 @@ import { RippleButton } from '@/components/RippleButton'
 import { Logo } from '@/components/Logo'
 import { BrandLink } from '@/components/BrandLink'
 import { BuildingIcon, StarIcon, ShieldIcon } from '@/components/icons'
+import { GoogleTranslateToggle } from '@/components/GoogleTranslateToggle'
 import { supabase } from '@/lib/supabase'
 
 type Profile = {
@@ -144,6 +145,7 @@ export default function PmPublicProfilePage() {
           <span className="font-bold tracking-tight">Prophandld</span>
         </BrandLink>
         <div className="flex items-center gap-6">
+          <GoogleTranslateToggle />
           <Link href="/login" className="text-sm font-medium text-white/70 hover:text-white transition">Sign in</Link>
           <MagneticLink
             href="/signup?role=landlord"
