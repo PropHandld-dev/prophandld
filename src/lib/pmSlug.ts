@@ -27,6 +27,15 @@ export async function ensureOrgSlug(admin: SupabaseClient, organizationId: strin
     candidate = `${base}-${i}`
   }
 
-  await admin.from('pm_organizations').update({ slug: candidate }).eq('id', organizationId)
+  // Checked rather than assumed: a genuine race (two admins enabling at
+  // the exact same instant) can still lose to the unique constraint even
+  // after the check above passed for both. One retry with a random
+  // suffix is enough -- this isn't a high-contention path.
+  const { error } = await admin.from('pm_organizations').update({ slug: candidate }).eq('id', organizationId)
+  if (error) {
+    const fallback = `${base}-${Math.random().toString(36).slice(2, 7)}`
+    await admin.from('pm_organizations').update({ slug: fallback }).eq('id', organizationId)
+    return fallback
+  }
   return candidate
 }

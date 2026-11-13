@@ -44,6 +44,13 @@ export async function POST(request: NextRequest) {
   if (!org) {
     return NextResponse.json({ error: 'That property manager was not found' }, { status: 404 })
   }
+  // Same self-request guard /api/pm/clients/invite already has for the
+  // other direction -- without it, a PM admin hitting their own public
+  // profile link (easy to do by accident while testing it) could request
+  // their own company manage them.
+  if (org.admin_user_id === user.id) {
+    return NextResponse.json({ error: "You can't request your own company." }, { status: 400 })
+  }
 
   const { error: insertError } = await admin
     .from('pm_client_portfolios')

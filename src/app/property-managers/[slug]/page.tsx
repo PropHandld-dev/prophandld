@@ -36,6 +36,7 @@ export default function PmPublicProfilePage() {
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [isLandlord, setIsLandlord] = useState(false)
+  const [isOwnProfile, setIsOwnProfile] = useState(false)
   const [requesting, setRequesting] = useState(false)
   const [requestMsg, setRequestMsg] = useState<string | null>(null)
 
@@ -56,7 +57,18 @@ export default function PmPublicProfilePage() {
       .finally(() => setLoading(false))
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setIsLandlord(session?.user?.app_metadata?.role === 'landlord')
+      if (session?.user?.app_metadata?.role !== 'landlord') return
+      setIsLandlord(true)
+      // Catches a PM admin or staff member viewing their own public
+      // profile -- without this, "Request to be managed by [your own
+      // company]" and "Leave a review" would both show, which makes no
+      // sense for someone who already runs the place.
+      fetch('/api/pm/profile-settings')
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          if (data?.slug === slug) setIsOwnProfile(true)
+        })
+        .catch(() => {})
     })
   }, [slug])
 
@@ -163,7 +175,14 @@ export default function PmPublicProfilePage() {
           )}
         </div>
 
-        {isLandlord ? (
+        {isOwnProfile ? (
+          <Link
+            href="/landlord/pm"
+            className="text-[#12A5A9] font-semibold px-7 py-3.5 rounded-full border border-[#12A5A9]/30 hover:bg-white/5 transition inline-block"
+          >
+            This is your profile — manage it →
+          </Link>
+        ) : isLandlord ? (
           <div className="flex flex-col items-center gap-2">
             <RippleButton
               onClick={handleRequest}
@@ -182,12 +201,14 @@ export default function PmPublicProfilePage() {
             Request to be managed by {profile.name}
           </MagneticLink>
         )}
-        <p className="text-white/30 text-xs mt-4 flex items-center justify-center gap-1.5">
-          <ShieldIcon className="w-3.5 h-3.5" /> You stay the owner. Remove their access anytime.
-        </p>
+        {!isOwnProfile && (
+          <p className="text-white/30 text-xs mt-4 flex items-center justify-center gap-1.5">
+            <ShieldIcon className="w-3.5 h-3.5" /> You stay the owner. Remove their access anytime.
+          </p>
+        )}
       </section>
 
-      {isLandlord && (
+      {isLandlord && !isOwnProfile && (
         <section className="max-w-2xl mx-auto px-6 pb-8">
           {!showReviewForm ? (
             <button onClick={() => setShowReviewForm(true)} className="text-[#12A5A9] text-sm font-semibold hover:underline">

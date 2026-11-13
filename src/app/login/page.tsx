@@ -180,9 +180,9 @@ function LoginForm() {
       // Same carry-through as referrerId above -- a logged-out visitor
       // who clicked "Request to be managed" on a PM's public profile had
       // to sign up first, so the actual request call only happens now,
-      // the first real session. Safe to call on every login: the DB's
-      // own unique (org, owner) index makes a repeat call a harmless
-      // no-op 400, not a duplicate request.
+      // on this same first-activation branch. Scoped here (not every
+      // login) is correct and sufficient: user_metadata.pm_request_slug
+      // is only ever set once, at signUp() time.
       const pmRequestSlug = user.user_metadata?.pm_request_slug
       if (pmRequestSlug) {
         fetch('/api/pm/clients/request', {
