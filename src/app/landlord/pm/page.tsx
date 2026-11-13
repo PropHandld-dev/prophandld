@@ -89,7 +89,7 @@ function StatTile({
       <Icon className="w-4 h-4 text-[#12A5A9] shrink-0" />
       <div className="min-w-0">
         <p className="text-white font-semibold text-sm tabular-nums">{value}</p>
-        <p className="text-white/40 text-xs truncate">{label}</p>
+        <p className="text-white/40 text-xs leading-tight">{label}</p>
       </div>
     </>
   )
