@@ -21,6 +21,8 @@ const ACTION_LABELS: Record<string, string> = {
   admin_login: 'Admin login',
   dispute_resolved: 'Dispute resolved',
   contractor_verification_decision: 'Contractor verification decision',
+  pm_profile_delisted: 'PM profile visibility changed',
+  pm_review_removed: 'PM review removed',
 }
 
 const ACTION_COLORS: Record<string, string> = {
@@ -28,6 +30,8 @@ const ACTION_COLORS: Record<string, string> = {
   admin_login: 'bg-white/8 text-white/60',
   dispute_resolved: 'bg-[#0A7B7E]/20 text-[#12A5A9]',
   contractor_verification_decision: 'bg-yellow-500/15 text-yellow-400',
+  pm_profile_delisted: 'bg-yellow-500/15 text-yellow-400',
+  pm_review_removed: 'bg-red-500/15 text-red-400',
 }
 
 function detailLine(entry: Entry): string | null {
@@ -39,6 +43,10 @@ function detailLine(entry: Entry): string | null {
       return `Outcome: ${d.outcome || 'unknown'}`
     case 'contractor_verification_decision':
       return `${entry.target_email || 'contractor'}: ${d.approved ? 'approved' : 'rejected'}${d.notes ? ` — "${d.notes}"` : ''}`
+    case 'pm_profile_delisted':
+      return `${d.orgName || 'Organization'}: ${d.openToClients ? 'listing re-enabled' : 'taken offline'}`
+    case 'pm_review_removed':
+      return `Review removed for organization ${d.organizationId || 'unknown'}`
     case 'admin_login':
       return null
     default:

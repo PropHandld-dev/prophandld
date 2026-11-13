@@ -15,6 +15,7 @@ const TABS = [
   { href: '/admin/disputes', label: 'Disputes' },
   { href: '/admin/support', label: 'Support' },
   { href: '/admin/contractors', label: 'Contractors' },
+  { href: '/admin/property-managers', label: 'Property managers' },
   { href: '/admin/compliance', label: 'Compliance' },
   { href: '/admin/audit-log', label: 'Audit log' },
   { href: '/admin/health', label: 'System health' },
