@@ -23,12 +23,23 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-syne);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+}
+
+/* Headline-only display face on the public marketing pages. Scoped to
+   this class (set on each marketing page's own root element) rather
+   than bare h1/h2 so the app dashboards, which reuse the same heading
+   tags for their own UI, are completely unaffected. */
+.marketing-page h1,
+.marketing-page h2 {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
 }
 
 /* Fast, snappy crossfade between pages via the View Transitions API */

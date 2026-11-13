@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Syne } from "next/font/google";
 import { ViewTransition } from "react";
 import { CursorGlow } from "@/components/CursorGlow";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
@@ -17,6 +17,18 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+// Headline-only display face for the public marketing pages (home,
+// /contractors, /property-managers, /pricing, /philadelphia) -- scoped
+// via the .marketing-page h1/h2 rule in globals.css, never touches the
+// app dashboards themselves. Syne's geometric weight gives headlines
+// actual character instead of the same Geist weight as every button
+// and label on the page.
+const syne = Syne({
+  variable: "--font-syne",
+  subsets: ["latin"],
+  weight: ["700", "800"],
 });
 
 const SITE_TITLE = "Prophandld | Property Management Without the Spreadsheet";
@@ -88,7 +100,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${syne.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <AppLaunchIntro />

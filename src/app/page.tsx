@@ -127,7 +127,7 @@ export default function LandingPage() {
   }, [router])
 
   return (
-    <div className="min-h-screen bg-[#0C1A2E] text-white relative">
+    <div className="marketing-page min-h-screen bg-[#0C1A2E] text-white relative">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(STRUCTURED_DATA) }} />
 
       {/* Nav — sticky wrapper holds both the row and the mobile dropdown
@@ -148,12 +148,13 @@ export default function LandingPage() {
             <a href="#roles" className="text-sm text-white/50 hover:text-white transition hidden sm:block">Who it&apos;s for</a>
             <Link href="/contractors" className="text-sm text-white/50 hover:text-white transition hidden sm:block">For contractors</Link>
             <Link href="/property-managers" className="text-sm text-white/50 hover:text-white transition hidden sm:block">For property managers</Link>
-            {/* whitespace-nowrap: at narrow real-device widths (~360px, a
-                common Android phone size — confirmed via an actual
-                screenshot at that width) this had just enough overflow
-                pressure to wrap "Sign in" onto two lines and visually
-                collide with the Get started button right next to it. */}
-            <Link href="/login" className="text-sm font-medium text-white/70 hover:text-white transition whitespace-nowrap shrink-0">
+            {/* Mobile: dropped from this row entirely (moved into the
+                hamburger panel below) rather than just shrunk further --
+                a live mobile screenshot at 390px showed it visually
+                colliding with "Get started" and the brand wordmark once
+                the hamburger button was added, with no more room left to
+                squeeze. Still always visible on desktop. */}
+            <Link href="/login" className="text-sm font-medium text-white/70 hover:text-white transition whitespace-nowrap shrink-0 hidden sm:block">
               Sign in
             </Link>
             <MagneticLink
@@ -185,6 +186,7 @@ export default function LandingPage() {
             <a href="#roles" onClick={() => setMobileMenuOpen(false)} className="text-white/70 hover:text-white transition py-2.5 text-sm font-medium">Who it&apos;s for</a>
             <Link href="/contractors" onClick={() => setMobileMenuOpen(false)} className="text-white/70 hover:text-white transition py-2.5 text-sm font-medium">For contractors</Link>
             <Link href="/property-managers" onClick={() => setMobileMenuOpen(false)} className="text-white/70 hover:text-white transition py-2.5 text-sm font-medium">For property managers</Link>
+            <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="text-white/70 hover:text-white transition py-2.5 text-sm font-medium border-t border-white/8 mt-1 pt-3.5">Sign in</Link>
           </div>
         )}
       </div>
@@ -764,7 +766,13 @@ export default function LandingPage() {
         </div>
       </footer>
 
-      <LandingHelpWidget />
+      {/* Hidden while the hero is in view: a live mobile screenshot at
+          844px height showed this floating bubble sitting directly on
+          top of the hero's own "Sign in" button, partly covering it.
+          The hero already has its own route to every action this widget
+          offers (sign in, get started), so nothing is lost by waiting
+          until a visitor has scrolled past it. */}
+      {!heroVisible && <LandingHelpWidget />}
 
       {/* Mobile-only sticky CTA: the hero's own "Get started free" button
           is the only one on the page until the final CTA near the
