@@ -38,6 +38,11 @@ export default function PmPublicProfilePage() {
   const [notFound, setNotFound] = useState(false)
   const [isLandlord, setIsLandlord] = useState(false)
   const [isOwnProfile, setIsOwnProfile] = useState(false)
+  // Distinguishes "logged out" from "logged in as a renter/contractor" --
+  // both used to fall into the same signup-redirect bucket below, which
+  // silently funneled an already-logged-in renter/contractor toward
+  // creating an unrelated new account with zero explanation.
+  const [loggedInOtherRole, setLoggedInOtherRole] = useState<string | null>(null)
   const [requesting, setRequesting] = useState(false)
   const [requestMsg, setRequestMsg] = useState<string | null>(null)
 
@@ -58,7 +63,12 @@ export default function PmPublicProfilePage() {
       .finally(() => setLoading(false))
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user?.app_metadata?.role !== 'landlord') return
+      const sessionRole = session?.user?.app_metadata?.role
+      if (!sessionRole) return
+      if (sessionRole !== 'landlord') {
+        setLoggedInOtherRole(sessionRole)
+        return
+      }
       setIsLandlord(true)
       // Catches a PM admin or staff member viewing their own public
       // profile -- without this, "Request to be managed by [your own
@@ -195,6 +205,19 @@ export default function PmPublicProfilePage() {
             </RippleButton>
             {requestMsg && <p className="text-white/50 text-sm">{requestMsg}</p>}
           </div>
+        ) : loggedInOtherRole ? (
+          <p className="text-white/50 text-sm max-w-xs mx-auto">
+            Only a landlord account can request a property manager. You&apos;re signed in as a {loggedInOtherRole}
+            {' — '}
+            <Link href="/login" className="text-[#12A5A9] hover:underline">
+              sign in with a landlord account
+            </Link>{' '}
+            or{' '}
+            <Link href="/signup?role=landlord" className="text-[#12A5A9] hover:underline">
+              create one
+            </Link>{' '}
+            to request {profile.name}.
+          </p>
         ) : (
           <MagneticLink
             href={`/signup?role=landlord&pmSlug=${slug}`}

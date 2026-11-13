@@ -17,6 +17,7 @@ import { MagneticLink } from '@/components/MagneticLink'
 import { ProfileButton } from '@/components/ProfileButton'
 import { ProfileSwitchedBanner } from '@/components/ProfileSwitchedBanner'
 import { PendingInviteNeedsPhoneBanner } from '@/components/PendingInviteNeedsPhoneBanner'
+import { PmRequestStatusBanner } from '@/components/PmRequestStatusBanner'
 import { CoOwnerInviteBanner } from '@/components/CoOwnerInviteBanner'
 import { PmInviteBanner } from '@/components/PmInviteBanner'
 import { MessagesButton } from '@/components/MessagesButton'
@@ -583,6 +584,7 @@ export default function LandlordDashboard() {
             <CoOwnerInviteBanner />
             <PmInviteBanner />
             <PendingInviteNeedsPhoneBanner />
+            <PmRequestStatusBanner />
             <PortfolioDigestCard />
             <AiResolvedStatCard />
             <AlertsList items={alertItems} />

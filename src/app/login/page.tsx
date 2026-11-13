@@ -144,6 +144,7 @@ function LoginForm() {
     let tenancyNeedsPhone = false
     let coOwnerNeedsPhone = false
     let contractorNeedsPhone = false
+    let pmRequestOutcome: 'sent' | 'failed' | null = null
     if (isFirstActivation && (accountRole === 'landlord' || accountRole === 'renter' || accountRole === 'contractor')) {
       sendWelcomeEmailWithRetry()
       // Same "first activation" moment signup couldn't use directly (no
@@ -182,14 +183,25 @@ function LoginForm() {
       // to sign up first, so the actual request call only happens now,
       // on this same first-activation branch. Scoped here (not every
       // login) is correct and sufficient: user_metadata.pm_request_slug
-      // is only ever set once, at signUp() time.
+      // is only ever set once, at signUp() time. Awaited (not
+      // fire-and-forget) so the outcome can be carried through to the
+      // dashboard redirect and actually shown -- this used to silently
+      // drop a failure (org no longer open to clients, etc.) with nothing
+      // but a console.error, leaving someone who signed up specifically to
+      // reach this PM with zero indication whether it worked.
       const pmRequestSlug = user.user_metadata?.pm_request_slug
       if (pmRequestSlug) {
-        fetch('/api/pm/clients/request', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ slug: pmRequestSlug }),
-        }).catch((err) => console.error('login: could not send PM request from signup', err))
+        try {
+          const res = await fetch('/api/pm/clients/request', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ slug: pmRequestSlug }),
+          })
+          pmRequestOutcome = res.ok ? 'sent' : 'failed'
+        } catch (err) {
+          console.error('login: could not send PM request from signup', err)
+          pmRequestOutcome = 'failed'
+        }
       }
     }
     if (accountRole === 'renter') {
@@ -286,8 +298,14 @@ function LoginForm() {
         isPmIntent = !!pmMembership
       }
 
-      if (!count) router.replace(isPmIntent ? '/landlord/pm?onboarding=1' : '/landlord/properties/new?onboarding=1')
-      else router.replace(coOwnerNeedsPhone ? '/landlord?pendingInviteNeedsPhone=1' : '/landlord')
+      const pmRequestParam = pmRequestOutcome ? `pmRequest${pmRequestOutcome === 'sent' ? 'Sent' : 'Failed'}=1` : null
+      const withPmRequestParam = (url: string) => {
+        if (!pmRequestParam) return url
+        return `${url}${url.includes('?') ? '&' : '?'}${pmRequestParam}`
+      }
+
+      if (!count) router.replace(withPmRequestParam(isPmIntent ? '/landlord/pm?onboarding=1' : '/landlord/properties/new?onboarding=1'))
+      else router.replace(withPmRequestParam(coOwnerNeedsPhone ? '/landlord?pendingInviteNeedsPhone=1' : '/landlord'))
     }
     else if (accountRole === 'renter') router.replace(tenancyNeedsPhone ? '/renter?pendingInviteNeedsPhone=1' : '/renter')
     else if (accountRole === 'contractor') router.replace(contractorNeedsPhone ? '/contractor?pendingInviteNeedsPhone=1' : '/contractor')

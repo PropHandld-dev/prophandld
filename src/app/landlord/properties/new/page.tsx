@@ -185,7 +185,16 @@ function NewPropertyForm() {
     fetch('/api/stripe/subscription/sync', { method: 'POST' }).catch(() => {})
 
     if (isOnboarding) {
-      router.push('/landlord')
+      // Carries a pending PM-request outcome (set by login/page.tsx when this
+      // onboarding redirect was reached right after a signup that was
+      // itself triggered by "Request to be managed") through to the
+      // dashboard, where PmRequestStatusBanner reads and shows it -- this
+      // leg of the redirect used to drop the param silently since it's a
+      // bare router.push with no query string.
+      const pmRequestSent = searchParams.get('pmRequestSent')
+      const pmRequestFailed = searchParams.get('pmRequestFailed')
+      const extra = pmRequestSent === '1' ? '?pmRequestSent=1' : pmRequestFailed === '1' ? '?pmRequestFailed=1' : ''
+      router.push(`/landlord${extra}`)
     } else {
       router.push(`/landlord/properties/${property.id}`)
     }
