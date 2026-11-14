@@ -13,6 +13,7 @@ import { maxLateFee } from '@/lib/lateFee'
 import { escalationSuggestion } from '@/lib/leaseEscalation'
 import { LeaseUploadExtract } from '@/components/LeaseUploadExtract'
 import { AI_ASSIST_ENABLED } from '@/lib/aiAssist'
+import { rentMonthBounds } from '@/lib/rentAutomation'
 
 // Was an inline toggle on the unit detail page itself — moved to its own
 // screen (mirroring tenancy/new, the equivalent "create" flow) so editing
@@ -162,6 +163,29 @@ export default function EditTenancyPage() {
       setError(t('couldNotSaveTenancyChanges', lang))
       setSaving(false)
       return
+    }
+
+    // Found live: editing rent here only ever touched tenancies.rent_amount
+    // -- any rent_payments row already created for the current or a future
+    // month (ensureRentPaymentForMonth pre-creates next month's row ahead
+    // of the cron, see rentAutomation.ts) kept its OLD expected_amount
+    // forever, since that helper only ever inserts a missing row and never
+    // updates an existing one. A renter's dashboard then showed the new
+    // rent in the header but an old, stale amount on the actual payment --
+    // and if they paid it, the landlord was silently short the difference
+    // with nothing ever flagging it. Only touches rows nothing's been paid
+    // on yet (actual_amount 0 or null) and this month or later -- a
+    // partially-paid or already-settled month is left alone rather than
+    // retroactively rewritten.
+    if (rentAmount !== null && rentAmount !== tenancy.rent_amount) {
+      const { month: currentMonthStart } = rentMonthBounds(0)
+      const { error: syncError } = await supabase
+        .from('rent_payments')
+        .update({ expected_amount: rentAmount })
+        .eq('tenancy_id', tenancy.id)
+        .gte('month', currentMonthStart)
+        .or('actual_amount.is.null,actual_amount.eq.0')
+      if (syncError) console.error('Error syncing rent_payments to new rent amount:', syncError)
     }
 
     router.push(`/landlord/properties/${propertyId}/units/${unitId}`)
