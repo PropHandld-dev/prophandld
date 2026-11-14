@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { MapPinIcon, AlertTriangleIcon, CheckCircleIcon } from '@/components/icons'
+import { AddressAutocomplete, type AutocompletePlace } from '@/components/AddressAutocomplete'
 
 type License = { licenseNumber: string; status: string; mostRecentIssueDate: string | null; unitCount: number | null; address: string }
 type Violation = { title: string; status: string; date: string | null; caseStatus: string; address: string }
@@ -46,12 +47,12 @@ export function PhiladelphiaComplianceLookup() {
       </p>
       <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-2.5 mb-2">
         <div className="relative flex-1">
-          <MapPinIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
-          <input
+          <MapPinIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 pointer-events-none" />
+          <AddressAutocomplete
             value={address}
-            onChange={(e) => setAddress(e.target.value)}
+            onChange={setAddress}
+            onPlaceSelected={(place: AutocompletePlace) => setAddress([place.address, place.city].filter(Boolean).join(', '))}
             placeholder="e.g. 1234 Market St"
-            maxLength={120}
             className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-[#12A5A9]/50"
           />
         </div>
