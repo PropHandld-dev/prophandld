@@ -11,6 +11,8 @@ import { BuildingIcon, WrenchIcon, DollarSignIcon, PlusIcon, ShieldIcon, Chevron
 import { startDmThread } from '@/lib/dmThreads'
 import { downloadCsv } from '@/lib/csvExport'
 import { GoogleTranslateToggle } from '@/components/GoogleTranslateToggle'
+import { RentTrendChart, type MonthBucket } from '@/components/RentTrendChart'
+import { PmComplianceMap } from '@/components/PmComplianceMap'
 
 const StripePaymentModal = dynamic(() => import('@/components/StripePaymentModal').then((m) => m.StripePaymentModal), { ssr: false })
 
@@ -32,9 +34,13 @@ type ClientRow = {
   requestedBy: 'pm' | 'owner'
   propertyCount?: number
   unitCount?: number
+  occupiedUnitCount?: number
   openJobCount?: number
   rentCollectedThisMonth?: number | null
+  health?: { score: number; label: string }
 }
+type OrgHealth = { score: number; label: string }
+type MapProperty = { id: string; address: string; city: string | null; lat: number; lng: number; ownerName: string; complianceStatus: 'ok' | 'at-risk' | 'overdue' }
 type Staff = {
   id: string
   userId: string | null
@@ -75,9 +81,34 @@ const ACTION_LABELS: Record<string, string> = {
 }
 
 type PendingJob = { id: string; category: string; createdAt: string; ownerUserId: string; ownerName: string; address: string }
-type MonthBucket = { key: string; label: string; rent: number }
 
 type Tab = 'overview' | 'clients' | 'team' | 'activity'
+
+// One number instead of making a PM scan five tiles -- occupancy,
+// compliance, and rent collection (financials-permitting) averaged
+// together with a plain-English label. Unit-weighted org-wide (computed
+// server-side in /api/pm/dashboard) so one large struggling client
+// actually moves this more than a one-unit client does.
+function PortfolioHealthCard({ health }: { health: { score: number; label: string } }) {
+  const color = health.score >= 85 ? '#12A5A9' : health.score >= 60 ? '#F2B544' : '#E25555'
+  return (
+    <div className="bg-white/3 border border-white/8 rounded-2xl p-5 mb-6 flex items-center gap-5">
+      <div
+        className="w-16 h-16 rounded-full border-4 flex items-center justify-center shrink-0 tabular-nums font-bold text-lg"
+        style={{ borderColor: color, color }}
+      >
+        {health.score}
+      </div>
+      <div>
+        <p className="text-white font-semibold">Portfolio health</p>
+        <p className="text-sm font-medium mt-0.5" style={{ color }}>
+          {health.label}
+        </p>
+        <p className="text-white/40 text-xs mt-1">Occupancy, compliance, and rent collection, combined</p>
+      </div>
+    </div>
+  )
+}
 
 function StatTile({
   icon: Icon,
@@ -110,31 +141,6 @@ function StatTile({
     >
       {content}
     </button>
-  )
-}
-
-// Reuses the simple CSS-bar pattern from /admin/transactions -- height as
-// a percentage of the widest month, no charting library needed.
-function RentTrendChart({ months }: { months: MonthBucket[] }) {
-  const max = Math.max(1, ...months.map((m) => m.rent))
-  return (
-    <div className="bg-white/3 border border-white/8 rounded-2xl p-5 mb-6">
-      <p className="text-white/50 text-xs font-semibold mb-4">Rent collected, last 6 months</p>
-      <div className="flex items-end gap-2 h-28">
-        {months.map((m) => (
-          <div key={m.key} className="flex-1 flex flex-col items-center min-w-0 h-full">
-            <p className="text-white/60 text-[10px] h-4 tabular-nums truncate max-w-full">{m.rent > 0 ? `$${m.rent.toFixed(0)}` : ''}</p>
-            <div className="flex-1 w-full flex items-end min-h-0">
-              <div
-                className="w-full rounded-t-md bg-gradient-to-t from-[#0A7B7E] to-[#12A5A9]"
-                style={{ height: `${Math.max((m.rent / max) * 100, m.rent > 0 ? 4 : 0)}%` }}
-              />
-            </div>
-            <p className="text-white/30 text-[10px] mt-1.5">{m.label}</p>
-          </div>
-        ))}
-      </div>
-    </div>
   )
 }
 
@@ -243,6 +249,8 @@ export default function PmDashboardPage() {
   const [incomingInvites, setIncomingInvites] = useState<IncomingInvite[]>([])
   const [clients, setClients] = useState<ClientRow[]>([])
   const [months, setMonths] = useState<MonthBucket[]>([])
+  const [orgHealth, setOrgHealth] = useState<OrgHealth | null>(null)
+  const [mapProperties, setMapProperties] = useState<MapProperty[]>([])
   const [complianceAlerts, setComplianceAlerts] = useState<
     { id: string; itemType: string; daysUntil: number; address: string; city: string; ownerName: string; propertyId: string }[]
   >([])
@@ -326,6 +334,8 @@ export default function PmDashboardPage() {
         setAuditLog(auditRes.entries || [])
         setMonths(dashRes.months || [])
         setComplianceAlerts(dashRes.complianceAlerts || [])
+        setOrgHealth(dashRes.orgHealth || null)
+        setMapProperties(dashRes.mapProperties || [])
 
         if (orgRes.membership.memberRole === 'admin') {
           // Both awaited here (not fire-and-forget) so loading only
@@ -909,6 +919,8 @@ export default function PmDashboardPage() {
               )}
             </div>
 
+            {orgHealth && acceptedClients.length > 0 && <PortfolioHealthCard health={orgHealth} />}
+
             <TabBar
               active={activeTab}
               onChange={setActiveTab}
@@ -956,6 +968,8 @@ export default function PmDashboardPage() {
                 )}
 
                 {membership.canViewFinancials && months.length > 0 && <RentTrendChart months={months} />}
+
+                {mapProperties.length > 0 && <PmComplianceMap properties={mapProperties} />}
 
                 {complianceAlerts.length > 0 && (
                   <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-5 mb-6">
@@ -1157,6 +1171,17 @@ export default function PmDashboardPage() {
                                   <StatTile icon={BuildingIcon} label="Units" value={c.unitCount ?? 0} />
                                 )}
                               </div>
+                              {c.health && (
+                                <p className="text-xs mb-3">
+                                  <span className="text-white/40">Health: </span>
+                                  <span
+                                    className="font-semibold"
+                                    style={{ color: c.health.score >= 85 ? '#12A5A9' : c.health.score >= 60 ? '#F2B544' : '#E25555' }}
+                                  >
+                                    {c.health.score} · {c.health.label}
+                                  </span>
+                                </p>
+                              )}
                               <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
                                 {membership.memberRole === 'admin' ? (
                                   <label className="flex items-center gap-2 text-xs text-white/50">

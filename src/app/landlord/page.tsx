@@ -36,6 +36,7 @@ import { useMfaPromptVisibility } from '@/lib/useMfaPromptVisibility'
 import { MfaPromptModal } from '@/components/MfaPromptModal'
 import { useLanguage, t, type Lang } from '@/lib/i18n'
 import { useIsNativePlatform } from '@/lib/useIsNativePlatform'
+import { RentTrendChart, type MonthBucket } from '@/components/RentTrendChart'
 
 function getTourSteps(lang: Lang, isPm: boolean): TourStep[] {
   return [
@@ -99,6 +100,7 @@ export default function LandlordDashboard() {
   const [complianceAlerts, setComplianceAlerts] = useState<any[]>([])
   const [rentAlerts, setRentAlerts] = useState<any[]>([])
   const [rentActivity, setRentActivity] = useState<any[]>([])
+  const [rentMonths, setRentMonths] = useState<MonthBucket[]>([])
   // Rent activity already opened (or cleared) on this device, so it stops
   // reappearing on the dashboard. Keyed by month + state, so a bank payment
   // that was "Processing" shows up again once it turns "Received".
@@ -320,6 +322,25 @@ export default function LandlordDashboard() {
           return { ...rp, unit: unitForPayment, property: propertyForPayment }
         })
 
+      // Same 6-month rent-collected trend the PM multi-client dashboard
+      // already has (src/components/RentTrendChart.tsx) -- no new query
+      // needed, rentPayments above already covers a wider window than
+      // this needs. Bucketed by paid_date's month (when the money actually
+      // landed), matching the PM version's semantics exactly.
+      const trendMonthStart = new Date(thisMonthStart.getFullYear(), thisMonthStart.getMonth() - 5, 1)
+      const rentMonthsList: MonthBucket[] = []
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(thisMonthStart.getFullYear(), thisMonthStart.getMonth() - i, 1)
+        rentMonthsList.push({ key: `${d.getFullYear()}-${d.getMonth()}`, label: d.toLocaleDateString('en-US', { month: 'short' }), rent: 0 })
+      }
+      const trendMonthStartKey = `${trendMonthStart.getFullYear()}-${String(trendMonthStart.getMonth() + 1).padStart(2, '0')}-01`
+      for (const rp of rentPayments) {
+        if (rp.stripe_status !== 'succeeded' || !rp.paid_date || rp.paid_date < trendMonthStartKey) continue
+        const d = new Date(rp.paid_date + 'T00:00:00')
+        const bucket = rentMonthsList.find((m) => m.key === `${d.getFullYear()}-${d.getMonth()}`)
+        if (bucket) bucket.rent += Number(rp.actual_amount || 0)
+      }
+
       // Everything below is sorting the jobs already loaded, no more queries.
       const byStatus = (...statuses: string[]) => openJobs.filter((j) => statuses.includes(j.status))
 
@@ -405,6 +426,7 @@ export default function LandlordDashboard() {
       setComplianceAlerts(complianceAlertsList)
       setRentAlerts(rentAlertsList)
       setRentActivity(rentActivityList)
+      setRentMonths(rentMonthsList)
       setNeedsReview(biddingJobsWithBids)
       setScheduleProposals(scheduleProposalsList)
       setConfirmedSchedules(confirmedSchedulesList)
@@ -722,6 +744,8 @@ export default function LandlordDashboard() {
                 </div>
               </Link>
             </div>
+
+            {rentMonths.some((m) => m.rent > 0) && <RentTrendChart months={rentMonths} />}
 
             <div className="flex items-center justify-between mb-4" data-tour="properties">
               <h2 className="text-white font-semibold text-lg">{t('yourProperties', lang)}</h2>
