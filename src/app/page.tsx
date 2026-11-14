@@ -309,12 +309,17 @@ export default function LandingPage() {
                   <p className="text-white/50 text-xs mt-1">per violation a tenant can sue for, plus attorney&apos;s fees</p>
                 </div>
               </div>
-              <Link
-                href="/signup?role=landlord"
-                className="inline-block bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-6 py-3 rounded-full hover:opacity-90 transition"
-              >
-                Set up compliance tracking →
-              </Link>
+              <div className="flex items-center gap-5 flex-wrap">
+                <Link
+                  href="/signup?role=landlord"
+                  className="inline-block bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-6 py-3 rounded-full hover:opacity-90 transition"
+                >
+                  Set up compliance tracking →
+                </Link>
+                <Link href="/philadelphia" className="text-[#12A5A9] text-sm font-semibold hover:underline">
+                  Check any Philadelphia address →
+                </Link>
+              </div>
             </div>
           </div>
         </ScrollReveal>
