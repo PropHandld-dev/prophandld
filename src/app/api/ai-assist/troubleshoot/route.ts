@@ -71,6 +71,15 @@ export async function POST(request: NextRequest) {
   if (!category) {
     return NextResponse.json({ error: 'Missing category' }, { status: 400 })
   }
+  // help-chat caps at 1000 chars and lease-qa at 500 -- this route had no
+  // cap at all on either free-text field, found live: a 9,200-character
+  // description went through without error. Harmless on its own (Claude
+  // handled it fine, no crash, no leak), but an uncapped field is still a
+  // real cost/DoS surface a scripted caller could push arbitrarily far.
+  // 1000 matches help-chat's limit, the more open-ended of the other two.
+  if ((description && description.length > 1000) || (message && message.length > 1000)) {
+    return NextResponse.json({ error: 'Keep that under 1000 characters.' }, { status: 400 })
+  }
   if (isEmergency || isNoTroubleshootCategory(category)) {
     return NextResponse.json({ reply: '', resolved: false } as Reply)
   }
