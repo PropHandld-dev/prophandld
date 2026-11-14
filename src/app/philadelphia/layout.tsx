@@ -1,6 +1,6 @@
 export const metadata = {
   title: "Philadelphia Safe Healthy Homes Legislation | Prophandld",
-  description: "Bill 250329-AA took effect November 1, 2026. See what it means for your rental license, violations, and rent collection, and how Prophandld tracks it for you.",
+  description: "Bill 250329-AA took effect November 1, 2026. Free tool: check any Philadelphia address's real rental license and violation status, straight from the city's own public records.",
   alternates: { canonical: '/philadelphia' },
 }
 

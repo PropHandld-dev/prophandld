@@ -10,7 +10,10 @@ export type PmMapProperty = {
   city: string | null
   lat: number
   lng: number
-  ownerName: string
+  // Omitted entirely (not just blank) on the plain landlord dashboard's
+  // reuse of this map, where every pin is already "yours" and naming the
+  // owner on every popup would be noise, not information.
+  ownerName?: string
   complianceStatus: 'ok' | 'at-risk' | 'overdue'
 }
 
@@ -126,7 +129,7 @@ export function PmComplianceMap({ properties }: { properties: PmMapProperty[] })
               <div>
                 <p className="text-white font-semibold">{selected.address}</p>
                 <p className="text-white/50 text-sm mt-0.5">{selected.city}</p>
-                <p className="text-white/40 text-xs mt-1">{selected.ownerName}</p>
+                {selected.ownerName && <p className="text-white/40 text-xs mt-1">{selected.ownerName}</p>}
               </div>
             </div>
             <p className="text-sm font-semibold mt-3" style={{ color: STATUS_COLOR[selected.complianceStatus] }}>

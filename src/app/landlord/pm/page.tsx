@@ -13,6 +13,7 @@ import { downloadCsv } from '@/lib/csvExport'
 import { GoogleTranslateToggle } from '@/components/GoogleTranslateToggle'
 import { RentTrendChart, type MonthBucket } from '@/components/RentTrendChart'
 import { PmComplianceMap } from '@/components/PmComplianceMap'
+import { PortfolioHealthCard } from '@/components/PortfolioHealthCard'
 
 const StripePaymentModal = dynamic(() => import('@/components/StripePaymentModal').then((m) => m.StripePaymentModal), { ssr: false })
 
@@ -83,32 +84,6 @@ const ACTION_LABELS: Record<string, string> = {
 type PendingJob = { id: string; category: string; createdAt: string; ownerUserId: string; ownerName: string; address: string }
 
 type Tab = 'overview' | 'clients' | 'team' | 'activity'
-
-// One number instead of making a PM scan five tiles -- occupancy,
-// compliance, and rent collection (financials-permitting) averaged
-// together with a plain-English label. Unit-weighted org-wide (computed
-// server-side in /api/pm/dashboard) so one large struggling client
-// actually moves this more than a one-unit client does.
-function PortfolioHealthCard({ health }: { health: { score: number; label: string } }) {
-  const color = health.score >= 85 ? '#12A5A9' : health.score >= 60 ? '#F2B544' : '#E25555'
-  return (
-    <div className="bg-white/3 border border-white/8 rounded-2xl p-5 mb-6 flex items-center gap-5">
-      <div
-        className="w-16 h-16 rounded-full border-4 flex items-center justify-center shrink-0 tabular-nums font-bold text-lg"
-        style={{ borderColor: color, color }}
-      >
-        {health.score}
-      </div>
-      <div>
-        <p className="text-white font-semibold">Portfolio health</p>
-        <p className="text-sm font-medium mt-0.5" style={{ color }}>
-          {health.label}
-        </p>
-        <p className="text-white/40 text-xs mt-1">Occupancy, compliance, and rent collection, combined</p>
-      </div>
-    </div>
-  )
-}
 
 function StatTile({
   icon: Icon,

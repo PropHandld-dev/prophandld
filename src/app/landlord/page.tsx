@@ -37,6 +37,8 @@ import { MfaPromptModal } from '@/components/MfaPromptModal'
 import { useLanguage, t, type Lang } from '@/lib/i18n'
 import { useIsNativePlatform } from '@/lib/useIsNativePlatform'
 import { RentTrendChart, type MonthBucket } from '@/components/RentTrendChart'
+import { PortfolioHealthCard } from '@/components/PortfolioHealthCard'
+import { PmComplianceMap, type PmMapProperty } from '@/components/PmComplianceMap'
 
 function getTourSteps(lang: Lang, isPm: boolean): TourStep[] {
   return [
@@ -101,6 +103,8 @@ export default function LandlordDashboard() {
   const [rentAlerts, setRentAlerts] = useState<any[]>([])
   const [rentActivity, setRentActivity] = useState<any[]>([])
   const [rentMonths, setRentMonths] = useState<MonthBucket[]>([])
+  const [portfolioHealth, setPortfolioHealth] = useState<{ score: number; label: string } | null>(null)
+  const [mapProperties, setMapProperties] = useState<PmMapProperty[]>([])
   // Rent activity already opened (or cleared) on this device, so it stops
   // reappearing on the dashboard. Keyed by month + state, so a bank payment
   // that was "Processing" shows up again once it turns "Received".
@@ -339,6 +343,59 @@ export default function LandlordDashboard() {
         const d = new Date(rp.paid_date + 'T00:00:00')
         const bucket = rentMonthsList.find((m) => m.key === `${d.getFullYear()}-${d.getMonth()}`)
         if (bucket) bucket.rent += Number(rp.actual_amount || 0)
+      }
+
+      // Same portfolio-health formula the PM multi-client dashboard already
+      // has (see PortfolioHealthCard's own comment) -- occupancy,
+      // compliance, and rent collection averaged into one 0-100 score.
+      // Nothing new fetched: every input here is already computed above
+      // for this same render pass.
+      {
+        const occupancyPct = unitList.length > 0 ? Math.min(100, (occupiedUnitIds.size / unitList.length) * 100) : 100
+        let overdueCount = 0
+        let atRiskCount = 0
+        for (const item of complianceItemsData) {
+          const expiry = new Date(item.expiry_date + 'T00:00:00')
+          const daysUntil = Math.round((expiry.getTime() - today.getTime()) / (24 * 60 * 60 * 1000))
+          const reminderDays = item.reminder_days ?? 30
+          if (daysUntil < 0) overdueCount++
+          else if (daysUntil <= reminderDays) atRiskCount++
+        }
+        const compliancePct = Math.max(0, 100 - overdueCount * 20 - atRiskCount * 8)
+        const expectedThisMonth = monthlyRentRoll
+        const collectedThisMonth = rentMonthsList[rentMonthsList.length - 1]?.rent || 0
+        const rentPct = expectedThisMonth > 0 ? Math.min(100, (collectedThisMonth / expectedThisMonth) * 100) : 100
+        const score = Math.round((occupancyPct + compliancePct + rentPct) / 3)
+        const label = score >= 85 ? 'Healthy' : score >= 60 ? 'Needs attention' : 'At risk'
+        setPortfolioHealth({ score, label })
+      }
+
+      // Same compliance map the PM multi-client dashboard already has --
+      // properties already have lat/lng from geocoding at creation time,
+      // this just plots them instead of leaving that data unused.
+      {
+        const worstStatusByProperty = new Map<string, 'overdue' | 'at-risk'>()
+        for (const item of complianceItemsData) {
+          const expiry = new Date(item.expiry_date + 'T00:00:00')
+          const daysUntil = Math.round((expiry.getTime() - today.getTime()) / (24 * 60 * 60 * 1000))
+          const reminderDays = item.reminder_days ?? 30
+          if (daysUntil < 0) worstStatusByProperty.set(item.property_id, 'overdue')
+          else if (daysUntil <= reminderDays && worstStatusByProperty.get(item.property_id) !== 'overdue') {
+            worstStatusByProperty.set(item.property_id, 'at-risk')
+          }
+        }
+        setMapProperties(
+          propertyList
+            .filter((p) => p.lat != null && p.lng != null)
+            .map((p) => ({
+              id: p.id,
+              address: p.address,
+              city: p.city,
+              lat: p.lat,
+              lng: p.lng,
+              complianceStatus: worstStatusByProperty.get(p.id) || 'ok',
+            }))
+        )
       }
 
       // Everything below is sorting the jobs already loaded, no more queries.
@@ -745,7 +802,11 @@ export default function LandlordDashboard() {
               </Link>
             </div>
 
+            {portfolioHealth && stats.totalUnits > 0 && <PortfolioHealthCard health={portfolioHealth} />}
+
             {rentMonths.some((m) => m.rent > 0) && <RentTrendChart months={rentMonths} />}
+
+            {mapProperties.length > 0 && <PmComplianceMap properties={mapProperties} />}
 
             <div className="flex items-center justify-between mb-4" data-tour="properties">
               <h2 className="text-white font-semibold text-lg">{t('yourProperties', lang)}</h2>
