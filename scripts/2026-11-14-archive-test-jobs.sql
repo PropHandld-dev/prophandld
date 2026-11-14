@@ -82,3 +82,26 @@ order by j.created_at desc;
 --     or j.description ilike '%TEST ONLY%'
 --     or p.address ilike '%Test QA St%'
 -- );
+
+-- ============================================================
+-- STEP 3 -- a different kind of leftover, found live while testing the
+-- rent-edit sync fix above: a rent_payments row for 2230 Logan Circle,
+-- Unit Main, December 2026 has actual_amount = 100.005 -- a real
+-- landlord/tenant money amount is never more precise than the cent, so
+-- three decimal places is itself proof this is leftover cruft from
+-- earlier fractional-cent water-charge precision testing ("QA TEST
+-- ONLY: audit precision below half a cent", visible in that row's own
+-- adjustment history on the landlord's rent page), not a real partial
+-- payment. It made that month look $100 "already paid" when nothing
+-- real was ever paid toward it. Review this SELECT first -- same rule
+-- as above, a real amount is never this precise.
+-- ============================================================
+select id, tenancy_id, month, expected_amount, actual_amount, stripe_status
+from rent_payments
+where actual_amount is not null
+  and actual_amount != round(actual_amount, 2)
+order by month desc;
+
+-- update rent_payments set actual_amount = 0
+-- where actual_amount is not null
+--   and actual_amount != round(actual_amount, 2);
