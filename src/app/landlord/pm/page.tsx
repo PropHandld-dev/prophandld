@@ -467,11 +467,21 @@ export default function PmDashboardPage() {
   }
 
   const handleAcceptInvite = async (id: string) => {
-    await fetch('/api/pm/clients/accept', {
+    // Found live: this used to ignore the response entirely -- a landlord
+    // already accepted by a different PM org (the DB only allows one
+    // accepted relationship at a time, idx_pm_portfolios_one_active_pm)
+    // got a silent no-op on click, with the invite banner just sitting
+    // there forever and zero indication anything went wrong.
+    const res = await fetch('/api/pm/clients/accept', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ portfolioId: id }),
     })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      setError(data.error || 'Could not accept that invite.')
+      return
+    }
     await loadAll()
   }
 

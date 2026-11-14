@@ -33,7 +33,24 @@ export async function POST(request: NextRequest) {
     .select('organization_id, pm_organizations(admin_user_id, name)')
     .maybeSingle()
 
-  if (error || !updated) {
+  if (error) {
+    // idx_pm_portfolios_one_active_pm (a partial unique index: at most one
+    // accepted PM relationship per owner, across every org) rejects this
+    // as a 23505 conflict when the landlord already accepted a DIFFERENT
+    // org -- confirmed live: this used to get flattened into the same
+    // generic "Invite not found" as a row that's simply missing, leaving
+    // someone who's already managed elsewhere with no idea why accepting
+    // did nothing.
+    if (error.code === '23505') {
+      return NextResponse.json(
+        { error: "You're already managed by a different property manager. Remove them first if you want to switch." },
+        { status: 409 }
+      )
+    }
+    console.error('pm/clients/accept: update failed', error)
+    return NextResponse.json({ error: 'Could not accept that invite' }, { status: 500 })
+  }
+  if (!updated) {
     return NextResponse.json({ error: 'Invite not found' }, { status: 404 })
   }
 
