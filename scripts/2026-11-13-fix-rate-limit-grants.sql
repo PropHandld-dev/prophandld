@@ -1,0 +1,17 @@
+-- Fixes a real, long-standing bug: support_escalate_hits (the shared table
+-- tooManyRequests() in src/lib/rateLimit.ts uses for every rate limit in the
+-- app -- 16 routes as of this writing) was created with RLS enabled but no
+-- GRANT to service_role. RLS bypass (which service_role has) and table-level
+-- GRANTs are separate things in Postgres -- bypassing RLS does not bypass
+-- the base privilege check. Every insert and count query against this table
+-- has been silently failing with "permission denied for table
+-- support_escalate_hits" since the table was created (2026-10-02), and the
+-- app discards that error without logging it -- so no rate limit anywhere
+-- in the app (signup, password reset, PM requests, phone verification,
+-- invite spam, etc.) has ever actually been enforced. Confirmed live via a
+-- temporary debug route: 17 rapid hits on one endpoint in one minute never
+-- triggered a 429, and the table reported "permission denied for table
+-- support_escalate_hits" (hint: "Grant the required privileges to the
+-- current role with: GRANT SELECT ON public.support_escalate_hits TO
+-- service_role") when queried directly with the service role key.
+grant select, insert, delete on public.support_escalate_hits to service_role;
