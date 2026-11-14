@@ -10,6 +10,7 @@ import { ScrollReveal } from '@/components/ScrollReveal'
 import { Logo } from '@/components/Logo'
 import { BrandLink } from '@/components/BrandLink'
 import { ShieldIcon, BellIcon, FileTextIcon, CalendarIcon, CheckCircleIcon, DollarSignIcon } from '@/components/icons'
+import { PhiladelphiaComplianceLookup } from '@/components/PhiladelphiaComplianceLookup'
 
 // A dedicated, dated landing page rather than rewriting the homepage hero
 // around this: the Nov 1, 2026 deadline is Philadelphia-specific and
@@ -141,6 +142,16 @@ export default function PhiladelphiaLandingPage() {
               <p className="text-white/50 text-sm">per violation a tenant can sue for, plus attorney&apos;s fees</p>
             </div>
           </div>
+        </ScrollReveal>
+      </section>
+
+      {/* Public compliance lookup -- the one interactive, shareable hook on
+          this page that works for a visitor who isn't a Prophandld user at
+          all (a renter checking a landlord, a landlord checking a property
+          before buying it), ahead of the product pitch below. */}
+      <section className="max-w-3xl mx-auto px-6 pb-16">
+        <ScrollReveal>
+          <PhiladelphiaComplianceLookup />
         </ScrollReveal>
       </section>
 
