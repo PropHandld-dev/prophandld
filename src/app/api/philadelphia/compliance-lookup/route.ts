@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { tooManyRequests } from '@/lib/rateLimit'
 
-export const maxDuration = 15
+// Worst case is two sequential 10s attempts (initial + one retry) per
+// query, with the license and violations queries themselves running in
+// parallel -- so ~20s, not 2x that.
+export const maxDuration = 25
 
 // Public, no-login lookup against the City of Philadelphia's own open data
 // (phl.carto.com, the same backend opendataphilly.org uses) -- rental
@@ -23,11 +26,27 @@ function sanitizeAddress(raw: string): string {
   return raw.replace(SAFE_ADDRESS_RE, '').replace(/'/g, "''").trim().slice(0, 120)
 }
 
-async function cartoQuery(sql: string) {
-  const res = await fetch(`${CARTO_SQL_URL}?q=${encodeURIComponent(sql)}`, { signal: AbortSignal.timeout(8000) })
+// phl.carto.com is a free public service with real latency variance --
+// confirmed live: three back-to-back real requests came back in 4.3s,
+// 4.8s, and one that didn't finish inside 8s at all. A single timeout
+// surfaced that as a user-facing failure roughly half the time, even
+// though the service recovers almost immediately on a retry. One retry
+// (fresh timeout, not a shared budget) covers that without making a
+// genuinely down service hang the request forever.
+async function cartoQueryOnce(sql: string) {
+  const res = await fetch(`${CARTO_SQL_URL}?q=${encodeURIComponent(sql)}`, { signal: AbortSignal.timeout(10000) })
   if (!res.ok) throw new Error(`Carto query failed: ${res.status}`)
   const body = await res.json()
   return (body.rows || []) as any[]
+}
+
+async function cartoQuery(sql: string) {
+  try {
+    return await cartoQueryOnce(sql)
+  } catch (err) {
+    console.error('philadelphia/compliance-lookup: first attempt failed, retrying once', err)
+    return cartoQueryOnce(sql)
+  }
 }
 
 export async function GET(request: NextRequest) {
