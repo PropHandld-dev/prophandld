@@ -51,7 +51,10 @@ async function cartoQuery(sql: string) {
 
 export async function GET(request: NextRequest) {
   const ip = (request.headers.get('x-forwarded-for') || 'unknown').split(',')[0].trim()
-  if (await tooManyRequests(`philly-compliance-lookup:ip:${ip}`, 10, 15)) {
+  // Loosened from 10 after it turned out too strict for ordinary
+  // exploratory use -- a ceiling against scripted abuse, not a normal
+  // usage cap, same reasoning aiAssistRateLimit's own comment uses.
+  if (await tooManyRequests(`philly-compliance-lookup:ip:${ip}`, 30, 15)) {
     return NextResponse.json({ error: 'Too many lookups. Try again in a few minutes.' }, { status: 429 })
   }
 
