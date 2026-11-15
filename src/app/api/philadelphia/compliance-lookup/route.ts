@@ -26,6 +26,45 @@ function sanitizeAddress(raw: string): string {
   return raw.replace(SAFE_ADDRESS_RE, '').replace(/'/g, "''").trim().slice(0, 120)
 }
 
+// Found live: a search for "8058 Walker Street" returned nothing even
+// though the city's own record for that exact property exists and has an
+// active rental license -- stored as "8058 WALKER ST". The city's address
+// data (and Google Places' own autocomplete output, which feeds this
+// field from the property form and the lookup tool alike) consistently
+// uses USPS-style abbreviations, so a literal substring match on the
+// spelled-out word never matches. This normalizes the common ones,
+// word-boundary-aware, before the address is used in either query --
+// without it, this silently failed for what's likely the majority of
+// real addresses (anyone whose street type wasn't already abbreviated).
+const STREET_SUFFIX_MAP: [RegExp, string][] = [
+  [/\bstreet\b/gi, 'St'],
+  [/\bavenue\b/gi, 'Ave'],
+  [/\bboulevard\b/gi, 'Blvd'],
+  [/\bdrive\b/gi, 'Dr'],
+  [/\broad\b/gi, 'Rd'],
+  [/\blane\b/gi, 'Ln'],
+  [/\bcourt\b/gi, 'Ct'],
+  [/\bplace\b/gi, 'Pl'],
+  [/\bcircle\b/gi, 'Cir'],
+  [/\bterrace\b/gi, 'Ter'],
+  [/\bparkway\b/gi, 'Pkwy'],
+  [/\bhighway\b/gi, 'Hwy'],
+  [/\bsquare\b/gi, 'Sq'],
+  [/\btrail\b/gi, 'Trl'],
+  [/\bnorth\b/gi, 'N'],
+  [/\bsouth\b/gi, 'S'],
+  [/\beast\b/gi, 'E'],
+  [/\bwest\b/gi, 'W'],
+]
+
+function normalizeStreetSuffix(address: string): string {
+  let result = address
+  for (const [pattern, replacement] of STREET_SUFFIX_MAP) {
+    result = result.replace(pattern, replacement)
+  }
+  return result
+}
+
 // phl.carto.com is a free public service with real latency variance --
 // confirmed live: three back-to-back real requests came back in 4.3s,
 // 4.8s, and one that didn't finish inside 8s at all. A single timeout
@@ -59,10 +98,11 @@ export async function GET(request: NextRequest) {
   }
 
   const rawAddress = request.nextUrl.searchParams.get('address') || ''
-  const address = sanitizeAddress(rawAddress)
-  if (!address || address.length < 5) {
+  const sanitized = sanitizeAddress(rawAddress)
+  if (!sanitized || sanitized.length < 5) {
     return NextResponse.json({ error: 'Enter a street address.' }, { status: 400 })
   }
+  const address = normalizeStreetSuffix(sanitized)
 
   try {
     const [licenses, violations] = await Promise.all([
