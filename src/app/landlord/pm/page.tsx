@@ -12,7 +12,6 @@ import { startDmThread } from '@/lib/dmThreads'
 import { downloadCsv } from '@/lib/csvExport'
 import { GoogleTranslateToggle } from '@/components/GoogleTranslateToggle'
 import { RentTrendChart, type MonthBucket } from '@/components/RentTrendChart'
-import { PmComplianceMap } from '@/components/PmComplianceMap'
 import { PortfolioHealthCard } from '@/components/PortfolioHealthCard'
 
 const StripePaymentModal = dynamic(() => import('@/components/StripePaymentModal').then((m) => m.StripePaymentModal), { ssr: false })
@@ -41,7 +40,6 @@ type ClientRow = {
   health?: { score: number; label: string }
 }
 type OrgHealth = { score: number; label: string }
-type MapProperty = { id: string; address: string; city: string | null; lat: number; lng: number; ownerName: string; complianceStatus: 'ok' | 'at-risk' | 'overdue' }
 type Staff = {
   id: string
   userId: string | null
@@ -225,7 +223,6 @@ export default function PmDashboardPage() {
   const [clients, setClients] = useState<ClientRow[]>([])
   const [months, setMonths] = useState<MonthBucket[]>([])
   const [orgHealth, setOrgHealth] = useState<OrgHealth | null>(null)
-  const [mapProperties, setMapProperties] = useState<MapProperty[]>([])
   const [complianceAlerts, setComplianceAlerts] = useState<
     { id: string; itemType: string; daysUntil: number; address: string; city: string; ownerName: string; propertyId: string }[]
   >([])
@@ -310,7 +307,6 @@ export default function PmDashboardPage() {
         setMonths(dashRes.months || [])
         setComplianceAlerts(dashRes.complianceAlerts || [])
         setOrgHealth(dashRes.orgHealth || null)
-        setMapProperties(dashRes.mapProperties || [])
 
         if (orgRes.membership.memberRole === 'admin') {
           // Both awaited here (not fire-and-forget) so loading only
@@ -916,7 +912,7 @@ export default function PmDashboardPage() {
                 <PortfolioHealthCard
                   health={orgHealth}
                   issues={issues}
-                  href={complianceAlerts.length > 0 ? '#compliance-alerts' : undefined}
+                  scrollToId={complianceAlerts.length > 0 ? 'compliance-alerts' : undefined}
                 />
               )
             })()}
@@ -968,8 +964,6 @@ export default function PmDashboardPage() {
                 )}
 
                 {membership.canViewFinancials && months.length > 0 && <RentTrendChart months={months} />}
-
-                {mapProperties.length > 0 && <PmComplianceMap properties={mapProperties} />}
 
                 {complianceAlerts.length > 0 && (
                   <ScrollReveal id="compliance-alerts" className="bg-white/3 border border-white/8 rounded-2xl p-5 mb-6 scroll-mt-6">

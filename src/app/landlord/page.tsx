@@ -36,9 +36,8 @@ import { useMfaPromptVisibility } from '@/lib/useMfaPromptVisibility'
 import { MfaPromptModal } from '@/components/MfaPromptModal'
 import { useLanguage, t, type Lang } from '@/lib/i18n'
 import { useIsNativePlatform } from '@/lib/useIsNativePlatform'
-import { RentTrendChart, type MonthBucket } from '@/components/RentTrendChart'
+import type { MonthBucket } from '@/components/RentTrendChart'
 import { PortfolioHealthCard } from '@/components/PortfolioHealthCard'
-import { PmComplianceMap, type PmMapProperty } from '@/components/PmComplianceMap'
 
 function getTourSteps(lang: Lang, isPm: boolean): TourStep[] {
   return [
@@ -102,9 +101,7 @@ export default function LandlordDashboard() {
   const [complianceAlerts, setComplianceAlerts] = useState<any[]>([])
   const [rentAlerts, setRentAlerts] = useState<any[]>([])
   const [rentActivity, setRentActivity] = useState<any[]>([])
-  const [rentMonths, setRentMonths] = useState<MonthBucket[]>([])
   const [portfolioHealth, setPortfolioHealth] = useState<{ score: number; label: string } | null>(null)
-  const [mapProperties, setMapProperties] = useState<PmMapProperty[]>([])
   // Rent activity already opened (or cleared) on this device, so it stops
   // reappearing on the dashboard. Keyed by month + state, so a bank payment
   // that was "Processing" shows up again once it turns "Received".
@@ -370,34 +367,6 @@ export default function LandlordDashboard() {
         setPortfolioHealth({ score, label })
       }
 
-      // Same compliance map the PM multi-client dashboard already has --
-      // properties already have lat/lng from geocoding at creation time,
-      // this just plots them instead of leaving that data unused.
-      {
-        const worstStatusByProperty = new Map<string, 'overdue' | 'at-risk'>()
-        for (const item of complianceItemsData) {
-          const expiry = new Date(item.expiry_date + 'T00:00:00')
-          const daysUntil = Math.round((expiry.getTime() - today.getTime()) / (24 * 60 * 60 * 1000))
-          const reminderDays = item.reminder_days ?? 30
-          if (daysUntil < 0) worstStatusByProperty.set(item.property_id, 'overdue')
-          else if (daysUntil <= reminderDays && worstStatusByProperty.get(item.property_id) !== 'overdue') {
-            worstStatusByProperty.set(item.property_id, 'at-risk')
-          }
-        }
-        setMapProperties(
-          propertyList
-            .filter((p) => p.lat != null && p.lng != null)
-            .map((p) => ({
-              id: p.id,
-              address: p.address,
-              city: p.city,
-              lat: p.lat,
-              lng: p.lng,
-              complianceStatus: worstStatusByProperty.get(p.id) || 'ok',
-            }))
-        )
-      }
-
       // Everything below is sorting the jobs already loaded, no more queries.
       const byStatus = (...statuses: string[]) => openJobs.filter((j) => statuses.includes(j.status))
 
@@ -483,7 +452,6 @@ export default function LandlordDashboard() {
       setComplianceAlerts(complianceAlertsList)
       setRentAlerts(rentAlertsList)
       setRentActivity(rentActivityList)
-      setRentMonths(rentMonthsList)
       setNeedsReview(biddingJobsWithBids)
       setScheduleProposals(scheduleProposalsList)
       setConfirmedSchedules(confirmedSchedulesList)
@@ -818,14 +786,10 @@ export default function LandlordDashboard() {
                 <PortfolioHealthCard
                   health={portfolioHealth}
                   issues={issues}
-                  href={alertItems.length > 0 ? '#needs-attention' : undefined}
+                  scrollToId={alertItems.length > 0 ? 'needs-attention' : undefined}
                 />
               )
             })()}
-
-            {rentMonths.some((m) => m.rent > 0) && <RentTrendChart months={rentMonths} />}
-
-            {mapProperties.length > 0 && <PmComplianceMap properties={mapProperties} />}
 
             <div className="flex items-center justify-between mb-4" data-tour="properties">
               <h2 className="text-white font-semibold text-lg">{t('yourProperties', lang)}</h2>

@@ -1,4 +1,4 @@
-import Link from 'next/link'
+'use client'
 
 // Shared by the PM multi-client dashboard and the plain landlord
 // dashboard -- same formula either way (occupancy, compliance, and rent
@@ -7,23 +7,30 @@ import Link from 'next/link'
 // same at-a-glance number a PM already had, from data their dashboard
 // was already fetching.
 //
-// `issues` and `href` turn the bare number into something actionable --
-// found live: the score alone just sat there with no way to find out
-// *why*, while the dashboard's own "Needs your attention" / compliance
-// list right below it already had exactly those answers, clickable
-// straight through to the property. This just names the top reasons
-// inline and links down to that existing list instead of leaving the
-// score and the list feeling disconnected.
+// `issues` and `scrollToId` turn the bare number into something
+// actionable -- found live: the score alone just sat there with no way to
+// find out *why*, while the dashboard's own "Needs your attention" /
+// compliance list right below it already had exactly those answers,
+// clickable straight through to the property.
+//
+// scrollToId + scrollIntoView, not an href="#id" Link: found live that a
+// next/link to a same-page hash doesn't reliably scroll -- Next's client
+// router treats a hash-only change on the current route as "no real
+// navigation" in some cases and skips the browser's native jump-to-
+// fragment behavior, so clicking looked like it did nothing. A direct
+// scrollIntoView call always works regardless of that, and a smooth
+// scroll is more noticeable than an instant jump would have been anyway.
 export function PortfolioHealthCard({
   health,
   issues,
-  href,
+  scrollToId,
 }: {
   health: { score: number; label: string }
   issues?: string[]
-  href?: string
+  scrollToId?: string
 }) {
   const color = health.score >= 85 ? '#12A5A9' : health.score >= 60 ? '#F2B544' : '#E25555'
+  const clickable = !!scrollToId
   const content = (
     <>
       <div
@@ -40,7 +47,7 @@ export function PortfolioHealthCard({
         {issues && issues.length > 0 ? (
           <>
             <p className="text-white/50 text-xs mt-1">{issues.slice(0, 2).join(' · ')}</p>
-            {href && <p className="text-[#12A5A9] text-xs font-semibold mt-1.5">See what's affecting this →</p>}
+            {clickable && <p className="text-[#12A5A9] text-xs font-semibold mt-1.5">See what&apos;s affecting this →</p>}
           </>
         ) : (
           <p className="text-white/40 text-xs mt-1">Occupancy, compliance, and rent collection, combined</p>
@@ -48,12 +55,16 @@ export function PortfolioHealthCard({
       </div>
     </>
   )
-  const className = 'bg-white/3 border border-white/8 rounded-2xl p-5 mb-6 flex items-center gap-5'
-  if (href) {
+  const className = 'bg-white/3 border border-white/8 rounded-2xl p-5 mb-6 flex items-center gap-5 w-full text-left'
+  if (clickable) {
     return (
-      <Link href={href} className={`${className} hover:border-white/15 hover:bg-white/5 transition`}>
+      <button
+        type="button"
+        onClick={() => document.getElementById(scrollToId)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+        className={`${className} hover:border-white/15 hover:bg-white/5 transition cursor-pointer`}
+      >
         {content}
-      </Link>
+      </button>
     )
   }
   return <div className={className}>{content}</div>

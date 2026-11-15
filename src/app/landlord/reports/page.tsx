@@ -17,6 +17,7 @@ import { graduatedMonthlyAmount } from '@/lib/pricingTiers'
 import { useLanguage, t, type Lang } from '@/lib/i18n'
 import { getLandlordIds } from '@/lib/landlordIds'
 import { LANDLORD_TABS } from '@/lib/navTabs'
+import { RentTrendChart, type MonthBucket } from '@/components/RentTrendChart'
 
 type Property = { id: string; address: string; city: string | null; state: string | null }
 type Unit = { id: string; unit_number: string; property_id: string }
@@ -226,6 +227,28 @@ export default function LandlordReportsPage() {
     [jobRows, range.from, range.to, propertyFilter]
   )
 
+  // A fixed rolling 6-month view, deliberately independent of the preset/
+  // custom date-range controls above (which this page already has its own
+  // configurable summary for) -- moved here from the main dashboard, which
+  // was getting crowded with secondary visualizations; a trend chart
+  // belongs next to the rest of the financial reporting, not on the
+  // landing page.
+  const trendMonths = useMemo(() => {
+    const now = new Date()
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    const months: MonthBucket[] = []
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(monthStart.getFullYear(), monthStart.getMonth() - i, 1)
+      months.push({ key: `${d.getFullYear()}-${d.getMonth()}`, label: d.toLocaleDateString('en-US', { month: 'short' }), rent: 0 })
+    }
+    for (const r of rentRows) {
+      const d = new Date(r.date + 'T00:00:00')
+      const bucket = months.find((m) => m.key === `${d.getFullYear()}-${d.getMonth()}`)
+      if (bucket) bucket.rent += r.amount
+    }
+    return months
+  }, [rentRows])
+
   const totalCollected = filteredRent.reduce((sum, r) => sum + r.amount, 0)
   const totalPaidOut = filteredJobs.reduce((sum, r) => sum + r.amount, 0)
   const net = totalCollected - totalPaidOut
@@ -397,6 +420,8 @@ export default function LandlordReportsPage() {
               </p>
             )}
             {estimatedSubscriptionCost === 0 && <div className="mb-8" />}
+
+            {trendMonths.some((m) => m.rent > 0) && <RentTrendChart months={trendMonths} />}
 
             <div className="flex items-center justify-end gap-2 mb-6">
               <RippleButton
