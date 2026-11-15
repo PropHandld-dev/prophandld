@@ -17,6 +17,7 @@ import { getComplianceStatus } from '@/lib/complianceStatus'
 import { useConfirm } from '@/lib/useConfirm'
 import { AI_ASSIST_ENABLED } from '@/lib/aiAssist'
 import { openAiHelp } from '@/lib/openAiHelp'
+import { PropertyCityRecordCard } from '@/components/PropertyCityRecordCard'
 
 const ITEM_TYPE_KEYS: ('complianceItemRentalLicense' | 'complianceItemLeadCertification' | 'complianceItemSmokeDetector' | 'complianceItemCoDetector' | 'complianceItemFireExtinguisher' | 'complianceItemInsuranceRenewal')[] = [
   'complianceItemRentalLicense',
@@ -556,10 +557,20 @@ export default function PropertyCompliancePage() {
           </div>
         ) : !property ? null : (
         <>
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-white">{t('complianceHeading', lang)}</h1>
-          <p className="text-white/50 text-sm mt-1">{property.address}</p>
+        <div className="mb-8 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-white">{t('complianceHeading', lang)}</h1>
+            <p className="text-white/50 text-sm mt-1">{property.address}</p>
+          </div>
+          <Link
+            href={`/landlord/properties/${propertyId}/compliance/report`}
+            className="text-[#12A5A9] text-xs font-semibold border border-[#12A5A9]/30 rounded-full px-3.5 py-2 hover:bg-[#12A5A9]/10 transition whitespace-nowrap shrink-0"
+          >
+            Printable record →
+          </Link>
         </div>
+
+        <PropertyCityRecordCard address={property.address} city={property.city} />
 
         {aiAssistActive && (
           <div className="bg-[#12A5A9]/8 border border-[#12A5A9]/25 rounded-2xl p-5 mb-6">
