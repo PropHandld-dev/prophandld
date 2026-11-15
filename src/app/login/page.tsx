@@ -304,24 +304,27 @@ function LoginForm() {
         .select('id', { count: 'exact', head: true })
         .in('owner_user_id', landlordIds)
 
-      // The real gap this doesn't cover: a PM admin/staff with zero
-      // personal properties AND zero accepted clients yet (brand new PM,
-      // or a PM signup whose intent never made it anywhere, since it only
-      // ever lived in this page's React state before -- caught live by
-      // Joshua's 2026-11-12 test). A brand-new PM signup's intent is
-      // carried through user_metadata (see signup/page.tsx), but an
-      // ongoing PM with no clients yet wouldn't have that forever, so an
-      // actual PM org membership check is the real, permanent signal, not
-      // just the one-time signup flag.
-      let isPmIntent = user.user_metadata?.intent === 'property_manager'
-      if (!count && !isPmIntent) {
+      // A brand-new PM signup's intent is carried through user_metadata
+      // (see signup/page.tsx), but an ongoing PM wouldn't have that
+      // forever, so an actual PM org membership check is the real,
+      // permanent signal, not just the one-time signup flag. Previously
+      // this check only ran when `!count` -- which meant it only ever
+      // mattered for a PM's very first login with zero clients yet. The
+      // instant that PM accepted even one client with properties, `count`
+      // (via getLandlordIds' extended my_landlord_ids()) became nonzero,
+      // which fell into the `else` branch below and sent every PM login
+      // after that straight to /landlord with no PM check at all — caught
+      // live: a PM with active clients landing on the personal dashboard
+      // on every login, not the one they actually work from.
+      let isPm = user.user_metadata?.intent === 'property_manager'
+      if (!isPm) {
         const { data: pmMembership } = await supabase
           .from('pm_organization_members')
           .select('id')
           .eq('user_id', user.id)
           .eq('status', 'accepted')
           .maybeSingle()
-        isPmIntent = !!pmMembership
+        isPm = !!pmMembership
       }
 
       const pmRequestParam = pmRequestOutcome ? `pmRequest${pmRequestOutcome === 'sent' ? 'Sent' : 'Failed'}=1` : null
@@ -330,7 +333,8 @@ function LoginForm() {
         return `${url}${url.includes('?') ? '&' : '?'}${pmRequestParam}`
       }
 
-      if (!count) router.replace(withPmRequestParam(isPmIntent ? '/landlord/pm?onboarding=1' : '/landlord/properties/new?onboarding=1'))
+      if (!count) router.replace(withPmRequestParam(isPm ? '/landlord/pm?onboarding=1' : '/landlord/properties/new?onboarding=1'))
+      else if (isPm) router.replace(withPmRequestParam('/landlord/pm'))
       else router.replace(withPmRequestParam(coOwnerNeedsPhone ? '/landlord?pendingInviteNeedsPhone=1' : '/landlord'))
     }
     else if (accountRole === 'renter') router.replace(tenancyNeedsPhone ? '/renter?pendingInviteNeedsPhone=1' : '/renter')

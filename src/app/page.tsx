@@ -126,9 +126,27 @@ export default function LandingPage() {
   // to be a visible flash for the far more common case: someone who isn't
   // signed in at all, who this redirect never touches.
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       const role = getAccountRole(session?.user)
-      if (role === 'landlord') router.replace('/landlord')
+      if (role === 'landlord') {
+        // Same bug login/page.tsx's own login flow had: a PM visiting the
+        // homepage directly (bookmark, PWA home-screen launch) landed on
+        // the personal /landlord dashboard every time, with no PM check
+        // at all here — this is actually the more likely way someone
+        // hits this specific dead end, since it fires on every visit to
+        // "/" while already signed in, not just the one-time login submit.
+        let isPm = session!.user.user_metadata?.intent === 'property_manager'
+        if (!isPm) {
+          const { data: pmMembership } = await supabase
+            .from('pm_organization_members')
+            .select('id')
+            .eq('user_id', session!.user.id)
+            .eq('status', 'accepted')
+            .maybeSingle()
+          isPm = !!pmMembership
+        }
+        router.replace(isPm ? '/landlord/pm' : '/landlord')
+      }
       else if (role === 'renter') router.replace('/renter')
       else if (role === 'contractor') router.replace('/contractor')
     })
