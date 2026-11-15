@@ -1,0 +1,14 @@
+-- Fixes an inverted default: approval_threshold previously defaulted to
+-- $500, meaning a brand-new PM relationship silently let the PM approve
+-- anything up to $500 with no owner involvement at all, before the owner
+-- had ever actually granted that. The intended rule (confirmed by the
+-- user): every job needs the owner's approval until the owner
+-- affirmatively raises the limit themselves -- so the default should
+-- require sign-off on anything above $0, not $500.
+--
+-- Only changes the COLUMN DEFAULT for future rows. Existing
+-- pm_client_portfolios rows keep whatever threshold is already set --
+-- not retroactively changed, since a PM admin may have deliberately set
+-- a real value already and this script has no way to tell that apart
+-- from an untouched default.
+alter table public.pm_client_portfolios alter column approval_threshold set default 0.00;

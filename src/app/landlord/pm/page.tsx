@@ -288,8 +288,9 @@ export default function PmDashboardPage() {
     propertyCount: number
     unitCount: number
     openJobCount: number
-    entries: { id: string; action: string; amount: number | null; createdAt: string; actorName: string }[]
+    entries: { id: string; action: string; amount: number | null; createdAt: string; actorName: string; jobId: string | null }[]
   } | null>(null)
+  const [savingThreshold, setSavingThreshold] = useState(false)
 
   const [staffEmail, setStaffEmail] = useState('')
   const [staffFinancials, setStaffFinancials] = useState(false)
@@ -488,6 +489,21 @@ export default function PmDashboardPage() {
   const handleDeclineInvite = async (id: string) => {
     await fetch(`/api/pm/clients/${id}`, { method: 'DELETE' })
     await loadAll()
+  }
+
+  // The owner's own permission grant to the PM, not something the PM sets
+  // unilaterally on the owner's behalf -- found live: there was no owner-
+  // facing control for this at all, only a read-only number the PM admin
+  // had set.
+  const handleSetOwnThreshold = async (value: number) => {
+    setSavingThreshold(true)
+    await fetch('/api/pm/my-status', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ approvalThreshold: value }),
+    }).catch(() => {})
+    await loadAll()
+    setSavingThreshold(false)
   }
 
   // Admin accepting a request the OWNER started (the reverse of
@@ -885,7 +901,7 @@ export default function PmDashboardPage() {
             <div className="flex items-start gap-3">
               <ShieldIcon className="w-5 h-5 text-[#12A5A9] shrink-0 mt-0.5" />
               <p className="text-white/70 text-sm flex-1">
-                Managed by <span className="text-white font-semibold">{acceptedIncoming[0].orgName}</span>. Approval threshold ${acceptedIncoming[0].approvalThreshold.toFixed(0)} per job.
+                Managed by <span className="text-white font-semibold">{acceptedIncoming[0].orgName}</span>.
                 {acceptedIncoming[0].ownerReadOnly && ' They handle job approvals and payments for you.'}
               </p>
               {/* The invite-acceptance copy promises "you can remove them at
@@ -901,6 +917,46 @@ export default function PmDashboardPage() {
               >
                 Remove manager
               </button>
+            </div>
+
+            {/* Found live: the threshold was shown as a read-only number the
+                PM admin had set, with no way for the owner to change it —
+                inverted from the actual rule, which is that this is the
+                owner's own permission grant, not the PM's to set alone. */}
+            <div className="mt-4 pt-4 border-t border-white/8">
+              <label className="flex items-center gap-2 text-sm text-white/60 flex-wrap">
+                Approval threshold: $
+                <input
+                  type="number"
+                  min={0}
+                  step={1}
+                  defaultValue={acceptedIncoming[0].approvalThreshold}
+                  onBlur={(e) => {
+                    const v = Number(e.target.value)
+                    if (!Number.isNaN(v) && v >= 0 && v !== acceptedIncoming[0].approvalThreshold) handleSetOwnThreshold(v)
+                  }}
+                  disabled={savingThreshold}
+                  className="w-24 bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-sm disabled:opacity-50"
+                />
+                <span className="text-white/40 text-xs">per job — below this, they can approve on your behalf; above it, you decide</span>
+              </label>
+            </div>
+
+            {/* The dead end the user caught: clicking "Managed by X" led
+                nowhere, and the activity feed below has no links either.
+                Nothing about this relationship actually hides a managed
+                owner's own dashboard or job pages — /landlord and
+                /landlord/jobs/[id] already show full detail (photos, bids,
+                receipts, schedule) with no PM-specific gating. The gap was
+                purely that this page never told anyone that, or linked to
+                it. */}
+            <div className="flex items-center gap-4 mt-3">
+              <Link href="/landlord" className="text-[#12A5A9] text-xs font-semibold hover:underline">
+                View your dashboard →
+              </Link>
+              <Link href="/landlord/jobs" className="text-[#12A5A9] text-xs font-semibold hover:underline">
+                View all your jobs →
+              </Link>
             </div>
             {(acceptedIncoming[0].managementFee !== null || acceptedIncoming[0].managementFeeType === 'percent_of_rent') && (
               <div className="mt-4 pt-4 border-t border-white/8">
@@ -954,13 +1010,34 @@ export default function PmDashboardPage() {
               <p className="text-white/30 text-sm">No activity from them yet.</p>
             ) : (
               <div className="space-y-2">
-                {myStatus.entries.map((entry) => (
-                  <div key={entry.id} className="bg-white/3 border border-white/8 rounded-xl px-4 py-3 text-xs text-white/50">
-                    <span className="text-white/80">{entry.actorName}</span> {ACTION_LABELS[entry.action] || entry.action}
-                    {entry.amount !== null && <span className="text-white/60"> · ${entry.amount.toFixed(2)}</span>}
-                    <span className="text-white/30"> · {new Date(entry.createdAt).toLocaleDateString()}</span>
-                  </div>
-                ))}
+                {myStatus.entries.map((entry) => {
+                  // Clickable straight through to the same job-detail page
+                  // a non-managed landlord would see — photos, bids,
+                  // receipts, schedule, nothing PM-specific withheld.
+                  // Previously this feed was plain text with nowhere to go,
+                  // which is what made the whole page feel like a dead end.
+                  const content = (
+                    <>
+                      <span className="text-white/80">{entry.actorName}</span> {ACTION_LABELS[entry.action] || entry.action}
+                      {entry.amount !== null && <span className="text-white/60"> · ${entry.amount.toFixed(2)}</span>}
+                      <span className="text-white/30"> · {new Date(entry.createdAt).toLocaleDateString()}</span>
+                      {entry.jobId && <span className="text-[#12A5A9] text-xs font-semibold ml-1">View job →</span>}
+                    </>
+                  )
+                  return entry.jobId ? (
+                    <Link
+                      key={entry.id}
+                      href={`/landlord/jobs/${entry.jobId}`}
+                      className="block bg-white/3 border border-white/8 hover:border-[#12A5A9]/30 hover:bg-white/5 rounded-xl px-4 py-3 text-xs text-white/50 transition"
+                    >
+                      {content}
+                    </Link>
+                  ) : (
+                    <div key={entry.id} className="bg-white/3 border border-white/8 rounded-xl px-4 py-3 text-xs text-white/50">
+                      {content}
+                    </div>
+                  )
+                })}
               </div>
             )}
           </div>
