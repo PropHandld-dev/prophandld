@@ -13,6 +13,8 @@ import { downloadCsv } from '@/lib/csvExport'
 import { GoogleTranslateToggle } from '@/components/GoogleTranslateToggle'
 import { RentTrendChart, type MonthBucket } from '@/components/RentTrendChart'
 import { PortfolioHealthCard } from '@/components/PortfolioHealthCard'
+import { BottomTabBar } from '@/components/BottomTabBar'
+import { LANDLORD_TABS } from '@/lib/navTabs'
 
 const StripePaymentModal = dynamic(() => import('@/components/StripePaymentModal').then((m) => m.StripePaymentModal), { ssr: false })
 
@@ -1814,6 +1816,12 @@ export default function PmDashboardPage() {
           }}
         />
       )}
+      {/* Same tabs every other landlord-section page has — this page had
+          none at all, leaving a PM's main dashboard with no way to reach
+          Properties/Jobs/Calendar except in-page links. The Home tab's
+          /landlord target is safe here: that page now bounces an accepted
+          PM member straight back to /landlord/pm. */}
+      <BottomTabBar tabs={LANDLORD_TABS} />
     </div>
   )
 }

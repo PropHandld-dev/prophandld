@@ -39,12 +39,12 @@ import { useIsNativePlatform } from '@/lib/useIsNativePlatform'
 import type { MonthBucket } from '@/components/RentTrendChart'
 import { PortfolioHealthCard } from '@/components/PortfolioHealthCard'
 
-function getTourSteps(lang: Lang, isPm: boolean): TourStep[] {
+function getTourSteps(lang: Lang): TourStep[] {
   return [
     {
       target: '[data-tour="welcome"]',
-      title: isPm ? t('tourPmWelcomeTitle', lang) : t('tourLandlordWelcomeTitle', lang),
-      body: isPm ? t('tourPmWelcomeBody', lang) : t('tourLandlordWelcomeBody', lang),
+      title: t('tourLandlordWelcomeTitle', lang),
+      body: t('tourLandlordWelcomeBody', lang),
     },
     { target: '[data-tour="stats"]', title: t('tourLandlordStatsTitle', lang), body: t('tourLandlordStatsBody', lang) },
     { target: '[data-tour="pipeline"]', title: t('tourLandlordPipelineTitle', lang), body: t('tourLandlordPipelineBody', lang) },
@@ -88,7 +88,6 @@ export default function LandlordDashboard() {
   // "Landlord Dashboard" eyebrow label, which read as flatly wrong to
   // someone who signed up specifically as a Property Manager (confirmed
   // live: they still land here routinely, not just on /landlord/pm).
-  const [pmOrgName, setPmOrgName] = useState<string | null>(null)
   const [newIssues, setNewIssues] = useState<any[]>([])
   const [readyToBid, setReadyToBid] = useState<any[]>([])
   const [priceChangeRequests, setPriceChangeRequests] = useState<any[]>([])
@@ -153,9 +152,23 @@ export default function LandlordDashboard() {
       const landlordIds = await getLandlordIds(supabase, user.id)
       setManagesOtherPortfolios(landlordIds.some((id) => id !== user.id))
 
+      // A PM org member's home is /landlord/pm, not this page -- caught
+      // live: every "<- Dashboard" link and the Home tab across the app
+      // hardcode /landlord, so a PM drilling into a client's property got
+      // dumped onto this personal dashboard on the way back. Fixing it
+      // here, at the destination, self-corrects every one of those links
+      // at once instead of patching each nav point to be PM-aware.
+      // Deliberately keyed on ACTUAL accepted membership, not the signup
+      // intent flag -- someone who picked "Property Manager" at signup
+      // but never created an org would otherwise be bounced to a
+      // create-your-company card on every visit with no way back to
+      // their own properties. Managed OWNERS are not members either --
+      // this never touches them, /landlord stays their own dashboard.
       fetch('/api/pm/organizations')
         .then((res) => (res.ok ? res.json() : null))
-        .then((data) => setPmOrgName(data?.membership?.organizationName || null))
+        .then((data) => {
+          if (data?.membership) router.replace('/landlord/pm')
+        })
         .catch(() => {})
 
       // Paged: Supabase silently caps a single response at 1000 rows and
@@ -587,19 +600,6 @@ export default function LandlordDashboard() {
           <span className="text-xs bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 text-[#12A5A9] border border-[#12A5A9]/30 rounded-full px-2.5 py-1">
             Landlord
           </span>
-          {/* This page is always "my own properties," even for a PM org
-              admin who personally owns a few units — it used to relabel
-              itself "Property Management" for them with no way to click
-              through, which conflated the two views instead of linking to
-              the actual org dashboard. */}
-          {pmOrgName && (
-            <Link
-              href="/landlord/pm"
-              className="text-xs bg-white/5 text-white/60 border border-white/10 hover:border-[#12A5A9]/40 hover:text-[#12A5A9] rounded-full px-2.5 py-1 transition"
-            >
-              {pmOrgName} →
-            </Link>
-          )}
         </div>
         <div className="flex items-center gap-1.5">
           <MessagesButton role="landlord" userId={user?.id ?? null} />
@@ -901,7 +901,7 @@ export default function LandlordDashboard() {
       </main>
 
       <BottomTabBar tabs={LANDLORD_TABS} />
-      {tour.show && <ProductTour steps={getTourSteps(lang, !!pmOrgName)} onDone={tour.dismiss} onNeverAskAgain={tour.dismissForever} />}
+      {tour.show && <ProductTour steps={getTourSteps(lang)} onDone={tour.dismiss} onNeverAskAgain={tour.dismissForever} />}
       {!tour.show && mfaPrompt.show && <MfaPromptModal onDismiss={mfaPrompt.dismiss} />}
     </div>
   )
