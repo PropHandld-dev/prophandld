@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, Suspense } from 'react'
 import { supabase } from '@/lib/supabase'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { Skeleton } from '@/components/Skeleton'
@@ -17,8 +17,10 @@ import { useLanguage, t } from '@/lib/i18n'
 import { getLandlordIds } from '@/lib/landlordIds'
 import { useConfirm } from '@/lib/useConfirm'
 
-export default function PropertiesPage() {
+function PropertiesPageInner() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const ownerFilter = searchParams.get('owner')
   const lang = useLanguage()
   const [properties, setProperties] = useState<any[]>([])
   // Set only when this viewer's own list spans more than one owner (a
@@ -124,13 +126,14 @@ export default function PropertiesPage() {
   // shown, not what's counted, same as the rent roll's stats follow its
   // own filter but these totals describe the whole portfolio regardless.
   const filteredProperties = useMemo(() => {
-    const byArchived = properties.filter((p) => (showArchived ? true : !p.archived))
+    const byOwner = ownerFilter ? properties.filter((p) => p.owner_user_id === ownerFilter) : properties
+    const byArchived = byOwner.filter((p) => (showArchived ? true : !p.archived))
     const q = search.trim().toLowerCase()
     if (!q) return byArchived
     return byArchived.filter((p) =>
       [p.address, p.city, p.state, p.zip, p.property_type].filter(Boolean).some((v) => String(v).toLowerCase().includes(q))
     )
-  }, [properties, search, showArchived])
+  }, [properties, search, showArchived, ownerFilter])
 
   return (
     <div className="min-h-screen bg-[#0C1A2E]">
@@ -196,6 +199,13 @@ export default function PropertiesPage() {
                 </button>
               </div>
             </div>
+
+            {ownerFilter && (
+              <div className="flex items-center gap-2 mb-4 text-sm">
+                <span className="text-white/50">Showing only {ownerNames.get(ownerFilter) || 'this client'}&apos;s properties</span>
+                <Link href="/landlord/properties" className="text-[#12A5A9] font-semibold hover:underline">Clear filter</Link>
+              </div>
+            )}
 
             {properties.length > 0 && (
               <div className="mb-6">
@@ -323,5 +333,13 @@ export default function PropertiesPage() {
       <BottomTabBar tabs={LANDLORD_TABS} />
       {ConfirmDialog}
     </div>
+  )
+}
+
+export default function PropertiesPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#0C1A2E]" />}>
+      <PropertiesPageInner />
+    </Suspense>
   )
 }

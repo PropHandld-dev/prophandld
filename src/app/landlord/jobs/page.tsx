@@ -62,6 +62,13 @@ function LandlordJobsList() {
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(true)
   const [jobs, setJobs] = useState<any[]>([])
+  // Set only when this viewer's jobs span more than one owner (a PM
+  // managing several clients) -- found live: this list mixed every
+  // managed client's jobs together with absolutely nothing telling them
+  // apart, unlike /landlord/properties which already labels by owner in
+  // exactly this situation.
+  const [ownerNames, setOwnerNames] = useState<Map<string, string>>(new Map())
+  const ownerFilter = searchParams.get('owner')
   const [unreadJobIds, setUnreadJobIds] = useState<Set<string>>(new Set())
   const [activeFilter, setActiveFilter] = useState(searchParams.get('filter') || 'needs_approval')
   const [search, setSearch] = useState('')
@@ -90,7 +97,7 @@ function LandlordJobsList() {
     const { data: jobsList, error: jobsError } = await fetchAllPages<any>((from, to) =>
       supabase
         .from('jobs')
-        .select('*, units(unit_number, property_id, properties(address, city, state))')
+        .select('*, units(unit_number, property_id, properties(address, city, state, owner_user_id))')
         .order('created_at', { ascending: false })
         .range(from, to)
     )
@@ -118,6 +125,14 @@ function LandlordJobsList() {
 
     setJobs(enriched)
     setLoading(false)
+
+    const ownerIds = Array.from(new Set(enriched.map((j: any) => j.units?.properties?.owner_user_id).filter(Boolean)))
+    if (ownerIds.length > 1) {
+      const { data: owners } = await supabase.from('users').select('id, full_name').in('id', ownerIds)
+      setOwnerNames(new Map((owners || []).map((o: any) => [o.id, o.id === user.id ? 'You' : o.full_name || 'Owner'])))
+    } else {
+      setOwnerNames(new Map())
+    }
 
     getUnreadJobIds(jobsList.map((j) => j.id), user.id).then(setUnreadJobIds)
   }
@@ -198,7 +213,11 @@ function LandlordJobsList() {
     setActioningId(null)
   }
 
-  const statusFilteredJobs = jobs.filter((job) => {
+  const ownerFilteredJobs = ownerFilter
+    ? jobs.filter((job) => job.units?.properties?.owner_user_id === ownerFilter)
+    : jobs
+
+  const statusFilteredJobs = ownerFilteredJobs.filter((job) => {
     if (activeFilter === 'all') return true
     if (activeFilter === 'emergency') return job.is_emergency
     if (activeFilter === 'needs_approval') return ['pending_approval', 'approved', 'pending_review'].includes(job.status)
@@ -353,6 +372,13 @@ function LandlordJobsList() {
           </div>
         )}
 
+        {ownerFilter && (
+          <div className="flex items-center gap-2 mb-6 text-sm">
+            <span className="text-white/50">Showing only {ownerNames.get(ownerFilter) || 'this client'}&apos;s jobs</span>
+            <Link href="/landlord/jobs" className="text-[#12A5A9] font-semibold hover:underline">Clear filter</Link>
+          </div>
+        )}
+
         {filteredJobs.length === 0 ? (
           <div className="bg-white/3 border border-white/8 rounded-2xl p-12 text-center">
             <ClipboardListIcon className="w-8 h-8 text-white/50 mx-auto mb-3" />
@@ -366,6 +392,11 @@ function LandlordJobsList() {
                   <Link href={`/landlord/jobs/${job.id}`} className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-1.5">
                       <h3 className="text-white font-semibold">{job.category}</h3>
+                      {ownerNames.size > 0 && (
+                        <span className="text-xs text-white/50 bg-white/5 border border-white/10 rounded-full px-2 py-0.5">
+                          {ownerNames.get(job.units?.properties?.owner_user_id) || 'Owner'}
+                        </span>
+                      )}
                       {urgencyBadge(job)}
                       <span className="text-xs text-white/50">{statusLabel(job)}</span>
                       {job.status === 'bidding' && <JobReadyFlag jobId={job.id} lang={lang} />}

@@ -1413,13 +1413,20 @@ export default function PmDashboardPage() {
 
                           {c.status === 'accepted' && expandedClient === c.id && (
                             <div className="px-4 pb-4 border-t border-white/8 pt-3">
+                              {/* Previously these were plain counts with no
+                                  way to see WHICH properties or WHICH jobs
+                                  — a PM managing several clients had no path
+                                  from "2 properties, 1 open job" to actually
+                                  seeing them. Both shared list pages already
+                                  support an owner-scoped view; this just
+                                  links into it. */}
                               <div className="grid grid-cols-3 gap-2 mb-3">
-                                <StatTile icon={BuildingIcon} label="Properties" value={c.propertyCount ?? 0} />
-                                <StatTile icon={WrenchIcon} label="Open jobs" value={c.openJobCount ?? 0} />
+                                <StatTile icon={BuildingIcon} label="Properties" value={c.propertyCount ?? 0} onClick={() => router.push(`/landlord/properties?owner=${c.ownerUserId}`)} />
+                                <StatTile icon={WrenchIcon} label="Open jobs" value={c.openJobCount ?? 0} onClick={() => router.push(`/landlord/jobs?owner=${c.ownerUserId}&filter=all`)} />
                                 {membership.canViewFinancials ? (
                                   <StatTile icon={DollarSignIcon} label="Rent this month" value={`$${(c.rentCollectedThisMonth || 0).toFixed(0)}`} />
                                 ) : (
-                                  <StatTile icon={BuildingIcon} label="Units" value={c.unitCount ?? 0} />
+                                  <StatTile icon={BuildingIcon} label="Units" value={c.unitCount ?? 0} onClick={() => router.push(`/landlord/properties?owner=${c.ownerUserId}`)} />
                                 )}
                               </div>
                               {c.health && (
