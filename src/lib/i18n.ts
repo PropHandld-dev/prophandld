@@ -1287,6 +1287,8 @@ const STRINGS = {
   portfolioDigestUpsellTitle: { en: 'See what needs attention, automatically', es: 'Mira qué necesita atención, automáticamente' },
   portfolioDigestUpsellDesc: { en: 'Prophandld AI reads your compliance dates, leases, and open jobs, and flags what’s worth a look, without you checking every property yourself.', es: 'Prophandld AI lee tus fechas de cumplimiento, contratos y trabajos abiertos, y señala qué vale la pena revisar, sin que tengas que revisar cada propiedad tú mismo.' },
   portfolioDigestUpsellCta: { en: 'Try Prophandld AI free →', es: 'Prueba Prophandld AI gratis →' },
+  portfolioDigestUpsellTitleWithCount: { en: 'Prophandld AI would have flagged {count} thing(s) in your portfolio this week', es: 'Prophandld AI habría señalado {count} cosa(s) en tu portafolio esta semana' },
+  portfolioDigestUpsellDescWithCount: { en: 'A late rent payment, a lease renewal, a job sitting with no bids — the kind of thing that gets missed until it\'s a problem. See exactly what, free for 14 days.', es: 'Una renta atrasada, una renovación de contrato, un trabajo sin ofertas — el tipo de cosa que pasa desapercibida hasta que es un problema. Mira exactamente qué, gratis por 14 días.' },
   aiCheckingDots: { en: 'Checking...', es: 'Verificando...' },
   postAnywayBtn: { en: 'Post anyway', es: 'Publicar de todas formas' },
   rehireSuggestionPrefix: { en: 'You used', es: 'Usaste a' },
@@ -1920,6 +1922,8 @@ const STRINGS = {
   rentPaymentDefaultNote: { en: 'This just saves a default. You still confirm every payment yourself.', es: 'Esto solo guarda una opción predeterminada. Tú sigues confirmando cada pago.' },
   getPaidForJobsTitle: { en: 'Get paid for jobs', es: 'Recibe pago por trabajos' },
   getPaidForJobsSectionIntro: { en: 'Connect your bank account so you can get paid when a landlord pays for a completed job.', es: 'Conecta tu cuenta bancaria para recibir el pago cuando un propietario pague por un trabajo completado.' },
+  getPaidAlertSubtitle: { en: 'Takes 2 minutes — required before you can be paid', es: 'Toma 2 minutos — necesario para poder recibir pagos' },
+  badgeSetUp: { en: 'Set up', es: 'Configurar' },
 
   // Free trial before billing gets enforced
   trialEndsInPrefix: { en: 'Your free trial ends in', es: 'Tu prueba gratuita termina en' },

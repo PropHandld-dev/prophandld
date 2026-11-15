@@ -287,6 +287,19 @@ export default function ContractorDashboard() {
   })
 
   const alertItems: AlertItem[] = [
+    // Surfaced here, not just as a settings-page card, because contractors
+    // found the settings-page version (bottom of the page, behind a click)
+    // easy to miss entirely until they'd already won a job and had no way
+    // to get paid for it.
+    ...(connectStatus !== 'active' ? [{
+      id: 'payouts-not-set-up',
+      icon: DollarSignIcon,
+      tone: 'yellow' as const,
+      title: t('getPaidForJobsTitle', lang),
+      subtitle: t('getPaidAlertSubtitle', lang),
+      href: '/contractor/settings',
+      badge: connectStatus === 'onboarding' ? t('finishSetup', lang) : t('badgeSetUp', lang),
+    }] : []),
     ...clarificationAlerts.map((bid) => ({
       id: `clarify-${bid.id}`,
       icon: AlertTriangleIcon,

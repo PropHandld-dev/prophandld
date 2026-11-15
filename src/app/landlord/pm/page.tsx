@@ -806,12 +806,25 @@ export default function PmDashboardPage() {
 
         {acceptedIncoming.length > 0 && !membership && (
           <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-5 mb-6">
-            <div className="flex items-center gap-3">
-              <ShieldIcon className="w-5 h-5 text-[#12A5A9] shrink-0" />
-              <p className="text-white/70 text-sm">
+            <div className="flex items-start gap-3">
+              <ShieldIcon className="w-5 h-5 text-[#12A5A9] shrink-0 mt-0.5" />
+              <p className="text-white/70 text-sm flex-1">
                 Managed by <span className="text-white font-semibold">{acceptedIncoming[0].orgName}</span>. Approval threshold ${acceptedIncoming[0].approvalThreshold.toFixed(0)} per job.
                 {acceptedIncoming[0].ownerReadOnly && ' They handle job approvals and payments for you.'}
               </p>
+              {/* The invite-acceptance copy promises "you can remove them at
+                  any time" — the DELETE route already lets an owner remove
+                  their own relationship, but until now nothing in the UI
+                  ever offered that once accepted, only at the pending stage. */}
+              <button
+                onClick={() => {
+                  if (!window.confirm(`Stop ${acceptedIncoming[0].orgName} from managing your property? You can always invite them, or another PM, again later.`)) return
+                  handleDeclineInvite(acceptedIncoming[0].id)
+                }}
+                className="text-white/40 hover:text-red-400 text-xs font-semibold shrink-0 transition"
+              >
+                Remove manager
+              </button>
             </div>
             {acceptedIncoming[0].managementFee !== null && (
               <div className="flex items-center justify-between gap-3 mt-4 pt-4 border-t border-white/8">

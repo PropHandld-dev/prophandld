@@ -585,8 +585,21 @@ export default function LandlordDashboard() {
           <span className="text-white font-semibold text-lg tracking-tight">Prophandld</span>
           </Link>
           <span className="text-xs bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 text-[#12A5A9] border border-[#12A5A9]/30 rounded-full px-2.5 py-1">
-            {pmOrgName ? 'Property Management' : 'Landlord'}
+            Landlord
           </span>
+          {/* This page is always "my own properties," even for a PM org
+              admin who personally owns a few units — it used to relabel
+              itself "Property Management" for them with no way to click
+              through, which conflated the two views instead of linking to
+              the actual org dashboard. */}
+          {pmOrgName && (
+            <Link
+              href="/landlord/pm"
+              className="text-xs bg-white/5 text-white/60 border border-white/10 hover:border-[#12A5A9]/40 hover:text-[#12A5A9] rounded-full px-2.5 py-1 transition"
+            >
+              {pmOrgName} →
+            </Link>
+          )}
         </div>
         <div className="flex items-center gap-1.5">
           <MessagesButton role="landlord" userId={user?.id ?? null} />
@@ -610,7 +623,7 @@ export default function LandlordDashboard() {
         ) : (
           <>
             <div className="mb-8" data-tour="welcome">
-              <p className="text-[#12A5A9] text-xs font-semibold uppercase tracking-wide mb-1.5">{pmOrgName || t('landlordDashboardLabel', lang)}</p>
+              <p className="text-[#12A5A9] text-xs font-semibold uppercase tracking-wide mb-1.5">{t('landlordDashboardLabel', lang)}</p>
               <h1 className="text-3xl font-bold text-white tracking-tight">
                 {t('welcomeBack', lang)}{' '}
                 <Link href="/profile" className="hover:text-[#12A5A9] transition">

@@ -30,6 +30,76 @@ type Nudge = { icon: 'calendar' | 'warning' | 'wrench'; text: string; sortDays?:
 // from here. The nudge FACTS are plain deterministic queries, not AI —
 // only the one-paragraph summary tying them together, and the lifespan
 // prediction, actually call Claude.
+// Same three deterministic signals the full digest computes (late rent,
+// lease renewals within 30 days, stale open jobs with no bids), but as a
+// plain count with no per-item detail, no summary call, and no lifespan
+// prediction — just enough to make the upsell card specific to this
+// portfolio instead of generic. Mirrors the full digest's own owner-scope
+// logic (self + co-owners + managed clients) since a PM's "portfolio" means
+// all of that, not just their own directly-owned units.
+async function countDeterministicSignals(supabaseAdmin: ReturnType<typeof getSupabaseAdmin>, userId: string): Promise<number> {
+  const ownerIds = await getActionableOwnerIdsAdmin(supabaseAdmin, userId)
+  const { data: properties } = await supabaseAdmin.from('properties').select('id').in('owner_user_id', ownerIds).eq('archived', false)
+  const propertyIds = (properties || []).map((p) => p.id)
+  if (propertyIds.length === 0) return 0
+
+  const { data: units } = await supabaseAdmin.from('units').select('id').in('property_id', propertyIds)
+  const unitIds = (units || []).map((u) => u.id)
+  if (unitIds.length === 0) return 0
+
+  const today = new Date()
+  const in30 = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+  const todayKey = today.toISOString().slice(0, 10)
+
+  const [{ data: renewals }, { data: staleJobs }, { data: activeTenancies }] = await Promise.all([
+    supabaseAdmin
+      .from('tenancies')
+      .select('unit_id', { count: 'exact', head: false })
+      .in('unit_id', unitIds)
+      .eq('ended', false)
+      .not('lease_end', 'is', null)
+      .gte('lease_end', todayKey)
+      .lte('lease_end', in30),
+    supabaseAdmin.from('jobs').select('id, created_at, bids(id)').in('unit_id', unitIds).eq('status', 'open'),
+    supabaseAdmin.from('tenancies').select('id, rent_due_day, grace_period_days').in('unit_id', unitIds).eq('ended', false),
+  ])
+
+  let count = (renewals || []).length
+
+  const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
+  for (const j of staleJobs || []) {
+    const bidCount = Array.isArray((j as any).bids) ? (j as any).bids.length : 0
+    if (bidCount > 0) continue
+    if (new Date(j.created_at) > sevenDaysAgo) continue
+    count++
+  }
+
+  if ((activeTenancies || []).length > 0) {
+    const { month: thisMonth, following: nextMonth, firstDate } = rentMonthBounds(0)
+    const tenancyIds = (activeTenancies || []).map((t: any) => t.id)
+    const { data: currentPayments } = await supabaseAdmin
+      .from('rent_payments')
+      .select('tenancy_id, expected_amount, actual_amount')
+      .in('tenancy_id', tenancyIds)
+      .gte('month', thisMonth)
+      .lt('month', nextMonth)
+    const paymentByTenancy = new Map((currentPayments || []).map((p: any) => [p.tenancy_id, p]))
+    for (const tenancy of activeTenancies || []) {
+      const payment = paymentByTenancy.get(tenancy.id)
+      if (!payment) continue
+      const expected = Number(payment.expected_amount || 0)
+      const paid = Number(payment.actual_amount || 0)
+      if (paid >= expected) continue
+      const dueDate = new Date(firstDate.getFullYear(), firstDate.getMonth(), tenancy.rent_due_day ?? 1)
+      const daysSinceDue = Math.floor((today.getTime() - dueDate.getTime()) / 86400000)
+      if (daysSinceDue < (tenancy.grace_period_days ?? 5)) continue
+      count++
+    }
+  }
+
+  return count
+}
+
 export async function GET() {
   const authClient = await createClient()
   const { data: { user } } = await authClient.auth.getUser()
@@ -42,7 +112,23 @@ export async function GET() {
 
   const supabaseAdmin = getSupabaseAdmin()
   if (!(await hasAiAssistAccess(supabaseAdmin, user.id))) {
-    return NextResponse.json({ enabled: false })
+    // Not subscribed — still worth telling them something real instead of
+    // generic marketing copy. previewCount is a cheap, deterministic count
+    // (no Claude call, so it costs nothing and doesn't leak which billing
+    // state unlocks it) of the same late-rent/lease-renewal/stale-job
+    // signals the full digest below would flag, computed from data they
+    // already have dashboard access to either way. Caught live: the old
+    // upsell card showed identical copy to every landlord and PM
+    // regardless of whether their portfolio actually had anything to flag,
+    // which reads as generic marketing rather than "this app already knows
+    // your portfolio."
+    let previewCount = 0
+    try {
+      previewCount = await countDeterministicSignals(supabaseAdmin, user.id)
+    } catch (err) {
+      console.error('ai-assist/portfolio-digest: preview count failed', err)
+    }
+    return NextResponse.json({ enabled: false, previewCount })
   }
   if (await tooManyAiAssistRequests('portfolio-digest', user.id, 40)) {
     return NextResponse.json({ enabled: false })

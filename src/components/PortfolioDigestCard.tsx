@@ -66,6 +66,7 @@ export function PortfolioDigestCard() {
   const [enabled, setEnabled] = useState(false)
   const [summary, setSummary] = useState('')
   const [nudges, setNudges] = useState<Nudge[]>([])
+  const [previewCount, setPreviewCount] = useState(0)
 
   useEffect(() => {
     if (!AI_ASSIST_ENABLED) {
@@ -78,6 +79,7 @@ export function PortfolioDigestCard() {
         setEnabled(!!data.enabled)
         setSummary(data.summary || '')
         setNudges(data.nudges || [])
+        setPreviewCount(data.previewCount || 0)
       })
       .catch(() => setEnabled(false))
       .finally(() => setLoading(false))
@@ -86,13 +88,23 @@ export function PortfolioDigestCard() {
   if (loading || !AI_ASSIST_ENABLED) return null
 
   if (!enabled) {
+    // A real count from their own portfolio beats generic marketing copy
+    // when there's something to show — caught live: the old version of
+    // this card said the identical thing to every unsubscribed landlord
+    // and PM regardless of whether their portfolio had anything to flag.
     return (
       <ScrollReveal className="bg-gradient-to-br from-[#0A7B7E]/10 to-white/[0.02] border border-[#12A5A9]/25 rounded-2xl p-6 mb-6">
         <span className="text-[10px] font-bold uppercase tracking-wide text-[#12A5A9] bg-[#12A5A9]/10 border border-[#12A5A9]/30 rounded-full px-2 py-0.5">
           ✦ {t('aiAssistCardTitle', lang)}
         </span>
-        <h2 className="text-white font-semibold mt-3 mb-1.5">{t('portfolioDigestUpsellTitle', lang)}</h2>
-        <p className="text-white/60 text-sm leading-relaxed mb-4">{t('portfolioDigestUpsellDesc', lang)}</p>
+        <h2 className="text-white font-semibold mt-3 mb-1.5">
+          {previewCount > 0
+            ? t('portfolioDigestUpsellTitleWithCount', lang).replace('{count}', String(previewCount))
+            : t('portfolioDigestUpsellTitle', lang)}
+        </h2>
+        <p className="text-white/60 text-sm leading-relaxed mb-4">
+          {previewCount > 0 ? t('portfolioDigestUpsellDescWithCount', lang) : t('portfolioDigestUpsellDesc', lang)}
+        </p>
         <Link href="/profile#billing" className="text-[#12A5A9] text-sm font-semibold hover:underline">
           {t('portfolioDigestUpsellCta', lang)}
         </Link>
