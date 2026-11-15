@@ -3,6 +3,7 @@ import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireAdminAal2 } from '@/lib/adminAccess'
 import { graduatedMonthlyAmount } from '@/lib/pricingTiers'
+import { fetchAllPagesOrEmpty } from '@/lib/pagedQuery'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const CHUNK = 100
@@ -30,29 +31,34 @@ export async function GET() {
   const testMode = (process.env.STRIPE_SECRET_KEY || '').startsWith('sk_test')
   const stripeBase = testMode ? 'https://dashboard.stripe.com/test' : 'https://dashboard.stripe.com'
 
-  const [rentRes, jobRes, subRes, connectRes] = await Promise.all([
-    admin
-      .from('rent_payments')
-      .select('id, month, expected_amount, actual_amount, paid_date, payment_method, provider, absorbed_fee_amount, stripe_status, stripe_payment_intent_id, water_amount, late_fee_applied, created_at, tenancies(renter_user_id, units(unit_number, properties(address, city, owner_user_id)))')
-      .or('actual_amount.gt.0,stripe_status.not.is.null')
-      .order('created_at', { ascending: false })
-      .limit(500),
-    admin
-      .from('bids')
-      .select('id, job_id, contractor_user_id, amount, payment_status, paid_at, created_at, stripe_payment_intent_id, jobs(category, units(unit_number, properties(address, city, owner_user_id)))')
-      .not('payment_status', 'is', null)
-      .order('created_at', { ascending: false })
-      .limit(500),
+  // rent/jobs paginated (not .limit(500)) -- the same silently-invisible-
+  // past-row-500 footgun fetchAllPagesOrEmpty exists to close, now that
+  // real transaction volume from today's testing is well past what a flat
+  // limit comfortably covers.
+  const [rent, jobs, subRes, connectRes] = await Promise.all([
+    fetchAllPagesOrEmpty<any>((from, to) =>
+      admin
+        .from('rent_payments')
+        .select('id, month, expected_amount, actual_amount, paid_date, payment_method, provider, absorbed_fee_amount, stripe_status, stripe_payment_intent_id, water_amount, late_fee_applied, created_at, tenancies(renter_user_id, units(unit_number, properties(address, city, owner_user_id)))')
+        .or('actual_amount.gt.0,stripe_status.not.is.null')
+        .order('created_at', { ascending: false })
+        .range(from, to)
+    ),
+    fetchAllPagesOrEmpty<any>((from, to) =>
+      admin
+        .from('bids')
+        .select('id, job_id, contractor_user_id, amount, payment_status, paid_at, created_at, stripe_payment_intent_id, jobs(category, units(unit_number, properties(address, city, owner_user_id)))')
+        .not('payment_status', 'is', null)
+        .order('created_at', { ascending: false })
+        .range(from, to)
+    ),
     admin.from('landlord_subscriptions').select('landlord_user_id, tier, unit_count, status, updated_at, stripe_subscription_id').order('updated_at', { ascending: false }).limit(1000),
     admin.from('users').select('stripe_connect_status').not('stripe_connect_account_id', 'is', null).limit(1000),
   ])
 
-  for (const [name, res] of [['rent', rentRes], ['jobs', jobRes], ['subscriptions', subRes]] as const) {
+  for (const [name, res] of [['subscriptions', subRes]] as const) {
     if (res.error) console.error(`admin/transactions: ${name} query failed`, res.error)
   }
-
-  const rent = rentRes.data || []
-  const jobs = jobRes.data || []
   const subs = subRes.data || []
 
   const ids = Array.from(new Set([

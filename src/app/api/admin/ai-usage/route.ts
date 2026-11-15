@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireAdminAal2 } from '@/lib/adminAccess'
-import { fetchAllPagesOrEmpty } from '@/lib/pagedQuery'
+import { fetchAllPages } from '@/lib/pagedQuery'
 
 // Cost per landlord and per feature, from the real ai_usage_log rows every
 // claudeJson() call writes (src/lib/claude.ts) — the actual numbers behind
@@ -20,13 +20,24 @@ export async function GET() {
   const supabaseAdmin = getSupabaseAdmin()
 
   try {
-    const rows = await fetchAllPagesOrEmpty<any>((from, to) =>
+    // fetchAllPages (not ...OrEmpty) specifically so a real query failure
+    // (e.g. a missing service_role grant -- exactly what silently broke
+    // support_escalate_hits for six weeks, same failure shape: Postgres
+    // returns a permission-denied error, supabase-js never throws, and a
+    // swallowed error here would render identically to "genuinely zero AI
+    // calls logged") surfaces as a distinct error response instead of a
+    // confident, wrong "$0" on this page.
+    const { data: rows, error: rowsError } = await fetchAllPages<any>((from, to) =>
       supabaseAdmin
         .from('ai_usage_log')
         .select('billed_user_id, caller_user_id, feature, input_tokens, output_tokens, cost_usd, created_at')
         .order('created_at', { ascending: false })
         .range(from, to)
     )
+    if (rowsError) {
+      console.error('admin/ai-usage: ai_usage_log query failed', rowsError)
+      return NextResponse.json({ error: 'Could not read ai_usage_log -- check it exists and service_role has been granted select on it' }, { status: 500 })
+    }
 
     const billedIds = Array.from(new Set((rows || []).map((r) => r.billed_user_id).filter(Boolean)))
     const nameById = new Map<string, { name: string; email: string }>()

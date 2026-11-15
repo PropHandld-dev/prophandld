@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
 import { AdminLayout } from '@/components/AdminLayout'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
@@ -16,30 +15,21 @@ export default function AdminDisputesPage() {
   const [notesById, setNotesById] = useState<Record<string, string>>({})
 
   const load = async () => {
-    // This page mounts (and load() fires) before AdminLayout's own
-    // authorization check resolves — it's a sibling in the same render
-    // tree, not something that check gates. RLS is the real backstop on
-    // the query below, which also joins in raiser/resolver names; this is
-    // the one app-layer check too.
-    const accessCheck = await fetch('/api/admin/check-access').then((r) => r.json()).catch(() => ({ authorized: false }))
-    if (!accessCheck.authorized) {
+    // Now gated by requireAdminAal2 server-side (/api/admin/disputes),
+    // same bar every other admin page enforces -- this used to rely on a
+    // direct client query backed by disputes' own RLS policy (which
+    // checks admin membership, not the MFA/AAL2 step) plus a non-AAL2
+    // /api/admin/check-access call.
+    const res = await fetch('/api/admin/disputes')
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      console.error('Error loading disputes:', data.error)
+      setError(data.error || 'Could not load disputes.')
       setLoading(false)
       return
     }
 
-    const { data, error: loadError } = await supabase
-      .from('disputes')
-      .select('*, jobs(category, units(properties(address, city))), raiser:raised_by_user_id(full_name), resolver:resolved_by(full_name)')
-      .order('created_at', { ascending: false })
-
-    if (loadError) {
-      console.error('Error loading disputes:', loadError)
-      setError('Could not load disputes.')
-      setLoading(false)
-      return
-    }
-
-    setRows(data || [])
+    setRows(data.disputes || [])
     setLoading(false)
   }
 

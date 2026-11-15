@@ -3,6 +3,7 @@ import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireAdminAal2 } from '@/lib/adminAccess'
 import { requirementById } from '@/lib/credentialRequirements'
+import { fetchAllPagesOrEmpty } from '@/lib/pagedQuery'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const CHUNK = 100
@@ -28,16 +29,17 @@ export async function GET() {
 
   const admin = getSupabaseAdmin()
 
-  const { data: jobs, error } = await admin
-    .from('jobs')
-    .select('id, category, description, status, is_emergency, created_at, unit_id, proposed_date, proposed_window, proposed_time, schedule_confirmed, contractor_completed_at, landlord_approved_at, units(unit_number, properties(address, city, state, zip, owner_user_id))')
-    .order('created_at', { ascending: false })
-    .limit(500)
-
-  if (error) {
-    console.error('admin/jobs: error loading jobs', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
+  // Paginated (not .limit(500)) -- this used to make any job older than
+  // the most recent 500 permanently invisible through this page, with no
+  // "load more" and no indication anything was cut off, same footgun
+  // fetchAllPagesOrEmpty already exists to close (see its own comment).
+  const jobs = await fetchAllPagesOrEmpty<any>((from, to) =>
+    admin
+      .from('jobs')
+      .select('id, category, description, status, is_emergency, created_at, unit_id, proposed_date, proposed_window, proposed_time, schedule_confirmed, contractor_completed_at, landlord_approved_at, units(unit_number, properties(address, city, state, zip, owner_user_id))')
+      .order('created_at', { ascending: false })
+      .range(from, to)
+  )
 
   const jobIds = (jobs || []).map((j) => j.id)
   const unitIds = Array.from(new Set((jobs || []).map((j) => j.unit_id).filter(Boolean)))
