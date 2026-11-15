@@ -14,7 +14,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 
   const { data: org } = await admin
     .from('pm_organizations')
-    .select('id, name, pitch, open_to_clients')
+    .select('id, name, pitch, open_to_clients, license_number, insured, years_in_business, specialties, service_zips, pricing_note')
     .eq('slug', slug)
     .maybeSingle()
 
@@ -59,6 +59,12 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     clientCount: ownerIds.length,
     unitCount,
     avgRating,
+    licenseNumber: org.license_number,
+    insured: !!org.insured,
+    yearsInBusiness: org.years_in_business,
+    specialties: org.specialties || [],
+    serviceZips: org.service_zips || [],
+    pricingNote: org.pricing_note,
     reviews: (reviews || []).map((r: any) => ({
       rating: r.rating,
       comment: r.comment,

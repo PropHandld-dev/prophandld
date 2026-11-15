@@ -28,6 +28,8 @@ type ClientRow = {
   approvalThreshold: number
   managementFee: number | null
   managementFeeFrequency: 'one_time' | 'monthly' | null
+  managementFeeType: 'flat' | 'percent_of_rent'
+  managementFeePercent: number | null
   monthlySummaryEnabled: boolean
   ownerReadOnly: boolean
   status: 'pending' | 'accepted'
@@ -70,7 +72,17 @@ type IncomingInvite = {
   approvalThreshold: number
   managementFee: number | null
   managementFeeFrequency: 'one_time' | 'monthly' | null
+  managementFeeType: 'flat' | 'percent_of_rent'
+  managementFeePercent: number | null
   ownerReadOnly: boolean
+}
+
+const SPECIALTY_LABELS: Record<string, string> = {
+  single_family: 'Single-family',
+  multifamily: 'Multifamily',
+  short_term: 'Short-term/vacation',
+  commercial: 'Commercial',
+  hoa: 'HOA',
 }
 
 const ACTION_LABELS: Record<string, string> = {
@@ -249,6 +261,17 @@ export default function PmDashboardPage() {
   const [openToClients, setOpenToClients] = useState(false)
   const [pitch, setPitch] = useState('')
   const [savingProfile, setSavingProfile] = useState(false)
+  // Trust-building profile fields — research across real PM software
+  // (Buildium/AppFolio/DoorLoop) and what landlords actually check before
+  // trusting a PM consistently surfaces these as the real trust-gates, not
+  // just a one-line pitch and a star rating (all the public profile had
+  // before this).
+  const [licenseNumber, setLicenseNumber] = useState('')
+  const [insured, setInsured] = useState(false)
+  const [yearsInBusiness, setYearsInBusiness] = useState<number | ''>('')
+  const [specialties, setSpecialties] = useState<string[]>([])
+  const [serviceZipsText, setServiceZipsText] = useState('')
+  const [pricingNote, setPricingNote] = useState('')
   const [profileCopied, setProfileCopied] = useState(false)
   const [viewsTotal, setViewsTotal] = useState(0)
   const [viewsThisMonth, setViewsThisMonth] = useState(0)
@@ -329,6 +352,12 @@ export default function PmDashboardPage() {
             setProfileSlug(profileData.slug)
             setOpenToClients(profileData.openToClients)
             setPitch(profileData.pitch || '')
+            setLicenseNumber(profileData.licenseNumber || '')
+            setInsured(!!profileData.insured)
+            setYearsInBusiness(profileData.yearsInBusiness ?? '')
+            setSpecialties(profileData.specialties || [])
+            setServiceZipsText((profileData.serviceZips || []).join(', '))
+            setPricingNote(profileData.pricingNote || '')
             setViewsTotal(profileData.viewsTotal || 0)
             setViewsThisMonth(profileData.viewsThisMonth || 0)
           }
@@ -500,6 +529,28 @@ export default function PmDashboardPage() {
     setSavingProfile(false)
   }
 
+  const saveProfileField = async (field: string, value: unknown) => {
+    setSavingProfile(true)
+    await fetch('/api/pm/profile-settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ [field]: value }),
+    }).catch(() => {})
+    setSavingProfile(false)
+  }
+
+  const handleToggleSpecialty = (key: string) => {
+    const next = specialties.includes(key) ? specialties.filter((s) => s !== key) : [...specialties, key]
+    setSpecialties(next)
+    saveProfileField('specialties', next)
+  }
+
+  const handleSaveServiceZips = () => {
+    const zips = Array.from(new Set(serviceZipsText.split(',').map((z) => z.trim()).filter((z) => /^\d{5}$/.test(z))))
+    setServiceZipsText(zips.join(', '))
+    saveProfileField('serviceZips', zips)
+  }
+
   const handleCopyProfileLink = () => {
     if (!profileSlug) return
     navigator.clipboard.writeText(`${window.location.origin}/property-managers/${profileSlug}`).catch(() => {})
@@ -631,7 +682,32 @@ export default function PmDashboardPage() {
     await fetch(`/api/pm/clients/${portfolioId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ managementFee: amount, managementFeeFrequency: frequency }),
+      body: JSON.stringify({ managementFeeType: 'flat', managementFee: amount, managementFeeFrequency: frequency }),
+    })
+  }
+
+  // Switches a client between a flat dollar fee and a percentage of rent
+  // actually collected — the dominant real-world PM billing model, and a
+  // real gap against it being flat-only. Always monthly (a percentage of
+  // a one-time amount doesn't make sense the way a flat one-time fee
+  // does), auto-billed by cron/pm-fee-billing the same way a flat monthly
+  // fee now is.
+  const handleFeeTypeChange = async (portfolioId: string, type: 'flat' | 'percent_of_rent', percent?: number) => {
+    setClients((prev) => prev.map((c) => (c.id === portfolioId ? {
+      ...c,
+      managementFeeType: type,
+      managementFeePercent: type === 'percent_of_rent' ? (percent ?? c.managementFeePercent) : null,
+      managementFee: type === 'percent_of_rent' ? null : c.managementFee,
+      managementFeeFrequency: type === 'percent_of_rent' ? 'monthly' : c.managementFeeFrequency,
+    } : c)))
+    await fetch(`/api/pm/clients/${portfolioId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(
+        type === 'percent_of_rent'
+          ? { managementFeeType: 'percent_of_rent', managementFeePercent: percent }
+          : { managementFeeType: 'flat' }
+      ),
     })
   }
 
@@ -826,19 +902,35 @@ export default function PmDashboardPage() {
                 Remove manager
               </button>
             </div>
-            {acceptedIncoming[0].managementFee !== null && (
-              <div className="flex items-center justify-between gap-3 mt-4 pt-4 border-t border-white/8">
-                <p className="text-white/60 text-sm">
-                  Management fee: <span className="text-white font-semibold">${acceptedIncoming[0].managementFee!.toFixed(2)}</span>
-                  {acceptedIncoming[0].managementFeeFrequency === 'monthly' ? '/month' : ' (one time)'}
-                </p>
-                <RippleButton
-                  onClick={() => handlePayFee(acceptedIncoming[0].id)}
-                  disabled={payingFee}
-                  className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-xl disabled:opacity-50 whitespace-nowrap"
-                >
-                  {payingFee ? 'Starting…' : 'Pay now'}
-                </RippleButton>
+            {(acceptedIncoming[0].managementFee !== null || acceptedIncoming[0].managementFeeType === 'percent_of_rent') && (
+              <div className="mt-4 pt-4 border-t border-white/8">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-white/60 text-sm">
+                    Management fee:{' '}
+                    {acceptedIncoming[0].managementFeeType === 'percent_of_rent' ? (
+                      <span className="text-white font-semibold">{acceptedIncoming[0].managementFeePercent}% of rent collected/month</span>
+                    ) : (
+                      <span className="text-white font-semibold">
+                        ${acceptedIncoming[0].managementFee!.toFixed(2)}
+                        {acceptedIncoming[0].managementFeeFrequency === 'monthly' ? '/month' : ' (one time)'}
+                      </span>
+                    )}
+                  </p>
+                  <RippleButton
+                    onClick={() => handlePayFee(acceptedIncoming[0].id)}
+                    disabled={payingFee}
+                    className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-xl disabled:opacity-50 whitespace-nowrap"
+                  >
+                    {payingFee ? 'Starting…' : 'Pay now'}
+                  </RippleButton>
+                </div>
+                {(acceptedIncoming[0].managementFeeFrequency === 'monthly' || acceptedIncoming[0].managementFeeType === 'percent_of_rent') && (
+                  <p className="text-white/30 text-xs mt-2">
+                    This is charged automatically each month to your{' '}
+                    <Link href="/profile" className="text-[#12A5A9] hover:underline">card on file</Link>
+                    {' '}— no need to pay manually unless it fails.
+                  </p>
+                )}
               </div>
             )}
             {feePayError && <p className="text-red-400 text-xs mt-2">{feePayError}</p>}
@@ -1098,6 +1190,81 @@ export default function PmDashboardPage() {
                         className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-[#12A5A9]/50"
                       />
                     </div>
+                    {/* Trust & credibility — the fields real landlords say they
+                        actually check before picking a PM (license/insurance,
+                        service area, track record, specialties, pricing),
+                        none of which this profile had before. All optional:
+                        an admin who skips these just keeps the plain pitch +
+                        rating profile that existed before. */}
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                      <div>
+                        <label className="block text-xs text-white/50 mb-1.5">License number</label>
+                        <input
+                          value={licenseNumber}
+                          onChange={(e) => setLicenseNumber(e.target.value)}
+                          onBlur={() => saveProfileField('licenseNumber', licenseNumber)}
+                          maxLength={60}
+                          placeholder="e.g. RB-123456"
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-[#12A5A9]/50"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-white/50 mb-1.5">Years in business</label>
+                        <input
+                          type="number"
+                          min={0}
+                          max={200}
+                          value={yearsInBusiness}
+                          onChange={(e) => setYearsInBusiness(e.target.value === '' ? '' : Number(e.target.value))}
+                          onBlur={() => saveProfileField('yearsInBusiness', yearsInBusiness === '' ? null : yearsInBusiness)}
+                          placeholder="e.g. 8"
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-[#12A5A9]/50"
+                        />
+                      </div>
+                    </div>
+                    <label className="flex items-center gap-2 text-xs text-white/60 mb-3">
+                      <input
+                        type="checkbox"
+                        checked={insured}
+                        onChange={(e) => { setInsured(e.target.checked); saveProfileField('insured', e.target.checked) }}
+                        className="accent-[#12A5A9]"
+                      />
+                      Carries general liability + E&O insurance
+                    </label>
+                    <label className="block text-xs text-white/50 mb-1.5">Specialties</label>
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {Object.entries(SPECIALTY_LABELS).map(([key, label]) => (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => handleToggleSpecialty(key)}
+                          className={
+                            specialties.includes(key)
+                              ? 'text-xs font-semibold px-3 py-1.5 rounded-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white'
+                              : 'text-xs font-semibold px-3 py-1.5 rounded-full bg-white/5 text-white/50 hover:bg-white/8 transition'
+                          }
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    <label className="block text-xs text-white/50 mb-1.5">Service area (zip codes)</label>
+                    <input
+                      value={serviceZipsText}
+                      onChange={(e) => setServiceZipsText(e.target.value)}
+                      onBlur={handleSaveServiceZips}
+                      placeholder="e.g. 19102, 19103, 19104"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-[#12A5A9]/50 mb-3"
+                    />
+                    <label className="block text-xs text-white/50 mb-1.5">Typical pricing (shown to prospective clients)</label>
+                    <input
+                      value={pricingNote}
+                      onChange={(e) => setPricingNote(e.target.value)}
+                      onBlur={() => saveProfileField('pricingNote', pricingNote)}
+                      maxLength={120}
+                      placeholder="e.g. 8-10% of monthly rent, or $150/unit/month"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-[#12A5A9]/50 mb-4"
+                    />
                     {openToClients && profileSlug && (
                       <>
                         <div className="flex items-center gap-2 flex-wrap mb-3">
@@ -1217,30 +1384,66 @@ export default function PmDashboardPage() {
                                 </div>
                               </div>
                               {membership.memberRole === 'admin' && (
-                                <label className="flex items-center gap-2 text-xs text-white/50">
-                                  Management fee: $
-                                  <input
-                                    type="number"
-                                    defaultValue={c.managementFee ?? ''}
-                                    placeholder="none"
-                                    onBlur={(e) => {
-                                      const v = e.target.value.trim()
-                                      handleFeeChange(c.id, v === '' ? null : Number(v) || 0, c.managementFeeFrequency || 'monthly')
+                                <div className="flex items-center gap-2 text-xs text-white/50 flex-wrap">
+                                  Management fee:
+                                  <select
+                                    value={c.managementFeeType}
+                                    onChange={(e) => {
+                                      const type = e.target.value as 'flat' | 'percent_of_rent'
+                                      if (type === 'percent_of_rent') {
+                                        handleFeeTypeChange(c.id, 'percent_of_rent', c.managementFeePercent || 10)
+                                      } else {
+                                        handleFeeTypeChange(c.id, 'flat')
+                                      }
                                     }}
-                                    className="w-20 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white text-xs"
-                                  />
-                                  {c.managementFee !== null && (
-                                    <select
-                                      value={c.managementFeeFrequency || 'monthly'}
-                                      onChange={(e) => handleFeeChange(c.id, c.managementFee, e.target.value as 'one_time' | 'monthly')}
-                                      className="bg-white/5 border border-white/10 rounded-lg px-1.5 py-1 text-white text-xs"
-                                    >
-                                      <option value="monthly" className="bg-[#0C1A2E]">/month</option>
-                                      <option value="one_time" className="bg-[#0C1A2E]">one time</option>
-                                    </select>
+                                    className="bg-white/5 border border-white/10 rounded-lg px-1.5 py-1 text-white text-xs"
+                                  >
+                                    <option value="flat" className="bg-[#0C1A2E]">Flat $</option>
+                                    <option value="percent_of_rent" className="bg-[#0C1A2E]">% of rent collected</option>
+                                  </select>
+                                  {c.managementFeeType === 'percent_of_rent' ? (
+                                    <label className="flex items-center gap-1.5">
+                                      <input
+                                        type="number"
+                                        min={0.1}
+                                        max={100}
+                                        step={0.1}
+                                        defaultValue={c.managementFeePercent ?? 10}
+                                        onBlur={(e) => handleFeeTypeChange(c.id, 'percent_of_rent', Number(e.target.value) || 10)}
+                                        className="w-16 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white text-xs"
+                                      />
+                                      % of rent collected, billed monthly
+                                    </label>
+                                  ) : (
+                                    <label className="flex items-center gap-1.5">
+                                      $
+                                      <input
+                                        type="number"
+                                        defaultValue={c.managementFee ?? ''}
+                                        placeholder="none"
+                                        onBlur={(e) => {
+                                          const v = e.target.value.trim()
+                                          handleFeeChange(c.id, v === '' ? null : Number(v) || 0, c.managementFeeFrequency || 'monthly')
+                                        }}
+                                        className="w-20 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white text-xs"
+                                      />
+                                      {c.managementFee !== null && (
+                                        <select
+                                          value={c.managementFeeFrequency || 'monthly'}
+                                          onChange={(e) => handleFeeChange(c.id, c.managementFee, e.target.value as 'one_time' | 'monthly')}
+                                          className="bg-white/5 border border-white/10 rounded-lg px-1.5 py-1 text-white text-xs"
+                                        >
+                                          <option value="monthly" className="bg-[#0C1A2E]">/month</option>
+                                          <option value="one_time" className="bg-[#0C1A2E]">one time</option>
+                                        </select>
+                                      )}
+                                    </label>
                                   )}
-                                  <span className="text-white/30">Billed to {c.ownerName}, paid to you directly.</span>
-                                </label>
+                                  <span className="text-white/30 w-full">
+                                    Billed to {c.ownerName}, paid to you directly.
+                                    {(c.managementFeeFrequency === 'monthly' || c.managementFeeType === 'percent_of_rent') && ' Charged automatically each month if they have a card on file.'}
+                                  </span>
+                                </div>
                               )}
                               {membership.memberRole === 'admin' && (
                                 <label className="flex items-center gap-2 text-xs text-white/50 mt-2">

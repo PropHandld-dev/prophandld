@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { MagneticLink } from '@/components/MagneticLink'
 import { Logo } from '@/components/Logo'
 import { BrandLink } from '@/components/BrandLink'
-import { BuildingIcon, StarIcon } from '@/components/icons'
+import { BuildingIcon, StarIcon, ShieldIcon } from '@/components/icons'
 import { GoogleTranslateToggle } from '@/components/GoogleTranslateToggle'
 
 type Org = {
@@ -15,6 +15,18 @@ type Org = {
   clientCount: number
   avgRating: number | null
   reviewCount: number
+  licensed: boolean
+  insured: boolean
+  yearsInBusiness: number | null
+  specialties: string[]
+}
+
+const SPECIALTY_LABELS: Record<string, string> = {
+  single_family: 'Single-family',
+  multifamily: 'Multifamily',
+  short_term: 'Short-term/vacation',
+  commercial: 'Commercial',
+  hoa: 'HOA',
 }
 
 export default function PmDirectoryPage() {
@@ -89,8 +101,28 @@ export default function PmDirectoryPage() {
                     </div>
                   )}
                 </div>
+                {(org.licensed || org.insured || org.specialties.length > 0) && (
+                  <div className="flex items-center gap-1.5 flex-wrap mt-3">
+                    {org.licensed && (
+                      <span className="flex items-center gap-1 text-[11px] font-medium text-white/60 bg-white/5 border border-white/10 rounded-full px-2 py-0.5">
+                        <ShieldIcon className="w-3 h-3 text-[#12A5A9]" /> Licensed
+                      </span>
+                    )}
+                    {org.insured && (
+                      <span className="flex items-center gap-1 text-[11px] font-medium text-white/60 bg-white/5 border border-white/10 rounded-full px-2 py-0.5">
+                        <ShieldIcon className="w-3 h-3 text-[#12A5A9]" /> Insured
+                      </span>
+                    )}
+                    {org.specialties.map((s) => (
+                      <span key={s} className="text-[11px] font-medium text-[#12A5A9] bg-[#12A5A9]/10 border border-[#12A5A9]/25 rounded-full px-2 py-0.5">
+                        {SPECIALTY_LABELS[s] || s}
+                      </span>
+                    ))}
+                  </div>
+                )}
                 <p className="text-white/30 text-xs mt-3">
                   Managing {org.clientCount} client{org.clientCount === 1 ? '' : 's'}
+                  {org.yearsInBusiness !== null && ` · ${org.yearsInBusiness} year${org.yearsInBusiness === 1 ? '' : 's'} in business`}
                 </p>
               </Link>
             ))}

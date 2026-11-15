@@ -17,7 +17,21 @@ type Profile = {
   clientCount: number
   unitCount: number
   avgRating: number | null
+  licenseNumber: string | null
+  insured: boolean
+  yearsInBusiness: number | null
+  specialties: string[]
+  serviceZips: string[]
+  pricingNote: string | null
   reviews: { rating: number; comment: string | null; createdAt: string; reviewerFirstName: string }[]
+}
+
+const SPECIALTY_LABELS: Record<string, string> = {
+  single_family: 'Single-family',
+  multifamily: 'Multifamily',
+  short_term: 'Short-term/vacation',
+  commercial: 'Commercial',
+  hoa: 'HOA',
 }
 
 function Stars({ value }: { value: number }) {
@@ -196,6 +210,60 @@ export default function PmPublicProfilePage() {
             </>
           )}
         </div>
+
+        {/* Trust badges — license/insurance/track-record are the actual
+            gates research shows landlords check before trusting a PM, not
+            just a pitch line and a star rating. Each badge only renders if
+            the PM actually filled it in; an org that skips all of these
+            just sees the page as it looked before. */}
+        {(profile.licenseNumber || profile.insured || profile.yearsInBusiness) && (
+          <div className="flex items-center justify-center gap-2 flex-wrap mb-6">
+            {profile.licenseNumber && (
+              <span className="flex items-center gap-1.5 text-xs font-medium text-white/70 bg-white/5 border border-white/10 rounded-full px-3 py-1.5">
+                <ShieldIcon className="w-3.5 h-3.5 text-[#12A5A9]" /> Licensed · {profile.licenseNumber}
+              </span>
+            )}
+            {profile.insured && (
+              <span className="flex items-center gap-1.5 text-xs font-medium text-white/70 bg-white/5 border border-white/10 rounded-full px-3 py-1.5">
+                <ShieldIcon className="w-3.5 h-3.5 text-[#12A5A9]" /> Insured (GL + E&O)
+              </span>
+            )}
+            {profile.yearsInBusiness !== null && (
+              <span className="text-xs font-medium text-white/70 bg-white/5 border border-white/10 rounded-full px-3 py-1.5">
+                {profile.yearsInBusiness} year{profile.yearsInBusiness === 1 ? '' : 's'} in business
+              </span>
+            )}
+          </div>
+        )}
+
+        {(profile.specialties.length > 0 || profile.serviceZips.length > 0 || profile.pricingNote) && (
+          <div className="max-w-md mx-auto bg-white/3 border border-white/8 rounded-2xl p-5 mb-8 text-left space-y-3">
+            {profile.specialties.length > 0 && (
+              <div>
+                <p className="text-white/40 text-xs font-semibold uppercase tracking-wide mb-1.5">Specializes in</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {profile.specialties.map((s) => (
+                    <span key={s} className="text-xs font-medium text-[#12A5A9] bg-[#12A5A9]/10 border border-[#12A5A9]/25 rounded-full px-2.5 py-1">
+                      {SPECIALTY_LABELS[s] || s}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {profile.serviceZips.length > 0 && (
+              <div>
+                <p className="text-white/40 text-xs font-semibold uppercase tracking-wide mb-1.5">Service area</p>
+                <p className="text-white/70 text-sm">{profile.serviceZips.join(', ')}</p>
+              </div>
+            )}
+            {profile.pricingNote && (
+              <div>
+                <p className="text-white/40 text-xs font-semibold uppercase tracking-wide mb-1.5">Typical pricing</p>
+                <p className="text-white/70 text-sm">{profile.pricingNote}</p>
+              </div>
+            )}
+          </div>
+        )}
 
         {isOwnProfile ? (
           <Link

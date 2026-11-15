@@ -24,6 +24,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     approvalThreshold?: number
     managementFee?: number | null
     managementFeeFrequency?: 'one_time' | 'monthly' | null
+    managementFeeType?: 'flat' | 'percent_of_rent'
+    managementFeePercent?: number | null
     monthlySummaryEnabled?: boolean
     ownerReadOnly?: boolean
   }
@@ -35,7 +37,34 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
     update.approval_threshold = body.approvalThreshold
   }
-  if (body.managementFee !== undefined) {
+  // managementFeeType governs which of the two amount fields is "live" —
+  // sent together from the UI's own type toggle, not independently, so
+  // switching from flat to percent (or back) always clears the other
+  // field rather than leaving a stale value a reader might mistake for
+  // still being in effect.
+  if (body.managementFeeType !== undefined) {
+    if (body.managementFeeType !== 'flat' && body.managementFeeType !== 'percent_of_rent') {
+      return NextResponse.json({ error: 'Invalid fee type' }, { status: 400 })
+    }
+    update.management_fee_type = body.managementFeeType
+    if (body.managementFeeType === 'percent_of_rent') {
+      if (typeof body.managementFeePercent !== 'number' || body.managementFeePercent <= 0 || body.managementFeePercent > 100) {
+        return NextResponse.json({ error: 'Invalid percentage' }, { status: 400 })
+      }
+      update.management_fee_percent = body.managementFeePercent
+      update.management_fee = null
+      update.management_fee_frequency = 'monthly'
+    } else {
+      update.management_fee_percent = null
+      if (body.managementFee !== undefined) {
+        if (body.managementFee !== null && (typeof body.managementFee !== 'number' || body.managementFee < 0)) {
+          return NextResponse.json({ error: 'Invalid management fee' }, { status: 400 })
+        }
+        update.management_fee = body.managementFee
+        update.management_fee_frequency = body.managementFee === null ? null : body.managementFeeFrequency || 'monthly'
+      }
+    }
+  } else if (body.managementFee !== undefined) {
     if (body.managementFee !== null && (typeof body.managementFee !== 'number' || body.managementFee < 0)) {
       return NextResponse.json({ error: 'Invalid management fee' }, { status: 400 })
     }

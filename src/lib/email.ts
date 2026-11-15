@@ -2579,6 +2579,98 @@ export async function sendAutochargeFailedEmail({
   return sendEmail({ to, subject: lang === 'es' ? `Acción requerida: tu tarjeta fue rechazada para ${category}` : `Action needed: your card was declined for ${category}`, html })
 }
 
+// cron/pm-fee-billing's two outcomes — mirrors sendAutochargeFailedEmail's
+// job-payment shape almost exactly, landlord-pays-PM instead of
+// landlord-pays-contractor. The success email exists because this charge
+// happens with nobody present to see it go through (off_session, no
+// browser confirmation screen) — without an email, the first the landlord
+// would ever hear about it is noticing a charge on their bank statement.
+export async function sendPmFeeChargedEmail({
+  to,
+  landlordName,
+  orgName,
+  amount,
+  lang = 'en',
+}: {
+  to: string
+  landlordName: string
+  orgName: string
+  amount: number
+  lang?: Lang
+}) {
+  const html = lang === 'es' ? baseTemplate({
+    lang,
+    eyebrow: 'Pago procesado',
+    heading: 'Tu tarifa de administración fue cobrada',
+    bodyHtml: `Hola ${escapeHtml(landlordName)}, cobramos tu tarjeta registrada por la tarifa de administración mensual de <strong>${escapeHtml(orgName)}</strong>.`,
+    preheader: `Se cobraron $${amount.toFixed(2)} a tu tarjeta registrada para ${escapeHtml(orgName)}.`,
+    facts: [
+      { label: fl('Amount', lang), value: `$${amount.toFixed(2)}` },
+      { label: fl('Property manager', lang), value: orgName },
+    ],
+    ctaLabel: 'Ver detalles',
+    ctaUrl: `${SITE_URL}/landlord/pm`,
+  }) : baseTemplate({
+    lang,
+    eyebrow: 'Payment processed',
+    heading: 'Your management fee was charged',
+    bodyHtml: `Hi ${escapeHtml(landlordName)}, we charged your card on file for <strong>${escapeHtml(orgName)}</strong>'s monthly management fee.`,
+    preheader: `$${amount.toFixed(2)} was charged to your card on file for ${escapeHtml(orgName)}.`,
+    facts: [
+      { label: fl('Amount', lang), value: `$${amount.toFixed(2)}` },
+      { label: fl('Property manager', lang), value: orgName },
+    ],
+    ctaLabel: 'See details',
+    ctaUrl: `${SITE_URL}/landlord/pm`,
+  })
+  return sendEmail({ to, subject: lang === 'es' ? `Tarifa de administración cobrada: $${amount.toFixed(2)}` : `Management fee charged: $${amount.toFixed(2)}`, html })
+}
+
+export async function sendPmFeeAutochargeFailedEmail({
+  to,
+  landlordName,
+  orgName,
+  amount,
+  reason,
+  lang = 'en',
+}: {
+  to: string
+  landlordName: string
+  orgName: string
+  amount: number
+  reason: string
+  lang?: Lang
+}) {
+  const html = lang === 'es' ? baseTemplate({
+    lang,
+    eyebrow: 'Acción requerida',
+    heading: 'No pudimos cobrar tu tarifa de administración',
+    bodyHtml: `Hola ${escapeHtml(landlordName)}, intentamos cobrar tu tarjeta registrada por la tarifa de administración de <strong>${escapeHtml(orgName)}</strong> y no se pudo completar: <strong>${escapeHtml(reason)}</strong>.`,
+    preheader: `Tu tarjeta registrada fue rechazada: ${escapeHtml(reason)}.`,
+    facts: [
+      { label: fl('Amount due', lang), value: `$${amount.toFixed(2)}` },
+      { label: fl('Property manager', lang), value: orgName },
+    ],
+    ctaLabel: 'Pagar ahora',
+    ctaUrl: `${SITE_URL}/landlord/pm`,
+    note: 'Actualiza tu tarjeta registrada o paga esta tarifa manualmente.',
+  }) : baseTemplate({
+    lang,
+    eyebrow: 'Action needed',
+    heading: 'We couldn’t charge your management fee',
+    bodyHtml: `Hi ${escapeHtml(landlordName)}, we tried to charge your card on file for <strong>${escapeHtml(orgName)}</strong>'s management fee and it didn't go through: <strong>${escapeHtml(reason)}</strong>.`,
+    preheader: `Your card on file was declined: ${escapeHtml(reason)}.`,
+    facts: [
+      { label: fl('Amount due', lang), value: `$${amount.toFixed(2)}` },
+      { label: fl('Property manager', lang), value: orgName },
+    ],
+    ctaLabel: 'Pay now',
+    ctaUrl: `${SITE_URL}/landlord/pm`,
+    note: 'Update your card on file, or pay this fee manually.',
+  })
+  return sendEmail({ to, subject: lang === 'es' ? `Acción requerida: tarifa de administración rechazada` : `Action needed: management fee declined`, html })
+}
+
 // One digest to the Prophandld inbox whenever the daily check auto-approves
 // anything, so a person sees it the same day rather than a contractor
 // discovering days later that nobody ever paid them. Internal, always English.

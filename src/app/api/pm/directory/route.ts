@@ -12,7 +12,7 @@ export async function GET() {
 
   const { data: orgs } = await admin
     .from('pm_organizations')
-    .select('id, slug, name, pitch')
+    .select('id, slug, name, pitch, license_number, insured, years_in_business, specialties')
     .eq('open_to_clients', true)
     .not('slug', 'is', null)
 
@@ -47,6 +47,10 @@ export async function GET() {
       clientCount: clientCountByOrg.get(o.id) || 0,
       avgRating: rating ? Math.round((rating.sum / rating.count) * 10) / 10 : null,
       reviewCount: rating?.count || 0,
+      licensed: !!o.license_number,
+      insured: !!o.insured,
+      yearsInBusiness: o.years_in_business,
+      specialties: o.specialties || [],
     }
   })
 

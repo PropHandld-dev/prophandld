@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { getStripe } from '@/lib/stripe'
 import { achProcessingFee } from '@/lib/cardSurcharge'
 import { friendlyStripeError } from '@/lib/stripeErrorMessage'
+import { computeManagementFeeAmount } from '@/lib/pmFee'
 
 export const maxDuration = 20
 
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   const { data: portfolio } = await supabaseAdmin
     .from('pm_client_portfolios')
-    .select('id, owner_user_id, status, management_fee, organization_id, pm_organizations(admin_user_id)')
+    .select('id, owner_user_id, status, management_fee, management_fee_type, management_fee_percent, organization_id, pm_organizations(admin_user_id)')
     .eq('id', portfolioId)
     .eq('status', 'accepted')
     .maybeSingle()
@@ -38,8 +39,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (!portfolio || portfolio.owner_user_id !== user.id) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
-  if (!portfolio.management_fee || Number(portfolio.management_fee) <= 0) {
-    return NextResponse.json({ error: 'No management fee is set for this client.' }, { status: 400 })
+  const amount = await computeManagementFeeAmount(supabaseAdmin, portfolio)
+  if (amount <= 0) {
+    return NextResponse.json({ error: 'No management fee is due for this client.' }, { status: 400 })
   }
 
   const pmAdminId = (portfolio.pm_organizations as any)?.admin_user_id
@@ -59,7 +61,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     )
   }
 
-  const amount = Number(portfolio.management_fee)
   const surcharge = method === 'bank' ? achProcessingFee(amount) : 0
   const chargeAmount = amount + surcharge
   const stripe = getStripe()

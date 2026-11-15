@@ -21,7 +21,7 @@ export async function GET() {
 
   const { data: org } = await admin
     .from('pm_organizations')
-    .select('slug, open_to_clients, pitch')
+    .select('slug, open_to_clients, pitch, license_number, insured, years_in_business, specialties, service_zips, pricing_note')
     .eq('id', membership.organizationId)
     .maybeSingle()
 
@@ -47,10 +47,18 @@ export async function GET() {
     slug: org?.slug || null,
     openToClients: !!org?.open_to_clients,
     pitch: org?.pitch || '',
+    licenseNumber: org?.license_number || '',
+    insured: !!org?.insured,
+    yearsInBusiness: org?.years_in_business ?? null,
+    specialties: org?.specialties || [],
+    serviceZips: org?.service_zips || [],
+    pricingNote: org?.pricing_note || '',
     viewsTotal,
     viewsThisMonth,
   })
 }
+
+const VALID_SPECIALTIES = ['single_family', 'multifamily', 'short_term', 'commercial', 'hoa'] as const
 
 // Admin-only: turn public discoverability on/off and set the one-line
 // pitch shown on the directory and the org's own shareable profile page.
@@ -71,7 +79,16 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: 'Only a PM organization admin can change this' }, { status: 403 })
   }
 
-  const body = (await request.json().catch(() => ({}))) as { openToClients?: boolean; pitch?: string }
+  const body = (await request.json().catch(() => ({}))) as {
+    openToClients?: boolean
+    pitch?: string
+    licenseNumber?: string
+    insured?: boolean
+    yearsInBusiness?: number | null
+    specialties?: string[]
+    serviceZips?: string[]
+    pricingNote?: string
+  }
   const update: Record<string, unknown> = {}
 
   if (body.openToClients !== undefined) {
@@ -85,6 +102,42 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Pitch must be 280 characters or fewer' }, { status: 400 })
     }
     update.pitch = body.pitch.trim() || null
+  }
+  if (body.licenseNumber !== undefined) {
+    if (typeof body.licenseNumber !== 'string' || body.licenseNumber.length > 60) {
+      return NextResponse.json({ error: 'License number must be 60 characters or fewer' }, { status: 400 })
+    }
+    update.license_number = body.licenseNumber.trim() || null
+  }
+  if (body.insured !== undefined) {
+    if (typeof body.insured !== 'boolean') {
+      return NextResponse.json({ error: 'Invalid value' }, { status: 400 })
+    }
+    update.insured = body.insured
+  }
+  if (body.yearsInBusiness !== undefined) {
+    if (body.yearsInBusiness !== null && (typeof body.yearsInBusiness !== 'number' || body.yearsInBusiness < 0 || body.yearsInBusiness > 200)) {
+      return NextResponse.json({ error: 'Invalid years in business' }, { status: 400 })
+    }
+    update.years_in_business = body.yearsInBusiness
+  }
+  if (body.specialties !== undefined) {
+    if (!Array.isArray(body.specialties) || body.specialties.some((s) => typeof s !== 'string' || !VALID_SPECIALTIES.includes(s as any))) {
+      return NextResponse.json({ error: 'Invalid specialties' }, { status: 400 })
+    }
+    update.specialties = body.specialties
+  }
+  if (body.serviceZips !== undefined) {
+    if (!Array.isArray(body.serviceZips) || body.serviceZips.some((z) => typeof z !== 'string' || !/^\d{5}$/.test(z))) {
+      return NextResponse.json({ error: 'Service zips must be 5-digit codes' }, { status: 400 })
+    }
+    update.service_zips = body.serviceZips.slice(0, 100)
+  }
+  if (body.pricingNote !== undefined) {
+    if (typeof body.pricingNote !== 'string' || body.pricingNote.length > 120) {
+      return NextResponse.json({ error: 'Pricing note must be 120 characters or fewer' }, { status: 400 })
+    }
+    update.pricing_note = body.pricingNote.trim() || null
   }
   if (Object.keys(update).length === 0) {
     return NextResponse.json({ error: 'Nothing to update' }, { status: 400 })

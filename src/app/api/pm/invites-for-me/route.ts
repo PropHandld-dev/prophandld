@@ -17,7 +17,7 @@ export async function GET() {
   const admin = getSupabaseAdmin()
   const { data: rows } = await admin
     .from('pm_client_portfolios')
-    .select('id, status, requested_by, invited_at, accepted_at, approval_threshold, management_fee, management_fee_frequency, owner_read_only, pm_organizations(name)')
+    .select('id, status, requested_by, invited_at, accepted_at, approval_threshold, management_fee, management_fee_frequency, management_fee_type, management_fee_percent, owner_read_only, pm_organizations(name)')
     .eq('owner_user_id', user.id)
     .order('invited_at', { ascending: false })
 
@@ -31,6 +31,8 @@ export async function GET() {
       approvalThreshold: Number(r.approval_threshold),
       managementFee: r.management_fee !== null ? Number(r.management_fee) : null,
       managementFeeFrequency: r.management_fee_frequency,
+      managementFeeType: (r.management_fee_type as 'flat' | 'percent_of_rent') || 'flat',
+      managementFeePercent: r.management_fee_percent !== null ? Number(r.management_fee_percent) : null,
       ownerReadOnly: !!r.owner_read_only,
       orgName: r.pm_organizations?.name || 'A property manager',
     })),
