@@ -119,21 +119,25 @@ function PropertiesPageInner() {
     await fetchProperties()
   }
 
-  const activeCount = properties.filter((p) => !p.archived).length
-  const archivedCount = properties.filter((p) => p.archived).length
+  // Counts stay portfolio-wide for a text search (search narrows what's
+  // shown, not what's counted, same as the rent roll's stats following
+  // its own filter) -- but an owner filter is a different kind of
+  // narrowing: it's "show me only this one client's sub-portfolio," so
+  // showing the whole portfolio's totals next to a filtered list would
+  // be actively misleading (found live: "6 active" next to a filtered
+  // view that only shows 1), not just imprecise.
+  const ownerScopedProperties = ownerFilter ? properties.filter((p) => p.owner_user_id === ownerFilter) : properties
+  const activeCount = ownerScopedProperties.filter((p) => !p.archived).length
+  const archivedCount = ownerScopedProperties.filter((p) => p.archived).length
 
-  // Counts above stay portfolio-wide on purpose — search narrows what's
-  // shown, not what's counted, same as the rent roll's stats follow its
-  // own filter but these totals describe the whole portfolio regardless.
   const filteredProperties = useMemo(() => {
-    const byOwner = ownerFilter ? properties.filter((p) => p.owner_user_id === ownerFilter) : properties
-    const byArchived = byOwner.filter((p) => (showArchived ? true : !p.archived))
+    const byArchived = ownerScopedProperties.filter((p) => (showArchived ? true : !p.archived))
     const q = search.trim().toLowerCase()
     if (!q) return byArchived
     return byArchived.filter((p) =>
       [p.address, p.city, p.state, p.zip, p.property_type].filter(Boolean).some((v) => String(v).toLowerCase().includes(q))
     )
-  }, [properties, search, showArchived, ownerFilter])
+  }, [ownerScopedProperties, search, showArchived])
 
   return (
     <div className="min-h-screen bg-[#0C1A2E]">
