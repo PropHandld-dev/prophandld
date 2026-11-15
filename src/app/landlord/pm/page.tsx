@@ -904,7 +904,22 @@ export default function PmDashboardPage() {
               )}
             </div>
 
-            {orgHealth && acceptedClients.length > 0 && <PortfolioHealthCard health={orgHealth} />}
+            {orgHealth && acceptedClients.length > 0 && (() => {
+              const overdueCount = complianceAlerts.filter((a) => a.daysUntil < 0).length
+              const atRiskCount = complianceAlerts.length - overdueCount
+              const combinedVacant = acceptedClients.reduce((t, c) => t + Math.max(0, (c.unitCount || 0) - (c.occupiedUnitCount || 0)), 0)
+              const issues: string[] = []
+              if (overdueCount > 0) issues.push(`${overdueCount} compliance item${overdueCount === 1 ? '' : 's'} overdue`)
+              if (atRiskCount > 0) issues.push(`${atRiskCount} expiring soon`)
+              if (combinedVacant > 0) issues.push(`${combinedVacant} unit${combinedVacant === 1 ? '' : 's'} vacant`)
+              return (
+                <PortfolioHealthCard
+                  health={orgHealth}
+                  issues={issues}
+                  href={complianceAlerts.length > 0 ? '#compliance-alerts' : undefined}
+                />
+              )
+            })()}
 
             <TabBar
               active={activeTab}
@@ -957,7 +972,7 @@ export default function PmDashboardPage() {
                 {mapProperties.length > 0 && <PmComplianceMap properties={mapProperties} />}
 
                 {complianceAlerts.length > 0 && (
-                  <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-5 mb-6">
+                  <ScrollReveal id="compliance-alerts" className="bg-white/3 border border-white/8 rounded-2xl p-5 mb-6 scroll-mt-6">
                     <h2 className="text-white font-semibold mb-3">
                       Compliance <span className="text-white/30 font-normal">({complianceAlerts.length})</span>
                     </h2>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import { loadGoogleMapsScript, DARK_MAP_STYLE } from '@/lib/googleMaps'
 import { MapPinIcon } from '@/components/icons'
 
@@ -135,6 +136,12 @@ export function PmComplianceMap({ properties }: { properties: PmMapProperty[] })
             <p className="text-sm font-semibold mt-3" style={{ color: STATUS_COLOR[selected.complianceStatus] }}>
               {STATUS_LABEL[selected.complianceStatus]}
             </p>
+            <Link
+              href={`/landlord/properties/${selected.id}/compliance`}
+              className="inline-block mt-3 text-[#12A5A9] text-sm font-semibold hover:underline"
+            >
+              View compliance →
+            </Link>
           </div>
         )}
       </div>

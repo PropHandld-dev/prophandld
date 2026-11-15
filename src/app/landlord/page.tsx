@@ -666,7 +666,9 @@ export default function LandlordDashboard() {
             <PmRequestStatusBanner />
             <PortfolioDigestCard />
             <AiResolvedStatCard />
-            <AlertsList items={alertItems} />
+            <div id="needs-attention" className="scroll-mt-6">
+              <AlertsList items={alertItems} />
+            </div>
 
             <InviteContractorCard />
 
@@ -802,7 +804,24 @@ export default function LandlordDashboard() {
               </Link>
             </div>
 
-            {portfolioHealth && stats.totalUnits > 0 && <PortfolioHealthCard health={portfolioHealth} />}
+            {portfolioHealth && stats.totalUnits > 0 && (() => {
+              const overdueCount = complianceAlerts.filter((item) => {
+                const expiry = new Date(item.expiry_date + 'T00:00:00')
+                return expiry.getTime() < now
+              }).length
+              const atRiskCount = complianceAlerts.length - overdueCount
+              const issues: string[] = []
+              if (overdueCount > 0) issues.push(`${overdueCount} compliance item${overdueCount === 1 ? '' : 's'} overdue`)
+              if (atRiskCount > 0) issues.push(`${atRiskCount} expiring soon`)
+              if (stats.vacantUnits > 0) issues.push(`${stats.vacantUnits} unit${stats.vacantUnits === 1 ? '' : 's'} vacant`)
+              return (
+                <PortfolioHealthCard
+                  health={portfolioHealth}
+                  issues={issues}
+                  href={alertItems.length > 0 ? '#needs-attention' : undefined}
+                />
+              )
+            })()}
 
             {rentMonths.some((m) => m.rent > 0) && <RentTrendChart months={rentMonths} />}
 
