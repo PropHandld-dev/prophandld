@@ -293,6 +293,101 @@ export default function PmDashboardPage() {
   } | null>(null)
   const [savingThreshold, setSavingThreshold] = useState(false)
   const [inviteThresholds, setInviteThresholds] = useState<Record<string, string>>({})
+  const [readOnlyPreviewFor, setReadOnlyPreviewFor] = useState<string | null>(null)
+
+  // Monthly-summary editor: the PM sees the exact email the owner will get
+  // (last month's real figures), edits the personal note, and can have AI
+  // rewrite it. AI only ever touches the note -- the figures are computed
+  // from real payments at send time.
+  const [summaryEditor, setSummaryEditor] = useState<{ portfolioId: string; ownerName: string } | null>(null)
+  const [summaryHtml, setSummaryHtml] = useState('')
+  const [summaryNote, setSummaryNote] = useState('')
+  const [savedSummaryNote, setSavedSummaryNote] = useState('')
+  const [summaryInstruction, setSummaryInstruction] = useState('')
+  const [summaryBusy, setSummaryBusy] = useState<null | 'loading' | 'rewrite' | 'save' | 'test'>(null)
+  const [summaryMsg, setSummaryMsg] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null)
+
+  const openSummaryEditor = async (c: { id: string; ownerName: string }) => {
+    setSummaryEditor({ portfolioId: c.id, ownerName: c.ownerName })
+    setSummaryHtml('')
+    setSummaryMsg(null)
+    setSummaryInstruction('')
+    setSummaryBusy('loading')
+    const res = await fetch(`/api/pm/clients/${c.id}/summary`).catch(() => null)
+    const data = res ? await res.json().catch(() => ({})) : {}
+    if (res?.ok) {
+      setSummaryHtml(data.html || '')
+      setSummaryNote(data.note || '')
+      setSavedSummaryNote(data.note || '')
+    } else {
+      setSummaryMsg({ tone: 'error', text: data.error || 'Could not load the preview.' })
+    }
+    setSummaryBusy(null)
+  }
+
+  const summaryPost = async (action: 'preview' | 'rewrite' | 'test', extra: Record<string, unknown> = {}) => {
+    if (!summaryEditor) return null
+    const res = await fetch(`/api/pm/clients/${summaryEditor.portfolioId}/summary`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, note: summaryNote, ...extra }),
+    }).catch(() => null)
+    const data = res ? await res.json().catch(() => ({})) : {}
+    return { ok: !!res?.ok, data }
+  }
+
+  // Re-render the preview shortly after the note stops changing, so it
+  // always matches what's in the box.
+  useEffect(() => {
+    if (!summaryEditor || summaryBusy === 'loading') return
+    const timer = setTimeout(async () => {
+      const r = await summaryPost('preview')
+      if (r?.ok) setSummaryHtml(r.data.html || '')
+    }, 600)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [summaryNote, summaryEditor])
+
+  const handleSummaryRewrite = async (instruction: string) => {
+    if (!instruction.trim()) return
+    setSummaryBusy('rewrite')
+    setSummaryMsg(null)
+    const r = await summaryPost('rewrite', { instruction })
+    if (r?.ok) {
+      setSummaryNote(r.data.note || '')
+      setSummaryInstruction('')
+    } else {
+      setSummaryMsg({ tone: 'error', text: r?.data.error || 'Could not rewrite the note.' })
+    }
+    setSummaryBusy(null)
+  }
+
+  const handleSummarySave = async () => {
+    if (!summaryEditor) return
+    setSummaryBusy('save')
+    setSummaryMsg(null)
+    const res = await fetch(`/api/pm/clients/${summaryEditor.portfolioId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ monthlySummaryNote: summaryNote }),
+    }).catch(() => null)
+    if (res?.ok) {
+      setSavedSummaryNote(summaryNote)
+      setSummaryMsg({ tone: 'ok', text: 'Saved. This note goes out with every monthly summary until you change it.' })
+    } else {
+      const data = res ? await res.json().catch(() => ({})) : {}
+      setSummaryMsg({ tone: 'error', text: data.error || 'Could not save the note.' })
+    }
+    setSummaryBusy(null)
+  }
+
+  const handleSummaryTest = async () => {
+    setSummaryBusy('test')
+    setSummaryMsg(null)
+    const r = await summaryPost('test')
+    setSummaryMsg(r?.ok ? { tone: 'ok', text: `Test sent to ${r.data.sentTo}.` } : { tone: 'error', text: r?.data.error || 'Could not send the test.' })
+    setSummaryBusy(null)
+  }
 
   const [staffEmail, setStaffEmail] = useState('')
   const [staffFinancials, setStaffFinancials] = useState(false)
@@ -1600,26 +1695,60 @@ export default function PmDashboardPage() {
                                 </div>
                               )}
                               {membership.memberRole === 'admin' && (
-                                <label className="flex items-center gap-2 text-xs text-white/50 mt-2">
-                                  <input
-                                    type="checkbox"
-                                    checked={c.monthlySummaryEnabled}
-                                    onChange={(e) => handleToggleMonthlySummary(c.id, e.target.checked)}
-                                    className="accent-[#12A5A9]"
-                                  />
-                                  Email {c.ownerName} a monthly summary (rent collected, maintenance paid)
-                                </label>
+                                <div className="flex items-center gap-2 flex-wrap mt-2">
+                                  <label className="flex items-center gap-2 text-xs text-white/50">
+                                    <input
+                                      type="checkbox"
+                                      checked={c.monthlySummaryEnabled}
+                                      onChange={(e) => handleToggleMonthlySummary(c.id, e.target.checked)}
+                                      className="accent-[#12A5A9]"
+                                    />
+                                    Email {c.ownerName} a monthly summary (rent collected, maintenance paid)
+                                  </label>
+                                  <button
+                                    type="button"
+                                    onClick={() => openSummaryEditor(c)}
+                                    className="text-[#12A5A9] text-xs font-semibold hover:underline"
+                                  >
+                                    Preview &amp; customize
+                                  </button>
+                                </div>
                               )}
                               {membership.memberRole === 'admin' && (
-                                <label className="flex items-center gap-2 text-xs text-white/50 mt-2">
-                                  <input
-                                    type="checkbox"
-                                    checked={c.ownerReadOnly}
-                                    onChange={(e) => handleToggleReadOnly(c.id, e.target.checked)}
-                                    className="accent-[#12A5A9]"
-                                  />
-                                  {c.ownerName} is read-only (you handle job approvals and payments)
-                                </label>
+                                <div className="mt-2">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    {/* Label matches what this actually does today: the
+                                        one enforced effect is that the owner can't pay
+                                        contractor jobs themselves (see
+                                        isBlockedByOwnerReadOnly). The old label promised
+                                        "job approvals and payments". */}
+                                    <label className="flex items-center gap-2 text-xs text-white/50">
+                                      <input
+                                        type="checkbox"
+                                        checked={c.ownerReadOnly}
+                                        onChange={(e) => handleToggleReadOnly(c.id, e.target.checked)}
+                                        className="accent-[#12A5A9]"
+                                      />
+                                      You pay contractors for {c.ownerName}&apos;s jobs (hands-off mode)
+                                    </label>
+                                    <button
+                                      type="button"
+                                      onClick={() => setReadOnlyPreviewFor((cur) => (cur === c.id ? null : c.id))}
+                                      className="text-[#12A5A9] text-xs font-semibold hover:underline"
+                                    >
+                                      {readOnlyPreviewFor === c.id ? 'Hide' : `What ${c.ownerName} sees`}
+                                    </button>
+                                  </div>
+                                  {readOnlyPreviewFor === c.id && (
+                                    <div className="mt-2 bg-white/4 border border-white/10 rounded-xl p-3 text-xs text-white/60 space-y-1.5">
+                                      <p className="text-white/80 font-semibold">With hands-off mode {c.ownerReadOnly ? 'on' : 'turned on'}, {c.ownerName}:</p>
+                                      <p>✓ Still sees every property, job, photo, bid and receipt, nothing is hidden</p>
+                                      <p>✓ Still approves anything above their own approval limit</p>
+                                      <p>✗ Can&apos;t pay contractors directly. If they try, they&apos;re told: &ldquo;Your property manager handles payments for this property.&rdquo;</p>
+                                      <p className="text-white/40">They&apos;re notified when you turn this on or off.</p>
+                                    </div>
+                                  )}
+                                </div>
                               )}
                             </div>
                           )}
@@ -1884,6 +2013,110 @@ export default function PmDashboardPage() {
           }}
         />
       )}
+      {summaryEditor && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setSummaryEditor(null)}>
+          <div
+            className="bg-[#0F1A2E] border border-white/10 w-full sm:max-w-3xl max-h-[92vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3 mb-1">
+              <h2 className="text-white font-semibold text-lg">Monthly summary for {summaryEditor.ownerName}</h2>
+              <button onClick={() => setSummaryEditor(null)} className="text-white/40 hover:text-white text-xl leading-none" aria-label="Close">×</button>
+            </div>
+            <p className="text-white/50 text-xs mb-4">
+              This is exactly what {summaryEditor.ownerName} receives on the 1st. The figures come straight from real payments, so they&apos;re never edited by you or the AI. Only your note is yours to write.
+            </p>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-3">
+                <div>
+                  <label htmlFor="summary-note" className="text-white/80 text-xs font-semibold block mb-1">Your note to {summaryEditor.ownerName}</label>
+                  <textarea
+                    id="summary-note"
+                    value={summaryNote}
+                    onChange={(e) => setSummaryNote(e.target.value.slice(0, 1000))}
+                    rows={6}
+                    placeholder={`e.g. "Unit 2's water heater was replaced this month. Everything else is running smoothly."`}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition resize-none"
+                  />
+                  <p className="text-white/30 text-[11px] text-right">{summaryNote.length}/1000</p>
+                </div>
+
+                <div className="bg-[#12A5A9]/8 border border-[#12A5A9]/25 rounded-xl p-3">
+                  <p className="text-white/80 text-xs font-semibold mb-2">✦ Change it with AI</p>
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {['Make it shorter', 'Make it warmer', 'More professional', 'Write a note for this month', 'Translate to Spanish'].map((chip) => (
+                      <button
+                        key={chip}
+                        type="button"
+                        disabled={summaryBusy !== null}
+                        onClick={() => handleSummaryRewrite(chip)}
+                        className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-white/70 hover:text-white hover:border-[#12A5A9]/40 transition disabled:opacity-40"
+                      >
+                        {chip}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      id="summary-instruction"
+                      value={summaryInstruction}
+                      onChange={(e) => setSummaryInstruction(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleSummaryRewrite(summaryInstruction)}
+                      placeholder="Or say anything, e.g. mention the roof inspection next week"
+                      className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-xs placeholder-white/30 focus:outline-none focus:border-[#12A5A9] transition"
+                    />
+                    <RippleButton
+                      onClick={() => handleSummaryRewrite(summaryInstruction)}
+                      disabled={summaryBusy !== null || !summaryInstruction.trim()}
+                      className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-3 py-2 rounded-lg disabled:opacity-40 whitespace-nowrap"
+                    >
+                      {summaryBusy === 'rewrite' ? 'Writing…' : 'Rewrite'}
+                    </RippleButton>
+                  </div>
+                </div>
+
+                {summaryMsg && (
+                  <p className={`text-xs ${summaryMsg.tone === 'ok' ? 'text-[#12A5A9]' : 'text-red-400'}`}>{summaryMsg.text}</p>
+                )}
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <RippleButton
+                    onClick={handleSummarySave}
+                    disabled={summaryBusy !== null || summaryNote === savedSummaryNote}
+                    className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-4 py-2 rounded-xl disabled:opacity-40"
+                  >
+                    {summaryBusy === 'save' ? 'Saving…' : summaryNote === savedSummaryNote ? 'Saved' : 'Save note'}
+                  </RippleButton>
+                  <button
+                    type="button"
+                    onClick={handleSummaryTest}
+                    disabled={summaryBusy !== null}
+                    className="text-white/70 hover:text-white text-sm font-semibold px-3 py-2 rounded-xl bg-white/5 border border-white/10 disabled:opacity-40"
+                  >
+                    {summaryBusy === 'test' ? 'Sending…' : 'Email me a test'}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-white/40 text-[11px] font-semibold uppercase tracking-wide mb-1.5">Live preview</p>
+                {summaryBusy === 'loading' && !summaryHtml ? (
+                  <div className="h-[420px] rounded-xl bg-white/5 animate-pulse" />
+                ) : (
+                  <iframe
+                    title="Monthly summary preview"
+                    srcDoc={summaryHtml}
+                    sandbox=""
+                    className="w-full h-[420px] rounded-xl border border-white/10 bg-white"
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Same tabs every other landlord-section page has — this page had
           none at all, leaving a PM's main dashboard with no way to reach
           Properties/Jobs/Calendar except in-page links. The Home tab's

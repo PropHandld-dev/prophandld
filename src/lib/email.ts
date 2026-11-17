@@ -735,34 +735,35 @@ export async function sendPmStaffInviteEmail({
 // a plain-language rollup of a month this owner's PM already has, so
 // they see it without having to ask or log in and dig through the
 // combined dashboard themselves.
-export async function sendPmMonthlySummaryEmail({
-  to,
-  ownerName,
-  pmOrgName,
-  monthLabel,
-  totalIncome,
-  totalExpenses,
-  net,
-  lang = 'en',
-}: {
-  to: string
+type PmMonthlySummaryParams = {
   ownerName: string
   pmOrgName: string
   monthLabel: string
   totalIncome: number
   totalExpenses: number
   net: number
+  // The PM's own note (optionally AI-assisted). Plain text: escaped and
+  // line-broken here, never treated as HTML.
+  note?: string | null
   lang?: Lang
-}) {
+}
+
+// Builds the summary without sending it -- shared by the monthly cron and
+// the PM's in-app preview, so what a PM previews is byte-for-byte what the
+// owner receives. Figures are always the caller's real computed totals.
+export function buildPmMonthlySummaryEmail({ ownerName, pmOrgName, monthLabel, totalIncome, totalExpenses, net, note, lang = 'en' }: PmMonthlySummaryParams) {
+  const noteHtml = note && note.trim()
+    ? `<div style="margin:16px 0 0;padding:14px 16px;border-left:3px solid #12A5A9;background:rgba(18,165,169,0.08);border-radius:8px;color:#D5DEE8;font-size:14px;line-height:1.6;">${escapeHtml(note.trim()).replace(/\n/g, '<br>')}<div style="margin-top:8px;color:#8A9BB0;font-size:12px;">— ${escapeHtml(pmOrgName)}</div></div>`
+    : ''
   const html = lang === 'es' ? baseTemplate({
     lang,
     eyebrow: 'Resumen mensual',
     heading: `Tu resumen de ${monthLabel}`,
-    bodyHtml: `Hola ${escapeHtml(ownerName)}, aquí tienes el resumen de ${escapeHtml(monthLabel)} de <strong>${escapeHtml(pmOrgName)}</strong> para tu propiedad.`,
+    bodyHtml: `Hola ${escapeHtml(ownerName)}, aquí tienes el resumen de ${escapeHtml(monthLabel)} de <strong>${escapeHtml(pmOrgName)}</strong> para tu propiedad.${noteHtml}`,
     facts: [
-      { label: fl('Renta cobrada', lang), value: `$${totalIncome.toFixed(2)}` },
-      { label: fl('Mantenimiento pagado', lang), value: `$${totalExpenses.toFixed(2)}` },
-      { label: fl('Neto', lang), value: `$${net.toFixed(2)}` },
+      { label: 'Renta cobrada', value: `$${totalIncome.toFixed(2)}` },
+      { label: 'Mantenimiento pagado', value: `$${totalExpenses.toFixed(2)}` },
+      { label: 'Neto', value: `$${net.toFixed(2)}` },
     ],
     ctaLabel: 'Ver detalles',
     ctaUrl: `${SITE_URL}/landlord/pm`,
@@ -770,16 +771,22 @@ export async function sendPmMonthlySummaryEmail({
     lang,
     eyebrow: 'Monthly summary',
     heading: `Your ${monthLabel} summary`,
-    bodyHtml: `Hi ${escapeHtml(ownerName)}, here's <strong>${escapeHtml(pmOrgName)}</strong>'s ${monthLabel} summary for your property.`,
+    bodyHtml: `Hi ${escapeHtml(ownerName)}, here's <strong>${escapeHtml(pmOrgName)}</strong>'s ${monthLabel} summary for your property.${noteHtml}`,
     facts: [
-      { label: fl('Rent collected', lang), value: `$${totalIncome.toFixed(2)}` },
-      { label: fl('Maintenance paid', lang), value: `$${totalExpenses.toFixed(2)}` },
-      { label: fl('Net', lang), value: `$${net.toFixed(2)}` },
+      { label: 'Rent collected', value: `$${totalIncome.toFixed(2)}` },
+      { label: 'Maintenance paid', value: `$${totalExpenses.toFixed(2)}` },
+      { label: 'Net', value: `$${net.toFixed(2)}` },
     ],
     ctaLabel: 'View details',
     ctaUrl: `${SITE_URL}/landlord/pm`,
   })
-  return sendEmail({ to, subject: lang === 'es' ? `Tu resumen de ${monthLabel}` : `Your ${monthLabel} summary`, html })
+  const subject = lang === 'es' ? `Tu resumen de ${monthLabel}` : `Your ${monthLabel} summary`
+  return { subject, html }
+}
+
+export async function sendPmMonthlySummaryEmail({ to, ...params }: PmMonthlySummaryParams & { to: string }) {
+  const { subject, html } = buildPmMonthlySummaryEmail(params)
+  return sendEmail({ to, subject, html })
 }
 
 // A PM member who opted into "daily digest" instead of real-time

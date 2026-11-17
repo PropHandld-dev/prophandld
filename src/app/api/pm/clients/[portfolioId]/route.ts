@@ -31,6 +31,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     managementFeeType?: 'flat' | 'percent_of_rent'
     managementFeePercent?: number | null
     monthlySummaryEnabled?: boolean
+    monthlySummaryNote?: string | null
     ownerReadOnly?: boolean
   }
 
@@ -81,6 +82,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
     update.monthly_summary_enabled = body.monthlySummaryEnabled
   }
+  if (body.monthlySummaryNote !== undefined) {
+    if (body.monthlySummaryNote !== null && (typeof body.monthlySummaryNote !== 'string' || body.monthlySummaryNote.length > 1000)) {
+      return NextResponse.json({ error: 'Note must be 1000 characters or fewer' }, { status: 400 })
+    }
+    update.monthly_summary_note = body.monthlySummaryNote?.trim() || null
+  }
   if (body.ownerReadOnly !== undefined) {
     if (typeof body.ownerReadOnly !== 'boolean') {
       return NextResponse.json({ error: 'Invalid value' }, { status: 400 })
@@ -114,6 +121,19 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   }
 
   const row = updated[0] as any
+
+  // Hands-off mode changes what the owner can do on their own property
+  // (they can no longer pay contractors directly), so they're always told.
+  if (body.ownerReadOnly !== undefined && row.owner_user_id) {
+    await sendPush(row.owner_user_id, {
+      title: body.ownerReadOnly ? `${membership.organizationName} now pays your contractors` : `You can pay contractors again`,
+      body: body.ownerReadOnly
+        ? 'Hands-off mode is on: your property manager handles contractor payments. You still see everything.'
+        : `${membership.organizationName} turned off hands-off mode. You can pay contractors directly again.`,
+      url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/landlord/pm`,
+    }).catch((err) => console.error('pm/clients/[portfolioId]: read-only push failed', err))
+  }
+
   const hasFee = row.management_fee_type === 'percent_of_rent' ? Number(row.management_fee_percent) > 0 : Number(row.management_fee) > 0
   if (feeChanged && hasFee && row.owner_user_id) {
     const { data: owner } = await supabaseAdmin

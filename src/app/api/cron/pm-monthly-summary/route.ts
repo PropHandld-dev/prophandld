@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
 
   const { data: portfolios, error } = await admin
     .from('pm_client_portfolios')
-    .select('id, owner_user_id, pm_organizations(name), users(full_name, email, preferred_language, email_notifications_enabled)')
+    .select('id, owner_user_id, monthly_summary_note, pm_organizations(name), users(full_name, email, preferred_language, email_notifications_enabled)')
     .eq('status', 'accepted')
     .eq('monthly_summary_enabled', true)
 
@@ -48,6 +48,7 @@ export async function GET(request: NextRequest) {
         totalIncome: totals.totalIncome,
         totalExpenses: totals.totalExpenses,
         net: totals.net,
+        note: p.monthly_summary_note,
         lang: owner.preferred_language === 'es' ? 'es' : 'en',
       })
       sent++
