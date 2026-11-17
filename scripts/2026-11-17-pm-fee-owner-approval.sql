@@ -1,0 +1,13 @@
+-- Management fee becomes a two-sided agreement instead of a PM-only
+-- setting. Before this, a PM admin could set (or raise) a client's fee at
+-- any time after the owner accepted, and cron/pm-fee-billing would then
+-- auto-charge the owner's card on file for it -- the owner never agreed
+-- to any amount. Now: the PM proposes, the owner approves, and nothing is
+-- charged (manually or automatically) unless this timestamp is set. Any
+-- PM-side change to the fee clears it, so a raised fee is a new proposal,
+-- never a silent new charge.
+--
+-- Existing rows start unapproved (null). That's deliberate: none of them
+-- were ever actually agreed to by the owner, so the safe default is "ask
+-- first" -- each owner sees an Approve button on their next visit.
+alter table public.pm_client_portfolios add column if not exists fee_owner_approved_at timestamptz;

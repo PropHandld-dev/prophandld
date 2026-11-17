@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { getPmMembership } from '@/lib/pm'
+import { sendPmFeeProposedEmail } from '@/lib/email'
+import { sendPush } from '@/lib/push'
+import { emailAllowed } from '@/lib/notificationPrefs'
 
 export const maxDuration = 20
 
@@ -87,19 +90,54 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return NextResponse.json({ error: 'Nothing to update' }, { status: 400 })
   }
 
+  // Any change to what the owner pays is a new proposal, never a silent
+  // new charge: clearing the owner's approval here blocks both the manual
+  // "Pay now" route and cron/pm-fee-billing until the owner approves the
+  // new terms themselves.
+  const feeChanged = 'management_fee' in update || 'management_fee_type' in update || 'management_fee_percent' in update || 'management_fee_frequency' in update
+  if (feeChanged) update.fee_owner_approved_at = null
+
   const { data: updated, error } = await supabaseAdmin
     .from('pm_client_portfolios')
     .update(update)
     .eq('id', portfolioId)
     .eq('organization_id', membership.organizationId)
-    .select('id')
+    .select('id, owner_user_id, management_fee, management_fee_type, management_fee_percent, management_fee_frequency')
 
   if (error) {
-    console.error('pm/clients/[portfolioId]: error updating threshold', error)
-    return NextResponse.json({ error: 'Could not update threshold' }, { status: 500 })
+    console.error('pm/clients/[portfolioId]: error updating client', error)
+    return NextResponse.json({ error: 'Could not update that client' }, { status: 500 })
   }
   if (!updated || updated.length === 0) {
     return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+  }
+
+  const row = updated[0] as any
+  const hasFee = row.management_fee_type === 'percent_of_rent' ? Number(row.management_fee_percent) > 0 : Number(row.management_fee) > 0
+  if (feeChanged && hasFee && row.owner_user_id) {
+    const { data: owner } = await supabaseAdmin
+      .from('users')
+      .select('email, full_name, preferred_language, email_notifications_enabled')
+      .eq('id', row.owner_user_id)
+      .maybeSingle()
+    const feeLabel =
+      row.management_fee_type === 'percent_of_rent'
+        ? `${Number(row.management_fee_percent)}% of rent collected, monthly`
+        : `$${Number(row.management_fee).toFixed(2)}${row.management_fee_frequency === 'monthly' ? ' per month' : ' one time'}`
+    if (owner?.email && emailAllowed(owner)) {
+      await sendPmFeeProposedEmail({
+        to: owner.email,
+        landlordName: owner.full_name || 'there',
+        orgName: membership.organizationName,
+        feeLabel,
+        lang: owner.preferred_language === 'es' ? 'es' : 'en',
+      }).catch((err) => console.error('pm/clients/[portfolioId]: fee-proposed email failed', err))
+    }
+    await sendPush(row.owner_user_id, {
+      title: 'New management fee to review',
+      body: `${membership.organizationName} proposed ${feeLabel}. Nothing is charged until you approve.`,
+      url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.prophandld.com'}/landlord/pm`,
+    }).catch((err) => console.error('pm/clients/[portfolioId]: fee-proposed push failed', err))
   }
 
   return NextResponse.json({ ok: true })

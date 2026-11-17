@@ -17,16 +17,31 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
 
-  const { portfolioId } = (await request.json().catch(() => ({}))) as { portfolioId?: string }
+  const { portfolioId, approvalThreshold } = (await request.json().catch(() => ({}))) as {
+    portfolioId?: string
+    approvalThreshold?: number
+  }
   if (!portfolioId) {
     return NextResponse.json({ error: 'Missing portfolioId' }, { status: 400 })
+  }
+  // The approval limit is the owner's own permission grant, set by them
+  // at the moment they accept (locked product rule: every job needs the
+  // owner's sign-off until the owner raises the limit themselves). Sent
+  // with the accept so there is never a window where the relationship is
+  // live under a limit the owner didn't choose.
+  if (approvalThreshold !== undefined && (typeof approvalThreshold !== 'number' || approvalThreshold < 0 || !Number.isFinite(approvalThreshold))) {
+    return NextResponse.json({ error: 'Invalid approval limit' }, { status: 400 })
   }
 
   const supabaseAdmin = getSupabaseAdmin()
 
   const { data: updated, error } = await supabaseAdmin
     .from('pm_client_portfolios')
-    .update({ status: 'accepted', accepted_at: new Date().toISOString() })
+    .update({
+      status: 'accepted',
+      accepted_at: new Date().toISOString(),
+      ...(approvalThreshold !== undefined ? { approval_threshold: approvalThreshold } : {}),
+    })
     .eq('id', portfolioId)
     .eq('owner_user_id', user.id)
     .eq('status', 'pending')

@@ -32,6 +32,7 @@ type ClientRow = {
   managementFeeFrequency: 'one_time' | 'monthly' | null
   managementFeeType: 'flat' | 'percent_of_rent'
   managementFeePercent: number | null
+  feeApproved: boolean
   monthlySummaryEnabled: boolean
   ownerReadOnly: boolean
   status: 'pending' | 'accepted'
@@ -76,6 +77,7 @@ type IncomingInvite = {
   managementFeeFrequency: 'one_time' | 'monthly' | null
   managementFeeType: 'flat' | 'percent_of_rent'
   managementFeePercent: number | null
+  feeApproved: boolean
   ownerReadOnly: boolean
 }
 
@@ -293,6 +295,7 @@ export default function PmDashboardPage() {
     entries: { id: string; action: string; amount: number | null; createdAt: string; actorName: string; jobId: string | null }[]
   } | null>(null)
   const [savingThreshold, setSavingThreshold] = useState(false)
+  const [inviteThresholds, setInviteThresholds] = useState<Record<string, string>>({})
 
   const [staffEmail, setStaffEmail] = useState('')
   const [staffFinancials, setStaffFinancials] = useState(false)
@@ -469,7 +472,7 @@ export default function PmDashboardPage() {
     setInvitingStaff(false)
   }
 
-  const handleAcceptInvite = async (id: string) => {
+  const handleAcceptInvite = async (id: string, approvalThreshold?: number) => {
     // Found live: this used to ignore the response entirely -- a landlord
     // already accepted by a different PM org (the DB only allows one
     // accepted relationship at a time, idx_pm_portfolios_one_active_pm)
@@ -478,7 +481,10 @@ export default function PmDashboardPage() {
     const res = await fetch('/api/pm/clients/accept', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ portfolioId: id }),
+      body: JSON.stringify({
+        portfolioId: id,
+        ...(approvalThreshold !== undefined ? { approvalThreshold } : {}),
+      }),
     })
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))
@@ -497,6 +503,33 @@ export default function PmDashboardPage() {
   // unilaterally on the owner's behalf -- found live: there was no owner-
   // facing control for this at all, only a read-only number the PM admin
   // had set.
+  // Sends back the exact terms on screen; the server refuses (409) if the
+  // PM changed them since this page loaded, so an owner can never approve
+  // an amount they didn't actually see.
+  const [approvingFee, setApprovingFee] = useState(false)
+  const handleApproveFee = async (inv: IncomingInvite) => {
+    setApprovingFee(true)
+    setFeePayError(null)
+    const res = await fetch('/api/pm/my-status', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        approveFee: {
+          type: inv.managementFeeType,
+          amount: inv.managementFee,
+          percent: inv.managementFeePercent,
+          frequency: inv.managementFeeFrequency,
+        },
+      }),
+    }).catch(() => null)
+    if (!res || !res.ok) {
+      const data = res ? await res.json().catch(() => ({})) : {}
+      setFeePayError(data.error || 'Could not approve that fee. Try again.')
+    }
+    await loadAll()
+    setApprovingFee(false)
+  }
+
   const handleSetOwnThreshold = async (value: number) => {
     setSavingThreshold(true)
     await fetch('/api/pm/my-status', {
@@ -696,7 +729,7 @@ export default function PmDashboardPage() {
   }
 
   const handleFeeChange = async (portfolioId: string, amount: number | null, frequency: 'one_time' | 'monthly') => {
-    setClients((prev) => prev.map((c) => (c.id === portfolioId ? { ...c, managementFee: amount, managementFeeFrequency: amount === null ? null : frequency } : c)))
+    setClients((prev) => prev.map((c) => (c.id === portfolioId ? { ...c, managementFee: amount, managementFeeFrequency: amount === null ? null : frequency, feeApproved: false } : c)))
     await fetch(`/api/pm/clients/${portfolioId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -717,6 +750,7 @@ export default function PmDashboardPage() {
       managementFeePercent: type === 'percent_of_rent' ? (percent ?? c.managementFeePercent) : null,
       managementFee: type === 'percent_of_rent' ? null : c.managementFee,
       managementFeeFrequency: type === 'percent_of_rent' ? 'monthly' : c.managementFeeFrequency,
+      feeApproved: false,
     } : c)))
     await fetch(`/api/pm/clients/${portfolioId}`, {
       method: 'PATCH',
@@ -876,11 +910,27 @@ export default function PmDashboardPage() {
                 <ScrollReveal key={inv.id} className="bg-[#12A5A9]/10 border border-[#12A5A9]/25 rounded-2xl p-5">
                   <p className="text-white font-semibold mb-1">{inv.orgName} wants to manage your property</p>
                   <p className="text-white/60 text-sm mb-4">
-                    They'll be able to post and approve maintenance jobs on your behalf, up to ${inv.approvalThreshold.toFixed(0)} per job. You stay the owner, and can remove them at any time.
+                    You stay the owner, keep full access, and can remove them at any time. Jobs at or under the limit you set can be approved by them on your behalf; anything above it always waits for you.
                   </p>
+                  <label className="block text-white/70 text-xs font-semibold mb-1">Your approval limit</label>
+                  <div className="flex items-center gap-2 mb-4 flex-wrap">
+                    <span className="text-white/60 text-sm">$</span>
+                    <input
+                      type="number"
+                      min={0}
+                      step={1}
+                      value={inviteThresholds[inv.id] ?? String(inv.approvalThreshold ?? 0)}
+                      onChange={(e) => setInviteThresholds((prev) => ({ ...prev, [inv.id]: e.target.value }))}
+                      className="w-28 bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-sm focus:outline-none focus:border-[#12A5A9] transition"
+                    />
+                    <span className="text-white/40 text-xs">Leave at $0 to approve every job yourself. Change it anytime.</span>
+                  </div>
                   <div className="flex gap-3">
                     <RippleButton
-                      onClick={() => handleAcceptInvite(inv.id)}
+                      onClick={() => {
+                        const parsed = Number(inviteThresholds[inv.id] ?? inv.approvalThreshold ?? 0)
+                        handleAcceptInvite(inv.id, Number.isFinite(parsed) && parsed >= 0 ? parsed : 0)
+                      }}
                       className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-4 py-2 rounded-xl"
                     >
                       Accept
@@ -960,37 +1010,65 @@ export default function PmDashboardPage() {
                 View all your jobs →
               </Link>
             </div>
-            {(acceptedIncoming[0].managementFee !== null || acceptedIncoming[0].managementFeeType === 'percent_of_rent') && (
-              <div className="mt-4 pt-4 border-t border-white/8">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-white/60 text-sm">
-                    Management fee:{' '}
-                    {acceptedIncoming[0].managementFeeType === 'percent_of_rent' ? (
-                      <span className="text-white font-semibold">{acceptedIncoming[0].managementFeePercent}% of rent collected/month</span>
-                    ) : (
-                      <span className="text-white font-semibold">
-                        ${acceptedIncoming[0].managementFee!.toFixed(2)}
-                        {acceptedIncoming[0].managementFeeFrequency === 'monthly' ? '/month' : ' (one time)'}
-                      </span>
-                    )}
-                  </p>
-                  <RippleButton
-                    onClick={() => handlePayFee(acceptedIncoming[0].id)}
-                    disabled={payingFee}
-                    className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-xl disabled:opacity-50 whitespace-nowrap"
-                  >
-                    {payingFee ? 'Starting…' : 'Pay now'}
-                  </RippleButton>
+            {(() => {
+              const inv = acceptedIncoming[0]
+              const hasFee = inv.managementFeeType === 'percent_of_rent' ? (inv.managementFeePercent ?? 0) > 0 : (inv.managementFee ?? 0) > 0
+              const recurring = inv.managementFeeFrequency === 'monthly' || inv.managementFeeType === 'percent_of_rent'
+              const feeText =
+                inv.managementFeeType === 'percent_of_rent'
+                  ? `${inv.managementFeePercent}% of rent collected, monthly`
+                  : `$${(inv.managementFee ?? 0).toFixed(2)}${inv.managementFeeFrequency === 'monthly' ? ' per month' : ' one time'}`
+              return (
+                <div className="mt-4 pt-4 border-t border-white/8">
+                  <p className="text-white/40 text-xs font-semibold uppercase tracking-wide mb-2">Management fee</p>
+                  {!hasFee ? (
+                    // Free management, or terms not proposed yet -- say so,
+                    // instead of leaving the owner wondering what they owe.
+                    <p className="text-white/60 text-sm">No fee set. {inv.orgName} will propose one here if they charge for management, and nothing is ever billed without your approval.</p>
+                  ) : !inv.feeApproved ? (
+                    // The PM proposed (or changed) terms. Nothing can be
+                    // charged until the owner approves this exact amount.
+                    <div className="bg-yellow-500/8 border border-yellow-500/25 rounded-xl p-4">
+                      <p className="text-white text-sm mb-1">
+                        <span className="font-semibold">{inv.orgName}</span> proposed <span className="font-semibold">{feeText}</span>.
+                      </p>
+                      <p className="text-white/50 text-xs mb-3">
+                        Nothing is charged until you approve.{recurring ? ' Once approved, it bills automatically each month to your card on file.' : ''} Don&apos;t agree? Leave it unapproved and talk it over with them.
+                      </p>
+                      <RippleButton
+                        onClick={() => handleApproveFee(inv)}
+                        disabled={approvingFee}
+                        className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-4 py-2 rounded-xl disabled:opacity-50"
+                      >
+                        {approvingFee ? 'Approving…' : 'Approve this fee'}
+                      </RippleButton>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-white text-sm font-semibold">
+                          {feeText} <span className="text-[#12A5A9] text-xs font-semibold ml-1">✓ Approved by you</span>
+                        </p>
+                        <RippleButton
+                          onClick={() => handlePayFee(inv.id)}
+                          disabled={payingFee}
+                          className="bg-white/5 border border-white/10 text-white/80 text-xs font-semibold px-4 py-2 rounded-xl disabled:opacity-50 whitespace-nowrap"
+                        >
+                          {payingFee ? 'Starting…' : 'Pay now'}
+                        </RippleButton>
+                      </div>
+                      {recurring && (
+                        <p className="text-white/30 text-xs mt-2">
+                          Billed automatically each month to your{' '}
+                          <Link href="/profile" className="text-[#12A5A9] hover:underline">card on file</Link>
+                          {' '}— no need to pay manually unless a charge fails. If {inv.orgName} changes this fee, billing pauses until you approve the new amount.
+                        </p>
+                      )}
+                    </>
+                  )}
                 </div>
-                {(acceptedIncoming[0].managementFeeFrequency === 'monthly' || acceptedIncoming[0].managementFeeType === 'percent_of_rent') && (
-                  <p className="text-white/30 text-xs mt-2">
-                    This is charged automatically each month to your{' '}
-                    <Link href="/profile" className="text-[#12A5A9] hover:underline">card on file</Link>
-                    {' '}— no need to pay manually unless it fails.
-                  </p>
-                )}
-              </div>
-            )}
+              )
+            })()}
             {feePayError && <p className="text-red-400 text-xs mt-2">{feePayError}</p>}
           </ScrollReveal>
         )}
@@ -1495,7 +1573,13 @@ export default function PmDashboardPage() {
                                         max={100}
                                         step={0.1}
                                         defaultValue={c.managementFeePercent ?? 10}
-                                        onBlur={(e) => handleFeeTypeChange(c.id, 'percent_of_rent', Number(e.target.value) || 10)}
+                                        onBlur={(e) => {
+                                          // Saving re-proposes the fee to the owner (clears their
+                                          // approval, emails them) -- so a click-in/click-out with
+                                          // no actual change must never trigger it.
+                                          const next = Number(e.target.value) || 10
+                                          if (next !== c.managementFeePercent) handleFeeTypeChange(c.id, 'percent_of_rent', next)
+                                        }}
                                         className="w-16 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white text-xs"
                                       />
                                       % of rent collected, billed monthly
@@ -1509,7 +1593,8 @@ export default function PmDashboardPage() {
                                         placeholder="none"
                                         onBlur={(e) => {
                                           const v = e.target.value.trim()
-                                          handleFeeChange(c.id, v === '' ? null : Number(v) || 0, c.managementFeeFrequency || 'monthly')
+                                          const next = v === '' ? null : Number(v) || 0
+                                          if (next !== c.managementFee) handleFeeChange(c.id, next, c.managementFeeFrequency || 'monthly')
                                         }}
                                         className="w-20 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white text-xs"
                                       />
@@ -1525,9 +1610,17 @@ export default function PmDashboardPage() {
                                       )}
                                     </label>
                                   )}
+                                  {(c.managementFeeType === 'percent_of_rent' ? (c.managementFeePercent ?? 0) > 0 : (c.managementFee ?? 0) > 0) && (
+                                    <span className={`w-full text-xs font-semibold ${c.feeApproved ? 'text-[#12A5A9]' : 'text-yellow-400/90'}`}>
+                                      {c.feeApproved
+                                        ? `✓ ${c.ownerName} approved this fee`
+                                        : `Waiting for ${c.ownerName} to approve — nothing is charged until they do. They've been notified.`}
+                                    </span>
+                                  )}
                                   <span className="text-white/30 w-full">
-                                    Billed to {c.ownerName}, paid to you directly.
-                                    {(c.managementFeeFrequency === 'monthly' || c.managementFeeType === 'percent_of_rent') && ' Charged automatically each month if they have a card on file.'}
+                                    Proposed to {c.ownerName}, paid to you directly once approved.
+                                    {(c.managementFeeFrequency === 'monthly' || c.managementFeeType === 'percent_of_rent') && ' Then charged automatically each month if they have a card on file.'}
+                                    {' '}Changing it sends them a new proposal to approve.
                                   </span>
                                 </div>
                               )}

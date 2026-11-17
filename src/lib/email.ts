@@ -110,6 +110,8 @@ const FACT_LABELS: Record<string, string> = {
   'Late fee added': 'Cargo por atraso agregado',
   'Reason': 'Motivo',
   'Status': 'Estado',
+  'Property manager': 'Administrador de propiedades',
+  'Proposed fee': 'Tarifa propuesta',
 }
 
 function fl(label: string, lang: Lang): string {
@@ -2624,6 +2626,53 @@ export async function sendPmFeeChargedEmail({
     ctaUrl: `${SITE_URL}/landlord/pm`,
   })
   return sendEmail({ to, subject: lang === 'es' ? `Tarifa de administración cobrada: $${amount.toFixed(2)}` : `Management fee charged: $${amount.toFixed(2)}`, html })
+}
+
+// Sent when a PM proposes (or changes) a client's management fee. The fee
+// is never charged until the owner approves it in-app, so this email's
+// whole job is getting them there -- it says so plainly, so a raised fee
+// never reads like a bill.
+export async function sendPmFeeProposedEmail({
+  to,
+  landlordName,
+  orgName,
+  feeLabel,
+  lang = 'en',
+}: {
+  to: string
+  landlordName: string
+  orgName: string
+  feeLabel: string
+  lang?: Lang
+}) {
+  const html = lang === 'es' ? baseTemplate({
+    lang,
+    eyebrow: 'Revisión necesaria',
+    heading: 'Nueva tarifa de administración propuesta',
+    bodyHtml: `Hola ${escapeHtml(landlordName)}, <strong>${escapeHtml(orgName)}</strong> propuso una tarifa de administración. No se cobrará nada hasta que tú la apruebes.`,
+    preheader: `${escapeHtml(orgName)} propuso: ${escapeHtml(feeLabel)}.`,
+    facts: [
+      { label: fl('Proposed fee', lang), value: feeLabel },
+      { label: fl('Property manager', lang), value: orgName },
+    ],
+    ctaLabel: 'Revisar y aprobar',
+    ctaUrl: `${SITE_URL}/landlord/pm`,
+    note: 'Si no estás de acuerdo, no la apruebes y habla con tu administrador.',
+  }) : baseTemplate({
+    lang,
+    eyebrow: 'Review needed',
+    heading: 'New management fee proposed',
+    bodyHtml: `Hi ${escapeHtml(landlordName)}, <strong>${escapeHtml(orgName)}</strong> proposed a management fee. Nothing will be charged until you approve it.`,
+    preheader: `${escapeHtml(orgName)} proposed: ${escapeHtml(feeLabel)}.`,
+    facts: [
+      { label: fl('Proposed fee', lang), value: feeLabel },
+      { label: fl('Property manager', lang), value: orgName },
+    ],
+    ctaLabel: 'Review and approve',
+    ctaUrl: `${SITE_URL}/landlord/pm`,
+    note: "If you don't agree, just don't approve it and talk it over with your property manager.",
+  })
+  return sendEmail({ to, subject: lang === 'es' ? `${orgName} propuso una tarifa de administración` : `${orgName} proposed a management fee`, html })
 }
 
 export async function sendPmFeeAutochargeFailedEmail({

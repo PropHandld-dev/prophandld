@@ -31,13 +31,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   const { data: portfolio } = await supabaseAdmin
     .from('pm_client_portfolios')
-    .select('id, owner_user_id, status, management_fee, management_fee_type, management_fee_percent, organization_id, pm_organizations(admin_user_id)')
+    .select('id, owner_user_id, status, management_fee, management_fee_type, management_fee_percent, fee_owner_approved_at, organization_id, pm_organizations(admin_user_id)')
     .eq('id', portfolioId)
     .eq('status', 'accepted')
     .maybeSingle()
 
   if (!portfolio || portfolio.owner_user_id !== user.id) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
+  if (!portfolio.fee_owner_approved_at) {
+    return NextResponse.json({ error: 'Approve this fee first, then you can pay it.' }, { status: 400 })
   }
   const amount = await computeManagementFeeAmount(supabaseAdmin, portfolio)
   if (amount <= 0) {

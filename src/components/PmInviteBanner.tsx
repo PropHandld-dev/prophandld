@@ -25,13 +25,21 @@ export function PmInviteBanner() {
   const [invite, setInvite] = useState<PendingInvite | null>(null)
   const [managedByOrg, setManagedByOrg] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  // The owner's own approval limit, chosen at the moment they accept --
+  // the invite used to hardcode whatever the PM had set ("up to $500 per
+  // job") with no owner control at all, inverted from the locked rule
+  // that this is the owner's permission grant to give.
+  const [threshold, setThreshold] = useState('')
 
   useEffect(() => {
     fetch('/api/pm/invites-for-me')
       .then((res) => res.json())
       .then((data) => {
         const pending = (data.managedBy || []).find((m: any) => m.status === 'pending')
-        if (pending) setInvite({ id: pending.id, orgName: pending.orgName, approvalThreshold: pending.approvalThreshold })
+        if (pending) {
+          setInvite({ id: pending.id, orgName: pending.orgName, approvalThreshold: pending.approvalThreshold })
+          setThreshold(String(pending.approvalThreshold ?? 0))
+        }
         const accepted = (data.managedBy || []).find((m: any) => m.status === 'accepted')
         if (accepted) setManagedByOrg(accepted.orgName)
       })
@@ -41,10 +49,14 @@ export function PmInviteBanner() {
   const handleAccept = async () => {
     if (!invite) return
     setBusy(true)
+    const parsed = Number(threshold)
     const res = await fetch('/api/pm/clients/accept', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ portfolioId: invite.id }),
+      body: JSON.stringify({
+        portfolioId: invite.id,
+        approvalThreshold: Number.isFinite(parsed) && parsed >= 0 ? parsed : 0,
+      }),
     }).catch(() => null)
     setBusy(false)
     if (res?.ok) window.location.reload()
@@ -83,9 +95,23 @@ export function PmInviteBanner() {
             {t('pmInviteBannerTitle', lang).replace('{name}', invite.orgName)}
           </p>
           <p className="text-white/60 text-xs leading-relaxed mb-3">
-            {t('pmInviteBannerBody', lang).replace('{threshold}', invite.approvalThreshold.toFixed(0))}
+            {t('pmInviteBannerBody', lang)}
           </p>
-          <div className="flex gap-2">
+          <label className="block text-white/70 text-xs font-semibold mb-1">{t('pmInviteThresholdLabel', lang)}</label>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-white/60 text-sm">$</span>
+            <input
+              type="number"
+              min={0}
+              step={1}
+              value={threshold}
+              onChange={(e) => setThreshold(e.target.value)}
+              disabled={busy}
+              className="w-28 bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-sm focus:outline-none focus:border-[#12A5A9] transition disabled:opacity-50"
+            />
+            <span className="text-white/40 text-xs">{t('pmInviteThresholdHelp', lang)}</span>
+          </div>
+          <div className="flex gap-2 mt-3">
             <RippleButton
               onClick={handleAccept}
               disabled={busy}

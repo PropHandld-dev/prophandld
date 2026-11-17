@@ -37,6 +37,10 @@ export async function GET(request: NextRequest) {
     .select('id, owner_user_id, management_fee, management_fee_type, management_fee_percent, management_fee_frequency, last_fee_billed_month, organization_id, pm_organizations(admin_user_id, name)')
     .eq('status', 'accepted')
     .eq('management_fee_frequency', 'monthly')
+    // Never auto-charge a fee the owner hasn't approved -- a PM-side edit
+    // clears this, so a raised fee waits for the owner instead of hitting
+    // their card on the next run.
+    .not('fee_owner_approved_at', 'is', null)
     .or(`last_fee_billed_month.is.null,last_fee_billed_month.neq.${monthKey}`)
 
   if (error) {

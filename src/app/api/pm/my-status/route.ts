@@ -87,15 +87,51 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
 
-  const body = (await request.json().catch(() => ({}))) as { approvalThreshold?: number }
-  if (typeof body.approvalThreshold !== 'number' || body.approvalThreshold < 0) {
-    return NextResponse.json({ error: 'Invalid threshold' }, { status: 400 })
+  const body = (await request.json().catch(() => ({}))) as {
+    approvalThreshold?: number
+    approveFee?: { type: string; amount: number | null; percent: number | null; frequency: string | null }
+  }
+  const update: Record<string, unknown> = {}
+  if (body.approvalThreshold !== undefined) {
+    if (typeof body.approvalThreshold !== 'number' || body.approvalThreshold < 0 || !Number.isFinite(body.approvalThreshold)) {
+      return NextResponse.json({ error: 'Invalid threshold' }, { status: 400 })
+    }
+    update.approval_threshold = body.approvalThreshold
   }
 
   const admin = getSupabaseAdmin()
+
+  // The owner agreeing to the PM's proposed fee -- the only thing that
+  // unlocks charging it, manually or automatically (see
+  // scripts/2026-11-17-pm-fee-owner-approval.sql). The client sends back
+  // the exact terms it displayed; if the PM changed them in the meantime,
+  // this refuses instead of approving terms the owner never saw.
+  if (body.approveFee) {
+    const { data: current } = await admin
+      .from('pm_client_portfolios')
+      .select('management_fee, management_fee_type, management_fee_percent, management_fee_frequency')
+      .eq('owner_user_id', user.id)
+      .eq('status', 'accepted')
+      .maybeSingle()
+    const num = (v: unknown) => (v === null || v === undefined ? null : Number(v))
+    const matches =
+      current &&
+      (current.management_fee_type || 'flat') === body.approveFee.type &&
+      num(current.management_fee) === num(body.approveFee.amount) &&
+      num(current.management_fee_percent) === num(body.approveFee.percent) &&
+      (current.management_fee_frequency || null) === (body.approveFee.frequency || null)
+    if (!matches) {
+      return NextResponse.json({ error: 'Your property manager just changed this fee. Review the updated amount before approving.' }, { status: 409 })
+    }
+    update.fee_owner_approved_at = new Date().toISOString()
+  }
+
+  if (Object.keys(update).length === 0) {
+    return NextResponse.json({ error: 'Nothing to update' }, { status: 400 })
+  }
   const { data: updated, error } = await admin
     .from('pm_client_portfolios')
-    .update({ approval_threshold: body.approvalThreshold })
+    .update(update)
     .eq('owner_user_id', user.id)
     .eq('status', 'accepted')
     .select('id')
