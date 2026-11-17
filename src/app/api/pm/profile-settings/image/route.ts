@@ -7,7 +7,7 @@ import { tooManyRequests } from '@/lib/rateLimit'
 export const maxDuration = 20
 
 const BUCKET = 'pm-branding'
-const MAX_BYTES = 5 * 1024 * 1024
+const MAX_BYTES = 4 * 1024 * 1024
 const COLUMN = { logo: 'logo_url', cover: 'cover_url' } as const
 type Kind = keyof typeof COLUMN
 
@@ -42,7 +42,8 @@ async function removeOld(admin: ReturnType<typeof getSupabaseAdmin>, url: string
   const marker = `/object/public/${BUCKET}/`
   const i = url.indexOf(marker)
   if (i === -1) return
-  await admin.storage.from(BUCKET).remove([url.slice(i + marker.length)]).catch(() => {})
+  const { error } = await admin.storage.from(BUCKET).remove([url.slice(i + marker.length)])
+  if (error) console.error('pm/profile-settings/image: could not remove old file', error)
 }
 
 // POST multipart: kind=logo|cover, file=<image>
@@ -61,7 +62,7 @@ export async function POST(request: NextRequest) {
   if (!kind || !(kind in COLUMN)) return NextResponse.json({ error: 'Invalid image type' }, { status: 400 })
   if (!file || typeof file === 'string') return NextResponse.json({ error: 'No file received' }, { status: 400 })
   if (file.size === 0) return NextResponse.json({ error: 'That file is empty.' }, { status: 400 })
-  if (file.size > MAX_BYTES) return NextResponse.json({ error: 'Images must be 5 MB or smaller.' }, { status: 400 })
+  if (file.size > MAX_BYTES) return NextResponse.json({ error: 'Images must be 4 MB or smaller.' }, { status: 400 })
 
   const bytes = new Uint8Array(await file.arrayBuffer())
   const sniffed = sniffImage(bytes)

@@ -229,6 +229,20 @@ function Collapsible({ label, icon, children }: { label: string; icon: typeof Pl
   )
 }
 
+async function shrinkImage(file: File, maxSide: number, type: 'image/png' | 'image/jpeg'): Promise<Blob | null> {
+  try {
+    const bitmap = await createImageBitmap(file)
+    const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height))
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.round(bitmap.width * scale)
+    canvas.height = Math.round(bitmap.height * scale)
+    canvas.getContext('2d')?.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+    return await new Promise((resolve) => canvas.toBlob(resolve, type, 0.85))
+  } catch {
+    return null
+  }
+}
+
 export default function PmDashboardPage() {
   const [loading, setLoading] = useState(true)
   const [membership, setMembership] = useState<Membership | null>(null)
@@ -716,21 +730,31 @@ export default function PmDashboardPage() {
   const handleBrandingUpload = async (kind: 'logo' | 'cover', file: File | undefined) => {
     if (!file) return
     setProfileMsg(null)
-    if (file.size > 5 * 1024 * 1024) {
-      setProfileMsg({ tone: 'error', text: 'Images must be 5 MB or smaller.' })
+    setBrandingBusy(kind)
+    // Uploads are capped at 4 MB (the hosting request limit is 4.5 MB), so a
+    // big phone photo is shrunk here instead of being rejected.
+    let upload: Blob = file
+    if (file.size > 4 * 1024 * 1024) {
+      upload = (await shrinkImage(file, kind === 'logo' ? 800 : 2000, kind === 'logo' ? 'image/png' : 'image/jpeg')) || file
+    }
+    if (upload.size > 4 * 1024 * 1024) {
+      setProfileMsg({ tone: 'error', text: "That image is too large. Try one under 4 MB." })
+      setBrandingBusy(null)
       return
     }
-    setBrandingBusy(kind)
     const form = new FormData()
     form.append('kind', kind)
-    form.append('file', file)
+    form.append('file', upload, file.name)
     const res = await fetch('/api/pm/profile-settings/image', { method: 'POST', body: form }).catch(() => null)
     const data = res ? await res.json().catch(() => ({})) : {}
     if (res?.ok) {
       if (kind === 'logo') setLogoUrl(data.url)
       else setCoverUrl(data.url)
     } else {
-      setProfileMsg({ tone: 'error', text: data.error || 'Could not upload that image.' })
+      setProfileMsg({
+        tone: 'error',
+        text: res?.status === 413 ? 'That image is too large. Try one under 4 MB.' : data.error || 'Could not upload that image.',
+      })
     }
     setBrandingBusy(null)
   }
