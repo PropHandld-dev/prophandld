@@ -90,6 +90,7 @@ const ACTION_LABELS: Record<string, string> = {
   job_payment_started: 'approved a job payment',
   job_payment_blocked_needs_owner_signoff: 'tried to approve a payment over threshold',
   job_bulk_approved: 'approved completed work',
+  property_added_for_owner: 'added a property',
 }
 
 type PendingJob = { id: string; category: string; createdAt: string; ownerUserId: string; ownerName: string; address: string }
@@ -288,7 +289,7 @@ export default function PmDashboardPage() {
     propertyCount: number
     unitCount: number
     openJobCount: number
-    entries: { id: string; action: string; amount: number | null; createdAt: string; actorName: string; jobId: string | null }[]
+    entries: { id: string; action: string; amount: number | null; createdAt: string; actorName: string; jobId: string | null; detail: string | null }[]
   } | null>(null)
   const [savingThreshold, setSavingThreshold] = useState(false)
   const [inviteThresholds, setInviteThresholds] = useState<Record<string, string>>({})
@@ -716,15 +717,6 @@ export default function PmDashboardPage() {
     }).catch(() => {})
   }
 
-  const handleThresholdChange = async (portfolioId: string, value: number) => {
-    setClients((prev) => prev.map((c) => (c.id === portfolioId ? { ...c, approvalThreshold: value } : c)))
-    await fetch(`/api/pm/clients/${portfolioId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ approvalThreshold: value }),
-    })
-  }
-
   const handleFeeChange = async (portfolioId: string, amount: number | null, frequency: 'one_time' | 'monthly') => {
     setClients((prev) => prev.map((c) => (c.id === portfolioId ? { ...c, managementFee: amount, managementFeeFrequency: amount === null ? null : frequency, feeApproved: false } : c)))
     await fetch(`/api/pm/clients/${portfolioId}`, {
@@ -1096,6 +1088,7 @@ export default function PmDashboardPage() {
                   const content = (
                     <>
                       <span className="text-white/80">{entry.actorName}</span> {ACTION_LABELS[entry.action] || entry.action}
+                      {entry.detail && <span className="text-white/60">: {entry.detail}</span>}
                       {entry.amount !== null && <span className="text-white/60"> · ${entry.amount.toFixed(2)}</span>}
                       <span className="text-white/30"> · {new Date(entry.createdAt).toLocaleDateString()}</span>
                       {entry.jobId && <span className="text-[#12A5A9] text-xs font-semibold ml-1">View job →</span>}
@@ -1490,20 +1483,32 @@ export default function PmDashboardPage() {
                                   <StatTile icon={BuildingIcon} label="Units" value={c.unitCount ?? 0} onClick={() => router.push(`/landlord/properties?owner=${c.ownerUserId}`)} />
                                 )}
                               </div>
+                              {/* Set up the client the same way a landlord sets up
+                                  themselves: add a property (owned by the client),
+                                  then units, tenants and jobs from that property. */}
+                              <div className="flex items-center gap-2 flex-wrap mb-3">
+                                <Link
+                                  href={`/landlord/properties/new?for=${c.id}`}
+                                  className="inline-flex items-center gap-1.5 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-3 py-1.5 rounded-lg hover:opacity-90 transition"
+                                >
+                                  <PlusIcon className="w-3.5 h-3.5" /> Add property
+                                </Link>
+                                <Link
+                                  href={`/landlord/properties?owner=${c.ownerUserId}`}
+                                  className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white/70 hover:text-white transition"
+                                >
+                                  Units &amp; tenants
+                                </Link>
+                              </div>
                               <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
-                                {membership.memberRole === 'admin' ? (
-                                  <label className="flex items-center gap-2 text-xs text-white/50">
-                                    Approval threshold: $
-                                    <input
-                                      type="number"
-                                      defaultValue={c.approvalThreshold}
-                                      onBlur={(e) => handleThresholdChange(c.id, Number(e.target.value) || 0)}
-                                      className="w-20 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white text-xs"
-                                    />
-                                  </label>
-                                ) : (
-                                  <span className="text-xs text-white/40">Approval threshold: ${c.approvalThreshold.toFixed(0)}</span>
-                                )}
+                                {/* Read-only for the PM: the approval limit is the
+                                    owner's own permission grant, set and changed only
+                                    by them (locked product rule). */}
+                                <span className="text-xs text-white/50">
+                                  {c.approvalThreshold > 0
+                                    ? <>You can approve jobs up to <span className="text-white font-semibold">${c.approvalThreshold.toFixed(0)}</span> <span className="text-white/30">(set by {c.ownerName})</span></>
+                                    : <>Every job needs {c.ownerName}&apos;s approval <span className="text-white/30">(their setting)</span></>}
+                                </span>
                                 <div className="flex items-center gap-3">
                                   {membership.canViewFinancials && (
                                     <Link href={`/landlord/pm/clients/${c.id}/statement`} className="text-[#12A5A9] text-xs font-semibold hover:underline">

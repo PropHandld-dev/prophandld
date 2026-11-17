@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { SubscribeToAdd } from '@/components/BillingReminder'
 import { useBillingStatus, BILLING_ENFORCED } from '@/lib/useBillingStatus'
 import { supabase } from '@/lib/supabase'
@@ -35,6 +35,29 @@ function NewPropertyForm() {
   })
   const [placeGeo, setPlaceGeo] = useState<{ lat: number; lng: number } | null>(null)
   const { confirm, ConfirmDialog } = useConfirm()
+
+  // A property manager can add this property to one of their clients'
+  // portfolios instead of their own -- found live: a PM had no way to set
+  // up a client's properties at all (the properties RLS insert policy only
+  // allows your own portfolio, deliberately). Picking a client routes the
+  // save through /api/pm/clients/[portfolioId]/properties, which verifies
+  // the PM actually manages that client. Empty for anyone who isn't a PM.
+  const [pmClients, setPmClients] = useState<{ portfolioId: string; ownerUserId: string; ownerName: string }[]>([])
+  const [forPortfolioId, setForPortfolioId] = useState('')
+  useEffect(() => {
+    fetch('/api/pm/clients')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        const list = ((data?.clients || []) as any[])
+          .filter((c) => c.status === 'accepted' && c.ownerUserId)
+          .map((c) => ({ portfolioId: c.id, ownerUserId: c.ownerUserId, ownerName: c.ownerName }))
+        setPmClients(list)
+        const preselect = searchParams.get('for')
+        if (preselect && list.some((c) => c.portfolioId === preselect)) setForPortfolioId(preselect)
+      })
+      .catch(() => {})
+  }, [searchParams])
+  const forClient = pmClients.find((c) => c.portfolioId === forPortfolioId) || null
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -93,7 +116,7 @@ function NewPropertyForm() {
     const dupRes = await fetch('/api/landlord/properties/check-duplicate-address', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ address: form.address, city: form.city, state: form.state }),
+      body: JSON.stringify({ address: form.address, city: form.city, state: form.state, forOwnerId: forClient?.ownerUserId }),
     })
     const dup = await dupRes.json().catch(() => ({}))
 
@@ -114,6 +137,31 @@ function NewPropertyForm() {
     // Prefer the precise coordinates from Places autocomplete; fall back to
     // ZIP-based geocoding if the address was typed manually.
     const geo = placeGeo ?? (form.zip ? await geocodeZip(form.zip) : null)
+
+    if (forClient) {
+      const res = await fetch(`/api/pm/clients/${forClient.portfolioId}/properties`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          address: form.address,
+          city: form.city,
+          state: form.state,
+          zip: form.zip,
+          propertyType: form.property_type,
+          numUnits: parseInt(form.num_units),
+          lat: geo?.lat ?? null,
+          lng: geo?.lng ?? null,
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok && !data.propertyId) {
+        setError(data.error || t('errorCreatingProperty', lang))
+        setLoading(false)
+        return
+      }
+      router.push(`/landlord/properties/${data.propertyId}`)
+      return
+    }
 
     // A co-owner creating a property attributes it to the PRIMARY they
     // co-manage for, not themselves — the portfolio stays single-owned
@@ -219,8 +267,30 @@ function NewPropertyForm() {
             : t('enterPropertyDetails', lang)}
         </p>
 
+        {pmClients.length > 0 && (
+          <div className="bg-[#12A5A9]/8 border border-[#12A5A9]/25 rounded-2xl p-4 mb-6">
+            <label htmlFor="property-for" className="text-white text-sm font-semibold block mb-1">Adding this property for</label>
+            <select
+              id="property-for"
+              value={forPortfolioId}
+              onChange={(e) => setForPortfolioId(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
+            >
+              <option value="" className="bg-[#0C1A2E]">My own portfolio</option>
+              {pmClients.map((c) => (
+                <option key={c.portfolioId} value={c.portfolioId} className="bg-[#0C1A2E]">{c.ownerName} (client)</option>
+              ))}
+            </select>
+            {forClient && (
+              <p className="text-white/50 text-xs mt-2">
+                It&apos;ll be owned by {forClient.ownerName} and counted on their plan. They&apos;ll get a notification and see it in their activity feed. Once it&apos;s created, you can add units, tenants and jobs from the property page as usual.
+              </p>
+            )}
+          </div>
+        )}
+
         <ScrollReveal>
-        {billingBlocked ? (
+        {billingBlocked && !forClient ? (
           <SubscribeToAdd what={t('propertiesWord', lang)} />
         ) : (
         <form onSubmit={handleSubmit} className="space-y-4">

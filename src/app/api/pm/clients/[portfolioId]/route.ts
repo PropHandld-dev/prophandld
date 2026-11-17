@@ -8,7 +8,8 @@ import { emailAllowed } from '@/lib/notificationPrefs'
 
 export const maxDuration = 20
 
-// Admin-only: set a client's approval threshold.
+// Admin-only: update a client relationship (fee proposal, monthly summary,
+// read-only mode). The approval limit is NOT settable here -- owner-only.
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ portfolioId: string }> }) {
   const { portfolioId } = await params
   const authClient = await createClient()
@@ -20,7 +21,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const supabaseAdmin = getSupabaseAdmin()
   const membership = await getPmMembership(supabaseAdmin, user.id)
   if (!membership || membership.memberRole !== 'admin') {
-    return NextResponse.json({ error: 'Only a PM organization admin can change a client’s threshold' }, { status: 403 })
+    return NextResponse.json({ error: 'Only a PM organization admin can change client settings' }, { status: 403 })
   }
 
   const body = (await request.json().catch(() => ({}))) as {
@@ -34,11 +35,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   }
 
   const update: Record<string, unknown> = {}
+  // The approval limit is the OWNER's permission grant to the PM -- only
+  // they set it (at accept time, or later via PATCH /api/pm/my-status).
+  // A PM changing it would be granting themselves authority.
   if (body.approvalThreshold !== undefined) {
-    if (typeof body.approvalThreshold !== 'number' || body.approvalThreshold < 0) {
-      return NextResponse.json({ error: 'Invalid threshold' }, { status: 400 })
-    }
-    update.approval_threshold = body.approvalThreshold
+    return NextResponse.json({ error: 'Only the property owner can change their approval limit.' }, { status: 403 })
   }
   // managementFeeType governs which of the two amount fields is "live" —
   // sent together from the UI's own type toggle, not independently, so

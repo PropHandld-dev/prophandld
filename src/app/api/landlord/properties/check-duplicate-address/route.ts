@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { normalizeAddress } from '@/lib/address'
+import { getActionableOwnerIdsAdmin } from '@/lib/pm'
 
 // A landlord's own client can only ever see their own properties (RLS),
 // so catching the same address under a *different* landlord needs a
@@ -16,11 +17,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
 
-  const { address, city, state, excludePropertyId } = (await request.json()) as {
+  const { address, city, state, excludePropertyId, forOwnerId } = (await request.json()) as {
     address?: string
     city?: string
     state?: string
     excludePropertyId?: string
+    forOwnerId?: string
   }
   if (!address) {
     return NextResponse.json({ error: 'Missing address' }, { status: 400 })
@@ -61,7 +63,14 @@ export async function POST(request: NextRequest) {
   // id — without this, a co-owner adding a property the primary already
   // has would incorrectly see "registered to another landlord."
   const { data: effectiveOwnerId } = await authClient.rpc('primary_landlord_id')
-  const myId = effectiveOwnerId ?? user.id
+  let myId = effectiveOwnerId ?? user.id
+  // A PM adding a property for a client: "mine" means that client's
+  // portfolio. Only honored if this caller can actually act for that
+  // owner -- otherwise ignored, so it can't be used to probe ownership.
+  if (forOwnerId && forOwnerId !== myId) {
+    const actionable = await getActionableOwnerIdsAdmin(supabaseAdmin, user.id)
+    if (actionable.includes(forOwnerId)) myId = forOwnerId
+  }
 
   return NextResponse.json({
     ownedByMe: match.owner_user_id === myId,

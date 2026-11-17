@@ -43,7 +43,7 @@ export async function GET() {
       : Promise.resolve({ data: [] as any[] }),
     admin
       .from('pm_audit_log')
-      .select('id, action, amount, created_at, job_id, actor:actor_user_id(full_name)')
+      .select('id, action, amount, created_at, job_id, detail, actor:actor_user_id(full_name)')
       .eq('organization_id', portfolio.organization_id)
       .eq('owner_user_id', user.id)
       .order('created_at', { ascending: false })
@@ -62,6 +62,7 @@ export async function GET() {
     createdAt: r.created_at,
     actorName: r.actor?.full_name || 'Someone',
     jobId: r.job_id || null,
+    detail: r.detail || null,
   }))
 
   return NextResponse.json({
