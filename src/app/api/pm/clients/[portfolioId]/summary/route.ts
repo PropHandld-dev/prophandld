@@ -32,12 +32,18 @@ async function loadContext(portfolioId: string) {
     return { error: NextResponse.json({ error: 'Only a PM organization admin can manage client summaries' }, { status: 403 }) }
   }
 
-  const { data: portfolio } = await admin
+  const { data: portfolio, error: portfolioError } = await admin
     .from('pm_client_portfolios')
     .select('id, owner_user_id, status, monthly_summary_note, users(full_name, preferred_language)')
     .eq('id', portfolioId)
     .eq('organization_id', membership.organizationId)
     .maybeSingle()
+  // A query failure (e.g. a missing column before its migration runs) is
+  // not the same as "this client isn't yours" -- don't report it as 404.
+  if (portfolioError) {
+    console.error('pm/clients/[portfolioId]/summary: portfolio lookup failed', portfolioError)
+    return { error: NextResponse.json({ error: 'Could not load this summary right now.' }, { status: 500 }) }
+  }
   if (!portfolio || portfolio.status !== 'accepted' || !portfolio.owner_user_id) {
     return { error: NextResponse.json({ error: 'Client not found' }, { status: 404 }) }
   }
