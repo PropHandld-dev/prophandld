@@ -273,6 +273,19 @@ export default function PmDashboardPage() {
   const [specialties, setSpecialties] = useState<string[]>([])
   const [serviceZipsText, setServiceZipsText] = useState('')
   const [pricingNote, setPricingNote] = useState('')
+  // Branding, about, contact and team -- what a landlord comparing PMs
+  // actually looks at on the public profile.
+  const [logoUrl, setLogoUrl] = useState<string | null>(null)
+  const [coverUrl, setCoverUrl] = useState<string | null>(null)
+  const [brandColor, setBrandColor] = useState<string | null>(null)
+  const [about, setAbout] = useState('')
+  const [website, setWebsite] = useState('')
+  const [contactPhone, setContactPhone] = useState('')
+  const [contactEmail, setContactEmail] = useState('')
+  const [officeHours, setOfficeHours] = useState('')
+  const [showTeam, setShowTeam] = useState(false)
+  const [brandingBusy, setBrandingBusy] = useState<null | 'logo' | 'cover'>(null)
+  const [profileMsg, setProfileMsg] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null)
   const [profileCopied, setProfileCopied] = useState(false)
   const [viewsTotal, setViewsTotal] = useState(0)
   const [viewsThisMonth, setViewsThisMonth] = useState(0)
@@ -455,6 +468,15 @@ export default function PmDashboardPage() {
             setSpecialties(profileData.specialties || [])
             setServiceZipsText((profileData.serviceZips || []).join(', '))
             setPricingNote(profileData.pricingNote || '')
+            setLogoUrl(profileData.logoUrl || null)
+            setCoverUrl(profileData.coverUrl || null)
+            setBrandColor(profileData.brandColor || null)
+            setAbout(profileData.about || '')
+            setWebsite(profileData.website || '')
+            setContactPhone(profileData.contactPhone || '')
+            setContactEmail(profileData.contactEmail || '')
+            setOfficeHours(profileData.officeHours || '')
+            setShowTeam(!!profileData.showTeam)
             setViewsTotal(profileData.viewsTotal || 0)
             setViewsThisMonth(profileData.viewsThisMonth || 0)
           }
@@ -673,14 +695,54 @@ export default function PmDashboardPage() {
     setSavingProfile(false)
   }
 
+  // Surfaces the server's validation message (bad website link, email,
+  // over-length text) instead of silently dropping it -- it used to
+  // swallow every error, so an invalid value just quietly didn't save.
   const saveProfileField = async (field: string, value: unknown) => {
     setSavingProfile(true)
-    await fetch('/api/pm/profile-settings', {
+    setProfileMsg(null)
+    const res = await fetch('/api/pm/profile-settings', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ [field]: value }),
-    }).catch(() => {})
+    }).catch(() => null)
+    if (!res || !res.ok) {
+      const data = res ? await res.json().catch(() => ({})) : {}
+      setProfileMsg({ tone: 'error', text: data.error || 'Could not save that change.' })
+    }
     setSavingProfile(false)
+  }
+
+  const handleBrandingUpload = async (kind: 'logo' | 'cover', file: File | undefined) => {
+    if (!file) return
+    setProfileMsg(null)
+    if (file.size > 5 * 1024 * 1024) {
+      setProfileMsg({ tone: 'error', text: 'Images must be 5 MB or smaller.' })
+      return
+    }
+    setBrandingBusy(kind)
+    const form = new FormData()
+    form.append('kind', kind)
+    form.append('file', file)
+    const res = await fetch('/api/pm/profile-settings/image', { method: 'POST', body: form }).catch(() => null)
+    const data = res ? await res.json().catch(() => ({})) : {}
+    if (res?.ok) {
+      if (kind === 'logo') setLogoUrl(data.url)
+      else setCoverUrl(data.url)
+    } else {
+      setProfileMsg({ tone: 'error', text: data.error || 'Could not upload that image.' })
+    }
+    setBrandingBusy(null)
+  }
+
+  const handleBrandingRemove = async (kind: 'logo' | 'cover') => {
+    setBrandingBusy(kind)
+    const res = await fetch(`/api/pm/profile-settings/image?kind=${kind}`, { method: 'DELETE' }).catch(() => null)
+    if (res?.ok) {
+      if (kind === 'logo') setLogoUrl(null)
+      else setCoverUrl(null)
+    }
+    setBrandingBusy(null)
   }
 
   const handleToggleSpecialty = (key: string) => {
@@ -1491,6 +1553,125 @@ export default function PmDashboardPage() {
                       placeholder="e.g. 8-10% of monthly rent, or $150/unit/month"
                       className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-[#12A5A9]/50 mb-4"
                     />
+
+                    <div className="border-t border-white/8 pt-4 mb-4">
+                      <p className="text-white text-sm font-semibold mb-3">Look &amp; feel</p>
+                      <div className="flex items-start gap-4 flex-wrap mb-3">
+                        <div>
+                          <p className="text-xs text-white/50 mb-1.5">Logo</p>
+                          <div className="flex items-center gap-2">
+                            <div className="w-14 h-14 rounded-xl bg-white/5 border border-white/10 overflow-hidden flex items-center justify-center shrink-0">
+                              {logoUrl ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={logoUrl} alt="Your logo" className="w-full h-full object-cover" />
+                              ) : (
+                                <BuildingIcon className="w-5 h-5 text-white/30" />
+                              )}
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <label className="text-[#12A5A9] text-xs font-semibold cursor-pointer hover:underline">
+                                {brandingBusy === 'logo' ? 'Uploading…' : logoUrl ? 'Replace' : 'Upload'}
+                                <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" disabled={brandingBusy !== null} onChange={(e) => { handleBrandingUpload('logo', e.target.files?.[0]); e.target.value = '' }} />
+                              </label>
+                              {logoUrl && <button type="button" onClick={() => handleBrandingRemove('logo')} className="text-white/40 hover:text-red-400 text-xs text-left">Remove</button>}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-[180px]">
+                          <p className="text-xs text-white/50 mb-1.5">Cover photo</p>
+                          <div className="flex items-center gap-2">
+                            <div className="h-14 flex-1 rounded-xl bg-white/5 border border-white/10 overflow-hidden" style={coverUrl ? undefined : brandColor ? { background: brandColor } : undefined}>
+                              {coverUrl && (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={coverUrl} alt="Your cover" className="w-full h-full object-cover" />
+                              )}
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <label className="text-[#12A5A9] text-xs font-semibold cursor-pointer hover:underline">
+                                {brandingBusy === 'cover' ? 'Uploading…' : coverUrl ? 'Replace' : 'Upload'}
+                                <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" disabled={brandingBusy !== null} onChange={(e) => { handleBrandingUpload('cover', e.target.files?.[0]); e.target.value = '' }} />
+                              </label>
+                              {coverUrl && <button type="button" onClick={() => handleBrandingRemove('cover')} className="text-white/40 hover:text-red-400 text-xs text-left">Remove</button>}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-xs text-white/50 mb-1.5">Brand color</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {['#12A5A9', '#2563EB', '#16A34A', '#9333EA', '#DC2626', '#EA580C', '#CA8A04', '#0F172A'].map((hex) => (
+                          <button
+                            key={hex}
+                            type="button"
+                            aria-label={`Use ${hex}`}
+                            onClick={() => { setBrandColor(hex); saveProfileField('brandColor', hex) }}
+                            className={`w-7 h-7 rounded-full border-2 transition ${brandColor?.toUpperCase() === hex ? 'border-white scale-110' : 'border-transparent hover:scale-105'}`}
+                            style={{ background: hex }}
+                          />
+                        ))}
+                        <label className="w-7 h-7 rounded-full border-2 border-dashed border-white/30 flex items-center justify-center cursor-pointer text-white/50 text-xs" title="Custom color">
+                          +
+                          <input
+                            type="color"
+                            className="sr-only"
+                            value={brandColor || '#12A5A9'}
+                            onChange={(e) => setBrandColor(e.target.value)}
+                            onBlur={(e) => saveProfileField('brandColor', e.target.value)}
+                          />
+                        </label>
+                        {brandColor && (
+                          <button type="button" onClick={() => { setBrandColor(null); saveProfileField('brandColor', null) }} className="text-white/40 hover:text-white text-xs ml-1">
+                            Reset
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="border-t border-white/8 pt-4 mb-4">
+                      <label htmlFor="pm-about" className="block text-white text-sm font-semibold mb-1">About your company</label>
+                      <p className="text-white/40 text-xs mb-1.5">Your story, what you&apos;re great at, how you work with owners. Shown on your public profile.</p>
+                      <textarea
+                        id="pm-about"
+                        value={about}
+                        onChange={(e) => setAbout(e.target.value.slice(0, 2000))}
+                        onBlur={() => saveProfileField('about', about)}
+                        rows={4}
+                        placeholder="e.g. Family-run since 2012. We manage 140 doors across Northeast Philly, answer every call within the hour, and send owners a clear statement every month."
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-[#12A5A9]/50 resize-none"
+                      />
+                      <p className="text-white/30 text-[11px] text-right">{about.length}/2000</p>
+                    </div>
+
+                    <div className="border-t border-white/8 pt-4 mb-4">
+                      <p className="text-white text-sm font-semibold mb-2">How owners can reach you</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label htmlFor="pm-website" className="block text-xs text-white/50 mb-1">Website</label>
+                          <input id="pm-website" value={website} onChange={(e) => setWebsite(e.target.value)} onBlur={() => saveProfileField('website', website)} placeholder="yourcompany.com" className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-[#12A5A9]/50" />
+                        </div>
+                        <div>
+                          <label htmlFor="pm-phone" className="block text-xs text-white/50 mb-1">Phone</label>
+                          <input id="pm-phone" type="tel" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} onBlur={() => saveProfileField('contactPhone', contactPhone)} placeholder="(215) 555-0123" className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-[#12A5A9]/50" />
+                        </div>
+                        <div>
+                          <label htmlFor="pm-email" className="block text-xs text-white/50 mb-1">Email</label>
+                          <input id="pm-email" type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} onBlur={() => saveProfileField('contactEmail', contactEmail)} placeholder="hello@yourcompany.com" className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-[#12A5A9]/50" />
+                        </div>
+                        <div>
+                          <label htmlFor="pm-hours" className="block text-xs text-white/50 mb-1">Office hours</label>
+                          <input id="pm-hours" value={officeHours} onChange={(e) => setOfficeHours(e.target.value)} onBlur={() => saveProfileField('officeHours', officeHours)} maxLength={200} placeholder="Mon–Fri 9–5, emergencies 24/7" className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-[#12A5A9]/50" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <label className="flex items-center gap-2 text-xs text-white/60 mb-4">
+                      <input type="checkbox" checked={showTeam} onChange={(e) => { setShowTeam(e.target.checked); saveProfileField('showTeam', e.target.checked) }} className="accent-[#12A5A9]" />
+                      Show my team on the profile (names and roles only)
+                    </label>
+
+                    {profileMsg && (
+                      <p className={`text-xs mb-3 ${profileMsg.tone === 'ok' ? 'text-[#12A5A9]' : 'text-red-400'}`}>{profileMsg.text}</p>
+                    )}
+
                     {openToClients && profileSlug && (
                       <>
                         <div className="flex items-center gap-2 flex-wrap mb-3">

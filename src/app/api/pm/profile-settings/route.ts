@@ -21,7 +21,7 @@ export async function GET() {
 
   const { data: org } = await admin
     .from('pm_organizations')
-    .select('slug, open_to_clients, pitch, license_number, insured, years_in_business, specialties, service_zips, pricing_note')
+    .select('slug, open_to_clients, pitch, license_number, insured, years_in_business, specialties, service_zips, pricing_note, logo_url, cover_url, brand_color, about, website, contact_phone, contact_email, office_hours, show_team')
     .eq('id', membership.organizationId)
     .maybeSingle()
 
@@ -53,6 +53,15 @@ export async function GET() {
     specialties: org?.specialties || [],
     serviceZips: org?.service_zips || [],
     pricingNote: org?.pricing_note || '',
+    logoUrl: org?.logo_url || null,
+    coverUrl: org?.cover_url || null,
+    brandColor: org?.brand_color || null,
+    about: org?.about || '',
+    website: org?.website || '',
+    contactPhone: org?.contact_phone || '',
+    contactEmail: org?.contact_email || '',
+    officeHours: org?.office_hours || '',
+    showTeam: !!org?.show_team,
     viewsTotal,
     viewsThisMonth,
   })
@@ -88,6 +97,13 @@ export async function PATCH(request: NextRequest) {
     specialties?: string[]
     serviceZips?: string[]
     pricingNote?: string
+    brandColor?: string | null
+    about?: string
+    website?: string
+    contactPhone?: string
+    contactEmail?: string
+    officeHours?: string
+    showTeam?: boolean
   }
   const update: Record<string, unknown> = {}
 
@@ -138,6 +154,53 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Pricing note must be 120 characters or fewer' }, { status: 400 })
     }
     update.pricing_note = body.pricingNote.trim() || null
+  }
+  // Used inside a style attribute on the public page, so only a strict
+  // #RRGGBB value is ever stored -- nothing that could carry CSS.
+  if (body.brandColor !== undefined) {
+    if (body.brandColor !== null && !/^#[0-9a-fA-F]{6}$/.test(body.brandColor)) {
+      return NextResponse.json({ error: 'Brand color must be a hex color like #12A5A9' }, { status: 400 })
+    }
+    update.brand_color = body.brandColor
+  }
+  const text = (key: keyof typeof body, column: string, max: number, label: string) => {
+    const v = body[key]
+    if (v === undefined) return null
+    if (typeof v !== 'string' || v.length > max) return `${label} must be ${max} characters or fewer`
+    update[column] = v.trim() || null
+    return null
+  }
+  const textErr =
+    text('about', 'about', 2000, 'About') ||
+    text('officeHours', 'office_hours', 200, 'Office hours') ||
+    text('contactPhone', 'contact_phone', 30, 'Phone')
+  if (textErr) return NextResponse.json({ error: textErr }, { status: 400 })
+  if (body.website !== undefined) {
+    const w = typeof body.website === 'string' ? body.website.trim() : ''
+    if (w) {
+      // Only http(s) links, so a "javascript:" or other scheme can never
+      // end up behind a link on the public profile.
+      let ok = false
+      try {
+        const u = new URL(/^https?:\/\//i.test(w) ? w : `https://${w}`)
+        ok = (u.protocol === 'https:' || u.protocol === 'http:') && u.hostname.includes('.') && w.length <= 200
+        if (ok) update.website = u.toString()
+      } catch {}
+      if (!ok) return NextResponse.json({ error: "That website doesn't look like a valid link" }, { status: 400 })
+    } else {
+      update.website = null
+    }
+  }
+  if (body.contactEmail !== undefined) {
+    const e = typeof body.contactEmail === 'string' ? body.contactEmail.trim() : ''
+    if (e && (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e) || e.length > 200)) {
+      return NextResponse.json({ error: "That email doesn't look right" }, { status: 400 })
+    }
+    update.contact_email = e || null
+  }
+  if (body.showTeam !== undefined) {
+    if (typeof body.showTeam !== 'boolean') return NextResponse.json({ error: 'Invalid value' }, { status: 400 })
+    update.show_team = body.showTeam
   }
   if (Object.keys(update).length === 0) {
     return NextResponse.json({ error: 'Nothing to update' }, { status: 400 })

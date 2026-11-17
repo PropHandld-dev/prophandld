@@ -14,7 +14,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 
   const { data: org } = await admin
     .from('pm_organizations')
-    .select('id, name, pitch, open_to_clients, license_number, insured, years_in_business, specialties, service_zips, pricing_note')
+    .select('id, name, pitch, open_to_clients, license_number, insured, years_in_business, specialties, service_zips, pricing_note, logo_url, cover_url, brand_color, about, website, contact_phone, contact_email, office_hours, show_team')
     .eq('slug', slug)
     .maybeSingle()
 
@@ -50,6 +50,21 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     }
   }
 
+  // Team: names and roles only, and only when the PM opted in. Never
+  // emails or anything else about staff accounts.
+  let team: { name: string; role: 'admin' | 'staff' }[] = []
+  if (org.show_team) {
+    const { data: members } = await admin
+      .from('pm_organization_members')
+      .select('member_role, users(full_name)')
+      .eq('organization_id', org.id)
+      .eq('status', 'accepted')
+    team = (members || [])
+      .map((m: any) => ({ name: (m.users?.full_name || '').trim(), role: m.member_role as 'admin' | 'staff' }))
+      .filter((m) => m.name)
+      .sort((a, b) => (a.role === b.role ? a.name.localeCompare(b.name) : a.role === 'admin' ? -1 : 1))
+  }
+
   const ratings = (reviews || []).map((r: any) => r.rating as number)
   const avgRating = ratings.length > 0 ? Math.round((ratings.reduce((a, b) => a + b, 0) / ratings.length) * 10) / 10 : null
 
@@ -65,6 +80,15 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     specialties: org.specialties || [],
     serviceZips: org.service_zips || [],
     pricingNote: org.pricing_note,
+    logoUrl: org.logo_url,
+    coverUrl: org.cover_url,
+    brandColor: org.brand_color && /^#[0-9a-fA-F]{6}$/.test(org.brand_color) ? org.brand_color : null,
+    about: org.about,
+    website: org.website,
+    contactPhone: org.contact_phone,
+    contactEmail: org.contact_email,
+    officeHours: org.office_hours,
+    team,
     reviews: (reviews || []).map((r: any) => ({
       rating: r.rating,
       comment: r.comment,

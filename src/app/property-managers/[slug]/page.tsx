@@ -23,6 +23,15 @@ type Profile = {
   specialties: string[]
   serviceZips: string[]
   pricingNote: string | null
+  logoUrl: string | null
+  coverUrl: string | null
+  brandColor: string | null
+  about: string | null
+  website: string | null
+  contactPhone: string | null
+  contactEmail: string | null
+  officeHours: string | null
+  team: { name: string; role: 'admin' | 'staff' }[]
   reviews: { rating: number; comment: string | null; createdAt: string; reviewerFirstName: string }[]
 }
 
@@ -190,10 +199,31 @@ export default function PmPublicProfilePage() {
         </div>
       </nav>
 
-      <section className="max-w-2xl mx-auto px-6 pt-16 pb-10 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 border border-[#12A5A9]/30 flex items-center justify-center mx-auto mb-5">
-          <BuildingIcon className="w-7 h-7 text-[#12A5A9]" />
+      {/* Cover: the PM's photo, or a band in their brand color. brandColor
+          is validated server-side as strict #RRGGBB before it gets here. */}
+      {(profile.coverUrl || profile.brandColor) && (
+        <div className="max-w-3xl mx-auto px-4 pt-6">
+          <div
+            className="h-36 sm:h-48 rounded-3xl overflow-hidden border border-white/8"
+            style={profile.coverUrl ? undefined : { background: `linear-gradient(135deg, ${profile.brandColor}, ${profile.brandColor}99)` }}
+          >
+            {profile.coverUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={profile.coverUrl} alt="" className="w-full h-full object-cover" />
+            )}
+          </div>
         </div>
+      )}
+
+      <section className={`max-w-2xl mx-auto px-6 ${profile.coverUrl || profile.brandColor ? 'pt-0 -mt-10' : 'pt-16'} pb-10 text-center relative`}>
+        {profile.logoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={profile.logoUrl} alt={`${profile.name} logo`} className="w-20 h-20 rounded-2xl object-cover mx-auto mb-5 border-4 border-[#0C1A2E] bg-white shadow-lg" />
+        ) : (
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 border border-[#12A5A9]/30 flex items-center justify-center mx-auto mb-5 bg-[#0C1A2E]">
+            <BuildingIcon className="w-7 h-7 text-[#12A5A9]" />
+          </div>
+        )}
         <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-3">{profile.name}</h1>
         {profile.pitch && <p className="text-white/60 max-w-lg mx-auto mb-5">{profile.pitch}</p>}
 
@@ -278,6 +308,7 @@ export default function PmPublicProfilePage() {
               onClick={handleRequest}
               disabled={requesting}
               className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-7 py-3.5 rounded-full hover:opacity-90 disabled:opacity-50"
+              style={profile.brandColor ? { background: profile.brandColor } : undefined}
             >
               {requesting ? 'Sending…' : `Request to be managed by ${profile.name}`}
             </RippleButton>
@@ -300,6 +331,7 @@ export default function PmPublicProfilePage() {
           <MagneticLink
             href={`/signup?role=landlord&pmSlug=${slug}`}
             className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-7 py-3.5 rounded-full hover:opacity-90 inline-block"
+            style={profile.brandColor ? { background: profile.brandColor } : undefined}
           >
             Request to be managed by {profile.name}
           </MagneticLink>
@@ -310,6 +342,73 @@ export default function PmPublicProfilePage() {
           </p>
         )}
       </section>
+
+      {(profile.about || profile.website || profile.contactPhone || profile.contactEmail || profile.officeHours || profile.team.length > 0) && (
+        <section className="max-w-2xl mx-auto px-6 pb-10 space-y-4">
+          {profile.about && (
+            <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
+              <h2 className="text-white font-semibold mb-2">About {profile.name}</h2>
+              <p className="text-white/70 text-sm leading-relaxed whitespace-pre-line">{profile.about}</p>
+            </div>
+          )}
+          {(profile.website || profile.contactPhone || profile.contactEmail || profile.officeHours) && (
+            <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
+              <h2 className="text-white font-semibold mb-3">Contact</h2>
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                {profile.website && (
+                  <div>
+                    <dt className="text-white/40 text-xs font-semibold uppercase tracking-wide">Website</dt>
+                    <dd>
+                      <a href={profile.website} target="_blank" rel="noopener noreferrer nofollow" className="text-[#12A5A9] hover:underline break-all">
+                        {profile.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                      </a>
+                    </dd>
+                  </div>
+                )}
+                {profile.contactPhone && (
+                  <div>
+                    <dt className="text-white/40 text-xs font-semibold uppercase tracking-wide">Phone</dt>
+                    <dd className="text-white/80 select-all">{profile.contactPhone}</dd>
+                  </div>
+                )}
+                {profile.contactEmail && (
+                  <div>
+                    <dt className="text-white/40 text-xs font-semibold uppercase tracking-wide">Email</dt>
+                    <dd className="text-white/80 select-all break-all">{profile.contactEmail}</dd>
+                  </div>
+                )}
+                {profile.officeHours && (
+                  <div>
+                    <dt className="text-white/40 text-xs font-semibold uppercase tracking-wide">Office hours</dt>
+                    <dd className="text-white/80">{profile.officeHours}</dd>
+                  </div>
+                )}
+              </dl>
+            </div>
+          )}
+          {profile.team.length > 0 && (
+            <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
+              <h2 className="text-white font-semibold mb-3">Team</h2>
+              <div className="flex flex-wrap gap-3">
+                {profile.team.map((m, i) => (
+                  <div key={i} className="flex items-center gap-2.5 bg-white/4 border border-white/8 rounded-xl px-3 py-2">
+                    <div
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                      style={{ background: profile.brandColor || '#12A5A9' }}
+                    >
+                      {m.name.split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="text-white text-sm font-medium leading-tight">{m.name}</p>
+                      <p className="text-white/40 text-xs">{m.role === 'admin' ? 'Owner / admin' : 'Team member'}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
+      )}
 
       {isLandlord && !isOwnProfile && (
         <section className="max-w-2xl mx-auto px-6 pb-8">

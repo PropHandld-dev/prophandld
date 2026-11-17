@@ -6,10 +6,11 @@ import { useRef, type MouseEvent } from 'react'
 type Props = {
   href: string
   className?: string
+  style?: React.CSSProperties
   children: React.ReactNode
 }
 
-export function MagneticLink({ href, className, children }: Props) {
+export function MagneticLink({ href, className, style, children }: Props) {
   const ref = useRef<HTMLAnchorElement>(null)
 
   const handleMove = (e: MouseEvent<HTMLAnchorElement>) => {
@@ -49,6 +50,7 @@ export function MagneticLink({ href, className, children }: Props) {
       ref={ref}
       href={href}
       className={`relative overflow-hidden inline-block transition-all duration-200 ease-out ${className || ''}`}
+      style={style}
       onMouseMove={handleMove}
       onMouseLeave={handleLeave}
       onClick={handleClick}
