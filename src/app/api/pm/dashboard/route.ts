@@ -23,7 +23,6 @@ export async function GET() {
   if (!membership) {
     return NextResponse.json({ error: 'Not a property management org member' }, { status: 403 })
   }
-  const canViewFinancials = membership.canViewFinancials
 
   const { data: allPortfolios } = await supabaseAdmin
     .from('pm_client_portfolios')
@@ -114,12 +113,10 @@ export async function GET() {
   for (const p of (properties || []) as any[]) propertyCountByOwner.set(p.owner_user_id, (propertyCountByOwner.get(p.owner_user_id) || 0) + 1)
 
   const occupiedUnitsByOwner = new Map<string, number>()
-  const expectedRentByOwner = new Map<string, number>()
   for (const te of (tenancyRes.data || []) as any[]) {
     const ownerId = te.units?.properties?.owner_user_id
     if (!ownerId) continue
     occupiedUnitsByOwner.set(ownerId, (occupiedUnitsByOwner.get(ownerId) || 0) + 1)
-    expectedRentByOwner.set(ownerId, (expectedRentByOwner.get(ownerId) || 0) + Number(te.rent_amount || 0))
   }
 
   const unitCountByOwner = new Map<string, number>()
@@ -183,40 +180,6 @@ export async function GET() {
     .sort((a, b) => a.daysUntil - b.daysUntil)
     .slice(0, 10)
 
-  // Health score inputs, per owner -- overdue (already lapsed) counts
-  // double an at-risk (within its reminder window but not lapsed yet)
-  // item, same relative weight a PM would actually give them.
-  const overdueCountByOwner = new Map<string, number>()
-  const atRiskCountByOwner = new Map<string, number>()
-  for (const item of complianceWithDays) {
-    if (!item.ownerUserId) continue
-    if (item.daysUntil < 0) overdueCountByOwner.set(item.ownerUserId, (overdueCountByOwner.get(item.ownerUserId) || 0) + 1)
-    else if (item.daysUntil <= item.reminderDays) atRiskCountByOwner.set(item.ownerUserId, (atRiskCountByOwner.get(item.ownerUserId) || 0) + 1)
-  }
-
-  // One glanceable number per client instead of making a PM scan five
-  // separate tiles -- occupancy, compliance, and (financials-permitting)
-  // rent collection averaged into a single 0-100 score with a plain-English
-  // label. Rent collection is left out of the average (not just hidden)
-  // for a staff member without can_view_financials, same reasoning the
-  // rent figures themselves are already redacted for.
-  function healthScoreFor(ownerId: string, unitCount: number) {
-    const occupied = occupiedUnitsByOwner.get(ownerId) || 0
-    const occupancyPct = unitCount > 0 ? Math.min(100, (occupied / unitCount) * 100) : 100
-    const overdue = overdueCountByOwner.get(ownerId) || 0
-    const atRisk = atRiskCountByOwner.get(ownerId) || 0
-    const compliancePct = Math.max(0, 100 - overdue * 20 - atRisk * 8)
-    const parts = [occupancyPct, compliancePct]
-    if (canViewFinancials) {
-      const expected = expectedRentByOwner.get(ownerId) || 0
-      const collected = rentByOwner.get(ownerId) || 0
-      parts.push(expected > 0 ? Math.min(100, (collected / expected) * 100) : 100)
-    }
-    const score = Math.round(parts.reduce((s, v) => s + v, 0) / parts.length)
-    const label = score >= 85 ? 'Healthy' : score >= 60 ? 'Needs attention' : 'At risk'
-    return { score, label }
-  }
-
   const clients = (portfolios || []).map((p: any) => ({
     portfolioId: p.id,
     ownerUserId: p.owner_user_id,
@@ -227,52 +190,12 @@ export async function GET() {
     occupiedUnitCount: occupiedUnitsByOwner.get(p.owner_user_id) || 0,
     openJobCount: openJobsByOwner.get(p.owner_user_id) || 0,
     rentCollectedThisMonth: membership.canViewFinancials ? rentByOwner.get(p.owner_user_id) || 0 : null,
-    health: healthScoreFor(p.owner_user_id, unitCountByOwner.get(p.owner_user_id) || 0),
   }))
-
-  // Unit-weighted (not a plain average of client scores) so a 40-unit
-  // client in trouble actually moves the portfolio-wide number more than
-  // a 1-unit client does -- a simple average would let a single struggling
-  // small client make the whole portfolio look worse than it is, or the
-  // reverse.
-  const totalUnitsForHealth = clients.reduce((s, c) => s + c.unitCount, 0)
-  const orgHealthScore =
-    totalUnitsForHealth > 0
-      ? Math.round(clients.reduce((s, c) => s + c.health.score * c.unitCount, 0) / totalUnitsForHealth)
-      : clients.length > 0
-        ? Math.round(clients.reduce((s, c) => s + c.health.score, 0) / clients.length)
-        : 100
-  const orgHealthLabel = orgHealthScore >= 85 ? 'Healthy' : orgHealthScore >= 60 ? 'Needs attention' : 'At risk'
-
-  // Worst compliance status per property (overdue beats at-risk beats ok),
-  // for the map's pin color -- a property with zero tracked compliance
-  // items reads as ok, not as a gap to fill in here.
-  const worstStatusByProperty = new Map<string, 'overdue' | 'at-risk'>()
-  for (const item of complianceWithDays) {
-    if (!item.propertyId) continue
-    if (item.daysUntil < 0) worstStatusByProperty.set(item.propertyId, 'overdue')
-    else if (item.daysUntil <= item.reminderDays && worstStatusByProperty.get(item.propertyId) !== 'overdue') {
-      worstStatusByProperty.set(item.propertyId, 'at-risk')
-    }
-  }
-  const mapProperties = ((properties || []) as any[])
-    .filter((p) => p.lat != null && p.lng != null)
-    .map((p) => ({
-      id: p.id,
-      address: p.address,
-      city: p.city,
-      lat: p.lat,
-      lng: p.lng,
-      ownerName: ownerNameById.get(p.owner_user_id) || 'Unknown',
-      complianceStatus: worstStatusByProperty.get(p.id) || 'ok',
-    }))
 
   return NextResponse.json({
     clients,
     canViewFinancials: membership.canViewFinancials,
     months: membership.canViewFinancials ? months : [],
     complianceAlerts,
-    orgHealth: { score: orgHealthScore, label: orgHealthLabel },
-    mapProperties,
   })
 }

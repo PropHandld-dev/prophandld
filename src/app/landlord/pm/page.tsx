@@ -12,7 +12,6 @@ import { startDmThread } from '@/lib/dmThreads'
 import { downloadCsv } from '@/lib/csvExport'
 import { GoogleTranslateToggle } from '@/components/GoogleTranslateToggle'
 import { RentTrendChart, type MonthBucket } from '@/components/RentTrendChart'
-import { PortfolioHealthCard } from '@/components/PortfolioHealthCard'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 
@@ -42,9 +41,7 @@ type ClientRow = {
   occupiedUnitCount?: number
   openJobCount?: number
   rentCollectedThisMonth?: number | null
-  health?: { score: number; label: string }
 }
-type OrgHealth = { score: number; label: string }
 type Staff = {
   id: string
   userId: string | null
@@ -238,7 +235,6 @@ export default function PmDashboardPage() {
   const [incomingInvites, setIncomingInvites] = useState<IncomingInvite[]>([])
   const [clients, setClients] = useState<ClientRow[]>([])
   const [months, setMonths] = useState<MonthBucket[]>([])
-  const [orgHealth, setOrgHealth] = useState<OrgHealth | null>(null)
   const [complianceAlerts, setComplianceAlerts] = useState<
     { id: string; itemType: string; daysUntil: number; address: string; city: string; ownerName: string; propertyId: string }[]
   >([])
@@ -335,7 +331,6 @@ export default function PmDashboardPage() {
         setAuditLog(auditRes.entries || [])
         setMonths(dashRes.months || [])
         setComplianceAlerts(dashRes.complianceAlerts || [])
-        setOrgHealth(dashRes.orgHealth || null)
 
         if (orgRes.membership.memberRole === 'admin') {
           // Both awaited here (not fire-and-forget) so loading only
@@ -1162,22 +1157,6 @@ export default function PmDashboardPage() {
               )}
             </div>
 
-            {orgHealth && acceptedClients.length > 0 && (() => {
-              const overdueCount = complianceAlerts.filter((a) => a.daysUntil < 0).length
-              const atRiskCount = complianceAlerts.length - overdueCount
-              const combinedVacant = acceptedClients.reduce((t, c) => t + Math.max(0, (c.unitCount || 0) - (c.occupiedUnitCount || 0)), 0)
-              const issues: string[] = []
-              if (overdueCount > 0) issues.push(`${overdueCount} compliance item${overdueCount === 1 ? '' : 's'} overdue`)
-              if (atRiskCount > 0) issues.push(`${atRiskCount} expiring soon`)
-              if (combinedVacant > 0) issues.push(`${combinedVacant} unit${combinedVacant === 1 ? '' : 's'} vacant`)
-              return (
-                <PortfolioHealthCard
-                  health={orgHealth}
-                  issues={issues}
-                  scrollToId={complianceAlerts.length > 0 ? 'compliance-alerts' : undefined}
-                />
-              )
-            })()}
 
             <TabBar
               active={activeTab}
@@ -1509,17 +1488,6 @@ export default function PmDashboardPage() {
                                   <StatTile icon={BuildingIcon} label="Units" value={c.unitCount ?? 0} onClick={() => router.push(`/landlord/properties?owner=${c.ownerUserId}`)} />
                                 )}
                               </div>
-                              {c.health && (
-                                <p className="text-xs mb-3">
-                                  <span className="text-white/40">Health: </span>
-                                  <span
-                                    className="font-semibold"
-                                    style={{ color: c.health.score >= 85 ? '#12A5A9' : c.health.score >= 60 ? '#F2B544' : '#E25555' }}
-                                  >
-                                    {c.health.score} · {c.health.label}
-                                  </span>
-                                </p>
-                              )}
                               <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
                                 {membership.memberRole === 'admin' ? (
                                   <label className="flex items-center gap-2 text-xs text-white/50">
