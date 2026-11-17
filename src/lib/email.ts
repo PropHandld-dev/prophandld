@@ -609,6 +609,40 @@ export async function sendPmClientInviteEmail({
   return sendEmail({ to, subject: lang === 'es' ? `${pmOrgName} quiere administrar tu propiedad` : `${pmOrgName} wants to manage your property`, html })
 }
 
+// For a client who doesn't have a Prophandld account yet. The invite is
+// stored against their email (pm_client_portfolios.invited_email) and
+// auto-links the moment they sign up with that same address -- see
+// /api/pm/clients/link-invite. They still explicitly accept afterward,
+// choosing their own approval limit.
+export async function sendPmClientSignupInviteEmail({
+  to,
+  pmOrgName,
+  lang = 'en',
+}: {
+  to: string
+  pmOrgName: string
+  lang?: Lang
+}) {
+  const html = lang === 'es' ? baseTemplate({
+    lang,
+    eyebrow: 'Invitación',
+    heading: `${escapeHtml(pmOrgName)} te invitó a Prophandld`,
+    bodyHtml: `<strong>${escapeHtml(pmOrgName)}</strong> quiere administrar tu propiedad en Prophandld. Crea una cuenta gratuita de propietario <strong>con este mismo correo</strong> y verás la invitación esperándote. Tú sigues siendo el dueño, decides hasta qué monto pueden aprobar trabajos por ti, y puedes quitarlos cuando quieras.`,
+    ctaLabel: 'Crear mi cuenta',
+    ctaUrl: `${SITE_URL}/signup?role=landlord`,
+    note: 'Usa este mismo correo al registrarte para que la invitación se vincule automáticamente.',
+  }) : baseTemplate({
+    lang,
+    eyebrow: 'Invite',
+    heading: `${escapeHtml(pmOrgName)} invited you to Prophandld`,
+    bodyHtml: `<strong>${escapeHtml(pmOrgName)}</strong> wants to manage your property on Prophandld. Create a free owner account <strong>with this same email</strong> and their invite will be waiting for you. You stay the owner, you decide how much they can approve on your behalf, and you can remove them anytime.`,
+    ctaLabel: 'Create my account',
+    ctaUrl: `${SITE_URL}/signup?role=landlord`,
+    note: 'Sign up with this same email address so the invite links automatically.',
+  })
+  return sendEmail({ to, subject: lang === 'es' ? `${pmOrgName} te invitó a Prophandld` : `${pmOrgName} invited you to Prophandld`, html })
+}
+
 export async function sendPmClientAcceptedEmail({
   to,
   ownerName,

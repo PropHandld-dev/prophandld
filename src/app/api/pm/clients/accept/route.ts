@@ -45,6 +45,11 @@ export async function POST(request: NextRequest) {
     .eq('id', portfolioId)
     .eq('owner_user_id', user.id)
     .eq('status', 'pending')
+    // The owner may only accept an invite the PM sent. A request the owner
+    // started themselves needs the PM's acceptance (/api/pm/clients/
+    // [portfolioId]/accept) -- without this filter the owner could
+    // activate the relationship on the PM's behalf.
+    .eq('requested_by', 'pm')
     .select('organization_id, pm_organizations(admin_user_id, name)')
     .maybeSingle()
 

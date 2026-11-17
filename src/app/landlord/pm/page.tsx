@@ -419,14 +419,16 @@ export default function PmDashboardPage() {
       const data = await res.json()
       if (!res.ok) {
         setClientInviteMsg(
-          data.error === 'no_account_found'
-            ? 'No Prophandld landlord account found with that email.'
-            : data.error === 'already_invited_or_managed'
-              ? 'That landlord is already invited or managed by a PM.'
-              : data.error || 'Could not send that invite.'
+          data.error === 'already_invited_or_managed'
+            ? 'That landlord is already invited or managed by a PM.'
+            : data.error || 'Could not send that invite.'
         )
       } else {
-        setClientInviteMsg('Invite sent.')
+        setClientInviteMsg(
+          data.invitedByEmail
+            ? "Invite sent. They don't have an account yet, so we emailed them a signup link. It'll show up here once they join."
+            : 'Invite sent. They can accept from their dashboard.'
+        )
         setClientEmail('')
         await loadAll()
       }

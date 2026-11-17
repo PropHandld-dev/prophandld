@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { getPmMembership } from '@/lib/pm'
-import { sendPmClientInviteEmail } from '@/lib/email'
+import { sendPmClientInviteEmail, sendPmClientSignupInviteEmail } from '@/lib/email'
 import { sendPush } from '@/lib/push'
 import { emailAllowed } from '@/lib/notificationPrefs'
 import { tooManyRequests } from '@/lib/rateLimit'
@@ -12,11 +12,10 @@ export const maxDuration = 20
 const RATE_LIMIT = 5
 const RATE_WINDOW_MINUTES = 1
 
-// Mirrors /api/co-owner/invite closely: existing-landlord-account-only
-// for v1 (no "invite someone who doesn't have an account yet" path —
-// that's a real product decision about whether a PM can originate a
-// brand-new owner account, left for a later pass), email-based lookup,
-// rate-limited the same way since this also reaches a whole portfolio.
+// Mirrors /api/co-owner/invite: email-based lookup, rate-limited the same
+// way since this reaches a whole portfolio. Existing landlord accounts get
+// an in-app invite; emails with no account get a signup invite that links
+// automatically when they register (see /api/pm/clients/link-invite).
 export async function POST(request: NextRequest) {
   const authClient = await createClient()
   const { data: { user } } = await authClient.auth.getUser()
@@ -40,9 +39,31 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing email' }, { status: 400 })
   }
 
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ownerEmail)) {
+    return NextResponse.json({ error: "That doesn't look like a valid email address." }, { status: 400 })
+  }
+
   const { data: existingUserId } = await supabaseAdmin.rpc('get_user_id_by_email', { email_input: ownerEmail })
   if (!existingUserId) {
-    return NextResponse.json({ error: 'no_account_found' }, { status: 404 })
+    // No account yet: store the invite against their email and send them a
+    // signup link. /api/pm/clients/link-invite attaches it to their account
+    // on first login, and they still explicitly accept (choosing their own
+    // approval limit). Previously this was a dead end -- a PM could only
+    // bring on landlords who had already found Prophandld on their own.
+    const { error: emailInsertError } = await supabaseAdmin
+      .from('pm_client_portfolios')
+      .insert({ organization_id: membership.organizationId, invited_email: ownerEmail })
+    if (emailInsertError) {
+      if (emailInsertError.code === '23505') {
+        return NextResponse.json({ error: 'already_invited_or_managed' }, { status: 400 })
+      }
+      console.error('pm/clients/invite: email-invite insert failed', emailInsertError)
+      return NextResponse.json({ error: 'Could not send the invite.' }, { status: 500 })
+    }
+    await sendPmClientSignupInviteEmail({ to: ownerEmail, pmOrgName: membership.organizationName }).catch((err) =>
+      console.error('pm/clients/invite: signup-invite email failed', err)
+    )
+    return NextResponse.json({ ok: true, invitedByEmail: true })
   }
 
   const { data: existingAuthUser } = await supabaseAdmin.auth.admin.getUserById(existingUserId)

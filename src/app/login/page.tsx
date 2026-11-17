@@ -290,6 +290,12 @@ function LoginForm() {
       } catch (err) {
         console.error('Error checking pending co-owner invite on login:', err)
       }
+      // Same idea for a property manager who invited this person by email
+      // before they had an account -- links the invite so it shows up as a
+      // pending "X wants to manage your property" on the dashboard.
+      await fetch('/api/pm/clients/link-invite', { method: 'POST' }).catch((err) =>
+        console.error('Error linking pending PM client invite on login:', err)
+      )
 
       // A co-owner has no properties of their own — counting only their
       // own owner_user_id rows would wrongly send them to "add your first

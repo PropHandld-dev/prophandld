@@ -32,10 +32,19 @@ export function PmInviteBanner() {
   const [threshold, setThreshold] = useState('')
 
   useEffect(() => {
-    fetch('/api/pm/invites-for-me')
+    // Link any invite sent to this email before the account existed. Also
+    // runs on password login, but OAuth signups skip that path, so this
+    // makes the invite appear no matter how they got here. No-op when
+    // there's nothing to link.
+    fetch('/api/pm/clients/link-invite', { method: 'POST' })
+      .catch(() => {})
+      .then(() => fetch('/api/pm/invites-for-me'))
       .then((res) => res.json())
       .then((data) => {
-        const pending = (data.managedBy || []).find((m: any) => m.status === 'pending')
+        // Only invites the PM started -- a request the owner sent themselves
+        // (requestedBy 'owner') is waiting on the PM, not on this owner, and
+        // used to render here as "X wants to manage your property / Accept".
+        const pending = (data.managedBy || []).find((m: any) => m.status === 'pending' && m.requestedBy !== 'owner')
         if (pending) {
           setInvite({ id: pending.id, orgName: pending.orgName, approvalThreshold: pending.approvalThreshold })
           setThreshold(String(pending.approvalThreshold ?? 0))
