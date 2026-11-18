@@ -34,7 +34,7 @@ async function loadContext(portfolioId: string) {
 
   const { data: portfolio, error: portfolioError } = await admin
     .from('pm_client_portfolios')
-    .select('id, owner_user_id, status, monthly_summary_note, users(full_name, preferred_language)')
+    .select('id, owner_user_id, status, monthly_summary_note, users!pm_client_portfolios_owner_user_id_fkey(full_name, preferred_language)')
     .eq('id', portfolioId)
     .eq('organization_id', membership.organizationId)
     .maybeSingle()

@@ -24,7 +24,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   const { data: portfolio } = await supabaseAdmin
     .from('pm_client_portfolios')
-    .select('organization_id, owner_user_id, status, users(full_name, email)')
+    .select('organization_id, owner_user_id, status, users!pm_client_portfolios_owner_user_id_fkey(full_name, email)')
     .eq('id', portfolioId)
     .eq('status', 'accepted')
     .maybeSingle()

@@ -24,7 +24,7 @@ export async function GET() {
 
   const { data: portfolios } = await supabaseAdmin
     .from('pm_client_portfolios')
-    .select('id, owner_user_id, invited_email, approval_threshold, management_fee, management_fee_frequency, management_fee_type, management_fee_percent, fee_owner_approved_at, monthly_summary_enabled, owner_read_only, rent_recipient, rent_to_pm_requested_at, rent_to_pm_approved_at, status, requested_by, invited_at, accepted_at, users(full_name, email)')
+    .select('id, owner_user_id, invited_email, approval_threshold, management_fee, management_fee_frequency, management_fee_type, management_fee_percent, fee_owner_approved_at, monthly_summary_enabled, owner_read_only, rent_recipient, rent_to_pm_requested_at, rent_to_pm_approved_at, status, requested_by, invited_at, accepted_at, users!pm_client_portfolios_owner_user_id_fkey(full_name, email)')
     .eq('organization_id', membership.organizationId)
     .order('invited_at', { ascending: false })
 

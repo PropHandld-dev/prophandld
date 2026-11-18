@@ -26,7 +26,7 @@ export async function GET() {
 
   const { data: allPortfolios } = await supabaseAdmin
     .from('pm_client_portfolios')
-    .select('id, owner_user_id, approval_threshold, users(full_name, email)')
+    .select('id, owner_user_id, approval_threshold, users!pm_client_portfolios_owner_user_id_fkey(full_name, email)')
     .eq('organization_id', membership.organizationId)
     .eq('status', 'accepted')
 
