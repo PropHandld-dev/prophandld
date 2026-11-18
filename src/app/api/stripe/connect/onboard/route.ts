@@ -81,7 +81,6 @@ export async function POST() {
     return NextResponse.json({ url })
   } catch (err) {
     console.error('connect/onboard: unhandled error', err)
-    // TEMP diagnostic (2026-11-18): Stripe's own message, to find why onboarding fails.
-    return NextResponse.json({ error: friendlyStripeError(err, 'set up payouts'), detail: (err as any)?.raw?.message || (err as any)?.message || null, param: (err as any)?.raw?.param || null }, { status: 500 })
+    return NextResponse.json({ error: friendlyStripeError(err, 'set up payouts') }, { status: 500 })
   }
 }
