@@ -112,26 +112,23 @@ export async function POST(request: NextRequest) {
   // read-only calls, not part of the provider-swappable charge path itself.
   const stripe = getStripe()
 
-  // Bank transfer adds Stripe's real processing fee on top as a visible
-  // surcharge UNLESS the ach_fee_absorption flag covers this landlord right
-  // now — see src/lib/appSettings.ts. When absorbed, Stripe's own
-  // controller.fees.payer: 'application' setting (set at account creation)
-  // means the real processing cost already comes out of Prophandld's
-  // balance instead of the landlord's, natively — nothing extra to do here
-  // except not charge the tenant for it, and record what was absorbed for
-  // the finance report.
+  // Stripe takes its processing fee from the landlord's own account. Bank
+  // transfer: Prophandld pays it back to the landlord once the payment
+  // clears (rentPaymentSync), so the tenant pays exactly the rent.
+  // isAchFeeAbsorbed covers the per-landlord exception.
   const absorbed = paymentMethod === 'bank' ? await isAchFeeAbsorbed(supabaseAdmin, landlordUserId) : false
   const realAchFee = paymentMethod === 'bank' ? achProcessingFee(amountDue) : 0
   const surcharge = absorbed ? 0 : realAchFee
   const absorbedFeeAmount = absorbed ? realAchFee : 0
 
-  // Card: the tenant pays the card processing fee (rentCardFee), collected
-  // as the application fee so it covers Stripe's charge exactly.
+  // Card: the tenant pays the card processing fee (rentCardFee). It stays
+  // with the landlord, where it covers Stripe's fee on the charge.
   const cardFee = paymentMethod === 'card' ? rentCardFee(amountDue) : 0
   const tenantFee = surcharge + cardFee
   const chargeAmount = Math.round((amountDue + tenantFee) * 100) / 100
   const amountCents = Math.round(chargeAmount * 100)
-  const applicationFeeCents = Math.round(tenantFee * 100)
+  // Prophandld keeps nothing from rent.
+  const applicationFeeCents = 0
   const paymentMethodTypes = paymentMethod === 'bank' ? ['us_bank_account'] : ['card']
 
   // An earlier attempt may still be open, or a bank payment may be clearing.

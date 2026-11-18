@@ -24,3 +24,16 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     .eq('id', id)
   return NextResponse.json({ ok: true })
 }
+
+// DELETE: remove an entry from the log (e.g. one added by mistake).
+export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const authClient = await createClient()
+  const { data: { user } } = await authClient.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+  const admin = getSupabaseAdmin()
+  const { data: row } = await admin.from('screening_requests').select('id, owner_user_id').eq('id', id).maybeSingle()
+  if (!row || !(await canActForOwner(admin, user.id, row.owner_user_id))) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  await admin.from('screening_requests').delete().eq('id', id)
+  return NextResponse.json({ ok: true })
+}

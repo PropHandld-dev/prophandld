@@ -120,6 +120,33 @@ export async function syncRentPayment(
 
   if (!updated || updated.length === 0) return 'already_paid'
 
+  // Bank transfer: Stripe took its fee from the landlord's account; send it
+  // back so the landlord nets the full rent. Only the caller that just
+  // applied the payment gets here, and the idempotency key stops a
+  // concurrent duplicate.
+  const absorbed = Number(paymentIntent.metadata?.prophandld_absorbed_fee || 0)
+  if (method?.type === 'us_bank_account' && absorbed > 0) {
+    try {
+      await stripe.transfers.create(
+        {
+          amount: Math.round(absorbed * 100),
+          currency: 'usd',
+          destination: connectedAccountId,
+          description: 'Bank transfer fee, paid by Prophandld',
+          metadata: { prophandld_type: 'rent_fee_rebate', prophandld_rent_payment_id: rent.id, prophandld_payment_intent: paymentIntent.id },
+        },
+        { idempotencyKey: `rent-ach-rebate-${paymentIntent.id}` }
+      )
+    } catch (err) {
+      // Usually the platform balance can't cover it yet. Marked on the
+      // payment so it can be found and paid later; rent itself is applied.
+      console.error('rent sync: ACH fee rebate failed', err)
+      await stripe.paymentIntents
+        .update(paymentIntent.id, { metadata: { prophandld_fee_rebate: 'failed' } }, { stripeAccount: connectedAccountId })
+        .catch(() => {})
+    }
+  }
+
   return 'paid'
 }
 

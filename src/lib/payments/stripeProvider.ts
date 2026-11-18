@@ -86,14 +86,14 @@ export const stripeProvider: PaymentProviderAdapter = {
         // confirmed directly against node_modules/stripe's own types
         // before writing this. requirement_collection: 'stripe' +
         // stripe_dashboard: 'full' is what "Standard" actually means now;
-        // fees.payer: 'application' is the fee-absorption mechanism from
-        // the plan — Stripe deducts direct-charge processing fees from
-        // Prophandld's own balance instead of the connected account's,
-        // natively, with nothing to reconcile.
+        // fees.payer must be 'account' with the full dashboard: Stripe
+        // rejects 'application' for these accounts. Rent fees are covered
+        // instead by the tenant's card fee staying with the landlord, and
+        // by Prophandld transferring the bank fee back (rentPaymentSync).
         controller: {
           requirement_collection: 'stripe',
           stripe_dashboard: { type: 'full' },
-          fees: { payer: 'application' },
+          fees: { payer: 'account' },
           losses: { payments: 'stripe' },
         },
         capabilities: {

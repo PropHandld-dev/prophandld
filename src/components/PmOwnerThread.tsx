@@ -91,6 +91,13 @@ export function PmOwnerThread({ ownerId, onClose }: { ownerId?: string; onClose:
     else setText(d.text)
   }
 
+  const remove = async (m: Msg) => {
+    if (!window.confirm(m.kind === 'approval' ? 'Withdraw this approval request?' : 'Delete this message?')) return
+    const res = await fetch(`/api/pm/thread/${m.id}`, { method: 'DELETE' }).catch(() => null)
+    if (!res?.ok) setError((res ? (await res.json().catch(() => ({}))).error : null) || 'Could not delete.')
+    await load()
+  }
+
   const decide = async (messageId: string, decision: 'approved' | 'declined') => {
     setDeciding(messageId + decision)
     const res = await fetch('/api/pm/thread/decide', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messageId, decision }) }).catch(() => null)
@@ -171,12 +178,20 @@ export function PmOwnerThread({ ownerId, onClose }: { ownerId?: string; onClose:
                       <Link href={`/landlord/jobs/${m.action.jobId}`} className="block text-center bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl mt-4">Pay this job now</Link>
                     )}
                   </div>
-                  <p className="px-4 pb-3 text-white/35 text-[11px]">{m.senderName} · {time(m.createdAt)}{m.decidedAt ? ` · decided ${time(m.decidedAt)}` : ''}</p>
+                  <p className="px-4 pb-3 text-white/35 text-[11px] flex items-center gap-2">
+                    <span>{m.senderName} · {time(m.createdAt)}{m.decidedAt ? ` · decided ${time(m.decidedAt)}` : ''}</span>
+                    {m.mine && m.actionStatus === 'pending' && (
+                      <button onClick={() => remove(m)} className="ml-auto text-white/45 hover:text-red-400 font-semibold">Withdraw</button>
+                    )}
+                  </p>
                 </div>
               ) : (
                 <div className={`max-w-[80%] ${m.mine ? 'items-end' : 'items-start'} flex flex-col`}>
                   <div className={`rounded-2xl px-4 py-2.5 text-sm whitespace-pre-line leading-relaxed ${m.mine ? 'bg-[#12A5A9] text-white rounded-br-md' : 'bg-white/8 text-white rounded-bl-md'}`}>{m.body}</div>
-                  <span className="text-white/35 text-[11px] mt-1 px-1">{!m.mine && thread.side === 'owner' ? `${m.senderName} · ` : ''}{time(m.createdAt)}</span>
+                  <span className="text-white/35 text-[11px] mt-1 px-1">
+                    {!m.mine && thread.side === 'owner' ? `${m.senderName} · ` : ''}{time(m.createdAt)}
+                    {m.mine && <button onClick={() => remove(m)} className="ml-2 text-white/35 hover:text-red-400">Delete</button>}
+                  </span>
                   {!m.mine && <TranslateLink text={m.body} className="px-1" />}
                 </div>
               )}

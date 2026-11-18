@@ -114,7 +114,20 @@ export default function LeaseBuilderPage() {
               </section>
             </div>
           </article>
-          <p className="print:hidden text-white/35 text-xs mt-4 text-center">Draft saved {new Date(result.createdAt).toLocaleString()}. Once signed, upload the signed copy to this property&apos;s Documents.</p>
+          <p className="print:hidden text-white/35 text-xs mt-4 text-center">
+            Draft saved {new Date(result.createdAt).toLocaleString()}. Once signed, upload the signed copy to this property&apos;s Documents.{' '}
+            <button
+              onClick={async () => {
+                if (!window.confirm('Delete this draft?')) return
+                await fetch(`/api/leases/${result.id}`, { method: 'DELETE' }).catch(() => null)
+                setLatest(null)
+                setResult(null)
+              }}
+              className="text-red-400/70 hover:text-red-400 font-semibold"
+            >
+              Delete draft
+            </button>
+          </p>
         </main>
       </div>
     )

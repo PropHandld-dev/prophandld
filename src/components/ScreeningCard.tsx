@@ -84,6 +84,17 @@ export function ScreeningCard({ unitId }: { unitId: string }) {
                 <p className="text-white/40 text-xs truncate">{r.applicant_email} · {new Date(r.created_at).toLocaleDateString()}</p>
               </div>
               <span className={`text-[11px] font-semibold rounded-full px-2 py-0.5 ${STATUS[r.status]?.cls}`}>{STATUS[r.status]?.label}</span>
+              <button
+                onClick={async () => {
+                  if (!window.confirm(`Remove ${r.applicant_name} from this list?`)) return
+                  await fetch(`/api/screening/${r.id}`, { method: 'DELETE' }).catch(() => null)
+                  load()
+                }}
+                className="text-white/35 hover:text-red-400 text-xs"
+                aria-label={`Remove ${r.applicant_name}`}
+              >
+                Remove
+              </button>
               <select aria-label="Update status" value={r.status} onChange={(e) => setStatus(r.id, e.target.value)} className="bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-white text-xs">
                 {Object.entries(STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
               </select>
