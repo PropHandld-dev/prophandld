@@ -77,7 +77,7 @@ export function buildLeaseSections(i: LeaseInputs, extra: LeaseClause[]): LeaseS
     {
       title: '1. Parties',
       paragraphs: [
-        `This Residential Lease ("Lease") is between ${i.landlordName} ("Landlord")${i.agentName ? `, through its managing agent ${i.agentName}` : ''}, and ${tenantList} ("Tenant"). If there is more than one Tenant, each is fully responsible for all obligations under this Lease.`,
+        `This Residential Lease ("Lease") is between ${i.landlordName} ("Landlord")${i.agentName ? `, through managing agent ${i.agentName}` : ''}, and ${tenantList} ("Tenant"). If there is more than one Tenant, each is fully responsible for all obligations under this Lease.`,
       ],
     },
     { title: '2. Property', paragraphs: [`Landlord rents to Tenant the home at ${premises} (the "Property").${i.parking ? ` Parking: ${i.parking}.` : ''}`] },

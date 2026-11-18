@@ -318,3 +318,7 @@ html[data-theme="light"] .pm-hero { --color-white: #FFFFFF; }
 html[data-theme="light"] .pm-hero [class^="bg-white/"],
 html[data-theme="light"] .pm-hero [class*=" bg-white/"] { box-shadow: none; }
 html[data-theme="light"] .bg-\[\#0A0F1C\]\/60 { background-color: rgb(10 15 28 / 0.5); }
+
+/* The floating help button steps aside while any dialog or sheet is open,
+   so it never covers a Send or Save button. */
+body:has([aria-modal="true"]) .ai-help-bubble { display: none; }

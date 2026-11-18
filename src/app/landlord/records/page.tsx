@@ -183,9 +183,11 @@ export default function RecordsPage() {
                 { label: 'Expenses', value: data.totals.expenses, tone: 'text-white', f: 'out' as const },
                 { label: 'Net', value: data.totals.net, tone: data.totals.net >= 0 ? 'text-white' : 'text-red-400', f: 'all' as const },
               ].map((c) => (
-                <button key={c.label} onClick={() => setFilter(c.f)} className={`text-left rounded-2xl border p-3.5 sm:p-5 transition ${filter === c.f ? 'border-[#12A5A9]/50 bg-[#12A5A9]/8' : 'border-white/8 bg-white/3 hover:bg-white/5'}`}>
+                <button key={c.label} onClick={() => setFilter(c.f)} className={`min-w-0 text-left rounded-2xl border p-3 sm:p-5 transition ${filter === c.f ? 'border-[#12A5A9]/50 bg-[#12A5A9]/8' : 'border-white/8 bg-white/3 hover:bg-white/5'}`}>
                   <p className="text-white/50 text-xs font-semibold uppercase tracking-wide">{c.label}</p>
-                  <p className={`text-lg sm:text-3xl font-bold tabular-nums mt-1.5 ${c.tone}`}>{money(c.value)}</p>
+                  <p className={`text-base sm:text-3xl font-bold tabular-nums mt-1.5 truncate ${c.tone}`}>
+                    {c.value.toLocaleString(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: Math.abs(c.value) >= 1000 ? 0 : 2 })}
+                  </p>
                 </button>
               ))}
             </div>

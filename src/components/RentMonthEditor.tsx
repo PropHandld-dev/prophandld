@@ -121,7 +121,7 @@ export function RentMonthEditor({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4" role="dialog" aria-modal="true">
       <div className="bg-[#0F2138] border border-white/10 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-lg max-h-[92vh] overflow-y-auto p-6 motion-safe:animate-[floatUp_0.25s_ease-out]">
         <h3 className="text-white font-semibold text-lg">{t('editMonthPrefix', lang)}{monthLabel}</h3>
         <p className="text-white/50 text-xs mt-1">{t('rentEditSavedNote', lang)}</p>
