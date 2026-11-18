@@ -3,7 +3,7 @@ import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { hasAiAssistAccess } from '@/lib/aiAssist'
 import { tooManyAiAssistRequests } from '@/lib/aiAssistRateLimit'
-import { claudeJson } from '@/lib/claude'
+import { claudeText } from '@/lib/claude'
 import { resolvePair } from '@/lib/pmThread'
 
 export const maxDuration = 30
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
   const writer = pair.side === 'pm' ? `${me?.full_name || 'a property manager'} at ${pair.orgName}` : `${owner?.full_name || 'the owner'}, a property owner`
   const reader = pair.side === 'pm' ? `${owner?.full_name || 'the owner'}, their client` : `${pair.orgName}, their property manager`
   try {
-    const out = await claudeJson<{ text: string }>({
+    const raw = await claudeText({
       system:
         `You draft short messages for ${writer}, writing to ${reader}, inside a property management app. ` +
         'Warm, clear, professional, plain language; no subject line, no sign-off block, no emojis. ' +
@@ -96,12 +96,11 @@ export async function POST(request: NextRequest) {
             ? 'Write a reply to the latest message in the conversation.'
             : `Rewrite this draft to read better, keeping its meaning and every fact as-is:\n"""${draft}"""`) +
         (conversation ? `\n\nRecent conversation:\n${conversation}` : '') +
-        (instruction ? `\n\nExtra instruction from the writer: ${instruction}` : '') +
-        '\n\nReturn {"text": "..."}',
-      maxTokens: 500,
+        (instruction ? `\n\nExtra instruction from the writer: ${instruction}` : ''),
+      maxTokens: 800,
       track: { billedUserId: billed, callerUserId: user.id, feature: 'pm-thread-draft' },
     })
-    const text = typeof out?.text === 'string' ? out.text.trim().slice(0, 4000) : ''
+    const text = raw.slice(0, 4000)
     if (!text) throw new Error('empty')
     return NextResponse.json({ text })
   } catch (err) {

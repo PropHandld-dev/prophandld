@@ -140,3 +140,24 @@ export async function claudeJson<T>({
     throw new Error('Could not read the AI response. Try again.')
   }
 }
+
+// For features whose whole output is one piece of prose (message drafts):
+// asking for JSON just adds a way to fail, so take the text as-is.
+export async function claudeText({ system, prompt, maxTokens = 800, track }: { system: string; prompt: string; maxTokens?: number; track: UsageTrack }): Promise<string> {
+  requireApiKey()
+  const message = await getClaude().messages.create({
+    model: CLAUDE_MODEL,
+    max_tokens: maxTokens,
+    system: `${system}\n\nReply with only the message text itself: no quotes around it, no preamble, no notes.`,
+    messages: [{ role: 'user', content: prompt }],
+  })
+  try {
+    await logUsage(track, message.usage.input_tokens, message.usage.output_tokens)
+  } catch (err) {
+    console.error('claudeText: usage logging threw', err)
+  }
+  const textBlock = message.content.find((b): b is Anthropic.TextBlock => b.type === 'text')
+  const text = (textBlock?.text || '').trim().replace(/^["“]|["”]$/g, '')
+  if (!text) throw new Error('Claude returned no text')
+  return text
+}
