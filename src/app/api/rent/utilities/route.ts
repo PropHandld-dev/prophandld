@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
 
   const tenancyId = request.nextUrl.searchParams.get('tenancyId')
-  if (!tenancyId) return NextResponse.json({ error: 'Missing tenancyId' }, { status: 400 })
+  if (!tenancyId || !/^[0-9a-f-]{36}$/i.test(tenancyId)) return NextResponse.json({ error: 'Missing tenancyId' }, { status: 400 })
 
   const { data: months, error } = await authClient.from('rent_payments').select('id').eq('tenancy_id', tenancyId)
   if (error) return NextResponse.json({ error: 'Could not load bills' }, { status: 500 })

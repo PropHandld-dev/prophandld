@@ -39,3 +39,7 @@ where (coalesce(rp.water_amount, 0) > 0 or rp.water_bill_document_id is not null
 update public.rent_payments
 set utilities_amount = coalesce(water_amount, 0)
 where coalesce(water_amount, 0) > 0 and utilities_amount = 0;
+
+-- Required: the API routes use the service-role client, which bypasses RLS
+-- but not table grants.
+grant select, insert, update, delete on public.rent_utility_charges to service_role;
