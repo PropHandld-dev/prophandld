@@ -72,7 +72,20 @@ export async function POST(request: NextRequest) {
   // apply to the owner paying their own job, or to a plain co-owner (no
   // threshold concept there).
   const signoff = await approvalNeedsOwnerSignoff(supabaseAdmin, user.id, landlordUserId, Number(bid.amount))
+  // The owner approved this exact payment from an approval card in their
+  // PM conversation, for at least this amount.
+  let ownerApprovedInThread = false
   if (signoff.blocked) {
+    const { data: approvals } = await supabaseAdmin
+      .from('pm_owner_messages')
+      .select('action')
+      .eq('owner_user_id', landlordUserId)
+      .eq('kind', 'approval')
+      .eq('action_status', 'approved')
+      .eq('action->>bidId', bid.id)
+    ownerApprovedInThread = (approvals || []).some((a: any) => Number(a.action?.amount) >= Number(bid.amount))
+  }
+  if (signoff.blocked && !ownerApprovedInThread) {
     if (signoff.organizationId) {
       await logPmAction(supabaseAdmin, {
         organizationId: signoff.organizationId,
@@ -85,7 +98,7 @@ export async function POST(request: NextRequest) {
       })
     }
     return NextResponse.json(
-      { error: "This job's cost is over the owner's approval threshold — they need to approve it themselves before it can be paid." },
+      { error: "This job's cost is over the owner's approval limit. Send them an approval request from your conversation with them, or they can pay it themselves.", needsOwnerApproval: true },
       { status: 403 }
     )
   }

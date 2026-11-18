@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
+import { isValidProfileStyle } from '@/lib/profileStyles'
 
 export const maxDuration = 15
 
@@ -82,7 +83,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     pricingNote: org.pricing_note,
     logoUrl: org.logo_url,
     coverUrl: org.cover_url,
-    brandColor: org.brand_color && /^#[0-9a-fA-F]{6}$/.test(org.brand_color) ? org.brand_color : null,
+    brandColor: isValidProfileStyle(org.brand_color) ? org.brand_color : null,
     about: org.about,
     website: org.website,
     contactPhone: org.contact_phone,

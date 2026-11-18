@@ -6,6 +6,7 @@ import { getProviderAdapter } from '@/lib/payments'
 import { syncRentPayment } from '@/lib/rentPaymentSync'
 import { achProcessingFee, rentCardFee } from '@/lib/cardSurcharge'
 import { isAchFeeAbsorbed } from '@/lib/appSettings'
+import { resolveRentPayee } from '@/lib/rentRouting'
 import { hasBlockingComplianceIssue } from '@/lib/complianceGate'
 import { friendlyStripeError } from '@/lib/stripeErrorMessage'
 
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest) {
 
   const { data: rentPayment, error: rentPaymentError } = await supabaseAdmin
     .from('rent_payments')
-    .select('id, expected_amount, actual_amount, tenancy_id, stripe_payment_intent_id, stripe_status, tenancies(renter_user_id, unit_id, units(property_id, properties(owner_user_id)))')
+    .select('id, expected_amount, actual_amount, tenancy_id, stripe_payment_intent_id, stripe_status, stripe_account_id, tenancies(renter_user_id, unit_id, units(property_id, properties(owner_user_id)))')
     .eq('id', rentPaymentId)
     .maybeSingle()
 
@@ -80,13 +81,17 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const { data: landlordRow } = await supabaseAdmin
-    .from('users')
-    .select('stripe_connect_account_id, stripe_connect_status, payout_frozen_until, ach_provider')
-    .eq('id', landlordUserId)
-    .maybeSingle()
+  // Rent goes to the owner, or to their PM when the owner approved it and
+  // the PM is licensed, trust-account attested and set up (rentRouting.ts).
+  const payee = await resolveRentPayee(supabaseAdmin, landlordUserId)
+  const landlordRow = {
+    stripe_connect_account_id: payee.stripeAccountId,
+    stripe_connect_status: payee.stripeStatus,
+    payout_frozen_until: payee.payoutFrozenUntil,
+    ach_provider: payee.achProvider,
+  }
 
-  if (!landlordRow?.stripe_connect_account_id || landlordRow.stripe_connect_status !== 'active') {
+  if (!landlordRow.stripe_connect_account_id || landlordRow.stripe_connect_status !== 'active') {
     return NextResponse.json({ error: "Your landlord hasn't set up rent payouts yet." }, { status: 400 })
   }
 
@@ -134,7 +139,8 @@ export async function POST(request: NextRequest) {
   // behind an attempt they walked away from.
   if (rentPayment.stripe_payment_intent_id && ['requires_payment', 'processing'].includes(rentPayment.stripe_status || '')) {
     try {
-      const synced = await syncRentPayment(supabaseAdmin, stripe, rentPayment.id, connectedAccountId)
+      const previousAccountId = (rentPayment as any).stripe_account_id || connectedAccountId
+      const synced = await syncRentPayment(supabaseAdmin, stripe, rentPayment.id, previousAccountId)
       if (synced === 'paid' || synced === 'already_paid') {
         return NextResponse.json({ error: 'This month is already paid.', alreadyPaid: true }, { status: 409 })
       }
@@ -147,7 +153,7 @@ export async function POST(request: NextRequest) {
 
       // Direct-charge PaymentIntents live on the connected account, not the
       // platform — retrieving one needs that account's context too.
-      const existing = await stripe.paymentIntents.retrieve(rentPayment.stripe_payment_intent_id, undefined, { stripeAccount: connectedAccountId })
+      const existing = await stripe.paymentIntents.retrieve(rentPayment.stripe_payment_intent_id, undefined, { stripeAccount: previousAccountId })
       if (existing.status !== 'canceled' && existing.status !== 'succeeded') {
         // Must match on the chosen method too, not just the amount — a
         // stale bank-only intent from a previous attempt is never reusable
@@ -157,12 +163,13 @@ export async function POST(request: NextRequest) {
           ['requires_payment_method', 'requires_confirmation', 'requires_action'].includes(existing.status) &&
           existing.amount === amountCents &&
           existing.client_secret &&
+          previousAccountId === connectedAccountId &&
           existing.payment_method_types?.length === paymentMethodTypes.length &&
           existing.payment_method_types?.every((t) => paymentMethodTypes.includes(t))
         if (reusable) {
           return NextResponse.json({ clientSecret: existing.client_secret, amount: chargeAmount, baseAmount: amountDue, fee: tenantFee, connectedAccountId })
         }
-        await stripe.paymentIntents.cancel(existing.id, undefined, { stripeAccount: connectedAccountId }).catch((err) => {
+        await stripe.paymentIntents.cancel(existing.id, undefined, { stripeAccount: previousAccountId }).catch((err) => {
           console.error('rent/create-payment-intent: could not cancel old intent', err)
         })
       }
@@ -193,6 +200,9 @@ export async function POST(request: NextRequest) {
         stripe_status: 'requires_payment',
         provider: landlordRow.ach_provider || 'stripe',
         absorbed_fee_amount: absorbedFeeAmount || null,
+        stripe_account_id: connectedAccountId,
+        paid_to: payee.side,
+        paid_to_org_id: payee.orgId,
       })
       .eq('id', rentPayment.id)
 

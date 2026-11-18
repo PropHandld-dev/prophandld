@@ -10,6 +10,7 @@ import { BrandLink } from '@/components/BrandLink'
 import { BuildingIcon, StarIcon, ShieldIcon } from '@/components/icons'
 import { GoogleTranslateToggle } from '@/components/GoogleTranslateToggle'
 import { supabase } from '@/lib/supabase'
+import { resolveProfileStyle } from '@/lib/profileStyles'
 
 type Profile = {
   name: string
@@ -180,6 +181,8 @@ export default function PmPublicProfilePage() {
     )
   }
 
+  const look = resolveProfileStyle(profile.brandColor)
+
   return (
     <div className="marketing-page min-h-screen bg-[#0C1A2E] text-white">
       <nav className="border-b border-white/8 px-6 pb-4 pt-[calc(1rem+env(safe-area-inset-top))] flex items-center justify-between sticky top-0 bg-[#0C1A2E]/90 backdrop-blur-sm z-10">
@@ -199,46 +202,58 @@ export default function PmPublicProfilePage() {
         </div>
       </nav>
 
-      {/* Cover: the PM's photo, or a band in their brand color. brandColor
-          is validated server-side as strict #RRGGBB before it gets here. */}
-      {(profile.coverUrl || profile.brandColor) && (
-        <div className="max-w-3xl mx-auto px-4 pt-6">
-          <div
-            className="h-36 sm:h-48 rounded-3xl overflow-hidden border border-white/8"
-            style={profile.coverUrl ? undefined : { background: `linear-gradient(135deg, ${profile.brandColor}, ${profile.brandColor}99)` }}
-          >
-            {profile.coverUrl && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={profile.coverUrl} alt="" className="w-full h-full object-cover" />
-            )}
-          </div>
-        </div>
-      )}
-
-      <section className={`max-w-2xl mx-auto px-6 ${profile.coverUrl || profile.brandColor ? 'pt-0 -mt-10' : 'pt-16'} pb-10 text-center relative`}>
-        {profile.logoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={profile.logoUrl} alt={`${profile.name} logo`} className="w-20 h-20 rounded-2xl object-cover mx-auto mb-5 border-4 border-[#0C1A2E] bg-white shadow-lg" />
-        ) : (
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 border border-[#12A5A9]/30 flex items-center justify-center mx-auto mb-5 bg-[#0C1A2E]">
-            <BuildingIcon className="w-7 h-7 text-[#12A5A9]" />
-          </div>
-        )}
-        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-3">{profile.name}</h1>
-        {profile.pitch && <p className="text-white/60 max-w-lg mx-auto mb-5">{profile.pitch}</p>}
-
-        <div className="flex items-center justify-center gap-5 text-sm text-white/50 mb-8">
-          <span>{profile.clientCount} client{profile.clientCount === 1 ? '' : 's'}</span>
-          <span>·</span>
-          <span>{profile.unitCount} unit{profile.unitCount === 1 ? '' : 's'} managed</span>
-          {profile.avgRating !== null && (
+      {/* Hero: the PM's cover photo, or a slowly drifting gradient in their
+          profile style, with a frosted card on top. Colors come only from
+          resolveProfileStyle, never raw input. */}
+      <div className="max-w-4xl mx-auto px-4 pt-6">
+        <div className="relative h-52 sm:h-72 rounded-[28px] overflow-hidden border border-white/10" style={{ background: look.gradient }}>
+          {profile.coverUrl ? (
             <>
-              <span>·</span>
-              <span className="flex items-center gap-1">
-                <StarIcon className="w-4 h-4 text-yellow-400" /> {profile.avgRating.toFixed(1)} ({profile.reviews.length})
-              </span>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={profile.coverUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
+              <div className="absolute inset-0" style={{ background: `linear-gradient(180deg, transparent 35%, ${look.stops[1]}55 100%)` }} />
+            </>
+          ) : (
+            <>
+              <span aria-hidden className="pm-blob absolute -top-1/3 -left-1/4 w-3/4 h-[140%] rounded-full blur-3xl opacity-80" style={{ background: look.stops[2] }} />
+              <span aria-hidden className="pm-blob pm-blob-2 absolute -bottom-1/2 right-[-15%] w-2/3 h-[140%] rounded-full blur-3xl opacity-70" style={{ background: look.stops[1] }} />
+              <span aria-hidden className="pm-blob pm-blob-3 absolute top-1/4 left-1/3 w-1/3 h-2/3 rounded-full blur-2xl opacity-50" style={{ background: look.stops[0] }} />
+              <span aria-hidden className="absolute inset-0 opacity-[0.12] bg-[linear-gradient(to_right,white_1px,transparent_1px),linear-gradient(to_bottom,white_1px,transparent_1px)] bg-[size:32px_32px] [mask-image:radial-gradient(ellipse_at_center,black,transparent_75%)]" />
             </>
           )}
+        </div>
+      </div>
+
+      <section className="max-w-2xl mx-auto px-5 -mt-20 sm:-mt-24 pb-10 text-center relative">
+        <div className="rounded-[28px] border border-white/15 bg-[#0C1A2E]/75 backdrop-blur-2xl px-5 py-7 sm:px-10 sm:py-9 shadow-[0_40px_90px_-40px_rgba(0,0,0,0.7)] mb-8">
+          <div className="mx-auto mb-5 w-[88px] h-[88px] rounded-[22px] p-[3px]" style={{ background: look.gradient }}>
+            {profile.logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={profile.logoUrl} alt={`${profile.name} logo`} className="w-full h-full rounded-[19px] object-cover bg-white" />
+            ) : (
+              <div className="w-full h-full rounded-[19px] bg-[#0C1A2E] flex items-center justify-center text-2xl font-bold" style={{ color: look.stops[2] }}>
+                {profile.name.split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase()}
+              </div>
+            )}
+          </div>
+          <h1 className="text-3xl sm:text-5xl font-bold tracking-tight mb-3 text-balance">{profile.name}</h1>
+          {profile.pitch && <p className="text-white/65 max-w-lg mx-auto text-base sm:text-lg leading-relaxed">{profile.pitch}</p>}
+
+          <div className="grid grid-cols-3 gap-2 sm:gap-3 mt-7 max-w-md mx-auto">
+            {[
+              { value: String(profile.clientCount), label: profile.clientCount === 1 ? 'client' : 'clients' },
+              { value: String(profile.unitCount), label: 'units managed' },
+              { value: profile.avgRating !== null ? profile.avgRating.toFixed(1) : '—', label: profile.avgRating !== null ? `rating (${profile.reviews.length})` : 'no reviews yet', star: profile.avgRating !== null },
+            ].map((m) => (
+              <div key={m.label} className="rounded-2xl bg-white/5 border border-white/10 py-3 px-2">
+                <p className="text-xl sm:text-2xl font-bold tabular-nums flex items-center justify-center gap-1">
+                  {m.value}
+                  {m.star && <StarIcon className="w-4 h-4 text-yellow-400" />}
+                </p>
+                <p className="text-white/45 text-[11px] sm:text-xs mt-0.5 leading-tight">{m.label}</p>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Trust badges — license/insurance/track-record are the actual
@@ -308,7 +323,7 @@ export default function PmPublicProfilePage() {
               onClick={handleRequest}
               disabled={requesting}
               className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-7 py-3.5 rounded-full hover:opacity-90 disabled:opacity-50"
-              style={profile.brandColor ? { background: profile.brandColor } : undefined}
+              style={{ background: look.gradient, boxShadow: `0 16px 40px -14px ${look.accent}` }}
             >
               {requesting ? 'Sending…' : `Request to be managed by ${profile.name}`}
             </RippleButton>
@@ -331,7 +346,7 @@ export default function PmPublicProfilePage() {
           <MagneticLink
             href={`/signup?role=landlord&pmSlug=${slug}`}
             className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-7 py-3.5 rounded-full hover:opacity-90 inline-block"
-            style={profile.brandColor ? { background: profile.brandColor } : undefined}
+            style={{ background: look.gradient, boxShadow: `0 16px 40px -14px ${look.accent}` }}
           >
             Request to be managed by {profile.name}
           </MagneticLink>
@@ -394,7 +409,7 @@ export default function PmPublicProfilePage() {
                   <div key={i} className="flex items-center gap-2.5 bg-white/4 border border-white/8 rounded-xl px-3 py-2">
                     <div
                       className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
-                      style={{ background: profile.brandColor || '#12A5A9' }}
+                      style={{ background: look.gradient }}
                     >
                       {m.name.split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase()}
                     </div>

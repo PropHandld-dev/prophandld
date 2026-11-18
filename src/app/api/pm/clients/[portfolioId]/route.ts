@@ -182,7 +182,9 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
   // relationship, not just an admin — the UI's own Remove button was
   // already admin-gated, but the route itself wasn't, so a change there
   // (or a direct request) would have silently allowed it.
-  let query = supabaseAdmin.from('pm_client_portfolios').delete().eq('id', portfolioId)
+  // Active relationships end through ./end (records it, tells everyone,
+  // keeps fee history); this only removes pending invites and requests.
+  let query = supabaseAdmin.from('pm_client_portfolios').delete().eq('id', portfolioId).neq('status', 'accepted')
   if (membership?.memberRole === 'admin') {
     query = query.eq('organization_id', membership.organizationId)
   } else {

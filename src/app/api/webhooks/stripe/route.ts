@@ -6,6 +6,7 @@ import { syncRentPayment } from '@/lib/rentPaymentSync'
 import { sendPayoutDetailsChangedEmail, sendDuplicateLandlordBankAccountAdminEmail } from '@/lib/email'
 import { sendJobPaymentNotifications } from '@/lib/jobPaymentNotify'
 import { sendRentPaymentReceivedNotifications, sendRentCreditCardRejectedNotifications, sendRentPaymentReversedNotifications } from '@/lib/rentPaymentNotify'
+import { notifyUser } from '@/lib/notifyUser'
 
 export const maxDuration = 30
 
@@ -82,6 +83,14 @@ export async function POST(request: NextRequest) {
             name: updatedUser.full_name || 'there',
             lang: updatedUser.preferred_language === 'es' ? 'es' : 'en',
           }).catch((err) => console.error('stripe webhook: payout-changed alert email failed', err))
+          // Security change: push and text too, so a hijacked account is
+          // noticed in minutes, not whenever email gets read.
+          await notifyUser(supabaseAdmin, updatedUser.id, {
+            title: 'Your payout bank account changed',
+            body: "If this wasn't you, contact us right away. Payouts are paused for 48 hours.",
+            url: '/profile',
+            sms: "Your payout bank account was just changed. If this wasn't you, contact admin@prophandld.com now. Payouts are paused 48 hours.",
+          }).catch(() => {})
         }
         // The other half of the free-tier-loophole fix (see
         // check-landlord-phone/route.ts): Stripe's hosted Express

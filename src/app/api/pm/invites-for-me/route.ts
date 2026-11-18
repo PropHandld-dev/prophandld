@@ -17,7 +17,7 @@ export async function GET() {
   const admin = getSupabaseAdmin()
   const { data: rows } = await admin
     .from('pm_client_portfolios')
-    .select('id, status, requested_by, invited_at, accepted_at, approval_threshold, management_fee, management_fee_frequency, management_fee_type, management_fee_percent, fee_owner_approved_at, owner_read_only, pm_organizations(name)')
+    .select('id, status, requested_by, invited_at, accepted_at, approval_threshold, management_fee, management_fee_frequency, management_fee_type, management_fee_percent, fee_owner_approved_at, owner_read_only, rent_recipient, rent_to_pm_requested_at, rent_to_pm_approved_at, pm_organizations(name, broker_license_number, broker_license_state, trust_account_attested_at)')
     .eq('owner_user_id', user.id)
     .order('invited_at', { ascending: false })
 
@@ -36,6 +36,12 @@ export async function GET() {
       feeApproved: !!r.fee_owner_approved_at,
       ownerReadOnly: !!r.owner_read_only,
       orgName: r.pm_organizations?.name || 'A property manager',
+      rentRecipient: (r.rent_recipient as 'owner' | 'pm') || 'owner',
+      rentToPmRequested: !!r.rent_to_pm_requested_at && !r.rent_to_pm_approved_at,
+      brokerLicense: r.pm_organizations?.broker_license_number
+        ? `${r.pm_organizations.broker_license_state ? `${r.pm_organizations.broker_license_state} ` : ''}${r.pm_organizations.broker_license_number}`
+        : null,
+      trustAccountAttested: !!r.pm_organizations?.trust_account_attested_at,
     })),
   })
 }

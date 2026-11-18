@@ -1617,6 +1617,8 @@ export function buildPushMessage(type: NotifyType, role: NotifyRole, info: Notif
 // else stays email/push-only.
 export const SMS_ENABLED_TYPES: NotifyType[] = [
   'job_reported',
+  'price_change_requested',
+  'contractor_cancelled',
   'job_open',
   'schedule_proposed',
   'schedule_confirmed',
@@ -3593,6 +3595,126 @@ export async function sendUtilityBillsAddedEmail({
     subject: lang === 'es' ? `Nueva factura de servicios: ${list}` : `New utility bill: ${list}`,
     html,
   })
+}
+
+export async function sendPmRelationshipEndedEmail({
+  to,
+  recipientSide,
+  orgName,
+  ownerName,
+  endedBySide,
+  depositsHeld,
+  openJobsCount,
+  unpaidFees,
+  lang = 'en',
+}: {
+  to: string
+  recipientSide: 'owner' | 'pm'
+  orgName: string
+  ownerName: string
+  endedBySide: 'owner' | 'pm'
+  depositsHeld: 'yes' | 'no' | 'unsure' | null
+  openJobsCount: number
+  unpaidFees: number
+  lang?: Lang
+}) {
+  const es = lang === 'es'
+  const who = endedBySide === 'owner' ? ownerName : orgName
+  const heading = es ? `${escapeHtml(orgName)} ya no administra las propiedades de ${escapeHtml(ownerName)}` : `${escapeHtml(orgName)} no longer manages ${escapeHtml(ownerName)}'s properties`
+  const steps: string[] = []
+  if (recipientSide === 'owner') {
+    steps.push(es ? 'Tú apruebas los trabajos y recibes las notificaciones desde ahora.' : 'You approve jobs and get the notifications from now on.')
+    steps.push(es ? 'La renta se paga a tu cuenta.' : 'Rent is paid to your own account.')
+  } else {
+    steps.push(es ? `Tu equipo ya no tiene acceso a las propiedades de ${escapeHtml(ownerName)}.` : `Your team no longer has access to ${escapeHtml(ownerName)}'s properties.`)
+  }
+  if (depositsHeld === 'yes' || depositsHeld === 'unsure') {
+    steps.push(es
+      ? `Depósitos de seguridad: ${escapeHtml(orgName)} debe transferir cualquier depósito que tenga a ${escapeHtml(ownerName)}, con un estado de cuenta por escrito. Prophandld no guarda depósitos.`
+      : `Security deposits: ${escapeHtml(orgName)} should transfer any deposits it holds to ${escapeHtml(ownerName)}, with a written accounting. Prophandld doesn't hold deposits.`)
+  }
+  if (unpaidFees > 0) {
+    steps.push(es ? `Hay $${unpaidFees.toFixed(2)} en tarifas de administración sin pagar; arréglenlo entre ustedes. No se cobrará nada más.` : `$${unpaidFees.toFixed(2)} in management fees is unpaid; settle it between you. Nothing more will be charged.`)
+  }
+  const html = baseTemplate({
+    lang,
+    eyebrow: es ? 'Administración' : 'Property management',
+    heading,
+    bodyHtml: `${es ? `Finalizado por ${escapeHtml(who)}.` : `Ended by ${escapeHtml(who)}.`}<br><br>${steps.map((x) => `• ${x}`).join('<br>')}`,
+    preheader: es ? 'La administración terminó' : 'Management has ended',
+    facts: [
+      { label: fl('Property manager', lang), value: orgName },
+      ...(openJobsCount > 0 ? [{ label: es ? 'Trabajos abiertos' : 'Open jobs', value: String(openJobsCount) }] : []),
+    ],
+    ctaLabel: es ? 'Abrir Prophandld' : 'Open Prophandld',
+    ctaUrl: `${SITE_URL}/landlord`,
+  })
+  return sendEmail({ to, subject: es ? `La administración con ${orgName} terminó` : `Management with ${orgName} has ended`, html })
+}
+
+export async function sendManagerChangedTenantEmail({
+  to,
+  orgName,
+  ownerName,
+  address,
+  lang = 'en',
+}: {
+  to: string
+  orgName: string
+  ownerName: string
+  address: string
+  lang?: Lang
+}) {
+  const es = lang === 'es'
+  const html = baseTemplate({
+    lang,
+    eyebrow: es ? 'Tu vivienda' : 'Your home',
+    heading: es ? `Nuevo contacto para ${escapeHtml(address)}` : `New contact for ${escapeHtml(address)}`,
+    bodyHtml: es
+      ? `${escapeHtml(orgName)} ya no administra tu vivienda. Desde ahora, ${escapeHtml(ownerName)} es tu contacto para reparaciones, renta y preguntas. Todo sigue funcionando igual en Prophandld.`
+      : `${escapeHtml(orgName)} no longer manages your home. From now on, ${escapeHtml(ownerName)} is your contact for repairs, rent and questions. Everything else in Prophandld works the same.`,
+    preheader: es ? `Tu contacto ahora es ${ownerName}` : `Your contact is now ${ownerName}`,
+    facts: [{ label: fl('Where', lang), value: address }],
+    ctaLabel: es ? 'Abrir Prophandld' : 'Open Prophandld',
+    ctaUrl: `${SITE_URL}/renter`,
+  })
+  return sendEmail({ to, subject: es ? `Nuevo contacto para ${address}` : `New contact for ${address}`, html })
+}
+
+// A short, plain notice with one button: used for PM/owner decisions
+// (rent routing requests, approvals, chat action cards).
+export async function sendPmNoticeEmail({
+  to,
+  subject,
+  eyebrow,
+  heading,
+  body,
+  ctaLabel,
+  ctaUrl,
+  facts = [],
+  lang = 'en',
+}: {
+  to: string
+  subject: string
+  eyebrow: string
+  heading: string
+  body: string
+  ctaLabel: string
+  ctaUrl: string
+  facts?: { label: string; value: string }[]
+  lang?: Lang
+}) {
+  const html = baseTemplate({
+    lang,
+    eyebrow,
+    heading: escapeHtml(heading),
+    bodyHtml: escapeHtml(body).replace(/\n/g, '<br>'),
+    preheader: body.slice(0, 120),
+    facts,
+    ctaLabel,
+    ctaUrl: ctaUrl.startsWith('http') ? ctaUrl : `${SITE_URL}${ctaUrl}`,
+  })
+  return sendEmail({ to, subject, html })
 }
 
 export async function sendRentDueRenterEmail({

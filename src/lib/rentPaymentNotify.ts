@@ -6,6 +6,7 @@ import {
   sendRentPaymentReversedEmail,
 } from '@/lib/email'
 import { sendPush } from '@/lib/push'
+import { sendAlertSms } from '@/lib/sms'
 import { emailAllowed } from '@/lib/notificationPrefs'
 import { notifyLandlordIds } from '@/lib/landlordCoOwners'
 
@@ -165,10 +166,14 @@ export async function sendRentPaymentReversedNotifications(
     const landlordIds = await notifyLandlordIds(supabaseAdmin, landlordUserId)
     const { data: landlords } = await supabaseAdmin
       .from('users')
-      .select('id, email, full_name, preferred_language, email_notifications_enabled')
+      .select('id, email, phone, sms_opt_in, full_name, preferred_language, email_notifications_enabled')
       .in('id', landlordIds)
     for (const landlord of landlords || []) {
-      if (landlord?.email && emailAllowed(landlord)) {
+      // Money moving backwards: always emailed, texted when opted in.
+      if (landlord?.sms_opt_in && landlord.phone) {
+        await sendAlertSms(landlord.phone, `Prophandld: a $${amount.toFixed(2)} rent payment for ${unitLabel || 'a unit'} was reversed by the bank.`).catch(() => {})
+      }
+      if (landlord?.email) {
         await sendRentPaymentReversedEmail({
           to: landlord.email,
           name: landlord.full_name || 'there',
@@ -190,10 +195,13 @@ export async function sendRentPaymentReversedNotifications(
   if (renterUserId) {
     const { data: renter } = await supabaseAdmin
       .from('users')
-      .select('email, full_name, preferred_language, email_notifications_enabled')
+      .select('email, phone, sms_opt_in, full_name, preferred_language, email_notifications_enabled')
       .eq('id', renterUserId)
       .maybeSingle()
-    if (renter?.email && emailAllowed(renter)) {
+    if (renter?.sms_opt_in && renter.phone) {
+      await sendAlertSms(renter.phone, `Prophandld: your $${amount.toFixed(2)} rent payment was reversed by your bank. Please pay again.`).catch(() => {})
+    }
+    if (renter?.email) {
       await sendRentPaymentReversedEmail({
         to: renter.email,
         name: renter.full_name || 'there',

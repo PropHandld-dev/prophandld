@@ -16,6 +16,11 @@ import { GoogleTranslateToggle } from '@/components/GoogleTranslateToggle'
 import { RentTrendChart, type MonthBucket } from '@/components/RentTrendChart'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { LANDLORD_TABS } from '@/lib/navTabs'
+import { ProfileStylePicker } from '@/components/ProfileStylePicker'
+import { resolveProfileStyle, dominantColorFromImage } from '@/lib/profileStyles'
+import { EndManagementDialog } from '@/components/EndManagementDialog'
+import { PmRentRow, OwnerRentRouting } from '@/components/RentRoutingPanels'
+import { PmOwnerThread } from '@/components/PmOwnerThread'
 
 const StripePaymentModal = dynamic(() => import('@/components/StripePaymentModal').then((m) => m.StripePaymentModal), { ssr: false })
 
@@ -34,6 +39,8 @@ type ClientRow = {
   managementFeeType: 'flat' | 'percent_of_rent'
   managementFeePercent: number | null
   feeApproved: boolean
+  rentRecipient?: 'owner' | 'pm'
+  rentToPmRequested?: boolean
   monthlySummaryEnabled: boolean
   ownerReadOnly: boolean
   status: 'pending' | 'accepted'
@@ -78,6 +85,10 @@ type IncomingInvite = {
   managementFeePercent: number | null
   feeApproved: boolean
   ownerReadOnly: boolean
+  rentRecipient?: 'owner' | 'pm'
+  rentToPmRequested?: boolean
+  brokerLicense?: string | null
+  trustAccountAttested?: boolean
 }
 
 const SPECIALTY_LABELS: Record<string, string> = {
@@ -93,6 +104,15 @@ const ACTION_LABELS: Record<string, string> = {
   job_payment_blocked_needs_owner_signoff: 'tried to approve a payment over threshold',
   job_bulk_approved: 'approved completed work',
   property_added_for_owner: 'added a property',
+  rent_month_updated: 'updated a rent month',
+  relationship_ended: 'ended management',
+  rent_routing_requested: 'asked to collect rent',
+  rent_routing_stopped: 'stopped collecting rent',
+  rent_routing_approve: 'approved rent collection',
+  rent_routing_decline: 'declined rent collection',
+  rent_routing_revoke: 'switched rent back to the owner',
+  owner_action_approved: 'approved a request in messages',
+  owner_action_declined: 'declined a request in messages',
 }
 
 type PendingJob = { id: string; category: string; createdAt: string; ownerUserId: string; ownerName: string; address: string }
@@ -443,6 +463,16 @@ export default function PmDashboardPage() {
   // Branding, about, contact and team -- what a landlord comparing PMs
   // actually looks at on the public profile.
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
+  const [firstName, setFirstName] = useState('')
+  const [endingPortfolioId, setEndingPortfolioId] = useState<string | null>(null)
+  const [rentAttested, setRentAttested] = useState(false)
+  // Open conversation: 'self' for an owner talking to their PM, or a
+  // client's owner id on the PM side. ?thread= deep-links from notifications.
+  const [threadWith, setThreadWith] = useState<string | null>(null)
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get('thread')
+    if (t) setThreadWith(t === '1' ? 'self' : t)
+  }, [])
   const [coverUrl, setCoverUrl] = useState<string | null>(null)
   const [brandColor, setBrandColor] = useState<string | null>(null)
   const [about, setAbout] = useState('')
@@ -584,6 +614,7 @@ export default function PmDashboardPage() {
       setMembership(orgRes.membership || null)
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (session?.user) rememberPmHome(orgRes.membership ? session.user.id : null)
+        setFirstName(String(session?.user?.user_metadata?.full_name || '').split(' ')[0])
       })
       setPendingStaffInvite(orgRes.pendingStaffInvite || null)
       setIncomingInvites(invitesRes.managedBy || [])
@@ -597,6 +628,7 @@ export default function PmDashboardPage() {
           fetch('/api/pm/contractors').then((r) => r.json()),
           fetch('/api/pm/jobs/pending-approval').then((r) => r.json()),
         ])
+        fetch('/api/pm/rent-routing').then((r) => r.json()).then((d) => setRentAttested(!!d.attested)).catch(() => {})
         setContractors(contractorsRes.contractors || [])
         setPendingJobs(pendingRes.jobs || [])
         const statsByPortfolio = new Map((dashRes.clients || []).map((c: any) => [c.portfolioId, c]))
@@ -904,8 +936,17 @@ export default function PmDashboardPage() {
     const res = await fetch('/api/pm/profile-settings/image', { method: 'POST', body: form }).catch(() => null)
     const data = res ? await res.json().catch(() => ({})) : {}
     if (res?.ok) {
-      if (kind === 'logo') setLogoUrl(data.url)
-      else setCoverUrl(data.url)
+      if (kind === 'logo') {
+        setLogoUrl(data.url)
+        if (!brandColor) {
+          dominantColorFromImage(data.url).then((hex) => {
+            if (hex) {
+              setBrandColor(hex)
+              saveProfileField('brandColor', hex)
+            }
+          })
+        }
+      } else setCoverUrl(data.url)
     } else {
       setProfileMsg({
         tone: 'error',
@@ -1142,11 +1183,6 @@ export default function PmDashboardPage() {
     await loadAll()
   }
 
-  const handleRemoveClient = async (portfolioId: string) => {
-    await fetch(`/api/pm/clients/${portfolioId}`, { method: 'DELETE' })
-    await loadAll()
-  }
-
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0A0F1C] px-4 py-10">
@@ -1165,21 +1201,40 @@ export default function PmDashboardPage() {
   const combinedUnits = acceptedClients.reduce((t, c) => t + (c.unitCount || 0), 0)
   const combinedOpenJobs = acceptedClients.reduce((t, c) => t + (c.openJobCount || 0), 0)
   const combinedRent = acceptedClients.reduce((t, c) => t + (c.rentCollectedThisMonth || 0), 0)
+  const look = resolveProfileStyle(brandColor)
+  const hour = new Date().getHours()
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
+  const pendingClientInvites = clients.filter((c) => c.status === 'pending').length
+  const feesAwaitingOwner = acceptedClients.filter((c) =>
+    (c.managementFeeType === 'percent_of_rent' ? (c.managementFeePercent ?? 0) > 0 : (c.managementFee ?? 0) > 0) && !c.feeApproved
+  ).length
+  const needsYou = [
+    { count: pendingJobs.length, label: pendingJobs.length === 1 ? 'job to review' : 'jobs to review', go: () => { setActiveTab('overview'); setTimeout(() => document.getElementById('pending-approvals')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50) } },
+    { count: complianceAlerts.length, label: complianceAlerts.length === 1 ? 'compliance deadline' : 'compliance deadlines', go: () => { setActiveTab('overview'); setTimeout(() => document.getElementById('compliance-alerts')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50) } },
+    { count: pendingClientInvites, label: pendingClientInvites === 1 ? 'client invite pending' : 'client invites pending', go: () => setActiveTab('clients') },
+    { count: feesAwaitingOwner, label: feesAwaitingOwner === 1 ? 'fee awaiting approval' : 'fees awaiting approval', go: () => setActiveTab('clients') },
+  ].filter((n) => n.count > 0)
 
   return (
-    <div className="min-h-screen bg-[#0A0F1C] px-4 py-8 pb-24">
-      <div className="max-w-2xl mx-auto">
+    <div className="min-h-screen bg-[#0A0F1C] px-4 py-6 sm:py-8 pb-24">
+      <div className="max-w-3xl mx-auto">
         <div className="flex items-center justify-between gap-3 mb-4">
-          <Link href="/profile" className="inline-flex items-center gap-1.5 text-white/40 text-sm hover:text-white/70 transition">
-            ← Back to profile
-          </Link>
+          {membership ? (
+            <span className="text-white/40 text-xs font-semibold uppercase tracking-[0.18em]">Property management</span>
+          ) : (
+            <Link href="/profile" className="inline-flex items-center gap-1.5 text-white/40 text-sm hover:text-white/70 transition">
+              ← Back to profile
+            </Link>
+          )}
           <GoogleTranslateToggle />
         </div>
 
-        <h1 className="text-white font-bold text-2xl mb-1">Property Management</h1>
-        <p className="text-white/50 text-sm mb-6">
-          {membership ? membership.organizationName : 'Manage every client’s properties from one place.'}
-        </p>
+        {!membership && (
+          <>
+            <h1 className="text-white font-bold text-2xl mb-1">Property Management</h1>
+            <p className="text-white/50 text-sm mb-6">Manage every client’s properties from one place.</p>
+          </>
+        )}
 
         {error && (
           <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm mb-6">{error}</div>
@@ -1279,15 +1334,28 @@ export default function PmDashboardPage() {
                   their own relationship, but until now nothing in the UI
                   ever offered that once accepted, only at the pending stage. */}
               <button
-                onClick={() => {
-                  if (!window.confirm(`Stop ${acceptedIncoming[0].orgName} from managing your property? You can always invite them, or another PM, again later.`)) return
-                  handleDeclineInvite(acceptedIncoming[0].id)
-                }}
+                onClick={() => setEndingPortfolioId(acceptedIncoming[0].id)}
                 className="text-white/40 hover:text-red-400 text-xs font-semibold shrink-0 transition"
               >
                 Remove manager
               </button>
             </div>
+            <button
+              type="button"
+              onClick={() => setThreadWith('self')}
+              className="mt-4 w-full flex items-center justify-center gap-2 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-3 rounded-xl hover:opacity-90"
+            >
+              Message {acceptedIncoming[0].orgName}
+            </button>
+            <OwnerRentRouting
+              portfolioId={acceptedIncoming[0].id}
+              orgName={acceptedIncoming[0].orgName}
+              rentRecipient={acceptedIncoming[0].rentRecipient || 'owner'}
+              requested={!!acceptedIncoming[0].rentToPmRequested}
+              brokerLicense={acceptedIncoming[0].brokerLicense || null}
+              trustAccountAttested={!!acceptedIncoming[0].trustAccountAttested}
+              onChanged={() => loadAll()}
+            />
 
             {/* Found live: the threshold was shown as a read-only number the
                 PM admin had set, with no way for the owner to change it —
@@ -1471,7 +1539,32 @@ export default function PmDashboardPage() {
 
         {membership && (
           <>
-            <div className="grid grid-cols-3 gap-3 mb-6">
+            <div className="pm-hero relative overflow-hidden rounded-[28px] border border-white/10 mb-5 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.8)]">
+              <div aria-hidden className="absolute inset-0" style={{ background: look.gradient }} />
+              <span aria-hidden className="pm-blob absolute -top-1/2 -left-1/4 w-3/4 h-[160%] rounded-full blur-3xl opacity-70" style={{ background: look.stops[2] }} />
+              <span aria-hidden className="pm-blob pm-blob-2 absolute -bottom-1/2 -right-1/4 w-2/3 h-[160%] rounded-full blur-3xl opacity-60" style={{ background: look.stops[1] }} />
+              <div aria-hidden className="absolute inset-0 bg-[#0A0F1C]/60" />
+              <div className="relative p-5 sm:p-7">
+                <div className="flex items-center gap-3.5 mb-6">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl p-[2px] shrink-0" style={{ background: look.gradient }}>
+                    {logoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={logoUrl} alt="" className="w-full h-full rounded-[14px] object-cover bg-white" />
+                    ) : (
+                      <span className="w-full h-full rounded-[14px] bg-[#0A0F1C] flex items-center justify-center text-white font-bold">
+                        {membership.organizationName.split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-white/65 text-sm">{greeting}{firstName ? `, ${firstName}` : ''}</p>
+                    <h1 className="text-white font-bold text-xl sm:text-2xl tracking-tight truncate">{membership.organizationName}</h1>
+                  </div>
+                  <span className="ml-auto hidden sm:inline-flex text-white/60 text-xs bg-white/10 border border-white/15 rounded-full px-3 py-1">
+                    {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}
+                  </span>
+                </div>
+            <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
               <StatTile icon={BuildingIcon} label="Units managed" value={<CountUp value={combinedUnits} />} onClick={() => router.push('/landlord/properties')} />
               <StatTile icon={WrenchIcon} label="Open jobs" value={<CountUp value={combinedOpenJobs} />} onClick={() => router.push('/landlord/jobs?filter=open')} />
               {membership.canViewFinancials ? (
@@ -1480,7 +1573,31 @@ export default function PmDashboardPage() {
                 <StatTile icon={ShieldIcon} label="Your role" value="Staff" />
               )}
             </div>
+              </div>
+            </div>
 
+            <div className="mb-5">
+              {needsYou.length === 0 ? (
+                <p className="inline-flex items-center gap-2 text-sm text-[#12A5A9] bg-[#12A5A9]/10 border border-[#12A5A9]/20 rounded-full px-3.5 py-1.5">
+                  <span aria-hidden>✓</span> All clear. Nothing needs you right now.
+                </p>
+              ) : (
+                <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 snap-x">
+                  <span className="shrink-0 self-center text-white/45 text-xs font-semibold uppercase tracking-wider mr-1">Needs you</span>
+                  {needsYou.map((n) => (
+                    <button
+                      key={n.label}
+                      type="button"
+                      onClick={n.go}
+                      className="snap-start shrink-0 inline-flex items-center gap-2 rounded-full bg-yellow-500/10 border border-yellow-500/25 pl-1.5 pr-3.5 py-1.5 text-sm text-white hover:bg-yellow-500/15 transition"
+                    >
+                      <span style={{ background: '#FACC15', color: '#0A0F1C' }} className="min-w-6 h-6 px-1.5 rounded-full text-xs font-bold flex items-center justify-center tabular-nums">{n.count}</span>
+                      {n.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
             <TabBar
               active={activeTab}
@@ -1564,7 +1681,7 @@ export default function PmDashboardPage() {
                 )}
 
                 {pendingJobs.length > 0 && (
-                  <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-5 mb-6">
+                  <ScrollReveal id="pending-approvals" className="scroll-mt-6 bg-white/3 border border-white/8 rounded-2xl p-5 mb-6">
                     <div className="flex items-center justify-between mb-3">
                       <h2 className="text-white font-semibold">
                         Pending approvals <span className="text-white/30 font-normal">({pendingJobs.length})</span>
@@ -1786,7 +1903,7 @@ export default function PmDashboardPage() {
                         <div className="flex-1 min-w-[180px]">
                           <p className="text-xs text-white/50 mb-1.5">Cover photo</p>
                           <div className="flex items-center gap-2">
-                            <div className="h-14 flex-1 rounded-xl bg-white/5 border border-white/10 overflow-hidden" style={coverUrl ? undefined : brandColor ? { background: brandColor } : undefined}>
+                            <div className="h-14 flex-1 rounded-xl bg-white/5 border border-white/10 overflow-hidden" style={coverUrl ? undefined : { background: resolveProfileStyle(brandColor).gradient }}>
                               {coverUrl && (
                                 // eslint-disable-next-line @next/next/no-img-element
                                 <img src={coverUrl} alt="Your cover" className="w-full h-full object-cover" />
@@ -1802,34 +1919,8 @@ export default function PmDashboardPage() {
                           </div>
                         </div>
                       </div>
-                      <p className="text-xs text-white/50 mb-1.5">Brand color</p>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {['#12A5A9', '#2563EB', '#16A34A', '#9333EA', '#DC2626', '#EA580C', '#CA8A04', '#0F172A'].map((hex) => (
-                          <button
-                            key={hex}
-                            type="button"
-                            aria-label={`Use ${hex}`}
-                            onClick={() => { setBrandColor(hex); saveProfileField('brandColor', hex) }}
-                            className={`w-7 h-7 rounded-full border-2 transition ${brandColor?.toUpperCase() === hex ? 'border-white scale-110' : 'border-transparent hover:scale-105'}`}
-                            style={{ background: hex }}
-                          />
-                        ))}
-                        <label className="w-7 h-7 rounded-full border-2 border-dashed border-white/30 flex items-center justify-center cursor-pointer text-white/50 text-xs" title="Custom color">
-                          +
-                          <input
-                            type="color"
-                            className="sr-only"
-                            value={brandColor || '#12A5A9'}
-                            onChange={(e) => setBrandColor(e.target.value)}
-                            onBlur={(e) => saveProfileField('brandColor', e.target.value)}
-                          />
-                        </label>
-                        {brandColor && (
-                          <button type="button" onClick={() => { setBrandColor(null); saveProfileField('brandColor', null) }} className="text-white/40 hover:text-white text-xs ml-1">
-                            Reset
-                          </button>
-                        )}
-                      </div>
+                      <p className="text-xs text-white/50 mb-2">Profile style</p>
+                      <ProfileStylePicker value={brandColor} logoUrl={logoUrl} onChange={(v) => { setBrandColor(v); saveProfileField('brandColor', v) }} />
                     </div>
 
                     <div className="border-t border-white/8 pt-4 mb-4">
@@ -1991,19 +2082,50 @@ export default function PmDashboardPage() {
                                 </span>
                                 <div className="flex items-center gap-3">
                                   {membership.canViewFinancials && (
+                                    <>
                                     <Link href={`/landlord/pm/clients/${c.id}/statement`} className="text-[#12A5A9] text-xs font-semibold hover:underline">
                                       Statement
                                     </Link>
+                                    <Link href={`/landlord/records?owner=${c.ownerUserId}`} className="text-[#12A5A9] text-xs font-semibold hover:underline">
+                                      Records
+                                    </Link>
+                                    </>
                                   )}
                                   {membership.memberRole === 'admin' && (
-                                    <button onClick={() => handleRemoveClient(c.id)} className="text-red-400/70 hover:text-red-400 text-xs">
+                                    <button onClick={() => setEndingPortfolioId(c.id)} className="text-red-400/70 hover:text-red-400 text-xs">
                                       Remove
                                     </button>
                                   )}
                                 </div>
                               </div>
+                              {membership.memberRole !== 'admin' && (
+                                <button
+                                  type="button"
+                                  onClick={() => setThreadWith(c.ownerUserId)}
+                                  className="w-full mb-2 flex items-center justify-center gap-2 bg-[#12A5A9]/12 border border-[#12A5A9]/30 text-[#12A5A9] text-sm font-semibold py-2.5 rounded-xl hover:bg-[#12A5A9]/20"
+                                >
+                                  Message {c.ownerName.split(' ')[0]}
+                                </button>
+                              )}
                               {membership.memberRole === 'admin' && (
-                                <FeeProposal client={c} onSend={(payload) => handleSendFeeProposal(c.id, payload)} />
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => setThreadWith(c.ownerUserId)}
+                                    className="w-full mb-2 flex items-center justify-center gap-2 bg-[#12A5A9]/12 border border-[#12A5A9]/30 text-[#12A5A9] text-sm font-semibold py-2.5 rounded-xl hover:bg-[#12A5A9]/20"
+                                  >
+                                    Message {c.ownerName.split(' ')[0]}
+                                  </button>
+                                  <FeeProposal client={c} onSend={(payload) => handleSendFeeProposal(c.id, payload)} />
+                                  <PmRentRow
+                                    portfolioId={c.id}
+                                    ownerName={c.ownerName}
+                                    rentRecipient={c.rentRecipient || 'owner'}
+                                    requested={!!c.rentToPmRequested}
+                                    attested={rentAttested}
+                                    onChanged={() => loadAll()}
+                                  />
+                                </>
                               )}
                               {membership.memberRole === 'admin' && (
                                 <div className="flex items-center gap-2 flex-wrap mt-2">
@@ -2433,6 +2555,16 @@ export default function PmDashboardPage() {
           Properties/Jobs/Calendar except in-page links. The Home tab's
           /landlord target is safe here: that page now bounces an accepted
           PM member straight back to /landlord/pm. */}
+      {threadWith && (
+        <PmOwnerThread ownerId={threadWith === 'self' ? undefined : threadWith} onClose={() => setThreadWith(null)} />
+      )}
+      {endingPortfolioId && (
+        <EndManagementDialog
+          portfolioId={endingPortfolioId}
+          onClose={() => setEndingPortfolioId(null)}
+          onEnded={() => { setEndingPortfolioId(null); loadAll() }}
+        />
+      )}
       <BottomTabBar tabs={LANDLORD_TABS} />
     </div>
   )

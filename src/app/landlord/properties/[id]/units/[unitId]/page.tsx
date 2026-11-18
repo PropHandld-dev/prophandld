@@ -17,6 +17,7 @@ import { useLanguage, t } from '@/lib/i18n'
 import { useConfirm } from '@/lib/useConfirm'
 import { ordinal, nextEscalationDate } from '@/lib/leaseEscalation'
 import { rentMonthBounds } from '@/lib/rentAutomation'
+import { ScreeningCard } from '@/components/ScreeningCard'
 
 const IN_PROGRESS_STATUSES = ['pending_approval', 'approved', 'bidding', 'bid_selected', 'scheduled', 'in_progress']
 
@@ -497,11 +498,21 @@ export default function UnitDetailPage() {
           </div>
         )}
 
+        {!tenancy && <ScreeningCard unitId={unitId} />}
+
         {/* Tenant section */}
         <ScrollReveal>
         <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-4">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-white font-semibold">{t('tenantHeading', lang)}</h2>
+          <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+            <div className="flex items-center gap-3">
+              <h2 className="text-white font-semibold">{t('tenantHeading', lang)}</h2>
+              <Link
+                href={`/landlord/properties/${propertyId}/units/${unitId}/lease`}
+                className="text-xs font-semibold text-[#12A5A9] bg-[#12A5A9]/10 border border-[#12A5A9]/25 rounded-full px-2.5 py-1 hover:bg-[#12A5A9]/20 transition"
+              >
+                ✦ {lang === 'es' ? 'Crear contrato' : 'Create lease'}
+              </Link>
+            </div>
             {!tenancy && !pendingInvite && (
               <MagneticLink
                 href={`/landlord/properties/${propertyId}/units/${unitId}/tenancy/new`}

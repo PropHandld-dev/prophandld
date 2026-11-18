@@ -24,7 +24,7 @@ export async function GET() {
 
   const { data: portfolios } = await supabaseAdmin
     .from('pm_client_portfolios')
-    .select('id, owner_user_id, invited_email, approval_threshold, management_fee, management_fee_frequency, management_fee_type, management_fee_percent, fee_owner_approved_at, monthly_summary_enabled, owner_read_only, status, requested_by, invited_at, accepted_at, users(full_name, email)')
+    .select('id, owner_user_id, invited_email, approval_threshold, management_fee, management_fee_frequency, management_fee_type, management_fee_percent, fee_owner_approved_at, monthly_summary_enabled, owner_read_only, rent_recipient, rent_to_pm_requested_at, rent_to_pm_approved_at, status, requested_by, invited_at, accepted_at, users(full_name, email)')
     .eq('organization_id', membership.organizationId)
     .order('invited_at', { ascending: false })
 
@@ -51,6 +51,8 @@ export async function GET() {
     managementFeeType: (p.management_fee_type as 'flat' | 'percent_of_rent') || 'flat',
     managementFeePercent: p.management_fee_percent !== null ? Number(p.management_fee_percent) : null,
     feeApproved: !!p.fee_owner_approved_at,
+    rentRecipient: (p.rent_recipient as 'owner' | 'pm') || 'owner',
+    rentToPmRequested: !!p.rent_to_pm_requested_at && !p.rent_to_pm_approved_at,
     monthlySummaryEnabled: !!p.monthly_summary_enabled,
     ownerReadOnly: !!p.owner_read_only,
     status: p.status,

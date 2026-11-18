@@ -120,6 +120,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     await supabaseAdmin.from('pm_fee_payments').insert({
       portfolio_id: portfolioId,
+      organization_id: portfolio.organization_id,
+      owner_user_id: portfolio.owner_user_id,
       amount,
       status: 'pending',
       stripe_payment_intent_id: paymentIntent.id,

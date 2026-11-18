@@ -3,6 +3,7 @@ import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { getPmMembership } from '@/lib/pm'
 import { ensureOrgSlug } from '@/lib/pmSlug'
+import { isValidProfileStyle } from '@/lib/profileStyles'
 
 export const maxDuration = 15
 
@@ -155,11 +156,11 @@ export async function PATCH(request: NextRequest) {
     }
     update.pricing_note = body.pricingNote.trim() || null
   }
-  // Used inside a style attribute on the public page, so only a strict
-  // #RRGGBB value is ever stored -- nothing that could carry CSS.
+  // Profile style: a curated style key or a logo color as strict #RRGGBB,
+  // never anything that could carry CSS (see lib/profileStyles.ts).
   if (body.brandColor !== undefined) {
-    if (body.brandColor !== null && !/^#[0-9a-fA-F]{6}$/.test(body.brandColor)) {
-      return NextResponse.json({ error: 'Brand color must be a hex color like #12A5A9' }, { status: 400 })
+    if (body.brandColor !== null && !isValidProfileStyle(body.brandColor)) {
+      return NextResponse.json({ error: 'Choose one of the profile styles' }, { status: 400 })
     }
     update.brand_color = body.brandColor
   }

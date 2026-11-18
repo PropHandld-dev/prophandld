@@ -138,6 +138,8 @@ export async function GET(request: NextRequest) {
       if (paymentIntent.status === 'succeeded') {
         await supabaseAdmin.from('pm_fee_payments').insert({
           portfolio_id: portfolio.id,
+        organization_id: portfolio.organization_id,
+        owner_user_id: portfolio.owner_user_id,
           amount,
           status: 'paid',
           stripe_payment_intent_id: paymentIntent.id,
@@ -156,6 +158,8 @@ export async function GET(request: NextRequest) {
       } else {
         await supabaseAdmin.from('pm_fee_payments').insert({
           portfolio_id: portfolio.id,
+        organization_id: portfolio.organization_id,
+        owner_user_id: portfolio.owner_user_id,
           amount,
           status: 'failed',
           stripe_payment_intent_id: paymentIntent.id,
@@ -175,6 +179,8 @@ export async function GET(request: NextRequest) {
     } catch (err: any) {
       await supabaseAdmin.from('pm_fee_payments').insert({
         portfolio_id: portfolio.id,
+        organization_id: portfolio.organization_id,
+        owner_user_id: portfolio.owner_user_id,
         amount,
         status: 'failed',
       })

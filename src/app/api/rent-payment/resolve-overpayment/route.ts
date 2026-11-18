@@ -3,6 +3,8 @@ import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { getStripe } from '@/lib/stripe'
 import { friendlyStripeError } from '@/lib/stripeErrorMessage'
+import { rentPaymentStripeAccount } from '@/lib/rentRouting'
+import { canActForOwner } from '@/lib/pm'
 
 export const maxDuration = 20
 
@@ -38,7 +40,7 @@ export async function POST(request: NextRequest) {
 
   const { data: rent, error } = await admin
     .from('rent_payments')
-    .select('id, tenancy_id, month, expected_amount, actual_amount, notes, stripe_payment_intent_id, stripe_status, tenancies(units(properties(owner_user_id)))')
+    .select('id, tenancy_id, month, expected_amount, actual_amount, notes, stripe_payment_intent_id, stripe_status, stripe_account_id, tenancies(units(properties(owner_user_id)))')
     .eq('id', rentPaymentId)
     .maybeSingle()
 
@@ -48,7 +50,7 @@ export async function POST(request: NextRequest) {
   }
 
   const landlordId = (rent?.tenancies as any)?.units?.properties?.owner_user_id
-  if (!rent || landlordId !== user.id) {
+  if (!rent || !(await canActForOwner(admin, user.id, landlordId))) {
     return NextResponse.json({ error: 'Rent payment not found' }, { status: 404 })
   }
 
@@ -148,8 +150,12 @@ export async function POST(request: NextRequest) {
   }
 
   const stripe = getStripe()
+  // Rent is a direct charge on the payee's own Stripe account, so the
+  // lookup and refund both happen there.
+  const stripeAccount = await rentPaymentStripeAccount(admin, (rent as any).stripe_account_id, (rent as any).tenancies?.units?.properties?.owner_user_id)
+  if (!stripeAccount) return NextResponse.json({ error: 'Could not find the payment account for this month.' }, { status: 400 })
   try {
-    const paymentIntent = await stripe.paymentIntents.retrieve(rent.stripe_payment_intent_id, { expand: ['latest_charge'] })
+    const paymentIntent = await stripe.paymentIntents.retrieve(rent.stripe_payment_intent_id, { expand: ['latest_charge'] }, { stripeAccount })
     const charge =
       paymentIntent.latest_charge && typeof paymentIntent.latest_charge !== 'string' ? paymentIntent.latest_charge : null
     if (paymentIntent.status !== 'succeeded' || !charge) {
@@ -167,12 +173,9 @@ export async function POST(request: NextRequest) {
       {
         payment_intent: paymentIntent.id,
         amount: cents(amount),
-        // Takes the money back from your Stripe balance; without this the
-        // platform would refund the tenant out of its own funds.
-        reverse_transfer: true,
         metadata: { prophandld_rent_payment_id: rent.id, prophandld_reason: 'rent_overpayment' },
       },
-      { idempotencyKey: `rent-overpay-${rent.id}-${cents(amount)}-${cents(actual)}` }
+      { idempotencyKey: `rent-overpay-${rent.id}-${cents(amount)}-${cents(actual)}`, stripeAccount }
     )
   } catch (err) {
     console.error('resolve-overpayment: stripe refund failed', err)

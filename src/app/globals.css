@@ -39,9 +39,9 @@ body {
    the bright status colors get light equivalents, and solid teal/red
    buttons put white back for their own text. */
 html[data-theme="light"] {
-  --background: #F3F6F9;
-  --foreground: #0C1A2E;
-  --color-white: #0C1A2E;
+  --background: #E4E9EF;
+  --foreground: #14243A;
+  --color-white: #14243A;
   --color-red-300: #B91C1C;
   --color-red-400: #DC2626;
   --color-yellow-400: #B45309;
@@ -55,11 +55,11 @@ html[data-theme="light"] {
   color-scheme: light;
 }
 html[data-theme="light"] .bg-\[\#0C1A2E\],
-html[data-theme="light"] .bg-\[\#0F1A2E\] { background-color: #F3F6F9; }
+html[data-theme="light"] .bg-\[\#0F1A2E\] { background-color: #E4E9EF; }
 html[data-theme="light"] .bg-\[\#0C1A2E\]\/95,
 html[data-theme="light"] .bg-\[\#0C1A2E\]\/90,
-html[data-theme="light"] .bg-\[\#0C1A2E\]\/80 { background-color: rgb(243 246 249 / 0.92); }
-html[data-theme="light"] .bg-\[\#0F2138\] { background-color: #FFFFFF; box-shadow: 0 20px 60px -20px rgb(12 26 46 / 0.35); }
+html[data-theme="light"] .bg-\[\#0C1A2E\]\/80 { background-color: rgb(228 233 239 / 0.92); }
+html[data-theme="light"] .bg-\[\#0F2138\] { background-color: #F4F7FA; box-shadow: 0 20px 60px -20px rgb(12 26 46 / 0.35); }
 html[data-theme="light"] .bg-\[\#0A0F1C\] { background-color: #E9EEF3; }
 html[data-theme="light"] .bg-\[\#132A45\],
 html[data-theme="light"] .bg-\[\#22374F\] { background-color: #E3EAF1; }
@@ -67,7 +67,7 @@ html[data-theme="light"] .border-\[\#0C1A2E\] { border-color: #FFFFFF; }
 html[data-theme="light"] .text-\[\#12A5A9\] { color: #087A7D; }
 /* White cards on the light-grey page, instead of navy tints. */
 html[data-theme="light"] [class^="bg-white/"],
-html[data-theme="light"] [class*=" bg-white/"] { box-shadow: inset 0 0 0 9999px rgb(255 255 255 / 0.5); }
+html[data-theme="light"] [class*=" bg-white/"] { box-shadow: inset 0 0 0 9999px rgb(244 247 250 / 0.42); }
 html[data-theme="light"] select option { background-color: #FFFFFF !important; color: #0C1A2E; }
 /* Solid colored surfaces keep white text, whatever the page theme. */
 html[data-theme="light"] .bg-\[\#12A5A9\],
@@ -292,5 +292,29 @@ body {
   margin-top: 2px;
 }
 
-html[data-theme="light"] [class~="from-[#0C1A2E]"] { --tw-gradient-from: #F3F6F9; }
-html[data-theme="light"] [class~="via-[#0C1A2E]/95"] { --tw-gradient-via: rgb(243 246 249 / 0.95); }
+html[data-theme="light"] [class~="from-[#0C1A2E]"] { --tw-gradient-from: #E4E9EF; }
+html[data-theme="light"] [class~="via-[#0C1A2E]/95"] { --tw-gradient-via: rgb(228 233 239 / 0.95); }
+
+/* Truly white / black controls (Google and Apple sign-in, etc.) keep their
+   real colors in light mode; --color-white is navy there. */
+html[data-theme="light"] .bg-white { background-color: #FFFFFF; box-shadow: 0 1px 2px rgb(20 36 58 / 0.12), inset 0 0 0 1px rgb(20 36 58 / 0.12); }
+html[data-theme="light"] .bg-black,
+html[data-theme="light"] .bg-black\/80,
+html[data-theme="light"] .bg-black\/90 { --color-white: #FFFFFF; }
+html[data-theme="light"] .bg-white .text-white,
+html[data-theme="light"] .bg-white.text-white { color: #14243A; }
+
+/* PM public profile hero: slow drifting gradient blobs. */
+@keyframes pmDrift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(9%, -7%) scale(1.18); }
+}
+.pm-blob { animation: pmDrift 16s ease-in-out infinite; }
+.pm-blob-2 { animation-duration: 21s; animation-direction: reverse; }
+.pm-blob-3 { animation-duration: 12s; }
+@media (prefers-reduced-motion: reduce) { .pm-blob { animation: none; } }
+html[data-theme="light"] .bg-\[\#0C1A2E\]\/75 { background-color: rgb(244 247 250 / 0.78); }
+html[data-theme="light"] .pm-hero { --color-white: #FFFFFF; }
+html[data-theme="light"] .pm-hero [class^="bg-white/"],
+html[data-theme="light"] .pm-hero [class*=" bg-white/"] { box-shadow: none; }
+html[data-theme="light"] .bg-\[\#0A0F1C\]\/60 { background-color: rgb(10 15 28 / 0.5); }

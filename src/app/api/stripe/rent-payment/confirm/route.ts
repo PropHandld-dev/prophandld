@@ -4,6 +4,8 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { getStripe } from '@/lib/stripe'
 import { syncRentPayment } from '@/lib/rentPaymentSync'
 import { sendRentPaymentReceivedNotifications, sendRentCreditCardRejectedNotifications } from '@/lib/rentPaymentNotify'
+import { rentPaymentStripeAccount } from '@/lib/rentRouting'
+import { canActForOwner } from '@/lib/pm'
 
 export const maxDuration = 15
 
@@ -27,7 +29,7 @@ export async function POST(request: NextRequest) {
 
   const { data: rent, error } = await admin
     .from('rent_payments')
-    .select('id, tenancy_id, tenancies(renter_user_id, units(properties(owner_user_id)))')
+    .select('id, tenancy_id, stripe_account_id, tenancies(renter_user_id, units(properties(owner_user_id)))')
     .eq('id', rentPaymentId)
     .maybeSingle()
 
@@ -42,11 +44,8 @@ export async function POST(request: NextRequest) {
   // Direct-charge PaymentIntents (the Standard-accounts rebuild) live on
   // the landlord's connected account, not the platform — every Stripe call
   // below needs that context.
-  const { data: landlordRow } = landlordId
-    ? await admin.from('users').select('stripe_connect_account_id').eq('id', landlordId).maybeSingle()
-    : { data: null }
-  const connectedAccountId = landlordRow?.stripe_connect_account_id as string | undefined
-  let allowed = !!rent && (tenancy?.renter_user_id === user.id || landlordId === user.id)
+  const connectedAccountId = (await rentPaymentStripeAccount(admin, (rent as any)?.stripe_account_id, landlordId)) || undefined
+  let allowed = !!rent && (tenancy?.renter_user_id === user.id || (await canActForOwner(admin, user.id, landlordId)))
   if (rent && !allowed) {
     // A co-renter on the tenancy may check too.
     const { data: occupant } = await admin
