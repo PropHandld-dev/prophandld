@@ -41,6 +41,7 @@ import { FavoriteContractorButton } from '@/components/FavoriteContractorButton'
 import { DiyTroubleshootPanel } from '@/components/DiyTroubleshootPanel'
 import { useLanguage, t, windowLabel } from '@/lib/i18n'
 import { useDialogA11y } from '@/lib/useDialogA11y'
+import { BidCompare } from '@/components/BidCompare'
 
 // Shared styling for every secondary action in the status card's action
 // row (decline, handle it myself, chat, ask a question, archive) — one
@@ -1523,6 +1524,7 @@ export default function JobDetailPage() {
               {t('sealedBidsHeading', lang)} {openBids.length > 0 && `(${openBids.length})`}
             </h3>
             <p className="text-white/40 text-xs mb-4">{t('sealedBidsLandlordExplain', lang)}</p>
+            {aiAssistActive && openBids.length >= 2 && <BidCompare jobId={job.id} bidIds={openBids.map((b) => b.id)} lang={lang} />}
             {noMatchingContractorsNotice && (
               <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl px-4 py-3 mb-3">
                 <p className="text-yellow-400 text-sm">{t('noContractorsMatchedNotice', lang)}</p>
@@ -1590,10 +1592,15 @@ export default function JobDetailPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {openBids.map((bid) => (
+                {openBids.map((bid, bidIndex) => (
                   <div key={bid.id} className="bg-white/5 border border-white/10 rounded-xl p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {openBids.length >= 2 && (
+                          <span className="w-6 h-6 rounded-md bg-white/8 text-white/60 text-xs font-bold flex items-center justify-center" aria-label={`Bid ${String.fromCharCode(65 + bidIndex)}`}>
+                            {String.fromCharCode(65 + bidIndex)}
+                          </span>
+                        )}
                         <p className="text-white font-semibold">{bid.contractor?.full_name || t('unknownContractor', lang)}</p>
                         {(credentialBadges[bid.contractor_user_id] || []).map((label) => (
                           <span key={label} className="text-xs bg-[#0A7B7E]/20 text-[#12A5A9] rounded-full px-2 py-0.5 font-semibold">

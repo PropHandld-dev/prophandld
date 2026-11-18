@@ -6,6 +6,7 @@ import { FileTextIcon } from '@/components/icons'
 import { validateDocumentFile } from '@/lib/mediaValidation'
 import { useLanguage, t } from '@/lib/i18n'
 import { UTILITY_KINDS, UTILITY_LABELS, type UtilityKind, type UtilityCharge } from '@/lib/utilityCharges'
+import { scanDocument } from '@/lib/aiFile'
 
 export type DraftCharge = {
   key: string
@@ -76,6 +77,40 @@ export function RentMonthEditor({
   const [openDates, setOpenDates] = useState<Set<string>>(() => new Set(initialCharges.filter((c) => c.periodStart || c.periodEnd).map((c) => c.id)))
   const [note, setNote] = useState('')
   const [fileError, setFileError] = useState<string | null>(null)
+  const [scanning, setScanning] = useState(false)
+  const [scanNote, setScanNote] = useState<string | null>(null)
+
+  const scanBill = async (file: File) => {
+    const problem = await validateDocumentFile(file, { allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'] })
+    if (problem) {
+      setFileError(problem)
+      return
+    }
+    setFileError(null)
+    setScanning(true)
+    setScanNote(null)
+    const r = await scanDocument(file, 'utility_bill')
+    setScanning(false)
+    const key = `new-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+    if ('error' in r) {
+      setScanNote(r.error)
+      setBills((prev) => [...prev, { key, kind: 'other', label: '', amount: '', periodStart: '', periodEnd: '', file, billUrl: null }])
+      return
+    }
+    const kind = (UTILITY_KINDS as readonly string[]).includes(r.utilityKind || '') ? (r.utilityKind as UtilityKind) : 'other'
+    setBills((prev) => [...prev, {
+      key,
+      kind,
+      label: kind === 'other' ? (r.vendor || '').slice(0, 40) : '',
+      amount: r.amount ? String(r.amount) : '',
+      periodStart: r.periodStart || '',
+      periodEnd: r.periodEnd || '',
+      file,
+      billUrl: null,
+    }])
+    if (r.periodStart || r.periodEnd) setOpenDates((prev) => new Set(prev).add(key))
+    setScanNote(lang === 'es' ? 'Completado desde la factura. Revísalo antes de guardar.' : 'Filled in from the bill, with the bill attached. Check it before saving.')
+  }
 
   const update = (key: string, patch: Partial<DraftCharge>) => setBills((prev) => prev.map((b) => (b.key === key ? { ...b, ...patch } : b)))
   const addBill = (kind: UtilityKind) => {
@@ -237,6 +272,11 @@ export function RentMonthEditor({
               </ul>
             )}
 
+            <label className="mt-3 flex items-center justify-center gap-2 rounded-xl border border-dashed border-[#12A5A9]/40 bg-[#12A5A9]/8 py-2.5 text-[#12A5A9] text-sm font-semibold cursor-pointer hover:bg-[#12A5A9]/12">
+              {scanning ? (lang === 'es' ? 'Leyendo la factura…' : 'Reading the bill…') : (lang === 'es' ? '✦ Escanear una factura' : '✦ Scan a bill (photo or PDF)')}
+              <input type="file" accept="image/*,.pdf,application/pdf" className="hidden" disabled={scanning} onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) scanBill(f) }} />
+            </label>
+            {scanNote && <p className="text-white/55 text-xs mt-1.5">{scanNote}</p>}
             <div className="flex flex-wrap gap-2 mt-3">
               {UTILITY_KINDS.map((k) => (
                 <button

@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 import { downloadCsv } from '@/lib/csvExport'
+import { scanDocument } from '@/lib/aiFile'
 
 type Entry = {
   id: string
@@ -59,6 +60,39 @@ const TYPE_CHIP: Record<Entry['type'], { label: string; cls: string }> = {
   manual: { label: 'Added by hand', cls: 'bg-white/8 text-white/60' },
 }
 
+// IRS Schedule E (Form 1040) line each entry rolls up to. Security
+// deposits are left out: they're not income unless kept.
+const SCHEDULE_E: { line: string; label: string }[] = [
+  { line: '3', label: 'Rents received' },
+  { line: '9', label: 'Insurance' },
+  { line: '10', label: 'Legal and other professional fees' },
+  { line: '11', label: 'Management fees' },
+  { line: '12', label: 'Mortgage interest' },
+  { line: '14', label: 'Repairs' },
+  { line: '15', label: 'Supplies' },
+  { line: '16', label: 'Taxes' },
+  { line: '17', label: 'Utilities' },
+  { line: '19', label: 'Other' },
+]
+function scheduleELine(e: Entry): string | null {
+  if (e.type === 'rent') return '3'
+  if (e.type === 'contractor') return '14'
+  if (e.type === 'fee') return '11'
+  switch (e.category) {
+    case 'rent': case 'other_income': return '3'
+    case 'deposit': return null
+    case 'insurance': return '9'
+    case 'legal': return '10'
+    case 'management': return '11'
+    case 'mortgage': return '12'
+    case 'repair': return '14'
+    case 'supplies': return '15'
+    case 'tax': return '16'
+    case 'utilities': return '17'
+    default: return '19'
+  }
+}
+
 const money = (n: number) => n.toLocaleString(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: n % 1 === 0 ? 0 : 2 })
 
 export default function RecordsPage() {
@@ -106,6 +140,58 @@ export default function RecordsPage() {
     return Array.from(groups.entries())
   }, [shown])
   const maxProperty = Math.max(1, ...(data?.byProperty || []).map((p) => Math.max(p.income, p.expenses)))
+  const taxLines = useMemo(() => {
+    const totals = new Map<string, number>()
+    for (const e of data?.entries || []) {
+      const line = scheduleELine(e)
+      if (!line) continue
+      totals.set(line, (totals.get(line) || 0) + e.amount)
+    }
+    return SCHEDULE_E.map((l) => ({ ...l, amount: Math.round((totals.get(l.line) || 0) * 100) / 100 }))
+  }, [data])
+  const [showTax, setShowTax] = useState(false)
+  const [insights, setInsights] = useState<{ summary: string; highlights: string[]; checks: string[] } | null>(null)
+  const [insightsBusy, setInsightsBusy] = useState(false)
+  const [insightsError, setInsightsError] = useState<string | null>(null)
+  const explainYear = async () => {
+    if (!data) return
+    setInsightsBusy(true)
+    setInsightsError(null)
+    const byMonth: Record<string, { in: number; out: number }> = {}
+    for (const e of data.entries) {
+      const k = e.date.slice(0, 7)
+      byMonth[k] = byMonth[k] || { in: 0, out: 0 }
+      byMonth[k][e.direction] += e.amount
+    }
+    const res = await fetch('/api/ai-assist/records-insights', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        year: data.year,
+        totals: data.totals,
+        byProperty: data.byProperty.map((p) => ({ property: p.label, income: Math.round(p.income), expenses: Math.round(p.expenses) })),
+        byLine: taxLines.map((l) => ({ line: l.label, amount: l.amount })),
+        byMonth,
+        manualEntriesWithoutReceipt: data.entries.filter((e) => e.type === 'manual' && e.direction === 'out' && !e.receiptUrl).length,
+        depositsRecorded: data.entries.filter((e) => e.category === 'deposit').reduce((t, e) => t + e.amount, 0),
+      }),
+    }).catch(() => null)
+    const d = res ? await res.json().catch(() => ({})) : {}
+    setInsightsBusy(false)
+    if (!res?.ok) setInsightsError(d.error || 'Could not read your year right now.')
+    else setInsights(d)
+  }
+  const exportTax = () => {
+    if (!data) return
+    const income = taxLines.filter((l) => l.line === '3').reduce((t, l) => t + l.amount, 0)
+    const expenses = taxLines.filter((l) => l.line !== '3').reduce((t, l) => t + l.amount, 0)
+    downloadCsv(
+      `prophandld-schedule-e-${data.year}.csv`,
+      ['Schedule E line', 'Description', 'Amount'],
+      [...taxLines.map((l) => [l.line, l.label, l.amount.toFixed(2)]), ['', 'Total expenses', expenses.toFixed(2)], ['', 'Income minus expenses', (income - expenses).toFixed(2)]],
+      { heading: `Rental income and expenses by Schedule E line, ${data.year}`, subheading: 'Prepared from Prophandld records. Not tax advice: review with your tax professional. Security deposits are excluded.' }
+    )
+  }
   const multiOwner = (data?.owners.length || 0) > 1
 
   const exportCsv = () => {
@@ -212,6 +298,55 @@ export default function RecordsPage() {
                 <p className="text-white/35 text-xs mt-3">Teal is income, grey is expenses.</p>
               </div>
             )}
+
+            <div className="grid sm:grid-cols-2 gap-3 mb-6">
+              <div className="rounded-2xl border border-[#12A5A9]/30 bg-gradient-to-br from-[#0A7B7E]/12 to-transparent p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-white font-semibold text-sm">✦ Explain my year</p>
+                  {!insights && (
+                    <button onClick={explainYear} disabled={insightsBusy || data.entries.length === 0} className="text-[#12A5A9] text-sm font-semibold disabled:opacity-40">
+                      {insightsBusy ? 'Reading…' : 'Go'}
+                    </button>
+                  )}
+                </div>
+                {!insights && !insightsError && <p className="text-white/50 text-xs mt-1">What stood out in {data.year}, and what to check before tax time.</p>}
+                {insightsError && <p className="text-red-400 text-xs mt-1">{insightsError}</p>}
+                {insights && (
+                  <div className="mt-2 space-y-2">
+                    <p className="text-white/80 text-sm leading-relaxed">{insights.summary}</p>
+                    {insights.highlights.length > 0 && <ul className="space-y-1">{insights.highlights.map((h, i) => <li key={i} className="text-white/65 text-xs">• {h}</li>)}</ul>}
+                    {insights.checks.length > 0 && (
+                      <div>
+                        <p className="text-yellow-400 text-xs font-semibold">Check before filing</p>
+                        <ul className="space-y-1 mt-1">{insights.checks.map((h, i) => <li key={i} className="text-white/65 text-xs">• {h}</li>)}</ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              <div className="rounded-2xl border border-white/8 bg-white/3 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <button onClick={() => setShowTax((v) => !v)} className="text-white font-semibold text-sm text-left">Tax summary (Schedule E) {showTax ? '▴' : '▾'}</button>
+                  <button onClick={exportTax} disabled={data.entries.length === 0} className="text-[#12A5A9] text-sm font-semibold disabled:opacity-40">Export</button>
+                </div>
+                {!showTax ? (
+                  <p className="text-white/50 text-xs mt-1">Your year grouped the way the IRS rental form groups it, ready for your accountant.</p>
+                ) : (
+                  <table className="w-full mt-3 text-sm">
+                    <tbody>
+                      {taxLines.map((l) => (
+                        <tr key={l.line} className={l.amount === 0 ? 'text-white/35' : 'text-white/80'}>
+                          <td className="py-1 pr-2 tabular-nums w-8">{l.line}</td>
+                          <td className="py-1">{l.label}</td>
+                          <td className="py-1 text-right tabular-nums">{money(l.amount)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+                {showTax && <p className="text-white/35 text-[11px] mt-2">Not tax advice. Security deposits are left out. Depreciation isn&apos;t included.</p>}
+              </div>
+            </div>
 
             {shown.length === 0 ? (
               <div className="rounded-2xl border border-white/8 bg-white/3 p-10 text-center">
@@ -323,7 +458,28 @@ function AddEntrySheet({ properties, onClose, onSaved }: { properties: { id: str
   const [vendor, setVendor] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
+  const [scanning, setScanning] = useState(false)
+  const [scanNote, setScanNote] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const scan = async (f: File) => {
+    setFile(f)
+    setScanning(true)
+    setScanNote(null)
+    setError(null)
+    const r = await scanDocument(f, 'receipt')
+    setScanning(false)
+    if ('error' in r) {
+      setScanNote(r.error)
+      return
+    }
+    if (r.direction) setDirection(r.direction)
+    if (r.category) setCategory(r.category)
+    if (r.amount) setAmount(String(r.amount))
+    if (r.date) setDate(r.date)
+    if (r.vendor) setVendor(r.vendor)
+    if (r.description) setDescription(r.description)
+    setScanNote('Filled in from your receipt. Check it before saving.')
+  }
   const cats = direction === 'in' ? ['rent', 'deposit', 'other_income'] : ['repair', 'utilities', 'insurance', 'tax', 'mortgage', 'hoa', 'supplies', 'management', 'legal', 'other']
   const input = 'w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-white text-sm placeholder-white/35 focus:outline-none focus:border-[#12A5A9]'
 
@@ -357,6 +513,11 @@ function AddEntrySheet({ properties, onClose, onSaved }: { properties: { id: str
       <div className="bg-[#0F2138] border border-white/10 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md max-h-[92vh] overflow-y-auto p-6">
         <h3 className="text-white font-semibold text-lg">Add an entry</h3>
         <p className="text-white/50 text-xs mt-1">For anything not paid through Prophandld.</p>
+        <label className="mt-4 flex items-center justify-center gap-2 rounded-xl border border-dashed border-[#12A5A9]/40 bg-[#12A5A9]/8 py-3 text-[#12A5A9] text-sm font-semibold cursor-pointer hover:bg-[#12A5A9]/12">
+          {scanning ? 'Reading your receipt…' : '✦ Scan a receipt or invoice'}
+          <input type="file" accept="image/*,.pdf,application/pdf" className="hidden" disabled={scanning} onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) scan(f) }} />
+        </label>
+        {scanNote && <p className="text-white/55 text-xs mt-2">{scanNote}</p>}
         <div className="grid grid-cols-2 gap-1 bg-white/4 rounded-xl p-1 mt-5">
           {(['out', 'in'] as const).map((d) => (
             <button key={d} type="button" onClick={() => { setDirection(d); setCategory(d === 'in' ? 'rent' : 'repair') }} className={`py-2 rounded-lg text-sm font-semibold ${direction === d ? 'bg-[#12A5A9] text-white' : 'text-white/60'}`}>

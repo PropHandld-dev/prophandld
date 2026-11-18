@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { TranslateLink } from '@/components/TranslateLink'
 
 type Msg = {
   id: string
@@ -176,6 +177,7 @@ export function PmOwnerThread({ ownerId, onClose }: { ownerId?: string; onClose:
                 <div className={`max-w-[80%] ${m.mine ? 'items-end' : 'items-start'} flex flex-col`}>
                   <div className={`rounded-2xl px-4 py-2.5 text-sm whitespace-pre-line leading-relaxed ${m.mine ? 'bg-[#12A5A9] text-white rounded-br-md' : 'bg-white/8 text-white rounded-bl-md'}`}>{m.body}</div>
                   <span className="text-white/35 text-[11px] mt-1 px-1">{!m.mine && thread.side === 'owner' ? `${m.senderName} · ` : ''}{time(m.createdAt)}</span>
+                  {!m.mine && <TranslateLink text={m.body} className="px-1" />}
                 </div>
               )}
             </div>

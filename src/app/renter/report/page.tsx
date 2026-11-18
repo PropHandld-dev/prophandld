@@ -389,11 +389,21 @@ export default function ReportIssuePage() {
         <h1 className="text-2xl font-bold text-white mb-2">{t('reportTitle', lang)}</h1>
         <p className="text-white/50 text-sm mb-4">{t('reportSubtitle', lang)}</p>
 
-        {aiAvailable && !form.category && (
-          <div className="bg-[#12A5A9]/8 border border-[#12A5A9]/25 rounded-2xl px-4 py-3 mb-6 flex items-center gap-2.5">
-            <span className="text-[10px] font-bold uppercase tracking-wide text-[#12A5A9] bg-[#12A5A9]/10 border border-[#12A5A9]/30 rounded-full px-2 py-0.5 shrink-0">✦ AI</span>
-            <p className="text-white/70 text-sm">{t('reportPageAiTeaser', lang)}</p>
-          </div>
+        {aiAvailable && (
+          <IssueIntakeBox
+            lang={lang}
+            onResult={(r) => {
+              setForm((prev) => ({
+                ...prev,
+                category: r.category || prev.category,
+                location: r.location || prev.location,
+                description: prev.description.trim() ? prev.description : r.text,
+                urgency: r.urgency === 'urgent' ? 'high' : prev.urgency,
+              }))
+              // Same confirm step as tapping the emergency switch yourself.
+              if (r.isEmergency && !form.is_emergency) setShowEmergencyInfo(true)
+            }}
+          />
         )}
 
         {draftRestored && (
@@ -770,6 +780,63 @@ export default function ReportIssuePage() {
       )}
 
       <BottomTabBar tabs={RENTER_TABS} />
+    </div>
+  )
+}
+function IssueIntakeBox({
+  lang,
+  onResult,
+}: {
+  lang: string
+  onResult: (r: { category: string | null; location: string | null; urgency: string; isEmergency: boolean; text: string }) => void
+}) {
+  const es = lang === 'es'
+  const [text, setText] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [result, setResult] = useState<{ title: string | null; isEmergency: boolean; safetySteps: string[]; questions: string[]; category: string | null } | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const run = async () => {
+    setBusy(true)
+    setError(null)
+    const res = await fetch('/api/ai-assist/issue-intake', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, lang }) }).catch(() => null)
+    const d = res ? await res.json().catch(() => ({})) : {}
+    setBusy(false)
+    if (!res?.ok) {
+      setError(d.error || (es ? 'No se pudo. Elige una categoría abajo.' : 'Could not do that. Pick a category below.'))
+      return
+    }
+    setResult(d)
+    onResult({ category: d.category, location: d.location, urgency: d.urgency, isEmergency: d.isEmergency, text: `${d.title ? `${d.title}. ` : ''}${text}` })
+  }
+  return (
+    <div className="rounded-2xl border border-[#12A5A9]/30 bg-gradient-to-br from-[#0A7B7E]/12 to-transparent p-4 mb-6">
+      <p className="text-white font-semibold text-sm">{es ? '✦ Cuéntanos qué pasa, con tus palabras' : "✦ Tell us what's wrong, in your own words"}</p>
+      <p className="text-white/50 text-xs mt-0.5">{es ? 'Llenamos el formulario por ti. Puedes cambiar todo.' : 'We fill in the form for you. You can change anything.'}</p>
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        rows={3}
+        maxLength={1500}
+        aria-label={es ? 'Describe el problema' : 'Describe the problem'}
+        placeholder={es ? 'Ej.: el agua del fregadero de la cocina no baja y huele mal' : 'e.g. The kitchen sink is draining really slowly and smells bad'}
+        className="w-full mt-3 bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-white text-sm placeholder-white/35 focus:outline-none focus:border-[#12A5A9]"
+      />
+      <button type="button" onClick={run} disabled={busy || text.trim().length < 4} className="mt-2.5 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-4 py-2.5 rounded-xl disabled:opacity-40">
+        {busy ? (es ? 'Entendiendo…' : 'Working it out…') : es ? 'Llenar el formulario' : 'Fill in the form'}
+      </button>
+      {error && <p className="text-red-400 text-xs mt-2">{error}</p>}
+      {result?.isEmergency && result.safetySteps.length > 0 && (
+        <div className="mt-3 rounded-xl border border-red-500/40 bg-red-500/10 p-3" role="alert">
+          <p className="text-red-400 font-semibold text-sm">{es ? 'Esto parece una emergencia. Primero:' : 'This sounds like an emergency. First:'}</p>
+          <ul className="mt-1.5 space-y-1">{result.safetySteps.map((s, i) => <li key={i} className="text-white/85 text-sm">• {s}</li>)}</ul>
+        </div>
+      )}
+      {result && !result.isEmergency && result.category && (
+        <p className="text-[#12A5A9] text-xs mt-2.5">{es ? `Listo: ${result.category}. Revisa abajo y envía.` : `Done: ${result.category}. Check below and send.`}</p>
+      )}
+      {result && result.questions.length > 0 && (
+        <p className="text-white/55 text-xs mt-1.5">{es ? 'Ayuda al técnico si agregas: ' : 'It helps the contractor if you add: '}{result.questions.join(' ')}</p>
+      )}
     </div>
   )
 }
