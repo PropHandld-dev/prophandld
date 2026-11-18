@@ -4,7 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { getStripe } from '@/lib/stripe'
 import { getProviderAdapter } from '@/lib/payments'
 import { syncRentPayment } from '@/lib/rentPaymentSync'
-import { achProcessingFee } from '@/lib/cardSurcharge'
+import { achProcessingFee, rentCardFee } from '@/lib/cardSurcharge'
 import { isAchFeeAbsorbed } from '@/lib/appSettings'
 import { hasBlockingComplianceIssue } from '@/lib/complianceGate'
 import { friendlyStripeError } from '@/lib/stripeErrorMessage'
@@ -120,12 +120,13 @@ export async function POST(request: NextRequest) {
   const surcharge = absorbed ? 0 : realAchFee
   const absorbedFeeAmount = absorbed ? realAchFee : 0
 
-  // Card is charged with NO surcharge — see cardSurcharge.ts's own comment:
-  // this flow's "card" option is marketed as a debit card, and network
-  // rules prohibit surcharging debit cards at all.
-  const chargeAmount = amountDue + surcharge
+  // Card: the tenant pays the card processing fee (rentCardFee), collected
+  // as the application fee so it covers Stripe's charge exactly.
+  const cardFee = paymentMethod === 'card' ? rentCardFee(amountDue) : 0
+  const tenantFee = surcharge + cardFee
+  const chargeAmount = Math.round((amountDue + tenantFee) * 100) / 100
   const amountCents = Math.round(chargeAmount * 100)
-  const applicationFeeCents = Math.round(surcharge * 100)
+  const applicationFeeCents = Math.round(tenantFee * 100)
   const paymentMethodTypes = paymentMethod === 'bank' ? ['us_bank_account'] : ['card']
 
   // An earlier attempt may still be open, or a bank payment may be clearing.
@@ -159,7 +160,7 @@ export async function POST(request: NextRequest) {
           existing.payment_method_types?.length === paymentMethodTypes.length &&
           existing.payment_method_types?.every((t) => paymentMethodTypes.includes(t))
         if (reusable) {
-          return NextResponse.json({ clientSecret: existing.client_secret, amount: chargeAmount, baseAmount: amountDue, fee: surcharge, connectedAccountId })
+          return NextResponse.json({ clientSecret: existing.client_secret, amount: chargeAmount, baseAmount: amountDue, fee: tenantFee, connectedAccountId })
         }
         await stripe.paymentIntents.cancel(existing.id, undefined, { stripeAccount: connectedAccountId }).catch((err) => {
           console.error('rent/create-payment-intent: could not cancel old intent', err)
@@ -180,7 +181,7 @@ export async function POST(request: NextRequest) {
         prophandld_type: 'rent_payment',
         prophandld_rent_payment_id: rentPayment.id,
         prophandld_base_amount: amountDue.toFixed(2),
-        prophandld_card_surcharge: surcharge.toFixed(2),
+        prophandld_card_surcharge: tenantFee.toFixed(2),
         prophandld_absorbed_fee: absorbedFeeAmount.toFixed(2),
       },
     })
@@ -195,7 +196,7 @@ export async function POST(request: NextRequest) {
       })
       .eq('id', rentPayment.id)
 
-    return NextResponse.json({ clientSecret: charge.clientSecret, amount: chargeAmount, baseAmount: amountDue, fee: surcharge, connectedAccountId })
+    return NextResponse.json({ clientSecret: charge.clientSecret, amount: chargeAmount, baseAmount: amountDue, fee: tenantFee, connectedAccountId })
   } catch (err) {
     console.error('rent/create-payment-intent: unhandled error', err)
     return NextResponse.json({ error: friendlyStripeError(err, 'start that payment') }, { status: 500 })

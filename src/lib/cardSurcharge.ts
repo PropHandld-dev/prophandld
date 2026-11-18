@@ -25,13 +25,23 @@ export function cardProcessingFee(baseAmount: number): number {
   return Math.round((baseAmount * CARD_FEE_PERCENT + CARD_FEE_FIXED) * 100) / 100
 }
 
+// Rent by debit card: the tenant pays the card processing fee (decided by
+// Nevin 2026-11-17, since bank transfer and Zelle/Venmo/Cash App are free).
+// Card network rules restrict surcharging debit cards, so this is one
+// switch: NEXT_PUBLIC_RENT_CARD_FEE=off removes it everywhere at once.
+export const RENT_CARD_FEE_ENABLED = process.env.NEXT_PUBLIC_RENT_CARD_FEE !== 'off'
+
+// Sized so the fee exactly covers Stripe's charge on the whole amount
+// (fee included): the landlord receives the full rent and Prophandld makes
+// nothing on it.
+export function rentCardFee(rentAmount: number): number {
+  if (!RENT_CARD_FEE_ENABLED || rentAmount <= 0) return 0
+  return Math.round(((rentAmount * CARD_FEE_PERCENT + CARD_FEE_FIXED) / (1 - CARD_FEE_PERCENT)) * 100) / 100
+}
+
 // Stripe's standard US bank-transfer (ACH debit) rate: 0.8%, capped at $5.
-// Passed through to whoever is paying — the tenant for rent, the landlord
-// for job payments — same as the card fee already is. Rent briefly
-// absorbed this itself instead of surcharging the tenant, but that went
-// net-negative against subscription revenue as the platform scaled, so as
-// of 2026-10-20 it's passed through here too (see
-// stripe/rent/create-payment-intent's own comment).
+// The landlord pays it on job payments; on rent, Prophandld pays it (see
+// isAchFeeAbsorbed).
 const ACH_FEE_PERCENT = 0.008
 const ACH_FEE_CAP = 5
 

@@ -1352,7 +1352,7 @@ const STRINGS = {
   continueBtn: { en: 'Continue', es: 'Continuar' },
   done: { en: 'Done', es: 'Listo' },
 
-  getPaidRentSectionIntro: { en: "Set up how rent reaches you. You always get the full rent amount: bank transfer is the default, and Prophandld pays its processing fee, so your tenant pays exactly the rent. Debit card is there for a tenant who needs to pay right now.", es: 'Configura cómo recibes la renta. Siempre recibes el monto completo: la transferencia bancaria es la opción principal y Prophandld paga su cargo de procesamiento, así que tu inquilino paga exactamente la renta. La tarjeta de débito está disponible para un inquilino que necesita pagar de inmediato.' },
+  getPaidRentSectionIntro: { en: "Set up how rent reaches you. You always get the full rent amount: bank transfer is the default, and Prophandld pays its processing fee, so your tenant pays exactly the rent. Debit card is there for a tenant who needs to pay right now; they pay its card processing fee, so you still get the full rent.", es: 'Configura cómo recibes la renta. Siempre recibes el monto completo: la transferencia bancaria es la opción principal y Prophandld paga su cargo de procesamiento, así que tu inquilino paga exactamente la renta. La tarjeta de débito está disponible para un inquilino que necesita pagar de inmediato; el inquilino paga su cargo de procesamiento, así que tú recibes la renta completa.' },
   getPaidRentCardTitle: { en: 'Debit card (instant)', es: 'Tarjeta de débito (instantáneo)' },
   getPaidRentCardBody: { en: "For a tenant who needs to pay right now instead of waiting on a bank transfer. They pay a small card fee, shown to them up front. You're never charged for it.", es: 'Para un inquilino que necesita pagar de inmediato en lugar de esperar una transferencia bancaria. Ellos pagan una pequeña comisión por tarjeta, mostrada por adelantado; a ti nunca se te cobra.' },
 
@@ -1926,6 +1926,7 @@ const STRINGS = {
   // Renter rent page: choose how to pay
   howDoYouWantToPay: { en: 'How do you want to pay?', es: '¿Cómo quieres pagar?' },
   bankAccountOptionLabel: { en: 'Bank account', es: 'Cuenta bancaria' },
+  cardProcessingFeeShort: { en: 'card processing fee', es: 'cargo por procesamiento de tarjeta' },
   noFeeLabel: { en: 'No fee', es: 'Sin cargo' },
   bankAccountOptionDesc: { en: 'usually clears in 1–3 business days', es: 'normalmente se procesa en 1–3 días hábiles' },
   bankPaymentWord: { en: 'Bank payment', es: 'Pago bancario' },
