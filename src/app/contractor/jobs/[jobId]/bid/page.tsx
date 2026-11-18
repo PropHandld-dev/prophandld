@@ -562,7 +562,7 @@ export default function SubmitBidPage() {
                   name="notes"
                   value={form.notes}
                   onChange={handleChange}
-                  rows={3}
+                  rows={Math.min(10, Math.max(3, form.notes.split('\n').length + 1))}
                   placeholder={t('notesPlaceholder', lang)}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition resize-none"
                 />
