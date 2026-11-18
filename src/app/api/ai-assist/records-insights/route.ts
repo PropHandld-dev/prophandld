@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
         'Checks: practical things to review before filing (expenses without receipts, deposits that are not income, possible missing categories like insurance or property tax if they are $0). ' +
         'Do not give tax advice or say what is deductible; suggest confirming with a tax professional where relevant.',
       prompt: `Data: ${data}\n\nReturn {"summary": 2-3 sentences, "highlights": up to 4 short items, "checks": up to 4 short items}`,
-      maxTokens: 800,
+      maxTokens: 1200,
       track: { billedUserId: access.billedUserId, callerUserId: user.id, feature: 'records-insights' },
     })
     return NextResponse.json({

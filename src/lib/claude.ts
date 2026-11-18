@@ -130,6 +130,19 @@ export async function claudeJson<T>({
   const raw = textBlock.text.trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '')
   try {
     return JSON.parse(raw) as T
+  } catch {
+    // Sometimes a sentence comes before or after the object; take the
+    // outermost {...} before giving up.
+    const start = raw.indexOf('{')
+    const end = raw.lastIndexOf('}')
+    if (start !== -1 && end > start) {
+      try {
+        return JSON.parse(raw.slice(start, end + 1)) as T
+      } catch {}
+    }
+  }
+  try {
+    return JSON.parse(raw) as T
   } catch (err) {
     // Truncated — `raw` can include real account/lease content the model
     // was answering with (a rent amount, a compliance item), and this is
