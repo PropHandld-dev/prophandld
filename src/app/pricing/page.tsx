@@ -19,7 +19,7 @@ const INCLUDED = [
   'Document vault, systems/CapEx tracking, and exportable reports',
   'Co-owner access for a business partner, or a property manager running it for you',
   'Unlimited contractors and renters linked to your properties',
-  'Bank transfer rent collection, with the processing fee shown to, and paid by, your tenant, not you',
+  'Bank transfer rent collection with no fee for you or your tenant: Prophandld pays it',
   'Job payments to contractors: you cover the processing fee, so they always get their full agreed amount',
 ]
 

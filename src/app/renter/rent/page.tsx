@@ -19,7 +19,6 @@ const StripePaymentModal = dynamic(() => import('@/components/StripePaymentModal
 import { CheckCircleIcon, CalendarIcon, FileTextIcon } from '@/components/icons'
 import { RENTER_TABS } from '@/lib/navTabs'
 import { ensureCurrentMonthRentPayment, ensureNextMonthRentPayment } from '@/lib/rentAutomation'
-import { achProcessingFee } from '@/lib/cardSurcharge'
 import { useLanguage, t, type Lang } from '@/lib/i18n'
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -590,7 +589,8 @@ export default function RenterRentPage() {
 
       {methodChoicePayment && (() => {
         const amountDue = Number(methodChoicePayment.expected_amount) - Number(methodChoicePayment.actual_amount || 0)
-        const achFee = achProcessingFee(amountDue)
+        // Prophandld pays the bank-transfer fee; tenants pay exactly their rent.
+        const achFee = 0
         const closeModal = () => { setMethodChoicePayment(null); setP2pPanelMethod(null); setP2pSent(false); setP2pError(null) }
 
         if (p2pPanelMethod) {
@@ -706,7 +706,7 @@ export default function RenterRentPage() {
                     <span className="text-white font-semibold text-sm tabular-nums">{money(amountDue + achFee)}</span>
                   </div>
                   <p className="text-white/50 text-xs mt-1">
-                    +{money(achFee)} {t('processingFeeSuffix', lang)} · {t('bankAccountOptionDesc', lang)}
+                    <span className="text-[#12A5A9] font-semibold">{t('noFeeLabel', lang)}</span> · {t('bankAccountOptionDesc', lang)}
                   </p>
                 </button>
                 <button
