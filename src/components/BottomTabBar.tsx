@@ -1,8 +1,11 @@
 'use client'
 
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { useLanguage } from '@/lib/i18n'
+import { supabase } from '@/lib/supabase'
+import { isRememberedPmHome, rememberPmHome } from '@/lib/pmHome'
 
 export interface TabItem {
   href: string
@@ -11,9 +14,27 @@ export interface TabItem {
   icon: React.ComponentType<{ className?: string }>
 }
 
-export function BottomTabBar({ tabs }: { tabs: TabItem[] }) {
+export function BottomTabBar({ tabs: baseTabs }: { tabs: TabItem[] }) {
   const pathname = usePathname()
   const lang = useLanguage()
+  const [pmHome, setPmHome] = useState(false)
+  const hasLandlordHome = baseTabs.some((tab) => tab.href === '/landlord')
+
+  useEffect(() => {
+    if (!hasLandlordHome) return
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const remembered = isRememberedPmHome(session?.user?.id)
+      if (!remembered && session?.user) {
+        try {
+          if (localStorage.getItem('prophandld:pm-home')) rememberPmHome(null)
+        } catch {}
+      }
+      setPmHome(remembered)
+    })
+  }, [hasLandlordHome])
+
+  // A PM company member's home is their PM dashboard.
+  const tabs = pmHome ? baseTabs.map((tab) => (tab.href === '/landlord' ? { ...tab, href: '/landlord/pm' } : tab)) : baseTabs
 
   // A tab "matches" on an exact hit or a path prefix. Since every
   // section shares the role root (e.g. /landlord/jobs also starts

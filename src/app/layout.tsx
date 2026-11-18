@@ -7,6 +7,7 @@ import { StagingBadge } from "@/components/StagingBadge";
 import { AiHelpBubble } from "@/components/AiHelpBubble";
 import { AppLaunchIntro } from "@/components/AppLaunchIntro";
 import { LandingLaunchIntro } from "@/components/LandingLaunchIntro";
+import { THEME_BOOT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -101,7 +102,12 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} ${syne.variable} h-full antialiased`}
+      data-theme="dark"
+      suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+      </head>
       <body className="min-h-full flex flex-col">
         <AppLaunchIntro />
         <LandingLaunchIntro />

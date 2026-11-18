@@ -54,6 +54,7 @@ function LandlordJobsList() {
   const lang = useLanguage()
   const FILTERS = [
     { key: 'needs_approval', label: t('filterNeedsAction', lang) },
+    { key: 'open', label: t('filterOpenJobs', lang) },
     { key: 'in_progress', label: t('filterInProgress', lang) },
     { key: 'completed', label: t('filterCompleted', lang) },
     { key: 'emergency', label: t('filterEmergency', lang) },
@@ -220,6 +221,7 @@ function LandlordJobsList() {
   const statusFilteredJobs = ownerFilteredJobs.filter((job) => {
     if (activeFilter === 'all') return true
     if (activeFilter === 'emergency') return job.is_emergency
+    if (activeFilter === 'open') return ['pending_approval', 'bidding', 'approved'].includes(job.status)
     if (activeFilter === 'needs_approval') return ['pending_approval', 'approved', 'pending_review'].includes(job.status)
     if (activeFilter === 'in_progress') return IN_PROGRESS_STATUSES.includes(job.status)
     if (activeFilter === 'completed') return job.status === 'completed' || job.status === 'archived'

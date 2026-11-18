@@ -5,6 +5,7 @@ import { hasAiAssistAccess } from '@/lib/aiAssist'
 import { tooManyAiAssistRequests } from '@/lib/aiAssistRateLimit'
 import { claudeJson, ClaudeConfigError } from '@/lib/claude'
 import { PHILADELPHIA_COMPLIANCE_FACTS } from '@/lib/complianceFacts'
+import { canActForOwner } from '@/lib/pm'
 
 export const maxDuration = 30
 
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest) {
     .eq('id', complianceItemId)
     .maybeSingle()
   const property: any = (item as any)?.properties
-  if (!item || !property || property.owner_user_id !== user.id) {
+  if (!item || !property || !(await canActForOwner(supabaseAdmin, user.id, property.owner_user_id))) {
     return NextResponse.json({ error: 'Compliance item not found' }, { status: 404 })
   }
   if (!(await hasAiAssistAccess(supabaseAdmin, user.id))) {

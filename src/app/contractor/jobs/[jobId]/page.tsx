@@ -28,6 +28,7 @@ import { TIME_WINDOWS, validateScheduleTime, lateRescheduleWarning, shortNoticeW
 import { useLanguage, t, windowLabel } from '@/lib/i18n'
 import { useConfirm } from '@/lib/useConfirm'
 import { useDialogA11y } from '@/lib/useDialogA11y'
+import { ManagedByBadge } from '@/components/ManagedByBadge'
 
 export default function ContractorJobDetailPage() {
   const router = useRouter()
@@ -670,6 +671,7 @@ export default function ContractorJobDetailPage() {
               </span>
             )}
           </div>
+          <ManagedByBadge jobId={job.id} className="mb-2" />
           {job.work_order_number && (
             <p className="text-white/40 text-xs font-mono mb-1">{t('workOrderPrefix', lang)}{job.work_order_number}</p>
           )}

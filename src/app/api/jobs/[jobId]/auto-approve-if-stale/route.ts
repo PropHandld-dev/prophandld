@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { autoApproveJobIfStale } from '@/lib/autoApproveJob'
+import { canActForOwner } from '@/lib/pm'
 
 // Called by the landlord's and contractor's own job-detail pages right after
 // they load a job that's sitting in pending_review — a "don't make someone
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   const property = (job.units as any)?.properties
-  let allowed = property?.owner_user_id === user.id
+  let allowed = await canActForOwner(admin, user.id, property?.owner_user_id)
 
   if (!allowed) {
     const { data: tenancies } = await admin.from('tenancies').select('id, renter_user_id').eq('unit_id', job.unit_id)

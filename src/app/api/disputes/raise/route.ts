@@ -6,6 +6,7 @@ import { emailAllowed } from '@/lib/notificationPrefs'
 import { sendPush } from '@/lib/push'
 import { notifyLandlordIds } from '@/lib/landlordCoOwners'
 import { resolveReportingRenterIds } from '@/lib/resolveReportingTenancy'
+import { canActForOwner } from '@/lib/pm'
 
 export async function POST(request: NextRequest) {
   const authClient = await createClient()
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
   // raising a dispute was previously rejected outright as "not a
   // participant" (owner_user_id match only).
   const landlordIds = property?.owner_user_id ? await notifyLandlordIds(supabaseAdmin, property.owner_user_id) : []
-  const isLandlord = landlordIds.includes(user.id)
+  const isLandlord = landlordIds.includes(user.id) || (await canActForOwner(supabaseAdmin, user.id, property?.owner_user_id))
 
   // Resolved from whoever actually reported the job, not just whoever
   // currently lives there — otherwise a new tenant could both see and

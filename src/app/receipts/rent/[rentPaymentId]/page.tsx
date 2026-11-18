@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { useParams, useRouter } from 'next/navigation'
 import { ReceiptCard } from '@/components/ReceiptCard'
 import { useLanguage, t } from '@/lib/i18n'
+import { utilityName, type UtilityCharge } from '@/lib/utilityCharges'
 
 export default function RentReceiptPage() {
   const params = useParams()
@@ -49,7 +50,7 @@ export default function RentReceiptPage() {
       const { data } = await supabase
         .from('rent_payments')
         .select(
-          'id, month, expected_amount, actual_amount, card_surcharge_amount, water_amount, paid_date, payment_method, stripe_status, tenancies(renter_user_id, units(unit_number, properties(address, city, state, owner_user_id)))'
+          'id, tenancy_id, month, expected_amount, actual_amount, card_surcharge_amount, utilities_amount, paid_date, payment_method, stripe_status, tenancies(renter_user_id, units(unit_number, properties(address, city, state, owner_user_id)))'
         )
         .eq('id', rentPaymentId)
         .maybeSingle()
@@ -58,12 +59,16 @@ export default function RentReceiptPage() {
       const renterId = tenancyRow?.renter_user_id
       const landlordId = tenancyRow?.units?.properties?.owner_user_id
 
-      const [{ data: renterData }, { data: landlordData }] = await Promise.all([
+      const [{ data: renterData }, { data: landlordData }, billsRes] = await Promise.all([
         renterId ? supabase.rpc('get_user_by_id', { user_id_input: renterId }).maybeSingle() : Promise.resolve({ data: null }),
         landlordId ? supabase.rpc('get_user_by_id', { user_id_input: landlordId }).maybeSingle() : Promise.resolve({ data: null }),
+        data && Number(data.utilities_amount || 0) > 0
+          ? fetch(`/api/rent/utilities?tenancyId=${data.tenancy_id}`).then((r) => r.json()).catch(() => null)
+          : Promise.resolve(null),
       ])
+      const bills = ((billsRes?.charges || []) as UtilityCharge[]).filter((c) => c.rentPaymentId === rentPaymentId)
 
-      setReceipt(data ? { ...data, renterName: (renterData as any)?.full_name, landlordName: (landlordData as any)?.full_name } : data)
+      setReceipt(data ? { ...data, bills, renterName: (renterData as any)?.full_name, landlordName: (landlordData as any)?.full_name } : data)
       setIsRenterViewer(renterId === user.id)
       setBackHref(renterId === user.id ? '/renter/rent' : '/landlord')
       setLoading(false)
@@ -108,10 +113,10 @@ export default function RentReceiptPage() {
         { label: t('paidToLabel', lang), value: receipt.landlordName || '—' },
         { label: t('propertyLabel', lang), value: property ? `${property.city}, ${property.state}` : '—' },
         { label: t('periodLabel', lang), value: monthLabel },
-        ...(receipt.water_amount
+        ...(Number(receipt.utilities_amount || 0) > 0
           ? [
-              { label: t('rentWord', lang), value: `$${(Number(receipt.expected_amount) - Number(receipt.water_amount)).toFixed(2)}` },
-              { label: t('waterWord', lang), value: `$${Number(receipt.water_amount).toFixed(2)}` },
+              { label: t('rentWord', lang), value: `$${(Number(receipt.expected_amount) - Number(receipt.utilities_amount)).toFixed(2)}` },
+              ...((receipt.bills || []) as UtilityCharge[]).map((b) => ({ label: utilityName(b, lang === 'es' ? 'es' : 'en'), value: `$${b.amount.toFixed(2)}` })),
             ]
           : []),
         // Only shown when it's actually nonzero, so the row isn't visual

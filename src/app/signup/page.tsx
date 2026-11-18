@@ -20,6 +20,7 @@ import { setAppMetadataRole } from '@/lib/setAppMetadataRole'
 import { LINKED_PROFILES_ENABLED } from '@/lib/featureFlags'
 import { t, roleLabel, type Lang } from '@/lib/i18n'
 import { formatTierPrice, formatAiAssistPrice } from '@/lib/pricingTiers'
+import { PILOT_FREE, PILOT_FREE_MONTHS } from '@/lib/pilot'
 
 const ROLE_LABEL_KEY = { landlord: 'landlordLabel', renter: 'renterLabel', contractor: 'contractorLabel' } as const
 
@@ -687,7 +688,19 @@ function SignupForm() {
         ))}
       </ul>
 
-      {role === 'landlord' && (
+      {role === 'landlord' && PILOT_FREE && (
+        <div className="bg-gradient-to-br from-[#0A7B7E]/15 to-white/[0.02] border border-[#12A5A9]/30 rounded-xl px-4 py-3.5 mb-6">
+          <p className="text-[#12A5A9] text-[11px] font-semibold uppercase tracking-wider">{lang === 'es' ? 'Programa piloto' : 'Pilot program'}</p>
+          <p className="text-white text-sm font-semibold mt-1">
+            {lang === 'es' ? `Gratis durante ${PILOT_FREE_MONTHS} meses, Prophandld AI incluido.` : `Free for ${PILOT_FREE_MONTHS} months, Prophandld AI included.`}
+          </p>
+          <p className="text-white/55 text-xs mt-1 leading-relaxed">
+            {lang === 'es' ? 'Sin tarjeta. Nunca se cobra nada sin que tú elijas un plan.' : 'No card needed. Nothing is ever charged unless you choose a plan.'}
+          </p>
+        </div>
+      )}
+
+      {role === 'landlord' && !PILOT_FREE && (
         <>
           <UnitPriceEstimator lang={lang} units={estimatorUnits} onUnitsChange={setEstimatorUnits} />
           <div className="bg-gradient-to-br from-[#0A7B7E]/10 to-white/[0.02] border border-[#12A5A9]/25 rounded-xl px-4 py-3.5 mb-6">

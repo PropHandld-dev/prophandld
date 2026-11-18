@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { hasAiAssistAccess } from '@/lib/aiAssist'
 import { tooManyAiAssistRequests } from '@/lib/aiAssistRateLimit'
 import { claudeJson, ClaudeConfigError } from '@/lib/claude'
+import { canActForOwner } from '@/lib/pm'
 
 export const maxDuration = 30
 
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
     .maybeSingle()
 
   const property: any = (tenancy as any)?.units?.properties
-  if (!tenancy || !property || property.owner_user_id !== user.id) {
+  if (!tenancy || !property || !(await canActForOwner(supabaseAdmin, user.id, property.owner_user_id))) {
     return NextResponse.json({ error: 'No active tenancy found for this renter on one of your properties.' }, { status: 404 })
   }
 

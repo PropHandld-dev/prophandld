@@ -112,6 +112,8 @@ const FACT_LABELS: Record<string, string> = {
   'Status': 'Estado',
   'Property manager': 'Administrador de propiedades',
   'Proposed fee': 'Tarifa propuesta',
+  'New total': 'Nuevo total',
+  'Left to pay': 'Por pagar',
 }
 
 function fl(label: string, lang: Lang): string {
@@ -3540,6 +3542,57 @@ export async function sendRentDueEmail({ to, landlordName, unitLabels, lang = 'e
     ctaUrl: `${SITE_URL}/landlord`,
   })
   return sendEmail({ to, subject: lang === 'es' ? `Renta vence: ${monthLabel}` : `Rent due: ${monthLabel}`, html })
+}
+
+export async function sendUtilityBillsAddedEmail({
+  to,
+  unitLabel,
+  monthDate,
+  items,
+  total,
+  due,
+  lang = 'en',
+}: {
+  to: string
+  unitLabel: string
+  monthDate: Date
+  items: { name: string; amount: number }[]
+  total: number
+  due: number
+  lang?: Lang
+}) {
+  const monthLabel = monthDate.toLocaleDateString(lang === 'es' ? 'es-ES' : undefined, { month: 'long', year: 'numeric' })
+  const list = items.map((i) => `${i.name} $${i.amount.toFixed(2)}`).join(', ')
+  const facts = [
+    ...items.map((i) => ({ label: i.name, value: `$${i.amount.toFixed(2)}` })),
+    { label: fl('New total', lang), value: `$${total.toFixed(2)}` },
+    ...(due !== total ? [{ label: fl('Left to pay', lang), value: `$${due.toFixed(2)}` }] : []),
+    { label: fl('Unit', lang), value: unitLabel },
+  ]
+  const html = lang === 'es' ? baseTemplate({
+    lang,
+    eyebrow: 'Servicios',
+    heading: `${items.length > 1 ? 'Nuevas facturas' : 'Nueva factura'} en tu renta de ${escapeHtml(monthLabel)}`,
+    bodyHtml: `Se agregó ${escapeHtml(list)} a tu renta de ${escapeHtml(monthLabel)} para ${escapeHtml(unitLabel)}. Puedes ver la factura en tu panel de renta.`,
+    preheader: `${list} · total $${total.toFixed(2)}`,
+    facts,
+    ctaLabel: 'Ver factura',
+    ctaUrl: `${SITE_URL}/renter/rent`,
+  }) : baseTemplate({
+    lang,
+    eyebrow: 'Utilities',
+    heading: `${items.length > 1 ? 'New bills' : 'New bill'} on your ${escapeHtml(monthLabel)} rent`,
+    bodyHtml: `${escapeHtml(list)} was added to your ${escapeHtml(monthLabel)} rent for ${escapeHtml(unitLabel)}. You can open the bill itself from your rent page.`,
+    preheader: `${list} · total $${total.toFixed(2)}`,
+    facts,
+    ctaLabel: 'View bill',
+    ctaUrl: `${SITE_URL}/renter/rent`,
+  })
+  return sendEmail({
+    to,
+    subject: lang === 'es' ? `Nueva factura de servicios: ${list}` : `New utility bill: ${list}`,
+    html,
+  })
 }
 
 export async function sendRentDueRenterEmail({

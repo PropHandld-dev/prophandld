@@ -10,10 +10,9 @@ import { LANDLORD_TABS } from '@/lib/navTabs'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { RentMonthEditor, type RentEditValues } from '@/components/RentMonthEditor'
+import { utilityName, type UtilityCharge } from '@/lib/utilityCharges'
 import { ensureCurrentMonthRentPayment } from '@/lib/rentAutomation'
-import { FileTextIcon } from '@/components/icons'
 import { useLanguage, t } from '@/lib/i18n'
-import { validateDocumentFile } from '@/lib/mediaValidation'
 import { useConfirm } from '@/lib/useConfirm'
 
 export default function UnitRentPage() {
@@ -35,7 +34,7 @@ export default function UnitRentPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editError, setEditError] = useState<string | null>(null)
   const [resolvingId, setResolvingId] = useState<string | null>(null)
-  const [uploadingWaterBillId, setUploadingWaterBillId] = useState<string | null>(null)
+  const [chargesByMonth, setChargesByMonth] = useState<Record<string, UtilityCharge[]>>({})
   const [showAddMonth, setShowAddMonth] = useState(false)
   const [addForm, setAddForm] = useState({ month: '', expected_amount: '' })
   const { confirm, ConfirmDialog } = useConfirm()
@@ -130,85 +129,20 @@ export default function UnitRentPage() {
   }, [payments, tenancy])
 
   const loadPayments = async (tenancyId: string) => {
-    const { data: paymentsData, error: paymentsError } = await supabase
-      .from('rent_payments')
-      .select('*, documents(filename, file_url)')
-      .eq('tenancy_id', tenancyId)
-      .order('month', { ascending: false })
+    const [{ data: paymentsData, error: paymentsError }, chargesRes] = await Promise.all([
+      supabase.from('rent_payments').select('*').eq('tenancy_id', tenancyId).order('month', { ascending: false }),
+      fetch(`/api/rent/utilities?tenancyId=${tenancyId}`).then((r) => r.json()).catch(() => null),
+    ])
 
     if (paymentsError) {
       console.error('Error loading rent payments:', paymentsError)
       return
     }
 
-    const enriched = await Promise.all(
-      (paymentsData || []).map(async (payment) => {
-        if (!payment.documents) return payment
-        const { data: signedUrlData } = await supabase.storage
-          .from('documents')
-          .createSignedUrl(payment.documents.file_url, 3600)
-        return { ...payment, waterBillViewUrl: signedUrlData?.signedUrl }
-      })
-    )
-
-    setPayments(enriched)
-  }
-
-  const handleAttachWaterBill = async (payment: any, file: File) => {
-    if (!userId) return
-    const validationError = await validateDocumentFile(file, { allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'] })
-    if (validationError) {
-      setError(validationError)
-      return
-    }
-    setUploadingWaterBillId(payment.id)
-    setError(null)
-
-    const fileExt = file.name.split('.').pop()
-    const filePath = `${propertyId}/water-bill-${payment.id}-${crypto.randomUUID()}.${fileExt}`
-
-    const { error: uploadError } = await supabase.storage.from('documents').upload(filePath, file)
-    if (uploadError) {
-      console.error('Error uploading water bill:', uploadError)
-      setError(t('couldNotUploadWaterBill', lang))
-      setUploadingWaterBillId(null)
-      return
-    }
-
-    const { data: doc, error: docError } = await supabase
-      .from('documents')
-      .insert({
-        property_id: propertyId,
-        unit_id: unitId,
-        uploaded_by: userId,
-        document_type: 'Water Bill',
-        filename: file.name,
-        file_url: filePath,
-      })
-      .select('id')
-      .single()
-
-    if (docError || !doc) {
-      console.error('Error saving water bill document record:', docError)
-      setError(t('couldNotSaveWaterBill', lang))
-      setUploadingWaterBillId(null)
-      return
-    }
-
-    const { error: updateError } = await supabase
-      .from('rent_payments')
-      .update({ water_bill_document_id: doc.id })
-      .eq('id', payment.id)
-
-    if (updateError) {
-      console.error('Error linking water bill to rent payment:', updateError)
-      setError(t('couldNotAttachWaterBill', lang))
-      setUploadingWaterBillId(null)
-      return
-    }
-
-    await loadPayments(payment.tenancy_id)
-    setUploadingWaterBillId(null)
+    const grouped: Record<string, UtilityCharge[]> = {}
+    for (const c of (chargesRes?.charges || []) as UtilityCharge[]) (grouped[c.rentPaymentId] ||= []).push(c)
+    setChargesByMonth(grouped)
+    setPayments(paymentsData || [])
   }
 
   const handleMarkReceived = async (payment: any, amount?: number) => {
@@ -262,50 +196,73 @@ export default function UnitRentPage() {
 
   const lateFeeOf = (payment: any) => (payment.late_fee_applied ? Number(tenancy?.late_fee_amount || 0) : 0)
   const rentPortionOf = (payment: any) =>
-    Math.round((Number(payment.expected_amount) - Number(payment.water_amount || 0) - lateFeeOf(payment)) * 100) / 100
+    Math.round((Number(payment.expected_amount) - Number(payment.utilities_amount || 0) - lateFeeOf(payment)) * 100) / 100
 
-  // Saves the rent, water bill and water period for a month (paid or not) and
-  // writes a dated line to its history describing what changed.
+  // Saves the rent and utility bills for a month (paid or not). The server
+  // recomputes the total, writes the month's history and tells the tenant
+  // about new bills; any attached bill files then go straight to storage.
   const handleSaveEdit = async (payment: any, values: RentEditValues) => {
     setSavingId(payment.id)
     setEditError(null)
 
-    const oldRent = rentPortionOf(payment)
-    const oldWater = Number(payment.water_amount || 0)
-    const total = Math.round((values.rent + values.water + lateFeeOf(payment)) * 100) / 100
-
-    const changes: string[] = []
-    if (values.rent !== oldRent) changes.push(`Rent ${money(oldRent)} → ${money(values.rent)}`)
-    if (values.water !== oldWater) changes.push(`Water ${money(oldWater)} → ${money(values.water)}`)
-    if ((values.periodStart || '') !== (payment.water_period_start || '') || (values.periodEnd || '') !== (payment.water_period_end || '')) {
-      changes.push('Water bill period updated')
+    const typeOf = (f: File) => {
+      const ext = f.name.split('.').pop()?.toLowerCase()
+      if (f.type === 'application/pdf' || ext === 'pdf') return 'pdf'
+      if (f.type === 'image/png' || ext === 'png') return 'png'
+      return 'jpg'
     }
-    if (values.note) changes.push(values.note)
-    const stamp = new Date().toLocaleDateString('en-CA')
-    const notes = [payment.notes, `${stamp}: ${changes.join(' · ')}`].filter(Boolean).join('\n')
-
-    const update: Record<string, any> = {
-      expected_amount: total,
-      water_amount: values.water,
-      notes,
-    }
-    // Only sent when set (or being cleared), so saving still works for
-    // anyone who never uses the period fields.
-    if (values.periodStart || payment.water_period_start) update.water_period_start = values.periodStart || null
-    if (values.periodEnd || payment.water_period_end) update.water_period_end = values.periodEnd || null
-
-    const { error: updateError } = await supabase.from('rent_payments').update(update).eq('id', payment.id)
-
-    if (updateError) {
-      console.error('Error saving rent month:', updateError)
-      setEditError(t('couldNotSavePrefix', lang))
+    const res = await fetch(`/api/rent-payment/${payment.id}/utilities`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        rent: values.rent,
+        note: values.note,
+        charges: values.charges.map((c) => ({
+          id: c.id,
+          clientKey: c.key,
+          kind: c.kind,
+          label: c.label,
+          amount: Number(c.amount || 0),
+          periodStart: c.periodStart || null,
+          periodEnd: c.periodEnd || null,
+          attachFile: c.file ? typeOf(c.file) : null,
+        })),
+      }),
+    }).catch(() => null)
+    const data = res ? await res.json().catch(() => ({})) : {}
+    if (!res?.ok) {
+      setEditError(data.error || t('couldNotSavePrefix', lang))
       setSavingId(null)
       return
     }
 
-    setEditingId(null)
+    const failures: string[] = []
+    for (const slot of (data.uploads || []) as { chargeId: string; clientKey?: string; path: string; token: string }[]) {
+      const file = values.charges.find((c) => c.key === slot.clientKey)?.file
+      if (!file) continue
+      const { error: uploadError } = await supabase.storage.from('documents').uploadToSignedUrl(slot.path, slot.token, file, { contentType: file.type || undefined })
+      if (uploadError) {
+        failures.push(file.name)
+        continue
+      }
+      const attach = await fetch(`/api/rent-payment/${payment.id}/utilities/attach`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chargeId: slot.chargeId, path: slot.path, filename: file.name }),
+      }).catch(() => null)
+      if (!attach?.ok) {
+        const err = attach ? (await attach.json().catch(() => ({}))).error : null
+        failures.push(err ? `${file.name} (${err})` : file.name)
+      }
+    }
+
     await loadPayments(payment.tenancy_id)
     setSavingId(null)
+    if (failures.length > 0) {
+      setEditError(`${t('billUploadFailed', lang)} ${failures.join(', ')}`)
+      return
+    }
+    setEditingId(null)
   }
 
   // Settles an overpayment: refund it through Stripe, record a refund made
@@ -492,10 +449,7 @@ export default function UnitRentPage() {
                   const overpaid = Math.round((Number(payment.actual_amount || 0) - Number(payment.expected_amount || 0)) * 100) / 100
                   const paidOnline = payment.stripe_status === 'succeeded' && !!payment.stripe_payment_intent_id
                   const noteLines: string[] = payment.notes ? String(payment.notes).split('\n').filter(Boolean) : []
-                  const shortDate = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-                  const period = payment.water_period_start && payment.water_period_end
-                    ? ` · ${shortDate(payment.water_period_start)} – ${shortDate(payment.water_period_end)}`
-                    : ''
+                  const bills = chargesByMonth[payment.id] || []
                   return (
                     <div key={payment.id} className="bg-white/3 border border-white/8 rounded-2xl p-5">
                       <div className="flex items-start justify-between gap-4">
@@ -512,8 +466,18 @@ export default function UnitRentPage() {
                             )}
                             <span className="text-xs bg-white/8 text-white/50 rounded-full px-2.5 py-0.5">
                               ${payment.actual_amount ?? 0} of ${payment.expected_amount}
-                              {payment.water_amount ? ` (incl. $${payment.water_amount} water${period})` : ''}
                             </span>
+                            {bills.map((b) => (
+                              b.billUrl ? (
+                                <a key={b.id} href={b.billUrl} target="_blank" rel="noopener noreferrer" className="text-xs bg-[#12A5A9]/10 text-[#12A5A9] rounded-full px-2.5 py-0.5 hover:bg-[#12A5A9]/20 transition">
+                                  {utilityName(b, lang)} {money(b.amount)} ↗
+                                </a>
+                              ) : (
+                                <span key={b.id} className="text-xs bg-white/8 text-white/60 rounded-full px-2.5 py-0.5">
+                                  {utilityName(b, lang)} {money(b.amount)}
+                                </span>
+                              )
+                            ))}
                             {payment.late_fee_applied && (
                               <span className="text-xs bg-yellow-500/15 text-yellow-400 rounded-full px-2.5 py-0.5">
                                 {t('includesLateFee', lang)}
@@ -706,18 +670,12 @@ export default function UnitRentPage() {
             key={payment.id}
             monthLabel={formatMonth(payment.month)}
             rent={rentPortionOf(payment)}
-            water={Number(payment.water_amount || 0)}
+            charges={chargesByMonth[payment.id] || []}
             lateFee={lateFeeOf(payment)}
             paidSoFar={Number(payment.actual_amount || 0)}
-            periodStart={payment.water_period_start || ''}
-            periodEnd={payment.water_period_end || ''}
-            hasBillFile={!!payment.waterBillViewUrl}
-            billFileUrl={payment.waterBillViewUrl}
-            uploading={uploadingWaterBillId === payment.id}
             saving={savingId === payment.id}
             error={editError}
             onSave={(values) => handleSaveEdit(payment, values)}
-            onAttach={(file) => handleAttachWaterBill(payment, file)}
             onClose={() => setEditingId(null)}
           />
         )

@@ -5,6 +5,7 @@ import { sendRentMarkedReceivedEmail } from '@/lib/email'
 import { sendPush } from '@/lib/push'
 import { emailAllowed } from '@/lib/notificationPrefs'
 import { notifyLandlordIds } from '@/lib/landlordCoOwners'
+import { canActForOwner } from '@/lib/pm'
 
 // Tells the renter their landlord manually marked a month's rent as
 // received (cash, check, or anything paid outside the app) — the automatic
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest) {
   const unit = tenancy?.units
   const ownerId = unit?.properties?.owner_user_id
   const landlordIds = ownerId ? await notifyLandlordIds(supabaseAdmin, ownerId) : []
-  if (!rent || !landlordIds.includes(user.id)) {
+  if (!rent || !(landlordIds.includes(user.id) || (await canActForOwner(supabaseAdmin, user.id, ownerId)))) {
     return NextResponse.json({ error: 'Rent payment not found' }, { status: 404 })
   }
 

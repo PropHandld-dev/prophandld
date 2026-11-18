@@ -108,11 +108,11 @@ export default function PropertyDocumentsPage() {
 
     // Water bills are attached to a rent month; look that up so the list can
     // say which month a bill belongs to instead of just "IMG_2515.jpeg".
-    const { data: waterLinks } = await supabase
+    const { data: billLinks } = await supabase
       .from('rent_payments')
       .select('*')
       .in('water_bill_document_id', documentsData.map((d) => d.id))
-    const waterByDocument = new Map((waterLinks || []).map((r: any) => [r.water_bill_document_id, r]))
+    const waterByDocument = new Map((billLinks || []).map((r: any) => [r.water_bill_document_id, r]))
 
     const enriched = await Promise.all(
       documentsData.map(async (doc) => {

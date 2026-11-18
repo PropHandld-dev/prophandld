@@ -7,6 +7,7 @@ import { goToStripe } from '@/lib/externalTab'
 import { PaymentTrustBadge } from '@/components/PaymentTrustBadge'
 import { useLanguage, t } from '@/lib/i18n'
 import { AI_ASSIST_ENABLED, type AiAssistStatus } from '@/lib/aiAssist'
+import { PILOT_FREE } from '@/lib/pilot'
 
 // Mirrors StripeConnectCard's exact shape (ScrollReveal shell, loading
 // skeleton, status badge, RippleButton CTA) — not shown at all while the
@@ -14,6 +15,11 @@ import { AI_ASSIST_ENABLED, type AiAssistStatus } from '@/lib/aiAssist'
 // off does server-side, so this card is fully invisible until the team
 // turns it on post-PDF sign-off.
 export function AiAssistCard() {
+  // The pilot card in the billing section already says AI is included.
+  return PILOT_FREE ? null : <PaidAiAssistCard />
+}
+
+function PaidAiAssistCard() {
   const lang = useLanguage()
   const [status, setStatus] = useState<AiAssistStatus | null>(null)
   const [daysLeft, setDaysLeft] = useState<number | null>(null)

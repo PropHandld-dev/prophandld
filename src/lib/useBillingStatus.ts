@@ -1,5 +1,6 @@
 'use client'
 
+import { PILOT_FREE } from '@/lib/pilot'
 import { useEffect, useState } from 'react'
 import { type LandlordTier } from '@/lib/pricingTiers'
 
@@ -9,7 +10,7 @@ export type BillingTier = LandlordTier
 // property" and "add a unit" wait for the subscription. It is off by default,
 // so nothing is blocked while the app is being tested. The reminder itself
 // always shows.
-export const BILLING_ENFORCED = process.env.NEXT_PUBLIC_BILLING_ENFORCE === 'on'
+export const BILLING_ENFORCED = process.env.NEXT_PUBLIC_BILLING_ENFORCE === 'on' && !PILOT_FREE
 
 type State = {
   loading: boolean

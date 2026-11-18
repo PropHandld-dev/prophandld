@@ -4,11 +4,10 @@ import { BrandLink } from '@/components/BrandLink'
 import { BackHomeLink } from '@/components/BackHomeLink'
 import { MagneticLink } from '@/components/MagneticLink'
 import { CheckCircleIcon } from '@/components/icons'
-import { PricingCalculator } from '@/components/PricingCalculator'
 
 export const metadata = {
   title: 'Pricing | Prophandld',
-  description: 'Simple, graduated pricing for landlords: free for your first unit, flat monthly plans through 25 units, then $79.99 plus $1.75 per unit after that. Try the calculator.',
+  description: 'Prophandld is free for 6 months during our pilot, Prophandld AI included. Pricing is coming soon, set with feedback from the landlords, property managers and contractors using it.',
   alternates: { canonical: '/pricing' },
 }
 
@@ -18,7 +17,7 @@ const INCLUDED = [
   'Online rent collection, approval-gated job payments, and the rent roll',
   'Compliance tracking with automatic reminders',
   'Document vault, systems/CapEx tracking, and exportable reports',
-  'Co-owner access for a business partner or property manager',
+  'Co-owner access for a business partner, or a property manager running it for you',
   'Unlimited contractors and renters linked to your properties',
   'Bank transfer rent collection, with the processing fee shown to, and paid by, your tenant, not you',
   'Job payments to contractors: you cover the processing fee, so they always get their full agreed amount',
@@ -47,83 +46,31 @@ export default function PricingPage() {
       </nav>
 
       <main className="max-w-4xl mx-auto px-6 py-16 sm:py-20">
-        <div className="relative text-center mb-14 overflow-hidden">
+        <div className="relative text-center mb-12 overflow-hidden">
           <div
             aria-hidden
-            className="absolute left-1/2 -top-24 -translate-x-1/2 w-[560px] h-[560px] rounded-full pointer-events-none"
+            className="absolute left-1/2 -top-24 -translate-x-1/2 w-[560px] h-[560px] max-w-full rounded-full pointer-events-none"
             style={{ background: 'radial-gradient(circle, rgba(18,165,169,0.16) 0%, rgba(10,123,126,0.06) 42%, transparent 70%)' }}
           />
           <div className="relative">
-            <p className="text-[#12A5A9] text-xs font-semibold uppercase tracking-[0.2em] mb-4">Pricing</p>
-            <h1 className="text-4xl sm:text-5xl font-bold mb-4 tracking-tight">
-              Pricing that grows the way your portfolio does
+            <p className="text-[#12A5A9] text-xs font-semibold uppercase tracking-[0.2em] mb-4">Pricing: coming soon</p>
+            <h1 className="text-4xl sm:text-5xl font-bold mb-4 tracking-tight text-balance">
+              Free for 6 months while we build it with you
             </h1>
             <p className="text-white/60 max-w-xl mx-auto leading-relaxed">
-              Your first unit is free, full stop. Flat monthly plans through 25 units, then $79.99
-              plus $1.75 for every unit after that, one rate, no fine print. Renters pay Prophandld nothing, and
-              so do contractors during our Philadelphia pilot.
+              During our pilot, everything is included, Prophandld AI too, with no card needed. We&apos;ll
+              set pricing only after hearing from the landlords, property managers and contractors
+              actually using it.
             </p>
             <p className="text-white/40 text-sm max-w-xl mx-auto leading-relaxed mt-3">
-              &ldquo;Unit&rdquo; means a rentable unit on the platform: a single-family rental
-              counts as one, a triplex counts as three.
+              Nothing is ever charged unless you choose a plan, and you&apos;ll hear from us well before
+              billing starts. Renters never pay Prophandld anything.
             </p>
           </div>
         </div>
 
-        <div className="mb-10">
-          <PricingCalculator />
-        </div>
-
-        <div className="rounded-2xl border border-[#12A5A9]/25 bg-gradient-to-br from-[#0A7B7E]/10 to-white/[0.02] px-6 py-6 sm:px-8 sm:py-8 mb-10">
-          <div className="flex items-start gap-4 mb-6">
-            <span className="shrink-0 text-xs font-semibold uppercase tracking-wide text-[#12A5A9] bg-[#12A5A9]/15 rounded-full px-2.5 py-1 mt-0.5">
-              Optional add-on
-            </span>
-            <div>
-              <p className="text-white text-sm font-semibold mb-1">Prophandld AI</p>
-              <p className="text-white/50 text-sm leading-relaxed">
-                Your own AI handling the part of this job nobody signed up for: tenants get walked
-                through fixing small things themselves before you&apos;re even looped in, your
-                paperwork reads itself straight into the right fields, and you hear about a
-                deadline while there&apos;s still time to do something about it, not after. Billed
-                to you, the landlord, on top of your base plan; every tenant on your properties
-                gets it automatically the moment you turn it on, at no extra cost to them.
-              </p>
-            </div>
-          </div>
-          <div className="grid sm:grid-cols-5 gap-3 mb-6">
-            {[
-              { name: '1 unit', price: '$4.99' },
-              { name: '2–4 units', price: '$9.99' },
-              { name: '5–10 units', price: '$14.99' },
-              { name: '11–25 units', price: '$24.99' },
-              { name: '26+ units', price: '+$0.50/unit' },
-            ].map((tier) => (
-              <div key={tier.name} className="rounded-2xl border border-white/8 bg-white/[0.02] px-4 py-5">
-                <p className="text-white/40 text-xs mb-3">{tier.name}</p>
-                <p className="text-white font-bold font-mono text-sm">{tier.price}</p>
-              </div>
-            ))}
-          </div>
-          <div className="border-t border-white/8 pt-6">
-            <p className="text-white font-semibold text-sm mb-3">Prophandld AI includes</p>
-            <ul className="grid sm:grid-cols-2 gap-2.5">
-              {AI_INCLUDED.map((item) => (
-                <li key={item} className="flex items-start gap-2 text-white/60 text-xs leading-relaxed">
-                  <CheckCircleIcon className="w-3.5 h-3.5 text-[#12A5A9] shrink-0 mt-0.5" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-          <p className="text-white/40 text-xs leading-relaxed mt-5">
-            Same graduated shape as the base plan, just its own separate line. 14-day free trial,
-            cancel anytime. Turn it on from your profile whenever you&apos;re ready.
-          </p>
-        </div>
-
-        <div className="bg-white/3 border border-white/8 rounded-2xl p-6 sm:p-8 mb-10">
-          <h2 className="text-white font-semibold text-lg mb-4">Every plan includes</h2>
+        <div className="bg-white/3 border border-white/8 rounded-2xl p-6 sm:p-8 mb-6">
+          <h2 className="text-white font-semibold text-lg mb-4">Included in the pilot</h2>
           <ul className="grid sm:grid-cols-2 gap-3">
             {INCLUDED.map((item) => (
               <li key={item} className="flex items-start gap-2 text-white/60 text-sm leading-relaxed">
@@ -134,11 +81,23 @@ export default function PricingPage() {
           </ul>
         </div>
 
-        <div className="text-center mb-10">
-          <p className="text-white/50 text-sm max-w-xl mx-auto leading-relaxed">
-            A 14-day free trial starts the first time you actually add a 2nd unit, not from the
-            day you sign up. Your first unit stays free with no trial clock running at all.
+        <div className="rounded-2xl border border-[#12A5A9]/25 bg-gradient-to-br from-[#0A7B7E]/10 to-white/[0.02] p-6 sm:p-8 mb-10">
+          <div className="flex items-center gap-3 flex-wrap mb-2">
+            <h2 className="text-white font-semibold text-lg">Prophandld AI</h2>
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-[#12A5A9] bg-[#12A5A9]/15 rounded-full px-2.5 py-1">Included free</span>
+          </div>
+          <p className="text-white/50 text-sm leading-relaxed mb-5">
+            On for every landlord and property manager during the pilot, and every tenant on your
+            properties gets it too.
           </p>
+          <ul className="grid sm:grid-cols-2 gap-2.5">
+            {AI_INCLUDED.map((item) => (
+              <li key={item} className="flex items-start gap-2 text-white/60 text-xs leading-relaxed">
+                <CheckCircleIcon className="w-3.5 h-3.5 text-[#12A5A9] shrink-0 mt-0.5" />
+                {item}
+              </li>
+            ))}
+          </ul>
         </div>
 
         <div className="text-center">
@@ -146,8 +105,11 @@ export default function PricingPage() {
             href="/signup?role=landlord"
             className="inline-block bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-8 py-3.5 rounded-full hover:opacity-90 transition"
           >
-            Get started free
+            Join the free pilot
           </MagneticLink>
+          <p className="text-white/40 text-xs mt-4">
+            Questions about pricing? <a href="mailto:admin@prophandld.com" className="text-[#12A5A9] hover:underline">admin@prophandld.com</a>
+          </p>
         </div>
       </main>
 

@@ -39,7 +39,7 @@ export async function GET() {
     fetchAllPagesOrEmpty<any>((from, to) =>
       admin
         .from('rent_payments')
-        .select('id, month, expected_amount, actual_amount, paid_date, payment_method, provider, absorbed_fee_amount, stripe_status, stripe_payment_intent_id, water_amount, late_fee_applied, created_at, tenancies(renter_user_id, units(unit_number, properties(address, city, owner_user_id)))')
+        .select('id, month, expected_amount, actual_amount, paid_date, payment_method, provider, absorbed_fee_amount, stripe_status, stripe_payment_intent_id, utilities_amount, late_fee_applied, created_at, tenancies(renter_user_id, units(unit_number, properties(address, city, owner_user_id)))')
         .or('actual_amount.gt.0,stripe_status.not.is.null')
         .order('created_at', { ascending: false })
         .range(from, to)
@@ -131,7 +131,7 @@ export async function GET() {
       method: r.payment_method || null,
       from: nameOf(r.tenancies?.renter_user_id),
       to: nameOf(r.tenancies?.units?.properties?.owner_user_id),
-      description: `${monthLabel} rent${Number(r.water_amount) ? ` (incl. $${Number(r.water_amount).toFixed(2)} water)` : ''}${r.late_fee_applied ? ' + late fee' : ''}`,
+      description: `${monthLabel} rent${Number(r.utilities_amount) ? ` (incl. $${Number(r.utilities_amount).toFixed(2)} utilities)` : ''}${r.late_fee_applied ? ' + late fee' : ''}`,
       place: place(r.tenancies?.units),
       stripeUrl: r.stripe_payment_intent_id ? `${stripeBase}/payments/${r.stripe_payment_intent_id}` : null,
       flags,

@@ -1,5 +1,6 @@
 'use client'
 
+import { utilityName, type UtilityCharge } from '@/lib/utilityCharges'
 import { useEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { supabase } from '@/lib/supabase'
@@ -65,26 +66,19 @@ export default function RenterRentPage() {
   const [copiedHandle, setCopiedHandle] = useState(false)
 
   const loadPayments = async (tenancyId: string) => {
-    const { data, error: paymentsError } = await supabase
-      .from('rent_payments')
-      .select('*, documents(filename, file_url)')
-      .eq('tenancy_id', tenancyId)
-      .order('month', { ascending: false })
+    const [{ data, error: paymentsError }, chargesRes] = await Promise.all([
+      supabase.from('rent_payments').select('*').eq('tenancy_id', tenancyId).order('month', { ascending: false }),
+      fetch(`/api/rent/utilities?tenancyId=${tenancyId}`).then((r) => r.json()).catch(() => null),
+    ])
 
     if (paymentsError) {
       console.error('Error loading rent payments:', paymentsError)
       return
     }
 
-    const enriched = await Promise.all(
-      (data || []).map(async (payment) => {
-        if (!payment.documents) return payment
-        const { data: signedUrlData } = await supabase.storage
-          .from('documents')
-          .createSignedUrl(payment.documents.file_url, 3600)
-        return { ...payment, waterBillViewUrl: signedUrlData?.signedUrl }
-      })
-    )
+    const grouped: Record<string, UtilityCharge[]> = {}
+    for (const c of (chargesRes?.charges || []) as UtilityCharge[]) (grouped[c.rentPaymentId] ||= []).push(c)
+    const enriched = (data || []).map((payment) => ({ ...payment, bills: grouped[payment.id] || [] }))
 
     // One row per calendar month, preferring a paid one — guards against
     // duplicate rows for the same month showing as both paid and overdue.
@@ -317,15 +311,15 @@ export default function RenterRentPage() {
 
   const breakdown = (payment: any) => {
     const expected = Number(payment.expected_amount) || 0
-    const water = Number(payment.water_amount || 0)
+    const utilities = Number(payment.utilities_amount || 0)
     const lateFee = payment.late_fee_applied ? Number(tenancy?.late_fee_amount || 0) : 0
-    return { rent: expected - water - lateFee, water, lateFee, paidSoFar: Number(payment.actual_amount || 0) }
+    return { rent: expected - utilities - lateFee, bills: (payment.bills || []) as UtilityCharge[], lateFee, paidSoFar: Number(payment.actual_amount || 0) }
   }
 
   const renderHero = (payment: any) => {
     const days = getDaysUntilDue(payment)
     const late = days < 0
-    const { rent, water, lateFee, paidSoFar } = breakdown(payment)
+    const { rent, bills, lateFee, paidSoFar } = breakdown(payment)
     const amountDue = Number(payment.expected_amount) - paidSoFar
     const pct = late ? 100 : Math.max(4, Math.min(100, ((30 - days) / 30) * 100))
     const tone = late
@@ -356,29 +350,29 @@ export default function RenterRentPage() {
             <span>{t('rentLabel', lang)}</span>
             <span className="tabular-nums">{money(rent)}</span>
           </div>
-          {water > 0 && (
-            <div className="flex justify-between text-white/70">
-              <span className="flex items-center gap-2 flex-wrap">
-                {t('waterLabel', lang)}
-                {payment.water_period_start && payment.water_period_end && (
+          {bills.filter((b) => b.amount > 0 || b.billUrl).map((b) => (
+            <div key={b.id} className="flex justify-between gap-3 text-white/70">
+              <span className="flex items-center gap-2 flex-wrap min-w-0">
+                {utilityName(b, lang === 'es' ? 'es' : 'en')}
+                {b.periodStart && b.periodEnd && (
                   <span className="text-white/40 text-xs">
-                    ({new Date(payment.water_period_start + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – {new Date(payment.water_period_end + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })})
+                    ({new Date(b.periodStart + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – {new Date(b.periodEnd + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })})
                   </span>
                 )}
-                {payment.waterBillViewUrl && (
+                {b.billUrl && (
                   <a
-                    href={payment.waterBillViewUrl}
+                    href={b.billUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-[#12A5A9] text-xs hover:underline"
+                    className="inline-flex items-center gap-1 text-[#12A5A9] text-xs hover:underline py-0.5"
                   >
                     <FileTextIcon className="w-3 h-3" /> {t('viewBill', lang)}
                   </a>
                 )}
               </span>
-              <span className="tabular-nums">{money(water)}</span>
+              <span className="tabular-nums shrink-0">{money(b.amount)}</span>
             </div>
-          )}
+          ))}
           {lateFee > 0 && (
             <div className="flex justify-between text-yellow-400">
               <span>{t('lateFeeLabel', lang)}</span>
@@ -427,17 +421,16 @@ export default function RenterRentPage() {
           <p className="text-white font-semibold">{formatMonth(payment.month)}</p>
           <p className="text-white/50 text-xs mt-0.5">
             {upcoming ? (lang === 'es' ? `Vence ${formatDue(payment)}` : `Due ${formatDue(payment)}`) : dueText(payment)}
-            {payment.water_amount ? ` · ${lang === 'es' ? `incl. ${money(Number(payment.water_amount))} de agua` : `incl. ${money(Number(payment.water_amount))} water`}` : ''}
+            {payment.utilities_amount && Number(payment.utilities_amount) > 0 ? ` · incl. ${(payment.bills || []).map((b: UtilityCharge) => `${utilityName(b, lang === 'es' ? 'es' : 'en')} ${money(b.amount)}`).join(', ')}` : ''}
           </p>
-          {payment.waterBillViewUrl && (
-            <a
-              href={payment.waterBillViewUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[#12A5A9] text-xs hover:underline mt-1 inline-block"
-            >
-              {t('viewWaterBill', lang)}
-            </a>
+          {(payment.bills || []).filter((b: UtilityCharge) => b.billUrl).length > 0 && (
+            <div className="flex flex-wrap gap-x-3 mt-1">
+              {(payment.bills as UtilityCharge[]).filter((b) => b.billUrl).map((b) => (
+                <a key={b.id} href={b.billUrl!} target="_blank" rel="noopener noreferrer" className="text-[#12A5A9] text-xs hover:underline py-0.5">
+                  {t('viewBill', lang)}: {utilityName(b, lang === 'es' ? 'es' : 'en')} →
+                </a>
+              ))}
+            </div>
           )}
         </div>
         {isProcessing(payment) ? (
@@ -566,7 +559,7 @@ export default function RenterRentPage() {
                               {payment.paid_date
                                 ? `${t('paidLabel', lang)} ${new Date(payment.paid_date + 'T00:00:00').toLocaleDateString()}`
                                 : t('paidLabel', lang)}
-                              {payment.water_amount ? ` · ${lang === 'es' ? `incl. ${money(Number(payment.water_amount))} de agua` : `incl. ${money(Number(payment.water_amount))} water`}` : ''}
+                              {payment.utilities_amount && Number(payment.utilities_amount) > 0 ? ` · incl. ${(payment.bills || []).map((b: UtilityCharge) => `${utilityName(b, lang === 'es' ? 'es' : 'en')} ${money(b.amount)}`).join(', ')}` : ''}
                               {Number(payment.card_surcharge_amount || 0) > 0
                                 ? ` · ${t('inclCardFeePrefix', lang)} ${money(Number(payment.card_surcharge_amount))} ${t('cardFeeSuffix', lang)}`
                                 : ''}

@@ -4,6 +4,8 @@
 // proposal, so no real landlord can see or pay for it until this env var is
 // deliberately turned on post-decision. Checked both client-side (hide the
 // card) and server-side (refuse the API routes even if someone finds them).
+import { PILOT_FREE } from '@/lib/pilot'
+
 export const AI_ASSIST_ENABLED = process.env.NEXT_PUBLIC_AI_ASSIST_ENABLED === 'on'
 
 export type AiAssistStatus = 'none' | 'trialing' | 'active' | 'past_due' | 'canceled'
@@ -21,6 +23,7 @@ export async function hasAiAssistAccess(
   landlordUserId: string
 ): Promise<boolean> {
   if (!AI_ASSIST_ENABLED) return false
+  if (PILOT_FREE) return true
   const { data } = await supabaseAdmin
     .from('ai_assist_subscriptions')
     .select('status, free_forever')

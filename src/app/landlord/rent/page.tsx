@@ -40,6 +40,7 @@ export default function RentRollPage() {
   const [rows, setRows] = useState<Row[]>([])
   const [search, setSearch] = useState('')
   const [namesUnavailable, setNamesUnavailable] = useState(false)
+  const [ownerFilter, setOwnerFilter] = useState<string | null>(null)
 
   useEffect(() => {
     const init = async () => {
@@ -54,7 +55,12 @@ export default function RentRollPage() {
       // Paged rather than one query each: Supabase silently caps a single
       // response at 1000 rows and drops the rest with no error — the top
       // pricing tier now goes to 500+ units.
-      const landlordIds = await getLandlordIds(supabase, user.id)
+      const allLandlordIds = await getLandlordIds(supabase, user.id)
+      // ?owner= narrows a PM's rent roll to one client (from the PM dashboard).
+      const requestedOwner = new URLSearchParams(window.location.search).get('owner')
+      const scopedOwner = requestedOwner && allLandlordIds.includes(requestedOwner) ? requestedOwner : null
+      setOwnerFilter(scopedOwner)
+      const landlordIds = scopedOwner ? [scopedOwner] : allLandlordIds
       const properties = await fetchAllPagesOrEmpty<{ id: string; address: string }>((from, to) =>
         supabase.from('properties').select('id, address').in('owner_user_id', landlordIds).eq('archived', false).order('address').range(from, to)
       )
@@ -220,6 +226,12 @@ export default function RentRollPage() {
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-white">{t('rentRollHeading', lang)}</h1>
           <p className="text-white/50 text-sm mt-1">{t('rentRollSubtitle', lang)}</p>
+          {ownerFilter && (
+            <p className="text-sm mt-3 flex items-center gap-3 flex-wrap">
+              <span className="text-white/60 bg-white/5 border border-white/10 rounded-full px-3 py-1">{lang === 'es' ? 'Mostrando un cliente' : 'Showing one client'}</span>
+              <a href="/landlord/rent" className="text-[#12A5A9] font-semibold hover:underline">{lang === 'es' ? 'Ver todos' : 'Show all'}</a>
+            </p>
+          )}
         </div>
 
         {namesUnavailable && (

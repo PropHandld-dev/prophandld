@@ -44,7 +44,7 @@ const FAQS: Record<Role, { q: string; a: string }[]> = {
     },
     {
       q: 'How much does it cost?',
-      a: 'Your first unit is free, full stop. Flat monthly plans through 25 units, then $79.99 plus $1.75 for every unit after that. See the full breakdown and try the calculator at /pricing. Contractors pay nothing during our Philadelphia pilot: no cut of a bid.',
+      a: 'Nothing during our pilot: it’s free for 6 months, Prophandld AI included, no card needed. Pricing is coming soon, and we’re setting it only after hearing from the people using it. Contractors pay nothing during the pilot either: no cut of a bid.',
     },
     {
       q: 'Do contractors need a license?',
@@ -96,7 +96,7 @@ const FAQS: Record<Role, { q: string; a: string }[]> = {
     },
     {
       q: 'How does billing work across my clients?',
-      a: 'The same per-unit pricing as a regular landlord account, totaled across every client portfolio you manage, billed to you. No separate PM price list, and no per-seat charge for staff accounts.',
+      a: 'Free for 6 months during the pilot, for every client portfolio and staff account you add. PM pricing is coming soon, shaped by feedback from the companies using it.',
     },
   ],
   contractor: [
@@ -132,11 +132,11 @@ const FAQS: Record<Role, { q: string; a: string }[]> = {
     },
     {
       q: 'Does my tenant get it too?',
-      a: 'Yes, automatically, at no extra cost to them, the moment you turn it on. They can ask it about their own lease (pets, late fees, renewal terms) and get a real answer pulled from the actual document, or an honest "that\'s not in your lease" instead of a guess.',
+      a: 'Yes, automatically, at no extra cost to them, during the pilot. They can ask it about their own lease (pets, late fees, renewal terms) and get a real answer pulled from the actual document, or an honest "that\'s not in your lease" instead of a guess.',
     },
     {
       q: 'What does it cost?',
-      a: "It's a separate optional add-on from $4.99/month, scaling with how many units you have, with a 14-day free trial. It's billed to you, the landlord; your tenants never pay anything extra for it.",
+      a: "It's included free for everyone during the pilot, and your tenants get it too at no cost.",
     },
     {
       q: 'Does it work for every property management client I manage, not just my own?',

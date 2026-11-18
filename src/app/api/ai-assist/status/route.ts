@@ -3,6 +3,7 @@ import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { AI_ASSIST_ENABLED, type AiAssistStatus } from '@/lib/aiAssist'
 import { AI_ASSIST_TRIAL_DAYS, aiAssistMonthlyAmount } from '@/lib/pricingTiers'
+import { PILOT_FREE } from '@/lib/pilot'
 
 export async function GET() {
   if (!AI_ASSIST_ENABLED) {
@@ -16,6 +17,11 @@ export async function GET() {
   }
   if (user.app_metadata?.role !== 'landlord') {
     return NextResponse.json({ error: 'Only landlords can add Prophandld AI' }, { status: 403 })
+  }
+
+  // Free pilot: every landlord has it, nothing to start or pay for.
+  if (PILOT_FREE) {
+    return NextResponse.json({ enabled: true, status: 'active' as AiAssistStatus, pilot: true, daysLeftInTrial: null, monthlyPrice: null, freeForever: true, cancelAtPeriodEnd: false, currentPeriodEnd: null })
   }
 
   const supabaseAdmin = getSupabaseAdmin()

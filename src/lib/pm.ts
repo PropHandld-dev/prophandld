@@ -172,3 +172,13 @@ export async function logPmAction(
     detail: params.detail || null,
   })
 }
+
+// May this user act on ownerUserId's properties: the owner, an accepted
+// co-owner, or a member of the PM company managing them (staff limited to
+// their assigned clients). Use this for permission checks, not
+// notifyLandlordIds, which leaves out members on the daily digest.
+export async function canActForOwner(admin: SupabaseClient, userId: string, ownerUserId: string | null | undefined): Promise<boolean> {
+  if (!ownerUserId) return false
+  if (userId === ownerUserId) return true
+  return (await getActionableOwnerIdsAdmin(admin, userId)).includes(ownerUserId)
+}

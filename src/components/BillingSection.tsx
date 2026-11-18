@@ -6,6 +6,8 @@ import { RippleButton } from '@/components/RippleButton'
 import { goToStripe } from '@/lib/externalTab'
 import { formatTierPrice, marketingTierName, marketingTierRange, type LandlordTier } from '@/lib/pricingTiers'
 import { useLanguage, t } from '@/lib/i18n'
+import { PILOT_FREE } from '@/lib/pilot'
+import { PilotPlanCard } from '@/components/PilotPlanCard'
 
 type Status = {
   unitCount: number
@@ -21,6 +23,10 @@ type Status = {
 }
 
 export function BillingSection() {
+  return PILOT_FREE ? <PilotPlanCard /> : <PaidBillingSection />
+}
+
+function PaidBillingSection() {
   const lang = useLanguage()
   const [status, setStatus] = useState<Status | null>(null)
   const [loading, setLoading] = useState(true)

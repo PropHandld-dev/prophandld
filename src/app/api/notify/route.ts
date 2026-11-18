@@ -9,7 +9,7 @@ import { loadNotifyExtras } from '@/lib/notifyExtras'
 import { emailAllowed } from '@/lib/notificationPrefs'
 import { notifyLandlordIds } from '@/lib/landlordCoOwners'
 import { resolveReportingRenterIds } from '@/lib/resolveReportingTenancy'
-import { getManagingPmName } from '@/lib/pm'
+import { getManagingPmName, canActForOwner } from '@/lib/pm'
 
 type Role = 'landlord' | 'renter' | 'contractor'
 
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
   // co-owner who's supposed to have full access to the same jobs.
   const landlordIds = property?.owner_user_id ? await notifyLandlordIds(supabaseAdmin, property.owner_user_id) : []
   const managedByPmName = property?.owner_user_id ? await getManagingPmName(supabaseAdmin, property.owner_user_id) : null
-  const isLandlord = landlordIds.includes(user.id)
+  const isLandlord = landlordIds.includes(user.id) || (await canActForOwner(supabaseAdmin, user.id, property?.owner_user_id))
   let allowed = isLandlord
   if (!allowed) {
     const { data: tenancies } = await supabaseAdmin.from('tenancies').select('id, renter_user_id').eq('unit_id', job.unit_id)

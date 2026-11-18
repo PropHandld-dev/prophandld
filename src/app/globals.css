@@ -32,6 +32,55 @@ body {
   color-scheme: dark;
 }
 
+/* Light appearance (Profile -> Appearance). The app is styled dark-first
+   with white overlays (text-white, bg-white/5, border-white/10); in
+   Tailwind v4 all of those read --color-white, so pointing it at navy
+   flips every one of them to dark-on-light at once. Fixed hex surfaces and
+   the bright status colors get light equivalents, and solid teal/red
+   buttons put white back for their own text. */
+html[data-theme="light"] {
+  --background: #F3F6F9;
+  --foreground: #0C1A2E;
+  --color-white: #0C1A2E;
+  --color-red-300: #B91C1C;
+  --color-red-400: #DC2626;
+  --color-yellow-400: #B45309;
+  --color-amber-300: #B45309;
+  --color-amber-400: #B45309;
+  --color-orange-300: #C2410C;
+  --color-orange-400: #C2410C;
+  --color-emerald-400: #047857;
+  --color-blue-300: #1D4ED8;
+  --color-purple-300: #7E22CE;
+  color-scheme: light;
+}
+html[data-theme="light"] .bg-\[\#0C1A2E\],
+html[data-theme="light"] .bg-\[\#0F1A2E\] { background-color: #F3F6F9; }
+html[data-theme="light"] .bg-\[\#0C1A2E\]\/95,
+html[data-theme="light"] .bg-\[\#0C1A2E\]\/90,
+html[data-theme="light"] .bg-\[\#0C1A2E\]\/80 { background-color: rgb(243 246 249 / 0.92); }
+html[data-theme="light"] .bg-\[\#0F2138\] { background-color: #FFFFFF; box-shadow: 0 20px 60px -20px rgb(12 26 46 / 0.35); }
+html[data-theme="light"] .bg-\[\#0A0F1C\] { background-color: #E9EEF3; }
+html[data-theme="light"] .bg-\[\#132A45\],
+html[data-theme="light"] .bg-\[\#22374F\] { background-color: #E3EAF1; }
+html[data-theme="light"] .border-\[\#0C1A2E\] { border-color: #FFFFFF; }
+html[data-theme="light"] .text-\[\#12A5A9\] { color: #087A7D; }
+/* White cards on the light-grey page, instead of navy tints. */
+html[data-theme="light"] [class^="bg-white/"],
+html[data-theme="light"] [class*=" bg-white/"] { box-shadow: inset 0 0 0 9999px rgb(255 255 255 / 0.5); }
+html[data-theme="light"] select option { background-color: #FFFFFF !important; color: #0C1A2E; }
+/* Solid colored surfaces keep white text, whatever the page theme. */
+html[data-theme="light"] .bg-\[\#12A5A9\],
+html[data-theme="light"] .bg-\[\#0A7B7E\],
+html[data-theme="light"] [class~="from-[#0A7B7E]"],
+html[data-theme="light"] .bg-red-500,
+html[data-theme="light"] .bg-red-600,
+html[data-theme="light"] .bg-black\/60,
+html[data-theme="light"] .bg-black\/70 {
+  --color-white: #FFFFFF;
+}
+html[data-theme="light"] .bg-black\/60 .bg-\[\#0F2138\] { --color-white: #0C1A2E; }
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -242,3 +291,6 @@ body {
   opacity: 0.55;
   margin-top: 2px;
 }
+
+html[data-theme="light"] [class~="from-[#0C1A2E]"] { --tw-gradient-from: #F3F6F9; }
+html[data-theme="light"] [class~="via-[#0C1A2E]/95"] { --tw-gradient-via: rgb(243 246 249 / 0.95); }

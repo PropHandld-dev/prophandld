@@ -14,6 +14,7 @@ import { DollarSignIcon, ReceiptIcon, DownloadIcon, PrinterIcon } from '@/compon
 import { fetchAllPagesOrEmpty } from '@/lib/pagedQuery'
 import { downloadCsv } from '@/lib/csvExport'
 import { graduatedMonthlyAmount } from '@/lib/pricingTiers'
+import { PILOT_FREE } from '@/lib/pilot'
 import { useLanguage, t, type Lang } from '@/lib/i18n'
 import { getLandlordIds } from '@/lib/landlordIds'
 import { LANDLORD_TABS } from '@/lib/navTabs'
@@ -264,7 +265,7 @@ export default function LandlordReportsPage() {
     const months = (to.getFullYear() - from.getFullYear()) * 12 + (to.getMonth() - from.getMonth()) + 1
     return Math.max(1, Math.min(months, 36))
   }, [range.from, range.to])
-  const estimatedSubscriptionCost = unitCount > 1 && !isInvalidRange ? graduatedMonthlyAmount(unitCount) * monthsInRange : 0
+  const estimatedSubscriptionCost = !PILOT_FREE && unitCount > 1 && !isInvalidRange ? graduatedMonthlyAmount(unitCount) * monthsInRange : 0
 
   const rangeLabel = `${new Date(range.from + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} – ${new Date(range.to + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`
 

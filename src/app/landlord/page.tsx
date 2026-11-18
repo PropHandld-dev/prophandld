@@ -1,5 +1,6 @@
 'use client'
 
+import { rememberPmHome, isRememberedPmHome } from '@/lib/pmHome'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
@@ -147,6 +148,11 @@ export default function LandlordDashboard() {
       }
       setUser(user)
 
+      if (isRememberedPmHome(user.id)) {
+        router.replace('/landlord/pm')
+        return
+      }
+
       const landlordIds = await getLandlordIds(supabase, user.id)
       setManagesOtherPortfolios(landlordIds.some((id) => id !== user.id))
 
@@ -162,12 +168,18 @@ export default function LandlordDashboard() {
       // create-your-company card on every visit with no way back to
       // their own properties. Managed OWNERS are not members either --
       // this never touches them, /landlord stays their own dashboard.
-      fetch('/api/pm/organizations')
+      // Held until known, so a PM never sees this dashboard flash first.
+      const isPmMember = fetch('/api/pm/organizations')
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
-          if (data?.membership) router.replace('/landlord/pm')
+          if (data?.membership) {
+            rememberPmHome(user.id)
+            router.replace('/landlord/pm')
+            return true
+          }
+          return false
         })
-        .catch(() => {})
+        .catch(() => false)
 
       // Paged: Supabase silently caps a single response at 1000 rows and
       // drops the rest with no error. The top pricing tier now goes to
@@ -187,6 +199,7 @@ export default function LandlordDashboard() {
       )
 
       if (propertyList.length === 0) {
+        if (await isPmMember) return
         setLoading(false)
         return
       }
@@ -444,6 +457,7 @@ export default function LandlordDashboard() {
       setPendingReviewJobs(enrichedReviewJobs)
       setNeedsRating(needsRatingList)
       setPendingInvites(pendingInvitesList)
+      if (await isPmMember) return
       setLoading(false)
     }
     getUser()

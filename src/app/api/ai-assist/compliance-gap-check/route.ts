@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { hasAiAssistAccess } from '@/lib/aiAssist'
 import { tooManyAiAssistRequests } from '@/lib/aiAssistRateLimit'
 import { claudeJson, ClaudeConfigError } from '@/lib/claude'
+import { canActForOwner } from '@/lib/pm'
 
 export const maxDuration = 30
 
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
     .select('city, state, owner_user_id')
     .eq('id', propertyId)
     .maybeSingle()
-  if (!property || property.owner_user_id !== user.id) {
+  if (!property || !(await canActForOwner(supabaseAdmin, user.id, property.owner_user_id))) {
     return NextResponse.json({ error: 'Property not found' }, { status: 404 })
   }
   if (!(await hasAiAssistAccess(supabaseAdmin, user.id))) {

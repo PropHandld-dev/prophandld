@@ -7,6 +7,7 @@ import { goToStripe } from '@/lib/externalTab'
 import { useBillingStatus, BILLING_ENFORCED } from '@/lib/useBillingStatus'
 import { formatTierPrice } from '@/lib/pricingTiers'
 import { useLanguage, t } from '@/lib/i18n'
+import { PILOT_FREE } from '@/lib/pilot'
 
 function useSubscribe() {
   const lang = useLanguage()
@@ -40,7 +41,7 @@ export function BillingReminder() {
   const lang = useLanguage()
   const { needsPayment, unitCount, daysLeftInTrial, trialExpired } = useBillingStatus()
   const { subscribe, redirecting, error } = useSubscribe()
-  if (!needsPayment) return null
+  if (PILOT_FREE || !needsPayment) return null
 
   return (
     <div className="bg-yellow-500/8 border border-yellow-500/25 rounded-2xl p-5 mb-6" role="status">

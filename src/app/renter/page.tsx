@@ -24,6 +24,7 @@ import { useMfaPromptVisibility } from '@/lib/useMfaPromptVisibility'
 import { MfaPromptModal } from '@/components/MfaPromptModal'
 import { useLanguage, t, type Lang } from '@/lib/i18n'
 import { useIsNativePlatform } from '@/lib/useIsNativePlatform'
+import { ManagedByBadge } from '@/components/ManagedByBadge'
 
 function getTourSteps(lang: Lang): TourStep[] {
   return [
@@ -41,6 +42,7 @@ export default function RenterDashboard() {
   const isNative = useIsNativePlatform()
   const lang = useLanguage()
   const [user, setUser] = useState<any>(null)
+  const [myTenancyId, setMyTenancyId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const tour = useTourVisibility(user?.id ?? null)
   const mfaPrompt = useMfaPromptVisibility(user?.id ?? null)
@@ -96,6 +98,7 @@ export default function RenterDashboard() {
         ? await supabase.from('tenancies').select('*').eq('id', tenancyId).maybeSingle()
         : { data: null, error: null }
 
+      if (tenancyData?.id) setMyTenancyId(tenancyData.id)
       if (tenancyError || !tenancyData) {
         setNoUnit(true)
         setContactsLoading(false)
@@ -293,6 +296,7 @@ export default function RenterDashboard() {
                 </Link>
               </h1>
               <p className="text-white/50 mt-1">{t('renterDashboardSubtitle', lang)}</p>
+              {myTenancyId && <ManagedByBadge tenancyId={myTenancyId} className="mt-3" />}
             </div>
 
             {/* Bozzuto-style top-level quick actions — direct feedback from a

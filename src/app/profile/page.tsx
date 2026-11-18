@@ -25,6 +25,8 @@ import { CoOwnersSection } from '@/components/CoOwnersSection'
 import { PropertyManagementCard } from '@/components/PropertyManagementCard'
 import { CoRentersSection } from '@/components/CoRentersSection'
 import { BillingSection } from '@/components/BillingSection'
+import { AppearanceToggle } from '@/components/AppearanceToggle'
+import { PILOT_FREE } from '@/lib/pilot'
 import { Switch } from '@/components/Switch'
 import { TwoFactorAuthCard } from '@/components/TwoFactorAuthCard'
 import { PasskeyCard } from '@/components/PasskeyCard'
@@ -827,6 +829,12 @@ export default function ProfilePage() {
           </>
         )}
 
+        <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
+          <h2 className="text-white font-semibold mb-1">{lang === 'es' ? 'Apariencia' : 'Appearance'}</h2>
+          <p className="text-white/60 text-sm mb-4">{lang === 'es' ? 'Elige cómo se ve Prophandld en este dispositivo.' : 'Choose how Prophandld looks on this device.'}</p>
+          <AppearanceToggle />
+        </div>
+
         {/* Notification preferences */}
         <div id="text-alerts-section" className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
           <h2 className="text-white font-semibold mb-2">{t('notificationPreferences', lang)}</h2>
@@ -1059,7 +1067,7 @@ export default function ProfilePage() {
           <Link href={role ? `/terms/${role}` : '/terms'} target={isNative ? undefined : '_blank'} className="hover:text-white/70 transition">{t('termsOfService', lang)}</Link>
           <span>·</span>
           <Link href="/privacy" target={isNative ? undefined : '_blank'} className="hover:text-white/70 transition">{t('privacyPolicy', lang)}</Link>
-          {role === 'landlord' && (
+          {role === 'landlord' && !PILOT_FREE && (
             <>
               <span>·</span>
               <Link href="/pricing" target={isNative ? undefined : '_blank'} className="hover:text-white/70 transition">{t('pricing', lang)}</Link>

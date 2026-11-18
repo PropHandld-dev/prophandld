@@ -1,5 +1,7 @@
 'use client'
 
+import { rememberPmHome } from '@/lib/pmHome'
+import { supabase } from '@/lib/supabase'
 import { useEffect, useState, useCallback, type ReactNode } from 'react'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
@@ -95,7 +97,7 @@ const ACTION_LABELS: Record<string, string> = {
 
 type PendingJob = { id: string; category: string; createdAt: string; ownerUserId: string; ownerName: string; address: string }
 
-type Tab = 'overview' | 'clients' | 'team' | 'activity'
+type Tab = 'overview' | 'clients' | 'team' | 'activity' | 'profile'
 
 function StatTile({
   icon: Icon,
@@ -110,21 +112,25 @@ function StatTile({
 }) {
   const content = (
     <>
-      <Icon className="w-4 h-4 text-[#12A5A9] shrink-0" />
-      <div className="min-w-0">
-        <p className="text-white font-semibold text-sm tabular-nums">{value}</p>
-        <p className="text-white/40 text-xs leading-tight">{label}</p>
+      <div className="flex items-center justify-between gap-2">
+        <span className="w-8 h-8 rounded-lg bg-[#12A5A9]/12 flex items-center justify-center">
+          <Icon className="w-4 h-4 text-[#12A5A9]" />
+        </span>
+        {onClick && <span aria-hidden className="text-white/30 text-lg leading-none transition group-hover:translate-x-0.5 group-hover:text-[#12A5A9]">›</span>}
       </div>
+      <p className="text-white font-bold text-xl sm:text-2xl tabular-nums mt-3 leading-none truncate">{value}</p>
+      <p className="text-white/50 text-xs mt-1.5 leading-tight">{label}</p>
     </>
   )
+  const base = 'bg-white/4 border border-white/8 rounded-2xl p-3.5 sm:p-4 min-h-[104px] flex flex-col text-left w-full min-w-0'
   if (!onClick) {
-    return <div className="bg-white/4 border border-white/8 rounded-xl p-3 flex items-center gap-3">{content}</div>
+    return <div className={base}>{content}</div>
   }
   return (
     <button
       type="button"
       onClick={onClick}
-      className="bg-white/4 border border-white/8 rounded-xl p-3 flex items-center gap-3 text-left hover:bg-white/8 hover:border-white/15 transition w-full"
+      className={`${base} group hover:bg-white/8 hover:border-[#12A5A9]/40 active:scale-[0.98] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#12A5A9]`}
     >
       {content}
     </button>
@@ -147,6 +153,153 @@ function TabBar({ tabs, active, onChange }: { tabs: { key: Tab; label: string; c
           {typeof t.count === 'number' && t.count > 0 && <span className={active === t.key ? 'text-white/80' : 'text-white/30'}> ({t.count})</span>}
         </button>
       ))}
+    </div>
+  )
+}
+
+type FeePayload =
+  | { type: 'percent_of_rent'; percent: number }
+  | { type: 'flat'; amount: number | null; frequency: 'one_time' | 'monthly' }
+
+function describeFee(p: FeePayload): string {
+  if (p.type === 'percent_of_rent') return `${p.percent}% of rent collected, billed monthly`
+  if (p.amount === null || p.amount === 0) return 'No management fee'
+  return `$${p.amount.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${p.frequency === 'monthly' ? 'per month' : 'one time'}`
+}
+
+function FeeProposal({
+  client,
+  onSend,
+}: {
+  client: {
+    ownerName: string
+    managementFeeType: 'flat' | 'percent_of_rent'
+    managementFee: number | null
+    managementFeeFrequency: 'one_time' | 'monthly' | null
+    managementFeePercent: number | null
+    feeApproved?: boolean
+  }
+  onSend: (payload: FeePayload) => Promise<string | null>
+}) {
+  const current: FeePayload = client.managementFeeType === 'percent_of_rent'
+    ? { type: 'percent_of_rent', percent: client.managementFeePercent ?? 0 }
+    : { type: 'flat', amount: client.managementFee, frequency: client.managementFeeFrequency || 'monthly' }
+  const hasFee = current.type === 'percent_of_rent' ? current.percent > 0 : (current.amount ?? 0) > 0
+
+  const [editing, setEditing] = useState(false)
+  const [type, setType] = useState<'flat' | 'percent_of_rent'>(client.managementFeeType)
+  const [amount, setAmount] = useState(client.managementFee ? String(client.managementFee) : '')
+  const [percent, setPercent] = useState(client.managementFeePercent ? String(client.managementFeePercent) : '8')
+  const [frequency, setFrequency] = useState<'one_time' | 'monthly'>(client.managementFeeFrequency || 'monthly')
+  const [sending, setSending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [sentTo, setSentTo] = useState(false)
+
+  const percentNum = Number(percent)
+  const amountNum = amount.trim() === '' ? null : Number(amount)
+  const draft: FeePayload = type === 'percent_of_rent' ? { type, percent: percentNum } : { type, amount: amountNum, frequency }
+  const valid = type === 'percent_of_rent'
+    ? Number.isFinite(percentNum) && percentNum > 0 && percentNum <= 100
+    : amountNum === null || (Number.isFinite(amountNum) && amountNum >= 0 && amountNum <= 100000)
+  const unchanged = describeFee(draft) === describeFee(current)
+  const firstName = client.ownerName.split(' ')[0] || client.ownerName
+
+  const send = async () => {
+    setSending(true)
+    setError(null)
+    const err = await onSend(draft)
+    setSending(false)
+    if (err) {
+      setError(err)
+      return
+    }
+    setEditing(false)
+    setSentTo(true)
+  }
+
+  const inputClass = 'bg-white/5 border border-white/10 rounded-lg px-2.5 py-2 text-white text-sm focus:outline-none focus:border-[#12A5A9]'
+
+  if (!editing) {
+    return (
+      <div className="rounded-xl border border-white/8 bg-white/3 px-3.5 py-3 flex items-center justify-between gap-3 flex-wrap">
+        <div className="min-w-0">
+          <p className="text-white/45 text-[11px] font-semibold uppercase tracking-wide">Management fee</p>
+          <p className="text-white text-sm font-semibold mt-0.5">{hasFee ? describeFee(current) : 'None set'}</p>
+          {hasFee && (
+            <p className={`text-xs mt-0.5 ${client.feeApproved ? 'text-[#12A5A9]' : 'text-yellow-400/90'}`}>
+              {client.feeApproved
+                ? `✓ Approved by ${client.ownerName}`
+                : sentTo
+                  ? `Sent to ${firstName}. Nothing is charged until they approve.`
+                  : `Waiting for ${firstName} to approve. Nothing is charged until they do.`}
+            </p>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => { setEditing(true); setSentTo(false); setError(null) }}
+          className="text-[#12A5A9] text-sm font-semibold px-3 py-2 rounded-lg hover:bg-[#12A5A9]/10 transition"
+        >
+          {hasFee ? 'Change' : 'Propose a fee'}
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="rounded-xl border border-[#12A5A9]/30 bg-[#12A5A9]/5 p-3.5 space-y-3">
+      <p className="text-white text-sm font-semibold">Propose a management fee to {firstName}</p>
+      <div className="grid grid-cols-2 gap-1 bg-white/4 rounded-lg p-1" role="radiogroup" aria-label="Fee type">
+        {([['percent_of_rent', '% of rent'], ['flat', 'Flat amount']] as const).map(([k, label]) => (
+          <button
+            key={k}
+            type="button"
+            role="radio"
+            aria-checked={type === k}
+            onClick={() => setType(k)}
+            className={`text-xs font-semibold py-2 rounded-md transition ${type === k ? 'bg-[#12A5A9] text-white' : 'text-white/60 hover:text-white'}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      {type === 'percent_of_rent' ? (
+        <label className="flex items-center gap-2 text-sm text-white/70 flex-wrap">
+          <input type="number" inputMode="decimal" min={0.1} max={100} step={0.1} value={percent} onChange={(e) => setPercent(e.target.value)} className={`${inputClass} w-20`} aria-label="Percent of rent" />
+          % of rent collected each month
+        </label>
+      ) : (
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="relative">
+            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/40 text-sm">$</span>
+            <input type="number" inputMode="decimal" min={0} step="0.01" placeholder="0" value={amount} onChange={(e) => setAmount(e.target.value)} className={`${inputClass} w-28 pl-6`} aria-label="Fee amount" />
+          </div>
+          <select value={frequency} onChange={(e) => setFrequency(e.target.value as 'one_time' | 'monthly')} className={inputClass} aria-label="How often">
+            <option value="monthly" className="bg-[#0C1A2E]">per month</option>
+            <option value="one_time" className="bg-[#0C1A2E]">one time</option>
+          </select>
+        </div>
+      )}
+      {valid && !unchanged && (
+        <p className="text-white/60 text-xs leading-relaxed">
+          {firstName} will be asked to approve: <span className="text-white font-semibold">{describeFee(draft)}</span>.
+          {' '}It&apos;s paid to you directly once they approve{(draft.type === 'percent_of_rent' || (draft.type === 'flat' && draft.frequency === 'monthly' && (draft.amount ?? 0) > 0)) ? ', then charged automatically each month if they have a card on file' : ''}.
+        </p>
+      )}
+      {error && <p className="text-red-400 text-xs">{error}</p>}
+      <div className="flex items-center gap-3 flex-wrap">
+        <button
+          type="button"
+          onClick={send}
+          disabled={sending || !valid || unchanged}
+          className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-4 py-2.5 rounded-lg disabled:opacity-40 transition"
+        >
+          {sending ? 'Sending…' : draft.type === 'flat' && !draft.amount ? `Remove fee` : `Send to ${firstName} for approval`}
+        </button>
+        <button type="button" onClick={() => setEditing(false)} disabled={sending} className="text-white/50 hover:text-white text-sm">
+          Cancel
+        </button>
+      </div>
     </div>
   )
 }
@@ -429,6 +582,9 @@ export default function PmDashboardPage() {
         fetch('/api/pm/invites-for-me').then((r) => r.json()),
       ])
       setMembership(orgRes.membership || null)
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) rememberPmHome(orgRes.membership ? session.user.id : null)
+      })
       setPendingStaffInvite(orgRes.pendingStaffInvite || null)
       setIncomingInvites(invitesRes.managedBy || [])
 
@@ -898,39 +1054,31 @@ export default function PmDashboardPage() {
     }).catch(() => {})
   }
 
-  const handleFeeChange = async (portfolioId: string, amount: number | null, frequency: 'one_time' | 'monthly') => {
-    setClients((prev) => prev.map((c) => (c.id === portfolioId ? { ...c, managementFee: amount, managementFeeFrequency: amount === null ? null : frequency, feeApproved: false } : c)))
-    await fetch(`/api/pm/clients/${portfolioId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ managementFeeType: 'flat', managementFee: amount, managementFeeFrequency: frequency }),
-    })
-  }
-
-  // Switches a client between a flat dollar fee and a percentage of rent
-  // actually collected — the dominant real-world PM billing model, and a
-  // real gap against it being flat-only. Always monthly (a percentage of
-  // a one-time amount doesn't make sense the way a flat one-time fee
-  // does), auto-billed by cron/pm-fee-billing the same way a flat monthly
-  // fee now is.
-  const handleFeeTypeChange = async (portfolioId: string, type: 'flat' | 'percent_of_rent', percent?: number) => {
-    setClients((prev) => prev.map((c) => (c.id === portfolioId ? {
-      ...c,
-      managementFeeType: type,
-      managementFeePercent: type === 'percent_of_rent' ? (percent ?? c.managementFeePercent) : null,
-      managementFee: type === 'percent_of_rent' ? null : c.managementFee,
-      managementFeeFrequency: type === 'percent_of_rent' ? 'monthly' : c.managementFeeFrequency,
-      feeApproved: false,
-    } : c)))
-    await fetch(`/api/pm/clients/${portfolioId}`, {
+  // A fee is a proposal to the owner: nothing is saved or emailed until the
+  // PM presses Send, and the owner must approve before anything is charged.
+  const handleSendFeeProposal = async (portfolioId: string, payload: FeePayload): Promise<string | null> => {
+    const res = await fetch(`/api/pm/clients/${portfolioId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(
-        type === 'percent_of_rent'
-          ? { managementFeeType: 'percent_of_rent', managementFeePercent: percent }
-          : { managementFeeType: 'flat' }
+        payload.type === 'percent_of_rent'
+          ? { managementFeeType: 'percent_of_rent', managementFeePercent: payload.percent }
+          : { managementFeeType: 'flat', managementFee: payload.amount, managementFeeFrequency: payload.frequency }
       ),
-    })
+    }).catch(() => null)
+    if (!res?.ok) {
+      const data = res ? await res.json().catch(() => ({})) : {}
+      return data.error || 'Could not send the proposal. Try again.'
+    }
+    setClients((prev) => prev.map((c) => (c.id === portfolioId ? {
+      ...c,
+      managementFeeType: payload.type,
+      managementFeePercent: payload.type === 'percent_of_rent' ? payload.percent : null,
+      managementFee: payload.type === 'flat' ? payload.amount : null,
+      managementFeeFrequency: payload.type === 'percent_of_rent' ? 'monthly' : payload.amount === null ? null : payload.frequency,
+      feeApproved: false,
+    } : c)))
+    return null
   }
 
   const handleToggleMonthlySummary = async (portfolioId: string, value: boolean) => {
@@ -1252,9 +1400,9 @@ export default function PmDashboardPage() {
           <div className="mb-6">
             <h2 className="text-white font-semibold mb-3">Your property, managed</h2>
             <div className="grid grid-cols-3 gap-3 mb-4">
-              <StatTile icon={BuildingIcon} label="Properties" value={myStatus.propertyCount} />
-              <StatTile icon={BuildingIcon} label="Units" value={myStatus.unitCount} />
-              <StatTile icon={WrenchIcon} label="Open jobs" value={myStatus.openJobCount} />
+              <StatTile icon={BuildingIcon} label="Properties" value={myStatus.propertyCount} onClick={() => router.push('/landlord/properties')} />
+              <StatTile icon={BuildingIcon} label="Units" value={myStatus.unitCount} onClick={() => router.push('/landlord/properties')} />
+              <StatTile icon={WrenchIcon} label="Open jobs" value={myStatus.openJobCount} onClick={() => router.push('/landlord/jobs?filter=open')} />
             </div>
             {myStatus.entries.length === 0 ? (
               <p className="text-white/30 text-sm">No activity from them yet.</p>
@@ -1324,10 +1472,10 @@ export default function PmDashboardPage() {
         {membership && (
           <>
             <div className="grid grid-cols-3 gap-3 mb-6">
-              <StatTile icon={BuildingIcon} label="Units managed" value={<CountUp value={combinedUnits} />} onClick={() => setActiveTab('clients')} />
-              <StatTile icon={WrenchIcon} label="Open jobs" value={<CountUp value={combinedOpenJobs} />} onClick={() => setActiveTab('clients')} />
+              <StatTile icon={BuildingIcon} label="Units managed" value={<CountUp value={combinedUnits} />} onClick={() => router.push('/landlord/properties')} />
+              <StatTile icon={WrenchIcon} label="Open jobs" value={<CountUp value={combinedOpenJobs} />} onClick={() => router.push('/landlord/jobs?filter=open')} />
               {membership.canViewFinancials ? (
-                <StatTile icon={DollarSignIcon} label="Rent this month" value={`$${combinedRent.toFixed(0)}`} onClick={() => setActiveTab('clients')} />
+                <StatTile icon={DollarSignIcon} label="Rent this month" value={`$${combinedRent.toLocaleString(undefined, { maximumFractionDigits: 0 })}`} onClick={() => router.push('/landlord/rent')} />
               ) : (
                 <StatTile icon={ShieldIcon} label="Your role" value="Staff" />
               )}
@@ -1342,6 +1490,7 @@ export default function PmDashboardPage() {
                 { key: 'clients', label: 'Clients', count: clients.length },
                 { key: 'team', label: 'Team', count: staff.length },
                 { key: 'activity', label: 'Activity' },
+                ...(membership.memberRole === 'admin' ? [{ key: 'profile' as Tab, label: 'Public profile' }] : []),
               ]}
             />
 
@@ -1364,7 +1513,7 @@ export default function PmDashboardPage() {
                           onClick={() => setActiveTab('clients')}
                         />
                         <ChecklistRow done={payoutStatus === 'active'} label="Set up payouts" href="/profile#billing" />
-                        <ChecklistRow done={openToClients} label="Turn on your public profile" anchor="get-found" />
+                        <ChecklistRow done={openToClients} label="Turn on your public profile" onClick={() => setActiveTab('profile')} />
                       </div>
                     </ScrollReveal>
                   )}
@@ -1474,6 +1623,39 @@ export default function PmDashboardPage() {
                 )}
 
                 {membership.memberRole === 'admin' && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('profile')}
+                    className="group w-full text-left bg-white/3 border border-white/8 rounded-2xl p-4 sm:p-5 flex items-center gap-4 hover:bg-white/6 hover:border-[#12A5A9]/40 transition"
+                  >
+                    {logoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={logoUrl} alt="" className="w-12 h-12 rounded-xl object-cover bg-white shrink-0" />
+                    ) : (
+                      <span className="w-12 h-12 rounded-xl bg-[#12A5A9]/12 flex items-center justify-center shrink-0">
+                        <BuildingIcon className="w-5 h-5 text-[#12A5A9]" />
+                      </span>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-white font-semibold">Your public profile</p>
+                        <span className={`text-[11px] font-semibold rounded-full px-2 py-0.5 ${openToClients ? 'bg-[#12A5A9]/15 text-[#12A5A9]' : 'bg-white/8 text-white/50'}`}>
+                          {openToClients ? 'Live' : 'Off'}
+                        </span>
+                      </div>
+                      <p className="text-white/45 text-xs mt-0.5">
+                        {openToClients
+                          ? `${viewsThisMonth} view${viewsThisMonth === 1 ? '' : 's'} this month. Landlords can find you and request you.`
+                          : 'Turn it on so landlords can find your company and request you.'}
+                      </p>
+                    </div>
+                    <span aria-hidden className="text-white/30 text-xl group-hover:text-[#12A5A9] group-hover:translate-x-0.5 transition">›</span>
+                  </button>
+                )}
+              </>
+            )}
+
+                {activeTab === 'profile' && membership.memberRole === 'admin' && (
                   <div id="get-found" className="bg-white/3 border border-white/8 rounded-2xl p-5">
                     <div className="flex items-center justify-between gap-3 mb-1">
                       <h2 className="text-white font-semibold">Get found on Prophandld</h2>
@@ -1713,8 +1895,6 @@ export default function PmDashboardPage() {
                     )}
                   </div>
                 )}
-              </>
-            )}
 
             {activeTab === 'clients' && (
               <>
@@ -1776,9 +1956,9 @@ export default function PmDashboardPage() {
                                   links into it. */}
                               <div className="grid grid-cols-3 gap-2 mb-3">
                                 <StatTile icon={BuildingIcon} label="Properties" value={c.propertyCount ?? 0} onClick={() => router.push(`/landlord/properties?owner=${c.ownerUserId}`)} />
-                                <StatTile icon={WrenchIcon} label="Open jobs" value={c.openJobCount ?? 0} onClick={() => router.push(`/landlord/jobs?owner=${c.ownerUserId}&filter=all`)} />
+                                <StatTile icon={WrenchIcon} label="Open jobs" value={c.openJobCount ?? 0} onClick={() => router.push(`/landlord/jobs?owner=${c.ownerUserId}&filter=open`)} />
                                 {membership.canViewFinancials ? (
-                                  <StatTile icon={DollarSignIcon} label="Rent this month" value={`$${(c.rentCollectedThisMonth || 0).toFixed(0)}`} />
+                                  <StatTile icon={DollarSignIcon} label="Rent this month" value={`$${(c.rentCollectedThisMonth || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`} onClick={() => router.push(`/landlord/rent?owner=${c.ownerUserId}`)} />
                                 ) : (
                                   <StatTile icon={BuildingIcon} label="Units" value={c.unitCount ?? 0} onClick={() => router.push(`/landlord/properties?owner=${c.ownerUserId}`)} />
                                 )}
@@ -1823,81 +2003,7 @@ export default function PmDashboardPage() {
                                 </div>
                               </div>
                               {membership.memberRole === 'admin' && (
-                                <div className="flex items-center gap-2 text-xs text-white/50 flex-wrap">
-                                  Management fee:
-                                  <select
-                                    value={c.managementFeeType}
-                                    onChange={(e) => {
-                                      const type = e.target.value as 'flat' | 'percent_of_rent'
-                                      if (type === 'percent_of_rent') {
-                                        handleFeeTypeChange(c.id, 'percent_of_rent', c.managementFeePercent || 10)
-                                      } else {
-                                        handleFeeTypeChange(c.id, 'flat')
-                                      }
-                                    }}
-                                    className="bg-white/5 border border-white/10 rounded-lg px-1.5 py-1 text-white text-xs"
-                                  >
-                                    <option value="flat" className="bg-[#0C1A2E]">Flat $</option>
-                                    <option value="percent_of_rent" className="bg-[#0C1A2E]">% of rent collected</option>
-                                  </select>
-                                  {c.managementFeeType === 'percent_of_rent' ? (
-                                    <label className="flex items-center gap-1.5">
-                                      <input
-                                        type="number"
-                                        min={0.1}
-                                        max={100}
-                                        step={0.1}
-                                        defaultValue={c.managementFeePercent ?? 10}
-                                        onBlur={(e) => {
-                                          // Saving re-proposes the fee to the owner (clears their
-                                          // approval, emails them) -- so a click-in/click-out with
-                                          // no actual change must never trigger it.
-                                          const next = Number(e.target.value) || 10
-                                          if (next !== c.managementFeePercent) handleFeeTypeChange(c.id, 'percent_of_rent', next)
-                                        }}
-                                        className="w-16 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white text-xs"
-                                      />
-                                      % of rent collected, billed monthly
-                                    </label>
-                                  ) : (
-                                    <label className="flex items-center gap-1.5">
-                                      $
-                                      <input
-                                        type="number"
-                                        defaultValue={c.managementFee ?? ''}
-                                        placeholder="none"
-                                        onBlur={(e) => {
-                                          const v = e.target.value.trim()
-                                          const next = v === '' ? null : Number(v) || 0
-                                          if (next !== c.managementFee) handleFeeChange(c.id, next, c.managementFeeFrequency || 'monthly')
-                                        }}
-                                        className="w-20 bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-white text-xs"
-                                      />
-                                      {c.managementFee !== null && (
-                                        <select
-                                          value={c.managementFeeFrequency || 'monthly'}
-                                          onChange={(e) => handleFeeChange(c.id, c.managementFee, e.target.value as 'one_time' | 'monthly')}
-                                          className="bg-white/5 border border-white/10 rounded-lg px-1.5 py-1 text-white text-xs"
-                                        >
-                                          <option value="monthly" className="bg-[#0C1A2E]">/month</option>
-                                          <option value="one_time" className="bg-[#0C1A2E]">one time</option>
-                                        </select>
-                                      )}
-                                    </label>
-                                  )}
-                                  {(c.managementFeeType === 'percent_of_rent' ? (c.managementFeePercent ?? 0) > 0 : (c.managementFee ?? 0) > 0) && (
-                                    <span className={`w-full text-xs font-semibold ${c.feeApproved ? 'text-[#12A5A9]' : 'text-yellow-400/90'}`}>
-                                      {c.feeApproved
-                                        ? `✓ ${c.ownerName} approved this fee`
-                                        : `Waiting for ${c.ownerName} to approve — nothing is charged until they do. They've been notified.`}
-                                    </span>
-                                  )}
-                                  <span className="text-white/30 w-full">
-                                    Proposed to {c.ownerName}, paid to you directly once approved.
-                                    {(c.managementFeeFrequency === 'monthly' || c.managementFeeType === 'percent_of_rent') && ' Then charged automatically each month if they have a card on file.'}
-                                    {' '}Changing it sends them a new proposal to approve.
-                                  </span>
-                                </div>
+                                <FeeProposal client={c} onSend={(payload) => handleSendFeeProposal(c.id, payload)} />
                               )}
                               {membership.memberRole === 'admin' && (
                                 <div className="flex items-center gap-2 flex-wrap mt-2">

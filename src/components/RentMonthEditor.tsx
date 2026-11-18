@@ -5,12 +5,23 @@ import { RippleButton } from '@/components/RippleButton'
 import { FileTextIcon } from '@/components/icons'
 import { validateDocumentFile } from '@/lib/mediaValidation'
 import { useLanguage, t } from '@/lib/i18n'
+import { UTILITY_KINDS, UTILITY_LABELS, type UtilityKind, type UtilityCharge } from '@/lib/utilityCharges'
+
+export type DraftCharge = {
+  key: string
+  id?: string
+  kind: UtilityKind
+  label: string
+  amount: string
+  periodStart: string
+  periodEnd: string
+  file: File | null
+  billUrl: string | null
+}
 
 export type RentEditValues = {
   rent: number
-  water: number
-  periodStart: string
-  periodEnd: string
+  charges: DraftCharge[]
   note: string
 }
 
@@ -20,68 +31,74 @@ const money = (n: number) =>
 const inputClass =
   'w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-white text-sm placeholder-white/40 focus:outline-none focus:border-[#12A5A9] transition'
 
+const toDraft = (c: UtilityCharge): DraftCharge => ({
+  key: c.id,
+  id: c.id,
+  kind: c.kind,
+  label: c.label || '',
+  amount: String(c.amount),
+  periodStart: c.periodStart || '',
+  periodEnd: c.periodEnd || '',
+  file: null,
+  billUrl: c.billUrl,
+})
+
 /**
- * Edit any rent month, paid or not: the rent, the water bill and the period
- * it covers, plus a reason. It shows what the change means before saving, so
- * the landlord never has to work out who owes what.
+ * Edit any rent month, paid or not: the rent, any utility bills (water,
+ * electric, gas, trash, sewer, internet, other) with the bill itself
+ * attached, plus a reason. It shows what the change means before saving, so
+ * nobody has to work out who owes what.
  */
 export function RentMonthEditor({
   monthLabel,
   rent: initialRent,
-  water: initialWater,
+  charges: initialCharges,
   lateFee,
   paidSoFar,
-  periodStart: initialStart,
-  periodEnd: initialEnd,
-  hasBillFile,
-  billFileUrl,
-  uploading,
   saving,
   error,
   onSave,
-  onAttach,
   onClose,
 }: {
   monthLabel: string
   rent: number
-  water: number
+  charges: UtilityCharge[]
   lateFee: number
   paidSoFar: number
-  periodStart: string
-  periodEnd: string
-  hasBillFile: boolean
-  billFileUrl?: string
-  uploading: boolean
   saving: boolean
   error: string | null
   onSave: (values: RentEditValues) => void
-  onAttach: (file: File) => void
   onClose: () => void
 }) {
   const lang = useLanguage()
   const [rent, setRent] = useState(String(initialRent))
-  const [water, setWater] = useState(initialWater ? String(initialWater) : '')
-  const [periodStart, setPeriodStart] = useState(initialStart)
-  const [periodEnd, setPeriodEnd] = useState(initialEnd)
+  const [bills, setBills] = useState<DraftCharge[]>(() => initialCharges.map(toDraft))
+  const [openDates, setOpenDates] = useState<Set<string>>(() => new Set(initialCharges.filter((c) => c.periodStart || c.periodEnd).map((c) => c.id)))
   const [note, setNote] = useState('')
-  // This component doesn't own the error state passed down as `error`
-  // (the parent's onAttach kicks off the actual upload) — a bad file needs
-  // to be rejected right here, before onAttach is ever called, so it gets
-  // its own local slot and is shown alongside the same error block.
-  const [sizeError, setSizeError] = useState<string | null>(null)
+  const [fileError, setFileError] = useState<string | null>(null)
+
+  const update = (key: string, patch: Partial<DraftCharge>) => setBills((prev) => prev.map((b) => (b.key === key ? { ...b, ...patch } : b)))
+  const addBill = (kind: UtilityKind) => {
+    const key = `new-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+    setBills((prev) => [...prev, { key, kind, label: '', amount: '', periodStart: '', periodEnd: '', file: null, billUrl: null }])
+    setTimeout(() => document.getElementById(`bill-amount-${key}`)?.focus(), 30)
+  }
 
   const rentNum = Number(rent)
-  const waterNum = Number(water || 0)
-  const validNumbers = rent !== '' && rentNum >= 0 && waterNum >= 0
-  const periodOrderOk = !periodStart || !periodEnd || periodEnd >= periodStart
-  const total = validNumbers ? rentNum + waterNum + lateFee : 0
+  const billNums = bills.map((b) => Number(b.amount || 0))
+  const utilities = Math.round(billNums.reduce((a, b) => a + b, 0) * 100) / 100
+  const billsValid = bills.every((b, i) => b.amount !== '' && billNums[i] >= 0 && (b.kind !== 'other' || b.label.trim()))
+  const validNumbers = rent !== '' && rentNum >= 0 && billsValid
+  const datesOk = bills.every((b) => !b.periodStart || !b.periodEnd || b.periodEnd >= b.periodStart)
+  const total = validNumbers ? Math.round((rentNum + utilities + lateFee) * 100) / 100 : 0
   const difference = Math.round((total - paidSoFar) * 100) / 100
 
+  const initialSignature = JSON.stringify(initialCharges.map(toDraft).map(({ file, billUrl, ...rest }) => rest))
+  const currentSignature = JSON.stringify(bills.map(({ file, billUrl, ...rest }) => rest))
   const changed =
     rentNum !== initialRent ||
-    waterNum !== initialWater ||
-    periodStart !== initialStart ||
-    periodEnd !== initialEnd ||
+    initialSignature !== currentSignature ||
+    bills.some((b) => b.file) ||
     note.trim() !== ''
 
   let outcome: { text: string; tone: string }
@@ -105,7 +122,7 @@ export function RentMonthEditor({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4">
-      <div className="bg-[#0F2138] border border-white/10 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md max-h-[92vh] overflow-y-auto p-6 motion-safe:animate-[floatUp_0.25s_ease-out]">
+      <div className="bg-[#0F2138] border border-white/10 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-lg max-h-[92vh] overflow-y-auto p-6 motion-safe:animate-[floatUp_0.25s_ease-out]">
         <h3 className="text-white font-semibold text-lg">{t('editMonthPrefix', lang)}{monthLabel}</h3>
         <p className="text-white/50 text-xs mt-1">{t('rentEditSavedNote', lang)}</p>
 
@@ -115,56 +132,122 @@ export function RentMonthEditor({
             <input id="edit-rent" type="number" inputMode="decimal" min={0} step="0.01" value={rent} onChange={(e) => setRent(e.target.value)} className={inputClass} />
           </div>
 
-          <div className="rounded-xl border border-white/8 bg-white/3 p-4 space-y-3">
-            <div>
-              <label htmlFor="edit-water" className="text-white/70 text-sm block mb-1">{t('waterBillOptionalLabel', lang)}</label>
-              <input id="edit-water" type="number" inputMode="decimal" min={0} step="0.01" placeholder="0.00" value={water} onChange={(e) => setWater(e.target.value)} className={inputClass} />
+          <div className="rounded-2xl border border-white/8 bg-white/3 p-4">
+            <div className="flex items-baseline justify-between gap-3">
+              <p className="text-white text-sm font-semibold">{t('utilityBillsLabel', lang)}</p>
+              {utilities > 0 && <p className="text-white/60 text-sm tabular-nums">{money(utilities)}</p>}
             </div>
-            <div>
-              <p className="text-white/70 text-sm mb-1">{t('periodBillCoversLabel', lang)}</p>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label htmlFor="edit-from" className="text-white/50 text-xs block mb-1">{t('fromLabel', lang)}</label>
-                  <input id="edit-from" type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} className={inputClass} />
-                </div>
-                <div>
-                  <label htmlFor="edit-to" className="text-white/50 text-xs block mb-1">{t('toLabel', lang)}</label>
-                  <input id="edit-to" type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} className={inputClass} />
-                </div>
-              </div>
-              {!periodOrderOk && <p className="text-red-400 text-xs mt-1.5">{t('endDateBeforeStartDate', lang)}</p>}
-            </div>
-            <div className="flex items-center gap-3 flex-wrap">
-              <label className="text-[#12A5A9] text-xs font-semibold cursor-pointer flex items-center gap-1.5 hover:underline">
-                <FileTextIcon className="w-3.5 h-3.5" />
-                {uploading ? t('uploadingEllipsis', lang) : hasBillFile ? t('replaceBillFile', lang) : t('attachBillFile', lang)}
-                <input
-                  type="file"
-                  accept=".pdf,.jpg,.jpeg,.png"
-                  className="hidden"
-                  disabled={uploading}
-                  onChange={async (e) => {
-                    const input = e.target
-                    const file = input.files?.[0]
-                    if (file) {
-                      const problem = await validateDocumentFile(file, { allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'] })
-                      if (problem) {
-                        setSizeError(problem)
-                        input.value = ''
-                        return
-                      }
-                      setSizeError(null)
-                      onAttach(file)
-                    }
-                    input.value = ''
-                  }}
-                />
-              </label>
-              {billFileUrl && (
-                <a href={billFileUrl} target="_blank" rel="noopener noreferrer" className="text-white/50 text-xs hover:text-white hover:underline">
-                  {t('viewCurrentArrow', lang)}
-                </a>
-              )}
+            <p className="text-white/45 text-xs mt-0.5">{t('utilityBillsHelp', lang)}</p>
+
+            {bills.length > 0 && (
+              <ul className="mt-3 space-y-2.5">
+                {bills.map((b) => {
+                  const datesOpen = openDates.has(b.key)
+                  const badDates = !!b.periodStart && !!b.periodEnd && b.periodEnd < b.periodStart
+                  return (
+                    <li key={b.key} className="rounded-xl border border-white/10 bg-[#0C1A2E]/60 p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <select
+                          aria-label={t('billNameLabel', lang)}
+                          value={b.kind}
+                          onChange={(e) => update(b.key, { kind: e.target.value as UtilityKind })}
+                          className="bg-transparent text-white text-sm font-semibold focus:outline-none cursor-pointer -ml-0.5"
+                        >
+                          {UTILITY_KINDS.map((k) => (
+                            <option key={k} value={k} className="bg-[#0F2138]">{UTILITY_LABELS[k][lang === 'es' ? 'es' : 'en']}</option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => setBills((prev) => prev.filter((x) => x.key !== b.key))}
+                          aria-label={t('removeBillAria', lang)}
+                          className="w-8 h-8 -mr-1 rounded-lg text-white/40 hover:text-red-400 hover:bg-red-500/10 transition flex items-center justify-center text-lg leading-none"
+                        >
+                          ×
+                        </button>
+                      </div>
+                      <div className={`grid gap-2.5 mt-2 ${b.kind === 'other' ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
+                        {b.kind === 'other' && (
+                          <div>
+                            <label htmlFor={`bill-label-${b.key}`} className="text-white/50 text-xs block mb-1">{t('billNameLabel', lang)}</label>
+                            <input id={`bill-label-${b.key}`} type="text" maxLength={40} placeholder={t('billNamePlaceholder', lang)} value={b.label} onChange={(e) => update(b.key, { label: e.target.value })} className={inputClass} />
+                          </div>
+                        )}
+                        <div>
+                          <label htmlFor={`bill-amount-${b.key}`} className="text-white/50 text-xs block mb-1">{t('billAmountLabel', lang)}</label>
+                          <div className="relative">
+                            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40 text-sm">$</span>
+                            <input id={`bill-amount-${b.key}`} type="number" inputMode="decimal" min={0} step="0.01" placeholder="0.00" value={b.amount} onChange={(e) => update(b.key, { amount: e.target.value })} className={`${inputClass} pl-7`} />
+                          </div>
+                        </div>
+                      </div>
+
+                      {datesOpen && (
+                        <div className="grid grid-cols-2 gap-2.5 mt-2.5">
+                          <div>
+                            <label htmlFor={`bill-from-${b.key}`} className="text-white/50 text-xs block mb-1">{t('fromLabel', lang)}</label>
+                            <input id={`bill-from-${b.key}`} type="date" value={b.periodStart} onChange={(e) => update(b.key, { periodStart: e.target.value })} className={inputClass} />
+                          </div>
+                          <div>
+                            <label htmlFor={`bill-to-${b.key}`} className="text-white/50 text-xs block mb-1">{t('toLabel', lang)}</label>
+                            <input id={`bill-to-${b.key}`} type="date" value={b.periodEnd} onChange={(e) => update(b.key, { periodEnd: e.target.value })} className={inputClass} />
+                          </div>
+                          {badDates && <p className="col-span-2 text-red-400 text-xs">{t('endDateBeforeStartDate', lang)}</p>}
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-x-4 gap-y-2 flex-wrap mt-2.5">
+                        <label className="text-[#12A5A9] text-xs font-semibold cursor-pointer inline-flex items-center gap-1.5 hover:underline py-1">
+                          <FileTextIcon className="w-3.5 h-3.5" />
+                          {b.billUrl || b.file ? t('replaceBill', lang) : t('attachBillCta', lang)}
+                          <input
+                            type="file"
+                            accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const input = e.target
+                              const file = input.files?.[0]
+                              input.value = ''
+                              if (!file) return
+                              const problem = await validateDocumentFile(file, { allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'] })
+                              if (problem) {
+                                setFileError(problem)
+                                return
+                              }
+                              setFileError(null)
+                              update(b.key, { file })
+                            }}
+                          />
+                        </label>
+                        {b.billUrl && !b.file && (
+                          <a href={b.billUrl} target="_blank" rel="noopener noreferrer" className="text-white/60 text-xs hover:text-white hover:underline py-1">
+                            {t('viewBill', lang)} →
+                          </a>
+                        )}
+                        {!datesOpen && (
+                          <button type="button" onClick={() => setOpenDates((prev) => new Set(prev).add(b.key))} className="text-white/50 text-xs hover:text-white py-1">
+                            {t('billDatesToggle', lang)}
+                          </button>
+                        )}
+                      </div>
+                      {b.file && <p className="text-white/50 text-[11px] mt-1 truncate">{t('billFileReady', lang)} {b.file.name}</p>}
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+
+            <div className="flex flex-wrap gap-2 mt-3">
+              {UTILITY_KINDS.map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => addBill(k)}
+                  className="text-xs font-medium text-white/80 bg-white/6 border border-white/10 rounded-full px-3 py-1.5 hover:bg-[#12A5A9]/15 hover:border-[#12A5A9]/40 hover:text-white transition"
+                >
+                  {t('addBillChipPrefix', lang)}{UTILITY_LABELS[k][lang === 'es' ? 'es' : 'en']}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -179,15 +262,15 @@ export function RentMonthEditor({
             {outcome.text}
           </div>
 
-          {(sizeError || error) && (
-            <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">{sizeError || error}</div>
+          {(fileError || error) && (
+            <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">{fileError || error}</div>
           )}
         </div>
 
         <div className="flex items-center gap-3 mt-6">
           <RippleButton
-            onClick={() => onSave({ rent: rentNum, water: waterNum, periodStart, periodEnd, note: note.trim() })}
-            disabled={saving || uploading || !validNumbers || !periodOrderOk || !changed}
+            onClick={() => onSave({ rent: rentNum, charges: bills, note: note.trim() })}
+            disabled={saving || !validNumbers || !datesOk || !changed}
             className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
           >
             {saving ? t('savingChangesDots', lang) : t('saveChangesBtn', lang)}

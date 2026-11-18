@@ -63,8 +63,7 @@ function RotatingHeroPhrase() {
 
 // Structured data for search engines — purely additive, invisible to a
 // visitor, and free in the literal sense (no ad spend). Only states facts
-// the rest of the page already claims: the free-tier offer (real pricing
-// now lives at /pricing, matching pricingTiers.ts) and no
+// the rest of the page already claims: the free pilot offer and no
 // aggregateRating/review (would be fabricated — nothing like that
 // exists pre-launch, same reasoning the team already applied to the trust
 // section below instead of fake testimonials).
@@ -88,7 +87,7 @@ const STRUCTURED_DATA = {
       url: 'https://www.prophandld.com',
       publisher: { '@id': 'https://www.prophandld.com/#organization' },
       areaServed: { '@type': 'City', name: 'Philadelphia' },
-      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD', description: 'Free for a single rental unit' },
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD', description: 'Free for 6 months during the pilot program' },
     },
   ],
 }
@@ -628,39 +627,30 @@ export default function LandingPage() {
         </ScrollReveal>
       </section>
 
-      {/* Pricing teaser — real numbers, matches src/lib/pricingTiers.ts and
-          the full breakdown at /pricing exactly; keep both in sync if
-          those tiers ever change. A real free tier, flat monthly plans
-          through 25 units, then a flat $1.75/unit rate above that
-          (simplified 2026-10-24 from an earlier three-step rate). */}
-      <section id="pricing" className="max-w-5xl mx-auto px-6 py-16">
+      {/* Pilot: no prices on the site while we hear from landlords,
+          contractors and PMs (src/lib/pilot.ts). */}
+      <section id="pricing" className="max-w-5xl mx-auto px-6 py-16 scroll-mt-20">
         <ScrollReveal>
-          <div className="bg-white/3 border border-white/8 rounded-2xl p-8 sm:p-12 text-center">
-            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 text-[#12A5A9] border border-[#12A5A9]/30 text-xs font-semibold px-3 py-1.5 rounded-full mb-5">
-              Simple, graduated pricing
+          <div className="relative overflow-hidden bg-gradient-to-br from-[#0A7B7E]/15 via-white/3 to-transparent border border-[#12A5A9]/25 rounded-3xl p-8 sm:p-12 text-center">
+            <div className="inline-flex items-center gap-2 bg-[#12A5A9]/15 text-[#12A5A9] border border-[#12A5A9]/30 text-xs font-semibold px-3 py-1.5 rounded-full mb-5">
+              Pricing: coming soon
             </div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">Free to try. Simple after that.</h2>
-            <p className="text-white/50 max-w-xl mx-auto leading-relaxed mb-2">
-              Your first unit is free, full stop. Then <strong className="text-white/80">$19.99/month</strong> for
-              2–4 units, <strong className="text-white/80">$39.99</strong> for 5–10, <strong className="text-white/80">$79.99</strong> for
-              11–25, flat rates, not per-unit. Past 25 units, $79.99 plus $1.75 for every unit over 25.
+            <h2 className="text-2xl sm:text-4xl font-bold text-white mb-4 text-balance">Free for 6 months during our pilot.</h2>
+            <p className="text-white/60 max-w-xl mx-auto leading-relaxed mb-2">
+              Everything is included, Prophandld AI too. No card needed. We&apos;re building this with the
+              landlords, property managers and contractors using it, and we&apos;ll set pricing only after
+              we&apos;ve heard from you.
             </p>
-            <p className="text-white/50 max-w-xl mx-auto leading-relaxed mb-6">
-              Renters and contractors pay Prophandld nothing.
+            <p className="text-white/45 max-w-xl mx-auto leading-relaxed text-sm mb-7">
+              Renters never pay Prophandld anything. Nothing is ever charged unless you choose a plan.
             </p>
             <div className="flex items-center justify-center gap-4 flex-wrap">
               <MagneticLink
                 href="/signup?role=landlord"
                 className="inline-block bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-6 py-3 rounded-full hover:opacity-90 transition"
               >
-                Try it free →
+                Join the free pilot →
               </MagneticLink>
-              <Link
-                href="/pricing"
-                className="text-[#12A5A9] text-sm font-semibold hover:underline"
-              >
-                See the full pricing breakdown →
-              </Link>
             </div>
           </div>
         </ScrollReveal>
@@ -683,7 +673,7 @@ export default function LandingPage() {
         <ScrollReveal>
           <div className="text-center mb-14">
             <div className="inline-flex items-center gap-2 bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 text-[#12A5A9] border border-[#12A5A9]/30 text-xs font-semibold px-3 py-1.5 rounded-full mb-5">
-              Prophandld AI &middot; optional add-on, on top of the plan above
+              Prophandld AI &middot; included free during the pilot
             </div>
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4 text-balance">
               Meet Prophandld AI, the AI that&apos;s actually read your lease, not the internet&apos;s best guess.
@@ -706,30 +696,11 @@ export default function LandingPage() {
             911 or your gas company.
           </p>
 
-          <div className="mt-16 max-w-3xl mx-auto bg-white/3 border border-white/8 rounded-2xl p-6 sm:p-8">
-            <h3 className="text-white font-semibold text-center mb-2">One subscription, two people benefit</h3>
-            <p className="text-white/50 text-sm text-center leading-relaxed max-w-xl mx-auto mb-6">
-              This is separate from, and in addition to, the plan above. You&apos;re the one who
-              turns it on and pays for it. The moment you do, every tenant on your properties gets
-              it too, automatically, at no extra cost to them. Turn it off, and it turns off for
-              them at the same time, nothing lingers.
-            </p>
-            <div className="grid sm:grid-cols-5 gap-2.5 text-center">
-              {[
-                ['1 unit', '$4.99'],
-                ['2–4 units', '$9.99'],
-                ['5–10 units', '$14.99'],
-                ['11–25 units', '$24.99'],
-                ['26+ units', '+$0.50/unit'],
-              ].map(([range, price]) => (
-                <div key={range} className="bg-white/[0.03] border border-white/8 rounded-xl py-3">
-                  <p className="text-white font-bold text-sm">{price}</p>
-                  <p className="text-white/40 text-[11px] mt-0.5">{range}</p>
-                </div>
-              ))}
-            </div>
-            <p className="text-white/40 text-xs text-center mt-5">
-              14-day free trial, cancel anytime. Turn it on from your profile whenever you&apos;re ready.
+          <div className="mt-16 max-w-3xl mx-auto bg-white/3 border border-white/8 rounded-2xl p-6 sm:p-8 text-center">
+            <h3 className="text-white font-semibold mb-2">One switch, everyone benefits</h3>
+            <p className="text-white/50 text-sm leading-relaxed max-w-xl mx-auto">
+              Prophandld AI is on for every landlord and property manager during the pilot, and every
+              tenant on your properties gets it too, at no cost to anyone.
             </p>
           </div>
         </ScrollReveal>
@@ -744,8 +715,8 @@ export default function LandingPage() {
           <div className="space-y-3">
             {[
               { q: 'Is this just for finding contractors?', a: "No. Prophandld is built to replace the spreadsheet. Track every property, unit, and tenant, handle maintenance end to end with sealed bidding, and collect rent, all in one dashboard. Your spreadsheet can finally retire." },
-              { q: 'What does it cost?', a: "Your first unit is free. Then $19.99/month for 2–4 units, $39.99 for 5–10, $79.99 for 11–25, flat rates, not per-unit. Past 25 units, $79.99 plus $1.75 for every unit over 25. Prophandld AI is a separate optional add-on from $4.99/month if you want it. See the full breakdown and try the calculator at /pricing. Contractors pay nothing during this pilot program: no signup fee, no monthly fee, no cut of a bid. If that ever changes, contractors get at least 60 days' written notice first, and it never applies retroactively to work already bid, scheduled, or completed." },
-              { q: 'What does Prophandld AI actually do?', a: "It handles the parts of this job that eat your evenings: talks a tenant through a safe fix before a contractor's ever needed (never anything electrical, gas, or structural), reads an uploaded lease or compliance document straight into the right fields, answers a renter's own lease questions directly, flags a compliance gap before it becomes a fine, drafts the routine messages you'd otherwise type yourself, and gives you a one-line morning briefing of what actually needs your attention. It's an optional add-on billed to you, the landlord, from $4.99/month with a 14-day free trial. Turn it on and your tenants get it too, automatically, at no extra cost to them." },
+              { q: 'What does it cost?', a: "Nothing during our pilot: it's free for 6 months, Prophandld AI included, and no card is needed. We're setting pricing only after hearing from the landlords, property managers and contractors using it, and nothing is ever charged unless you choose a plan. Renters never pay Prophandld anything. Contractors pay nothing during the pilot either: no signup fee, no monthly fee, no cut of a bid. If that ever changes, contractors get at least 60 days' written notice first, and it never applies retroactively to work already bid, scheduled, or completed." },
+              { q: 'What does Prophandld AI actually do?', a: "It handles the parts of this job that eat your evenings: talks a tenant through a safe fix before a contractor's ever needed (never anything electrical, gas, or structural), reads an uploaded lease or compliance document straight into the right fields, answers a renter's own lease questions directly, flags a compliance gap before it becomes a fine, drafts the routine messages you'd otherwise type yourself, and gives you a one-line morning briefing of what actually needs your attention. It's included free during the pilot, and your tenants get it too, automatically, at no cost to them." },
               { q: 'How does sealed bidding actually work?', a: "Contractors near the property are alerted when you open a job for bids. They submit their price privately and never see what anyone else bid. You choose who you trust, not just the lowest number. No bidding wars, no “my cousin quoted less”." },
               { q: 'Do I have to use a contractor?', a: "No. For anything small enough to handle yourself, mark it fixed directly, no bidding required. Contractors are there for when you want one, not a requirement for every repair." },
               { q: "What if the contractor's price changes?", a: 'If a contractor needs to adjust their price once work has started, they show you the new labor and parts breakdown, and you approve it before they move forward. No surprise invoices.' },
@@ -760,7 +731,7 @@ export default function LandingPage() {
               { q: 'Can I use Prophandld as more than one role?', a: "Yes. If you're a landlord who also does contract work, or a renter who's also a landlord, link a second profile from your account menu and switch between dashboards instantly, no second signup, no second password." },
               { q: 'Can someone else help manage my properties?', a: "Yes, two ways. Invite a business partner as a co-owner from your profile, and they get your own full access to one portfolio alongside you. If you're hiring a property management company instead, they can run their own dashboard across you and every other client they manage, with staff accounts and approval thresholds for bigger repairs — see the Property Managers section above for how that works. Either way, billing stays yours alone, and you can remove access anytime." },
               { q: 'I run a property management company. Is this for me?', a: "Yes. Pick \"Property Manager\" right on the sign-up form (it's one of the options alongside Landlord, Renter, and Contractor) and name your company — that's the whole setup. From there you invite each landlord client by email, and once they accept you're running their properties, maintenance, and compliance from the same dashboard as everyone else you manage, a switcher between clients, staff accounts you control, and a dollar threshold per client so owners sign off automatically on bigger repairs. See the Property Managers page for the full picture." },
-              { q: 'How does pricing work for a property management company?', a: "The same per-unit pricing as a regular landlord account, just totaled across every client portfolio you manage instead of one. No separate PM price list to learn, and no extra seat fee for staff accounts. See the calculator at /pricing." },
+              { q: 'How does pricing work for a property management company?', a: "During the pilot it's free for 6 months, for every client portfolio and staff account you add. We'll set PM pricing with feedback from the companies using it, and you'll hear from us well before anything changes." },
             ].map((item) => (
               <details key={item.q} className="group bg-white/3 border border-white/8 rounded-2xl px-5 py-4 open:border-[#12A5A9]/30 open:bg-white/5 transition-colors">
                 <summary className="flex items-center justify-between gap-4 cursor-pointer list-none text-white font-semibold [&::-webkit-details-marker]:hidden">
