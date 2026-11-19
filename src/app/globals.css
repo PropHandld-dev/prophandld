@@ -322,3 +322,4 @@ html[data-theme="light"] .bg-\[\#0A0F1C\]\/60 { background-color: rgb(10 15 28 /
 /* The floating help button steps aside while any dialog or sheet is open,
    so it never covers a Send or Save button. */
 body:has([aria-modal="true"]) .ai-help-bubble { display: none; }
+body:has(.fixed.inset-0[class*="bg-black/"]) .ai-help-bubble { display: none; }

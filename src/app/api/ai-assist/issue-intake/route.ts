@@ -5,6 +5,7 @@ import { claudeJson } from '@/lib/claude'
 import { aiAccessFor } from '@/lib/aiAccess'
 import { tooManyAiAssistRequests } from '@/lib/aiAssistRateLimit'
 import { FIXED_CATEGORIES } from '@/lib/categoryTaxonomy'
+import { LOCATION_OPTIONS } from '@/lib/jobLocations'
 
 export const maxDuration = 30
 
@@ -38,8 +39,8 @@ export async function POST(request: NextRequest) {
         'Never give repair instructions for electrical, gas or structural problems. ' +
         `Write title, location, safetySteps and questions in ${es ? 'Spanish' : 'English'}.`,
       prompt:
-        `Categories: ${FIXED_CATEGORIES.join(' | ')}\n\nTenant's description:\n"""${text}"""\n\n` +
-        'Return JSON: {"category": exact category text or null, "title": under 8 words, "location": room/area or null, ' +
+        `Categories: ${FIXED_CATEGORIES.join(' | ')}\nLocations: ${LOCATION_OPTIONS.join(' | ')}\n\nTenant's description:\n"""${text}"""\n\n` +
+        'Return JSON: {"category": exact category text or null, "title": under 8 words, "location": exact location text from the list (always in English) or null, ' +
         '"urgency": "normal"|"urgent"|"emergency", "isEmergency": boolean, "safetySteps": string[], ' +
         '"questions": up to 2 short questions a contractor would want answered that the description doesn\'t say}',
       maxTokens: 600,
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       category,
       title: typeof out?.title === 'string' ? out.title.slice(0, 80) : null,
-      location: typeof out?.location === 'string' ? out.location.slice(0, 60) : null,
+      location: LOCATION_OPTIONS.includes(out?.location || '') ? out.location : null,
       urgency: isEmergency ? 'emergency' : out?.urgency === 'urgent' ? 'urgent' : 'normal',
       isEmergency,
       safetySteps: Array.isArray(out?.safetySteps) ? out.safetySteps.filter((s) => typeof s === 'string').slice(0, 3).map((s) => s.slice(0, 200)) : [],
