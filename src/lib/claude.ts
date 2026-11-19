@@ -164,7 +164,9 @@ export async function claudeText({ system, prompt, maxTokens = 800, track }: { s
   requireApiKey()
   const message = await getClaude().messages.create({
     model: CLAUDE_MODEL,
-    max_tokens: maxTokens,
+    // Headroom: a small limit can run out before any visible text is
+    // written, which comes back as an empty reply.
+    max_tokens: Math.max(maxTokens, 2000),
     system: `${system}\n\nReply with only the message text itself: no quotes around it, no preamble, no notes.`,
     messages: [{ role: 'user', content: prompt }],
   })
