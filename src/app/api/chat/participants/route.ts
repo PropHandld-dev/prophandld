@@ -117,13 +117,20 @@ export async function GET(request: NextRequest) {
     .in('id', Array.from(members.keys()))
   const byId = new Map((people || []).map((u: any) => [u.id, u]))
   const staffIds = await adminUserIdSet(Array.from(members.keys()))
+  // People on the landlord side who work for a PM company are labelled as
+  // the property manager, not as the landlord.
+  const landlordSide = Array.from(members.entries()).filter(([, r]) => r === 'landlord').map(([id]) => id)
+  const { data: pmMembers } = landlordSide.length
+    ? await admin.from('pm_organization_members').select('user_id').in('user_id', landlordSide).eq('status', 'accepted')
+    : { data: [] }
+  const pmIds = new Set((pmMembers || []).map((m: any) => m.user_id))
 
   return NextResponse.json({
     participants: Array.from(members.entries()).map(([userId, role]) => {
       const person: any = byId.get(userId)
       // Staff who posted (for example an admin) are labelled as such rather than "Unknown".
       const isStaff = role === 'other' && staffIds.has(userId)
-      return { role: isStaff ? 'admin' : role, user_id: userId, full_name: person?.full_name ?? null }
+      return { role: isStaff ? 'admin' : pmIds.has(userId) ? 'property_manager' : role, user_id: userId, full_name: person?.full_name ?? null }
     }),
   })
 }

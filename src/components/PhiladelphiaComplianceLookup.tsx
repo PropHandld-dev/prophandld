@@ -17,6 +17,7 @@ export function PhiladelphiaComplianceLookup() {
   const [address, setAddress] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [atlasUrl, setAtlasUrl] = useState<string | null>(null)
   const [result, setResult] = useState<{ licenses: License[]; openViolations: Violation[] } | null>(null)
 
   const handleSearch = async (e: React.FormEvent) => {
@@ -30,6 +31,7 @@ export function PhiladelphiaComplianceLookup() {
       const data = await res.json()
       if (!res.ok) {
         setError(data.error || 'Could not look that up.')
+        setAtlasUrl(data.atlasUrl || null)
       } else {
         setResult(data)
       }
@@ -72,7 +74,12 @@ export function PhiladelphiaComplianceLookup() {
         .
       </p>
 
-      {error && <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">{error}</div>}
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">
+          {error}
+          {atlasUrl && <> <a href={atlasUrl} target="_blank" rel="noopener noreferrer" className="text-[#12A5A9] font-semibold hover:underline">Open on atlas.phila.gov →</a></>}
+        </div>
+      )}
 
       {result && (
         <div className="space-y-4 mt-2">

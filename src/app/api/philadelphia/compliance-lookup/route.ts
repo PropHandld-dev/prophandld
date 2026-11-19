@@ -4,7 +4,7 @@ import { tooManyRequests } from '@/lib/rateLimit'
 // Worst case is two sequential 10s attempts (initial + one retry) per
 // query, with the license and violations queries themselves running in
 // parallel -- so ~20s, not 2x that.
-export const maxDuration = 25
+export const maxDuration = 50
 
 // Public, no-login lookup against the City of Philadelphia's own open data
 // (phl.carto.com, the same backend opendataphilly.org uses) -- rental
@@ -73,19 +73,26 @@ function normalizeStreetSuffix(address: string): string {
 // (fresh timeout, not a shared budget) covers that without making a
 // genuinely down service hang the request forever.
 async function cartoQueryOnce(sql: string) {
-  const res = await fetch(`${CARTO_SQL_URL}?q=${encodeURIComponent(sql)}`, { signal: AbortSignal.timeout(10000) })
+  const res = await fetch(`${CARTO_SQL_URL}?q=${encodeURIComponent(sql)}`, { signal: AbortSignal.timeout(14000) })
   if (!res.ok) throw new Error(`Carto query failed: ${res.status}`)
   const body = await res.json()
   return (body.rows || []) as any[]
 }
 
 async function cartoQuery(sql: string) {
-  try {
-    return await cartoQueryOnce(sql)
-  } catch (err) {
-    console.error('philadelphia/compliance-lookup: first attempt failed, retrying once', err)
-    return cartoQueryOnce(sql)
+  // Up to three tries: the city's service is usually fast but has slow
+  // spells that clear within seconds.
+  let lastErr: unknown
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      return await cartoQueryOnce(sql)
+    } catch (err) {
+      lastErr = err
+      console.error(`philadelphia/compliance-lookup: attempt ${attempt + 1} failed`, err)
+      if (attempt < 2) await new Promise((r) => setTimeout(r, 600 * (attempt + 1)))
+    }
   }
+  throw lastErr
 }
 
 export async function GET(request: NextRequest) {
@@ -102,7 +109,10 @@ export async function GET(request: NextRequest) {
   if (!sanitized || sanitized.length < 5) {
     return NextResponse.json({ error: 'Enter a street address.' }, { status: 400 })
   }
-  const address = normalizeStreetSuffix(sanitized)
+  // Only the street part ("8058 WALKER ST"): the city stores addresses as
+  // "8058 WALKER ST, Philadelphia, PA 19136-2722", so a full address with
+  // a 5-digit ZIP or ", USA" from Google Places can miss.
+  const address = normalizeStreetSuffix(sanitized.split(',')[0].trim())
 
   try {
     const [licenses, violations] = await Promise.all([
@@ -136,6 +146,12 @@ export async function GET(request: NextRequest) {
     })
   } catch (err) {
     console.error('philadelphia/compliance-lookup: query failed', err)
-    return NextResponse.json({ error: 'Could not reach the city’s open data right now. Try again shortly.' }, { status: 502 })
+    return NextResponse.json(
+      {
+        error: "The city's records site is slow right now. Try again in a minute, or look the address up on the city's own site.",
+        atlasUrl: `https://atlas.phila.gov/${encodeURIComponent(address)}`,
+      },
+      { status: 502 }
+    )
   }
 }

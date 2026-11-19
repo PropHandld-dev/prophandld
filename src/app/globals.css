@@ -323,3 +323,9 @@ html[data-theme="light"] .bg-\[\#0A0F1C\]\/60 { background-color: rgb(10 15 28 /
    so it never covers a Send or Save button. */
 body:has([aria-modal="true"]) .ai-help-bubble { display: none; }
 body:has(.fixed.inset-0[class*="bg-black/"]) .ai-help-bubble { display: none; }
+
+/* Any translucent variant of the dark surfaces (e.g. bg-[#0F2138]/97 on the
+   AI chat panel) gets the light surface too, so no dark panel survives
+   into light mode with navy text on it. */
+html[data-theme="light"] [class*="bg-[#0F2138]/"] { background-color: rgb(244 247 250 / 0.97); box-shadow: 0 30px 80px -30px rgb(20 36 58 / 0.35); }
+html[data-theme="light"] [class*="bg-[#0C1A2E]/"]:not(.bg-\[\#0C1A2E\]\/75) { background-color: rgb(228 233 239 / 0.92); }

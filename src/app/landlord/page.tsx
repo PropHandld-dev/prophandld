@@ -842,12 +842,12 @@ export default function LandlordDashboard() {
                 <h3 className="text-white font-semibold mb-1">{t('addPropertyCardTitle', lang)}</h3>
                 <p className="text-white/60 text-sm">{t('addPropertyCardDesc', lang)}</p>
               </Link>
-              <Link href="/landlord/properties" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
+              <Link href="/landlord/documents" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
                 <FileTextIcon className="w-5 h-5 text-[#12A5A9] mb-2" />
                 <h3 className="text-white font-semibold mb-1">{t('documentsCardTitle', lang)}</h3>
                 <p className="text-white/60 text-sm">{t('documentsCardDesc', lang)}</p>
               </Link>
-              <Link href="/landlord/properties" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
+              <Link href="/landlord/compliance" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
                 <ClipboardListIcon className="w-5 h-5 text-[#12A5A9] mb-2" />
                 <h3 className="text-white font-semibold mb-1">{t('complianceCardTitle', lang)}</h3>
                 <p className="text-white/60 text-sm">{t('complianceCardDesc', lang)}</p>

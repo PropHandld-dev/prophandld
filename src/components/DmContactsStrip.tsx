@@ -24,7 +24,10 @@ export function DmContactsStrip({
         console.error('get_dm_contacts failed', error)
         return
       }
-      setContacts(data || [])
+      // One person can come back once per lease or job they share with us
+      // (a tenant renting two units); show each person once.
+      const seen = new Set<string>()
+      setContacts(((data || []) as DmContact[]).filter((c) => (seen.has(c.other_user_id) ? false : (seen.add(c.other_user_id), true))))
     })
   }, [])
 

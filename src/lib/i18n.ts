@@ -2235,6 +2235,7 @@ export function roleLabel(role: string, lang: Lang): string {
   if (role === 'renter') return t('renterLabel', lang)
   if (role === 'contractor') return t('contractorLabel', lang)
   if (role === 'admin') return t('prophandldTeam', lang)
+  if (role === 'property_manager') return lang === 'es' ? 'Administrador de propiedades' : 'Property manager'
   return role
 }
 

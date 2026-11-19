@@ -296,15 +296,15 @@ export function ChatPanel({
   // time floating in chat with no context behind it. Every other DM
   // pairing keeps the lightweight "Propose a time" chat shortcut.
   const contractorInThread = threadId ? others.find((p) => p.role === 'contractor') : undefined
-  const showStartJob = !!contractorInThread && myRole === 'landlord'
+  const showStartJob = !!contractorInThread && (myRole === 'landlord' || myRole === 'property_manager')
 
   // AI-drafted tenant communication only makes sense on a real 1:1 DM
   // between this landlord and one of their renters, never job chat (the
   // contractor's there too) and never a landlord-contractor DM.
   const renterInThread = threadId && others.length === 1 && others[0].role === 'renter' ? others[0] : undefined
-  const showAiDraftBtn = !!renterInThread && myRole === 'landlord' && aiAvailable
+  const showAiDraftBtn = !!renterInThread && (myRole === 'landlord' || myRole === 'property_manager') && aiAvailable
   useEffect(() => {
-    if (!AI_ASSIST_ENABLED || myRole !== 'landlord') return
+    if (!AI_ASSIST_ENABLED || (myRole !== 'landlord' && myRole !== 'property_manager')) return
     fetch('/api/ai-assist/status')
       .then((res) => res.json())
       .then((data) => setAiAvailable(data.enabled && (data.status === 'trialing' || data.status === 'active')))

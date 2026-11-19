@@ -15,6 +15,7 @@ type Violation = { title: string; status: string; date: string | null; caseStatu
 export function PropertyCityRecordCard({ address, city }: { address: string; city: string | null }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [atlasUrl, setAtlasUrl] = useState<string | null>(null)
   const [result, setResult] = useState<{ licenses: License[]; openViolations: Violation[] } | null>(null)
 
   useEffect(() => {
@@ -25,7 +26,10 @@ export function PropertyCityRecordCard({ address, city }: { address: string; cit
       .then(async (res) => {
         const data = await res.json()
         if (cancelled) return
-        if (!res.ok) setError(data.error || 'Could not check city records.')
+        if (!res.ok) {
+          setError(data.error || 'Could not check city records.')
+          setAtlasUrl(data.atlasUrl || null)
+        }
         else setResult(data)
       })
       .catch(() => {
@@ -56,7 +60,12 @@ export function PropertyCityRecordCard({ address, city }: { address: string; cit
       <p className="text-white/40 text-xs mb-4">Public City of Philadelphia records, checked automatically against this address.</p>
 
       {loading && <p className="text-white/40 text-sm">Checking…</p>}
-      {error && <p className="text-white/40 text-sm">{error}</p>}
+      {error && (
+        <p className="text-white/50 text-sm">
+          {error}
+          {atlasUrl && <> <a href={atlasUrl} target="_blank" rel="noopener noreferrer" className="text-[#12A5A9] font-semibold hover:underline">Open on atlas.phila.gov →</a></>}
+        </p>
+      )}
 
       {result && (
         <div className="space-y-3">
