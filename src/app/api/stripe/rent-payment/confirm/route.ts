@@ -59,8 +59,10 @@ export async function POST(request: NextRequest) {
   if (!rent || !allowed) {
     return NextResponse.json({ error: 'Rent payment not found' }, { status: 404 })
   }
+  // No payout account (never set up, or removed): nothing at Stripe to
+  // check, so there's nothing to update.
   if (!connectedAccountId) {
-    return NextResponse.json({ error: 'Could not determine payout account' }, { status: 500 })
+    return NextResponse.json({ status: 'none' })
   }
 
   try {
@@ -99,6 +101,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ status })
   } catch (err) {
+    // An old attempt Stripe no longer has on this account (e.g. made before
+    // the landlord's payout account changed) has nothing left to sync.
+    if ((err as any)?.code === 'resource_missing') return NextResponse.json({ status: 'none' })
     console.error('rent-payment/confirm: unhandled error', err)
     return NextResponse.json({ error: 'Could not check payment' }, { status: 500 })
   }
