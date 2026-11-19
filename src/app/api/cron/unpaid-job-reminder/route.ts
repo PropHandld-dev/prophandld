@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cronAuthorized } from '@/lib/cronAuth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { getStripe, paymentPaidAt } from '@/lib/stripe'
-import { cardProcessingFee } from '@/lib/cardSurcharge'
+import { jobCardFee } from '@/lib/cardSurcharge'
 import { sendUnpaidJobReminderEmail, sendAutochargeFailedEmail } from '@/lib/email'
 import { sendJobPaymentNotifications } from '@/lib/jobPaymentNotify'
 import { sendPush } from '@/lib/push'
@@ -239,7 +239,7 @@ export async function GET(request: NextRequest) {
 
     try {
       const stripe = getStripe()
-      const surcharge = cardProcessingFee(amount)
+      const surcharge = jobCardFee(amount)
       const amountCents = Math.round((amount + surcharge) * 100)
       const applicationFeeCents = Math.round(surcharge * 100)
 

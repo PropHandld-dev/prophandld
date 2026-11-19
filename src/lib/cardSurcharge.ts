@@ -39,6 +39,17 @@ export function rentCardFee(rentAmount: number): number {
   return Math.round(((rentAmount * CARD_FEE_PERCENT + CARD_FEE_FIXED) / (1 - CARD_FEE_PERCENT)) * 100) / 100
 }
 
+// Paying a contractor by card: the landlord covers the card fee, the same
+// way they cover the bank fee (decided 2026-11-18), so the contractor gets
+// the full amount and Prophandld nets $0. NEXT_PUBLIC_JOB_CARD_FEE=off
+// removes it.
+export const JOB_CARD_FEE_ENABLED = process.env.NEXT_PUBLIC_JOB_CARD_FEE !== 'off'
+
+export function jobCardFee(amount: number): number {
+  if (!JOB_CARD_FEE_ENABLED || amount <= 0) return 0
+  return Math.round(((amount * CARD_FEE_PERCENT + CARD_FEE_FIXED) / (1 - CARD_FEE_PERCENT)) * 100) / 100
+}
+
 // Stripe's standard US bank-transfer (ACH debit) rate: 0.8%, capped at $5.
 // The landlord pays it on job payments; on rent, Prophandld pays it (see
 // isAchFeeAbsorbed).

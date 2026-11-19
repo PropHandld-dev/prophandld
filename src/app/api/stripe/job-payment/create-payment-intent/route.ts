@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { getStripe, paymentPaidAt } from '@/lib/stripe'
-import { achProcessingFee } from '@/lib/cardSurcharge'
+import { achProcessingFee, jobCardFee } from '@/lib/cardSurcharge'
 import { friendlyStripeError } from '@/lib/stripeErrorMessage'
 import { getActionableOwnerIdsAdmin, approvalNeedsOwnerSignoff, logPmAction, getPmMembership, isBlockedByOwnerReadOnly } from '@/lib/pm'
 
@@ -150,7 +150,8 @@ export async function POST(request: NextRequest) {
   // fixed before the PaymentIntent is created, so the method has to be
   // picked first.
   const amount = Number(bid.amount)
-  const surcharge = method === 'bank' ? achProcessingFee(amount) : 0
+  // Landlord covers the processing fee either way; the contractor gets `amount`.
+  const surcharge = method === 'bank' ? achProcessingFee(amount) : jobCardFee(amount)
   const chargeAmount = amount + surcharge
   const stripe = getStripe()
   const amountCents = Math.round(chargeAmount * 100)
