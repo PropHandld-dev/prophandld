@@ -75,6 +75,7 @@ export async function claudeJson<T>({
   files,
   maxTokens = 1024,
   track,
+  isRetry = false,
 }: {
   system: string
   prompt: string
@@ -85,6 +86,7 @@ export async function claudeJson<T>({
   files?: FileInput[]
   maxTokens?: number
   track: UsageTrack
+  isRetry?: boolean
 }): Promise<T> {
   requireApiKey()
   const anthropic = getClaude()
@@ -150,6 +152,8 @@ export async function claudeJson<T>({
     // bounded. Enough left to diagnose a formatting failure, not enough
     // to be a meaningful data dump.
     console.error('claudeJson: failed to parse model output as JSON', { raw: raw.slice(0, 200), err })
+    // One fresh attempt: a malformed reply is usually a one-off.
+    if (!isRetry) return claudeJson<T>({ system, prompt, file, files, maxTokens, track, isRetry: true })
     throw new Error('Could not read the AI response. Try again.')
   }
 }

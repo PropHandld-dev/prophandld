@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
-import { claudeJson } from '@/lib/claude'
+import { claudeText } from '@/lib/claude'
 import { aiAccessFor } from '@/lib/aiAccess'
 import { tooManyAiAssistRequests } from '@/lib/aiAssistRateLimit'
 
@@ -20,22 +20,35 @@ export async function POST(request: NextRequest) {
   if (await tooManyAiAssistRequests('records-insights', user.id, 15)) return NextResponse.json({ error: 'Too many requests. Try again in a few minutes.' }, { status: 429 })
   const b = (await request.json().catch(() => ({}))) as Record<string, unknown>
   const data = JSON.stringify(b).slice(0, 8000)
-  try {
-    const out = await claudeJson<{ summary: string; highlights: string[]; checks: string[] }>({
+  // Plain labelled sections, not JSON: long number-heavy answers broke JSON
+  // parsing about half the time. One retry covers a bad reply.
+  const ask = () =>
+    claudeText({
       system:
-        'You summarize a landlord\'s year of rental income and expenses in plain language. Use only the numbers given; do the arithmetic carefully. ' +
-        'Highlights: what stands out (best/worst property, biggest expense type, a month that spiked). ' +
-        'Checks: practical things to review before filing (expenses without receipts, deposits that are not income, possible missing categories like insurance or property tax if they are $0). ' +
+        "You summarize a landlord's year of rental income and expenses in plain language. Use only the numbers given; do the arithmetic carefully. " +
         'Do not give tax advice or say what is deductible; suggest confirming with a tax professional where relevant.',
-      prompt: `Data: ${data}\n\nReturn {"summary": 2-3 sentences, "highlights": up to 4 short items, "checks": up to 4 short items}`,
-      maxTokens: 1200,
+      prompt:
+        `Data: ${data}\n\nReply in exactly this format, plain text, no markdown:\n` +
+        'SUMMARY: 2-3 sentences\n' +
+        'HIGHLIGHTS:\n- up to 4 short lines on what stands out (best or weakest property, biggest expense type, a month that spiked)\n' +
+        'CHECKS:\n- up to 4 short lines on what to review before filing (expenses without receipts, deposits that are not income, categories at $0 such as insurance or property tax)',
+      maxTokens: 900,
       track: { billedUserId: access.billedUserId, callerUserId: user.id, feature: 'records-insights' },
     })
-    return NextResponse.json({
-      summary: String(out?.summary || '').slice(0, 800),
-      highlights: (out?.highlights || []).filter((x) => typeof x === 'string').slice(0, 4),
-      checks: (out?.checks || []).filter((x) => typeof x === 'string').slice(0, 4),
-    })
+  const parse = (text: string) => {
+    const section = (name: string) => {
+      const m = text.match(new RegExp(`${name}:([\\s\\S]*?)(?=\\n[A-Z]+:|$)`))
+      return m ? m[1].trim() : ''
+    }
+    const bullets = (block: string) =>
+      block.split('\n').map((l) => l.replace(/^\s*(?:[-*•]|\d+[.)])\s+/, '').trim()).filter(Boolean).slice(0, 4)
+    return { summary: section('SUMMARY').replace(/\s+/g, ' ').slice(0, 800), highlights: bullets(section('HIGHLIGHTS')), checks: bullets(section('CHECKS')) }
+  }
+  try {
+    let result = parse(await ask())
+    if (!result.summary) result = parse(await ask())
+    if (!result.summary) throw new Error('no summary in reply')
+    return NextResponse.json(result)
   } catch (err) {
     console.error('ai-assist/records-insights: failed', err)
     return NextResponse.json({ error: 'Could not read your year right now.' }, { status: 500 })
