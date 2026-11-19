@@ -333,6 +333,8 @@ export default function RenterJobDetailPage() {
       pending_review: t('statusWorkCompleteWaiting', lang),
       completed: t('statusCompleted', lang),
       disputed: t('statusDisputedFull', lang),
+      declined: lang === 'es' ? 'Tu arrendador cerró esta solicitud' : 'Your landlord closed this request',
+      archived: lang === 'es' ? 'Cerrado' : 'Closed',
     }
     return labels[status] || status
   }
