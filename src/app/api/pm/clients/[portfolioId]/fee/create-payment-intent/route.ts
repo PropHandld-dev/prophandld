@@ -68,7 +68,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const chargeAmount = amount + surcharge
   const stripe = getStripe()
   const amountCents = Math.round(chargeAmount * 100)
-  const applicationFeeCents = Math.round(surcharge * 100)
+  // Charged on the PM's own account, where Stripe takes its fee; the
+  // owner's bank-fee surcharge stays there to cover it. Prophandld keeps nothing.
+  const applicationFeeCents = 0
   const paymentMethodTypes = method === 'card' ? ['card'] : ['us_bank_account']
   const connectedAccountId = pmAdminRow.stripe_connect_account_id
 
