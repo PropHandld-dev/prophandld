@@ -65,6 +65,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result)
   } catch (err) {
     console.error('ai-assist/records-insights: failed', err)
-    return NextResponse.json({ error: 'Could not read your year right now.' }, { status: 500 })
+    // The AI service's own error type (e.g. overloaded, rate limited), so a
+    // failure can be told apart from a bad reply. No user data in it.
+    const reason = (err as any)?.error?.error?.type || (err as any)?.status || (err as any)?.name || 'unknown'
+    return NextResponse.json({ error: 'Could not read your year right now. Try again in a moment.', reason: String(reason).slice(0, 60) }, { status: 500 })
   }
 }

@@ -26,5 +26,8 @@ export const config = {
   // job auto-approve, appointment reminders, metrics snapshot, stale
   // disputes) from ever actually running. Excluding /api entirely: nothing
   // under it should ever redirect regardless of which host it's reached on.
-  matcher: ['/((?!api/).*)'],
+  // Static files (scripts, styles, fonts, images) are skipped too: they're
+  // already served from the custom domain's own HTML, and running this on
+  // every one of them costs server time on every page view for nothing.
+  matcher: ['/((?!api/|_next/static|_next/image|favicon\\.ico|.*\\.(?:png|jpg|jpeg|svg|webp|ico|gif|css|js|woff2?|txt|xml|json|webmanifest)$).*)'],
 }
