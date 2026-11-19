@@ -35,14 +35,28 @@ export async function POST(request: NextRequest) {
       maxTokens: 900,
       track: { billedUserId: access.billedUserId, callerUserId: user.id, feature: 'records-insights' },
     })
-  const parse = (text: string) => {
-    const section = (name: string) => {
-      const m = text.match(new RegExp(`${name}:([\\s\\S]*?)(?=\\n[A-Z]+:|$)`))
-      return m ? m[1].trim() : ''
+  // Tolerant of how the model formats the labels ("SUMMARY:", "Summary:",
+  // "**Summary**:", "## Summary"); if no labels at all, the whole reply is
+  // the summary rather than an error.
+  const parse = (raw: string) => {
+    const text = raw.replace(/\*\*/g, '').replace(/^#+\s*/gm, '')
+    const labels = ['SUMMARY', 'HIGHLIGHTS', 'CHECKS']
+    const find = (name: string) => {
+      const m = text.match(new RegExp(`(^|\\n)\\s*${name}\\s*:?\\s*`, 'i'))
+      if (!m || m.index === undefined) return ''
+      const start = m.index + m[0].length
+      let end = text.length
+      for (const other of labels) {
+        if (other === name) continue
+        const o = text.slice(start).match(new RegExp(`\\n\\s*${other}\\s*:?`, 'i'))
+        if (o && o.index !== undefined) end = Math.min(end, start + o.index)
+      }
+      return text.slice(start, end).trim()
     }
     const bullets = (block: string) =>
       block.split('\n').map((l) => l.replace(/^\s*(?:[-*•]|\d+[.)])\s+/, '').trim()).filter(Boolean).slice(0, 4)
-    return { summary: section('SUMMARY').replace(/\s+/g, ' ').slice(0, 800), highlights: bullets(section('HIGHLIGHTS')), checks: bullets(section('CHECKS')) }
+    const summary = find('SUMMARY') || text.split(/\n\s*\n/)[0] || text
+    return { summary: summary.replace(/\s+/g, ' ').trim().slice(0, 800), highlights: bullets(find('HIGHLIGHTS')), checks: bullets(find('CHECKS')) }
   }
   try {
     let result = parse(await ask())
