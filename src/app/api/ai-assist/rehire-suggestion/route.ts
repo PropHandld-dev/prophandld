@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { hasAiAssistAccess } from '@/lib/aiAssist'
+import { canActForOwner } from '@/lib/pm'
 
 // "You used Mike for plumbing last time, message him about this one?" —
 // a plain filtered query over data that already exists (who's been paid
@@ -34,7 +35,7 @@ export async function GET(request: NextRequest) {
     .eq('id', jobId)
     .maybeSingle()
   const landlordUserId = (job as any)?.units?.properties?.owner_user_id
-  if (!job || landlordUserId !== user.id) {
+  if (!job || !(await canActForOwner(supabaseAdmin, user.id, landlordUserId))) {
     return NextResponse.json({ error: 'Job not found' }, { status: 404 })
   }
 
@@ -46,7 +47,7 @@ export async function GET(request: NextRequest) {
     .select('contractor_user_id, paid_at, jobs!inner(category, id, units!inner(properties!inner(owner_user_id)))')
     .eq('payment_status', 'paid')
     .eq('jobs.category', job.category)
-    .eq('jobs.units.properties.owner_user_id', user.id)
+    .eq('jobs.units.properties.owner_user_id', landlordUserId)
     .neq('jobs.id', jobId)
     .order('paid_at', { ascending: false })
     .limit(1)

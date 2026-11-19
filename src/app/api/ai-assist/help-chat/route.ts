@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
-import { AI_ASSIST_ENABLED, hasAiAssistAccess } from '@/lib/aiAssist'
+import { AI_ASSIST_ENABLED } from '@/lib/aiAssist'
+import { aiAccessFor } from '@/lib/aiAccess'
 import { tooManyAiAssistRequests } from '@/lib/aiAssistRateLimit'
 import { getLandlordIdsAdmin } from '@/lib/landlordIds'
-import { claudeJson, ClaudeConfigError } from '@/lib/claude'
+import { getPmMembership, scopeOwnerIdsForMember } from '@/lib/pm'
+import { claudeText, ClaudeConfigError, CLAUDE_SMART_MODEL } from '@/lib/claude'
 import { PHILADELPHIA_COMPLIANCE_FACTS } from '@/lib/complianceFacts'
 import { rentMonthBounds } from '@/lib/rentAutomation'
 import { nextEscalationDate } from '@/lib/leaseEscalation'
 
-export const maxDuration = 30
+export const maxDuration = 45
 
 // Part of Prophandld AI (the landlord-paid add-on), same gating as every
 // other feature in it — reversed from an earlier "always free for
@@ -24,22 +26,127 @@ export const maxDuration = 30
 // real route structure, same spirit as every other AI feature in this
 // app only ever reporting what it can actually verify, never guessing.
 const APP_KNOWLEDGE = `
-Prophandld is a rental-maintenance marketplace connecting landlords, renters, and contractors.
+Prophandld is a rental-property platform for landlords, property managers (PMs), renters, and contractors: maintenance jobs, rent, leases, compliance, records, and messaging in one place.
 
-LANDLORD can: manage properties (Properties tab) and units, set up a tenant's lease (a unit's Tenancy page), track rent (Rent tab, Reports), post or approve maintenance jobs, review sealed contractor bids and pick one, message anyone via DMs or job chat, track property compliance items (licenses, inspections, insurance) and building systems (HVAC, water heater, etc.), invite contractors (Contractors tab -> Invite button, at /landlord/contractors/invite), see a calendar of due dates, invite another landlord to co-manage your whole portfolio (Profile -> Co-Owners section), add a second role-profile such as a renter account under the same email (Profile -> Linked Profiles section). PRICING: Prophandld is in a free pilot: free for 6 months for landlords and property managers, Prophandld AI included, no card needed. Pricing is coming soon and will be set with user feedback; never quote any dollar amounts for Prophandld plans. Nothing is charged unless the user chooses a plan.
+LANDLORD can: manage properties (Properties tab; Add a property) and units; set up a tenant's lease on a unit's Tenancy page, including rent escalation, occupants, pets; build a Pennsylvania lease with AI from a unit's Lease page; screen a prospective tenant from the unit page; invite a tenant by email; track rent (Rent tab, one-tap "Mark received"); bill utilities (water, electric, gas, trash, sewer, internet) to a tenant from a unit's Rent page, and the tenant is notified; post or approve maintenance jobs and review sealed contractor bids (AI can compare bids); track compliance items (rental license, inspections, lead certificate, insurance) on the Compliance page with expiry status; keep documents per property on the Documents page; keep an income and expense ledger on the Records page (scan a receipt, "Explain my year" AI summary, CSV export for taxes); track building systems and appliances per unit; see a Calendar; message anyone (Messages); invite contractors; add a co-owner (Profile -> Co-Owners); choose light or dark appearance (Profile); set how tenants may pay rent (Profile -> payment options: bank transfer, debit card, Venmo, Zelle, Cash App, check, cash, each can be switched on or off); connect a payout account on the Payouts page to receive online rent.
 
-RENTER can: report a maintenance issue (Report tab), track a reported job's status and chat about it, pay rent (Rent tab) by debit card (instant) or bank transfer (usually 1-3 business days to clear) — credit cards are never accepted for rent and get refunded if tried, upload/view lease and other documents, message their landlord or an assigned contractor, see a calendar of rent due dates and job appointments.
+LANDLORD WITH A PROPERTY MANAGER (owner side): the Property Management page shows who manages them ("Managed by"). The OWNER sets the PM's approval limit (jobs at or under it the PM can approve alone; above it the owner must approve), approves or declines the PM's management fee, can make their portfolio read-only for themselves, can approve or decline a PM's request to have rent paid to the PM, messages the PM in a dedicated owner thread with approval cards, and can end the relationship any time with "Remove manager" (it asks about pending jobs, rent routing, and handover before ending). Owners still own everything; the PM acts on their behalf.
 
-CONTRACTOR can: browse and submit sealed bids on open jobs (nobody, including the contractor, sees competing bids), chat about a job, track earnings and payments (paid directly via Stripe, card or bank transfer — unlike rent, a job payment isn't restricted to debit-only — once the landlord approves finished work and separately completes that payment, no platform cut on the bid amount), set their service area/categories, message landlords. A contractor's own payment/checkout questions belong on that specific job's detail page, not the landlord's Rent tab, which is rent only.
+PROPERTY MANAGER can (Property Management page, /landlord/pm): see every client in one dashboard ("Needs you", "All clients" switcher, rent collected, maintenance paid, open jobs, compliance expiring across every client); invite a client by entering the email of an existing landlord account (the owner accepts); add and manage properties, units, tenants, jobs, and rent for clients exactly like an owner would; approve jobs up to each client's approval limit (bulk-approve from Pending approvals); set a management fee per client (flat or percent of rent, monthly etc.) which the owner must approve before anything is charged; request that a client's rent be paid to the PM's own payout account (needs the PM's broker license and trust-account attestation plus the owner's approval); send monthly owner statements (Statement per client); message owners in a thread with approval cards and AI-drafted updates; build a contractor network shared across clients; add teammates (admin or staff) and limit a staff member to specific clients or hide financials; choose real-time or daily digest notifications; publish a public profile ("Get found on Prophandld": logo, colors, style, service area, specialties, license, insurance, team) so owners can find and request them; see an audit log of actions; export the portfolio. Payouts page: set up payouts to collect management fees.
 
-JOB LIFECYCLE (all three roles watch the same job move through this): reported -> approved by landlord -> open for bidding -> landlord selects a bid -> schedule confirmed -> in progress -> landlord reviews finished work (approves it, or it auto-approves after 3 days if they don't act) -> that approval makes payment due, which the landlord then pays by separately completing a real Stripe payment step -> paid once that completes. A job can also be disputed if something goes wrong.
+RENTER can: report a maintenance issue (Report tab, AI helps describe it and flags emergencies), track a job and chat about it, pay rent (Rent tab) by bank transfer (free, 1-3 business days) or debit card (instant, card fee paid by the renter) when the landlord accepts them, or see the landlord's Venmo/Zelle/Cash App/check/cash details; credit cards are never accepted for rent and get refunded if tried; see utility bills; view lease and documents; ask questions about their lease (lease Q&A); message their landlord or property manager; see a calendar. If a PM manages the property, the renter usually deals with the PM.
 
-PROPHANDLD AI (also called AI Assist internally, but always refer to it as "Prophandld AI" when talking to a user): included free for every landlord and PM during the pilot; it unlocks AI features across the app for that landlord's whole portfolio, including this chat itself. Benefits the landlord and their renters, automatically, at no extra cost to the renter — NOT contractors, who don't get Prophandld AI's features regardless of whether the landlord has it on. Features: this chat, reading uploaded documents to auto-fill lease/compliance/appliance forms, a lease Q&A chat for renters, a troubleshooting assistant for renters (and landlords doing a job themselves) that can review an attached photo and suggest safe things to try before a contractor is needed, AI-verified compliance renewals, a portfolio digest of what needs attention, drafting routine messages, and a few smaller touches elsewhere. 
+CONTRACTOR can: browse and submit sealed bids on open jobs (nobody sees competing bids; AI can polish a bid), chat about a job, follow a step-by-step job guide, track earnings and payments (paid via Stripe once the landlord approves finished work and pays; no platform cut on the bid), set service area and categories, upload license and insurance for verification, message landlords and PMs.
 
-Legal pages exist at /terms (plus role-specific /terms/landlord, /terms/renter, /terms/contractor) and /privacy — point people there for anything legal/contractual rather than answering a legal question yourself.
+JOB LIFECYCLE: reported -> approved by landlord or PM (or the owner, above the PM's limit) -> open for bidding -> a bid is selected -> schedule confirmed -> in progress -> finished work reviewed (auto-approves after 3 days) -> payment due -> paid. A job can be disputed.
+
+PRICING: Prophandld is in a free pilot: free for 6 months for landlords and property managers, Prophandld AI included, no card needed. Pricing is coming soon and will be set with user feedback; never quote dollar amounts for Prophandld plans. Prophandld takes no fee on rent; bank-transfer rent costs the landlord nothing (Prophandld covers the processing fee); the only fees are payment processors' own card fees.
+
+PROPHANDLD AI: on for every landlord and PM during the pilot and reaches their renters too. Features: this assistant, document reading to fill lease/compliance/appliance forms, receipt and utility-bill scanning, lease Q&A for renters, repair troubleshooting with photos, issue intake with emergency detection, bid comparison, compliance gap checks and renewal guides, portfolio digest, Explain my year, AI lease builder, message drafting and translation (English/Spanish), smart replies.
+
+Legal pages: /terms (plus /terms/landlord, /terms/renter, /terms/contractor, /terms/property-manager) and /privacy.
+`.trim()
+
+// Reference facts for the questions people actually ask, checked against
+// the statutes rather than left to the model's memory. General information,
+// not legal advice.
+const RENTAL_LAW_FACTS = `
+Pennsylvania (Landlord and Tenant Act of 1951): security deposit max 2 months' rent in the first year of a lease, max 1 month's rent from the start of the second year; after 5 years of tenancy the deposit can't be raised even if rent goes up. Deposits over $100 held more than 2 years must go in an escrow account and the tenant gets interest (minus a 1% fee) from the third year. On move-out the landlord has 30 days to return the deposit with an itemized list of any deductions (the tenant must give a forwarding address in writing); missing that deadline forfeits the right to withhold and can mean double damages. Nonpayment notice to quit: 10 days; for other breaches, 15 days (lease of 1 year or less) or 30 days (longer), unless the lease waives notice. PA has no statewide cap on rent increases or late fees, but late fees must be in the lease and reasonable.
+Philadelphia: rental license and a Certificate of Rental Suitability are required to collect rent and to evict; tenants get the "Partners for Good Housing" handbook and the City's lead-safe certification where required (pre-1978 buildings). Heat: from October 1 to April 30 landlords who supply heat must keep units at least 68°F from 6:30am to 10:30pm and 64°F overnight; no heat in winter is an emergency, so act the same day: get a heating contractor out immediately, give space heaters or temporary housing if it can't be fixed fast, and keep the tenant updated in writing. Philadelphia's Eviction Diversion Program must be tried before filing an eviction for nonpayment. Good Cause protections apply to leases of 1 year or less. Fair housing: never screen or treat tenants differently by race, color, religion, national origin, sex, disability, familial status, or Philadelphia's added classes (including source of income such as housing vouchers, sexual orientation, gender identity, age, marital status, domestic-violence-survivor status).
 `.trim()
 
 type ChatTurn = { role: 'user' | 'assistant'; content: string }
+
+// One portfolio's facts (a landlord's own, or one PM client's), scoped by
+// the owner ids passed in.
+async function portfolioFacts(admin: ReturnType<typeof getSupabaseAdmin>, landlordIds: string[], ITEM_CAP: number, todayKey: string, in30: string): Promise<Record<string, unknown>> {
+  const { data: properties } = await admin.from('properties').select('id, address, city, state').in('owner_user_id', landlordIds).eq('archived', false)
+  const propertyIds = (properties || []).map((p) => p.id)
+  if (propertyIds.length === 0) return { propertyCount: 0, unitCount: 0 }
+  const addressById = new Map((properties || []).map((p) => [p.id, `${p.address}${p.city ? `, ${p.city}` : ''}${p.state ? `, ${p.state}` : ''}`]))
+
+  const [{ count: unitCount }, { data: units }, { data: complianceItems }] = await Promise.all([
+    admin.from('units').select('id', { count: 'exact', head: true }).in('property_id', propertyIds),
+    admin.from('units').select('id, unit_number, property_id').in('property_id', propertyIds),
+    admin
+      .from('compliance_items')
+      .select('item_type, expiry_date, property_id')
+      .in('property_id', propertyIds)
+      .order('expiry_date', { ascending: true, nullsFirst: false })
+      .limit(ITEM_CAP),
+  ])
+  const unitIds = (units || []).map((u) => u.id)
+  const unitLabelById = new Map((units || []).map((u) => [u.id, `${addressById.get(u.property_id) || 'unknown property'}${u.unit_number ? `, Unit ${u.unit_number}` : ''}`]))
+
+  const [{ data: openJobs }, { data: upcomingRenewals }, { data: rentRows }] = await Promise.all([
+    unitIds.length > 0
+      ? admin.from('jobs').select('category, status, unit_id').in('unit_id', unitIds).in('status', ['pending_approval', 'approved', 'bidding', 'bid_selected', 'scheduled', 'in_progress', 'pending_review', 'disputed']).limit(ITEM_CAP)
+      : Promise.resolve({ data: [] as any[] }),
+    unitIds.length > 0
+      ? admin.from('tenancies').select('lease_end, rent_amount, unit_id').in('unit_id', unitIds).eq('ended', false).not('lease_end', 'is', null).gte('lease_end', todayKey).lte('lease_end', in30).order('lease_end', { ascending: true }).limit(ITEM_CAP)
+      : Promise.resolve({ data: [] as any[] }),
+    unitIds.length > 0
+      ? admin.from('tenancies').select('id, unit_id, rent_amount, rent_due_day, grace_period_days').in('unit_id', unitIds).eq('ended', false).limit(ITEM_CAP)
+      : Promise.resolve({ data: [] as any[] }),
+  ])
+
+  const monthlyRentRoll = (rentRows || []).reduce((sum, t) => sum + (Number(t.rent_amount) || 0), 0)
+
+  // Rent amounts alone don't say whether this MONTH's rent actually came
+  // in — "who's behind on rent" used to be unanswerable. Same
+  // paid/expected comparison and grace-period math cron/rent-reminder
+  // already uses to decide who gets a late notice, just read-only here.
+  const tenancyIds = (rentRows || []).map((t: any) => t.id)
+  const { month: thisMonth, following: nextMonth, firstDate } = rentMonthBounds(0)
+  const { data: currentRentPayments } = tenancyIds.length > 0
+    ? await admin.from('rent_payments').select('tenancy_id, expected_amount, actual_amount').in('tenancy_id', tenancyIds).gte('month', thisMonth).lt('month', nextMonth)
+    : { data: [] as any[] }
+  const paymentByTenancy = new Map((currentRentPayments || []).map((p: any) => [p.tenancy_id, p]))
+  const rentStatusByUnit = (rentRows || [])
+    .map((t: any) => {
+      const payment = paymentByTenancy.get(t.id)
+      if (!payment) return null
+      const expected = Number(payment.expected_amount || 0)
+      const paid = Number(payment.actual_amount || 0)
+      if (paid >= expected) return null
+      const dueDate = new Date(firstDate.getFullYear(), firstDate.getMonth(), t.rent_due_day ?? 1)
+      const daysSinceDue = Math.floor((Date.now() - dueDate.getTime()) / (24 * 60 * 60 * 1000))
+      const isLate = daysSinceDue >= (t.grace_period_days ?? 5)
+      return { unit: unitLabelById.get(t.unit_id) || null, amountDue: Math.round((expected - paid) * 100) / 100, daysSinceDue, isLate }
+    })
+    .filter((x): x is { unit: string | null; amountDue: number; daysSinceDue: number; isLate: boolean } => x !== null)
+
+  return {
+    propertyCount: propertyIds.length,
+    properties: (properties || []).map((p) => ({ address: addressById.get(p.id) })),
+    unitCount: unitCount || 0,
+    monthlyRentRoll,
+    // The per-unit breakdown monthlyRentRoll alone can't answer — a
+    // landlord asking "what's the rent for each unit" used to only get
+    // the portfolio-wide total back, with no way to name individual
+    // units, because this is the only place rent_amount was fetched by
+    // unit.
+    rentByUnit: (rentRows || []).map((t: any) => ({ unit: unitLabelById.get(t.unit_id) || null, rentAmount: t.rent_amount })),
+    // Only units NOT fully paid for the current calendar month — an
+    // empty array means everyone's current, state that plainly rather
+    // than listing every unit as "paid."
+    rentStatusThisMonth: rentStatusByUnit,
+    // Not filtered to "expiring soon" — a landlord asking about a
+    // specific license should get an answer even if it's 90 days out,
+    // not just when it's already urgent. Sorted soonest-first, capped.
+    // isOverdue computed here rather than left for the model to infer
+    // from a bare date — an external audit caught it describing an
+    // already-past expiry as merely "due" instead of "overdue."
+    complianceItems: (complianceItems || []).map((c) => ({
+      itemType: c.item_type,
+      expiryDate: c.expiry_date,
+      property: addressById.get(c.property_id) || null,
+      isOverdue: !!c.expiry_date && c.expiry_date < todayKey,
+    })),
+    openJobs: (openJobs || []).map((j) => ({ category: j.category, status: j.status, unit: unitLabelById.get(j.unit_id) || null })),
+    leaseRenewalsNext30Days: (upcomingRenewals || []).map((t) => ({ unit: unitLabelById.get(t.unit_id) || null, leaseEnd: t.lease_end, rentAmount: t.rent_amount })),
+  }
+}
 
 // The signed-in user's OWN real records — never another user's. Itemized,
 // not just counts (expanded 2026-11-01: a landlord asked "when does my
@@ -63,93 +170,80 @@ async function getAccountFacts(admin: ReturnType<typeof getSupabaseAdmin>, authC
   const ITEM_CAP = 25
 
   if (role === 'landlord') {
-    const landlordIds = await getLandlordIdsAdmin(admin, userId)
-    const { data: properties } = await admin.from('properties').select('id, address, city, state').in('owner_user_id', landlordIds).eq('archived', false)
-    const propertyIds = (properties || []).map((p) => p.id)
-    if (propertyIds.length === 0) return { propertyCount: 0, unitCount: 0 }
-    const addressById = new Map((properties || []).map((p) => [p.id, `${p.address}${p.city ? `, ${p.city}` : ''}${p.state ? `, ${p.state}` : ''}`]))
-
-    const [{ count: unitCount }, { data: units }, { data: complianceItems }] = await Promise.all([
-      admin.from('units').select('id', { count: 'exact', head: true }).in('property_id', propertyIds),
-      admin.from('units').select('id, unit_number, property_id').in('property_id', propertyIds),
-      admin
-        .from('compliance_items')
-        .select('item_type, expiry_date, property_id')
-        .in('property_id', propertyIds)
-        .order('expiry_date', { ascending: true, nullsFirst: false })
-        .limit(ITEM_CAP),
-    ])
-    const unitIds = (units || []).map((u) => u.id)
-    const unitLabelById = new Map((units || []).map((u) => [u.id, `${addressById.get(u.property_id) || 'unknown property'}${u.unit_number ? `, Unit ${u.unit_number}` : ''}`]))
-
-    const [{ data: openJobs }, { data: upcomingRenewals }, { data: rentRows }] = await Promise.all([
-      unitIds.length > 0
-        ? admin.from('jobs').select('category, status, unit_id').in('unit_id', unitIds).in('status', ['pending_approval', 'approved', 'bidding', 'bid_selected', 'scheduled', 'in_progress', 'pending_review', 'disputed']).limit(ITEM_CAP)
-        : Promise.resolve({ data: [] as any[] }),
-      unitIds.length > 0
-        ? admin.from('tenancies').select('lease_end, rent_amount, unit_id').in('unit_id', unitIds).eq('ended', false).not('lease_end', 'is', null).gte('lease_end', todayKey).lte('lease_end', in30).order('lease_end', { ascending: true }).limit(ITEM_CAP)
-        : Promise.resolve({ data: [] as any[] }),
-      unitIds.length > 0
-        ? admin.from('tenancies').select('id, unit_id, rent_amount, rent_due_day, grace_period_days').in('unit_id', unitIds).eq('ended', false).limit(ITEM_CAP)
-        : Promise.resolve({ data: [] as any[] }),
-    ])
-
-    const monthlyRentRoll = (rentRows || []).reduce((sum, t) => sum + (Number(t.rent_amount) || 0), 0)
-
-    // Rent amounts alone don't say whether this MONTH's rent actually came
-    // in — "who's behind on rent" used to be unanswerable. Same
-    // paid/expected comparison and grace-period math cron/rent-reminder
-    // already uses to decide who gets a late notice, just read-only here.
-    const tenancyIds = (rentRows || []).map((t: any) => t.id)
-    const { month: thisMonth, following: nextMonth, firstDate } = rentMonthBounds(0)
-    const { data: currentRentPayments } = tenancyIds.length > 0
-      ? await admin.from('rent_payments').select('tenancy_id, expected_amount, actual_amount').in('tenancy_id', tenancyIds).gte('month', thisMonth).lt('month', nextMonth)
-      : { data: [] as any[] }
-    const paymentByTenancy = new Map((currentRentPayments || []).map((p: any) => [p.tenancy_id, p]))
-    const rentStatusByUnit = (rentRows || [])
-      .map((t: any) => {
-        const payment = paymentByTenancy.get(t.id)
-        if (!payment) return null
-        const expected = Number(payment.expected_amount || 0)
-        const paid = Number(payment.actual_amount || 0)
-        if (paid >= expected) return null
-        const dueDate = new Date(firstDate.getFullYear(), firstDate.getMonth(), t.rent_due_day ?? 1)
-        const daysSinceDue = Math.floor((Date.now() - dueDate.getTime()) / (24 * 60 * 60 * 1000))
-        const isLate = daysSinceDue >= (t.grace_period_days ?? 5)
-        return { unit: unitLabelById.get(t.unit_id) || null, amountDue: Math.round((expected - paid) * 100) / 100, daysSinceDue, isLate }
-      })
-      .filter((x): x is { unit: string | null; amountDue: number; daysSinceDue: number; isLate: boolean } => x !== null)
-
-    return {
-      propertyCount: propertyIds.length,
-      properties: (properties || []).map((p) => ({ address: addressById.get(p.id) })),
-      unitCount: unitCount || 0,
-      monthlyRentRoll,
-      // The per-unit breakdown monthlyRentRoll alone can't answer — a
-      // landlord asking "what's the rent for each unit" used to only get
-      // the portfolio-wide total back, with no way to name individual
-      // units, because this is the only place rent_amount was fetched by
-      // unit.
-      rentByUnit: (rentRows || []).map((t: any) => ({ unit: unitLabelById.get(t.unit_id) || null, rentAmount: t.rent_amount })),
-      // Only units NOT fully paid for the current calendar month — an
-      // empty array means everyone's current, state that plainly rather
-      // than listing every unit as "paid."
-      rentStatusThisMonth: rentStatusByUnit,
-      // Not filtered to "expiring soon" — a landlord asking about a
-      // specific license should get an answer even if it's 90 days out,
-      // not just when it's already urgent. Sorted soonest-first, capped.
-      // isOverdue computed here rather than left for the model to infer
-      // from a bare date — an external audit caught it describing an
-      // already-past expiry as merely "due" instead of "overdue."
-      complianceItems: (complianceItems || []).map((c) => ({
-        itemType: c.item_type,
-        expiryDate: c.expiry_date,
-        property: addressById.get(c.property_id) || null,
-        isOverdue: !!c.expiry_date && c.expiry_date < todayKey,
-      })),
-      openJobs: (openJobs || []).map((j) => ({ category: j.category, status: j.status, unit: unitLabelById.get(j.unit_id) || null })),
-      leaseRenewalsNext30Days: (upcomingRenewals || []).map((t) => ({ unit: unitLabelById.get(t.unit_id) || null, leaseEnd: t.lease_end, rentAmount: t.rent_amount })),
+    const own = await portfolioFacts(admin, await getLandlordIdsAdmin(admin, userId), ITEM_CAP, todayKey, in30)
+    const membership = await getPmMembership(admin, userId)
+    if (membership) {
+      // A PM: every client they can see, each with the same facts an owner
+      // gets, plus the terms of that client relationship.
+      const { data: portfolios } = await admin
+        .from('pm_client_portfolios')
+        .select('owner_user_id, invited_email, approval_threshold, management_fee, management_fee_frequency, management_fee_type, management_fee_percent, fee_owner_approved_at, rent_recipient, rent_to_pm_requested_at, rent_to_pm_approved_at, owner_read_only, status, users!pm_client_portfolios_owner_user_id_fkey(full_name, email)')
+        .eq('organization_id', membership.organizationId)
+        .in('status', ['accepted', 'pending'])
+      const accepted = (portfolios || []).filter((p: any) => p.status === 'accepted')
+      const visible = new Set(await scopeOwnerIdsForMember(admin, membership, accepted.map((p: any) => p.owner_user_id)))
+      const clients = await Promise.all(
+        accepted.filter((p: any) => visible.has(p.owner_user_id)).slice(0, 15).map(async (p: any) => {
+          const facts = await portfolioFacts(admin, [p.owner_user_id], ITEM_CAP, todayKey, in30)
+          if (!membership.canViewFinancials) {
+            delete facts.monthlyRentRoll
+            delete facts.rentByUnit
+            delete facts.rentStatusThisMonth
+          }
+          const fee = p.management_fee_type === 'percent_of_rent'
+            ? `${Number(p.management_fee_percent)}% of rent`
+            : Number(p.management_fee) > 0 ? `$${Number(p.management_fee)} ${p.management_fee_frequency || ''}`.trim() : 'none set'
+          return {
+            ownerName: p.users?.full_name || p.users?.email || p.invited_email || 'Client',
+            approvalLimit: Number(p.approval_threshold || 0),
+            managementFee: fee,
+            feeApprovedByOwner: !!p.fee_owner_approved_at,
+            rentPaidTo: p.rent_recipient === 'pm' ? 'your company' : 'the owner',
+            rentToPmRequestPending: !!p.rent_to_pm_requested_at && !p.rent_to_pm_approved_at && p.rent_recipient !== 'pm',
+            ...facts,
+          }
+        })
+      )
+      const clientOwnerIds = accepted.filter((p: any) => visible.has(p.owner_user_id)).map((p: any) => p.owner_user_id)
+      let jobsAwaitingApproval = 0
+      if (clientOwnerIds.length) {
+        const { count } = await admin
+          .from('jobs')
+          .select('id, units!inner(properties!inner(owner_user_id))', { count: 'exact', head: true })
+          .in('units.properties.owner_user_id', clientOwnerIds)
+          .eq('status', 'pending_approval')
+        jobsAwaitingApproval = count || 0
+      }
+      return {
+        isPropertyManager: true,
+        company: membership.organizationName,
+        yourRoleInCompany: membership.memberRole,
+        canViewFinancials: membership.canViewFinancials,
+        clientCount: clients.length,
+        invitesAwaitingOwnerAcceptance: (portfolios || []).filter((p: any) => p.status === 'pending').length,
+        jobsAwaitingApproval,
+        clients,
+        yourOwnProperties: own,
+      }
     }
+    // An owner who has hired a PM.
+    const { data: managed } = await admin
+      .from('pm_client_portfolios')
+      .select('approval_threshold, rent_recipient, management_fee, management_fee_type, management_fee_percent, management_fee_frequency, fee_owner_approved_at, pm_organizations(name)')
+      .eq('owner_user_id', userId)
+      .eq('status', 'accepted')
+      .maybeSingle()
+    if (managed) {
+      const m: any = managed
+      own.managedBy = {
+        company: m.pm_organizations?.name || 'your property manager',
+        approvalLimit: Number(m.approval_threshold || 0),
+        rentPaidTo: m.rent_recipient === 'pm' ? 'the property manager' : 'you',
+        managementFee: m.management_fee_type === 'percent_of_rent' ? `${Number(m.management_fee_percent)}% of rent` : Number(m.management_fee) > 0 ? `$${Number(m.management_fee)} ${m.management_fee_frequency || ''}`.trim() : 'none set',
+        feeApprovedByYou: !!m.fee_owner_approved_at,
+      }
+    }
+    return own
   }
 
   if (role === 'renter') {
@@ -164,7 +258,7 @@ async function getAccountFacts(admin: ReturnType<typeof getSupabaseAdmin>, authC
     const { data: tenancy } = tenancyId
       ? await admin
           .from('tenancies')
-          .select('id, rent_amount, rent_due_day, grace_period_days, lease_end, escalation_percent, escalation_frequency_months, lease_start, units(unit_number, properties(address))')
+          .select('id, unit_id, rent_amount, rent_due_day, grace_period_days, lease_end, escalation_percent, escalation_frequency_months, lease_start, units(unit_number, properties(address))')
           .eq('id', tenancyId)
           .maybeSingle()
       : { data: null }
@@ -205,8 +299,15 @@ async function getAccountFacts(admin: ReturnType<typeof getSupabaseAdmin>, authC
     // account facts in the first place.
     const nextIncrease = nextEscalationDate((tenancy as any).lease_start, tenancy.escalation_frequency_months)
 
+    const { data: ownerRow } = await admin.from('units').select('properties(owner_user_id)').eq('id', (tenancy as any).unit_id).maybeSingle()
+    const ownerId = (ownerRow as any)?.properties?.owner_user_id
+    const { data: pmRow } = ownerId
+      ? await admin.from('pm_client_portfolios').select('pm_organizations(name)').eq('owner_user_id', ownerId).eq('status', 'accepted').maybeSingle()
+      : { data: null }
+
     return {
       hasActiveLease: true,
+      propertyManagedBy: (pmRow as any)?.pm_organizations?.name || null,
       propertyAddress: unit?.properties?.address || null,
       unitNumber: unit?.unit_number || null,
       monthlyRent: tenancy.rent_amount,
@@ -248,36 +349,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
   const role = user.app_metadata?.role
-  if (role !== 'landlord' && role !== 'renter') {
+  if (role !== 'landlord' && role !== 'renter' && role !== 'contractor') {
     return NextResponse.json({ error: 'Prophandld AI is not available for this account' }, { status: 403 })
   }
 
   const supabaseAdmin = getSupabaseAdmin()
 
-  // Landlord needs their own active Prophandld AI; a renter rides on
-  // whatever their landlord has, same resolution lease-qa/renter-status
-  // already use (tenancy -> unit -> property -> owner_user_id). Also
-  // doubles as who this message's real AI spend bills to.
-  let billedUserId: string
-  if (role === 'landlord') {
-    if (!(await hasAiAssistAccess(supabaseAdmin, user.id))) {
-      return NextResponse.json({ error: 'Turn on Prophandld AI from your Profile to use this.' }, { status: 403 })
-    }
-    billedUserId = user.id
-  } else {
-    const { data: tenancyId } = await authClient.rpc('get_my_active_tenancy_id')
-    const { data: tenancy } = tenancyId
-      ? await supabaseAdmin.from('tenancies').select('unit_id').eq('id', tenancyId).maybeSingle()
-      : { data: null }
-    const { data: unit } = tenancy
-      ? await supabaseAdmin.from('units').select('properties(owner_user_id)').eq('id', tenancy.unit_id).maybeSingle()
-      : { data: null }
-    const landlordUserId = (unit as any)?.properties?.owner_user_id
-    if (!landlordUserId || !(await hasAiAssistAccess(supabaseAdmin, landlordUserId))) {
-      return NextResponse.json({ error: 'Your landlord hasn’t turned on Prophandld AI yet.' }, { status: 403 })
-    }
-    billedUserId = landlordUserId
+  // Same rule every other AI feature uses: landlords and PMs on their own
+  // access, renters on their landlord's, contractors during the pilot.
+  const access = await aiAccessFor(supabaseAdmin, user)
+  if (!access.allowed) {
+    return NextResponse.json({ error: role === 'renter' ? 'Your landlord hasn’t turned on Prophandld AI yet.' : 'Turn on Prophandld AI from your Profile to use this.' }, { status: 403 })
   }
+  const billedUserId = access.billedUserId
 
   // Generous — a real back-and-forth conversation easily runs 10+ turns —
   // but still a real ceiling against someone scripting this into a free
@@ -297,6 +381,7 @@ export async function POST(request: NextRequest) {
     getAccountFacts(supabaseAdmin, authClient, user.id, role),
   ])
   const lang = profile?.preferred_language === 'es' ? 'Spanish' : 'English'
+  const isPm = (accountFacts as any).isPropertyManager === true
 
   const conversation = [...trimmedHistory, { role: 'user' as const, content: message.trim() }]
     .map((t) => `${t.role === 'user' ? 'User' : 'Assistant'}: ${t.content}`)
@@ -312,6 +397,11 @@ export async function POST(request: NextRequest) {
   const NAV_PATHS: Record<string, { path: string; label: string }[]> = {
     landlord: [
       { path: '/landlord', label: 'Dashboard' },
+      { path: '/landlord/pm', label: 'Property Management' },
+      { path: '/landlord/compliance', label: 'Compliance' },
+      { path: '/landlord/records', label: 'Records' },
+      { path: '/landlord/documents', label: 'Documents' },
+      { path: '/landlord/payouts', label: 'Payouts' },
       { path: '/landlord/properties', label: 'Properties' },
       { path: '/landlord/properties/new', label: 'Add a property' },
       { path: '/landlord/jobs', label: 'Jobs' },
@@ -335,6 +425,7 @@ export async function POST(request: NextRequest) {
     contractor: [
       { path: '/contractor', label: 'Dashboard' },
       { path: '/contractor/settings', label: 'Settings' },
+      { path: '/contractor/jobs', label: 'Jobs' },
       { path: '/contractor/earnings', label: 'Earnings' },
       { path: '/contractor/calendar', label: 'Calendar' },
       { path: '/contractor/messages', label: 'Messages' },
@@ -343,79 +434,62 @@ export async function POST(request: NextRequest) {
   }
   const navPathList = (NAV_PATHS[role] || []).map((n) => `${n.path} — "${n.label}"`).join('\n')
 
+  const who = isPm ? 'property manager' : role
+
+  const system =
+    `You are Prophandld's AI assistant, talking to a signed-in ${who}. You are sharp, warm, and genuinely ` +
+    'useful, like an experienced property-management colleague who also knows this app inside out.\n\n' +
+    'WHAT YOU ANSWER: anything. (1) How Prophandld works, from APP KNOWLEDGE. (2) This person\'s own account, ' +
+    'from ACCOUNT FACTS, stated directly by name, address, amount and date. (3) Any real-world question about ' +
+    'renting, property management, maintenance and repairs, landlord-tenant law, fair housing, leases, tenant ' +
+    'screening, bookkeeping and taxes for rentals, insurance, negotiating with contractors, and writing ' +
+    'messages, notices or listings: give a real, specific, confident answer from RENTAL LAW FACTS and your own ' +
+    'knowledge. For law or tax, add one short line that it is general information and to confirm with a local ' +
+    'attorney or accountant for their exact situation; never refuse or water the answer down. (4) Arithmetic ' +
+    'and estimates: just do it, labeled as calculated from what they told you. (5) Anything else (general ' +
+    'knowledge, a quick fact): answer it briefly and helpfully, then you can mention you are here for anything ' +
+    'property-related too.\n\n' +
+    'ACCURACY: never invent a Prophandld feature, page or policy that is not in APP KNOWLEDGE, and never invent ' +
+    'an account fact (address, date, amount, name) that is not in ACCOUNT FACTS. If the account data does not ' +
+    'show something, say what you can see and where in the app to look. Compliance items with isOverdue true ' +
+    'are expired/overdue, never merely "due". rentStatusThisMonth lists only units NOT fully paid (empty means ' +
+    'everyone is current). For a Philadelphia compliance renewal, open by noting it is verified for ' +
+    `Philadelphia: ${PHILADELPHIA_COMPLIANCE_FACTS}\n\n` +
+    (isPm
+      ? 'THIS USER IS A PROPERTY MANAGER. ACCOUNT FACTS.clients is their client list; each client has its own ' +
+        'properties, units, open jobs, rent status, compliance, approval limit, management fee and where rent is ' +
+        'paid. Answer portfolio questions across ALL clients, naming the client (owner) for each item. ' +
+        'yourOwnProperties is only what they own personally. If canViewFinancials is false, rent figures are ' +
+        'hidden for them by their company; say so if asked.\n\n'
+      : '') +
+    'URGENT SAFETY: for gas smell, fire, flooding, no heat in freezing weather, carbon monoxide, or electrical ' +
+    'danger, lead with the immediate safety steps and the timeframe, then the rest.\n\n' +
+    'PRIVACY: account facts are only this person\'s own. Never reveal or guess at any other user\'s data.\n\n' +
+    'STYLE: plain, friendly, direct. Short for simple questions (1-3 sentences); for real how-to or urgent ' +
+    'situations use a few short numbered steps. No markdown headings, no bold, no "As an AI". Write the reply ' +
+    `in the same language the user wrote their latest message in (default ${lang}).\n\n` +
+    'OUTPUT FORMAT: write the reply text only. Then, on its own final line, optionally add tags:\n' +
+    '[[LINK:/exact/path]] when the answer is "go to page X", using only a path from NAVIGATION PATHS, at most one.\n' +
+    '[[ESCALATE]] only when a real person is needed (a bug, a billing dispute, an account problem you cannot see).\n\n' +
+    `APP KNOWLEDGE:\n${APP_KNOWLEDGE}\n\nRENTAL LAW FACTS (general information, not legal advice):\n${RENTAL_LAW_FACTS}\n\n` +
+    `NAVIGATION PATHS (role: ${role}):\n${navPathList}\n\n` +
+    `ACCOUNT FACTS (this signed-in user's own data, JSON; today is ${new Date().toISOString().slice(0, 10)}):\n${JSON.stringify(accountFacts)}`
+
   try {
-    const result = await claudeJson<{ reply: string; suggestEscalate: boolean; navLink: { path: string; label: string } | null }>({
-      system:
-        `You are Prophandld's in-app help assistant, talking to a signed-in ${role}. Answer using the app ` +
-        'knowledge below, and you may also answer questions about THIS person\'s own account using the account ' +
-        'facts below (e.g. "how many properties do I have", "when does my rental license expire", "when does my ' +
-        'lease end") — those facts are real, itemized, already scoped to this exact signed-in user, safe to ' +
-        'state directly and plainly, by name and date, not just "yes something\'s expiring." Never invent a ' +
-        'feature, page, or policy not in the app knowledge, and never invent an account fact (an address, a ' +
-        'date, an amount) not in the account facts below — if something isn\'t covered by either, say you ' +
-        'can\'t see that and point to the right tab instead of guessing. A compliance item\'s type, property, ' +
-        'and expiry date from account facts are real records, state them directly — and use its isOverdue flag ' +
-        'precisely: a past expiry date is "overdue"/"expired," never softened to merely "due" or "coming up." ' +
-        'For a landlord, ' +
-        'rentStatusThisMonth lists only units NOT yet fully paid this month (empty array means everyone is ' +
-        'current) — if asked "who\'s behind on rent" or similar, name the unit(s) and how much/how many days, or ' +
-        'say plainly that everyone is caught up if the list is empty. For a renter, rentStatusThisMonth is either ' +
-        '"paid", null (no payment on file yet), or an object with amountDue/daysSinceDue/isLate — answer "have I ' +
-        'paid rent" directly from it. If someone gives you their OWN numbers in the question (e.g. "I paid ' +
-        '$15.74 including a $0.74 fee, what was the rent portion?"), do the arithmetic plainly — $15.74 minus ' +
-        '$0.74 is $15 — but be explicit that you\'re only calculating from what they told you, not confirming it ' +
-        'against a real record, and never let simple arithmetic on a small stated amount imply anything about ' +
-        'whether their full rent for the month is satisfied; only account facts above establish that. Refusing ' +
-        'to do basic math you\'re plainly capable of is not more careful, it\'s just unhelpful — the honesty is ' +
-        'in labeling the number as calculated-from-what-they-said, not in declining to calculate at all. ' +
-        'For a renter asking about a rent increase/escalation, rentEscalationPercent ' +
-        'and rentEscalationFrequencyMonths (e.g. 7 and 12 means 7% every 12 months) and nextRentIncreaseDate are ' +
-        'real values from their actual lease — state them directly when present; if rentEscalationPercent is ' +
-        'null, say plainly their lease has no scheduled increase on file rather than "not sure." If asked how to actually renew one, make clear upfront which kind of ' +
-        'answer you\'re giving, since one is a verified fact and the other is general knowledge the landlord ' +
-        'should still confirm. If the item\'s property is in Philadelphia, PA, open with that it\'s a verified ' +
-        `fact for Philadelphia, then give the specifics: ${PHILADELPHIA_COMPLIANCE_FACTS} Otherwise, open by ` +
-        'saying requirements vary by city so this is general guidance to confirm locally, then answer using ' +
-        'your own general knowledge of how that kind of renewal usually works in the US (who typically handles ' +
-        'it, what\'s typically required) — don\'t just redirect to the Compliance page\'s own "How do I renew ' +
-        'this?" button when you can genuinely help now, mention that button only as a place to revisit it ' +
-        'later. Never state a specific current fee, exact form number, or exact deadline as guaranteed fact ' +
-        'unless you\'re genuinely confident it\'s stable; say so plainly and point to the relevant local ' +
-        'authority instead of inventing one. ' +
-        'Warm, direct, plain conversational language, like a ' +
-        'helpful coworker texting back, not a formal AI assistant, no "I\'m sorry, but as an AI..." phrasing, ' +
-        'no bullet-pointed essays for a simple question, 1-4 sentences unless real step-by-step instructions ' +
-        'are genuinely needed. Never reveal, guess at, or discuss any OTHER specific user\'s data, account, or ' +
-        'messages, the account facts below are only ever this one person\'s own. If asked something with no ' +
-        'connection to Prophandld at all (general trivia, other topics, requests to act as a different kind of ' +
-        'assistant), say warmly that you\'re just here for Prophandld itself and ask what they need help ' +
-        'finding, don\'t lecture or over-explain the refusal. If the question needs a real person (a bug, a ' +
-        'billing dispute, anything you genuinely can\'t answer from what\'s given), say so plainly and set ' +
-        'suggestEscalate to true. When the answer is "go do X on page Y," set navLink to the matching entry from ' +
-        'NAVIGATION PATHS below (exact path and label, verbatim) so the UI can show a real clickable button — ' +
-        'only ever use a path from that list, never invent or guess one, and leave navLink null for anything ' +
-        'that isn\'t a top-level page (a specific unit/property\'s own page has no fixed link; name the tab in ' +
-        'words instead, e.g. "open that unit, then Compliance"). Only set navLink on the single most relevant ' +
-        'destination, never more than one. ' +
-        `Respond in ${lang}.\n\nAPP KNOWLEDGE:\n${APP_KNOWLEDGE}\n\nNAVIGATION PATHS (role: ${role}):\n${navPathList}\n\nACCOUNT FACTS (this signed-in user's own data, JSON, null means not applicable):\n${JSON.stringify(accountFacts)}`,
-      prompt: `Conversation so far:\n${conversation}\n\nReturn JSON: { "reply": string, "suggestEscalate": boolean, "navLink": { "path": string, "label": string } | null }`,
-      // Bumped proactively (2026-11-01, twice today): the same truncation
-      // bug confirmed live across nearly every other AI Assist route —
-      // this can now produce a full inline renewal explanation (same
-      // scope as compliance-renewal-guide's own 800), not just a 1-4
-      // sentence answer, so matching that ceiling rather than waiting to
-      // rediscover the bug here a third time.
-      maxTokens: 1000,
+    let text = await claudeText({
+      system,
+      prompt: `Conversation so far:\n${conversation}\n\nWrite the assistant's next reply.`,
+      maxTokens: 1500,
+      model: CLAUDE_SMART_MODEL,
+      raw: true,
       track: { billedUserId, callerUserId: user.id, feature: 'help-chat' },
     })
-    // Deliberately not persisted anywhere (2026-11-01 product decision —
-    // this used to write every turn to ai_help_chat_messages for a 30-day
-    // history). The conversation exists only in the client's own state for
-    // as long as it's open; AiHelpChat tells the user that plainly and
-    // offers "End Conversation" / closing the bubble as the only ways it
-    // ever goes away, both of which already just drop it, nothing to
-    // clean up here.
-    return NextResponse.json(result)
+    const escalate = /\[\[ESCALATE\]\]/i.test(text)
+    const linkPath = text.match(/\[\[LINK:\s*([^\]\s]+)\s*\]\]/i)?.[1]
+    text = text.replace(/\[\[(?:LINK:[^\]]*|ESCALATE)\]\]/gi, '').replace(/^Assistant:\s*/i, '').replace(/\*\*(.+?)\*\*/g, '$1').trim()
+    // Only a link from the real list survives, never a guessed one.
+    const nav = (NAV_PATHS[role] || []).find((n) => n.path === linkPath) || null
+    return NextResponse.json({ reply: text, suggestEscalate: escalate, navLink: nav })
   } catch (err) {
     if (err instanceof ClaudeConfigError) {
       return NextResponse.json({ error: 'Not set up yet' }, { status: 503 })

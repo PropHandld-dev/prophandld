@@ -19,12 +19,21 @@ export function getClaude() {
 // heavily padded.
 export const CLAUDE_MODEL = 'claude-haiku-5-5'
 
+// The in-app assistant is the one place people ask open-ended questions
+// (local rental law, what to do about a no-heat call, how a feature works),
+// where Haiku's answers were sometimes wrong. Only that feature uses this.
+export const CLAUDE_SMART_MODEL = 'claude-sonnet-5-5'
+
 // Published Haiku 5.5 rate — see the proposal's cost page. Used only to
 // compute the cost_usd column on ai_usage_log for admin's cost-per-user
 // view; never shown to end users, who only see the already-published
 // per-action estimates in the proposal itself.
-const INPUT_RATE_PER_TOKEN = 0.10 / 1_000_000
-const OUTPUT_RATE_PER_TOKEN = 0.50 / 1_000_000
+// Per-model $/token. The Sonnet figure is an estimate; correct it here if
+// the published rate differs, and /admin/ai-usage follows.
+const RATES: Record<string, { input: number; output: number }> = {
+  [CLAUDE_MODEL]: { input: 0.10 / 1_000_000, output: 0.50 / 1_000_000 },
+  [CLAUDE_SMART_MODEL]: { input: 3 / 1_000_000, output: 15 / 1_000_000 },
+}
 
 export class ClaudeConfigError extends Error {}
 
@@ -35,8 +44,9 @@ export class ClaudeConfigError extends Error {}
 // Fire-and-forget: a logging failure must never fail the real AI call.
 type UsageTrack = { billedUserId: string | null; callerUserId: string | null; feature: string }
 
-async function logUsage(track: UsageTrack, inputTokens: number, outputTokens: number) {
-  const cost = inputTokens * INPUT_RATE_PER_TOKEN + outputTokens * OUTPUT_RATE_PER_TOKEN
+async function logUsage(track: UsageTrack, inputTokens: number, outputTokens: number, model: string = CLAUDE_MODEL) {
+  const rate = RATES[model] || RATES[CLAUDE_MODEL]
+  const cost = inputTokens * rate.input + outputTokens * rate.output
   const { error } = await getSupabaseAdmin().from('ai_usage_log').insert({
     billed_user_id: track.billedUserId,
     caller_user_id: track.callerUserId,
@@ -160,18 +170,19 @@ export async function claudeJson<T>({
 
 // For features whose whole output is one piece of prose (message drafts):
 // asking for JSON just adds a way to fail, so take the text as-is.
-export async function claudeText({ system, prompt, maxTokens = 800, track }: { system: string; prompt: string; maxTokens?: number; track: UsageTrack }): Promise<string> {
+export async function claudeText({ system, prompt, maxTokens = 800, track, model = CLAUDE_MODEL, raw = false }: { system: string; prompt: string; maxTokens?: number; track: UsageTrack; model?: string; raw?: boolean }): Promise<string> {
   requireApiKey()
   const message = await getClaude().messages.create({
-    model: CLAUDE_MODEL,
+    model,
     // Headroom: a small limit can run out before any visible text is
     // written, which comes back as an empty reply.
     max_tokens: Math.max(maxTokens, 2000),
-    system: `${system}\n\nReply with only the message text itself: no quotes around it, no preamble, no notes.`,
+    // raw: the caller's own system prompt defines the whole output format.
+    system: raw ? system : `${system}\n\nReply with only the message text itself: no quotes around it, no preamble, no notes.`,
     messages: [{ role: 'user', content: prompt }],
   })
   try {
-    await logUsage(track, message.usage.input_tokens, message.usage.output_tokens)
+    await logUsage(track, message.usage.input_tokens, message.usage.output_tokens, model)
   } catch (err) {
     console.error('claudeText: usage logging threw', err)
   }

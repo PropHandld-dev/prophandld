@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { hasAiAssistAccess } from '@/lib/aiAssist'
 import { tooManyAiAssistRequests } from '@/lib/aiAssistRateLimit'
 import { claudeJson, ClaudeConfigError } from '@/lib/claude'
+import { canActForOwner } from '@/lib/pm'
 
 export const maxDuration = 20
 
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest) {
     .eq('id', jobId)
     .maybeSingle()
   const landlordUserId = (job as any)?.units?.properties?.owner_user_id
-  if (!job || landlordUserId !== user.id) {
+  if (!job || !(await canActForOwner(supabaseAdmin, user.id, landlordUserId))) {
     return NextResponse.json({ error: 'Job not found' }, { status: 404 })
   }
 

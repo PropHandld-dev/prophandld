@@ -60,7 +60,7 @@ async function countDeterministicSignals(supabaseAdmin: ReturnType<typeof getSup
       .not('lease_end', 'is', null)
       .gte('lease_end', todayKey)
       .lte('lease_end', in30),
-    supabaseAdmin.from('jobs').select('id, created_at, bids(id)').in('unit_id', unitIds).eq('status', 'open'),
+    supabaseAdmin.from('jobs').select('id, created_at, bids(id)').in('unit_id', unitIds).eq('status', 'bidding'),
     supabaseAdmin.from('tenancies').select('id, rent_due_day, grace_period_days').in('unit_id', unitIds).eq('ended', false),
   ])
 
@@ -178,7 +178,7 @@ export async function GET() {
             .from('jobs')
             .select('id, category, created_at, unit_id, bids(id)')
             .in('unit_id', unitIds)
-            .eq('status', 'open')
+            .eq('status', 'bidding')
         : Promise.resolve({ data: [] }),
       unitIds.length > 0
         ? supabaseAdmin
