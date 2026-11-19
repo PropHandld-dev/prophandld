@@ -17,6 +17,7 @@ import { BellIcon, ReceiptIcon } from '@/components/icons'
 import { LandingHelpWidget } from '@/components/LandingHelpWidget'
 import { EarlyAccessSection } from '@/components/EarlyAccessSection'
 import { AiAssistShowcase } from '@/components/AiAssistShowcase'
+import { ThemeIconButton } from '@/components/ThemeIconButton'
 
 // Trimmed from 13 to 10 (2026-11) -- "Job chat" and "Direct messages" were
 // two cards saying "you can message people here," and "Verified
@@ -179,6 +180,7 @@ export default function LandingPage() {
                 colliding with "Get started" and the brand wordmark once
                 the hamburger button was added, with no more room left to
                 squeeze. Still always visible on desktop. */}
+            <ThemeIconButton className="hidden sm:inline-flex shrink-0" />
             <Link href="/login" className="text-sm font-medium text-white/70 hover:text-white transition whitespace-nowrap shrink-0 hidden sm:block">
               Sign in
             </Link>
@@ -212,6 +214,7 @@ export default function LandingPage() {
             <Link href="/contractors" onClick={() => setMobileMenuOpen(false)} className="text-white/70 hover:text-white transition py-2.5 text-sm font-medium">For contractors</Link>
             <Link href="/property-managers" onClick={() => setMobileMenuOpen(false)} className="text-white/70 hover:text-white transition py-2.5 text-sm font-medium">For property managers</Link>
             <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="text-white/70 hover:text-white transition py-2.5 text-sm font-medium border-t border-white/8 mt-1 pt-3.5">Sign in</Link>
+            <ThemeIconButton withLabel className="self-start mt-2" />
           </div>
         )}
       </div>
@@ -247,18 +250,14 @@ export default function LandingPage() {
             specifically aren't live yet. Flip to a plain "Now onboarding"
             once they are. Mirrored on contractors/page.tsx. */}
         <div className="inline-flex items-center gap-2 bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 text-[#12A5A9] border border-[#12A5A9]/30 text-xs font-semibold px-3 py-1.5 rounded-full mb-6">
-          Onboarding Philadelphia landlords now — live payments coming soon
+          Now welcoming Philadelphia landlords · Free for 6 months
         </div>
         <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-tight mb-6">
           Run your rentals,<br />
           <RotatingHeroPhrase />
         </h1>
         <p className="text-lg text-white/50 max-w-2xl mx-auto mb-10">
-          Prophandld gives landlords and property managers one place to run
-          it all. Simple enough to start with a couple of
-          units, built to keep up as your portfolio grows. Track your
-          properties and tenants, get competitive contractor bids through
-          sealed bidding, and collect rent online, all in one place.
+          One simple place to run your rentals. Keep track of your homes and tenants, get fair prices on repairs, and collect rent online. Easy enough for two units, strong enough for two hundred.
         </p>
         <div className="flex items-center justify-center gap-4">
           <MagneticLink
@@ -437,10 +436,7 @@ export default function LandingPage() {
             <span className="text-xs font-semibold text-[#12A5A9] bg-gradient-to-r from-[#0A7B7E]/20 to-[#12A5A9]/20 border border-[#12A5A9]/30 px-2.5 py-1 rounded-full">Renters</span>
             <h3 className="text-white font-bold text-lg mt-4 mb-2">Get things fixed, fast</h3>
             <p className="text-white/50 text-sm leading-relaxed mb-5">
-              Report an issue in seconds, message your landlord directly, and
-              pay rent online, with no more checks, cash, or digging through old
-              text threads. Add your own documents too, like proof of renters
-              insurance, kept private or shared with your landlord.
+              Report a problem in your own words, message your landlord, and pay rent the way your landlord accepts: online, Zelle, check or cash. Every payment gets a receipt.
             </p>
             <Link href="/signup?role=renter" className="text-[#12A5A9] text-sm font-semibold hover:underline">
               Sign up as a renter →
@@ -478,21 +474,18 @@ export default function LandingPage() {
               All your clients. One login.
             </h2>
             <p className="text-white/60 leading-relaxed mb-8 max-w-2xl">
-              Manage every landlord client&apos;s properties, maintenance, and
-              compliance from a single dashboard, with a portfolio switcher
-              per client and approval thresholds so owners sign off on
-              bigger repairs automatically, no phone call required.
+              Run every client&apos;s homes from one dashboard. Message owners, get one-tap approvals for bigger repairs, and send monthly summaries, without the phone tag.
             </p>
             <div className="grid sm:grid-cols-3 gap-4 mb-8">
               <div className="bg-white/5 border border-white/10 rounded-xl p-4">
                 <BuildingIcon className="w-4 h-4 text-[#12A5A9] mb-2" />
                 <p className="text-white font-semibold text-sm">Every client, one login</p>
-                <p className="text-white/50 text-xs mt-1">A portfolio switcher across every landlord you manage, no separate spreadsheets per owner</p>
+                <p className="text-white/50 text-xs mt-1">Switch between owners in one tap. No separate spreadsheets.</p>
               </div>
               <div className="bg-white/5 border border-white/10 rounded-xl p-4">
                 <ShieldIcon className="w-4 h-4 text-[#12A5A9] mb-2" />
-                <p className="text-white font-semibold text-sm">Approval thresholds built in</p>
-                <p className="text-white/50 text-xs mt-1">Set a dollar limit per client. Anything over it waits for their own sign-off, logged automatically</p>
+                <p className="text-white font-semibold text-sm">Owners approve in one tap</p>
+                <p className="text-white/50 text-xs mt-1">Each owner sets their own repair limit. Anything bigger becomes an approval card in your conversation, and you can pay once they tap Approve.</p>
               </div>
               <div className="bg-white/5 border border-white/10 rounded-xl p-4">
                 <WrenchIcon className="w-4 h-4 text-[#12A5A9] mb-2" />
@@ -593,7 +586,7 @@ export default function LandingPage() {
               </div>
               <h3 className="text-white font-semibold mb-1.5">Payments run through Stripe</h3>
               <p className="text-white/50 text-sm leading-relaxed">
-                The same infrastructure banks and major platforms rely on. Once a payment is sent, Stripe routes it automatically to the recipient&apos;s own account — Prophandld never keeps it or decides when it moves. Instant bank verification for supported accounts, not always the multi-day microdeposit wait you&apos;re used to.
+                Stripe is the payment company used by banks and big businesses. Money goes straight to the person being paid. Prophandld never holds it.
               </p>
             </div>
             <div className="bg-white/3 border border-white/8 rounded-2xl p-6">
@@ -676,24 +669,16 @@ export default function LandingPage() {
               Prophandld AI &middot; included free during the pilot
             </div>
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4 text-balance">
-              Meet Prophandld AI, the AI that&apos;s actually read your lease, not the internet&apos;s best guess.
+              Meet Prophandld AI. It reads your paperwork so you don&apos;t have to.
             </h2>
             <p className="text-white/50 max-w-2xl mx-auto leading-relaxed">
-              Ask about your lease or a document you&apos;ve uploaded, and it&apos;s built to answer
-              from that real file, not a guess, pointing you to it when it can, and saying so
-              plainly when it can&apos;t find an answer there, rather than inventing one. Other
-              questions use your real account details, not a document, which it&apos;ll also tell
-              you. Like any AI, it can still get things wrong, so always use your own judgment
-              before acting on something that matters.
+              Ask it about your lease and it answers from your actual lease. If the answer isn&apos;t there, it says so instead of guessing. It also reads bills and receipts for you, drafts messages, and helps you compare repair quotes. Like any AI it can be wrong, so double-check anything important.
             </p>
           </div>
 
           <AiAssistShowcase />
           <p className="text-white/40 text-xs text-center max-w-xl mx-auto leading-relaxed mt-4">
-            It&apos;s built to never give repair instructions for anything electrical, gas, or
-            structural. Those should always go to a contractor. In a genuine emergency it can point
-            you to safety basics (get out, call for help), but it&apos;s not a substitute for calling
-            911 or your gas company.
+            It never gives repair steps for electrical, gas or structural problems. Those go to a professional. In an emergency, call 911 or your gas company first.
           </p>
 
           <div className="mt-16 max-w-3xl mx-auto bg-white/3 border border-white/8 rounded-2xl p-6 sm:p-8 text-center">
@@ -714,23 +699,24 @@ export default function LandingPage() {
           <h2 className="text-3xl font-bold text-center mb-12 text-white">Common questions</h2>
           <div className="space-y-3">
             {[
-              { q: 'Is this just for finding contractors?', a: "No. Prophandld is built to replace the spreadsheet. Track every property, unit, and tenant, handle maintenance end to end with sealed bidding, and collect rent, all in one dashboard. Your spreadsheet can finally retire." },
-              { q: 'What does it cost?', a: "Nothing during our pilot: it's free for 6 months, Prophandld AI included, and no card is needed. We're setting pricing only after hearing from the landlords, property managers and contractors using it, and nothing is ever charged unless you choose a plan. Renters never pay Prophandld anything. Contractors pay nothing during the pilot either: no signup fee, no monthly fee, no cut of a bid. If that ever changes, contractors get at least 60 days' written notice first, and it never applies retroactively to work already bid, scheduled, or completed." },
-              { q: 'What does Prophandld AI actually do?', a: "It handles the parts of this job that eat your evenings: talks a tenant through a safe fix before a contractor's ever needed (never anything electrical, gas, or structural), reads an uploaded lease or compliance document straight into the right fields, answers a renter's own lease questions directly, flags a compliance gap before it becomes a fine, drafts the routine messages you'd otherwise type yourself, and gives you a one-line morning briefing of what actually needs your attention. It's included free during the pilot, and your tenants get it too, automatically, at no cost to them." },
+              { q: 'Is this just for finding contractors?', a: "No. It replaces your spreadsheet: homes, tenants, repairs, rent, bills, leases and records, all in one place." },
+              { q: 'What does it cost?', a: "Nothing for 6 months during our pilot, AI included, no card needed. We'll set prices only after hearing from you, and nothing is ever charged unless you choose a plan. Renters never pay Prophandld. Contractors pay nothing, and if that ever changes they get 60 days' written notice first." },
+              { q: 'What does Prophandld AI actually do?', a: "The busywork. It reads bills, receipts and leases and fills in the details. It helps tenants describe a problem and spots emergencies. It drafts messages, compares repair quotes, translates English and Spanish, and writes a Pennsylvania lease from your details. It's free during the pilot, for you and your tenants." },
               { q: 'How does sealed bidding actually work?', a: "Contractors near the property are alerted when you open a job for bids. They submit their price privately and never see what anyone else bid. You choose who you trust, not just the lowest number. No bidding wars, no “my cousin quoted less”." },
               { q: 'Do I have to use a contractor?', a: "No. For anything small enough to handle yourself, mark it fixed directly, no bidding required. Contractors are there for when you want one, not a requirement for every repair." },
               { q: "What if the contractor's price changes?", a: 'If a contractor needs to adjust their price once work has started, they show you the new labor and parts breakdown, and you approve it before they move forward. No surprise invoices.' },
-              { q: 'How do rent and contractor payments work?', a: "Renters pay rent by bank transfer or debit card, not credit cards, so nobody goes into card debt to make rent — bank transfer has no fee for anyone: Prophandld pays it, so the renter pays exactly their rent. Paying by debit card is instant and carries a card processing fee the renter pays, shown before they pay. Either way the landlord receives the full rent. For a contractor, a landlord reviews and approves a finished job (or it auto-approves after 3 days if they don't act, so a contractor isn't left waiting), approving makes payment due, and the landlord then completes an actual payment step by card or bank transfer, which is what actually releases it; the landlord absorbs that processing fee so the contractor always receives their full agreed amount. Everything runs through Stripe, the same infrastructure banks and major platforms rely on, and Stripe routes the money automatically to the person being paid — Prophandld never keeps it or decides when it moves." },
-              { q: 'How will I know when something happens?', a: "Email, push, and text, your choice, not one primary channel with the others as an afterthought. Every step of a job (a bid arrives, a time is proposed or confirmed, work is ready for review) emails you and, if you've added Prophandld to your phone's Home Screen, pushes an instant alert too. Opt in to text messages for the same key moments from your Notifications settings." },
-              { q: 'Do I get receipts and records?', a: 'Yes. Every rent payment and every contractor payment gets a receipt, emailed to you and saved on the job or rent record, so finding one later is a lookup, not a hunt.' },
+              { q: 'How do rent and contractor payments work?', a: "Tenants pay rent the ways their landlord accepts: bank transfer (no fee, we cover it), debit card (instant, small card fee shown first), or Zelle, Venmo, check or cash. The landlord always gets the full rent. To pay a contractor, the landlord approves the finished work and pays by bank or card; the contractor gets the full amount. Prophandld never holds the money." },
+              { q: 'How will I know when something happens?', a: "By email and phone notification at every step. Turn on text messages in your settings if you'd like those too. Anything about money, approvals or your account always reaches you." },
+              { q: 'Do I get receipts and records?', a: 'Yes. Every payment gets a receipt. Records shows every dollar in and out by property, with photos of the work, and a tax-time summary you can send your accountant.' },
+              { q: 'Can it help with leases, utility bills and screening tenants?', a: "Yes. Create a Pennsylvania lease from your details in a couple of taps (have a lawyer look it over before signing). Add water, electric or other bills to a month's rent and your tenant sees the bill. Screen applicants through TransUnion SmartMove." },
               { q: 'What if a contractor cancels?', a: "The job reopens for sealed bids, nearby contractors are alerted again, and the landlord and renter are told. Photos, notes, and other bids stay put." },
               { q: "What if something isn't right after the job?", a: 'After the landlord approves, any side has 48 hours to raise a dispute. The job pauses while the Prophandld team reviews it. If nobody responds, finished work is approved automatically after 3 days so contractors are not left waiting.' },
               { q: 'Is Prophandld available in my area?', a: "Onboarding landlords in the Philadelphia area now, with more markets opening after that." },
               { q: "What is Philadelphia's Safe Healthy Homes legislation?", a: "Bill 250329-AA, which took effect November 1, 2026. It requires serious cited violations to be corrected within 30 days or a landlord can lose the right to collect rent, ties rent collection to having a valid rental license (with a 15-day grace period to renew a lapsed one), and lets tenants sue for at least $1,000 per violation, or actual damages if higher, plus attorney's fees. Prophandld tracks your license and certificate dates and reminds you before they expire." },
               { q: 'Does it work in Spanish?', a: 'The whole app does, not a translated homepage that quietly drops you back into English the moment you sign in. Switch anytime from your profile.' },
               { q: 'Can I use Prophandld as more than one role?', a: "Yes. If you're a landlord who also does contract work, or a renter who's also a landlord, link a second profile from your account menu and switch between dashboards instantly, no second signup, no second password." },
-              { q: 'Can someone else help manage my properties?', a: "Yes, two ways. Invite a business partner as a co-owner from your profile, and they get your own full access to one portfolio alongside you. If you're hiring a property management company instead, they can run their own dashboard across you and every other client they manage, with staff accounts and approval thresholds for bigger repairs — see the Property Managers section above for how that works. Either way, billing stays yours alone, and you can remove access anytime." },
-              { q: 'I run a property management company. Is this for me?', a: "Yes. Pick \"Property Manager\" right on the sign-up form (it's one of the options alongside Landlord, Renter, and Contractor) and name your company — that's the whole setup. From there you invite each landlord client by email, and once they accept you're running their properties, maintenance, and compliance from the same dashboard as everyone else you manage, a switcher between clients, staff accounts you control, and a dollar threshold per client so owners sign off automatically on bigger repairs. See the Property Managers page for the full picture." },
+              { q: 'Can someone else help manage my properties?', a: "Yes, two ways. Invite a business partner as a co-owner from your profile, and they get your own full access to one portfolio alongside you. If you're hiring a property management company instead, they run your homes from their own dashboard, and you set the dollar limit they can approve without you. Either way, you can remove access anytime." },
+              { q: 'I run a property management company. Is this for me?', a: "Yes. Pick \"Property Manager\" right on the sign-up form (it's one of the options alongside Landlord, Renter, and Contractor) and name your company — that's the whole setup. From there you invite each landlord client by email, Once they accept, you run their homes from your dashboard. Each owner sets their own approval limit, and bigger repairs come to them as a one-tap approval. See the Property Managers page for more." },
               { q: 'How does pricing work for a property management company?', a: "During the pilot it's free for 6 months, for every client portfolio and staff account you add. We'll set PM pricing with feedback from the companies using it, and you'll hear from us well before anything changes." },
             ].map((item) => (
               <details key={item.q} className="group bg-white/3 border border-white/8 rounded-2xl px-5 py-4 open:border-[#12A5A9]/30 open:bg-white/5 transition-colors">

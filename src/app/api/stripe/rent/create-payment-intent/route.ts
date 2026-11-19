@@ -91,6 +91,11 @@ export async function POST(request: NextRequest) {
     ach_provider: payee.achProvider,
   }
 
+  const { data: payeePrefs } = await supabaseAdmin.from('users').select('rent_accept_bank, rent_accept_card').eq('id', payee.userId).maybeSingle()
+  if ((paymentMethod === 'card' && payeePrefs?.rent_accept_card === false) || (paymentMethod !== 'card' && payeePrefs?.rent_accept_bank === false)) {
+    return NextResponse.json({ error: 'Your landlord doesn\'t accept that payment method. Choose another option.' }, { status: 400 })
+  }
+
   if (!landlordRow.stripe_connect_account_id || landlordRow.stripe_connect_status !== 'active') {
     return NextResponse.json({ error: "Your landlord hasn't set up rent payouts yet." }, { status: 400 })
   }

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   BuildingIcon, DollarSignIcon, ClipboardListIcon, ShieldIcon,
-  ReceiptIcon, MessageCircleIcon, WrenchIcon, LockIcon,
+  ReceiptIcon, FileTextIcon, MessageCircleIcon, WrenchIcon, LockIcon,
 } from '@/components/icons'
 
 type Role = 'landlord' | 'contractor'
@@ -13,9 +13,10 @@ const SLIDES: Record<Role, Slide[]> = {
   landlord: [
     { icon: BuildingIcon, title: 'Every property, one dashboard', desc: 'Properties, units, leases, and tenants, all tracked in one place. No more juggling spreadsheets.' },
     { icon: LockIcon, title: 'Sealed bidding', desc: "Contractors bid without seeing each other's numbers. Real competition, not inflated quotes." },
-    { icon: DollarSignIcon, title: 'Rent that tracks itself', desc: 'Auto-generated monthly rent, automatic reminders and late flags, paid online by bank transfer or debit card.' },
+    { icon: DollarSignIcon, title: 'Rent that tracks itself', desc: 'Rent shows up every month by itself, with reminders. Tenants pay online, or by Zelle, check or cash, whichever you accept. Add water or electric bills and they see them.' },
     { icon: ClipboardListIcon, title: 'Compliance, on autopilot', desc: 'Add an expiry date once. Get warned weeks before a license or certificate lapses, not the day an inspector shows up.' },
-    { icon: ReceiptIcon, title: 'Financial reports, built for tax time', desc: 'What you collected and paid out, by property. Filter by date range, export to CSV or a clean branded PDF.' },
+    { icon: ReceiptIcon, title: 'Records ready for tax time', desc: 'Every dollar in and out by property, with receipts and photos of the work. One tap gives your accountant a tax summary.' },
+    { icon: FileTextIcon, title: 'AI does the paperwork', desc: 'Snap a bill or receipt and it fills itself in. Create a Pennsylvania lease from your details. Compare repair quotes in plain words.' },
     { icon: MessageCircleIcon, title: 'Direct messaging', desc: 'Message a tenant or a contractor you trust directly, job or no job. No phone numbers exchanged.' },
   ],
   contractor: [

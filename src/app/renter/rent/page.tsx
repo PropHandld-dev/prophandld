@@ -57,9 +57,9 @@ export default function RenterRentPage() {
   // older payments someone might actually be looking for (a mid-lease
   // receipt lookup, tax records, moving-out reference).
   const [historyYear, setHistoryYear] = useState<'all' | number>('all')
-  const [p2pOptions, setP2pOptions] = useState<{ zelle: string | null; venmo: string | null; cashapp: string | null; landlordName: string | null; defaultMethod: string | null } | null>(null)
+  const [p2pOptions, setP2pOptions] = useState<{ zelle: string | null; venmo: string | null; cashapp: string | null; landlordName: string | null; defaultMethod: string | null; check?: { payableTo: string; mailTo: string } | null; cash?: string | null; acceptBank?: boolean; acceptCard?: boolean } | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
-  const [p2pPanelMethod, setP2pPanelMethod] = useState<'zelle' | 'venmo' | 'cashapp' | null>(null)
+  const [p2pPanelMethod, setP2pPanelMethod] = useState<'zelle' | 'venmo' | 'cashapp' | 'check' | 'cash' | null>(null)
   const [p2pSending, setP2pSending] = useState(false)
   const [p2pSent, setP2pSent] = useState(false)
   const [p2pError, setP2pError] = useState<string | null>(null)
@@ -232,7 +232,7 @@ export default function RenterRentPage() {
     setPayingId(null)
   }
 
-  const handleMarkP2pSent = async (payment: any, method: 'zelle' | 'venmo' | 'cashapp') => {
+  const handleMarkP2pSent = async (payment: any, method: 'zelle' | 'venmo' | 'cashapp' | 'check' | 'cash') => {
     setP2pSending(true)
     setP2pError(null)
     const res = await fetch('/api/rent/renter-marked-sent', {
@@ -595,6 +595,58 @@ export default function RenterRentPage() {
         const cardFee = rentCardFee(amountDue)
         const closeModal = () => { setMethodChoicePayment(null); setP2pPanelMethod(null); setP2pSent(false); setP2pError(null) }
 
+        if (p2pPanelMethod === 'check' || p2pPanelMethod === 'cash') {
+          const es = lang === 'es'
+          const isCheck = p2pPanelMethod === 'check'
+          return (
+            <div className="fixed inset-0 bg-black/60 flex items-center justify-center px-6 z-20">
+              <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
+                {p2pSent ? (
+                  <>
+                    <h3 className="text-white font-semibold mb-2">{t('p2pSentTitle', lang)}</h3>
+                    <p className="text-white/60 text-sm mb-5">{t('p2pSentBody', lang)}</p>
+                    <button onClick={closeModal} className="w-full bg-white/5 border border-white/10 text-white/70 hover:bg-white/8 text-sm font-semibold py-2.5 rounded-xl transition">{t('closeBtn', lang)}</button>
+                  </>
+                ) : (
+                  <>
+                    <h3 className="text-white font-semibold mb-1">{isCheck ? (es ? 'Pagar con cheque' : 'Pay by check') : es ? 'Pagar en efectivo' : 'Pay in cash'}</h3>
+                    <p className="text-white font-bold text-2xl tabular-nums mb-4">{money(amountDue)}</p>
+                    {isCheck && p2pOptions?.check ? (
+                      <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 mb-3 space-y-2">
+                        <div>
+                          <p className="text-white/50 text-xs">{es ? 'A nombre de' : 'Make it payable to'}</p>
+                          <p className="text-white text-sm font-medium">{p2pOptions.check.payableTo}</p>
+                        </div>
+                        <div>
+                          <p className="text-white/50 text-xs">{es ? 'Enviar a' : 'Mail it to'}</p>
+                          <p className="text-white text-sm font-medium whitespace-pre-line select-all">{p2pOptions.check.mailTo}</p>
+                        </div>
+                        <p className="text-white/45 text-xs">{es ? 'Escribe el mes y tu unidad en la nota del cheque.' : "Write the month and your unit on the check's memo line."}</p>
+                      </div>
+                    ) : (
+                      <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 mb-3">
+                        <p className="text-white/50 text-xs">{es ? 'Cómo pagar' : 'How to pay'}</p>
+                        <p className="text-white text-sm">{p2pOptions?.cash}</p>
+                        <p className="text-white/45 text-xs mt-2">{es ? 'Pide siempre un recibo.' : 'Always ask for a receipt.'}</p>
+                      </div>
+                    )}
+                    {p2pError && <p className="text-red-400 text-xs mb-3">{p2pError}</p>}
+                    <button
+                      onClick={() => handleMarkP2pSent(methodChoicePayment, p2pPanelMethod)}
+                      disabled={p2pSending}
+                      className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl hover:opacity-90 transition disabled:opacity-50 mb-2"
+                    >
+                      {p2pSending ? t('sendingDots', lang) : isCheck ? (es ? 'Ya envié el cheque' : 'I mailed the check') : es ? 'Ya pagué en efectivo' : 'I paid in cash'}
+                    </button>
+                    <p className="text-white/40 text-xs mb-3">{es ? 'Tu arrendador lo marcará como recibido cuando le llegue.' : "Your landlord marks it received when it arrives. Until then it shows as sent."}</p>
+                    <button onClick={() => { setP2pPanelMethod(null); setP2pError(null) }} className="w-full text-center text-white/50 hover:text-white text-sm transition">{t('backBtn', lang)}</button>
+                  </>
+                )}
+              </div>
+            </div>
+          )
+        }
+
         if (p2pPanelMethod) {
           const handle = p2pPanelMethod === 'zelle' ? p2pOptions?.zelle : p2pPanelMethod === 'venmo' ? p2pOptions?.venmo : p2pOptions?.cashapp
           const methodLabel = p2pPanelMethod === 'zelle' ? 'Zelle' : p2pPanelMethod === 'venmo' ? 'Venmo' : 'Cash App'
@@ -694,6 +746,7 @@ export default function RenterRentPage() {
             <div className="bg-[#0C1A2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full">
               <h3 className="text-white font-semibold mb-4">{t('howDoYouWantToPay', lang)}</h3>
               <div className="space-y-3">
+                {p2pOptions?.acceptBank !== false && (
                 <button
                   onClick={() => handleChooseMethod(methodChoicePayment, 'bank')}
                   className={`w-full text-left bg-white/5 hover:bg-white/8 border rounded-xl px-4 py-3 transition ${p2pOptions?.defaultMethod === 'bank' ? 'border-[#12A5A9]/50' : 'border-white/10'}`}
@@ -711,6 +764,8 @@ export default function RenterRentPage() {
                     <span className="text-[#12A5A9] font-semibold">{t('noFeeLabel', lang)}</span> · {t('bankAccountOptionDesc', lang)}
                   </p>
                 </button>
+                )}
+                {p2pOptions?.acceptCard !== false && (
                 <button
                   onClick={() => handleChooseMethod(methodChoicePayment, 'card')}
                   className={`w-full text-left bg-white/5 hover:bg-white/8 border rounded-xl px-4 py-3 transition ${p2pOptions?.defaultMethod === 'card' ? 'border-[#12A5A9]/50' : 'border-white/10'}`}
@@ -728,12 +783,27 @@ export default function RenterRentPage() {
                     {cardFee > 0 && <>+{money(cardFee)} {t('cardProcessingFeeShort', lang)} · </>}{t('debitCardOptionDescPrefix', lang)}
                   </p>
                 </button>
+                )}
               </div>
 
               <div className="mt-3">
                 <PaymentTrustBadge provider="stripe" />
               </div>
 
+              {(p2pOptions?.check || p2pOptions?.cash) && (
+                <div className="mt-3 flex gap-2">
+                  {p2pOptions?.check && (
+                    <button onClick={() => setP2pPanelMethod('check')} className="flex-1 bg-white/5 hover:bg-white/8 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm font-medium transition">
+                      {lang === 'es' ? 'Cheque' : 'Check'}
+                    </button>
+                  )}
+                  {p2pOptions?.cash && (
+                    <button onClick={() => setP2pPanelMethod('cash')} className="flex-1 bg-white/5 hover:bg-white/8 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm font-medium transition">
+                      {lang === 'es' ? 'Efectivo' : 'Cash'}
+                    </button>
+                  )}
+                </div>
+              )}
               {(p2pOptions?.zelle || p2pOptions?.venmo || p2pOptions?.cashapp) && (
                 <div className="mt-3">
                   <p className="text-white/40 text-xs mb-2">{t('p2pGroupLabel', lang)}</p>

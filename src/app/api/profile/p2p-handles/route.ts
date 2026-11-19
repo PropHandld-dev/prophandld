@@ -26,7 +26,7 @@ export async function GET() {
   const admin = getSupabaseAdmin()
   const { data: row } = await admin
     .from('users')
-    .select('zelle_handle, venmo_handle, cashapp_handle, p2p_handles_frozen_until')
+    .select('zelle_handle, venmo_handle, cashapp_handle, p2p_handles_frozen_until, rent_check_payable_to, rent_check_mail_address, rent_cash_instructions, rent_accept_bank, rent_accept_card')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -35,6 +35,11 @@ export async function GET() {
     venmo: row?.venmo_handle || '',
     cashapp: row?.cashapp_handle || '',
     frozenUntil: row?.p2p_handles_frozen_until || null,
+    checkPayableTo: row?.rent_check_payable_to || '',
+    checkMailAddress: row?.rent_check_mail_address || '',
+    cashInstructions: row?.rent_cash_instructions || '',
+    acceptBank: row?.rent_accept_bank !== false,
+    acceptCard: row?.rent_accept_card !== false,
   })
 }
 
@@ -45,17 +50,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
 
-  const { zelle, venmo, cashapp, password } = (await request.json().catch(() => ({}))) as {
+  const { zelle, venmo, cashapp, password, checkPayableTo, checkMailAddress, cashInstructions, acceptBank, acceptCard } = (await request.json().catch(() => ({}))) as {
     zelle?: string
     venmo?: string
     cashapp?: string
     password?: string
+    checkPayableTo?: string
+    checkMailAddress?: string
+    cashInstructions?: string
+    acceptBank?: boolean
+    acceptCard?: boolean
   }
 
   const admin = getSupabaseAdmin()
   const { data: current } = await admin
     .from('users')
-    .select('zelle_handle, venmo_handle, cashapp_handle')
+    .select('zelle_handle, venmo_handle, cashapp_handle, rent_check_payable_to, rent_check_mail_address')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -63,7 +73,13 @@ export async function POST(request: NextRequest) {
     zelle_handle: zelle?.trim() || null,
     venmo_handle: venmo?.trim() || null,
     cashapp_handle: cashapp?.trim() || null,
+    rent_check_payable_to: typeof checkPayableTo === 'string' ? checkPayableTo.trim().slice(0, 120) || null : current?.rent_check_payable_to ?? null,
+    rent_check_mail_address: typeof checkMailAddress === 'string' ? checkMailAddress.trim().slice(0, 300) || null : current?.rent_check_mail_address ?? null,
   }
+  const extra: Record<string, unknown> = {}
+  if (typeof cashInstructions === 'string') extra.rent_cash_instructions = cashInstructions.trim().slice(0, 300) || null
+  if (typeof acceptBank === 'boolean') extra.rent_accept_bank = acceptBank
+  if (typeof acceptCard === 'boolean') extra.rent_accept_card = acceptCard
 
   // Only an edit to an already-set handle is a redirection risk — nothing
   // to hijack on a first-time add, same distinction the Stripe payout
@@ -71,7 +87,9 @@ export async function POST(request: NextRequest) {
   const isChange =
     (!!current?.zelle_handle && current.zelle_handle !== next.zelle_handle) ||
     (!!current?.venmo_handle && current.venmo_handle !== next.venmo_handle) ||
-    (!!current?.cashapp_handle && current.cashapp_handle !== next.cashapp_handle)
+    (!!current?.cashapp_handle && current.cashapp_handle !== next.cashapp_handle) ||
+    (!!current?.rent_check_payable_to && current.rent_check_payable_to !== next.rent_check_payable_to) ||
+    (!!current?.rent_check_mail_address && current.rent_check_mail_address !== next.rent_check_mail_address)
 
   // The client already gates this behind a password prompt (see
   // ZelleVenmoCashAppCard's reauth step), but that only guards the UI —
@@ -93,7 +111,7 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const updates: Record<string, unknown> = { ...next }
+  const updates: Record<string, unknown> = { ...next, ...extra }
   if (isChange) {
     updates.p2p_handles_frozen_until = new Date(Date.now() + FREEZE_MS).toISOString()
   }

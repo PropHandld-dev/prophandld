@@ -30,8 +30,9 @@ export default function TermsPage() {
               <p className="text-white/80 text-sm mb-0">
                 Looking for the detailed terms for your specific role? See{' '}
                 <Link href="/terms/landlord" className="text-[#12A5A9] hover:underline">Landlord Terms</Link>,{' '}
-                <Link href="/terms/renter" className="text-[#12A5A9] hover:underline">Renter Terms</Link>, or{' '}
-                <Link href="/terms/contractor" className="text-[#12A5A9] hover:underline">Contractor Terms</Link>.
+                <Link href="/terms/renter" className="text-[#12A5A9] hover:underline">Renter Terms</Link>,{' '}
+                <Link href="/terms/contractor" className="text-[#12A5A9] hover:underline">Contractor Terms</Link>, or{' '}
+                <Link href="/terms/property-manager" className="text-[#12A5A9] hover:underline">Property Manager Terms</Link>.
                 This page is the general agreement that applies to everyone.
               </p>
             </div>

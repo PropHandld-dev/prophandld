@@ -6,7 +6,7 @@ import { emailAllowed } from '@/lib/notificationPrefs'
 import { sendP2pPaymentSentEmail } from '@/lib/email'
 import { notifyLandlordIds } from '@/lib/landlordCoOwners'
 
-const METHOD_LABELS: Record<string, string> = { zelle: 'Zelle', venmo: 'Venmo', cashapp: 'Cash App' }
+const METHOD_LABELS: Record<string, string> = { zelle: 'Zelle', venmo: 'Venmo', cashapp: 'Cash App', check: 'check', cash: 'cash' }
 
 // Not a payment confirmation — the landlord's own "Mark received" stays
 // the only thing that actually confirms money arrived, same as cash/check

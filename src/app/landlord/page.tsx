@@ -28,7 +28,7 @@ import { fetchAllPagesOrEmpty } from '@/lib/pagedQuery'
 import { getLandlordIds } from '@/lib/landlordIds'
 import {
   BuildingIcon, WrenchIcon, CalendarIcon, ClipboardListIcon,
-  DollarSignIcon, FileTextIcon, AlertTriangleIcon, CheckCircleIcon, UserIcon, ReceiptIcon, PlusIcon,
+  DollarSignIcon, FileTextIcon, AlertTriangleIcon, CheckCircleIcon, UserIcon, ReceiptIcon,
 } from '@/components/icons'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 import { ProductTour, type TourStep } from '@/components/ProductTour'
@@ -837,11 +837,6 @@ export default function LandlordDashboard() {
                 genuinely not represented anywhere else on the dashboard. */}
             <h2 className="text-white font-semibold text-lg mb-4">{t('quickActions', lang)}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4" data-tour="quicklinks">
-              <Link href="/landlord/properties/new" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
-                <PlusIcon className="w-5 h-5 text-[#12A5A9] mb-2" />
-                <h3 className="text-white font-semibold mb-1">{t('addPropertyCardTitle', lang)}</h3>
-                <p className="text-white/60 text-sm">{t('addPropertyCardDesc', lang)}</p>
-              </Link>
               <Link href="/landlord/documents" className="bg-white/3 border border-white/8 rounded-2xl p-6 hover:border-[#12A5A9]/30 hover:bg-white/5 hover:-translate-y-0.5 transition-all block">
                 <FileTextIcon className="w-5 h-5 text-[#12A5A9] mb-2" />
                 <h3 className="text-white font-semibold mb-1">{t('documentsCardTitle', lang)}</h3>

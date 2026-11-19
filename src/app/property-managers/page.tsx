@@ -220,7 +220,7 @@ export default function PropertyManagersLandingPage() {
         <p className="text-white/60 text-sm mb-4">iOS &amp; Android apps coming soon. The web app works great on your phone&apos;s browser today.</p>
         <Link href="/" className="hover:text-white transition">Prophandld for landlords</Link>
         <span className="mx-2">·</span>
-        <Link href="/terms/landlord" className="hover:text-white transition">Terms</Link>
+        <Link href="/terms/property-manager" className="hover:text-white transition">Terms</Link>
         <span className="mx-2">·</span>
         <Link href="/privacy" className="hover:text-white transition">Privacy</Link>
         <span className="mx-2">·</span>

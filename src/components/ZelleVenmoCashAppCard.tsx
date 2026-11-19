@@ -32,7 +32,12 @@ export function ZelleVenmoCashAppCard() {
   const [zelle, setZelle] = useState('')
   const [venmo, setVenmo] = useState('')
   const [cashapp, setCashapp] = useState('')
-  const [original, setOriginal] = useState({ zelle: '', venmo: '', cashapp: '' })
+  const [original, setOriginal] = useState({ zelle: '', venmo: '', cashapp: '', checkPayableTo: '', checkMailAddress: '' })
+  const [checkPayableTo, setCheckPayableTo] = useState('')
+  const [checkMailAddress, setCheckMailAddress] = useState('')
+  const [cashInstructions, setCashInstructions] = useState('')
+  const [acceptBank, setAcceptBank] = useState(true)
+  const [acceptCard, setAcceptCard] = useState(true)
   const [frozenUntil, setFrozenUntil] = useState<string | null>(null)
   const [reauthing, setReauthing] = useState(false)
   const [reauthPassword, setReauthPassword] = useState('')
@@ -50,7 +55,12 @@ export function ZelleVenmoCashAppCard() {
       setZelle(data.zelle || '')
       setVenmo(data.venmo || '')
       setCashapp(data.cashapp || '')
-      setOriginal({ zelle: data.zelle || '', venmo: data.venmo || '', cashapp: data.cashapp || '' })
+      setCheckPayableTo(data.checkPayableTo || '')
+      setCheckMailAddress(data.checkMailAddress || '')
+      setCashInstructions(data.cashInstructions || '')
+      setAcceptBank(data.acceptBank !== false)
+      setAcceptCard(data.acceptCard !== false)
+      setOriginal({ zelle: data.zelle || '', venmo: data.venmo || '', cashapp: data.cashapp || '', checkPayableTo: data.checkPayableTo || '', checkMailAddress: data.checkMailAddress || '' })
       setFrozenUntil(data.frozenUntil || null)
     } catch {
       // Leave fields blank rather than claim nothing is set — the save
@@ -68,7 +78,9 @@ export function ZelleVenmoCashAppCard() {
   const isChange =
     (!!original.zelle && original.zelle !== zelle.trim()) ||
     (!!original.venmo && original.venmo !== venmo.trim()) ||
-    (!!original.cashapp && original.cashapp !== cashapp.trim())
+    (!!original.cashapp && original.cashapp !== cashapp.trim()) ||
+    (!!original.checkPayableTo && original.checkPayableTo !== checkPayableTo.trim()) ||
+    (!!original.checkMailAddress && original.checkMailAddress !== checkMailAddress.trim())
 
   // Password is only ever sent over HTTPS to this app's own API route,
   // which re-verifies it server-side (see api/profile/p2p-handles) rather
@@ -83,7 +95,7 @@ export function ZelleVenmoCashAppCard() {
       const res = await fetch('/api/profile/p2p-handles', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ zelle, venmo, cashapp, password }),
+        body: JSON.stringify({ zelle, venmo, cashapp, password, checkPayableTo, checkMailAddress, cashInstructions, acceptBank, acceptCard }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
@@ -98,7 +110,7 @@ export function ZelleVenmoCashAppCard() {
         }
         return
       }
-      setOriginal({ zelle: zelle.trim(), venmo: venmo.trim(), cashapp: cashapp.trim() })
+      setOriginal({ zelle: zelle.trim(), venmo: venmo.trim(), cashapp: cashapp.trim(), checkPayableTo: checkPayableTo.trim(), checkMailAddress: checkMailAddress.trim() })
       if (data.frozenUntil) setFrozenUntil(data.frozenUntil)
       setSaved(true)
       setTimeout(() => setSaved(false), 2500)
@@ -297,6 +309,38 @@ export function ZelleVenmoCashAppCard() {
               placeholder={t('p2pCashAppPlaceholder', lang)}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder-white/40 focus:outline-none focus:border-[#12A5A9] transition"
             />
+          </div>
+
+          <div className="border-t border-white/8 pt-4 space-y-3">
+            <p className="text-white text-sm font-semibold">{lang === 'es' ? 'Cheque por correo' : 'Check by mail'}</p>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div>
+                <label htmlFor="check-payable" className="text-white/70 text-xs font-semibold block mb-1.5">{lang === 'es' ? 'A nombre de' : 'Make checks payable to'}</label>
+                <input id="check-payable" type="text" maxLength={120} value={checkPayableTo} onChange={(e) => setCheckPayableTo(e.target.value)} placeholder={lang === 'es' ? 'Tu nombre o empresa' : 'Your name or company'} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder-white/40 focus:outline-none focus:border-[#12A5A9] transition" />
+              </div>
+              <div>
+                <label htmlFor="check-mail" className="text-white/70 text-xs font-semibold block mb-1.5">{lang === 'es' ? 'Enviar a' : 'Mail to'}</label>
+                <input id="check-mail" type="text" maxLength={300} value={checkMailAddress} onChange={(e) => setCheckMailAddress(e.target.value)} placeholder={lang === 'es' ? 'Dirección postal' : 'Mailing address'} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder-white/40 focus:outline-none focus:border-[#12A5A9] transition" />
+              </div>
+            </div>
+            <div>
+              <label htmlFor="cash-instructions" className="text-white text-sm font-semibold block mb-1.5">{lang === 'es' ? 'Efectivo en persona' : 'Cash in person'}</label>
+              <input id="cash-instructions" type="text" maxLength={300} value={cashInstructions} onChange={(e) => setCashInstructions(e.target.value)} placeholder={lang === 'es' ? 'Ej.: en la oficina, lunes a viernes 9–5. Te damos recibo.' : 'e.g. At the office, Mon–Fri 9–5. We give a receipt.'} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder-white/40 focus:outline-none focus:border-[#12A5A9] transition" />
+              <p className="text-white/40 text-xs mt-1">{lang === 'es' ? 'Déjalo vacío si no aceptas efectivo.' : "Leave empty if you don't take cash."}</p>
+            </div>
+          </div>
+
+          <div className="border-t border-white/8 pt-4 space-y-2">
+            <p className="text-white text-sm font-semibold">{lang === 'es' ? 'Pagos en la app' : 'In-app payments'}</p>
+            {([
+              { v: acceptBank, set: setAcceptBank, label: lang === 'es' ? 'Transferencia bancaria (sin cargo para el inquilino)' : 'Bank transfer (no fee for your tenant)' },
+              { v: acceptCard, set: setAcceptCard, label: lang === 'es' ? 'Tarjeta de débito (el inquilino paga el cargo)' : 'Debit card (your tenant pays the card fee)' },
+            ]).map((o) => (
+              <label key={o.label} className="flex items-center justify-between gap-3 rounded-xl bg-white/4 border border-white/8 px-3.5 py-3 cursor-pointer">
+                <span className="text-white/80 text-sm">{o.label}</span>
+                <input type="checkbox" checked={o.v} onChange={(e) => o.set(e.target.checked)} className="w-5 h-5 accent-[#12A5A9]" />
+              </label>
+            ))}
           </div>
 
           <div className="bg-yellow-500/8 border border-yellow-500/20 rounded-xl px-4 py-3">

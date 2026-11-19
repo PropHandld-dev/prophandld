@@ -23,7 +23,7 @@ export async function GET() {
 
   const { data: orgs } = await admin
     .from('pm_organizations')
-    .select('id, name, slug, open_to_clients, pitch, created_at, admin:admin_user_id(full_name, email)')
+    .select('id, name, slug, open_to_clients, pitch, created_at, broker_license_number, broker_license_state, trust_account_attested_at, admin:admin_user_id(full_name, email)')
     .order('created_at', { ascending: false })
 
   if (!orgs || orgs.length === 0) {
@@ -32,15 +32,22 @@ export async function GET() {
 
   const orgIds = orgs.map((o) => o.id)
 
-  const [{ data: portfolios }, { data: members }, { data: reviews }] = await Promise.all([
-    admin.from('pm_client_portfolios').select('organization_id, status').in('organization_id', orgIds),
+  const [{ data: portfolios }, { data: members }, { data: reviews }, { data: endings }] = await Promise.all([
+    admin.from('pm_client_portfolios').select('organization_id, status, rent_recipient').in('organization_id', orgIds),
     admin.from('pm_organization_members').select('organization_id, status').in('organization_id', orgIds),
     admin
       .from('pm_reviews')
       .select('id, organization_id, rating, comment, created_at, reviewer:reviewer_user_id(full_name, email)')
       .in('organization_id', orgIds)
       .order('created_at', { ascending: false }),
+    admin.from('pm_relationship_endings').select('organization_id').in('organization_id', orgIds),
   ])
+  const endedCounts = new Map<string, number>()
+  for (const e of (endings || []) as any[]) endedCounts.set(e.organization_id, (endedCounts.get(e.organization_id) || 0) + 1)
+  const rentCollecting = new Map<string, number>()
+  for (const p of (portfolios || []) as any[]) {
+    if (p.status === 'accepted' && p.rent_recipient === 'pm') rentCollecting.set(p.organization_id, (rentCollecting.get(p.organization_id) || 0) + 1)
+  }
 
   const clientCounts = new Map<string, { accepted: number; pending: number }>()
   for (const p of (portfolios || []) as any[]) {
@@ -82,6 +89,10 @@ export async function GET() {
     acceptedClients: clientCounts.get(o.id)?.accepted || 0,
     pendingClients: clientCounts.get(o.id)?.pending || 0,
     staffCount: staffCounts.get(o.id) || 0,
+    brokerLicense: o.broker_license_number ? `${o.broker_license_state || ''} ${o.broker_license_number}`.trim() : null,
+    trustAccountAttestedAt: o.trust_account_attested_at || null,
+    clientsRentToPm: rentCollecting.get(o.id) || 0,
+    endedRelationships: endedCounts.get(o.id) || 0,
     reviews: reviewsByOrg.get(o.id) || [],
   }))
 

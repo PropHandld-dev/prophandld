@@ -10,6 +10,7 @@ import { AuthInput } from '@/components/AuthInput'
 import { MailIcon, LockIcon } from '@/components/icons'
 import { RolePicker, type Role, type RoleIntent } from '@/components/RolePicker'
 import { LegalModal } from '@/components/legal/LegalModal'
+import { PropertyManagerTermsContent } from '@/components/legal/PropertyManagerTermsContent'
 import { OAuthButtons } from '@/components/OAuthButtons'
 import { LandlordTermsContent } from '@/components/legal/LandlordTermsContent'
 import { RenterTermsContent } from '@/components/legal/RenterTermsContent'
@@ -757,7 +758,19 @@ function SignupForm() {
             setReviewedTerms(true)
           }}
         >
-          {role === 'renter' ? <RenterTermsContent /> : role === 'contractor' ? <ContractorTermsContent /> : <LandlordTermsContent />}
+          {role === 'renter' ? (
+            <RenterTermsContent />
+          ) : role === 'contractor' ? (
+            <ContractorTermsContent />
+          ) : roleIntent === 'property_manager' ? (
+            <>
+              <LandlordTermsContent />
+              <h2 className="!mt-10">Property manager addendum</h2>
+              <PropertyManagerTermsContent />
+            </>
+          ) : (
+            <LandlordTermsContent />
+          )}
         </LegalModal>
       )}
 

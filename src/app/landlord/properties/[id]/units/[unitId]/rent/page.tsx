@@ -488,7 +488,7 @@ export default function UnitRentPage() {
                         <div className="flex flex-col items-end gap-2 shrink-0">
                           {!isPaid && payment.renter_marked_sent_method && (
                             <span className="text-[11px] text-yellow-400 bg-yellow-500/10 rounded-full px-2.5 py-0.5">
-                              {t('tenantMarkedSentPrefix', lang)} {payment.renter_marked_sent_method === 'cashapp' ? 'Cash App' : payment.renter_marked_sent_method === 'venmo' ? 'Venmo' : 'Zelle'}
+                              {t('tenantMarkedSentPrefix', lang)} {({ cashapp: 'Cash App', venmo: 'Venmo', zelle: 'Zelle', check: lang === 'es' ? 'cheque' : 'check', cash: lang === 'es' ? 'efectivo' : 'cash' } as Record<string, string>)[payment.renter_marked_sent_method] || payment.renter_marked_sent_method}
                             </span>
                           )}
                           {isPaid ? (

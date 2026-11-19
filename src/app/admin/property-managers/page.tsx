@@ -26,6 +26,10 @@ type Org = {
   acceptedClients: number
   pendingClients: number
   staffCount: number
+  brokerLicense: string | null
+  trustAccountAttestedAt: string | null
+  clientsRentToPm: number
+  endedRelationships: number
   reviews: Review[]
 }
 
@@ -109,6 +113,11 @@ export default function AdminPropertyManagersPage() {
                   <p className="text-white/40 text-xs mt-1">
                     Admin: {org.adminName} ({org.adminEmail}) · {org.acceptedClients} client{org.acceptedClients === 1 ? '' : 's'}
                     {org.pendingClients > 0 && `, ${org.pendingClients} pending`} · {org.staffCount} staff
+                  </p>
+                  <p className="text-white/40 text-xs mt-0.5">
+                    License: {org.brokerLicense || 'none on file'} · Trust account: {org.trustAccountAttestedAt ? `confirmed ${new Date(org.trustAccountAttestedAt).toLocaleDateString()}` : 'not confirmed'}
+                    {' · '}Collects rent for {org.clientsRentToPm} client{org.clientsRentToPm === 1 ? '' : 's'}
+                    {org.endedRelationships > 0 && ` · ${org.endedRelationships} ended`}
                   </p>
                 </div>
               </button>

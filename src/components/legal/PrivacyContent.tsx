@@ -66,6 +66,13 @@ export function PrivacyContent() {
               tenant's landlord-of-record doesn't change by adding one.
             </p>
             <p>
+              If an owner hires a property management company through Prophandld, that company and the
+              staff it assigns can see the same property, tenant, job, rent and document information the
+              owner can, for that owner&apos;s properties only. Tenants and contractors can see which
+              company manages the property. The company may only use this information to manage those
+              properties. When management ends, the company and its staff lose access right away.
+            </p>
+            <p>
               A property management organization that opts in to a public profile makes some
               information visible to anyone on the internet, without an account or login: the
               organization&apos;s own name, a short description it writes about itself, and aggregate
