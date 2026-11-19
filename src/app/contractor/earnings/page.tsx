@@ -202,14 +202,14 @@ export default function ContractorEarningsPage() {
                   <DollarSignIcon className="w-4 h-4 text-[#12A5A9]" />
                   <span className="text-white/60 text-xs font-medium">{t('thisYear', lang)} ({thisYear})</span>
                 </div>
-                <p className="text-white text-2xl font-bold">${thisYearTotal.toFixed(2)}</p>
+                <p className="text-white text-2xl font-bold">${thisYearTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
               </div>
               <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
                 <div className="flex items-center gap-2 mb-1.5">
                   <DollarSignIcon className="w-4 h-4 text-[#12A5A9]" />
                   <span className="text-white/60 text-xs font-medium">{t('allTime', lang)}</span>
                 </div>
-                <p className="text-white text-2xl font-bold">${allTimeTotal.toFixed(2)}</p>
+                <p className="text-white text-2xl font-bold">${allTimeTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
               </div>
             </div>
 
@@ -273,7 +273,7 @@ export default function ContractorEarningsPage() {
               {isInvalidRange ? (
                 <p className="text-red-400 text-xs mt-3">{t('reportRangeReversedError', lang)}</p>
               ) : (
-                <p className="text-white/40 text-xs mt-3">{rangeLabel} · <span className="text-white/60 font-medium">${rangeTotal.toFixed(2)}</span></p>
+                <p className="text-white/40 text-xs mt-3">{rangeLabel} · <span className="text-white/60 font-medium">${rangeTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></p>
               )}
             </div>
 
@@ -367,7 +367,7 @@ export default function ContractorEarningsPage() {
 
         <div className="border-y border-black/10 py-4 mb-8">
           <p className="text-black/40 text-[10px] uppercase tracking-wide mb-1">{t('allTime', lang)}: {rangeLabel}</p>
-          <p className="font-mono font-semibold text-lg" style={{ color: '#0A7B7E' }}>${rangeTotal.toFixed(2)}</p>
+          <p className="font-mono font-semibold text-lg" style={{ color: '#0A7B7E' }}>${rangeTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
         </div>
 
         <table className="w-full text-xs font-mono mb-8">
@@ -385,7 +385,7 @@ export default function ContractorEarningsPage() {
                 <td className="py-1.5">{(b.paid_at || b.created_at).slice(0, 10)}</td>
                 <td className="py-1.5">{b.jobs?.category}</td>
                 <td className="py-1.5">{jobLocation(b, lang)}</td>
-                <td className="py-1.5 text-right">${(b.amount || 0).toFixed(2)}</td>
+                <td className="py-1.5 text-right">${(b.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
               </tr>
             ))}
           </tbody>
