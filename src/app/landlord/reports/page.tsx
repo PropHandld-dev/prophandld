@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -267,6 +267,11 @@ export default function LandlordReportsPage() {
   }, [range.from, range.to])
   const estimatedSubscriptionCost = !PILOT_FREE && unitCount > 1 && !isInvalidRange ? graduatedMonthlyAmount(unitCount) * monthsInRange : 0
 
+  // Dates depend on the viewer's time zone, which the server doesn't know
+  // (in the evening it's already tomorrow in UTC). Showing them only after
+  // the page is in the browser avoids a mismatch that reset the page (and
+  // dropped light mode).
+  const mounted = useSyncExternalStore(() => () => {}, () => true, () => false)
   const rangeLabel = `${new Date(range.from + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} – ${new Date(range.to + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`
 
   const exportRent = () => {
@@ -524,11 +529,11 @@ export default function LandlordReportsPage() {
               <span className="text-black/35 text-[10px] leading-tight">Your Property. Handled.</span>
             </div>
           </div>
-          <span className="text-xs text-black/40">{new Date().toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+          <span className="text-xs text-black/40">{mounted ? new Date().toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' }) : ''}</span>
         </div>
         <p className="font-mono text-[10px] tracking-[0.15em] text-black/40 uppercase mb-1">{t('reportsHeading', lang)}</p>
         <h1 className="text-xl font-semibold mb-0.5">{landlordName || t('unknownLabel', lang)}</h1>
-        <p className="text-black/50 text-sm mb-1">{rangeLabel}</p>
+        <p className="text-black/50 text-sm mb-1">{mounted ? rangeLabel : ''}</p>
         <p className="text-black/40 text-xs mb-6">{propertyLabel}</p>
 
         <div className="grid grid-cols-3 gap-4 mb-8 border-y border-black/10 py-4">
