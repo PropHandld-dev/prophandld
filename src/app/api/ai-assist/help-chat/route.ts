@@ -6,7 +6,7 @@ import { aiAccessFor } from '@/lib/aiAccess'
 import { tooManyAiAssistRequests } from '@/lib/aiAssistRateLimit'
 import { getLandlordIdsAdmin } from '@/lib/landlordIds'
 import { getPmMembership, scopeOwnerIdsForMember } from '@/lib/pm'
-import { claudeText, ClaudeConfigError, CLAUDE_SMART_MODEL } from '@/lib/claude'
+import { claudeText, claudeStream, ClaudeConfigError, CLAUDE_SMART_MODEL } from '@/lib/claude'
 import { PHILADELPHIA_COMPLIANCE_FACTS } from '@/lib/complianceFacts'
 import { rentMonthBounds } from '@/lib/rentAutomation'
 import { nextEscalationDate } from '@/lib/leaseEscalation'
@@ -370,7 +370,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Too many messages right now, try again in a few minutes.' }, { status: 429 })
   }
 
-  const { history, message } = (await request.json()) as { history?: ChatTurn[]; message?: string }
+  const { history, message, stream } = (await request.json()) as { history?: ChatTurn[]; message?: string; stream?: boolean }
   if (!message?.trim() || message.length > 1000) {
     return NextResponse.json({ error: 'Message must be 1-1000 characters' }, { status: 400 })
   }
@@ -475,21 +475,57 @@ export async function POST(request: NextRequest) {
     `NAVIGATION PATHS (role: ${role}):\n${navPathList}\n\n` +
     `ACCOUNT FACTS (this signed-in user's own data, JSON; today is ${new Date().toISOString().slice(0, 10)}):\n${JSON.stringify(accountFacts)}`
 
-  try {
-    let text = await claudeText({
-      system,
-      prompt: `Conversation so far:\n${conversation}\n\nWrite the assistant's next reply.`,
-      maxTokens: 1500,
-      model: CLAUDE_SMART_MODEL,
-      raw: true,
-      track: { billedUserId, callerUserId: user.id, feature: 'help-chat' },
-    })
-    const escalate = /\[\[ESCALATE\]\]/i.test(text)
-    const linkPath = text.match(/\[\[LINK:\s*([^\]\s]+)\s*\]\]/i)?.[1]
-    text = text.replace(/\[\[(?:LINK:[^\]]*|ESCALATE)\]\]/gi, '').replace(/^Assistant:\s*/i, '').replace(/\*\*(.+?)\*\*/g, '$1').trim()
+  const prompt = `Conversation so far:\n${conversation}\n\nWrite the assistant's next reply.`
+  const track = { billedUserId, callerUserId: user.id, feature: 'help-chat' }
+  // The model ends with optional [[LINK:...]] / [[ESCALATE]] tags; these
+  // become the reply's link button and "talk to a person" option.
+  const finish = (raw: string) => {
+    const escalate = /\[\[ESCALATE\]\]/i.test(raw)
+    const linkPath = raw.match(/\[\[LINK:\s*([^\]\s]+)\s*\]\]/i)?.[1]
+    const reply = raw.replace(/\[\[(?:LINK:[^\]]*|ESCALATE)\]\]/gi, '').replace(/^Assistant:\s*/i, '').replace(/\*\*(.+?)\*\*/g, '$1').trim()
     // Only a link from the real list survives, never a guessed one.
-    const nav = (NAV_PATHS[role] || []).find((n) => n.path === linkPath) || null
-    return NextResponse.json({ reply: text, suggestEscalate: escalate, navLink: nav })
+    const navLink = (NAV_PATHS[role] || []).find((n) => n.path === linkPath) || null
+    return { reply, suggestEscalate: escalate, navLink }
+  }
+
+  if (stream) {
+    // Text arrives as it's written. Anything from "[[" on is held back (the
+    // tags), and the final cleaned reply plus link/escalate info follows a
+    // \u0000 separator once the model is done.
+    const encoder = new TextEncoder()
+    const body = new ReadableStream({
+      async start(controller) {
+        let full = ''
+        let sent = 0
+        try {
+          const raw = await claudeStream({
+            system, prompt, maxTokens: 1500, model: CLAUDE_SMART_MODEL, track,
+            onText: (delta) => {
+              full += delta
+              const tag = full.indexOf('[[')
+              let safe = tag === -1 ? full.length : tag
+              if (tag === -1 && full.endsWith('[')) safe -= 1
+              if (safe > sent) {
+                controller.enqueue(encoder.encode(full.slice(sent, safe)))
+                sent = safe
+              }
+            },
+          })
+          controller.enqueue(encoder.encode('\u0000' + JSON.stringify(finish(raw))))
+        } catch (err) {
+          const errorRef = crypto.randomUUID().slice(0, 8)
+          console.error(`ai-assist/help-chat: stream error [ref ${errorRef}]`, err)
+          controller.enqueue(encoder.encode('\u0000' + JSON.stringify({ error: 'Could not respond right now. Try again in a moment.', errorRef })))
+        }
+        controller.close()
+      },
+    })
+    return new Response(body, { headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store', 'X-Accel-Buffering': 'no' } })
+  }
+
+  try {
+    const raw = await claudeText({ system, prompt, maxTokens: 1500, model: CLAUDE_SMART_MODEL, raw: true, track })
+    return NextResponse.json(finish(raw))
   } catch (err) {
     if (err instanceof ClaudeConfigError) {
       return NextResponse.json({ error: 'Not set up yet' }, { status: 503 })

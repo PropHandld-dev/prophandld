@@ -191,3 +191,27 @@ export async function claudeText({ system, prompt, maxTokens = 800, track, model
   if (!text) throw new Error('Claude returned no text')
   return text
 }
+
+// Same as claudeText with `raw`, but hands each piece of text to onText as
+// it's written, so a chat can show the reply forming instead of a spinner.
+// Resolves with the full text; usage is logged before it resolves.
+export async function claudeStream({ system, prompt, maxTokens = 1500, track, model = CLAUDE_MODEL, onText }: { system: string; prompt: string; maxTokens?: number; track: UsageTrack; model?: string; onText: (delta: string) => void }): Promise<string> {
+  requireApiKey()
+  const stream = getClaude().messages.stream({
+    model,
+    max_tokens: Math.max(maxTokens, 2000),
+    system,
+    messages: [{ role: 'user', content: prompt }],
+  })
+  stream.on('text', (delta) => onText(delta))
+  const message = await stream.finalMessage()
+  try {
+    await logUsage(track, message.usage.input_tokens, message.usage.output_tokens, model)
+  } catch (err) {
+    console.error('claudeStream: usage logging threw', err)
+  }
+  const textBlock = message.content.find((b): b is Anthropic.TextBlock => b.type === 'text')
+  const text = (textBlock?.text || '').trim()
+  if (!text) throw new Error('Claude returned no text')
+  return text
+}

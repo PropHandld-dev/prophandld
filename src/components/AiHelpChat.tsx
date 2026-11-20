@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { RippleButton } from '@/components/RippleButton'
 import { useLanguage, t } from '@/lib/i18n'
 
-type Turn = { role: 'user' | 'assistant'; content: string; suggestEscalate?: boolean; navLink?: { path: string; label: string } | null }
+type Turn = { role: 'user' | 'assistant'; content: string; suggestEscalate?: boolean; navLink?: { path: string; label: string } | null; id?: string }
 
 // Shared chat body used both inside the Profile "Contact us" modal and the
 // floating widget's "Ask AI for help" panel, so the behavior (and the
@@ -75,10 +75,10 @@ export function AiHelpChat({ initialMessage, onNavigate }: { initialMessage?: st
         body: JSON.stringify({
           history: baseHistory.map((t) => ({ role: t.role, content: t.content })),
           message,
+          stream: true,
         }),
       })
-      const data = await res.json()
-      if (!res.ok) {
+      const fail = (data: { error?: string; errorRef?: string }) => {
         // Caught live by an external audit: a failed send used to force
         // retyping the whole message — kept here so Retry can resend the
         // exact same text/history instead.
@@ -86,10 +86,45 @@ export function AiHelpChat({ initialMessage, onNavigate }: { initialMessage?: st
         setErrorRef(data.errorRef || null)
         setLastFailed({ message, history: baseHistory })
         setSending(false)
+      }
+      if (!res.ok || !res.body) {
+        fail(await res.json().catch(() => ({})))
+        return
+      }
+      // The reply streams in as it's written; after a \u0000 comes the
+      // final cleaned reply with its link / talk-to-a-person info.
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+      const replyId = crypto.randomUUID()
+      let added = false
+      const show = (content: string, extra: Partial<Turn> = {}) => {
+        added = true
+        setTurns((prev) => {
+          const next: Turn = { role: 'assistant', content, id: replyId, ...extra }
+          return prev.some((t) => t.id === replyId) ? prev.map((t) => (t.id === replyId ? next : t)) : [...prev, next]
+        })
+      }
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        const cut = buffer.indexOf('\u0000')
+        const visible = cut === -1 ? buffer : buffer.slice(0, cut)
+        if (visible.trim()) {
+          setSending(false)
+          show(visible)
+        }
+      }
+      const cut = buffer.indexOf('\u0000')
+      const meta = cut === -1 ? null : JSON.parse(buffer.slice(cut + 1))
+      if (!meta || meta.error) {
+        if (added) setTurns((prev) => prev.filter((t) => t.id !== replyId))
+        fail(meta || {})
         return
       }
       setLastFailed(null)
-      setTurns((prev) => [...prev, { role: 'assistant', content: data.reply, suggestEscalate: !!data.suggestEscalate, navLink: data.navLink || null }])
+      show(meta.reply, { suggestEscalate: !!meta.suggestEscalate, navLink: meta.navLink || null })
     } catch {
       setError(t('aiHelpChatFailed', lang))
       setLastFailed({ message, history: baseHistory })
@@ -235,7 +270,15 @@ export function AiHelpChat({ initialMessage, onNavigate }: { initialMessage?: st
             </div>
           </div>
         ))}
-        {sending && <p className="text-white/40 text-xs">{t('aiHelpChatThinking', lang)}</p>}
+        {sending && (
+          <div className="flex justify-start" role="status" aria-label={t('aiHelpChatThinking', lang)}>
+            <div className="bg-white/5 border border-white/10 rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-1.5">
+              {[0, 150, 300].map((delay) => (
+                <span key={delay} className="w-1.5 h-1.5 rounded-full bg-[#12A5A9] motion-safe:animate-bounce" style={{ animationDelay: `${delay}ms` }} />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {error && (
