@@ -42,6 +42,7 @@ import { DiyTroubleshootPanel } from '@/components/DiyTroubleshootPanel'
 import { useLanguage, t, windowLabel } from '@/lib/i18n'
 import { useDialogA11y } from '@/lib/useDialogA11y'
 import { BidCompare } from '@/components/BidCompare'
+import { formatMoney } from '@/lib/money'
 
 // Shared styling for every secondary action in the status card's action
 // row (decline, handle it myself, chat, ask a question, archive) — one
@@ -1628,7 +1629,7 @@ export default function JobDetailPage() {
                         )}
                       </div>
                       <div className="text-right">
-                        <p className="text-[#12A5A9] font-bold">${bid.amount}</p>
+                        <p className="text-[#12A5A9] font-bold">{formatMoney(bid.amount)}</p>
                         {bid.pricing_type === 'hourly' && bid.labor_rate && (
                           <p className="text-white/40 text-[11px]">${bid.labor_rate}/hr</p>
                         )}
@@ -1724,12 +1725,12 @@ export default function JobDetailPage() {
                 {acceptedBid.price_change_status === 'pending' ? (
   <div className="mt-2 bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
     <p className="text-yellow-400 text-xs font-semibold mb-1">{t('priceChangeRequestedLabel', lang)}</p>
-    <p className="text-white/60 text-sm line-through">${acceptedBid.amount}</p>
-    <p className="text-white font-bold text-lg">${acceptedBid.proposed_amount}</p>
+    <p className="text-white/60 text-sm line-through">{formatMoney(acceptedBid.amount)}</p>
+    <p className="text-white font-bold text-lg">{formatMoney(acceptedBid.proposed_amount)}</p>
     {(acceptedBid.price_change_labor || acceptedBid.price_change_parts) && (
       <div className="text-white/50 text-xs mt-2 space-y-0.5">
-        {acceptedBid.price_change_labor && <p>{t('laborColonLabel', lang)} ${acceptedBid.price_change_labor}</p>}
-        {acceptedBid.price_change_parts && <p>{t('partsColonLabel', lang)} ${acceptedBid.price_change_parts}</p>}
+        {acceptedBid.price_change_labor && <p>{t('laborColonLabel', lang)} {formatMoney(acceptedBid.price_change_labor)}</p>}
+        {acceptedBid.price_change_parts && <p>{t('partsColonLabel', lang)} {formatMoney(acceptedBid.price_change_parts)}</p>}
       </div>
     )}
     {acceptedBid.price_change_reason && (
@@ -1754,7 +1755,7 @@ export default function JobDetailPage() {
                   </div>
                 ) : (
                   <p className="text-[#12A5A9] font-bold text-sm mt-1">
-                    ${acceptedBid.amount}
+                    {formatMoney(acceptedBid.amount)}
                     {acceptedBid.pricing_type === 'hourly' && acceptedBid.labor_rate && (
                       <span className="text-white/40 font-normal text-xs ml-1.5">(${acceptedBid.labor_rate}/hr)</span>
                     )}
@@ -1794,7 +1795,7 @@ export default function JobDetailPage() {
               <div>
                 <h3 className="text-white font-semibold">{t('payContractorHeading', lang)}</h3>
                 <p className="text-white/60 text-sm mt-1">
-                  ${acceptedBid.amount}{' '}
+                  {formatMoney(acceptedBid.amount)}{' '}
                   {(acceptedBid.payment_status === 'paid' || paidBanner === 'succeeded' ? t('sentTo', lang) : t('owedTo', lang)).toLowerCase()}{' '}
                   {acceptedBid.contractor?.full_name}
                 </p>
@@ -2187,7 +2188,7 @@ export default function JobDetailPage() {
             <h3 className="text-white font-semibold mb-2">{t('selectThisContractorQ', lang)}</h3>
             <p className="text-white/50 text-sm mb-4">
               <span className="text-white font-medium">{selectedBid.contractor?.full_name}</span> {t('forLabel', lang)}{' '}
-              <span className="text-[#12A5A9] font-semibold">${selectedBid.amount}</span>. {t('allOtherBidsNotSelected', lang)}
+              <span className="text-[#12A5A9] font-semibold">{formatMoney(selectedBid.amount)}</span>. {t('allOtherBidsNotSelected', lang)}
             </p>
             <div className="flex gap-3">
               <button
@@ -2419,12 +2420,12 @@ export default function JobDetailPage() {
             </p>
             {acceptedBid?.price_change_status === 'pending' && (
               <div className="bg-white/5 border border-white/10 rounded-xl p-3 mb-6 text-sm">
-                <p className="text-white/50 line-through">${acceptedBid.amount}</p>
-                <p className="text-white font-bold">${acceptedBid.proposed_amount}</p>
+                <p className="text-white/50 line-through">{formatMoney(acceptedBid.amount)}</p>
+                <p className="text-white font-bold">{formatMoney(acceptedBid.proposed_amount)}</p>
                 {(acceptedBid.price_change_labor || acceptedBid.price_change_parts) && (
                   <p className="text-white/40 text-xs mt-1">
-                    {t('laborColonLabel', lang)} ${acceptedBid.price_change_labor}
-                    {acceptedBid.price_change_parts ? ` · ${t('partsColonLabel', lang)} $${acceptedBid.price_change_parts}` : ''}
+                    {t('laborColonLabel', lang)} {formatMoney(acceptedBid.price_change_labor)}
+                    {acceptedBid.price_change_parts ? ` · ${t('partsColonLabel', lang)} ${formatMoney(acceptedBid.price_change_parts)}` : ''}
                   </p>
                 )}
               </div>

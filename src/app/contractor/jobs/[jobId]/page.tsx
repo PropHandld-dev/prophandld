@@ -29,6 +29,8 @@ import { useLanguage, t, windowLabel } from '@/lib/i18n'
 import { useConfirm } from '@/lib/useConfirm'
 import { useDialogA11y } from '@/lib/useDialogA11y'
 import { ManagedByBadge } from '@/components/ManagedByBadge'
+import { MIN_JOB_TOTAL } from '@/lib/bidRules'
+import { formatMoney } from '@/lib/money'
 
 export default function ContractorJobDetailPage() {
   const router = useRouter()
@@ -536,6 +538,10 @@ export default function ContractorJobDetailPage() {
       return
     }
     const newTotal = labor + parts
+    if (newTotal < MIN_JOB_TOTAL) {
+      setError(t('jobTotalTooLow', lang).replace('{min}', String(MIN_JOB_TOTAL)))
+      return
+    }
     if (!priceChangeReason.trim()) {
       setError(t('explainPriceChangeReason', lang))
       return
@@ -754,12 +760,12 @@ export default function ContractorJobDetailPage() {
               )}
               {myBid.price_change_status === 'pending' ? (
                 <div>
-                  <p className="text-white/60 text-sm line-through">${myBid.amount}</p>
-                  <p className="text-yellow-400 font-bold">${myBid.proposed_amount} <span className="text-xs font-normal">{t('pendingLandlordApproval', lang)}</span></p>
+                  <p className="text-white/60 text-sm line-through">{formatMoney(myBid.amount)}</p>
+                  <p className="text-yellow-400 font-bold">{formatMoney(myBid.proposed_amount)} <span className="text-xs font-normal">{t('pendingLandlordApproval', lang)}</span></p>
                 </div>
               ) : (
                 <p className="text-[#12A5A9] font-bold">
-                  ${myBid.amount}
+                  {formatMoney(myBid.amount)}
                   {myBid.pricing_type === 'hourly' && myBid.labor_rate && (
                     <span className="text-white/40 font-normal text-xs ml-1.5">(${myBid.labor_rate}/hr)</span>
                   )}

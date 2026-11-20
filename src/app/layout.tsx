@@ -5,6 +5,7 @@ import { CursorGlow } from "@/components/CursorGlow";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { StagingBadge } from "@/components/StagingBadge";
 import { AiHelpBubble } from "@/components/AiHelpBubble";
+import { TestModeBadge } from "@/components/TestModeBadge";
 import { AppLaunchIntro } from "@/components/AppLaunchIntro";
 import { LandingLaunchIntro } from "@/components/LandingLaunchIntro";
 import { THEME_BOOT_SCRIPT } from "@/lib/theme";
@@ -119,6 +120,7 @@ export default function RootLayout({
             every page). Messages tab and job chat pages are unaffected.
             Re-enable by restoring <FloatingChatWidget /> here. */}
         <AiHelpBubble />
+        <TestModeBadge />
         <StagingBadge />
       </body>
     </html>

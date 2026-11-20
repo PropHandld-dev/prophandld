@@ -17,6 +17,7 @@ import { Switch } from '@/components/Switch'
 import { useGroupedCategoryOptions } from '@/lib/categories'
 import { PendingInviteNeedsPhoneBanner } from '@/components/PendingInviteNeedsPhoneBanner'
 import { useLanguage, t } from '@/lib/i18n'
+import { checkAddressOnServer } from '@/lib/zipValidation'
 
 export default function ContractorSettingsPage() {
   const router = useRouter()
@@ -108,6 +109,14 @@ export default function ContractorSettingsPage() {
     // ever reaches that.
     if (!/^\d{5}$/.test(zip.trim())) {
       setError(t('invalidZipFormat', lang))
+      setSaving(false)
+      return
+    }
+    // A well-formed but nonexistent ZIP (00000, 99999) used to save and then
+    // silently show zero jobs forever.
+    const zipCheck = await checkAddressOnServer({ zip: zip.trim() })
+    if (zipCheck.error) {
+      setError(zipCheck.error)
       setSaving(false)
       return
     }

@@ -8,6 +8,7 @@ import { sendJobPaymentNotifications } from '@/lib/jobPaymentNotify'
 import { sendPush } from '@/lib/push'
 import { emailAllowed } from '@/lib/notificationPrefs'
 import { notifyLandlordIds } from '@/lib/landlordCoOwners'
+import { MIN_JOB_TOTAL } from '@/lib/bidRules'
 
 export const maxDuration = 60
 
@@ -232,7 +233,7 @@ export async function GET(request: NextRequest) {
     // same guard create-payment-intent applies for a manual payment.
     // Not worth a special email for this one; it's rare and the plain
     // reminder below still covers it.
-    if (!pm || !contractorStripe?.acctId || contractorStripe.status !== 'active' || (contractorStripe.frozenUntil && new Date(contractorStripe.frozenUntil) > new Date())) {
+    if (!pm || !(amount >= MIN_JOB_TOTAL) || !contractorStripe?.acctId || contractorStripe.status !== 'active' || (contractorStripe.frozenUntil && new Date(contractorStripe.frozenUntil) > new Date())) {
       await supabaseAdmin.from('jobs').update({ autocharge_result: 'declined' }).eq('id', job.id)
       return
     }

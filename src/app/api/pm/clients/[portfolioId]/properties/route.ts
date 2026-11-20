@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { getPmMembership, scopeOwnerIdsForMember, logPmAction } from '@/lib/pm'
 import { syncLandlordSubscription } from '@/lib/subscriptionSync'
 import { sendPush } from '@/lib/push'
+import { checkUsAddress } from '@/lib/addressCheck'
 
 export const maxDuration = 20
 
@@ -61,6 +62,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const zip = body.zip?.trim()
   if (!address || !city || !state || !zip) {
     return NextResponse.json({ error: 'Address, city, state and ZIP are required.' }, { status: 400 })
+  }
+  const addressCheck = checkUsAddress({ city, state, zip })
+  if (!addressCheck.ok) {
+    return NextResponse.json({ error: addressCheck.error }, { status: 400 })
   }
   if (!/^\d{5}$/.test(zip)) {
     return NextResponse.json({ error: 'ZIP must be 5 digits.' }, { status: 400 })

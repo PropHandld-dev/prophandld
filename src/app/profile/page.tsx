@@ -617,6 +617,7 @@ export default function ProfilePage() {
               <input
                 type="text"
                 name="full_name"
+                maxLength={80}
                 value={form.full_name}
                 onChange={handleChange}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"

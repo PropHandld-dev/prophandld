@@ -11,7 +11,7 @@ import { BottomTabBar } from '@/components/BottomTabBar'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { AddressAutocomplete, type AutocompletePlace } from '@/components/AddressAutocomplete'
-import { isValidZip } from '@/lib/zipValidation'
+import { isValidZip, checkAddressOnServer } from '@/lib/zipValidation'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 import { useLanguage, t } from '@/lib/i18n'
 import { useConfirm } from '@/lib/useConfirm'
@@ -93,6 +93,13 @@ function NewPropertyForm() {
       setLoading(false)
       return
     }
+    const addressCheck = await checkAddressOnServer({ city: form.city, state: form.state, zip: form.zip })
+    if (addressCheck.error) {
+      setError(addressCheck.error)
+      setLoading(false)
+      return
+    }
+    const normalizedState = addressCheck.state
 
     const { data: { user }, error: userError } = await supabase.auth.getUser()
 
@@ -116,7 +123,7 @@ function NewPropertyForm() {
     const dupRes = await fetch('/api/landlord/properties/check-duplicate-address', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ address: form.address, city: form.city, state: form.state, forOwnerId: forClient?.ownerUserId }),
+      body: JSON.stringify({ address: form.address, city: form.city, state: normalizedState, forOwnerId: forClient?.ownerUserId }),
     })
     const dup = await dupRes.json().catch(() => ({}))
 
@@ -145,7 +152,7 @@ function NewPropertyForm() {
         body: JSON.stringify({
           address: form.address,
           city: form.city,
-          state: form.state,
+          state: normalizedState,
           zip: form.zip,
           propertyType: form.property_type,
           numUnits: parseInt(form.num_units),
@@ -175,7 +182,7 @@ function NewPropertyForm() {
         owner_user_id: effectiveOwnerId ?? user.id,
         address: form.address,
         city: form.city,
-        state: form.state,
+        state: normalizedState,
         zip: form.zip,
         property_type: form.property_type,
         lat: geo?.lat ?? null,

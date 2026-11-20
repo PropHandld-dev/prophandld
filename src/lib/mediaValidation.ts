@@ -25,10 +25,27 @@ export function isVideoFile(file: File) {
 // starts with binary bytes, never a page of printable text, so a file
 // that's >95% printable ASCII in its first chunk is never a valid one of
 // these, whatever its name claims.
+// Real document/image formats announce themselves in their first bytes.
+// Checked first because a genuine PDF's opening bytes are often readable
+// text ("%PDF-1.4 ... obj"), which the plain-text check below wrongly
+// rejected as a renamed text file (contractors couldn't upload a valid
+// license PDF).
+function hasKnownSignature(bytes: Uint8Array): boolean {
+  const starts = (sig: number[]) => sig.every((b, i) => bytes[i] === b)
+  return (
+    starts([0x25, 0x50, 0x44, 0x46, 0x2d]) || // %PDF-
+    starts([0xff, 0xd8, 0xff]) || // JPEG
+    starts([0x89, 0x50, 0x4e, 0x47]) || // PNG
+    starts([0xd0, 0xcf, 0x11, 0xe0]) || // .doc
+    starts([0x50, 0x4b, 0x03, 0x04]) // .docx (zip)
+  )
+}
+
 async function looksLikePlainText(file: File): Promise<boolean> {
   const sample = await file.slice(0, 512).arrayBuffer()
   const bytes = new Uint8Array(sample)
   if (bytes.length === 0) return false
+  if (hasKnownSignature(bytes)) return false
   let printable = 0
   for (const b of bytes) {
     if (b === 9 || b === 10 || b === 13 || (b >= 32 && b <= 126)) printable++
@@ -50,8 +67,21 @@ async function imageFailsToDecode(file: File): Promise<boolean> {
     bitmap.close()
     return !ok
   } catch {
-    return true
+    // Some browsers can't createImageBitmap every valid JPEG (e.g. certain
+    // color profiles); fall back to the same decode a normal <img> does
+    // before calling a real photo invalid.
+    return !(await decodesAsImg(file))
   }
+}
+
+function decodesAsImg(file: File): Promise<boolean> {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file)
+    const img = new Image()
+    img.onload = () => { URL.revokeObjectURL(url); resolve(img.naturalWidth > 0 && img.naturalHeight > 0) }
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(false) }
+    img.src = url
+  })
 }
 
 // Returns an error string to show the user, or null if the file's fine.
@@ -122,6 +152,13 @@ export async function validateDocumentFile(file: File, opts?: { allowedExtension
   // first bytes, whatever its name claims.
   if (await looksLikePlainText(file)) {
     return `${file.name} doesn't look like a valid file. It may be corrupted or renamed from a different file type.`
+  }
+  if (ext === 'pdf' || file.type === 'application/pdf') {
+    const head = new Uint8Array(await file.slice(0, 1024).arrayBuffer())
+    const text = String.fromCharCode(...head)
+    if (!text.includes('%PDF-')) {
+      return `${file.name} doesn't look like a valid PDF. It may be corrupted or renamed from a different file type.`
+    }
   }
   const isImageExt = ext === 'jpg' || ext === 'jpeg' || ext === 'png'
   if (isImageExt && (await imageFailsToDecode(file))) {

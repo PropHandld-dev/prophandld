@@ -11,6 +11,7 @@ import { ReceiptIcon, DollarSignIcon, DownloadIcon, PrinterIcon } from '@/compon
 import { downloadCsv } from '@/lib/csvExport'
 import { useLanguage, t } from '@/lib/i18n'
 import { fetchAllPages } from '@/lib/pagedQuery'
+import { formatMoney } from '@/lib/money'
 
 type Bid = {
   id: string
@@ -304,7 +305,7 @@ export default function ContractorEarningsPage() {
                         </p>
                       </div>
                       <div className="text-right shrink-0">
-                        <p className="text-white font-semibold text-sm mb-1">${b.amount}</p>
+                        <p className="text-white font-semibold text-sm mb-1">{formatMoney(b.amount)}</p>
                         <Link
                           href={`/receipts/job/${b.id}`}
                           className="inline-flex items-center gap-1 text-[#12A5A9] text-xs font-semibold hover:underline"
@@ -334,7 +335,7 @@ export default function ContractorEarningsPage() {
                         <p className="text-white/60 text-xs truncate">{jobLocation(b, lang)}</p>
                       </div>
                       <div className="text-right shrink-0">
-                        <p className="text-white font-semibold text-sm">${b.amount}</p>
+                        <p className="text-white font-semibold text-sm">{formatMoney(b.amount)}</p>
                         <p className="text-yellow-400/70 text-xs">{t('pendingStatus', lang)}</p>
                       </div>
                     </Link>

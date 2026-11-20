@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
+import { MIN_JOB_TOTAL, hasCentPrecision } from '@/lib/bidRules'
 
 export const maxDuration = 15
 
-const MIN_BID_AMOUNT = 15
 
 // Caught live by an external audit: a contractor whose job got cancelled
 // and reopened for bidding tried to rebid, and the form's own direct
@@ -36,8 +36,11 @@ export async function POST(request: NextRequest) {
     not_included?: string | null
   }
   const { jobId, amount } = body
-  if (!jobId || !amount || amount < MIN_BID_AMOUNT) {
-    return NextResponse.json({ error: 'Invalid bid' }, { status: 400 })
+  if (!jobId || typeof amount !== 'number' || !Number.isFinite(amount) || amount < MIN_JOB_TOTAL) {
+    return NextResponse.json({ error: `Bids need to be at least $${MIN_JOB_TOTAL}.` }, { status: 400 })
+  }
+  if (!hasCentPrecision(amount)) {
+    return NextResponse.json({ error: 'Use whole cents, like 150.99.' }, { status: 400 })
   }
   if (body.pricing_type === 'hourly' && (!body.estimated_hours || body.estimated_hours <= 0)) {
     return NextResponse.json({ error: 'Invalid estimated hours' }, { status: 400 })

@@ -14,6 +14,7 @@ import { CONTRACTOR_TABS } from '@/lib/navTabs'
 import { useLanguage, t } from '@/lib/i18n'
 import { useConfirm } from '@/lib/useConfirm'
 import { PILOT_FREE } from '@/lib/pilot'
+import { MIN_JOB_TOTAL, hasCentPrecision } from '@/lib/bidRules'
 
 function FieldLabel({ children, htmlFor }: { children: React.ReactNode; htmlFor?: string }) {
   return <label htmlFor={htmlFor} className="text-white/70 text-sm block mb-1">{children}</label>
@@ -25,7 +26,7 @@ function FieldLabel({ children, htmlFor }: { children: React.ReactNode; htmlFor?
 // rules out the obvious junk bids. Enforced again at the DB level (see
 // scripts/2026-11-03-bid-minimum-amount.sql) since this page writes bids
 // straight to Supabase with no API route in between to rely on.
-const MIN_BID_AMOUNT = 15
+const MIN_BID_AMOUNT = MIN_JOB_TOTAL
 
 export default function SubmitBidPage() {
   const router = useRouter()
@@ -215,6 +216,10 @@ export default function SubmitBidPage() {
       setError(t('bidAmountTooLow', lang).replace('{min}', String(MIN_BID_AMOUNT)))
       return
     }
+    if (!hasCentPrecision(parseFloat(form.amount))) {
+      setError(t('amountMustBeWholeCents', lang))
+      return
+    }
     if (form.pricing_type === 'hourly' && (!form.labor_rate || parseFloat(form.labor_rate) <= 0)) {
       setError(t('enterValidBidAmount', lang))
       return
@@ -235,6 +240,10 @@ export default function SubmitBidPage() {
 
     if (!form.amount || parseFloat(form.amount) < MIN_BID_AMOUNT) {
       setError(t('bidAmountTooLow', lang).replace('{min}', String(MIN_BID_AMOUNT)))
+      return
+    }
+    if (!hasCentPrecision(parseFloat(form.amount))) {
+      setError(t('amountMustBeWholeCents', lang))
       return
     }
     if (form.pricing_type === 'hourly' && (!form.estimated_hours || parseFloat(form.estimated_hours) <= 0)) {

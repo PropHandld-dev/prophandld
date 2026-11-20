@@ -30,6 +30,7 @@ export function PmInviteBanner() {
   // job") with no owner control at all, inverted from the locked rule
   // that this is the owner's permission grant to give.
   const [threshold, setThreshold] = useState('')
+  const [acceptError, setAcceptError] = useState<string | null>(null)
 
   useEffect(() => {
     // Link any invite sent to this email before the account existed. Also
@@ -58,6 +59,7 @@ export function PmInviteBanner() {
   const handleAccept = async () => {
     if (!invite) return
     setBusy(true)
+    setAcceptError(null)
     const parsed = Number(threshold)
     const res = await fetch('/api/pm/clients/accept', {
       method: 'POST',
@@ -68,7 +70,13 @@ export function PmInviteBanner() {
       }),
     }).catch(() => null)
     setBusy(false)
-    if (res?.ok) window.location.reload()
+    if (res?.ok) {
+      window.location.reload()
+      return
+    }
+    // A failed accept used to do nothing at all on screen.
+    const data = res ? await res.json().catch(() => ({})) : {}
+    setAcceptError(data.error || 'Could not accept right now. Check your connection and try again.')
   }
 
   const handleDecline = async () => {
@@ -120,6 +128,7 @@ export function PmInviteBanner() {
             />
             <span className="text-white/40 text-xs">{t('pmInviteThresholdHelp', lang)}</span>
           </div>
+          {acceptError && <p role="alert" className="text-red-400 text-xs mt-2">{acceptError}</p>}
           <div className="flex gap-2 mt-3">
             <RippleButton
               onClick={handleAccept}

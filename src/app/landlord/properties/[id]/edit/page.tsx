@@ -15,7 +15,7 @@ import { useLanguage, t } from '@/lib/i18n'
 import { getLandlordIds } from '@/lib/landlordIds'
 import { useConfirm } from '@/lib/useConfirm'
 import { expectRow } from '@/lib/expectRow'
-import { isValidZip } from '@/lib/zipValidation'
+import { isValidZip, checkAddressOnServer } from '@/lib/zipValidation'
 
 export default function EditPropertyPage() {
   const router = useRouter()
@@ -115,6 +115,13 @@ export default function EditPropertyPage() {
       setSaving(false)
       return
     }
+    const addressCheck = await checkAddressOnServer({ city: form.city, state: form.state, zip: form.zip })
+    if (addressCheck.error) {
+      setError(addressCheck.error)
+      setSaving(false)
+      return
+    }
+    const normalizedState = addressCheck.state
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
@@ -126,7 +133,7 @@ export default function EditPropertyPage() {
     const dupRes = await fetch('/api/landlord/properties/check-duplicate-address', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ address: form.address, city: form.city, state: form.state, excludePropertyId: propertyId }),
+      body: JSON.stringify({ address: form.address, city: form.city, state: normalizedState, excludePropertyId: propertyId }),
     })
     const dup = await dupRes.json().catch(() => ({}))
 
@@ -166,7 +173,7 @@ export default function EditPropertyPage() {
       .update({
         address: form.address,
         city: form.city,
-        state: form.state,
+        state: normalizedState,
         zip: form.zip,
         property_type: form.property_type,
         lat: geo?.lat ?? null,

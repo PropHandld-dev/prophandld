@@ -33,6 +33,7 @@ import { useMfaPromptVisibility } from '@/lib/useMfaPromptVisibility'
 import { MfaPromptModal } from '@/components/MfaPromptModal'
 import { useLanguage, t, windowLabel, type Lang } from '@/lib/i18n'
 import { useIsNativePlatform } from '@/lib/useIsNativePlatform'
+import { formatMoney } from '@/lib/money'
 
 function getTourSteps(lang: Lang): TourStep[] {
   return [
@@ -499,7 +500,7 @@ export default function ContractorDashboard() {
                           </div>
                           <p className="text-white/50 text-xs">{job.description}</p>
                           <p className="text-white/50 text-xs mt-1">
-                            {job.address}, {job.city} · Unit {job.unit_number}
+                            {job.address}, {job.city} · Unit {job.unit_number}{typeof job.distance === 'number' ? ` · ${job.distance} mi away` : ''}
                           </p>
                         </Link>
                       ))}
@@ -561,7 +562,7 @@ export default function ContractorDashboard() {
                               </span>
                             </div>
                             <p className="text-white/50 text-xs mt-1">{jobLocation(bid)}</p>
-                            <p className="text-white/50 text-xs mt-1">{t('yourBidAmount', lang)} ${bid.amount}</p>
+                            <p className="text-white/50 text-xs mt-1">{t('yourBidAmount', lang)} {formatMoney(bid.amount)}</p>
                             {bid.status === 'accepted' && bid.selected_at && (
                               <p className="text-white/50 text-xs mt-0.5">
                                 {t('selectedAt', lang)} {new Date(bid.selected_at).toLocaleString()}
@@ -619,7 +620,7 @@ export default function ContractorDashboard() {
                               <span className="text-xs text-white/50">{pastJobStatusLabel(bid.jobs?.status)}</span>
                             </div>
                             <p className="text-white/50 text-xs mt-1">{jobLocation(bid)}</p>
-                            <p className="text-white/50 text-xs mt-1">${bid.amount}</p>
+                            <p className="text-white/50 text-xs mt-1">{formatMoney(bid.amount)}</p>
                           </Link>
                         )}
                       />

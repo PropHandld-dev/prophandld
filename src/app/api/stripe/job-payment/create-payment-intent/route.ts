@@ -5,6 +5,7 @@ import { getStripe, paymentPaidAt } from '@/lib/stripe'
 import { achProcessingFee, jobCardFee } from '@/lib/cardSurcharge'
 import { friendlyStripeError } from '@/lib/stripeErrorMessage'
 import { getActionableOwnerIdsAdmin, approvalNeedsOwnerSignoff, logPmAction, getPmMembership, isBlockedByOwnerReadOnly } from '@/lib/pm'
+import { MIN_JOB_TOTAL } from '@/lib/bidRules'
 
 export const maxDuration = 20
 
@@ -150,6 +151,9 @@ export async function POST(request: NextRequest) {
   // fixed before the PaymentIntent is created, so the method has to be
   // picked first.
   const amount = Number(bid.amount)
+  if (!(amount >= MIN_JOB_TOTAL)) {
+    return NextResponse.json({ error: `Job total must be at least $${MIN_JOB_TOTAL}.` }, { status: 400 })
+  }
   // Landlord covers the processing fee either way; the contractor gets `amount`.
   const surcharge = method === 'bank' ? achProcessingFee(amount) : jobCardFee(amount)
   const chargeAmount = amount + surcharge
