@@ -6,10 +6,10 @@ import { getPmMembership, getOrgManagedOwnerIds, scopeOwnerIdsForMember, logPmAc
 export const maxDuration = 30
 
 // Same write the single-job "Approve" button already does
-// (jobs/[jobId]/page.tsx's confirmApproveCompletion) -- status stays
-// 'completed' (that's already true from the contractor's side),
-// landlord_approved_at is the real approval signal that starts the
-// 3-day dispute window. Deliberately does NOT re-check each job's
+// (jobs/[jobId]/page.tsx's confirmApproveCompletion): finished work waits
+// in 'pending_review' (contractor/complete-job) and approving it sets
+// 'completed' plus landlord_approved_at. Older rows that are 'completed'
+// with no approval date are accepted too. Deliberately does NOT re-check each job's
 // approval threshold here -- that gate (approvalNeedsOwnerSignoff) is
 // about authorizing an actual PAYMENT, a separate and later step; this
 // is just "I reviewed the finished work," the same thing any landlord
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     .from('jobs')
     .select('id, status, landlord_approved_at, units!inner(property_id, properties!inner(owner_user_id))')
     .in('id', jobIds)
-    .eq('status', 'completed')
+    .in('status', ['pending_review', 'completed'])
     .is('landlord_approved_at', null)
 
   const eligibleIds = (jobs || [])
@@ -56,8 +56,9 @@ export async function POST(request: NextRequest) {
   const now = new Date().toISOString()
   const { data: updated, error } = await admin
     .from('jobs')
-    .update({ landlord_approved_at: now })
+    .update({ status: 'completed', landlord_approved_at: now })
     .in('id', eligibleIds)
+    .in('status', ['pending_review', 'completed'])
     .is('landlord_approved_at', null)
     .select('id, units(properties(owner_user_id))')
 

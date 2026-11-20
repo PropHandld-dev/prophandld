@@ -31,7 +31,7 @@ export async function GET() {
   const { data: jobs, error } = await admin
     .from('jobs')
     .select('id, category, created_at, units!inner(unit_number, property_id, properties!inner(owner_user_id, address, users(full_name)))')
-    .eq('status', 'completed')
+    .in('status', ['pending_review', 'completed'])
     .is('landlord_approved_at', null)
     .in('units.properties.owner_user_id', ownerIds)
     .order('created_at', { ascending: true })

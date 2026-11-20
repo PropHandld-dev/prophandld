@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
       let complianceAlerts = 0
       if (propertyIds.length > 0) {
         const [{ data: jobs }, { data: compliance }] = await Promise.all([
-          admin.from('jobs').select('id, units!inner(property_id)').in('units.property_id', propertyIds).eq('status', 'completed').is('landlord_approved_at', null),
+          admin.from('jobs').select('id, units!inner(property_id)').in('units.property_id', propertyIds).in('status', ['pending_review', 'completed']).is('landlord_approved_at', null),
           admin.from('compliance_items').select('expiry_date, reminder_days').in('property_id', propertyIds).not('expiry_date', 'is', null),
         ])
         pendingApprovals = (jobs || []).length
