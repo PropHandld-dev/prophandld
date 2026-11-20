@@ -3,7 +3,7 @@ import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { hasAiAssistAccess } from '@/lib/aiAssist'
 import { tooManyAiAssistRequests } from '@/lib/aiAssistRateLimit'
-import { claudeJson, ClaudeConfigError } from '@/lib/claude'
+import { claudeText, ClaudeConfigError } from '@/lib/claude'
 import { PHILADELPHIA_COMPLIANCE_FACTS } from '@/lib/complianceFacts'
 import { canActForOwner } from '@/lib/pm'
 
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
   const isPhiladelphia = (property.city || '').trim().toLowerCase() === 'philadelphia'
 
   try {
-    const result = await claudeJson<{ guide: string }>({
+    const guide = await claudeText({
       system:
         'You help a residential landlord understand how to actually renew one specific compliance/licensing item ' +
         'for a rental property, for a property management app. This is informational only, not legal advice. ' +
@@ -70,16 +70,13 @@ export async function POST(request: NextRequest) {
         `Compliance item: ${item.item_type}\n` +
         `Expires: ${item.expiry_date || 'no date on file'}\n` +
         `Property: ${property.address}, ${property.city || 'unknown city'}, ${property.state || 'unknown state'}\n\n` +
-        'Return JSON: { "guide": string } — the renewal guidance as described.',
-      // Same truncation bug confirmed live elsewhere this session
-      // (compliance-gap-check, troubleshoot, draft-message): the careful
-      // "I'm not confident about the exact fee/deadline" hedging this
-      // prompt explicitly asks for runs long, and 600 cut a real response
-      // off mid-sentence, producing invalid JSON.
-      maxTokens: 800,
+        'Write the renewal guidance as described.',
+      // Plain text, not JSON: a long, carefully hedged answer used to be
+      // cut off inside the JSON wrapper and fail to parse.
+      maxTokens: 1200,
       track: { billedUserId: user.id, callerUserId: user.id, feature: 'compliance-renewal-guide' },
     })
-    return NextResponse.json(result)
+    return NextResponse.json({ guide })
   } catch (err) {
     if (err instanceof ClaudeConfigError) {
       return NextResponse.json({ error: 'This isn’t set up yet.' }, { status: 503 })

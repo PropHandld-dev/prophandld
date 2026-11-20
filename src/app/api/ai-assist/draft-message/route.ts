@@ -3,8 +3,8 @@ import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { hasAiAssistAccess } from '@/lib/aiAssist'
 import { tooManyAiAssistRequests } from '@/lib/aiAssistRateLimit'
-import { claudeJson, ClaudeConfigError } from '@/lib/claude'
-import { canActForOwner } from '@/lib/pm'
+import { claudeText, ClaudeConfigError } from '@/lib/claude'
+import { canActForOwner, getPmMembership } from '@/lib/pm'
 
 export const maxDuration = 30
 
@@ -58,7 +58,18 @@ export async function POST(request: NextRequest) {
   const { data: renter } = await supabaseAdmin.from('users').select('full_name').eq('id', renterUserId).maybeSingle()
   const unitLabel = (tenancy as any).units?.unit_number ? `${property.address}, Unit ${(tenancy as any).units.unit_number}` : property.address
 
+  // Who the tenant will see it from: a PM writing for a client signs as the
+  // property manager, not as "your landlord".
+  const [{ data: me }, membership] = await Promise.all([
+    supabaseAdmin.from('users').select('full_name').eq('id', user.id).maybeSingle(),
+    property.owner_user_id === user.id ? Promise.resolve(null) : getPmMembership(supabaseAdmin, user.id),
+  ])
+  const sender = membership
+    ? `${me?.full_name || 'the property manager'} from ${membership.organizationName}, the property manager for this home`
+    : `${me?.full_name || 'the landlord'}, the landlord`
+
   const facts = {
+    sender,
     tenant_name: renter?.full_name || 'the tenant',
     unit: unitLabel,
     monthly_rent: tenancy.rent_amount,
@@ -85,12 +96,14 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const result = await claudeJson<{ message: string }>({
+    const message = await claudeText({
       system:
-        'You draft a short message from a landlord to their tenant, through a property management app\'s chat. ' +
+        'You draft a short message to a tenant from the person named in "sender" (a landlord, or a property ' +
+        'manager writing on the owner\'s behalf), through a property management app\'s chat. Write in that ' +
+        'sender\'s voice and never call a property manager "your landlord". ' +
         'Plain, warm but professional language, 3-5 sentences, no markdown, no subject line, ready to send as a ' +
         'single chat message. Use the real facts provided, never invent specifics not given.',
-      prompt: `${kindInstruction[kind]}\n\nFacts (JSON, null means not on file): ${JSON.stringify(facts)}\n\nReturn JSON: { "message": string }`,
+      prompt: `${kindInstruction[kind]}\n\nFacts (JSON, null means not on file): ${JSON.stringify(facts)}`,
       // A 3-5 sentence drafted message is the same scope that needed
       // raising elsewhere today (troubleshoot's DIY tips) after 400
       // turned out to truncate mid-sentence — bumped proactively here
@@ -99,7 +112,7 @@ export async function POST(request: NextRequest) {
       track: { billedUserId: user.id, callerUserId: user.id, feature: 'draft-message' },
     })
 
-    return NextResponse.json({ draft: result.message })
+    return NextResponse.json({ draft: message })
   } catch (err) {
     if (err instanceof ClaudeConfigError) {
       console.error('ai-assist/draft-message: Claude not configured', err)
