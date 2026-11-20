@@ -113,7 +113,10 @@ export async function claudeJson<T>({
 
   const message = await anthropic.messages.create({
     model: CLAUDE_MODEL,
-    max_tokens: maxTokens,
+    // A ceiling, not a target: prompts already ask for short answers. Too
+    // low a ceiling cut replies off mid-JSON (compliance guide, drafts,
+    // troubleshooting all hit it), so every call gets room to finish.
+    max_tokens: Math.max(maxTokens, 2000),
     system: `${system}\n\nRespond with ONLY a single valid JSON object, no markdown fences, no commentary before or after it.`,
     messages: [{ role: 'user', content }],
   })
