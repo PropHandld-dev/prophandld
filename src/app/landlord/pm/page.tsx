@@ -2126,7 +2126,7 @@ export default function PmDashboardPage() {
                         <div className="flex-1 min-w-[180px]">
                           <p className="text-xs text-white/50 mb-1.5">Cover photo</p>
                           <div className="flex items-center gap-2">
-                            <div className="h-14 flex-1 rounded-xl bg-white/5 border border-white/10 overflow-hidden" style={coverUrl ? undefined : { background: resolveProfileStyle(brandColor).gradient }}>
+                            <div className="h-14 flex-1 rounded-xl border border-white/10 overflow-hidden" style={coverUrl ? undefined : { background: resolveProfileStyle(brandColor).gradient }}>
                               {coverUrl && (
                                 // eslint-disable-next-line @next/next/no-img-element
                                 <img src={coverUrl} alt="Your cover" className="w-full h-full object-cover" />
