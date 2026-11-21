@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useRef, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -113,7 +113,11 @@ export default function RecordsPage() {
   const { confirm, ConfirmDialog } = useConfirm()
   const thisYear = new Date().getFullYear()
   const [year, setYear] = useState(thisYear)
-  const [owner, setOwner] = useState('')
+  // Read ?owner= before the first load, so a client's Records never
+  // starts by fetching every client (QA TEAM-03: that first, slower
+  // response could land last and its rows got exported as the client's).
+  const [owner, setOwner] = useState(() => (typeof window === 'undefined' ? '' : new URLSearchParams(window.location.search).get('owner') || ''))
+  const requestSeq = useRef(0)
   const [property, setProperty] = useState('')
   const [filter, setFilter] = useState<'all' | 'in' | 'out'>('all')
   const [data, setData] = useState<Data | null>(null)
@@ -123,6 +127,7 @@ export default function RecordsPage() {
   const [adding, setAdding] = useState(false)
 
   const load = useCallback(async () => {
+    const seq = ++requestSeq.current
     setLoading(true)
     setError(null)
     const q = new URLSearchParams({ year: String(year) })
@@ -130,6 +135,7 @@ export default function RecordsPage() {
     if (property) q.set('property', property)
     const res = await fetch(`/api/records?${q}`).catch(() => null)
     const d = res ? await res.json().catch(() => null) : null
+    if (seq !== requestSeq.current) return // a newer request (different client/year/property) replaced this one
     if (!res?.ok || !d) setError(d?.error || t('recLoadFailed', lang))
     else setData(d)
     setLoading(false)
@@ -139,8 +145,6 @@ export default function RecordsPage() {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) router.replace('/login')
     })
-    const params = new URLSearchParams(window.location.search)
-    if (params.get('owner')) setOwner(params.get('owner')!)
   }, [router])
   useEffect(() => { load() }, [load])
 
@@ -249,7 +253,7 @@ export default function RecordsPage() {
           </div>
           <div className="flex items-center gap-2 print:hidden">
             <button onClick={() => setAdding(true)} className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:opacity-90">{t('recAddEntry', lang)}</button>
-            <button onClick={exportCsv} disabled={!data || data.entries.length === 0} className="bg-white/5 border border-white/10 text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-white/8 disabled:opacity-40">{t('recExport', lang).replace('{year}', String(year))}</button>
+            <button onClick={exportCsv} disabled={loading || !data || data.entries.length === 0} className="bg-white/5 border border-white/10 text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-white/8 disabled:opacity-40">{t('recExport', lang).replace('{year}', String(year))}</button>
           </div>
         </div>
 

@@ -32,6 +32,8 @@ const isUuid = (v: string | null) => !!v && /^[0-9a-f-]{36}$/i.test(v)
 // across the caller's own properties, co-owned ones, and (for PMs with
 // financial access) their clients' — rent in, contractor payments and
 // management fees out, plus hand-entered income and expenses.
+const cents2 = (v: unknown) => Math.round(Number(v || 0) * 100) / 100
+
 export async function GET(request: NextRequest) {
   const authClient = await createClient()
   const { data: { user } } = await authClient.auth.getUser()
@@ -137,7 +139,7 @@ export async function GET(request: NextRequest) {
       type: 'rent',
       direction: 'in',
       date: r.paid_date,
-      amount: Number(r.actual_amount),
+      amount: cents2(r.actual_amount),
       title: `${monthLabel} rent`,
       detail: utilities > 0 ? `Includes $${utilities.toFixed(2)} utilities` : null,
       counterparty: personName.get(t.renter_user_id) || 'Tenant',
@@ -163,7 +165,7 @@ export async function GET(request: NextRequest) {
       type: 'contractor',
       direction: 'out',
       date: String(b.paid_at).slice(0, 10),
-      amount: Number(b.amount),
+      amount: cents2(b.amount),
       title: j.category || 'Repair',
       detail: j.description ? String(j.description).slice(0, 280) : null,
       counterparty: personName.get(b.contractor_user_id) || 'Contractor',
@@ -186,7 +188,7 @@ export async function GET(request: NextRequest) {
         type: 'fee',
         direction: 'out',
         date: String(f.paid_at).slice(0, 10),
-        amount: Number(f.amount),
+        amount: cents2(f.amount),
         title: 'Management fee',
         detail: null,
         counterparty: (f as any).pm_organizations?.name || 'Property manager',
@@ -211,7 +213,7 @@ export async function GET(request: NextRequest) {
       type: 'manual',
       direction: m.direction,
       date: m.entry_date,
-      amount: Number(m.amount),
+      amount: cents2(m.amount),
       title: m.description || m.category,
       detail: null,
       counterparty: m.vendor,
@@ -229,8 +231,10 @@ export async function GET(request: NextRequest) {
   }
   entries.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
 
-  const income = entries.filter((e) => e.direction === 'in').reduce((t, e) => t + e.amount, 0)
-  const expenses = entries.filter((e) => e.direction === 'out').reduce((t, e) => t + e.amount, 0)
+  // Summed in whole cents so the headline totals always equal the rows
+  // (QA REPORT-03: the CSV header was a cent off its own rows).
+  const income = entries.filter((e) => e.direction === 'in').reduce((t, e) => t + Math.round(e.amount * 100), 0) / 100
+  const expenses = entries.filter((e) => e.direction === 'out').reduce((t, e) => t + Math.round(e.amount * 100), 0) / 100
   const byProperty = new Map<string, { propertyId: string; label: string; income: number; expenses: number }>()
   for (const e of entries) {
     const key = e.propertyId || 'none'
@@ -243,7 +247,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     year,
     entries,
-    totals: { income: Math.round(income * 100) / 100, expenses: Math.round(expenses * 100) / 100, net: Math.round((income - expenses) * 100) / 100 },
+    totals: { income, expenses, net: (Math.round(income * 100) - Math.round(expenses * 100)) / 100 },
     byProperty: Array.from(byProperty.values()).map((r) => ({ ...r, income: Math.round(r.income * 100) / 100, expenses: Math.round(r.expenses * 100) / 100 })).sort((a, b) => b.income + b.expenses - (a.income + a.expenses)),
     owners: (owners || []).map((o: any) => ({ id: o.id, name: o.id === user.id ? 'You' : o.full_name || 'Owner' })),
     properties: props.map((p: any) => ({ id: p.id, label: p.address, ownerId: p.owner_user_id })),

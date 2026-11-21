@@ -96,7 +96,7 @@ export function EndManagementDialog({ portfolioId, onClose, onEnded }: { portfol
             <ul className="space-y-2">
               <li className="rounded-xl bg-white/4 border border-white/8 px-3.5 py-3 text-sm">
                 <p className="text-white font-medium">
-                  {summary.openJobsCount > 0 ? `${summary.openJobsCount} open job${summary.openJobsCount === 1 ? '' : 's'}` : 'No open jobs'}
+                  {summary.openJobsCount > 0 ? `${summary.openJobsCount} unfinished job${summary.openJobsCount === 1 ? '' : 's'} (open or in progress)` : 'No unfinished jobs'}
                 </p>
                 <p className="text-white/50 text-xs mt-0.5">
                   {summary.side === 'owner' ? 'They stay as they are; you approve and pay them from now on.' : `They stay with ${summary.ownerName}, who approves and pays them from now on.`}

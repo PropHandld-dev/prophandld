@@ -12,6 +12,7 @@ import { downloadCsv } from '@/lib/csvExport'
 import { useLanguage, t } from '@/lib/i18n'
 import { fetchAllPages } from '@/lib/pagedQuery'
 import { formatMoney } from '@/lib/money'
+import { contractorPayState, payStateLabel, PAY_STATE_TONE } from '@/lib/contractorPayState'
 import { categoryName } from '@/lib/categoryTaxonomy'
 
 type Bid = {
@@ -113,7 +114,9 @@ export default function ContractorEarningsPage() {
   // which is trivially true for every bid that was never going to be
   // paid at all.
   const paidAll = bids.filter((b) => b.payment_status === 'paid')
-  const unpaid = bids.filter((b) => b.status === 'accepted' && b.payment_status !== 'paid')
+  // Only finished work belongs under "Not paid yet"; work still in progress
+  // isn't owed yet. Each row says exactly which step it's waiting on.
+  const unpaid = bids.filter((b) => b.status === 'accepted' && b.payment_status !== 'paid' && contractorPayState(b) !== 'working')
 
   // One consistent local-calendar-day key for a paid bid, used for
   // filtering, grouping, on-screen display AND CSV export — caught live
@@ -323,7 +326,7 @@ export default function ContractorEarningsPage() {
 
             {unpaid.length > 0 && (
               <div>
-                <h2 className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-3">{t('awaitingPaymentHeading', lang)}</h2>
+                <h2 className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-3">{t('notPaidYetHeading', lang)}</h2>
                 <div className="bg-white/3 border border-white/8 rounded-2xl divide-y divide-white/5">
                   {unpaid.map((b) => (
                     <Link
@@ -337,7 +340,7 @@ export default function ContractorEarningsPage() {
                       </div>
                       <div className="text-right shrink-0">
                         <p className="text-white font-semibold text-sm">{formatMoney(b.amount)}</p>
-                        <p className="text-yellow-400/70 text-xs">{t('pendingStatus', lang)}</p>
+                        <p className={`text-xs ${PAY_STATE_TONE[contractorPayState(b)]}`}>{payStateLabel(contractorPayState(b), lang)}</p>
                       </div>
                     </Link>
                   ))}

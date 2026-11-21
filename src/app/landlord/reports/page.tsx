@@ -100,6 +100,7 @@ export default function LandlordReportsPage() {
   const [customFrom, setCustomFrom] = useState(presetRange('thisYear').from)
   const [customTo, setCustomTo] = useState(presetRange('thisYear').to)
   const [propertyFilter, setPropertyFilter] = useState('all')
+  const dateLocale = lang === 'es' ? 'es-US' : 'en-US'
 
   useEffect(() => {
     const init = async () => {
@@ -172,7 +173,7 @@ export default function LandlordReportsPage() {
           date: rp.paid_date as string,
           propertyId: propertyOfUnit.get(tenancyUnit.get(rp.tenancy_id) || '') || '',
           place: placeOf(tenancyUnit.get(rp.tenancy_id) || ''),
-          amount: Number(rp.actual_amount),
+          amount: Math.round(Number(rp.actual_amount) * 100) / 100,
           method: (rp.payment_method as RentRow['method']) || null,
         }))
       )
@@ -201,7 +202,7 @@ export default function LandlordReportsPage() {
             place: job ? placeOf(job.unit_id) : t('unitFallback', lang),
             category: job?.category || '',
             contractorName: contractorName.get(b.contractor_user_id) || t('unknownLabel', lang),
-            amount: Number(b.amount),
+            amount: Math.round(Number(b.amount) * 100) / 100,
           }
         })
       )
@@ -241,19 +242,25 @@ export default function LandlordReportsPage() {
     const months: MonthBucket[] = []
     for (let i = 5; i >= 0; i--) {
       const d = new Date(monthStart.getFullYear(), monthStart.getMonth() - i, 1)
-      months.push({ key: `${d.getFullYear()}-${d.getMonth()}`, label: d.toLocaleDateString('en-US', { month: 'short' }), rent: 0 })
+      months.push({ key: `${d.getFullYear()}-${d.getMonth()}`, label: d.toLocaleDateString(dateLocale, { month: 'short' }), rent: 0 })
     }
+    // Follows the property filter (QA REPORT-02: an empty property showed
+    // the whole portfolio's chart).
     for (const r of rentRows) {
+      if (propertyFilter !== 'all' && r.propertyId !== propertyFilter) continue
       const d = new Date(r.date + 'T00:00:00')
       const bucket = months.find((m) => m.key === `${d.getFullYear()}-${d.getMonth()}`)
       if (bucket) bucket.rent += r.amount
     }
     return months
-  }, [rentRows])
+  }, [rentRows, propertyFilter, lang])
 
-  const totalCollected = filteredRent.reduce((sum, r) => sum + r.amount, 0)
-  const totalPaidOut = filteredJobs.reduce((sum, r) => sum + r.amount, 0)
-  const net = totalCollected - totalPaidOut
+  // Summed in whole cents, so the totals always equal the rows shown
+  // (QA REPORT-01: a fractional-cent row made them differ by $0.01).
+  const centsOf = (n: number) => Math.round(n * 100)
+  const totalCollected = filteredRent.reduce((sum, r) => sum + centsOf(r.amount), 0) / 100
+  const totalPaidOut = filteredJobs.reduce((sum, r) => sum + centsOf(r.amount), 0) / 100
+  const net = (centsOf(totalCollected) - centsOf(totalPaidOut)) / 100
 
   // An estimate, deliberately labeled as one — Stripe holds the real,
   // itemized invoice history, this project doesn't mirror it locally.
@@ -273,7 +280,7 @@ export default function LandlordReportsPage() {
   // the page is in the browser avoids a mismatch that reset the page (and
   // dropped light mode).
   const mounted = useSyncExternalStore(() => () => {}, () => true, () => false)
-  const rangeLabel = `${new Date(range.from + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} – ${new Date(range.to + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`
+  const rangeLabel = `${new Date(range.from + 'T00:00:00').toLocaleDateString(dateLocale, { month: 'short', day: 'numeric', year: 'numeric' })} – ${new Date(range.to + 'T00:00:00').toLocaleDateString(dateLocale, { month: 'short', day: 'numeric', year: 'numeric' })}`
 
   const exportRent = () => {
     downloadCsv(
@@ -461,7 +468,7 @@ export default function LandlordReportsPage() {
                       <div className="min-w-0 flex-1">
                         <p className="text-white text-sm truncate">{r.place}</p>
                         <p className="text-white/40 text-xs mt-0.5">
-                          {new Date(r.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} · {paymentMethodLabel(r.method, lang)}
+                          {new Date(r.date + 'T00:00:00').toLocaleDateString(dateLocale, { month: 'short', day: 'numeric', year: 'numeric' })} · {paymentMethodLabel(r.method, lang)}
                         </p>
                       </div>
                       <div className="text-right shrink-0">
@@ -497,7 +504,7 @@ export default function LandlordReportsPage() {
                       <div className="min-w-0 flex-1">
                         <p className="text-white text-sm truncate">{categoryName(r.category, lang)} · {r.place}</p>
                         <p className="text-white/40 text-xs mt-0.5">
-                          {new Date(r.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} · {r.contractorName}
+                          {new Date(r.date + 'T00:00:00').toLocaleDateString(dateLocale, { month: 'short', day: 'numeric', year: 'numeric' })} · {r.contractorName}
                         </p>
                       </div>
                       <div className="text-right shrink-0">
@@ -530,7 +537,7 @@ export default function LandlordReportsPage() {
               <span className="text-black/35 text-[10px] leading-tight">Your Property. Handled.</span>
             </div>
           </div>
-          <span className="text-xs text-black/40">{mounted ? new Date().toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' }) : ''}</span>
+          <span className="text-xs text-black/40">{mounted ? new Date().toLocaleDateString(dateLocale, { month: 'long', day: 'numeric', year: 'numeric' }) : ''}</span>
         </div>
         <p className="font-mono text-[10px] tracking-[0.15em] text-black/40 uppercase mb-1">{t('reportsHeading', lang)}</p>
         <h1 className="text-xl font-semibold mb-0.5">{landlordName || t('unknownLabel', lang)}</h1>

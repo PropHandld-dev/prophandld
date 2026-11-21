@@ -173,7 +173,7 @@ export function AiHelpChat({ initialMessage, onNavigate, role }: { initialMessag
   }
 
   const submitEscalate = async () => {
-    if (!email) return
+    if (!email || (!escalateNote.trim() && turns.length === 0)) return
     setEscalateStatus('sending')
     const transcript = turns.map((t) => `${t.role === 'user' ? 'Me' : 'Assistant'}: ${t.content}`).join('\n')
     const question = [escalateNote.trim(), transcript && `--- Chat so far ---\n${transcript}`].filter(Boolean).join('\n\n')
@@ -213,7 +213,8 @@ export function AiHelpChat({ initialMessage, onNavigate, role }: { initialMessag
             <div className="flex items-center gap-2">
               <RippleButton
                 onClick={submitEscalate}
-                disabled={escalateStatus === 'sending' || !email}
+                // Needs something to send: a note, or a chat to forward (QA WEB-08).
+                disabled={escalateStatus === 'sending' || !email || (!escalateNote.trim() && turns.length === 0)}
                 className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold rounded-lg py-2.5 disabled:opacity-50 transition"
               >
                 {escalateStatus === 'sending' ? t('sendingDots', lang) : t('contactUsSendBtn', lang)}

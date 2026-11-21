@@ -48,6 +48,10 @@ export function CoOwnersSection() {
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!contact.trim()) return
+    if (mode === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(contact.trim())) {
+      setError(t('invalidEmailAddress', lang))
+      return
+    }
     setInviting(true)
     setError(null)
     setOfferSendInvite(false)

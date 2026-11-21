@@ -50,6 +50,9 @@ export async function POST(request: NextRequest) {
 
   const { email, phone } = (await request.json().catch(() => ({}))) as { email?: string; phone?: string }
   const coOwnerEmail = email?.trim().toLowerCase()
+  if (coOwnerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(coOwnerEmail)) {
+    return NextResponse.json({ error: "That doesn't look like a valid email address" }, { status: 400 })
+  }
   const coOwnerPhone = phone?.trim() ? toE164(phone.trim()) : null
   if (!coOwnerEmail && !coOwnerPhone) {
     return NextResponse.json({ error: phone?.trim() ? 'That doesn\'t look like a valid US phone number' : 'Missing email' }, { status: 400 })

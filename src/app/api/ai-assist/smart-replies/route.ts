@@ -65,16 +65,27 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ replies: [] })
   }
 
+  // Who is who, and where the job stands, so suggestions fit the sender
+  // (QA MSG-01: a renter was offered "request a final invoice").
+  const roleOf = new Map((resolved.participants || []).map((p) => [p.userId, p.role === 'renter' ? 'tenant' : p.role]))
+  const myRole = roleOf.get(user.id) || 'participant'
+  const { data: jobRow } = jobId ? await supabaseAdmin.from('jobs').select('status, category').eq('id', jobId).maybeSingle() : { data: null }
+  const jobLine = jobRow ? `This chat is about a ${jobRow.category} repair whose current status is "${jobRow.status}".\n` : ''
+
   try {
     const result = await claudeJson<{ replies: string[] }>({
       system:
         'You suggest 2-3 short quick-reply options for someone about to respond in a property management app\'s ' +
         'chat, based on the recent messages. Each reply is from the perspective of whoever is about to send the ' +
         'next message (marked YOU below), responding to the other side\'s most recent message. Keep each option ' +
-        'under 12 words, plain and natural, genuinely different from each other (not just rewordings).',
+        'under 12 words, plain and natural, genuinely different from each other (not just rewordings). ' +
+        `YOU are the ${myRole}. Only suggest things a ${myRole} would actually say at this stage: a tenant never ` +
+        'sends invoices, asks for payment, or "lets the tenant know"; a landlord never offers to do the repair work ' +
+        'themselves unless they said so. Do not invent prices, dates or promises that are not in the messages.',
       prompt:
+        jobLine +
         'Recent messages (oldest first):\n' +
-        recent.map((m) => `${m.sender_user_id === user.id ? 'YOU' : 'OTHER'}: ${m.body}`).join('\n') +
+        recent.map((m) => `${m.sender_user_id === user.id ? `YOU (${myRole})` : `${(roleOf.get(m.sender_user_id) || 'other').toUpperCase()}`}: ${m.body}`).join('\n') +
         '\n\nReturn JSON: { "replies": string[] } with 2-3 short options for what YOU might say next.',
       maxTokens: 200,
       track: { billedUserId: landlord.userId, callerUserId: user.id, feature: 'smart-replies' },

@@ -6,6 +6,7 @@ import { notifyRenterIds } from '@/lib/coRenters'
 import { sendPush } from '@/lib/push'
 import { emailAllowed } from '@/lib/notificationPrefs'
 import { sendUtilityBillsAddedEmail } from '@/lib/email'
+import { hasCentPrecision } from '@/lib/bidRules'
 import { UTILITY_KINDS, type UtilityKind, utilityName, loadUtilityCharges } from '@/lib/utilityCharges'
 
 export const maxDuration = 20
@@ -65,7 +66,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   if (!body) return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
 
   const rent = Number(body.rent)
-  if (!Number.isFinite(rent) || rent < 0 || rent > 1_000_000) {
+  if (!Number.isFinite(rent) || rent < 0 || rent > 1_000_000 || !hasCentPrecision(rent)) {
     return NextResponse.json({ error: 'Enter a valid rent amount' }, { status: 400 })
   }
   if (!Array.isArray(body.charges) || body.charges.length > 12) {
@@ -78,8 +79,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const kind = raw?.kind
     const amount = Number(raw?.amount)
     if (!UTILITY_KINDS.includes(kind)) return NextResponse.json({ error: 'Choose a bill type' }, { status: 400 })
-    if (!Number.isFinite(amount) || amount < 0 || amount > 100000) {
-      return NextResponse.json({ error: 'Enter a valid amount for each bill' }, { status: 400 })
+    if (!Number.isFinite(amount) || amount < 0 || amount > 100000 || !hasCentPrecision(amount)) {
+      return NextResponse.json({ error: 'Enter each bill in dollars and cents, like 49.50' }, { status: 400 })
     }
     const label = typeof raw.label === 'string' ? raw.label.trim().slice(0, 40) : ''
     if (kind === 'other' && !label) return NextResponse.json({ error: 'Name the "Other" bill (for example, "Parking")' }, { status: 400 })

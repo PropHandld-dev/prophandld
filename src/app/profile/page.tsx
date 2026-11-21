@@ -543,7 +543,7 @@ export default function ProfilePage() {
   }
 
   const handleDeleteAccount = async () => {
-    if (deleteConfirmText.trim().toUpperCase() !== 'DELETE') return
+    if (deleteConfirmText.trim() !== 'DELETE') return
 
     setDeletingAccount(true)
     setError(null)
@@ -1026,12 +1026,16 @@ export default function ProfilePage() {
                 value={deleteConfirmText}
                 onChange={(e) => setDeleteConfirmText(e.target.value)}
                 placeholder="DELETE"
+                autoCapitalize="characters"
+                autoCorrect="off"
+                spellCheck={false}
+                aria-label="Type DELETE in capital letters to confirm"
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-white/50 focus:outline-none focus:border-red-400 transition text-sm"
               />
               <div className="flex items-center gap-3">
                 <button
                   onClick={handleDeleteAccount}
-                  disabled={deletingAccount || deleteConfirmText.trim().toUpperCase() !== 'DELETE'}
+                  disabled={deletingAccount || deleteConfirmText.trim() !== 'DELETE'}
                   className="bg-red-500 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition hover:opacity-90 disabled:opacity-40"
                 >
                   {deletingAccount ? t('deleting', lang) : t('permanentlyDeleteMyAccount', lang)}

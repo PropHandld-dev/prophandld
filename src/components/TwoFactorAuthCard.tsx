@@ -56,7 +56,17 @@ export function TwoFactorAuthCard() {
       await supabase.auth.mfa.unenroll({ factorId: f.id })
     }
 
-    const { data: enrolled, error: enrollError } = await supabase.auth.mfa.enroll({ factorType: 'totp' })
+    // A unique name per attempt, and one retry after a fresh cleanup: an
+    // unfinished earlier attempt could still collide by name, which showed
+    // "Could not start authenticator setup" on restart (QA AUTH-04).
+    const enroll = () => supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: `Authenticator ${new Date().toISOString()}` })
+    let { data: enrolled, error: enrollError } = await enroll()
+    if (enrollError || !enrolled) {
+      await supabase.auth.refreshSession()
+      const { data: again } = await supabase.auth.mfa.listFactors()
+      for (const f of again?.totp?.filter((x) => x.status !== 'verified') || []) await supabase.auth.mfa.unenroll({ factorId: f.id })
+      ;({ data: enrolled, error: enrollError } = await enroll())
+    }
     if (enrollError || !enrolled) {
       setError(t('twoFactorEnrollError', lang))
       return
@@ -219,12 +229,27 @@ export function TwoFactorAuthCard() {
             />
             <RippleButton
               type="submit"
-              disabled={verifying || code.length === 0}
+              disabled={verifying || code.length !== 6}
               className="shrink-0 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-5 py-3 rounded-xl hover:opacity-90 transition disabled:opacity-50"
             >
               {verifying ? t('verifyingDots', lang) : t('confirmBtn', lang)}
             </RippleButton>
           </form>
+          <button
+            type="button"
+            onClick={async () => {
+              if (factorId) await supabase.auth.mfa.unenroll({ factorId }).catch(() => null)
+              setFactorId(null)
+              setQrCode(null)
+              setSecret(null)
+              setCode('')
+              setError(null)
+              setStatus('off')
+            }}
+            className="mt-3 text-white/50 hover:text-white text-sm transition"
+          >
+            {t('cancel', lang)}
+          </button>
         </div>
       )}
 

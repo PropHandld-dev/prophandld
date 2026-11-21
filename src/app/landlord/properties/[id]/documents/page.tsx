@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
@@ -164,8 +164,22 @@ export default function PropertyDocumentsPage() {
     setFiles(files.filter((_, i) => i !== index))
   }
 
+  // Taken synchronously before any await, so a double-click can't start a
+  // second upload while the first is still validating (QA UPLOAD-08: two
+  // identical rows from one file).
+  const submitLock = useRef(false)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (submitLock.current) return
+    submitLock.current = true
+    try {
+      await doSubmit()
+    } finally {
+      submitLock.current = false
+    }
+  }
+
+  const doSubmit = async () => {
 
     if (!form.document_type) {
       setError(t('pleaseSelectDocumentType', lang))

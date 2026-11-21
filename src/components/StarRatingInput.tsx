@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useLanguage, t } from '@/lib/i18n'
 
 function Star({ filled, className }: { filled: boolean; className?: string }) {
@@ -29,6 +29,18 @@ export function StarRatingInput({
   const display = hover ?? value
   const starSize = size === 'sm' ? 'w-4 h-4' : 'w-6 h-6'
   const groupLabel = label || t('ratingLabel', lang)
+  const refs = useRef<(HTMLButtonElement | null)[]>([])
+  // Standard radio-group keyboard behavior (QA A11Y-03): one Tab stop per
+  // group (the chosen star, or the first), arrow keys move and select.
+  const onKey = (e: React.KeyboardEvent, n: number) => {
+    if (readOnly) return
+    const next = e.key === 'ArrowRight' || e.key === 'ArrowUp' ? Math.min(5, n + 1) : e.key === 'ArrowLeft' || e.key === 'ArrowDown' ? Math.max(1, n - 1) : e.key === 'Home' ? 1 : e.key === 'End' ? 5 : null
+    if (next == null) return
+    e.preventDefault()
+    onChange?.(next)
+    refs.current[next - 1]?.focus()
+  }
+  const tabStop = value >= 1 && value <= 5 ? value : 1
 
   return (
     <div>
@@ -37,7 +49,10 @@ export function StarRatingInput({
         {[1, 2, 3, 4, 5].map((n) => (
           <button
             key={n}
+            ref={(el) => { refs.current[n - 1] = el }}
             type="button"
+            tabIndex={readOnly ? -1 : n === tabStop ? 0 : -1}
+            onKeyDown={(e) => onKey(e, n)}
             role="radio"
             aria-checked={n === value}
             aria-label={`${groupLabel}: ${n} ${t('ofWord', lang)} 5`}

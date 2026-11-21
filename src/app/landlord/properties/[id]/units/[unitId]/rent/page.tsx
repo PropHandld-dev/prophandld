@@ -12,6 +12,7 @@ import { RippleButton } from '@/components/RippleButton'
 import { RentMonthEditor, type RentEditValues } from '@/components/RentMonthEditor'
 import { utilityName, type UtilityCharge } from '@/lib/utilityCharges'
 import { ensureCurrentMonthRentPayment } from '@/lib/rentAutomation'
+import { hasCentPrecision } from '@/lib/bidRules'
 import { useLanguage, t } from '@/lib/i18n'
 import { useConfirm } from '@/lib/useConfirm'
 
@@ -305,6 +306,12 @@ export default function UnitRentPage() {
       return
     }
 
+    const expectedNum = Number(addForm.expected_amount)
+    if (!Number.isFinite(expectedNum) || expectedNum < 0 || !hasCentPrecision(expectedNum)) {
+      setError(t('wholeCentsPositive', lang))
+      return
+    }
+
     if (payments.some((p) => p.month.slice(0, 7) === addForm.month)) {
       setError(t('monthAlreadyExists', lang))
       return
@@ -318,7 +325,7 @@ export default function UnitRentPage() {
       .insert({
         tenancy_id: tenancy.id,
         month: `${addForm.month}-01`,
-        expected_amount: parseFloat(addForm.expected_amount),
+        expected_amount: expectedNum,
       })
       .select('id')
       .single()
@@ -389,7 +396,7 @@ export default function UnitRentPage() {
   }
 
   const formatMonth = (month: string) =>
-    new Date(month + 'T00:00:00').toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+    new Date(month + 'T00:00:00').toLocaleDateString(lang === 'es' ? 'es-US' : 'en-US', { month: 'long', year: 'numeric' })
 
   return (
     <div className="min-h-screen bg-[#0C1A2E]">
@@ -566,7 +573,16 @@ export default function UnitRentPage() {
                               className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition"
                             />
                             <RippleButton
-                              onClick={() => handleMarkReceived(payment, parseFloat(adjustAmount) || payment.expected_amount)}
+                              onClick={() => {
+                                // Whole cents only, and a real positive amount (QA RENT-03:
+                                // $100.005 saved and threw every total off by a cent).
+                                const amt = adjustAmount.trim() === '' ? Number(payment.expected_amount) : Number(adjustAmount)
+                                if (!Number.isFinite(amt) || amt <= 0 || !hasCentPrecision(amt)) {
+                                  setError(t('wholeCentsPositive', lang))
+                                  return
+                                }
+                                handleMarkReceived(payment, amt)
+                              }}
                               disabled={savingId === payment.id}
                               className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-xs font-semibold px-3 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
                             >

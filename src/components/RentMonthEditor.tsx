@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { RippleButton } from '@/components/RippleButton'
 import { FileTextIcon } from '@/components/icons'
 import { validateDocumentFile } from '@/lib/mediaValidation'
+import { hasCentPrecision } from '@/lib/bidRules'
 import { useLanguage, t } from '@/lib/i18n'
 import { UTILITY_KINDS, UTILITY_LABELS, type UtilityKind, type UtilityCharge } from '@/lib/utilityCharges'
 import { scanDocument } from '@/lib/aiFile'
@@ -122,8 +123,11 @@ export function RentMonthEditor({
   const rentNum = Number(rent)
   const billNums = bills.map((b) => Number(b.amount || 0))
   const utilities = Math.round(billNums.reduce((a, b) => a + b, 0) * 100) / 100
-  const billsValid = bills.every((b, i) => b.amount !== '' && billNums[i] >= 0 && (b.kind !== 'other' || b.label.trim()))
-  const validNumbers = rent !== '' && rentNum >= 0 && billsValid
+  // Whole cents only (QA RENT-05/SEC-04: $0.004 water saved, and the
+  // change history showed it as $0.00).
+  const centsOk = hasCentPrecision(rentNum) && billNums.every((n) => hasCentPrecision(n))
+  const billsValid = bills.every((b, i) => b.amount !== '' && Number.isFinite(billNums[i]) && billNums[i] >= 0 && (b.kind !== 'other' || b.label.trim()))
+  const validNumbers = rent !== '' && Number.isFinite(rentNum) && rentNum >= 0 && billsValid && centsOk
   const datesOk = bills.every((b) => !b.periodStart || !b.periodEnd || b.periodEnd >= b.periodStart)
   const total = validNumbers ? Math.round((rentNum + utilities + lateFee) * 100) / 100 : 0
   const difference = Math.round((total - paidSoFar) * 100) / 100
@@ -137,7 +141,9 @@ export function RentMonthEditor({
     note.trim() !== ''
 
   let outcome: { text: string; tone: string }
-  if (!validNumbers) {
+  if (!centsOk) {
+    outcome = { text: t('wholeCentsPositive', lang), tone: 'text-red-400' }
+  } else if (!validNumbers) {
     outcome = { text: t('enterAmountsToSeeTotal', lang), tone: 'text-white/50' }
   } else if (difference > 0) {
     outcome = {

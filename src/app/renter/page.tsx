@@ -44,6 +44,9 @@ export default function RenterDashboard() {
   const lang = useLanguage()
   const [user, setUser] = useState<any>(null)
   const [myTenancyId, setMyTenancyId] = useState<string | null>(null)
+  // One line under "Pay rent": what's owed and when, or that it's paid
+  // (QA dashboard review: Home showed no balance or due date).
+  const [rentLine, setRentLine] = useState<{ text: string; tone: 'due' | 'late' | 'ok' } | null>(null)
   const [loading, setLoading] = useState(true)
   const tour = useTourVisibility(user?.id ?? null)
   const mfaPrompt = useMfaPromptVisibility(user?.id ?? null)
@@ -97,7 +100,33 @@ export default function RenterDashboard() {
         ? await supabase.from('tenancies').select('*').eq('id', tenancyId).maybeSingle()
         : { data: null, error: null }
 
-      if (tenancyData?.id) setMyTenancyId(tenancyData.id)
+      if (tenancyData?.id) {
+        setMyTenancyId(tenancyData.id)
+        supabase
+          .from('rent_payments')
+          .select('month, expected_amount, actual_amount, stripe_status')
+          .eq('tenancy_id', tenancyData.id)
+          .order('month', { ascending: true })
+          .then(({ data: rows, error: rentErr }) => {
+            if (rentErr || !rows) return
+            const loc = lang === 'es' ? 'es-US' : 'en-US'
+            const dueDay = tenancyData.rent_due_day || 1
+            const todayKey = new Date().toLocaleDateString('en-CA')
+            const open = rows.filter((r: any) => Number(r.expected_amount || 0) - Number(r.actual_amount || 0) > 0.005 && r.stripe_status !== 'processing')
+            const processing = rows.some((r: any) => r.stripe_status === 'processing')
+            const first: any = open.find((r: any) => r.month.slice(0, 7) <= todayKey.slice(0, 7)) || open[0]
+            if (first) {
+              const owed = Math.round((Number(first.expected_amount) - Number(first.actual_amount || 0)) * 100) / 100
+              const due = new Date(`${first.month.slice(0, 7)}-${String(dueDay).padStart(2, '0')}T00:00:00`)
+              const late = due.toLocaleDateString('en-CA') < todayKey
+              const amt = owed.toLocaleString(loc, { style: 'currency', currency: 'USD' })
+              const when = due.toLocaleDateString(loc, { month: 'short', day: 'numeric' })
+              setRentLine({ text: late ? `${amt} · ${t('rentLineLate', lang)} ${when}` : `${amt} ${t('rentLineDue', lang)} ${when}`, tone: late ? 'late' : 'due' })
+            } else {
+              setRentLine({ text: processing ? t('payStateProcessing', lang) : t('rentLinePaidUp', lang), tone: 'ok' })
+            }
+          })
+      }
       if (tenancyError || !tenancyData) {
         setNoUnit(true)
         setContactsLoading(false)
@@ -295,6 +324,9 @@ export default function RenterDashboard() {
                     <DollarSignIcon className="w-5 h-5 text-[#12A5A9]" />
                   </div>
                   <span className="text-white font-semibold text-sm">{t('payRent', lang)}</span>
+                  {rentLine && (
+                    <span className={`text-xs font-medium -mt-1 ${rentLine.tone === 'late' ? 'text-red-400' : rentLine.tone === 'due' ? 'text-amber-300' : 'text-[#12A5A9]'}`}>{rentLine.text}</span>
+                  )}
                 </Link>
                 <Link
                   href="/renter/report"
