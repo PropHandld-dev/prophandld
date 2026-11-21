@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js'
 import { getStripeClient } from '@/lib/stripeClient'
 import { RippleButton } from '@/components/RippleButton'
@@ -61,17 +61,24 @@ function PaymentForm({
   }
 
   const busy = submitting || verifying
+  const [ready, setReady] = useState(false)
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="flex items-baseline justify-between">
-        <span className="text-white/50 text-sm">{t('amountLabel', lang)}</span>
-        <span className="text-white font-bold text-xl">${amount.toFixed(2)}</span>
-      </div>
-      {note && <p className="text-white/60 text-xs">{note}</p>}
+      {note && <p className="text-white/60 text-xs leading-relaxed">{note}</p>}
 
-      <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-        <PaymentElement />
+      <div className="relative min-h-[180px]">
+        {/* Stripe's form takes a moment to load; show its shape instead of a blank gap. */}
+        {!ready && (
+          <div className="absolute inset-0 space-y-3" aria-hidden>
+            <div className="h-11 rounded-xl bg-white/6 animate-pulse" />
+            <div className="h-11 rounded-xl bg-white/6 animate-pulse" />
+            <div className="grid grid-cols-2 gap-3"><div className="h-11 rounded-xl bg-white/6 animate-pulse" /><div className="h-11 rounded-xl bg-white/6 animate-pulse" /></div>
+          </div>
+        )}
+        <div className={ready ? '' : 'opacity-0'}>
+          <PaymentElement onReady={() => setReady(true)} options={{ layout: { type: 'tabs', defaultCollapsed: false } }} />
+        </div>
       </div>
 
       {error && (
@@ -83,8 +90,8 @@ function PaymentForm({
       <div className="flex items-center gap-3">
         <RippleButton
           type="submit"
-          disabled={!stripe || busy}
-          className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
+          disabled={!stripe || !ready || busy}
+          className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3.5 rounded-xl transition hover:opacity-90 disabled:opacity-50"
         >
           {verifying ? t('confirmingDots', lang) : submitting ? t('processingDots', lang) : `${t('payAmountBtnPrefix', lang)}${amount.toFixed(2)}`}
         </RippleButton>
@@ -270,36 +277,68 @@ export function StripePaymentModal({
     setVerifying(false)
   }
 
+  const lang = useLanguage()
+  const busy = verifying
+  // Stripe's form follows the app: light or dark, English or Spanish.
+  const [light, setLight] = useState(false)
+  useEffect(() => {
+    const read = () => {
+      const html = document.documentElement
+      setLight(html.dataset.theme === 'light')
+    }
+    read()
+    const mo = new MutationObserver(read)
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+    return () => mo.disconnect()
+  }, [])
+  // Escape closes, unless a payment is mid-flight or finished (then Done does).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !busy && !outcome && !rejected) onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [busy, outcome, rejected, onClose])
+
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-[#0F2138] border border-white/10 rounded-2xl p-6 w-full max-w-md">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4 z-50" role="dialog" aria-modal="true" aria-label={title}>
+      <div className="bg-[#0F2138] border border-white/10 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md max-h-[92vh] overflow-y-auto motion-safe:animate-[floatUp_0.25s_ease-out]">
+        <div aria-hidden className="sm:hidden mx-auto mt-2.5 h-1 w-10 rounded-full bg-white/20" />
+        <div className="p-6 pt-4 sm:pt-6" style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}>
         {rejected ? (
           <RejectedView message={rejected} onDone={onSuccess} />
         ) : outcome ? (
           <SuccessView amount={amount} outcome={outcome} message={successMessage} onDone={onSuccess} />
         ) : (
           <>
-            <h3 className="text-white font-semibold text-lg mb-4">{title}</h3>
+            <div className="flex items-start justify-between gap-4 mb-5">
+              <div className="min-w-0">
+                <h3 className="text-white/60 text-sm font-medium">{title}</h3>
+                <p className="text-white text-3xl font-bold tabular-nums tracking-tight mt-1">${amount.toFixed(2)}</p>
+              </div>
+              <button type="button" onClick={onClose} disabled={busy} aria-label={t('cancel', lang)} className="w-9 h-9 shrink-0 rounded-full grid place-items-center text-white/50 hover:text-white hover:bg-white/8 transition disabled:opacity-40">
+                <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M6 6l12 12M18 6 6 18" /></svg>
+              </button>
+            </div>
             <Elements
               stripe={getStripeClient(connectedAccountId)}
               options={{
                 clientSecret,
-                appearance: {
-                  theme: 'night',
-                  variables: {
-                    colorPrimary: '#12A5A9',
-                    colorBackground: '#0F2138',
-                    colorText: '#ffffff',
-                    colorDanger: '#f87171',
-                    borderRadius: '12px',
-                  },
-                },
+                locale: lang === 'es' ? 'es' : 'en',
+                appearance: light
+                  ? {
+                      theme: 'stripe',
+                      variables: { colorPrimary: '#0A7B7E', colorBackground: '#FFFFFF', colorText: '#14243A', colorDanger: '#DC2626', borderRadius: '12px', fontSizeBase: '15px' },
+                    }
+                  : {
+                      theme: 'night',
+                      variables: { colorPrimary: '#12A5A9', colorBackground: '#0F2138', colorText: '#ffffff', colorDanger: '#f87171', borderRadius: '12px', fontSizeBase: '15px' },
+                    },
               }}
             >
               <PaymentForm amount={amount} note={note} verifying={verifying} onConfirmed={handleConfirmed} onClose={onClose} />
             </Elements>
           </>
         )}
+        </div>
       </div>
     </div>
   )

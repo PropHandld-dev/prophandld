@@ -346,6 +346,20 @@ export default function RenterDashboard() {
                   </div>
                   <span className="text-white font-semibold text-sm">{t('reportTitle', lang)}</span>
                 </Link>
+                {/* The third thing every tenant does: talk to their landlord. */}
+                <Link
+                  href="/renter/messages"
+                  className="col-span-2 flex items-center gap-3 bg-white/3 border border-white/8 rounded-2xl px-4 py-3.5 hover:border-[#12A5A9]/30 hover:bg-white/5 transition-all"
+                >
+                  <span className="w-9 h-9 rounded-full bg-[#0A7B7E]/20 grid place-items-center shrink-0">
+                    <MessageCircleIcon className="w-4 h-4 text-[#12A5A9]" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-white font-semibold text-sm">{t('messageYourLandlordTile', lang)}</span>
+                    <span className="block text-white/45 text-xs">{t('messageYourLandlordHint', lang)}</span>
+                  </span>
+                  <span aria-hidden className="text-white/30 text-lg">›</span>
+                </Link>
               </div>
             )}
 
@@ -434,7 +448,20 @@ export default function RenterDashboard() {
               ) : !unit ? (
                 <p className="text-white/50 text-sm">{t('noUnitLinked', lang)}</p>
               ) : contacts.length === 0 ? (
-                <p className="text-white/50 text-sm">{t('noContactsAdded', lang)}</p>
+                // No contacts yet still answers "who do I call?" (QA dashboard review).
+                <div className="space-y-2 text-sm">
+                  <p className="text-white/70">{t('noContactsEmergencyGuide', lang)}</p>
+                  <div className="flex flex-wrap gap-2">
+                    <a href="tel:911" className="inline-flex items-center gap-1.5 rounded-full bg-red-500/12 border border-red-500/30 text-red-300 font-semibold text-xs px-3 py-1.5">911</a>
+                    {/philadelphia/i.test(property?.city || '') && (
+                      <>
+                        <a href="tel:12152351212" className="inline-flex items-center gap-1.5 rounded-full bg-white/5 border border-white/10 text-white/80 font-semibold text-xs px-3 py-1.5">{t('gasLeakPgw', lang)}</a>
+                        <a href="tel:18008414141" className="inline-flex items-center gap-1.5 rounded-full bg-white/5 border border-white/10 text-white/80 font-semibold text-xs px-3 py-1.5">{t('powerOutagePeco', lang)}</a>
+                      </>
+                    )}
+                  </div>
+                  <p className="text-white/45 text-xs">{t('noContactsRoutineGuide', lang)}</p>
+                </div>
               ) : (
                 <div className="space-y-3">
                   {contacts.map((contact) => (
