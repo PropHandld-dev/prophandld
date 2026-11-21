@@ -105,6 +105,8 @@ const CATEGORY_ES: Record<string, string> = {
   'Interior Painting': 'Pintura interior', 'Exterior Painting': 'Pintura exterior',
   'Cleaning': 'Limpieza', 'Move-Out Cleaning': 'Limpieza de salida', 'Move-In or Move-Out Inspection': 'Inspección de entrada o salida', 'Turnover or Make-Ready': 'Preparación entre inquilinos',
   'Renovation': 'Renovación', 'Warranty Item': 'Artículo en garantía', 'Common Area Issue': 'Problema en área común', 'General Handyman': 'Reparaciones generales', 'Something Else': 'Otra cosa',
+  // Older jobs were saved with the original short category names.
+  'Appliance': 'Electrodoméstico', 'HVAC': 'Calefacción y aire', 'Pest': 'Plagas', 'Structural': 'Estructura', 'Roofing': 'Techo', 'Landscaping': 'Jardinería', 'Other': 'Otro',
 }
 
 export function categoryName(category: string | null | undefined, lang: 'en' | 'es'): string {

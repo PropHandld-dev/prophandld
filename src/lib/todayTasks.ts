@@ -38,7 +38,7 @@ export async function landlordTodayTasks(admin: SupabaseClient, userId: string, 
   // A PM sees every client's tasks in one list, so each row names the owner.
   const otherOwners = ownerIds.filter((id) => id !== userId)
   const { data: ownerRows } = otherOwners.length ? await admin.from('users').select('id, full_name').in('id', otherOwners) : { data: [] as any[] }
-  const ownerName = new Map((ownerRows || []).map((o: any) => [o.id, o.full_name]))
+  const ownerName = new Map((ownerRows || []).map((o: any) => [o.id, o.full_name?.trim()]))
   const where = (unitId: string) => {
     const u: any = unitById.get(unitId)
     const p: any = u ? propById.get(u.property_id) : null
@@ -65,7 +65,7 @@ export async function landlordTodayTasks(admin: SupabaseClient, userId: string, 
   for (const b of bids || []) bidsByJob.set(b.job_id, [...(bidsByJob.get(b.job_id) || []), b])
   const contractorIds = Array.from(new Set((bids || []).filter((b: any) => b.status === 'accepted').map((b: any) => b.contractor_user_id)))
   const { data: contractors } = contractorIds.length ? await admin.from('users').select('id, full_name').in('id', contractorIds) : { data: [] as any[] }
-  const nameById = new Map((contractors || []).map((c: any) => [c.id, c.full_name]))
+  const nameById = new Map((contractors || []).map((c: any) => [c.id, c.full_name?.trim()]))
 
   for (const j of jobs || []) {
     const cat = categoryName(j.category, lang)
@@ -84,7 +84,9 @@ export async function landlordTodayTasks(admin: SupabaseClient, userId: string, 
     } else if (j.status === 'bidding' && pending.length > 0) {
       tasks.push({ id: `bids-${j.id}`, tone: j.is_emergency ? 'urgent' : 'action', title: T(`Pick a contractor for ${cat}`, `Elige contratista para ${cat}`), detail: `${at} · ${pending.length} ${T(pending.length === 1 ? 'bid' : 'bids', pending.length === 1 ? 'oferta' : 'ofertas')}`, cta: T('Compare bids', 'Comparar'), href })
     } else if ((j.status === 'bid_selected' || j.status === 'scheduled') && j.proposed_by && j.proposed_by !== 'landlord' && !j.schedule_confirmed && j.proposed_date) {
-      tasks.push({ id: `time-${j.id}`, tone: 'action', title: T(`Confirm the visit time for ${cat}`, `Confirma la hora de la visita: ${cat}`), detail: `${at} · ${fmtDate(j.proposed_date, lang)}`, cta: T('Confirm', 'Confirmar'), href })
+      tasks.push(daysUntil(j.proposed_date) < 0
+        ? { id: `time-${j.id}`, tone: 'action', title: T(`Pick a new visit time for ${cat}`, `Elige otra hora de visita: ${cat}`), detail: `${at} · ${T(`${fmtDate(j.proposed_date, lang)} has passed`, `el ${fmtDate(j.proposed_date, lang)} ya pasó`)}`, cta: T('Reschedule', 'Reprogramar'), href }
+        : { id: `time-${j.id}`, tone: 'action', title: T(`Confirm the visit time for ${cat}`, `Confirma la hora de la visita: ${cat}`), detail: `${at} · ${fmtDate(j.proposed_date, lang)}`, cta: T('Confirm', 'Confirmar'), href })
     } else if (j.status === 'scheduled' && j.schedule_confirmed && j.proposed_date && daysUntil(j.proposed_date) >= 0 && daysUntil(j.proposed_date) <= 2) {
       const d = daysUntil(j.proposed_date)
       tasks.push({ id: `visit-${j.id}`, tone: 'upcoming', title: d === 0 ? T(`Repair visit today: ${cat}`, `Visita de reparación hoy: ${cat}`) : T(`Repair visit ${fmtDate(j.proposed_date, lang)}: ${cat}`, `Visita de reparación ${fmtDate(j.proposed_date, lang)}: ${cat}`), detail: [at, j.proposed_window].filter(Boolean).join(' · '), cta: T('Details', 'Detalles'), href })
@@ -107,7 +109,7 @@ export async function landlordTodayTasks(admin: SupabaseClient, userId: string, 
     : { data: [] as any[] }
   const renterIds = Array.from(new Set((tenancies || []).map((t: any) => t.renter_user_id).filter(Boolean)))
   const { data: renters } = renterIds.length ? await admin.from('users').select('id, full_name').in('id', renterIds) : { data: [] as any[] }
-  const renterName = new Map((renters || []).map((r: any) => [r.id, r.full_name]))
+  const renterName = new Map((renters || []).map((r: any) => [r.id, r.full_name?.trim()]))
   const tIds = (tenancies || []).map((t: any) => t.id)
   const { month: thisMonth, following } = rentMonthBounds(0)
   const { month: windowStart } = rentMonthBounds(-12)
@@ -271,7 +273,9 @@ export async function renterTodayTasks(admin: SupabaseClient, userId: string, te
     if (j.schedule_ask_tenant && !j.proposed_date) {
       tasks.push({ id: `time-${j.id}`, tone: 'action', title: T(`Pick a time for the ${cat} repair`, `Elige una hora para la reparación: ${cat}`), detail: T('Your landlord asked when works for you', 'Tu arrendador preguntó qué horario te funciona'), cta: T('Pick a time', 'Elegir hora'), href })
     } else if (j.proposed_date && !j.schedule_confirmed && j.proposed_by !== 'renter') {
-      tasks.push({ id: `time-${j.id}`, tone: 'action', title: T(`Confirm the visit time: ${cat}`, `Confirma la hora de la visita: ${cat}`), detail: fmtDate(j.proposed_date, lang), cta: T('Confirm', 'Confirmar'), href })
+      tasks.push(daysUntil(j.proposed_date) < 0
+        ? { id: `time-${j.id}`, tone: 'action', title: T(`Suggest a new time for the ${cat} repair`, `Sugiere otra hora para la reparación: ${cat}`), detail: T(`The proposed date (${fmtDate(j.proposed_date, lang)}) has passed`, `La fecha propuesta (${fmtDate(j.proposed_date, lang)}) ya pasó`), cta: T('Suggest a time', 'Sugerir hora'), href }
+        : { id: `time-${j.id}`, tone: 'action', title: T(`Confirm the visit time: ${cat}`, `Confirma la hora de la visita: ${cat}`), detail: fmtDate(j.proposed_date, lang), cta: T('Confirm', 'Confirmar'), href })
     } else if (j.schedule_confirmed && j.proposed_date) {
       const d = daysUntil(j.proposed_date)
       if (d >= 0 && d <= 2) tasks.push({ id: `visit-${j.id}`, tone: 'upcoming', title: d === 0 ? T(`Repair visit today: ${cat}`, `Visita de reparación hoy: ${cat}`) : T(`Repair visit ${fmtDate(j.proposed_date, lang)}: ${cat}`, `Visita de reparación ${fmtDate(j.proposed_date, lang)}: ${cat}`), detail: T('Make sure someone can let them in', 'Asegúrate de que alguien pueda abrir'), cta: T('Details', 'Detalles'), href })
