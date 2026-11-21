@@ -153,9 +153,14 @@ export async function linkOrInviteTenant(
 
   // role_input 'renter': an email that belongs to one of the landlord's
   // own other-role accounts must get an invite, not be linked as tenant.
-  const { data: renterId, error: renterError } = renterEmail
-    ? await supabase.rpc('get_user_id_by_email', { email_input: renterEmail, role_input: 'renter' })
-    : await supabase.rpc('get_user_id_by_phone', { phone_input: trimmed, role_input: 'renter' })
+  const lookup = await fetch('/api/landlord/resolve-renter', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(renterEmail ? { email: renterEmail } : { phone: trimmed }),
+  }).catch(() => null)
+  const found = lookup?.ok ? await lookup.json().catch(() => null) : null
+  const renterId: string | null = found?.renterId || null
+  const renterError = null
 
   if (!renterError && renterId) {
     const { error } = await supabase.from('tenancies').insert({ unit_id: unitId, renter_user_id: renterId, ...termsRow(terms) })
