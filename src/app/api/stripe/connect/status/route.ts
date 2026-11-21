@@ -46,7 +46,20 @@ export async function GET() {
         .eq('id', user.id)
     }
 
-    return NextResponse.json({ status })
+    // Why it isn't active yet, in Stripe's own words, so the card can say
+    // "Stripe is verifying your details" or "Stripe still needs X" instead
+    // of a vague "setup in progress". Only the caller's own account.
+    const req = account.requirements
+    const detail = status === 'active' ? null : {
+      needs: Array.from(new Set([...(req?.past_due || []), ...(req?.currently_due || [])])),
+      verifying: req?.pending_verification || [],
+      disabledReason: req?.disabled_reason || null,
+      chargesEnabled: !!account.charges_enabled,
+      payoutsEnabled: !!account.payouts_enabled,
+      transfers: account.capabilities?.transfers || null,
+      detailsSubmitted: !!account.details_submitted,
+    }
+    return NextResponse.json({ status, detail })
   } catch (err) {
     console.error('connect/status: stripe call failed', err)
     return NextResponse.json({ status: userRow.stripe_connect_status || 'onboarding' })

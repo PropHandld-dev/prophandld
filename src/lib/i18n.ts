@@ -622,6 +622,9 @@ const STRINGS = {
   noContactsRoutineGuide: { en: 'For anything that can wait, use Report an issue or message your landlord.', es: 'Para lo que puede esperar, usa Reportar un problema o escríbele a tu arrendador.' },
   gasLeakPgw: { en: 'Gas smell: PGW', es: 'Olor a gas: PGW' },
   powerOutagePeco: { en: 'Power out: PECO', es: 'Sin luz: PECO' },
+  stripeNeedsMore: { en: 'Stripe still needs a few details from you. Tap Finish setup to add them.', es: 'Stripe aún necesita algunos datos. Toca Terminar configuración para agregarlos.' },
+  stripeVerifying: { en: 'Everything’s submitted. Stripe is verifying your details, which usually takes a few minutes and occasionally up to a day. This turns Active on its own.', es: 'Todo está enviado. Stripe está verificando tus datos; suele tardar unos minutos y a veces hasta un día. Se activará solo.' },
+  checkAgain: { en: 'Check again', es: 'Revisar de nuevo' },
   loadFailedTitle: { en: "This didn't load", es: 'Esto no se cargó' },
   loadFailedWhat: { en: "Your {what} didn't load", es: 'No se cargó: {what}' },
   loadFailedBody: { en: "Nothing was changed. It's usually a brief connection problem.", es: 'No se cambió nada. Suele ser un problema breve de conexión.' },
@@ -1644,8 +1647,8 @@ const STRINGS = {
   done: { en: 'Done', es: 'Listo' },
 
   getPaidRentSectionIntro: { en: "Set up how rent reaches you. You always get the full rent amount: bank transfer is the default, and Prophandld pays its processing fee, so your tenant pays exactly the rent. Debit card is there for a tenant who needs to pay right now; they pay its card processing fee, so you still get the full rent.", es: 'Configura cómo recibes la renta. Siempre recibes el monto completo: la transferencia bancaria es la opción principal y Prophandld paga su cargo de procesamiento, así que tu inquilino paga exactamente la renta. La tarjeta de débito está disponible para un inquilino que necesita pagar de inmediato; el inquilino paga su cargo de procesamiento, así que tú recibes la renta completa.' },
-  getPaidRentCardTitle: { en: 'Debit card (instant)', es: 'Tarjeta de débito (instantáneo)' },
-  getPaidRentCardBody: { en: "For a tenant who needs to pay right now instead of waiting on a bank transfer. They pay a small card fee, shown to them up front. You're never charged for it.", es: 'Para un inquilino que necesita pagar de inmediato en lugar de esperar una transferencia bancaria. Ellos pagan una pequeña comisión por tarjeta, mostrada por adelantado; a ti nunca se te cobra.' },
+  getPaidRentCardTitle: { en: 'Online rent: bank transfer and debit card', es: 'Renta en línea: transferencia bancaria y tarjeta de débito' },
+  getPaidRentCardBody: { en: 'One setup with Stripe lets tenants pay you online either way, straight to your bank. Bank transfer: no fee to them (we cover it), clears in 1–3 business days. Debit card: instant, with a small card fee they see up front. You’re never charged for either.', es: 'Una sola configuración con Stripe permite que tus inquilinos te paguen en línea de cualquiera de las dos formas, directo a tu banco. Transferencia bancaria: sin costo para ellos (lo cubrimos), tarda 1–3 días hábiles. Tarjeta de débito: instantáneo, con una pequeña comisión que ven por adelantado. A ti nunca se te cobra.' },
 
   reauthToChangeP2pTitle: { en: 'Confirm it’s you', es: 'Confirma que eres tú' },
   reauthToChangeP2pBody: { en: 'Changing a Zelle, Venmo, or Cash App handle your renters pay is a sensitive action. Enter your password to continue.', es: 'Cambiar un dato de Zelle, Venmo o Cash App que usan tus inquilinos para pagarte es una acción sensible. Ingresa tu contraseña para continuar.' },

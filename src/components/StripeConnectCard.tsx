@@ -21,6 +21,7 @@ export function StripeConnectCard({ purpose, returnTo }: { purpose: 'rent' | 'jo
   // A failed status check is shown as a failure, never as "Not set up"
   // (QA TEAM-07: a 504 made a half-onboarded account look reset).
   const [loadFailed, setLoadFailed] = useState(false)
+  const [detail, setDetail] = useState<{ needs: string[]; verifying: string[]; disabledReason: string | null; detailsSubmitted: boolean } | null>(null)
   const load = async () => {
     setLoading(true)
     setLoadFailed(false)
@@ -29,6 +30,7 @@ export function StripeConnectCard({ purpose, returnTo }: { purpose: 'rent' | 'jo
       const data = await res.json()
       if (!res.ok || !data.status) throw new Error(String(res.status))
       setStatus(data.status)
+      setDetail(data.detail || null)
     } catch {
       setLoadFailed(true)
     }
@@ -102,9 +104,21 @@ export function StripeConnectCard({ purpose, returnTo }: { purpose: 'rent' | 'jo
         </div>
       )}
 
+      {!loading && status === 'onboarding' && detail && (
+        // What Stripe is actually waiting on, in plain words.
+        detail.needs.length > 0 ? (
+          <p className="text-amber-300 text-sm mb-4">{t('stripeNeedsMore', lang)}</p>
+        ) : (
+          <div className="flex items-center gap-3 mb-4 flex-wrap">
+            <p className="text-white/70 text-sm flex-1 min-w-[200px]">{t('stripeVerifying', lang)}</p>
+            <button type="button" onClick={load} className="text-[#12A5A9] text-sm font-semibold hover:underline">{t('checkAgain', lang)}</button>
+          </div>
+        )
+      )}
+
       {loading ? (
         <div className="h-10 w-40 bg-white/5 rounded-xl animate-pulse" />
-      ) : status !== 'active' ? (
+      ) : status === 'onboarding' && detail && detail.needs.length === 0 && detail.detailsSubmitted ? null : status !== 'active' ? (
         <>
           <RippleButton
             onClick={handleSetup}
