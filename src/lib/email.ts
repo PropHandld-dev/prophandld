@@ -3817,6 +3817,8 @@ export async function sendRentDueRenterEmail({
   unitLabel,
   amount,
   monthDate,
+  dueDate,
+  prorationNote,
   lang = 'en',
 }: {
   to: string
@@ -3827,8 +3829,13 @@ export async function sendRentDueRenterEmail({
   // a charge for a different month (past or future) needs to say so, not
   // silently claim it's for "this month" when it isn't.
   monthDate?: Date
+  // When it's due, and for a prorated move-in month, the math behind the
+  // amount, so the email matches what the rent page shows.
+  dueDate?: Date
+  prorationNote?: string | null
   lang?: Lang
 }) {
+  const dueLabel = dueDate ? dueDate.toLocaleDateString(lang === 'es' ? 'es-ES' : 'en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : null
   const monthLabel = (monthDate || new Date()).toLocaleDateString(lang === 'es' ? 'es-ES' : undefined, { month: 'long', year: 'numeric' })
   const html = lang === 'es' ? baseTemplate({
     lang,
@@ -3840,6 +3847,8 @@ export async function sendRentDueRenterEmail({
       { label: fl('Amount', lang), value: `$${amount.toFixed(2)}` },
       { label: fl('Unit', lang), value: unitLabel },
       { label: fl('For', lang), value: monthLabel },
+      ...(dueLabel ? [{ label: 'Vence', value: dueLabel }] : []),
+      ...(prorationNote ? [{ label: 'Mes de mudanza', value: `${prorationNote} (prorrateado)` }] : []),
     ],
     ctaLabel: 'Pagar renta',
     ctaUrl: `${SITE_URL}/renter/rent`,
@@ -3853,6 +3862,8 @@ export async function sendRentDueRenterEmail({
       { label: fl('Amount', lang), value: `$${amount.toFixed(2)}` },
       { label: fl('Unit', lang), value: unitLabel },
       { label: fl('For', lang), value: monthLabel },
+      ...(dueLabel ? [{ label: 'Due', value: dueLabel }] : []),
+      ...(prorationNote ? [{ label: 'Move-in month', value: `${prorationNote} (prorated)` }] : []),
     ],
     ctaLabel: 'Pay rent',
     ctaUrl: `${SITE_URL}/renter/rent`,

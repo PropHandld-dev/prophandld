@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
   for (const ids of chunk(tenancies.map((t) => t.id), ID_CHUNK)) {
     const { data, error } = await supabaseAdmin
       .from('rent_payments')
-      .select('id, tenancy_id, month, due_date, expected_amount, actual_amount, late_fee_applied, reminder_sent_at')
+      .select('id, tenancy_id, month, due_date, proration_note, expected_amount, actual_amount, late_fee_applied, reminder_sent_at')
       .in('tenancy_id', ids)
       .gte('month', month)
       .lt('month', following)
@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
         batch.map((t) => ({ tenancy_id: t.id, month, expected_amount: t.rent_amount })),
         { onConflict: 'tenancy_id,month', ignoreDuplicates: true }
       )
-      .select('id, tenancy_id, month, due_date, expected_amount, actual_amount, late_fee_applied, reminder_sent_at')
+      .select('id, tenancy_id, month, due_date, proration_note, expected_amount, actual_amount, late_fee_applied, reminder_sent_at')
     if (error) {
       console.error('cron/rent-reminder: bulk upsert failed', error)
       continue
@@ -151,7 +151,15 @@ export async function GET(request: NextRequest) {
     if (tenancy.renter_user_id) {
       const renter = userById.get(tenancy.renter_user_id)
       if (renter?.email && emailAllowed(renter)) {
-        await sendRentDueRenterEmail({ to: renter.email, unitLabel, amount: Number(paymentByTenancy.get(tenancy.id)?.expected_amount ?? tenancy.rent_amount), lang: langOf(renter) })
+        const row = paymentByTenancy.get(tenancy.id)
+        await sendRentDueRenterEmail({
+          to: renter.email,
+          unitLabel,
+          amount: Number(row?.expected_amount ?? tenancy.rent_amount),
+          dueDate: row ? rentDueDate(row, tenancy.rent_due_day) : undefined,
+          prorationNote: row?.proration_note || null,
+          lang: langOf(renter),
+        })
         dueRenterNotifications++
       }
       await sendPush(tenancy.renter_user_id, {
