@@ -348,9 +348,9 @@ function ApprovalBody({
   const approveLabel = a.type === 'job_payment' ? (j?.stage === 'finished' ? 'Approve payment' : 'Approve quote') : 'Approve'
   return (
     <div className="px-4 py-3">
-      <p className="text-white font-semibold">{a.title}</p>
+      <p className="text-white font-semibold">{j?.stage === 'quote' ? a.title.replace(/^Pay /, '') : a.title}</p>
       {amount != null ? <p className="text-white text-2xl font-bold tabular-nums mt-1">{money(amount)}</p> : null}
-      {why && <p className="text-amber-300 text-xs font-medium mt-1">{why}</p>}
+      {why && <p className={`text-xs font-medium mt-1 ${amount != null && m.ownerLimit != null && amount > m.ownerLimit ? 'text-amber-300' : 'text-white/50'}`}>{why}</p>}
       {j?.description && <p className="text-white/70 text-sm mt-3 line-clamp-4">{j.description}</p>}
       {j?.contractor && (
         <p className="text-white/60 text-xs mt-2">
