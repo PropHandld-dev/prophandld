@@ -119,6 +119,13 @@ export function PrivacyContent() {
               We use cookies and similar technology to keep you signed in and to understand product
               usage through PostHog. We don't use tracking for third-party advertising.
             </p>
+            <p>
+              Some things are saved only in your browser on your own device, so you don&apos;t lose
+              them: preferences like language and light/dark mode, and unsent drafts (for example a
+              half-written repair report, property or bid). Drafts are tied to your account, are
+              deleted after 14 days or when you send or discard them, and are never sent to us until
+              you submit them.
+            </p>
           </section>
 
           <section>

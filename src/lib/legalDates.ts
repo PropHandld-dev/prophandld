@@ -6,5 +6,5 @@ export const LEGAL_UPDATED = {
   renter: 'November 20, 2026',
   contractor: 'November 20, 2026',
   propertyManager: 'November 20, 2026',
-  privacy: 'November 20, 2026',
+  privacy: 'November 21, 2026',
 } as const
