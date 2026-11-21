@@ -21,11 +21,22 @@ export async function POST(request: NextRequest) {
   const body = await request.text()
   const stripe = getStripe()
 
-  let event: Stripe.Event
-  try {
-    event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
-  } catch (err) {
-    console.error('stripe webhook: signature verification failed', err)
+  // Stripe signs events from connected accounts (rent and PM fees are
+  // charged on the landlord's or PM's own account) through a separate
+  // "Connect" webhook with its own secret. Accept either.
+  const secrets = [webhookSecret, process.env.STRIPE_CONNECT_WEBHOOK_SECRET].filter((x): x is string => !!x)
+  let event: Stripe.Event | null = null
+  let lastErr: unknown = null
+  for (const secret of secrets) {
+    try {
+      event = stripe.webhooks.constructEvent(body, signature, secret)
+      break
+    } catch (err) {
+      lastErr = err
+    }
+  }
+  if (!event) {
+    console.error('stripe webhook: signature verification failed', lastErr)
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
   }
 
