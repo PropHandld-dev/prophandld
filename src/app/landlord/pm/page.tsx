@@ -12,14 +12,15 @@ import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
 import { CountUp } from '@/components/CountUp'
 import { useRouter } from 'next/navigation'
-import { BuildingIcon, WrenchIcon, DollarSignIcon, PlusIcon, ShieldIcon, ChevronDownIcon, StarIcon, DownloadIcon } from '@/components/icons'
+import { BuildingIcon, WrenchIcon, DollarSignIcon, PlusIcon, ShieldIcon, ChevronDownIcon, StarIcon, DownloadIcon, UserIcon } from '@/components/icons'
 import { startDmThread } from '@/lib/dmThreads'
 import { downloadCsv } from '@/lib/csvExport'
 import { GoogleTranslateToggle } from '@/components/GoogleTranslateToggle'
 import { RentTrendChart, type MonthBucket } from '@/components/RentTrendChart'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { LANDLORD_TABS } from '@/lib/navTabs'
-import { ProfileStylePicker } from '@/components/ProfileStylePicker'
+import { BrandColorPicker } from '@/components/BrandColorPicker'
+import { PmProfilePreview } from '@/components/PmProfilePreview'
 import { resolveProfileStyle, dominantColorFromImage } from '@/lib/profileStyles'
 import { EndManagementDialog } from '@/components/EndManagementDialog'
 import { PmRentRow, OwnerRentRouting } from '@/components/RentRoutingPanels'
@@ -53,6 +54,7 @@ type ClientRow = {
   occupiedUnitCount?: number
   openJobCount?: number
   rentCollectedThisMonth?: number | null
+  rentRollMonthly?: number | null
 }
 type Staff = {
   id: string
@@ -103,6 +105,7 @@ const SPECIALTY_LABELS: Record<string, string> = {
 }
 
 const ACTION_LABELS: Record<string, string> = {
+  owner_approval_requested: 'asked the owner to approve',
   job_payment_started: 'approved a job payment',
   job_payment_blocked_needs_owner_signoff: 'tried to approve a payment over threshold',
   job_bulk_approved: 'approved completed work',
@@ -117,6 +120,8 @@ const ACTION_LABELS: Record<string, string> = {
   owner_action_approved: 'approved a request in messages',
   owner_action_declined: 'declined a request in messages',
 }
+// Any action without its own wording still reads as words, never a code.
+const actionLabel = (a: string) => ACTION_LABELS[a] || a.replace(/_/g, ' ')
 
 type PendingJob = { id: string; category: string; createdAt: string; ownerUserId: string; ownerName: string; address: string }
 
@@ -160,25 +165,90 @@ function StatTile({
   )
 }
 
-function TabBar({ tabs, active, onChange }: { tabs: { key: Tab; label: string; count?: number }[]; active: Tab; onChange: (t: Tab) => void }) {
+function TabBar({ tabs, active, onChange, accent }: { tabs: { key: Tab; label: string; count?: number }[]; active: Tab; onChange: (t: Tab) => void; accent: string }) {
   return (
-    <div className="flex gap-1 bg-white/3 border border-white/8 rounded-xl p-1 mb-6 overflow-x-auto">
-      {tabs.map((t) => (
-        <button
-          key={t.key}
-          type="button"
-          onClick={() => onChange(t.key)}
-          className={`flex-1 whitespace-nowrap text-xs font-semibold px-3 py-2 rounded-lg transition ${
-            active === t.key ? 'bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white' : 'text-white/50 hover:text-white/80'
-          }`}
-        >
-          {t.label}
-          {typeof t.count === 'number' && t.count > 0 && <span className={active === t.key ? 'text-white/80' : 'text-white/30'}> ({t.count})</span>}
-        </button>
-      ))}
+    <div className="flex gap-1 border-b border-white/8 mb-6 overflow-x-auto -mx-1 px-1" role="tablist">
+      {tabs.map((t) => {
+        const on = active === t.key
+        return (
+          <button
+            key={t.key}
+            type="button"
+            role="tab"
+            aria-selected={on}
+            onClick={() => onChange(t.key)}
+            className={`relative whitespace-nowrap text-sm font-medium px-3.5 py-3 transition ${on ? 'text-white' : 'text-white/50 hover:text-white/80'}`}
+          >
+            {t.label}
+            {typeof t.count === 'number' && t.count > 0 && (
+              <span className={`ml-1.5 text-[11px] font-semibold rounded-full px-1.5 py-0.5 tabular-nums ${on ? 'bg-white/12 text-white' : 'bg-white/6 text-white/50'}`}>{t.count}</span>
+            )}
+            {on && <span aria-hidden className="absolute left-2 right-2 -bottom-px h-0.5 rounded-full" style={{ background: accent }} />}
+          </button>
+        )
+      })}
     </div>
   )
 }
+
+// One headline number with its context: what it is, how it's trending
+// against what's expected, and where to go next.
+function Kpi({
+  icon: Icon,
+  label,
+  value,
+  sub,
+  progress,
+  accent,
+  onClick,
+}: {
+  icon: typeof BuildingIcon
+  label: string
+  value: ReactNode
+  sub?: ReactNode
+  progress?: number | null
+  accent: string
+  onClick?: () => void
+}) {
+  const body = (
+    <>
+      <div className="flex items-center gap-2 text-white/55 text-xs font-medium">
+        <span style={{ color: accent }}><Icon className="w-3.5 h-3.5" /></span>
+        {label}
+      </div>
+      <p className="text-white text-2xl sm:text-3xl font-bold tabular-nums tracking-tight mt-2.5 leading-none truncate">{value}</p>
+      {progress != null && (
+        <div className="mt-3 h-1.5 rounded-full bg-white/8 overflow-hidden" aria-hidden>
+          <div className="h-full rounded-full transition-[width] duration-700 ease-out" style={{ width: `${Math.max(2, Math.min(100, Math.round(progress * 100)))}%`, background: accent }} />
+        </div>
+      )}
+      {sub && <p className="text-white/45 text-xs mt-2 leading-snug">{sub}</p>}
+    </>
+  )
+  const base = 'text-left rounded-2xl border border-white/8 bg-white/3 p-4 sm:p-5 min-w-0 w-full flex flex-col justify-start'
+  return onClick ? (
+    <button type="button" onClick={onClick} className={`${base} group hover:bg-white/5 hover:border-white/15 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#12A5A9]`}>
+      {body}
+    </button>
+  ) : (
+    <div className={base}>{body}</div>
+  )
+}
+
+function Avatar({ name, accent, size = 'md' }: { name: string; accent: string; size?: 'sm' | 'md' }) {
+  const initials = name.split(/\s+/).filter(Boolean).map((w) => w[0]).join('').slice(0, 2).toUpperCase() || '?'
+  return (
+    <span
+      aria-hidden
+      className={`${size === 'sm' ? 'w-7 h-7 text-[10px]' : 'w-10 h-10 text-sm'} rounded-full grid place-items-center font-bold shrink-0 text-[#fff]`}
+      style={{ background: `linear-gradient(135deg, ${accent}, rgba(15,23,42,0.9))` }}
+    >
+      {initials}
+    </span>
+  )
+}
+
+const usd0 = (n: number) => `$${Math.round(n).toLocaleString('en-US')}`
 
 type FeePayload =
   | { type: 'percent_of_rent'; percent: number }
@@ -1242,16 +1312,10 @@ export default function PmDashboardPage() {
   const feesAwaitingOwner = acceptedClients.filter((c) =>
     (c.managementFeeType === 'percent_of_rent' ? (c.managementFeePercent ?? 0) > 0 : (c.managementFee ?? 0) > 0) && !c.feeApproved
   ).length
-  const needsYou = [
-    { count: pendingJobs.length, label: pendingJobs.length === 1 ? 'job to review' : 'jobs to review', go: () => { setActiveTab('overview'); setTimeout(() => document.getElementById('pending-approvals')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50) } },
-    { count: complianceAlerts.length, label: complianceAlerts.length === 1 ? 'compliance deadline' : 'compliance deadlines', go: () => { setActiveTab('overview'); setTimeout(() => document.getElementById('compliance-alerts')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50) } },
-    { count: pendingClientInvites, label: pendingClientInvites === 1 ? 'client invite pending' : 'client invites pending', go: () => setActiveTab('clients') },
-    { count: feesAwaitingOwner, label: feesAwaitingOwner === 1 ? 'fee awaiting approval' : 'fees awaiting approval', go: () => setActiveTab('clients') },
-  ].filter((n) => n.count > 0)
 
   return (
-    <div className="min-h-screen bg-[#0A0F1C] px-4 py-6 sm:py-8 pb-24">
-      <div className="max-w-3xl mx-auto">
+    <div className="min-h-screen bg-[#0A0F1C] px-4 sm:px-6 py-6 sm:py-8 pb-24">
+      <div className={membership ? 'max-w-6xl mx-auto' : 'max-w-3xl mx-auto'}>
         <div className="flex items-center justify-between gap-3 mb-4">
           {membership ? (
             <span className="text-white/40 text-xs font-semibold uppercase tracking-[0.18em]">Property management</span>
@@ -1519,7 +1583,7 @@ export default function PmDashboardPage() {
                   // which is what made the whole page feel like a dead end.
                   const content = (
                     <>
-                      <span className="text-white/80">{entry.actorName}</span> {ACTION_LABELS[entry.action] || entry.action}
+                      <span className="text-white/80">{entry.actorName}</span> {actionLabel(entry.action)}
                       {entry.detail && <span className="text-white/60">: {entry.detail}</span>}
                       {entry.amount !== null && <span className="text-white/60"> · ${entry.amount.toFixed(2)}</span>}
                       <span className="text-white/30"> · {new Date(entry.createdAt).toLocaleDateString()}</span>
@@ -1574,67 +1638,109 @@ export default function PmDashboardPage() {
 
         {membership && (
           <>
-            <div className="pm-hero relative overflow-hidden rounded-[28px] border border-white/10 mb-5 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.8)]">
-              <div aria-hidden className="absolute inset-0" style={{ background: look.gradient }} />
-              <span aria-hidden className="pm-blob absolute -top-1/2 -left-1/4 w-3/4 h-[160%] rounded-full blur-3xl opacity-70" style={{ background: look.stops[2] }} />
-              <span aria-hidden className="pm-blob pm-blob-2 absolute -bottom-1/2 -right-1/4 w-2/3 h-[160%] rounded-full blur-3xl opacity-60" style={{ background: look.stops[1] }} />
-              <div aria-hidden className="absolute inset-0 bg-[#0A0F1C]/60" />
-              <div className="relative p-5 sm:p-7">
-                <div className="flex items-center gap-3.5 mb-6">
-                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl p-[2px] shrink-0" style={{ background: look.gradient }}>
-                    {logoUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={logoUrl} alt="" className="w-full h-full rounded-[14px] object-cover bg-white" />
-                    ) : (
-                      <span className="w-full h-full rounded-[14px] bg-[#0A0F1C] flex items-center justify-center text-white font-bold">
-                        {membership.organizationName.split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase()}
-                      </span>
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-white/65 text-sm">{greeting}{firstName ? `, ${firstName}` : ''}</p>
-                    <h1 className="text-white font-bold text-xl sm:text-2xl tracking-tight truncate">{membership.organizationName}</h1>
-                  </div>
-                  <span className="ml-auto hidden sm:inline-flex text-white/60 text-xs bg-white/10 border border-white/15 rounded-full px-3 py-1">
-                    {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}
-                  </span>
+            {/* Identity + the two things a PM does most. The brand color is
+                an accent here, not a full-bleed background. */}
+            <header className="mb-6">
+              <div className="flex items-center gap-4 flex-wrap">
+                <div className="w-14 h-14 rounded-2xl p-[2px] shrink-0" style={{ background: look.gradient }}>
+                  {logoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={logoUrl} alt="" className="w-full h-full rounded-[14px] object-cover bg-white" />
+                  ) : (
+                    <span className="w-full h-full rounded-[14px] bg-[#0A0F1C] flex items-center justify-center text-white font-bold">
+                      {membership.organizationName.split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase()}
+                    </span>
+                  )}
                 </div>
-            <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
-              <StatTile icon={BuildingIcon} label="Units managed" value={<CountUp value={combinedUnits} />} onClick={() => router.push('/landlord/properties')} />
-              <StatTile icon={WrenchIcon} label="Open jobs" value={<CountUp value={combinedOpenJobs} />} onClick={() => router.push('/landlord/jobs?filter=open')} />
-              {membership.canViewFinancials ? (
-                <StatTile icon={DollarSignIcon} label={`Rent collected in ${new Date().toLocaleDateString('en-US', { month: 'long' })}`} value={`$${combinedRent.toLocaleString(undefined, { maximumFractionDigits: 0 })}`} onClick={() => router.push('/landlord/rent')} />
-              ) : (
-                <StatTile icon={ShieldIcon} label="Your role" value="Staff" />
-              )}
-            </div>
-              </div>
-            </div>
-
-            <div className="mb-5">
-              {needsYou.length === 0 ? (
-                <p className="inline-flex items-center gap-2 text-sm text-[#12A5A9] bg-[#12A5A9]/10 border border-[#12A5A9]/20 rounded-full px-3.5 py-1.5">
-                  <span aria-hidden>✓</span> All clear. Nothing needs you right now.
-                </p>
-              ) : (
-                <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 snap-x">
-                  <span className="shrink-0 self-center text-white/45 text-xs font-semibold uppercase tracking-wider mr-1">Needs you</span>
-                  {needsYou.map((n) => (
+                <div className="min-w-0 flex-1">
+                  <p className="text-white/50 text-sm">
+                    {greeting}{firstName ? `, ${firstName}` : ''} · {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                  </p>
+                  <h1 className="text-white font-bold text-2xl sm:text-3xl tracking-tight truncate">{membership.organizationName}</h1>
+                </div>
+                {membership.memberRole === 'admin' && (
+                  <div className="flex gap-2 w-full sm:w-auto">
                     <button
-                      key={n.label}
                       type="button"
-                      onClick={n.go}
-                      className="snap-start shrink-0 inline-flex items-center gap-2 rounded-full bg-yellow-500/10 border border-yellow-500/25 pl-1.5 pr-3.5 py-1.5 text-sm text-white hover:bg-yellow-500/15 transition"
+                      onClick={() => {
+                        setActiveTab('clients')
+                        setTimeout(() => {
+                          document.getElementById('invite-client')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                          document.getElementById('invite-client-email')?.focus()
+                        }, 80)
+                      }}
+                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 text-sm font-semibold text-[#fff] rounded-xl px-4 py-2.5 hover:opacity-90 transition"
+                      style={{ background: look.accent }}
                     >
-                      <span style={{ background: '#FACC15', color: '#0A0F1C' }} className="min-w-6 h-6 px-1.5 rounded-full text-xs font-bold flex items-center justify-center tabular-nums">{n.count}</span>
-                      {n.label}
+                      <PlusIcon className="w-4 h-4" /> Invite client
                     </button>
-                  ))}
+                    <Link
+                      href="/landlord/properties/new"
+                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 text-sm font-semibold text-white rounded-xl px-4 py-2.5 bg-white/5 border border-white/10 hover:bg-white/8 transition"
+                    >
+                      <BuildingIcon className="w-4 h-4" /> Add property
+                    </Link>
+                  </div>
+                )}
+              </div>
+              <div aria-hidden className="mt-5 h-px" style={{ background: `linear-gradient(90deg, ${look.accent}, rgba(255,255,255,0.08) 45%, transparent)` }} />
+            </header>
+
+            {(() => {
+              const occupied = acceptedClients.reduce((t, c) => t + Math.min(c.occupiedUnitCount || 0, c.unitCount || 0), 0)
+              const rentRoll = acceptedClients.reduce((t, c) => t + (c.rentRollMonthly || 0), 0)
+              const propertyTotal = acceptedClients.reduce((t, c) => t + (c.propertyCount || 0), 0)
+              const monthName = new Date().toLocaleDateString('en-US', { month: 'long' })
+              const clientNote = [
+                pendingClientInvites > 0 && `${pendingClientInvites} invite${pendingClientInvites === 1 ? '' : 's'} pending`,
+                feesAwaitingOwner > 0 && `${feesAwaitingOwner} fee${feesAwaitingOwner === 1 ? '' : 's'} awaiting owner OK`,
+              ].filter(Boolean).join(' · ')
+              return (
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
+                  <Kpi
+                    icon={UserIcon}
+                    accent={look.accent}
+                    label="Clients"
+                    value={<CountUp value={acceptedClients.length} />}
+                    sub={clientNote || `${propertyTotal} ${propertyTotal === 1 ? 'property' : 'properties'} under management`}
+                    onClick={() => setActiveTab('clients')}
+                  />
+                  <Kpi
+                    icon={BuildingIcon}
+                    accent={look.accent}
+                    label="Units managed"
+                    value={<CountUp value={combinedUnits} />}
+                    progress={combinedUnits ? occupied / combinedUnits : null}
+                    sub={combinedUnits ? `${occupied} occupied · ${Math.round((occupied / combinedUnits) * 100)}%` : 'Add a client’s first property'}
+                    onClick={() => router.push('/landlord/properties')}
+                  />
+                  <Kpi
+                    icon={WrenchIcon}
+                    accent={look.accent}
+                    label="Open work"
+                    value={<CountUp value={combinedOpenJobs} />}
+                    sub={pendingJobs.length ? `${pendingJobs.length} finished, waiting on your review` : 'Nothing waiting on your review'}
+                    onClick={() => router.push('/landlord/jobs?filter=open')}
+                  />
+                  {membership.canViewFinancials ? (
+                    <Kpi
+                      icon={DollarSignIcon}
+                      accent={look.accent}
+                      label={`Rent collected · ${monthName}`}
+                      value={usd0(combinedRent)}
+                      progress={rentRoll ? combinedRent / rentRoll : null}
+                      sub={rentRoll ? `of ${usd0(rentRoll)} expected from active leases` : 'No active leases yet'}
+                      onClick={() => router.push('/landlord/rent')}
+                    />
+                  ) : (
+                    <Kpi icon={ShieldIcon} accent={look.accent} label="Your role" value="Staff" sub="Your admin controls which numbers you see" />
+                  )}
                 </div>
-              )}
-            </div>
+              )
+            })()}
 
             <TabBar
+              accent={look.accent}
               active={activeTab}
               onChange={setActiveTab}
               tabs={[
@@ -1647,77 +1753,11 @@ export default function PmDashboardPage() {
             />
 
             {activeTab === 'overview' && (
-              <>
+              <div className="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start">
+                <div className="min-w-0">
                 <TodayCard
                   scopeLabel={`All clients (${clients.filter((c) => c.status === 'accepted').length}) and your own properties · each item names its owner`}
                 />
-                {membership.memberRole === 'admin' &&
-                  !checklistDismissed &&
-                  !(clients.some((c) => c.status === 'accepted') && payoutStatus === 'active' && openToClients) && (
-                    <ScrollReveal className="bg-gradient-to-br from-[#0A7B7E]/15 via-white/3 to-white/3 border border-[#12A5A9]/25 rounded-2xl p-5 mb-6">
-                      <div className="flex items-center justify-between gap-3 mb-3">
-                        <h2 className="text-white font-semibold">Get started</h2>
-                        <button onClick={dismissChecklist} aria-label="Dismiss" className="text-white/40 hover:text-white text-sm">
-                          ×
-                        </button>
-                      </div>
-                      <div className="space-y-2">
-                        <ChecklistRow
-                          done={clients.some((c) => c.status === 'accepted')}
-                          label="Invite your first client"
-                          onClick={() => setActiveTab('clients')}
-                        />
-                        <ChecklistRow done={payoutStatus === 'active'} label="Set up payouts" href="/profile#billing" />
-                        <ChecklistRow done={openToClients} label="Turn on your public profile" onClick={() => setActiveTab('profile')} />
-                      </div>
-                    </ScrollReveal>
-                  )}
-
-                {membership.canViewFinancials && (
-                  <button
-                    onClick={handleExportMonth}
-                    disabled={exportingMonth}
-                    className="flex items-center gap-1.5 text-white/40 hover:text-white/70 text-xs font-semibold mb-6 transition disabled:opacity-50"
-                  >
-                    <DownloadIcon className="w-3.5 h-3.5" />
-                    {exportingMonth ? 'Exporting…' : 'Export this month, every client (CSV)'}
-                  </button>
-                )}
-
-                {membership.canViewFinancials && months.length > 0 && <RentTrendChart months={months} />}
-
-                {complianceAlerts.length > 0 && (
-                  <ScrollReveal id="compliance-alerts" className="bg-white/3 border border-white/8 rounded-2xl p-5 mb-6 scroll-mt-6">
-                    <h2 className="text-white font-semibold mb-3">
-                      Compliance <span className="text-white/30 font-normal">({complianceAlerts.length})</span>
-                    </h2>
-                    <p className="text-white/30 text-xs mb-3">Licenses and inspections expiring soon across every client.</p>
-                    <div className="space-y-2">
-                      {complianceAlerts.map((a) => (
-                        <Link
-                          key={a.id}
-                          href={`/landlord/properties/${a.propertyId}/compliance`}
-                          className="flex items-center gap-3 bg-white/4 rounded-xl px-3.5 py-2.5 hover:bg-white/8 transition"
-                        >
-                          <div className="min-w-0 flex-1">
-                            <p className="text-white text-sm truncate">
-                              {a.itemType} <span className="text-white/40">· {a.address}</span>
-                            </p>
-                            <p className="text-white/30 text-xs">{a.ownerName}</p>
-                          </div>
-                          <span
-                            className={`text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 ${
-                              a.daysUntil < 0 ? 'bg-red-500/15 text-red-400' : 'bg-yellow-500/15 text-yellow-400'
-                            }`}
-                          >
-                            {a.daysUntil < 0 ? 'Expired' : `${a.daysUntil}d left`}
-                          </span>
-                        </Link>
-                      ))}
-                    </div>
-                  </ScrollReveal>
-                )}
-
                 {pendingJobs.length > 0 && (
                   <ScrollReveal id="pending-approvals" className="scroll-mt-6 bg-white/3 border border-white/8 rounded-2xl p-5 mb-6">
                     <div className="flex items-center justify-between mb-3">
@@ -1764,12 +1804,70 @@ export default function PmDashboardPage() {
                   </ScrollReveal>
                 )}
 
-                {pendingJobs.length === 0 && (
-                  <p className="text-white/30 text-sm mb-6">No pending approvals. Nothing across your portfolio needs your review right now.</p>
+                {complianceAlerts.length > 0 && (
+                  <ScrollReveal id="compliance-alerts" className="bg-white/3 border border-white/8 rounded-2xl p-5 mb-6 scroll-mt-6">
+                    <h2 className="text-white font-semibold mb-3">
+                      Compliance <span className="text-white/30 font-normal">({complianceAlerts.length})</span>
+                    </h2>
+                    <p className="text-white/30 text-xs mb-3">Licenses and inspections expiring soon across every client.</p>
+                    <div className="space-y-2">
+                      {complianceAlerts.map((a) => (
+                        <Link
+                          key={a.id}
+                          href={`/landlord/properties/${a.propertyId}/compliance`}
+                          className="flex items-center gap-3 bg-white/4 rounded-xl px-3.5 py-2.5 hover:bg-white/8 transition"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="text-white text-sm truncate">
+                              {a.itemType} <span className="text-white/40">· {a.address}</span>
+                            </p>
+                            <p className="text-white/30 text-xs">{a.ownerName}</p>
+                          </div>
+                          <span
+                            className={`text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 ${
+                              a.daysUntil < 0 ? 'bg-red-500/15 text-red-400' : 'bg-yellow-500/15 text-yellow-400'
+                            }`}
+                          >
+                            {a.daysUntil < 0 ? 'Expired' : `${a.daysUntil}d left`}
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+                  </ScrollReveal>
                 )}
 
+                  {membership.canViewFinancials && months.some((m) => m.rent > 0) && <RentTrendChart months={months} />}
+                </div>
+                <aside className="space-y-4 lg:sticky lg:top-6">
+                {membership.memberRole === 'admin' &&
+                  !checklistDismissed &&
+                  !(clients.some((c) => c.status === 'accepted') && payoutStatus === 'active' && openToClients) && (
+                    <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-5">
+                      <div className="flex items-center justify-between gap-3 mb-3">
+                        <div>
+                          <h2 className="text-white font-semibold">Set up your company</h2>
+                          <p className="text-white/45 text-xs mt-0.5">
+                            {[clients.some((c) => c.status === 'accepted'), payoutStatus === 'active', openToClients].filter(Boolean).length} of 3 done
+                          </p>
+                        </div>
+                        <button onClick={dismissChecklist} aria-label="Dismiss" className="text-white/40 hover:text-white text-sm">
+                          ×
+                        </button>
+                      </div>
+                      <div className="space-y-2">
+                        <ChecklistRow
+                          done={clients.some((c) => c.status === 'accepted')}
+                          label="Invite your first client"
+                          onClick={() => setActiveTab('clients')}
+                        />
+                        <ChecklistRow done={payoutStatus === 'active'} label="Set up payouts" href="/profile#billing" />
+                        <ChecklistRow done={openToClients} label="Turn on your public profile" onClick={() => setActiveTab('profile')} />
+                      </div>
+                    </ScrollReveal>
+                  )}
+
                 {membership.memberRole === 'admin' && payoutStatus && payoutStatus !== 'active' && (
-                  <ScrollReveal className="bg-yellow-500/10 border border-yellow-500/25 rounded-xl px-4 py-3 mb-6 flex items-center justify-between gap-3 flex-wrap">
+                  <ScrollReveal className="bg-amber-400/8 border border-amber-400/25 rounded-2xl px-4 py-3.5 flex flex-col gap-1.5">
                     <p className="text-yellow-400/90 text-xs">Set up payouts to collect management fees from clients.</p>
                     <Link href="/profile#billing" className="text-yellow-400 text-xs font-semibold hover:underline whitespace-nowrap">
                       Set up on Profile →
@@ -1777,11 +1875,70 @@ export default function PmDashboardPage() {
                   </ScrollReveal>
                 )}
 
+                  {membership.canViewFinancials && (
+                    <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
+                      <p className="text-white font-semibold">Month-end</p>
+                      <p className="text-white/45 text-xs mt-0.5 mb-3">Statements and exports for every client, built from the same records owners see.</p>
+                      <div className="flex flex-col gap-2">
+                        <button
+                          onClick={handleExportMonth}
+                          disabled={exportingMonth}
+                          className="inline-flex items-center justify-center gap-1.5 text-sm font-semibold text-white rounded-xl px-3 py-2.5 bg-white/5 border border-white/10 hover:bg-white/8 transition disabled:opacity-50"
+                        >
+                          <DownloadIcon className="w-4 h-4" />
+                          {exportingMonth ? 'Exporting…' : `Export ${new Date().toLocaleDateString('en-US', { month: 'long' })} (CSV)`}
+                        </button>
+                        <button type="button" onClick={() => setActiveTab('clients')} className="text-xs font-semibold text-[#12A5A9] hover:underline">
+                          Owner statements are on each client →
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-white font-semibold">Team</p>
+                      <button type="button" onClick={() => setActiveTab('team')} className="text-xs font-semibold text-[#12A5A9] hover:underline">Manage</button>
+                    </div>
+                    <div className="flex items-center mt-3 -space-x-2">
+                      {staff.filter((m) => m.status === 'accepted').slice(0, 6).map((m) => (
+                        <span key={m.id} title={`${m.name} · ${m.memberRole === 'admin' ? 'Admin' : 'Staff'}`} className="ring-2 ring-[#0A0F1C] rounded-full">
+                          <Avatar name={m.name} accent={look.accent} size="sm" />
+                        </span>
+                      ))}
+                    </div>
+                    <p className="text-white/45 text-xs mt-2">
+                      {staff.filter((m) => m.status === 'accepted').length} {staff.filter((m) => m.status === 'accepted').length === 1 ? 'person' : 'people'}
+                      {staff.some((m) => m.status === 'pending') ? ` · ${staff.filter((m) => m.status === 'pending').length} invited` : ''}
+                    </p>
+                  </div>
+
+                  {auditLog.length > 0 && (
+                    <div className="bg-white/3 border border-white/8 rounded-2xl p-5">
+                      <div className="flex items-center justify-between gap-3 mb-3">
+                        <p className="text-white font-semibold">Recent activity</p>
+                        <button type="button" onClick={() => setActiveTab('activity')} className="text-xs font-semibold text-[#12A5A9] hover:underline">All</button>
+                      </div>
+                      <ol className="space-y-3">
+                        {auditLog.slice(0, 5).map((e) => (
+                          <li key={e.id} className="flex gap-2.5">
+                            <span aria-hidden className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0" style={{ background: look.accent }} />
+                            <p className="text-xs text-white/55 leading-snug min-w-0">
+                              <span className="text-white/85">{e.actorName}</span> {actionLabel(e.action)}
+                              {e.amount !== null && <> · ${e.amount.toFixed(2)}</>}
+                              <span className="block text-white/35 mt-0.5">{e.ownerName} · {new Date(e.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                            </p>
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
+                  )}
+
                 {membership.memberRole === 'admin' && (
                   <button
                     type="button"
                     onClick={() => setActiveTab('profile')}
-                    className="group w-full text-left bg-white/3 border border-white/8 rounded-2xl p-4 sm:p-5 flex items-center gap-4 hover:bg-white/6 hover:border-[#12A5A9]/40 transition"
+                    className="group w-full text-left bg-white/3 border border-white/8 rounded-2xl p-4 flex items-center gap-3.5 hover:bg-white/5 hover:border-white/15 transition"
                   >
                     {logoUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -1807,27 +1964,51 @@ export default function PmDashboardPage() {
                     <span aria-hidden className="text-white/30 text-xl group-hover:text-[#12A5A9] group-hover:translate-x-0.5 transition">›</span>
                   </button>
                 )}
-              </>
+                </aside>
+              </div>
             )}
 
                 {activeTab === 'profile' && membership.memberRole === 'admin' && (
-                  <div id="get-found" className="bg-white/3 border border-white/8 rounded-2xl p-5">
-                    <div className="flex items-center justify-between gap-3 mb-1">
-                      <h2 className="text-white font-semibold">Get found on Prophandld</h2>
-                      <label className="flex items-center gap-2 text-xs text-white/50 shrink-0">
-                        <input
-                          type="checkbox"
-                          checked={openToClients}
-                          onChange={(e) => handleToggleOpenToClients(e.target.checked)}
+                  <div id="get-found" className="grid lg:grid-cols-[minmax(0,1fr)_360px] gap-6 items-start">
+                  <div className="order-2 lg:order-1 space-y-4 min-w-0">
+                    <section className="bg-white/3 border border-white/8 rounded-2xl p-5">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                          <h2 className="text-white font-semibold">{openToClients ? 'Your profile is live' : 'Your profile is hidden'}</h2>
+                          <p className="text-white/45 text-xs mt-0.5">
+                            {openToClients
+                              ? `Landlords can find you in the directory and request you. ${viewsThisMonth} view${viewsThisMonth === 1 ? '' : 's'} this month · ${viewsTotal} all-time.`
+                              : 'Turn it on to appear in the property manager directory and get a page you can share.'}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={openToClients}
+                          aria-label="Open to new clients"
+                          onClick={() => handleToggleOpenToClients(!openToClients)}
                           disabled={savingProfile}
-                          className="accent-[#12A5A9]"
-                        />
-                        Open to new clients
-                      </label>
-                    </div>
-                    <p className="text-white/40 text-xs mb-4">
-                      Turn this on to get a public profile landlords can find and share, and to show up in the property manager directory.
-                    </p>
+                          className="relative w-12 h-7 rounded-full shrink-0 transition disabled:opacity-50"
+                          style={{ background: openToClients ? look.accent : 'rgba(255,255,255,0.12)' }}
+                        >
+                          <span className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-[#fff] shadow transition-transform ${openToClients ? 'translate-x-5' : ''}`} />
+                        </button>
+                      </div>
+                      {openToClients && profileSlug && (
+                        <div className="flex items-center gap-4 flex-wrap mt-3">
+                          <Link href={`/property-managers/${profileSlug}`} className="text-[#12A5A9] text-xs font-semibold hover:underline" target="_blank">
+                            Open your public page →
+                          </Link>
+                          <button onClick={handleCopyProfileLink} className="text-white/55 hover:text-white text-xs font-semibold">
+                            {profileCopied ? 'Link copied' : 'Copy share link'}
+                          </button>
+                        </div>
+                      )}
+                    </section>
+
+                    <section className="bg-white/3 border border-white/8 rounded-2xl p-5">
+                      <h3 className="text-white font-semibold">The basics</h3>
+                      <p className="text-white/45 text-xs mt-0.5 mb-4">What landlords check first: who you are, where you work, what you charge.</p>
                     <label className="block text-xs text-white/50 mb-1.5">One-line pitch</label>
                     <div className="flex gap-2 mb-3">
                       <input
@@ -1915,8 +2096,12 @@ export default function PmDashboardPage() {
                       className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-[#12A5A9]/50 mb-4"
                     />
 
-                    <div className="border-t border-white/8 pt-4 mb-4">
-                      <p className="text-white text-sm font-semibold mb-3">Look &amp; feel</p>
+                    </section>
+
+                    <section className="bg-white/3 border border-white/8 rounded-2xl p-5">
+                    <div>
+                      <h3 className="text-white font-semibold">Brand</h3>
+                      <p className="text-white/45 text-xs mt-0.5 mb-4">Your logo, a cover photo, and one color used for your page, buttons and badges.</p>
                       <div className="flex items-start gap-4 flex-wrap mb-3">
                         <div>
                           <p className="text-xs text-white/50 mb-1.5">Logo</p>
@@ -1957,12 +2142,15 @@ export default function PmDashboardPage() {
                           </div>
                         </div>
                       </div>
-                      <p className="text-xs text-white/50 mb-2">Profile style</p>
-                      <ProfileStylePicker value={brandColor} logoUrl={logoUrl} onChange={(v) => { setBrandColor(v); saveProfileField('brandColor', v) }} />
+                      <p className="text-xs text-white/50 mb-2">Brand color</p>
+                      <BrandColorPicker value={brandColor} logoUrl={logoUrl} onChange={(v) => { setBrandColor(v); saveProfileField('brandColor', v) }} />
                     </div>
 
-                    <div className="border-t border-white/8 pt-4 mb-4">
-                      <label htmlFor="pm-about" className="block text-white text-sm font-semibold mb-1">About your company</label>
+                    </section>
+
+                    <section className="bg-white/3 border border-white/8 rounded-2xl p-5">
+                    <div>
+                      <label htmlFor="pm-about" className="block text-white font-semibold mb-1">About your company</label>
                       <p className="text-white/40 text-xs mb-1.5">Your story, what you&apos;re great at, how you work with owners. Shown on your public profile.</p>
                       <textarea
                         id="pm-about"
@@ -1976,8 +2164,11 @@ export default function PmDashboardPage() {
                       <p className="text-white/30 text-[11px] text-right">{about.length}/2000</p>
                     </div>
 
-                    <div className="border-t border-white/8 pt-4 mb-4">
-                      <p className="text-white text-sm font-semibold mb-2">How owners can reach you</p>
+                    </section>
+
+                    <section className="bg-white/3 border border-white/8 rounded-2xl p-5">
+                    <div>
+                      <p className="text-white font-semibold mb-3">How owners can reach you</p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                           <label htmlFor="pm-website" className="block text-xs text-white/50 mb-1">Website</label>
@@ -1998,7 +2189,7 @@ export default function PmDashboardPage() {
                       </div>
                     </div>
 
-                    <label className="flex items-center gap-2 text-xs text-white/60 mb-4">
+                    <label className="flex items-center gap-2 text-xs text-white/60 mt-4">
                       <input type="checkbox" checked={showTeam} onChange={(e) => { setShowTeam(e.target.checked); saveProfileField('showTeam', e.target.checked) }} className="accent-[#12A5A9]" />
                       Show my team on the profile (names and roles only)
                     </label>
@@ -2007,51 +2198,133 @@ export default function PmDashboardPage() {
                       <p className={`text-xs mb-3 ${profileMsg.tone === 'ok' ? 'text-[#12A5A9]' : 'text-red-400'}`}>{profileMsg.text}</p>
                     )}
 
-                    {openToClients && profileSlug && (
-                      <>
-                        <div className="flex items-center gap-2 flex-wrap mb-3">
-                          <Link href={`/property-managers/${profileSlug}`} className="text-[#12A5A9] text-xs font-semibold hover:underline" target="_blank">
-                            View your profile →
-                          </Link>
-                          <button onClick={handleCopyProfileLink} className="text-white/50 hover:text-white text-xs font-semibold">
-                            {profileCopied ? 'Copied!' : 'Copy share link'}
-                          </button>
-                        </div>
-                        <p className="text-white/30 text-xs">
-                          {viewsThisMonth} view{viewsThisMonth === 1 ? '' : 's'} this month · {viewsTotal} all-time
-                        </p>
-                      </>
-                    )}
+                    </section>
+                  </div>
+
+                  <div className="order-1 lg:order-2 lg:sticky lg:top-6">
+                    <p className="text-white/45 text-[11px] font-semibold uppercase tracking-[0.14em] mb-2">Live preview · what landlords see</p>
+                    <PmProfilePreview
+                      name={membership.organizationName}
+                      pitch={pitch}
+                      logoUrl={logoUrl}
+                      coverUrl={coverUrl}
+                      brandColor={brandColor}
+                      licenseNumber={licenseNumber}
+                      insured={insured}
+                      yearsInBusiness={yearsInBusiness}
+                      specialties={specialties}
+                      serviceZips={serviceZipsText}
+                      pricingNote={pricingNote}
+                      about={about}
+                      live={openToClients}
+                    />
+                  </div>
                   </div>
                 )}
 
             {activeTab === 'clients' && (
               <>
+                {membership.memberRole === 'admin' && (
+                  <div id="invite-client" className="bg-white/3 border border-white/8 rounded-2xl p-4 sm:p-5 mb-4 scroll-mt-24">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                      <div className="sm:w-64 shrink-0">
+                        <p className="text-white font-semibold">Invite a client</p>
+                        <p className="text-white/45 text-xs mt-0.5">They accept, set their approval limit, and you&apos;re managing.</p>
+                      </div>
+                      <div className="flex gap-2 flex-1">
+                        <input
+                          id="invite-client-email"
+                          type="email"
+                          value={clientEmail}
+                          onChange={(e) => setClientEmail(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter' && !invitingClient) handleInviteClient() }}
+                          placeholder="owner@email.com"
+                          aria-label="Client's email"
+                          className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-[#12A5A9]/50"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleInviteClient}
+                          disabled={invitingClient}
+                          className="text-sm font-semibold text-[#fff] px-5 py-2.5 rounded-xl disabled:opacity-50 whitespace-nowrap hover:opacity-90 transition"
+                          style={{ background: look.accent }}
+                        >
+                          {invitingClient ? 'Sending…' : 'Send invite'}
+                        </button>
+                      </div>
+                    </div>
+                    {clientInviteMsg && <p className="text-white/55 text-xs mt-2">{clientInviteMsg}</p>}
+                  </div>
+                )}
                 {clients.length === 0 ? (
-                  <p className="text-white/40 text-sm mb-4">No clients invited yet.</p>
+                  <div className="text-center bg-white/3 border border-dashed border-white/12 rounded-2xl px-6 py-10 mb-6">
+                    <p className="text-white font-semibold">No clients yet</p>
+                    <p className="text-white/45 text-sm mt-1">Invite your first owner above. Their properties appear here with occupancy, rent and open work at a glance.</p>
+                  </div>
                 ) : (
-                  <div className="space-y-2 mb-4">
+                  <div className="grid sm:grid-cols-2 gap-3 mb-6">
                     {clients.map((c) => {
                       const hasPending = pendingJobs.some((j) => j.ownerUserId === c.ownerUserId)
+                      const open = expandedClient === c.id
+                      const units = c.unitCount || 0
+                      const occ = Math.min(c.occupiedUnitCount || 0, units)
+                      const roll = c.rentRollMonthly || 0
+                      const got = c.rentCollectedThisMonth || 0
                       return (
-                        <div key={c.id} className="bg-white/3 border border-white/8 rounded-xl overflow-hidden">
+                        <div key={c.id} className={`bg-white/3 border rounded-2xl overflow-hidden transition ${open ? 'sm:col-span-2 border-white/15' : 'border-white/8 hover:border-white/15'}`}>
                           <button
                             type="button"
-                            onClick={() => setExpandedClient((cur) => (cur === c.id ? null : c.id))}
-                            className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left"
+                            onClick={() => c.status === 'accepted' && setExpandedClient((cur) => (cur === c.id ? null : c.id))}
+                            aria-expanded={c.status === 'accepted' ? open : undefined}
+                            className="w-full text-left p-4 sm:p-5"
                           >
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              {c.status === 'accepted' && (
-                                <span
-                                  className={`w-2 h-2 rounded-full shrink-0 ${hasPending ? 'bg-yellow-400' : 'bg-[#12A5A9]'}`}
-                                  title={hasPending ? 'Approval waiting' : 'No approvals waiting'}
-                                />
+                            <div className="flex items-center gap-3">
+                              <Avatar name={c.ownerName} accent={look.accent} />
+                              <div className="min-w-0 flex-1">
+                                <p className="text-white font-semibold truncate">{c.ownerName}</p>
+                                <p className="text-white/45 text-xs truncate">
+                                  {c.status === 'accepted'
+                                    ? `${c.propertyCount ?? 0} ${(c.propertyCount ?? 0) === 1 ? 'property' : 'properties'} · ${units} ${units === 1 ? 'unit' : 'units'}`
+                                    : c.requestedBy === 'owner'
+                                      ? 'Asked you to manage their property'
+                                      : 'Invite sent, waiting for them to accept'}
+                                </p>
+                              </div>
+                              {c.status === 'accepted' ? (
+                                <span className={`text-[11px] font-semibold rounded-full px-2 py-0.5 shrink-0 ${hasPending ? 'bg-amber-400/12 text-amber-300' : 'bg-[#12A5A9]/12 text-[#12A5A9]'}`}>
+                                  {hasPending ? 'Approval waiting' : 'All clear'}
+                                </span>
+                              ) : (
+                                <StatusPill status={c.status} />
                               )}
-                              <span className="text-white text-sm font-medium truncate">{c.ownerName}</span>
-                              <StatusPill status={c.status} />
+                              {c.status === 'accepted' && (
+                                <ChevronDownIcon className={`w-4 h-4 text-white/30 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+                              )}
                             </div>
                             {c.status === 'accepted' && (
-                              <ChevronDownIcon className={`w-4 h-4 text-white/30 shrink-0 transition-transform ${expandedClient === c.id ? 'rotate-180' : ''}`} />
+                              <div className="grid grid-cols-3 gap-3 mt-4">
+                                <div className="min-w-0">
+                                  <p className="text-white/45 text-[11px]">Occupied</p>
+                                  <p className="text-white font-semibold tabular-nums">{units ? `${occ}/${units}` : '—'}</p>
+                                  <div className="mt-1.5 h-1 rounded-full bg-white/8 overflow-hidden"><div className="h-full rounded-full" style={{ width: `${units ? Math.round((occ / units) * 100) : 0}%`, background: look.accent }} /></div>
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-white/45 text-[11px]">Open jobs</p>
+                                  <p className="text-white font-semibold tabular-nums">{c.openJobCount ?? 0}</p>
+                                </div>
+                                {membership.canViewFinancials ? (
+                                  <div className="min-w-0">
+                                    <p className="text-white/45 text-[11px] truncate">Rent · {new Date().toLocaleDateString('en-US', { month: 'short' })}</p>
+                                    <p className="text-white font-semibold tabular-nums truncate">{usd0(got)}{roll ? <span className="text-white/35 font-normal text-xs"> / {usd0(roll)}</span> : null}</p>
+                                    <div className="mt-1.5 h-1 rounded-full bg-white/8 overflow-hidden"><div className="h-full rounded-full" style={{ width: `${roll ? Math.min(100, Math.round((got / roll) * 100)) : 0}%`, background: look.accent }} /></div>
+                                  </div>
+                                ) : (
+                                  <div className="min-w-0">
+                                    <p className="text-white/45 text-[11px]">You approve up to</p>
+                                    <p className="text-white font-semibold tabular-nums">{c.approvalThreshold > 0 ? usd0(c.approvalThreshold) : '$0'}</p>
+                                  </div>
+                                )}
+                              </div>
                             )}
                           </button>
 
@@ -2074,8 +2347,8 @@ export default function PmDashboardPage() {
                             </div>
                           )}
 
-                          {c.status === 'accepted' && expandedClient === c.id && (
-                            <div className="px-4 pb-4 border-t border-white/8 pt-3">
+                          {c.status === 'accepted' && open && (
+                            <div className="px-4 sm:px-5 pb-5 border-t border-white/8 pt-4">
                               {/* Previously these were plain counts with no
                                   way to see WHICH properties or WHICH jobs
                                   — a PM managing several clients had no path
@@ -2083,15 +2356,6 @@ export default function PmDashboardPage() {
                                   seeing them. Both shared list pages already
                                   support an owner-scoped view; this just
                                   links into it. */}
-                              <div className="grid grid-cols-3 gap-2 mb-3">
-                                <StatTile icon={BuildingIcon} label="Properties" value={c.propertyCount ?? 0} onClick={() => router.push(`/landlord/properties?owner=${c.ownerUserId}`)} />
-                                <StatTile icon={WrenchIcon} label="Open jobs" value={c.openJobCount ?? 0} onClick={() => router.push(`/landlord/jobs?owner=${c.ownerUserId}&filter=open`)} />
-                                {membership.canViewFinancials ? (
-                                  <StatTile icon={DollarSignIcon} label={`Collected in ${new Date().toLocaleDateString('en-US', { month: 'short' })}`} value={`$${(c.rentCollectedThisMonth || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`} onClick={() => router.push(`/landlord/rent?owner=${c.ownerUserId}`)} />
-                                ) : (
-                                  <StatTile icon={BuildingIcon} label="Units" value={c.unitCount ?? 0} onClick={() => router.push(`/landlord/properties?owner=${c.ownerUserId}`)} />
-                                )}
-                              </div>
                               <RelationshipSummary lines={relationshipSentences('pm', c)} />
                               {/* Set up the client the same way a landlord sets up
                                   themselves: add a property (owned by the client),
@@ -2109,6 +2373,20 @@ export default function PmDashboardPage() {
                                 >
                                   Units &amp; tenants
                                 </Link>
+                                <Link
+                                  href={`/landlord/jobs?owner=${c.ownerUserId}&filter=open`}
+                                  className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white/70 hover:text-white transition"
+                                >
+                                  Jobs
+                                </Link>
+                                {membership.canViewFinancials && (
+                                  <Link
+                                    href={`/landlord/rent?owner=${c.ownerUserId}`}
+                                    className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white/70 hover:text-white transition"
+                                  >
+                                    Rent
+                                  </Link>
+                                )}
                               </div>
                               <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
                                 {/* Read-only for the PM: the approval limit is the
@@ -2230,27 +2508,7 @@ export default function PmDashboardPage() {
                   </div>
                 )}
 
-                {membership.memberRole === 'admin' && (
-                  <Collapsible label="Invite a client" icon={PlusIcon}>
-                    <p className="text-white/40 text-xs mb-3">Enter the email of an existing landlord account on Prophandld.</p>
-                    <div className="flex gap-2">
-                      <input
-                        value={clientEmail}
-                        onChange={(e) => setClientEmail(e.target.value)}
-                        placeholder="landlord@email.com"
-                        className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-[#12A5A9]/50"
-                      />
-                      <RippleButton
-                        onClick={handleInviteClient}
-                        disabled={invitingClient}
-                        className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-5 py-2.5 rounded-xl disabled:opacity-50 whitespace-nowrap"
-                      >
-                        {invitingClient ? 'Sending…' : 'Invite'}
-                      </RippleButton>
-                    </div>
-                    {clientInviteMsg && <p className="text-white/50 text-xs mt-2">{clientInviteMsg}</p>}
-                  </Collapsible>
-                )}
+
 
                 {contractors.length > 0 && (
                   <div className="mt-6">
@@ -2266,7 +2524,7 @@ export default function PmDashboardPage() {
                       Everyone your team has hired across every client, so you can reuse someone reliable without re-inviting them for each portfolio.
                     </p>
                     {showContractors && (
-                      <div className="space-y-2">
+                      <div className="grid sm:grid-cols-2 gap-3">
                         {contractors.map((c) => (
                           <div key={c.id} className="bg-white/3 border border-white/8 rounded-xl p-4 flex items-center justify-between gap-3">
                             <div className="min-w-0">
@@ -2305,7 +2563,7 @@ export default function PmDashboardPage() {
             )}
 
             {activeTab === 'team' && (
-              <>
+              <div className="max-w-3xl">
                 <div className="space-y-2 mb-4">
                   {staff.map((s) => {
                     const canExpand = membership.memberRole === 'admin' && s.memberRole === 'staff' && s.status === 'accepted'
@@ -2448,17 +2706,17 @@ export default function PmDashboardPage() {
                     {staffInviteMsg && <p className="text-white/50 text-xs mt-2">{staffInviteMsg}</p>}
                   </Collapsible>
                 )}
-              </>
+              </div>
             )}
 
             {activeTab === 'activity' && (
-              <div className="space-y-2">
+              <div className="space-y-2 max-w-3xl">
                 {auditLog.length === 0 ? (
                   <p className="text-white/40 text-sm">No activity yet.</p>
                 ) : (
                   auditLog.map((entry) => (
                     <div key={entry.id} className="bg-white/3 border border-white/8 rounded-xl px-4 py-3 text-xs text-white/50">
-                      <span className="text-white/80">{entry.actorName}</span> {ACTION_LABELS[entry.action] || entry.action} for{' '}
+                      <span className="text-white/80">{entry.actorName}</span> {actionLabel(entry.action)} for{' '}
                       <span className="text-white/80">{entry.ownerName}</span>
                       {entry.amount !== null && <span className="text-white/60"> · ${entry.amount.toFixed(2)}</span>}
                       <span className="text-white/30"> · {new Date(entry.createdAt).toLocaleDateString()}</span>

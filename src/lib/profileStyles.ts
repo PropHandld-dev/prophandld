@@ -50,9 +50,10 @@ export function resolveProfileStyle(value: string | null | undefined): ResolvedP
   let accent: string
   if (value && /^#[0-9a-fA-F]{6}$/.test(value)) {
     const [h, s, l] = hexToHsl(value)
-    const sat = Math.max(55, Math.min(90, s))
-    const light = Math.max(42, Math.min(58, l))
-    stops = [hsl(h, sat, light), hsl(h + 38, sat, light - 4), hsl(h - 30, sat, light + 10)]
+    // One hue, three depths: reads as a considered brand, not a rainbow.
+    const sat = Math.max(45, Math.min(85, s))
+    const light = Math.max(38, Math.min(56, l))
+    stops = [hsl(h, sat, light), hsl(h + 12, sat - 8, Math.max(18, light - 16)), hsl(h - 8, sat, Math.min(68, light + 10))]
     accent = hsl(h, sat, Math.min(light, 46))
   } else {
     const style = PROFILE_STYLES[(value as ProfileStyleKey) || 'aurora'] || PROFILE_STYLES.aurora
@@ -104,3 +105,18 @@ export async function dominantColorFromImage(url: string): Promise<string | null
     return null
   }
 }
+
+// The brand colors offered in the profile editor: solid, well-tested on both
+// dark and light grounds. Stored as #RRGGBB like any custom color.
+export const BRAND_COLORS: { name: string; hex: string }[] = [
+  { name: 'Teal', hex: '#0E9AA0' },
+  { name: 'Ocean', hex: '#2563EB' },
+  { name: 'Indigo', hex: '#4F46E5' },
+  { name: 'Plum', hex: '#7C3AED' },
+  { name: 'Rose', hex: '#E11D48' },
+  { name: 'Ember', hex: '#EA580C' },
+  { name: 'Gold', hex: '#CA8A04' },
+  { name: 'Forest', hex: '#15803D' },
+  { name: 'Slate', hex: '#475569' },
+  { name: 'Ink', hex: '#1E293B' },
+]

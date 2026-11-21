@@ -113,9 +113,14 @@ export async function GET() {
   for (const p of (properties || []) as any[]) propertyCountByOwner.set(p.owner_user_id, (propertyCountByOwner.get(p.owner_user_id) || 0) + 1)
 
   const occupiedUnitsByOwner = new Map<string, number>()
+  const rentRollByOwner = new Map<string, number>()
+  const occupiedUnitIds = new Set<string>()
   for (const te of (tenancyRes.data || []) as any[]) {
     const ownerId = te.units?.properties?.owner_user_id
     if (!ownerId) continue
+    rentRollByOwner.set(ownerId, Math.round(((rentRollByOwner.get(ownerId) || 0) + Number(te.rent_amount || 0)) * 100) / 100)
+    if (occupiedUnitIds.has(te.unit_id)) continue
+    occupiedUnitIds.add(te.unit_id)
     occupiedUnitsByOwner.set(ownerId, (occupiedUnitsByOwner.get(ownerId) || 0) + 1)
   }
 
@@ -190,6 +195,8 @@ export async function GET() {
     occupiedUnitCount: occupiedUnitsByOwner.get(p.owner_user_id) || 0,
     openJobCount: openJobsByOwner.get(p.owner_user_id) || 0,
     rentCollectedThisMonth: membership.canViewFinancials ? rentByOwner.get(p.owner_user_id) || 0 : null,
+    // Monthly rent from active leases: what "collected" is measured against.
+    rentRollMonthly: membership.canViewFinancials ? rentRollByOwner.get(p.owner_user_id) || 0 : null,
   }))
 
   return NextResponse.json({
