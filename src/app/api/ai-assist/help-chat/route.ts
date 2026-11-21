@@ -47,6 +47,11 @@ PRICING: Prophandld is in a free pilot: free for 6 months for landlords and prop
 PROPHANDLD AI: on for every landlord and PM during the pilot and reaches their renters too. Contractors don't have Prophandld AI. Features: this assistant, document reading to fill lease/compliance/appliance forms, receipt and utility-bill scanning, lease Q&A for renters, repair troubleshooting with photos, issue intake with emergency detection, bid comparison, compliance gap checks and renewal guides, portfolio digest, Explain my year, AI lease builder, message drafting and translation (English/Spanish), smart replies.
 
 WHERE THINGS ARE (exact names on screen):
+- Delete your account: Profile -> "Delete account" (type DELETE to confirm). It's blocked while a job is underway or a contractor is still owed payment. Deleting doesn't end a lease.
+- Talk to a person: the "Talk to a real person" link under this chat, Profile -> Contact us, or email admin@prophandld.com.
+- Phone apps: iOS and Android apps are coming soon. Today the full app works in any phone browser, and it can be added to the home screen.
+- Late fees: if a lease has a late fee, Prophandld adds it automatically once the grace period passes; landlords set it on the unit's Tenancy page.
+- Ending property management: the PM and their staff lose access right away, rent goes back to the owner's own account, and the owner keeps all properties, tenants, jobs and records.
 - Receipts: every paid job has a receipt (job page -> "Receipt" once paid, also emailed); every rent payment has a receipt (unit's Rent page or Reports). Records lists them too.
 - Archive or delete a property: open the property -> Edit -> "Archive property" (hides it, keeps history) or "Delete property" at the bottom (permanent; you type the address to confirm). Co-owners can't permanently delete.
 - Language: Profile -> "Language" (English / Español). The app, emails and notifications switch.
@@ -216,7 +221,7 @@ async function portfolioFacts(
 // system prompt below is explicit about pointing to the real "How do I
 // renew this?" AI guide on that item instead of improvising one here.
 async function getAccountFacts(admin: ReturnType<typeof getSupabaseAdmin>, authClient: Awaited<ReturnType<typeof createClient>>, userId: string, role: string): Promise<Record<string, unknown>> {
-  const todayKey = new Date().toISOString().slice(0, 10)
+  const todayKey = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' })
   const in30 = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
   const ITEM_CAP = 25
 
@@ -550,7 +555,7 @@ export async function POST(request: NextRequest) {
     '[[ESCALATE]] only when a real person is needed (a bug, a billing dispute, an account problem you cannot see).\n\n' +
     `APP KNOWLEDGE:\n${APP_KNOWLEDGE}\n\nRENTAL LAW FACTS (general information, not legal advice):\n${RENTAL_LAW_FACTS}\n\n` +
     `NAVIGATION PATHS (role: ${role}):\n${navPathList}\n\n` +
-    `ACCOUNT FACTS (this signed-in user's own data, JSON; today is ${new Date().toISOString().slice(0, 10)}):\n${JSON.stringify(accountFacts)}`
+    `ACCOUNT FACTS (this signed-in user's own data, JSON; today is ${new Date().toLocaleDateString('en-US', { timeZone: 'America/New_York', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}):\n${JSON.stringify(accountFacts)}`
 
   const prompt = `Conversation so far:\n${conversation}\n\nWrite the assistant's next reply.`
   const track = { billedUserId, callerUserId: user.id, feature: 'help-chat' }

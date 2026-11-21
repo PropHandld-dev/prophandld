@@ -1,5 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
+import { sendEmail } from '@/lib/email'
+import { tooManyRequests } from '@/lib/rateLimit'
 
 // Server-only, lazy-built — same reasoning as getStripe()/getSupabaseAdmin:
 // a missing ANTHROPIC_API_KEY shouldn't crash the build, only the first
@@ -76,6 +78,34 @@ async function languageNote(track: UsageTrack): Promise<string> {
     : ''
 }
 
+// When the AI account itself fails (out of credit, bad key), every AI
+// feature quietly breaks for every user. Email the team, at most once an hour.
+async function alertIfAccountProblem(err: any) {
+  const msg = String(err?.error?.error?.message || err?.message || '')
+  const status = Number(err?.status || 0)
+  const accountProblem = /credit balance|billing|plans & billing/i.test(msg) || status === 401 || status === 403
+  if (!accountProblem) return
+  try {
+    if (await tooManyRequests('ai-account-alert', 1, 60)) return
+    await sendEmail({
+      to: 'admin@prophandld.com',
+      subject: 'Prophandld AI is down: action needed',
+      html: `<p>Every AI feature is failing because of the Anthropic account:</p><p><strong>${msg.replace(/</g, '&lt;')}</strong></p><p>Fix it at console.anthropic.com (Plans &amp; Billing). Admin &rarr; Health shows the live status.</p>`,
+    })
+  } catch (e) {
+    console.error('claude: account alert failed', e)
+  }
+}
+
+async function create(params: Anthropic.Messages.MessageCreateParamsNonStreaming): Promise<Anthropic.Messages.Message> {
+  try {
+    return await getClaude().messages.create(params)
+  } catch (err) {
+    await alertIfAccountProblem(err)
+    throw err
+  }
+}
+
 function requireApiKey() {
   if (!process.env.ANTHROPIC_API_KEY) {
     throw new ClaudeConfigError('ANTHROPIC_API_KEY is not configured')
@@ -117,7 +147,6 @@ export async function claudeJson<T>({
   isRetry?: boolean
 }): Promise<T> {
   requireApiKey()
-  const anthropic = getClaude()
 
   const content: Anthropic.Messages.ContentBlockParam[] = []
   for (const f of [...(file ? [file] : []), ...(files || [])]) {
@@ -130,7 +159,7 @@ export async function claudeJson<T>({
   content.push({ type: 'text', text: prompt })
   const langNote = await languageNote(track)
 
-  const message = await anthropic.messages.create({
+  const message = await create({
     model: CLAUDE_MODEL,
     // A ceiling, not a target: prompts already ask for short answers. Too
     // low a ceiling cut replies off mid-JSON (compliance guide, drafts,
@@ -195,7 +224,7 @@ export async function claudeJson<T>({
 export async function claudeText({ system, prompt, maxTokens = 800, track, model = CLAUDE_MODEL, raw = false }: { system: string; prompt: string; maxTokens?: number; track: UsageTrack; model?: string; raw?: boolean }): Promise<string> {
   requireApiKey()
   const langNote = await languageNote(track)
-  const message = await getClaude().messages.create({
+  const message = await create({
     model,
     // Headroom: a small limit can run out before any visible text is
     // written, which comes back as an empty reply.
@@ -227,7 +256,13 @@ export async function claudeStream({ system, prompt, maxTokens = 1500, track, mo
     messages: [{ role: 'user', content: prompt }],
   })
   stream.on('text', (delta) => onText(delta))
-  const message = await stream.finalMessage()
+  let message: Anthropic.Messages.Message
+  try {
+    message = await stream.finalMessage()
+  } catch (err) {
+    await alertIfAccountProblem(err)
+    throw err
+  }
   try {
     await logUsage(track, message.usage.input_tokens, message.usage.output_tokens, model)
   } catch (err) {
