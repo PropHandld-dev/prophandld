@@ -268,6 +268,49 @@ export default function TermsPage() {
           </section>
 
           <section>
+            <h2>12a. Limits of our responsibility</h2>
+            <p>
+              <strong>We&apos;re a software platform, not a party to your deals.</strong> Prophandld isn&apos;t a
+              party to any lease, repair agreement, or payment between landlords, property managers,
+              renters, and contractors. We don&apos;t employ contractors, perform or supervise repairs, or
+              act as anyone&apos;s landlord, property manager, or agent. Each user is responsible for
+              their own properties, leases, work, conduct, and compliance with the law.
+            </p>
+            <p>
+              <strong>Money moves through Stripe, not through us.</strong> Payments are processed by Stripe
+              and paid directly to the person being paid; Prophandld never holds your money. We aren&apos;t
+              responsible for delays, holds, reversals, returned bank payments, chargebacks, or
+              decisions made by Stripe, banks, or card networks, or for payments made outside
+              Prophandld (Zelle, Venmo, Cash App, check, or cash).
+            </p>
+            <p>
+              <strong>Not an emergency service.</strong> Prophandld isn&apos;t monitored around the clock and
+              must never be relied on in an emergency. For fire, gas, flooding, or any danger to
+              people or property, call 911 or the right utility first.
+            </p>
+            <p>
+              <strong>Events outside our control.</strong> We aren&apos;t liable for failures or delays caused
+              by things outside our reasonable control, such as internet, hosting, payment-processor,
+              text-message, or email-provider outages, or natural disasters.
+            </p>
+            <p>
+              <strong>Limitation of liability.</strong> To the fullest extent permitted by law, Prophandld LLC
+              is not liable for any indirect, incidental, special, consequential, or punitive damages,
+              or for lost rent, profits, data, or business, arising from your use of Prophandld, even
+              if we were told they were possible. Our total liability for any claim relating to
+              Prophandld is limited to the greater of $100 or the fees you paid Prophandld in the 12
+              months before the claim. Some places don&apos;t allow these limits, so they apply only as
+              far as the law allows.
+            </p>
+            <p>
+              <strong>Indemnity.</strong> You agree to defend and hold harmless Prophandld LLC and its
+              team from claims, losses, and costs (including reasonable attorney&apos;s fees) arising from
+              your content, your properties, leases, or work, your dealings with other users, or your
+              breach of these terms or the law.
+            </p>
+          </section>
+
+          <section>
             <h2>13. Termination</h2>
             <p>
               You can stop using Prophandld and delete your account at any time. We may suspend or
