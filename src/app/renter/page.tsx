@@ -265,9 +265,11 @@ export default function RenterDashboard() {
     const loc = lang === 'es' ? 'es-US' : 'en-US'
     const amt = rentInfo.owed.toLocaleString(loc, { style: 'currency', currency: 'USD' })
     const when = rentInfo.due.toLocaleDateString(loc, { month: 'short', day: 'numeric' })
+    const daysAway = Math.ceil((rentInfo.due.getTime() - Date.now()) / 86400000)
+    // Amber only when it's actually close; a due date weeks out isn't a warning.
     return rentInfo.late
       ? { text: `${amt} · ${t('rentLineLate', lang)} ${when}`, tone: 'late' as const }
-      : { text: `${amt} ${t('rentLineDue', lang)} ${when}`, tone: 'due' as const }
+      : { text: `${amt} ${t('rentLineDue', lang)} ${when}`, tone: daysAway <= 5 ? ('due' as const) : ('later' as const) }
   })()
 
   return (
@@ -334,7 +336,7 @@ export default function RenterDashboard() {
                   </div>
                   <span className="text-white font-semibold text-sm">{t('payRent', lang)}</span>
                   {rentLine && (
-                    <span className={`text-xs font-medium -mt-1 ${rentLine.tone === 'late' ? 'text-red-400' : rentLine.tone === 'due' ? 'text-amber-300' : 'text-[#12A5A9]'}`}>{rentLine.text}</span>
+                    <span className={`text-xs font-medium -mt-1 ${rentLine.tone === 'late' ? 'text-red-400' : rentLine.tone === 'due' ? 'text-amber-300' : rentLine.tone === 'later' ? 'text-white/55' : 'text-[#12A5A9]'}`}>{rentLine.text}</span>
                   )}
                 </Link>
                 <Link
