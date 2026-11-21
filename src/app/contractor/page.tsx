@@ -34,6 +34,7 @@ import { MfaPromptModal } from '@/components/MfaPromptModal'
 import { useLanguage, t, windowLabel, type Lang } from '@/lib/i18n'
 import { useIsNativePlatform } from '@/lib/useIsNativePlatform'
 import { formatMoney } from '@/lib/money'
+import { categoryName } from '@/lib/categoryTaxonomy'
 
 function getTourSteps(lang: Lang): TourStep[] {
   return [
@@ -464,7 +465,7 @@ export default function ContractorDashboard() {
                           href={`/contractor/jobs/${bid.job_id}`}
                           className="block border-b border-white/5 last:border-0 pb-3 last:pb-0 hover:opacity-80 transition"
                         >
-                          <p className="text-white font-medium text-sm">{bid.jobs?.category}</p>
+                          <p className="text-white font-medium text-sm">{categoryName(bid.jobs?.category, lang)}</p>
                           <p className="text-[#12A5A9] text-xs mt-1">
                             {new Date(bid.jobs.proposed_date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })} · {windowLabel(bid.jobs.proposed_window, lang)}
                           </p>
@@ -489,7 +490,7 @@ export default function ContractorDashboard() {
                         >
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-2 flex-wrap mb-1">
-                              <p className="text-white font-medium text-sm">{job.category}</p>
+                              <p className="text-white font-medium text-sm">{categoryName(job.category, lang)}</p>
                               {job.is_emergency && (
                                 <span className="text-xs bg-red-500/20 text-red-400 border border-red-500/30 rounded-full px-2 py-0.5 font-semibold">
                                   {t('emergency', lang)}
@@ -527,7 +528,7 @@ export default function ContractorDashboard() {
                           >
                             <div className="flex items-center justify-between">
                               <span className="flex items-center gap-1.5">
-                                <p className="text-white font-medium text-sm">{bid.jobs?.category}</p>
+                                <p className="text-white font-medium text-sm">{categoryName(bid.jobs?.category, lang)}</p>
                                 {bid.status === 'accepted' && unreadJobIds.has(bid.job_id) && <UnreadDot />}
                               </span>
                               <span className={
@@ -616,7 +617,7 @@ export default function ContractorDashboard() {
                             className="block border-b border-white/5 last:border-0 pb-3 last:pb-0 hover:opacity-80 transition"
                           >
                             <div className="flex items-center justify-between">
-                              <p className="text-white font-medium text-sm">{bid.jobs?.category}</p>
+                              <p className="text-white font-medium text-sm">{categoryName(bid.jobs?.category, lang)}</p>
                               <span className="text-xs text-white/50">{pastJobStatusLabel(bid.jobs?.status)}</span>
                             </div>
                             <p className="text-white/50 text-xs mt-1">{jobLocation(bid)}</p>

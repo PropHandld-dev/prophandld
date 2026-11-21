@@ -22,13 +22,33 @@ export type Lang = 'en' | 'es'
 // components use it without adding real request load or delay. Anything
 // that needs a server-verified identity (an actual auth guard, a write)
 // still calls getUser() itself, unaffected by this.
+// Signed in: the account's own preference (remembered on this device).
+// Signed out (sign-in, signup, password reset): the language this device
+// last used, else the browser's language, so a Spanish-speaking tenant who
+// is signed out doesn't fall back to English on the pages they need most.
+const LANG_KEY = 'prophandld:lang'
+
+export function guessLanguage(): Lang {
+  try {
+    const saved = localStorage.getItem(LANG_KEY)
+    if (saved === 'es' || saved === 'en') return saved
+  } catch {}
+  return typeof navigator !== 'undefined' && navigator.language?.toLowerCase().startsWith('es') ? 'es' : 'en'
+}
+
 export function useLanguage(): Lang {
   const [lang, setLang] = useState<Lang>('en')
   useEffect(() => {
     let cancelled = false
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (cancelled) return
-      if (session?.user?.user_metadata?.preferred_language === 'es') setLang('es')
+      if (session?.user) {
+        const pref: Lang = session.user.user_metadata?.preferred_language === 'es' ? 'es' : 'en'
+        try { localStorage.setItem(LANG_KEY, pref) } catch {}
+        setLang(pref)
+      } else {
+        setLang(guessLanguage())
+      }
     })
     return () => {
       cancelled = true
@@ -884,6 +904,133 @@ const STRINGS = {
   enterValidBidAmount: { en: 'Enter a valid bid amount.', es: 'Ingresa un monto de oferta válido.' },
   enterValidEstimatedHours: { en: 'Enter a positive number of estimated hours.', es: 'Ingresa un número positivo de horas estimadas.' },
   bidAmountTooLow: { en: 'Bids need to be at least ${min}.', es: 'Las ofertas deben ser de al menos ${min}.' },
+  fpServerUnreachable: { en: 'Couldn\'t reach the server. Check your connection and try again.', es: 'No pudimos conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.' },
+  fpResendFailed: { en: 'Couldn\'t resend. Check your connection and try again.', es: 'No pudimos reenviarlo. Revisa tu conexión e inténtalo de nuevo.' },
+  fpCodeDidntWork: { en: 'That code didn\'t work. Double-check it, or use the link in the email instead.', es: 'Ese código no funcionó. Revísalo o usa el enlace del correo.' },
+  fpAlmostThere: { en: 'Almost there.', es: 'Ya casi.' },
+  fpOneMoreStep: { en: 'One more step and you\'re back in.', es: 'Un paso más y vuelves a entrar.' },
+  fpCheckEmail: { en: 'Check your email', es: 'Revisa tu correo' },
+  fpSentCodeTo: { en: 'We sent a code to', es: 'Enviamos un código a' },
+  fpEnterCode: { en: 'Enter the code from that email', es: 'Escribe el código de ese correo' },
+  fpCodePlaceholder: { en: 'Code', es: 'Código' },
+  fpVerifying: { en: 'Verifying...', es: 'Verificando...' },
+  fpVerify: { en: 'Verify', es: 'Verificar' },
+  fpOrClickLink: { en: 'Or click the link in that same email instead. If this wasn\'t you, you can safely ignore the email: your password won\'t change.', es: 'O haz clic en el enlace de ese mismo correo. Si no fuiste tú, ignora el correo: tu contraseña no cambiará.' },
+  fpSentAgain: { en: '✓ Sent again', es: '✓ Enviado de nuevo' },
+  fpSending: { en: 'Sending...', es: 'Enviando...' },
+  fpResend: { en: 'Didn\'t get either? Resend', es: '¿No llegó? Reenviar' },
+  fpWrongEmail: { en: 'Wrong email? Go back', es: '¿Correo equivocado? Volver' },
+  fpNoAccount: { en: 'Don\'t have an account? Create one', es: '¿No tienes cuenta? Crea una' },
+  fpHeadline: { en: 'Happens to the best of us.', es: 'Le pasa a cualquiera.' },
+  fpSubtext: { en: 'Enter your email and we\'ll send you a code to get back in.', es: 'Escribe tu correo y te enviaremos un código para volver a entrar.' },
+  fpTitle: { en: 'Reset your password', es: 'Restablece tu contraseña' },
+  fpWeEmailCode: { en: 'We\'ll email you a reset code.', es: 'Te enviaremos un código por correo.' },
+  fpEmailLabel: { en: 'Email', es: 'Correo electrónico' },
+  fpSendCode: { en: 'Send reset code', es: 'Enviar código' },
+  fpBackToLogin: { en: 'Back to login', es: 'Volver a iniciar sesión' },
+  passwordMinPlaceholder: { en: 'Min. 8 characters', es: 'Mínimo 8 caracteres' },
+  pmAddendumLink: { en: 'Property manager addendum', es: 'Anexo para administradores de propiedades' },
+  scrInvited: { en: 'Invited', es: 'Invitado' },
+  scrReportReceived: { en: 'Report received', es: 'Reporte recibido' },
+  scrApproved: { en: 'Approved', es: 'Aprobado' },
+  scrDeclined: { en: 'Declined', es: 'Rechazado' },
+  scrWithdrawn: { en: 'Withdrawn', es: 'Retirado' },
+  scrTitle: { en: 'Applicant screening', es: 'Evaluación de solicitantes' },
+  scrAdd: { en: '+ Screen an applicant', es: '+ Evaluar a un solicitante' },
+  scrIntro: { en: 'Credit, criminal and eviction checks through TransUnion SmartMove. The applicant pays and consents directly with SmartMove.', es: 'Verificación de crédito, antecedentes penales y desalojos con TransUnion SmartMove. El solicitante paga y da su consentimiento directamente en SmartMove.' },
+  scrNamePh: { en: 'Applicant\'s full name', es: 'Nombre completo del solicitante' },
+  scrEmailPh: { en: 'Applicant\'s email', es: 'Correo del solicitante' },
+  scrHowItWorks: { en: 'We\'ll email the applicant what to expect and open SmartMove for you. Start the request there with the same email.', es: 'Le enviaremos un correo al solicitante explicando qué esperar y abriremos SmartMove. Inicia la solicitud allí con el mismo correo.' },
+  scrCouldNotSave: { en: 'Could not save. Try again.', es: 'No se pudo guardar. Inténtalo de nuevo.' },
+  scrSaving: { en: 'Saving…', es: 'Guardando…' },
+  scrContinue: { en: 'Continue to SmartMove', es: 'Continuar a SmartMove' },
+  scrRemoveConfirm: { en: 'Remove {name} from this list?', es: '¿Quitar a {name} de esta lista?' },
+  scrUpdateStatus: { en: 'Update status', es: 'Actualizar estado' },
+  scrAdverseTitle: { en: 'If the screening report affected your decision, you must send an adverse action notice', es: 'Si el reporte influyó en tu decisión, debes enviar un aviso de acción adversa' },
+  scrAdverseBody: { en: 'Under the federal Fair Credit Reporting Act, tell the applicant in writing: that you declined (or asked for more, like a higher deposit) based on the report; the screening company\'s name, address and phone (TransUnion); that TransUnion didn\'t make the decision and can\'t explain it; and that they can get a free copy of their report within 60 days and dispute anything inaccurate. SmartMove can send this notice for you from your request.', es: 'Según la ley federal Fair Credit Reporting Act, informa al solicitante por escrito: que lo rechazaste (o pediste más, como un depósito mayor) por el reporte; el nombre, la dirección y el teléfono de la empresa de evaluación (TransUnion); que TransUnion no tomó la decisión y no puede explicarla; y que puede obtener una copia gratuita de su reporte dentro de 60 días y disputar lo que sea incorrecto. SmartMove puede enviar este aviso por ti desde tu solicitud.' },
+  scrGotIt: { en: 'Got it', es: 'Entendido' },
+  recCatRent: { en: 'Rent (paid outside the app)', es: 'Renta (pagada fuera de la app)' },
+  recCatDeposit: { en: 'Security deposit received', es: 'Depósito de seguridad recibido' },
+  recCatOtherIncome: { en: 'Other income', es: 'Otros ingresos' },
+  recCatRepair: { en: 'Repair or maintenance', es: 'Reparación o mantenimiento' },
+  recCatUtilities: { en: 'Utilities', es: 'Servicios públicos' },
+  recCatInsurance: { en: 'Insurance', es: 'Seguro' },
+  recCatTax: { en: 'Property tax', es: 'Impuesto a la propiedad' },
+  recCatMortgage: { en: 'Mortgage interest', es: 'Intereses hipotecarios' },
+  recCatHoa: { en: 'HOA dues', es: 'Cuotas de la asociación (HOA)' },
+  recCatSupplies: { en: 'Supplies', es: 'Materiales' },
+  recCatManagement: { en: 'Management fees', es: 'Honorarios de administración' },
+  recCatLegal: { en: 'Legal and professional', es: 'Legales y profesionales' },
+  recCatOther: { en: 'Other expense', es: 'Otro gasto' },
+  recTypeRent: { en: 'Rent', es: 'Renta' },
+  recTypeContractor: { en: 'Contractor', es: 'Contratista' },
+  recTypeFee: { en: 'Mgmt fee', es: 'Honorario admin.' },
+  recTypeManual: { en: 'Added by hand', es: 'Agregado a mano' },
+  recLine3: { en: 'Rents received', es: 'Rentas recibidas' },
+  recLine9: { en: 'Insurance', es: 'Seguro' },
+  recLine10: { en: 'Legal and other professional fees', es: 'Honorarios legales y profesionales' },
+  recLine11: { en: 'Management fees', es: 'Honorarios de administración' },
+  recLine12: { en: 'Mortgage interest', es: 'Intereses hipotecarios' },
+  recLine14: { en: 'Repairs', es: 'Reparaciones' },
+  recLine15: { en: 'Supplies', es: 'Materiales' },
+  recLine16: { en: 'Taxes', es: 'Impuestos' },
+  recLine17: { en: 'Utilities', es: 'Servicios públicos' },
+  recLine19: { en: 'Other', es: 'Otros' },
+  recLoadFailed: { en: 'Could not load your records.', es: 'No se pudieron cargar tus registros.' },
+  recExplainFailed: { en: 'Could not read your year right now.', es: 'No pudimos analizar tu año en este momento.' },
+  recTitle: { en: 'Records', es: 'Registros' },
+  recIntro: { en: 'Every dollar in and out: rent, contractor work, fees and anything you add.', es: 'Cada dólar que entra y sale: renta, trabajos de contratistas, honorarios y lo que agregues.' },
+  recAddEntry: { en: '+ Add entry', es: '+ Agregar registro' },
+  recExport: { en: 'Export {year}', es: 'Exportar {year}' },
+  recYear: { en: 'Year', es: 'Año' },
+  recClient: { en: 'Client', es: 'Cliente' },
+  recAllClients: { en: 'All clients', es: 'Todos los clientes' },
+  recProperty: { en: 'Property', es: 'Propiedad' },
+  recAllProperties: { en: 'All properties', es: 'Todas las propiedades' },
+  recIncome: { en: 'Income', es: 'Ingresos' },
+  recExpenses: { en: 'Expenses', es: 'Gastos' },
+  recNet: { en: 'Net', es: 'Neto' },
+  recByProperty: { en: 'By property', es: 'Por propiedad' },
+  recNetSuffix: { en: '{amount} net', es: '{amount} neto' },
+  recBarsLegend: { en: 'Teal is income, grey is expenses.', es: 'Verde azulado son ingresos, gris son gastos.' },
+  recExplainTitle: { en: '✦ Explain my year', es: '✦ Explicar mi año' },
+  recReading: { en: 'Reading…', es: 'Analizando…' },
+  recGo: { en: 'Go', es: 'Ir' },
+  recExplainHint: { en: 'What stood out in {year}, and what to check before tax time.', es: 'Lo que destacó en {year} y qué revisar antes de declarar impuestos.' },
+  recCheckBeforeFiling: { en: 'Check before filing', es: 'Revisar antes de declarar' },
+  recTaxSummary: { en: 'Tax summary (Schedule E)', es: 'Resumen de impuestos (Anexo E)' },
+  recExportShort: { en: 'Export', es: 'Exportar' },
+  recTaxHint: { en: 'Your year grouped the way the IRS rental form groups it, ready for your accountant.', es: 'Tu año agrupado como lo agrupa el formulario de alquileres del IRS, listo para tu contador.' },
+  recTaxNote: { en: 'Not tax advice. Security deposits are left out. Depreciation isn\'t included.', es: 'No es asesoría fiscal. Los depósitos de seguridad no se incluyen. La depreciación no está incluida.' },
+  recEmptyTitle: { en: 'Nothing recorded for {year} yet', es: 'Aún no hay nada registrado para {year}' },
+  recEmptyBody: { en: 'Rent and paid contractor jobs show up here automatically. Add anything else by hand.', es: 'La renta y los trabajos pagados a contratistas aparecen aquí automáticamente. Agrega lo demás a mano.' },
+  recWorkPrefix: { en: 'Work: ', es: 'Trabajo: ' },
+  recJobPhoto: { en: 'Job photo {n}', es: 'Foto del trabajo {n}' },
+  recReceiptLink: { en: 'Receipt →', es: 'Recibo →' },
+  recOpenJob: { en: 'Open job →', es: 'Abrir trabajo →' },
+  recDeleteConfirm: { en: 'Delete this entry?', es: '¿Eliminar este registro?' },
+  recAddTitle: { en: 'Add an entry', es: 'Agregar un registro' },
+  recAddHint: { en: 'For anything not paid through Prophandld.', es: 'Para todo lo que no se pagó a través de Prophandld.' },
+  recScanning: { en: 'Reading your receipt…', es: 'Leyendo tu recibo…' },
+  recScan: { en: '✦ Scan a receipt or invoice', es: '✦ Escanear un recibo o factura' },
+  recScanFilled: { en: 'Filled in from your receipt. Check it before saving.', es: 'Completado con tu recibo. Revísalo antes de guardar.' },
+  recMoneyOut: { en: 'Money out', es: 'Dinero que sale' },
+  recMoneyIn: { en: 'Money in', es: 'Dinero que entra' },
+  recCategory: { en: 'Category', es: 'Categoría' },
+  recAmount: { en: 'Amount', es: 'Monto' },
+  recDate: { en: 'Date', es: 'Fecha' },
+  recNoProperty: { en: 'Not tied to one property', es: 'No vinculado a una propiedad' },
+  recDescription: { en: 'Description', es: 'Descripción' },
+  recDescriptionPh: { en: 'What was it? (e.g. Replaced kitchen faucet)', es: '¿Qué fue? (ej. Cambié la llave de la cocina)' },
+  recPaidToFrom: { en: 'Paid to or from', es: 'Pagado a o recibido de' },
+  recPaidToPh: { en: 'Paid to (e.g. ABC Plumbing)', es: 'Pagado a (ej. ABC Plomería)' },
+  recReceivedFrom: { en: 'Received from', es: 'Recibido de' },
+  recReceiptFile: { en: 'Receipt: {name}', es: 'Recibo: {name}' },
+  recAttachReceipt: { en: '+ Attach receipt (photo or PDF)', es: '+ Adjuntar recibo (foto o PDF)' },
+  recCouldNotSave: { en: 'Could not save.', es: 'No se pudo guardar.' },
+  recSaving: { en: 'Saving…', es: 'Guardando…' },
+  recReceiptUploadFailed: { en: 'Saved, but the receipt didn\'t upload. Open the entry later to try again.', es: 'Se guardó, pero el recibo no se subió. Inténtalo de nuevo más tarde.' },
+  signupAiTrialCheckbox: { en: 'Start my 14-day Prophandld AI trial too. No charge now, cancel anytime from my profile before it ends.', es: 'Inicia también mi prueba de 14 días de Prophandld AI. Sin cargo ahora; cancela cuando quieras desde tu perfil antes de que termine.' },
   jobTotalTooLow: { en: 'Job total must be at least ${min}.', es: 'El total del trabajo debe ser de al menos ${min}.' },
   workOrderPrefix: { en: 'Work order #', es: 'Orden de trabajo n.º' },
   couldNotSendQuestion: { en: 'Could not send your question.', es: 'No se pudo enviar tu pregunta.' },

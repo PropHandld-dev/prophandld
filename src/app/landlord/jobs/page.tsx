@@ -16,6 +16,7 @@ import { UnreadDot } from '@/components/UnreadDot'
 import { getUnreadJobIds } from '@/lib/messageReads'
 import { fetchAllPages } from '@/lib/pagedQuery'
 import { useLanguage, t } from '@/lib/i18n'
+import { categoryName } from '@/lib/categoryTaxonomy'
 
 const IN_PROGRESS_STATUSES = ['approved', 'bidding', 'bid_selected', 'scheduled', 'in_progress']
 
@@ -393,7 +394,7 @@ function LandlordJobsList() {
                 <div className="flex items-start justify-between gap-4">
                   <Link href={`/landlord/jobs/${job.id}`} className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-1.5">
-                      <h3 className="text-white font-semibold">{job.category}</h3>
+                      <h3 className="text-white font-semibold">{categoryName(job.category, lang)}</h3>
                       {ownerNames.size > 0 && (
                         <span className="text-xs text-white/50 bg-white/5 border border-white/10 rounded-full px-2 py-0.5">
                           {ownerNames.get(job.units?.properties?.owner_user_id) || 'Owner'}

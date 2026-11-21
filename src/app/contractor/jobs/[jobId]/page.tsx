@@ -31,6 +31,7 @@ import { useDialogA11y } from '@/lib/useDialogA11y'
 import { ManagedByBadge } from '@/components/ManagedByBadge'
 import { MIN_JOB_TOTAL } from '@/lib/bidRules'
 import { formatMoney } from '@/lib/money'
+import { categoryName } from '@/lib/categoryTaxonomy'
 
 export default function ContractorJobDetailPage() {
   const router = useRouter()
@@ -670,7 +671,7 @@ export default function ContractorJobDetailPage() {
       <main className="max-w-2xl mx-auto px-6 py-10 pb-28">
         <div className="mb-6">
           <div className="flex items-center gap-2 flex-wrap mb-2">
-            <h1 className="text-2xl font-bold text-white">{job.category}</h1>
+            <h1 className="text-2xl font-bold text-white">{categoryName(job.category, lang)}</h1>
             {job.is_emergency && (
               <span className="text-xs bg-red-500/20 text-red-400 border border-red-500/30 rounded-full px-2.5 py-1 font-semibold">
                 {t('emergency', lang)}

@@ -19,6 +19,7 @@ import { useLanguage, t, type Lang } from '@/lib/i18n'
 import { getLandlordIds } from '@/lib/landlordIds'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 import { RentTrendChart, type MonthBucket } from '@/components/RentTrendChart'
+import { categoryName } from '@/lib/categoryTaxonomy'
 
 type Property = { id: string; address: string; city: string | null; state: string | null }
 type Unit = { id: string; unit_number: string; property_id: string }
@@ -494,7 +495,7 @@ export default function LandlordReportsPage() {
                   {filteredJobs.map((r) => (
                     <div key={r.id} className="flex items-center justify-between gap-3 px-5 py-3.5">
                       <div className="min-w-0 flex-1">
-                        <p className="text-white text-sm truncate">{r.category} · {r.place}</p>
+                        <p className="text-white text-sm truncate">{categoryName(r.category, lang)} · {r.place}</p>
                         <p className="text-white/40 text-xs mt-0.5">
                           {new Date(r.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} · {r.contractorName}
                         </p>

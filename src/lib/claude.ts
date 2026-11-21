@@ -58,6 +58,24 @@ async function logUsage(track: UsageTrack, inputTokens: number, outputTokens: nu
   if (error) console.error('claudeJson: usage log insert failed', { feature: track.feature, error })
 }
 
+// Features whose output is prose read by the person who asked for it.
+// For a Spanish-speaking user these answer in Spanish. Left out on purpose:
+// features that already follow the conversation's language (help-chat,
+// translate, issue-intake, troubleshoot, polish-bid, pm-thread-draft,
+// smart-replies), the Pennsylvania lease text, and data extraction.
+const LOCALIZED_FEATURES = new Set([
+  'records-insights', 'compare-bids', 'compliance-gap-check', 'compliance-renewal-guide', 'lease-qa',
+  'portfolio-digest', 'before-after-check', 'job-ready-check', 'job-ready-recheck', 'draft-message', 'pm-summary-note',
+])
+
+async function languageNote(track: UsageTrack): Promise<string> {
+  if (!LOCALIZED_FEATURES.has(track.feature) || !track.callerUserId) return ''
+  const { data } = await getSupabaseAdmin().from('users').select('preferred_language').eq('id', track.callerUserId).maybeSingle()
+  return data?.preferred_language === 'es'
+    ? '\n\nWrite every sentence meant for the reader in Spanish. Keep JSON keys, enum values, numbers, dates and names exactly as specified.'
+    : ''
+}
+
 function requireApiKey() {
   if (!process.env.ANTHROPIC_API_KEY) {
     throw new ClaudeConfigError('ANTHROPIC_API_KEY is not configured')
@@ -110,6 +128,7 @@ export async function claudeJson<T>({
     }
   }
   content.push({ type: 'text', text: prompt })
+  const langNote = await languageNote(track)
 
   const message = await anthropic.messages.create({
     model: CLAUDE_MODEL,
@@ -117,7 +136,7 @@ export async function claudeJson<T>({
     // low a ceiling cut replies off mid-JSON (compliance guide, drafts,
     // troubleshooting all hit it), so every call gets room to finish.
     max_tokens: Math.max(maxTokens, 2000),
-    system: `${system}\n\nRespond with ONLY a single valid JSON object, no markdown fences, no commentary before or after it.`,
+    system: `${system}${langNote}\n\nRespond with ONLY a single valid JSON object, no markdown fences, no commentary before or after it.`,
     messages: [{ role: 'user', content }],
   })
 
@@ -175,13 +194,14 @@ export async function claudeJson<T>({
 // asking for JSON just adds a way to fail, so take the text as-is.
 export async function claudeText({ system, prompt, maxTokens = 800, track, model = CLAUDE_MODEL, raw = false }: { system: string; prompt: string; maxTokens?: number; track: UsageTrack; model?: string; raw?: boolean }): Promise<string> {
   requireApiKey()
+  const langNote = await languageNote(track)
   const message = await getClaude().messages.create({
     model,
     // Headroom: a small limit can run out before any visible text is
     // written, which comes back as an empty reply.
     max_tokens: Math.max(maxTokens, 2000),
     // raw: the caller's own system prompt defines the whole output format.
-    system: raw ? system : `${system}\n\nReply with only the message text itself: no quotes around it, no preamble, no notes.`,
+    system: raw ? system + langNote : `${system}${langNote}\n\nReply with only the message text itself: no quotes around it, no preamble, no notes.`,
     messages: [{ role: 'user', content: prompt }],
   })
   try {

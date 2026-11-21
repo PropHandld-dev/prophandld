@@ -25,6 +25,7 @@ import { MfaPromptModal } from '@/components/MfaPromptModal'
 import { useLanguage, t, type Lang } from '@/lib/i18n'
 import { useIsNativePlatform } from '@/lib/useIsNativePlatform'
 import { ManagedByBadge } from '@/components/ManagedByBadge'
+import { categoryName } from '@/lib/categoryTaxonomy'
 
 function getTourSteps(lang: Lang): TourStep[] {
   return [
@@ -388,7 +389,7 @@ export default function RenterDashboard() {
                         className="block border-b border-white/5 last:border-0 pb-3 last:pb-0 hover:opacity-80 transition"
                       >
                         <div className="flex items-center gap-2 flex-wrap mb-1">
-                          <p className="text-white font-medium">{job.category}</p>
+                          <p className="text-white font-medium">{categoryName(job.category, lang)}</p>
                           {job.is_emergency && (
                             <span className="text-xs bg-red-500/20 text-red-400 border border-red-500/30 rounded-full px-2 py-0.5 font-semibold">
                               {t('emergency', lang)}

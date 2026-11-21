@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { TranslateLink } from '@/components/TranslateLink'
+import { useConfirm } from '@/lib/useConfirm'
 
 type Msg = {
   id: string
@@ -38,6 +39,7 @@ const time = (iso: string) => {
 // The PM <-> owner conversation, replacing back-and-forth texts and calls:
 // messages, one-tap approval cards, and AI drafting on both sides.
 export function PmOwnerThread({ ownerId, onClose }: { ownerId?: string; onClose: () => void }) {
+  const { confirm, ConfirmDialog } = useConfirm()
   const [thread, setThread] = useState<Thread | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [text, setText] = useState('')
@@ -92,7 +94,7 @@ export function PmOwnerThread({ ownerId, onClose }: { ownerId?: string; onClose:
   }
 
   const remove = async (m: Msg) => {
-    if (!window.confirm(m.kind === 'approval' ? 'Withdraw this approval request?' : 'Delete this message?')) return
+    if (!(await confirm({ body: m.kind === 'approval' ? 'Withdraw this approval request?' : 'Delete this message?', confirmLabel: m.kind === 'approval' ? 'Withdraw' : 'Delete', danger: true }))) return
     const res = await fetch(`/api/pm/thread/${m.id}`, { method: 'DELETE' }).catch(() => null)
     if (!res?.ok) setError((res ? (await res.json().catch(() => ({}))).error : null) || 'Could not delete.')
     await load()
@@ -114,6 +116,7 @@ export function PmOwnerThread({ ownerId, onClose }: { ownerId?: string; onClose:
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4" role="dialog" aria-modal="true">
+      {ConfirmDialog}
       <div className="bg-[#0F2138] border border-white/10 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-xl h-[92vh] sm:h-[80vh] flex flex-col overflow-hidden">
         <header className="flex items-center gap-3 px-5 py-4 border-b border-white/8">
           <div className="w-10 h-10 rounded-xl bg-[#12A5A9]/15 flex items-center justify-center overflow-hidden shrink-0 text-[#12A5A9] font-bold">

@@ -21,6 +21,7 @@ import { TroubleshootAssistant } from '@/components/TroubleshootAssistant'
 import { AI_ASSIST_ENABLED } from '@/lib/aiAssist'
 import { useDialogA11y } from '@/lib/useDialogA11y'
 import { saveDraft, loadDraft, clearDraft } from '@/lib/formDraft'
+import { categoryName, categoryGroupName } from '@/lib/categoryTaxonomy'
 
 type DraftForm = { category: string; location: string; urgency: string; description: string; is_emergency: boolean; maintenance_item_id: string; access_notes: string }
 
@@ -424,16 +425,16 @@ export default function ReportIssuePage() {
               <select
                 id="report-category"
                 name="category"
-                value={form.category}
+                value={categoryName(form.category, lang)}
                 onChange={handleChange}
                 required
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#12A5A9] transition"
               >
                 <option value="" className="bg-[#0C1A2E]">{t('selectACategory', lang)}</option>
                 {categoryGroups.map((group) => (
-                  <optgroup key={group.label} label={group.label} className="bg-[#0C1A2E]">
+                  <optgroup key={group.label} label={categoryGroupName(group.label, lang)} className="bg-[#0C1A2E]">
                     {group.categories.map((cat) => (
-                      <option key={cat} value={cat} className="bg-[#0C1A2E]">{cat}</option>
+                      <option key={cat} value={cat} className="bg-[#0C1A2E]">{categoryName(cat, lang)}</option>
                     ))}
                   </optgroup>
                 ))}
@@ -570,7 +571,7 @@ export default function ReportIssuePage() {
 
             {showTroubleshoot && (
               <TroubleshootAssistant
-                category={form.category}
+                category={categoryName(form.category, lang)}
                 description={form.description}
                 knownAppliance={
                   // Explicitly picked from the Related System dropdown

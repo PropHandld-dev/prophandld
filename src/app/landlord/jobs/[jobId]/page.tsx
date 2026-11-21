@@ -43,6 +43,7 @@ import { useLanguage, t, windowLabel } from '@/lib/i18n'
 import { useDialogA11y } from '@/lib/useDialogA11y'
 import { BidCompare } from '@/components/BidCompare'
 import { formatMoney } from '@/lib/money'
+import { categoryName } from '@/lib/categoryTaxonomy'
 
 // Shared styling for every secondary action in the status card's action
 // row (decline, handle it myself, chat, ask a question, archive) — one
@@ -1261,7 +1262,7 @@ export default function JobDetailPage() {
         <div className="mb-6">
           <div>
             <div className="flex items-center gap-2 flex-wrap mb-2">
-              <h1 className="text-2xl font-bold text-white">{job.category}</h1>
+              <h1 className="text-2xl font-bold text-white">{categoryName(job.category, lang)}</h1>
               {job.is_emergency && (
                 <span className="text-xs bg-red-500/20 text-red-400 border border-red-500/30 rounded-full px-2.5 py-1 font-semibold">
                   {t('emergency', lang)}
@@ -1537,7 +1538,7 @@ export default function JobDetailPage() {
                 {!rehireLoading && rehireSuggestion && (
                   <div className="bg-[#12A5A9]/8 border border-[#12A5A9]/25 rounded-xl p-4 mb-3 flex items-center justify-between gap-3">
                     <p className="text-white/80 text-sm">
-                      <span className="text-[#12A5A9] font-bold">✦</span> {t('rehireSuggestionPrefix', lang)} <strong className="text-white">{rehireSuggestion.name}</strong> {t('rehireSuggestionSuffix', lang)} {job.category}.
+                      <span className="text-[#12A5A9] font-bold">✦</span> {t('rehireSuggestionPrefix', lang)} <strong className="text-white">{rehireSuggestion.name}</strong> {t('rehireSuggestionSuffix', lang)} {categoryName(job.category, lang)}.
                     </p>
                     <RippleButton
                       onClick={startRehireDm}
@@ -2057,7 +2058,7 @@ export default function JobDetailPage() {
 
             {aiAssistActive && (
               <DiyTroubleshootPanel
-                category={job.category}
+                category={categoryName(job.category, lang)}
                 description={job.description}
                 knownAppliance={job.maintenance_items || null}
                 photoUrls={photos.filter((p) => p.displayUrl && !isVideoPath(p.photo_url)).map((p) => p.displayUrl)}

@@ -18,6 +18,7 @@ import { useGroupedCategoryOptions } from '@/lib/categories'
 import { PendingInviteNeedsPhoneBanner } from '@/components/PendingInviteNeedsPhoneBanner'
 import { useLanguage, t } from '@/lib/i18n'
 import { checkAddressOnServer } from '@/lib/zipValidation'
+import { categoryName, categoryGroupName } from '@/lib/categoryTaxonomy'
 
 export default function ContractorSettingsPage() {
   const router = useRouter()
@@ -192,7 +193,7 @@ export default function ContractorSettingsPage() {
             <div className="space-y-4">
               {categoryGroups.map((group) => (
                 <div key={group.label}>
-                  <p className="text-white/40 text-xs font-semibold uppercase tracking-wide mb-1.5">{group.label}</p>
+                  <p className="text-white/40 text-xs font-semibold uppercase tracking-wide mb-1.5">{categoryGroupName(group.label, lang)}</p>
                   <div className="flex flex-wrap gap-2">
                     {group.categories.map((cat) => {
                       const selected = selectedCategories.includes(cat)
@@ -209,7 +210,7 @@ export default function ContractorSettingsPage() {
                           }
                         >
                           {selected && <CheckCircleIcon className="w-3.5 h-3.5" />}
-                          {cat}
+                          {categoryName(cat, lang)}
                         </button>
                       )
                     })}

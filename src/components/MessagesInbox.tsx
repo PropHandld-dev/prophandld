@@ -10,6 +10,7 @@ import { useConversations } from '@/lib/useConversations'
 import { DmContactsStrip } from '@/components/DmContactsStrip'
 import type { StartedConversation } from '@/lib/dmThreads'
 import { useLanguage, t } from '@/lib/i18n'
+import { categoryName } from '@/lib/categoryTaxonomy'
 
 function formatTimestamp(iso: string) {
   const date = new Date(iso)
@@ -98,7 +99,7 @@ export function MessagesInbox({ basePath }: { basePath: string }) {
                   )}
                   {isUnread && <UnreadDot />}
                 </div>
-                <p className="text-white/60 text-xs truncate">{c.category}{c.propertyLabel ? ` · ${c.propertyLabel}` : ''}</p>
+                <p className="text-white/60 text-xs truncate">{categoryName(c.category, lang)}{c.propertyLabel ? ` · ${c.propertyLabel}` : ''}</p>
                 <p className={`text-sm truncate mt-1 ${isUnread ? 'text-white font-medium' : 'text-white/50'}`}>
                   {isMine ? `${t('youLabel', lang)}: ` : ''}{c.lastMessage}
                 </p>

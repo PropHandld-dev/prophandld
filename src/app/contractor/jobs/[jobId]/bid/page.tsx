@@ -15,6 +15,7 @@ import { useLanguage, t } from '@/lib/i18n'
 import { useConfirm } from '@/lib/useConfirm'
 import { PILOT_FREE } from '@/lib/pilot'
 import { MIN_JOB_TOTAL, hasCentPrecision } from '@/lib/bidRules'
+import { categoryName } from '@/lib/categoryTaxonomy'
 
 function FieldLabel({ children, htmlFor }: { children: React.ReactNode; htmlFor?: string }) {
   return <label htmlFor={htmlFor} className="text-white/70 text-sm block mb-1">{children}</label>
@@ -354,7 +355,7 @@ export default function SubmitBidPage() {
             <h1 className="text-2xl font-bold text-white mb-2">{t('submitABid', lang)}</h1>
             <div className="bg-white/3 border border-white/8 rounded-2xl p-5 mb-4">
               <div className="flex items-center gap-2 flex-wrap mb-1">
-                <h3 className="text-white font-semibold">{job.category}</h3>
+                <h3 className="text-white font-semibold">{categoryName(job.category, lang)}</h3>
                 {job.is_emergency && (
                   <span className="text-xs bg-red-500/20 text-red-400 border border-red-500/30 rounded-full px-2 py-0.5 font-semibold">
                     {t('emergency', lang)}
