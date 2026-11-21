@@ -3,6 +3,7 @@ import { Logo } from '@/components/Logo'
 import { BrandLink } from '@/components/BrandLink'
 import { BackHomeLink } from '@/components/BackHomeLink'
 import { PrivacyContent } from '@/components/legal/PrivacyContent'
+import { LEGAL_UPDATED } from '@/lib/legalDates'
 
 export const metadata = {
   title: 'Privacy Policy | Prophandld',
@@ -22,7 +23,7 @@ export default function PrivacyPage() {
 
       <main className="max-w-3xl mx-auto px-6 py-16">
         <h1 className="text-3xl font-bold mb-2">Privacy Policy</h1>
-        <p className="text-white/60 text-sm mb-12">Last updated November 13, 2026</p>
+        <p className="text-white/60 text-sm mb-12">Last updated {LEGAL_UPDATED.privacy}</p>
 
         <div className="space-y-10 text-white/60 text-sm leading-relaxed [&_h2]:text-white [&_h2]:font-semibold [&_h2]:text-lg [&_h2]:mb-3 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5">
 

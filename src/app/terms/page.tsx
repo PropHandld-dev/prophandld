@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { Logo } from '@/components/Logo'
 import { BrandLink } from '@/components/BrandLink'
 import { BackHomeLink } from '@/components/BackHomeLink'
+import { LEGAL_UPDATED } from '@/lib/legalDates'
 
 export const metadata = {
   title: 'Terms of Service | Prophandld',
@@ -21,7 +22,7 @@ export default function TermsPage() {
 
       <main className="max-w-3xl mx-auto px-6 py-16">
         <h1 className="text-3xl font-bold mb-2">Terms of Service</h1>
-        <p className="text-white/60 text-sm mb-12">Last updated November 6, 2026</p>
+        <p className="text-white/60 text-sm mb-12">Last updated {LEGAL_UPDATED.general}</p>
 
         <div className="space-y-10 text-white/60 text-sm leading-relaxed [&_h2]:text-white [&_h2]:font-semibold [&_h2]:text-lg [&_h2]:mb-3 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5">
 
@@ -41,10 +42,11 @@ export default function TermsPage() {
           <section>
             <h2>1. What Prophandld is</h2>
             <p>
-              Prophandld is a platform that connects landlords, renters, and contractors to manage
-              rental properties and coordinate maintenance work. Landlords track properties, units,
-              and tenants; renters report maintenance issues; contractors submit sealed bids on jobs
-              and get selected by landlords. By creating an account, you agree to these terms.
+              Prophandld is a platform that connects landlords, property managers, renters, and
+              contractors to manage rental properties and coordinate maintenance work. Landlords (or
+              the property managers they hire) track properties, units, tenants, and rent; renters
+              report maintenance issues and pay rent; contractors submit sealed bids on jobs and get
+              selected. By creating an account, you agree to these terms.
             </p>
             <p>
               Prophandld is operated by Prophandld LLC, a Pennsylvania limited liability company.
@@ -57,7 +59,7 @@ export default function TermsPage() {
               You must be at least 18 years old to create a Prophandld account.
             </p>
             <p>
-              You choose a role when you sign up (landlord, renter, or contractor), and the
+              You choose a role when you sign up (landlord, property manager, renter, or contractor), and the
               information you can see and the actions you can take depend on that role. You're
               responsible for keeping your login credentials secure and for the accuracy of the
               information you provide, including your contact details and (for contractors) license
@@ -80,13 +82,21 @@ export default function TermsPage() {
               to block a specific attempt.
             </p>
             <p>
-              A landlord can also invite a co-owner (a separate person, such as a business partner
-              or property manager, with their own login) to manage their properties alongside them.
+              A landlord can also invite a co-owner (a separate person, such as a business partner,
+              with their own login) to manage their properties alongside them.
               A co-owner gets the same access to your properties, units, tenants, jobs, rent, and
               compliance tracking that you have; they can't see or change your subscription billing,
               and can't permanently delete a property. You're responsible for who you invite and for
               their use of that access, and you can remove a co-owner's access at any time from your
               profile.
+            </p>
+            <p>
+              A landlord can also hire a property management company that uses Prophandld. The
+              owner sets how much the company may approve on its own, approves any management fee
+              before it's charged, and can end the relationship at any time. Details are in the{' '}
+              <Link href="/terms/property-manager" className="text-[#12A5A9] hover:underline">Property Manager Terms</Link>{' '}
+              and the{' '}
+              <Link href="/terms/landlord" className="text-[#12A5A9] hover:underline">Landlord Terms</Link>.
             </p>
           </section>
 
@@ -97,7 +107,7 @@ export default function TermsPage() {
               <li>Provide accurate information about your properties, units, and lease terms: address, rent amount, unit count, and who actually lives there</li>
               <li>Keep required licenses, certifications, and inspections (for example, a rental license or lead certification where your jurisdiction requires one) current, and use the platform's compliance tracking as a tool, not a substitute for knowing your own legal obligations</li>
               <li>Respond to reported maintenance issues in a reasonable time, and not use the platform to avoid habitability or repair obligations you have under applicable law</li>
-              <li>Pay contractors the full amount you approve for completed work, and pay your own Prophandld subscription fee on time</li>
+              <li>Pay contractors the full amount you approve for completed work, and, once paid plans begin, pay your own Prophandld subscription fee on time (Prophandld is free during the current pilot)</li>
               <li>Respect a renter's privacy: only use their contact information and personal data for managing the tenancy, never for an unrelated purpose</li>
               <li>Take responsibility for any co-owner you invite to help manage your properties, including their use of that access (see Section 2)</li>
             </ul>
@@ -151,37 +161,52 @@ export default function TermsPage() {
           <section>
             <h2>8. Payments</h2>
             <p>
-              Rent (whether paid by debit card or bank transfer) and contractor job payments are
-              processed through Stripe, a third-party payment processor; Prophandld does not hold
-              or custody your funds. Money moves directly from the paying party to the recipient
-              through Stripe's infrastructure. Landlords separately pay Prophandld a flat monthly
-              platform fee based on how many units they manage; this fee is unrelated to and not
-              deducted from any individual rent or job payment. Prophandld never sees or stores
-              your card or bank account details; that information is handled entirely by Stripe.
+              Rent paid online (by bank transfer or debit card), contractor job payments, and
+              property management fees are processed through Stripe, a third-party payment
+              processor. Anyone who receives money through Prophandld (a landlord, property manager,
+              or contractor) connects their own Stripe account and agrees to Stripe&apos;s own terms.
+              Prophandld does not hold or custody your funds, and never sees or stores your card or
+              bank account details; that information is handled entirely by Stripe.
+            </p>
+            <p>
+              Prophandld keeps no part of any rent, job payment, or management fee. Stripe charges
+              its own processing fees, and who pays them is shown before anyone pays: for rent,
+              Prophandld covers the bank-transfer fee, and a renter who pays by debit card pays the
+              card fee. Credit cards aren&apos;t accepted for rent. For a job payment, the landlord (or
+              their property manager) pays the processing fee and the contractor receives the full
+              approved amount. A landlord may also accept rent outside Prophandld, by Zelle, Venmo,
+              Cash App, check, or cash; that money never passes through Prophandld or Stripe, and
+              it&apos;s recorded only when the landlord marks it received.
+            </p>
+            <p>
+              Prophandld is free for landlords and property managers during the current pilot
+              program. If we introduce paid plans, we&apos;ll give you at least 60 days&apos; notice by email
+              before any charge applies, and nothing is charged without your agreement. Any future
+              platform fee is separate from, and never deducted from, rent or job payments.
             </p>
           </section>
 
           <section>
             <h2>9. Prophandld AI (AI Assist)</h2>
             <p>
-              Prophandld AI is our name for AI Assist, an optional, paid add-on a landlord can turn
-              on for their own account. When it's on, Prophandld uses a third-party AI service (see
-              our{' '}
+              Prophandld AI is our name for the AI features in the app. During the current pilot it&apos;s
+              included free for landlords and property managers, reaches their renters, and is also
+              available to contractors. Prophandld uses a third-party AI service (see our{' '}
               <Link href="/privacy" className="text-[#12A5A9] hover:underline">Privacy Policy</Link>)
               to do things like suggest a next troubleshooting step, read an uploaded document,
               answer a renter's question about their own lease, or draft a routine message.
             </p>
             <p>
-              The in-app help assistant (the chat bubble that answers general questions and plain
-              facts about your own account) is part of Prophandld AI, not a separate free feature:
-              a landlord needs it active on their own account to use it, and a renter's access rides
-              on their landlord's, the same as every other Prophandld AI feature. Contractors don't
-              have access to it. It uses the same third-party AI service, on a limited set of your
-              own account details.
+              The in-app assistant (the ✦ chat bubble) answers questions about how Prophandld works,
+              about your own account (and, for a property manager, the clients you manage), and
+              general questions, including general information about landlord-tenant rules. It uses
+              the same third-party AI service, with a limited set of your own account details, and
+              never another user&apos;s. When paid plans begin, AI access may become part of a plan;
+              we&apos;ll tell you before that changes.
             </p>
             <p>
-              These suggestions are generated automatically. They are not professional, legal, or
-              contracting advice, and we don't guarantee they're accurate, complete, or safe for
+              These answers and suggestions are generated automatically. They are not professional,
+              legal, tax, or contracting advice, and we don't guarantee they're accurate, complete, or safe for
               your specific situation. Never attempt an electrical, gas, or structural repair
               yourself regardless of what a suggestion says, and always use your own judgment
               before acting on one. Prophandld AI is provided "as is," same as the rest of the

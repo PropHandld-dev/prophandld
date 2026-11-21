@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { LegalPageShell } from '@/components/LegalPageShell'
 import { PropertyManagerTermsContent } from '@/components/legal/PropertyManagerTermsContent'
+import { LEGAL_UPDATED } from '@/lib/legalDates'
 
 export const metadata = {
   title: 'Terms for Property Managers | Prophandld',
@@ -11,7 +12,7 @@ export default function PropertyManagerTermsPage() {
   return (
     <LegalPageShell
       title="Terms for Property Managers"
-      lastUpdated="November 18, 2026"
+      lastUpdated={LEGAL_UPDATED.propertyManager}
       footerLinks={
         <>
           <Link href="/terms" className="hover:text-white transition">General Terms</Link>

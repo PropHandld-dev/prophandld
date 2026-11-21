@@ -22,6 +22,7 @@ import { LINKED_PROFILES_ENABLED } from '@/lib/featureFlags'
 import { t, roleLabel, type Lang } from '@/lib/i18n'
 import { formatTierPrice, formatAiAssistPrice } from '@/lib/pricingTiers'
 import { PILOT_FREE, PILOT_FREE_MONTHS } from '@/lib/pilot'
+import { LEGAL_UPDATED } from '@/lib/legalDates'
 
 const ROLE_LABEL_KEY = { landlord: 'landlordLabel', renter: 'renterLabel', contractor: 'contractorLabel' } as const
 
@@ -752,7 +753,7 @@ function SignupForm() {
       {legalModal === 'terms' && (
         <LegalModal
           title={t('termsOfService', lang)}
-          lastUpdated="November 6, 2026"
+          lastUpdated={LEGAL_UPDATED.general}
           onClose={() => {
             setLegalModal(null)
             setReviewedTerms(true)
@@ -777,7 +778,7 @@ function SignupForm() {
       {legalModal === 'privacy' && (
         <LegalModal
           title={t('privacyPolicy', lang)}
-          lastUpdated="November 6, 2026"
+          lastUpdated={LEGAL_UPDATED.privacy}
           onClose={() => {
             setLegalModal(null)
             setReviewedPrivacy(true)

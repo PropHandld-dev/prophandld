@@ -85,11 +85,14 @@ export function RenterTermsContent() {
       <section>
         <h2>6. Payments</h2>
         <p>
-          <strong>Paying rent.</strong> You can pay rent by debit card or bank transfer through
-          Stripe, a third-party payment processor. Prophandld never sees or stores your card or bank
+          <strong>Paying rent.</strong> You can pay rent by bank transfer or debit card through
+          Stripe, a third-party payment processor, when your landlord accepts them. If your landlord
+          has a property manager who collects rent for them, your payment goes to the property
+          manager&apos;s account; the Rent page shows who you&apos;re paying. Prophandld never sees or stores your card or bank
           account details, that&apos;s handled entirely by Stripe. Credit cards aren&apos;t accepted for rent,
           on purpose, so you&apos;re not tempted into card debt to make rent. If your landlord has set one
-          up, you can also pay rent directly to them via Zelle, Venmo, or Cash App instead. Money
+          up, you can also pay rent directly to them via Zelle, Venmo, or Cash App, or by check or
+          cash, instead. Money
           never touches Prophandld or Stripe for those. Those payments aren&apos;t confirmed
           automatically; after sending one, you can tap &quot;I&apos;ve sent this payment&quot; to let your landlord
           know to check for it, but your landlord&apos;s own &quot;Mark received&quot; action is what actually
@@ -106,10 +109,9 @@ export function RenterTermsContent() {
           part of gets a receipt, emailed to you and saved on the payment record.
         </p>
         <p>
-          There&apos;s no Prophandld subscription fee to you as a renter, that&apos;s paid by your
-          landlord, never passed through to you. Paying rent by bank transfer through Stripe
-          carries a small processing fee on top of the rent amount, shown and disclosed before you
-          pay. Paying by debit card has no fee. Paying your landlord directly via Zelle, Venmo, or
+          Prophandld never charges you, as a renter, any fee. Paying rent by bank transfer has no
+          fee: Prophandld covers it. Paying by debit card adds Stripe&apos;s card processing fee on top
+          of the rent, shown before you pay, so bank transfer is the way to pay with no fee. Paying your landlord directly via Zelle, Venmo, or
           Cash App has no Prophandld or Stripe fee, though Venmo and Cash App may charge their own
           fee outside Prophandld.
         </p>
@@ -125,12 +127,11 @@ export function RenterTermsContent() {
           have the right to share, and don&apos;t upload anything illegal, harassing, or knowingly false.
         </p>
         <p>
-          If your landlord has Prophandld AI turned on for their account, content relevant to a
-          specific AI feature you use, such as a photo and description for a troubleshooting
+          Prophandld AI is on for renters whose landlord uses Prophandld (it&apos;s included free during
+          the current pilot). Content relevant to a specific AI feature you use, such as a photo and description for a troubleshooting
           suggestion, a question about your own lease, or a general question in the in-app help
           assistant (the chat bubble), is sent to a third-party AI service to generate a response. All of this,
-          including the help assistant, rides on your landlord&apos;s Prophandld AI status, not a
-          separate always-available feature. See our
+          including the help assistant, depends on your landlord&apos;s Prophandld AI access. See our
           {' '}
           <Link href="/privacy" className="text-[#12A5A9] hover:underline">Privacy Policy</Link> and{' '}
           <Link href="/terms" className="text-[#12A5A9] hover:underline">general Terms</Link> for
