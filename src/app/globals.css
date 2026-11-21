@@ -81,6 +81,45 @@ html[data-theme="light"] .bg-black\/70 {
 }
 html[data-theme="light"] .bg-black\/60 .bg-\[\#0F2138\] { --color-white: #0C1A2E; }
 
+/* Marketing pages in light mode: a designed light look, not an inverted
+   dark one. Translucent "white/3" cards read as navy-at-3% on a light
+   ground and disappear, so here they become real white cards with soft
+   shadows, borders get stronger, the hero gets a teal glow, and secondary
+   text gets enough contrast. Dark mode is untouched. */
+html[data-theme="light"] .marketing-page {
+  background:
+    radial-gradient(1100px 520px at 50% -140px, rgb(18 165 169 / 0.16), transparent 70%),
+    radial-gradient(700px 400px at 100% 8%, rgb(10 123 126 / 0.08), transparent 70%),
+    linear-gradient(#F5F8FA, #EEF2F6);
+}
+html[data-theme="light"] .marketing-page :is(.bg-white\/3, .bg-white\/5) {
+  background-color: #FFFFFF;
+  box-shadow: 0 1px 2px rgb(12 26 46 / 0.05), 0 14px 36px -16px rgb(12 26 46 / 0.16);
+}
+html[data-theme="light"] .marketing-page :is(.bg-white\/3, .bg-white\/5) :is(.bg-white\/3, .bg-white\/5) {
+  background-color: #F6F8FB;
+  box-shadow: none;
+}
+html[data-theme="light"] .marketing-page :is(.border-white\/8, .border-white\/10, .border-white\/5) {
+  border-color: rgb(12 26 46 / 0.11);
+}
+html[data-theme="light"] .marketing-page :is(.text-white\/50, .text-white\/45, .text-white\/40) { color: rgb(20 36 58 / 0.68); }
+html[data-theme="light"] .marketing-page :is(.text-white\/35, .text-white\/30) { color: rgb(20 36 58 / 0.55); }
+html[data-theme="light"] .marketing-page [class*="from-[#0A7B7E]/15"],
+html[data-theme="light"] .marketing-page [class*="from-[#0A7B7E]/20"] {
+  background-image: linear-gradient(135deg, rgb(18 165 169 / 0.13), #FFFFFF 55%);
+  box-shadow: 0 1px 2px rgb(12 26 46 / 0.05), 0 18px 44px -18px rgb(10 123 126 / 0.28);
+}
+/* The graph-paper sections: navy hairlines instead of invisible white ones. */
+html[data-theme="light"] .marketing-page [class*="bg-[linear-gradient(to_right,rgba(255,255,255,0.04)"] {
+  background-image:
+    linear-gradient(to right, rgb(12 26 46 / 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(12 26 46 / 0.045) 1px, transparent 1px);
+  background-color: rgb(255 255 255 / 0.45);
+}
+html[data-theme="light"] .marketing-page [class*="blur-3xl"] { opacity: 0.55; }
+html[data-theme="light"] .marketing-page .sticky { box-shadow: 0 1px 0 rgb(12 26 46 / 0.08); }
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

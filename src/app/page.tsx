@@ -174,33 +174,33 @@ export default function LandingPage() {
           together, so the dropdown stays attached directly under the nav
           row at any scroll position instead of scrolling away on its own. */}
       <div className="sticky top-0 z-10 bg-[#0C1A2E]/90 backdrop-blur-sm">
-        <nav className="border-b border-white/8 px-6 pb-4 pt-[calc(1rem+env(safe-area-inset-top))] flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <BrandLink className="gap-2.5">
+        <nav className="border-b border-white/8 px-4 sm:px-6 pb-4 pt-[calc(1rem+env(safe-area-inset-top))] flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0 shrink-0">
+            <BrandLink className="gap-2.5 shrink-0">
               <Logo className="w-[30px] h-[30px]" />
-              <span className="font-bold text-lg tracking-tight">Prophandld</span>
+              <span className="font-bold text-lg tracking-tight max-[379px]:sr-only">Prophandld</span>
             </BrandLink>
-            <span className="hidden md:inline text-white/50 text-xs border-l border-white/15 pl-2.5 ml-0.5">Your Property. Handled.</span>
+            <span className="hidden xl:inline text-white/50 text-xs border-l border-white/15 pl-2.5 ml-0.5 whitespace-nowrap">Your Property. Handled.</span>
           </div>
-          <div className="flex items-center gap-3 sm:gap-6">
-            <a href="#how-it-works" className="text-sm text-white/50 hover:text-white transition hidden sm:block">How it works</a>
-            <a href="#pricing" className="text-sm text-white/50 hover:text-white transition hidden sm:block">Pricing</a>
-            <a href="#roles" className="text-sm text-white/50 hover:text-white transition hidden sm:block">Who it&apos;s for</a>
-            <Link href="/contractors" className="text-sm text-white/50 hover:text-white transition hidden sm:block">For contractors</Link>
-            <Link href="/property-managers" className="text-sm text-white/50 hover:text-white transition hidden sm:block">For property managers</Link>
+          <div className="flex items-center gap-2 sm:gap-3 lg:gap-5 min-w-0">
+            <a href="#how-it-works" className="text-sm text-white/50 hover:text-white transition hidden lg:block whitespace-nowrap">How it works</a>
+            <a href="#pricing" className="text-sm text-white/50 hover:text-white transition hidden lg:block whitespace-nowrap">Pricing</a>
+            <a href="#roles" className="text-sm text-white/50 hover:text-white transition hidden lg:block whitespace-nowrap">Who it&apos;s for</a>
+            <Link href="/contractors" className="text-sm text-white/50 hover:text-white transition hidden lg:block whitespace-nowrap">For contractors</Link>
+            <Link href="/property-managers" className="text-sm text-white/50 hover:text-white transition hidden lg:block whitespace-nowrap">For property managers</Link>
             {/* Mobile: dropped from this row entirely (moved into the
                 hamburger panel below) rather than just shrunk further --
                 a live mobile screenshot at 390px showed it visually
                 colliding with "Get started" and the brand wordmark once
                 the hamburger button was added, with no more room left to
                 squeeze. Still always visible on desktop. */}
-            <ThemeIconButton className="hidden sm:inline-flex shrink-0" />
-            <Link href="/login" className="text-sm font-medium text-white/70 hover:text-white transition whitespace-nowrap shrink-0 hidden sm:block">
+            <ThemeIconButton className="hidden lg:inline-flex shrink-0" />
+            <Link href="/login" className="text-sm font-medium text-white/70 hover:text-white transition whitespace-nowrap shrink-0 hidden lg:block">
               Sign in
             </Link>
             <MagneticLink
               href="/signup"
-              className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-4 py-2 rounded-full hover:opacity-90 whitespace-nowrap shrink-0"
+              className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-3.5 sm:px-4 py-2 rounded-full hover:opacity-90 whitespace-nowrap shrink-0"
             >
               Get started
             </MagneticLink>
@@ -213,7 +213,7 @@ export default function LandingPage() {
               onClick={() => setMobileMenuOpen((v) => !v)}
               aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
               aria-expanded={mobileMenuOpen}
-              className="sm:hidden shrink-0 w-9 h-9 flex items-center justify-center rounded-full border border-white/15 text-white/70 hover:text-white hover:border-white/30 transition"
+              className="lg:hidden shrink-0 w-9 h-9 flex items-center justify-center rounded-full border border-white/15 text-white/70 hover:text-white hover:border-white/30 transition"
             >
               {mobileMenuOpen ? <XIcon className="w-4 h-4" /> : <MenuIcon className="w-4 h-4" />}
             </button>
@@ -221,7 +221,7 @@ export default function LandingPage() {
         </nav>
 
         {mobileMenuOpen && (
-          <div className="sm:hidden border-t border-white/8 px-6 py-4 flex flex-col gap-1">
+          <div className="lg:hidden border-t border-white/8 px-6 py-4 flex flex-col gap-1">
             <a href="#how-it-works" onClick={() => setMobileMenuOpen(false)} className="text-white/70 hover:text-white transition py-2.5 text-sm font-medium">How it works</a>
             <a href="#pricing" onClick={() => setMobileMenuOpen(false)} className="text-white/70 hover:text-white transition py-2.5 text-sm font-medium">Pricing</a>
             <a href="#roles" onClick={() => setMobileMenuOpen(false)} className="text-white/70 hover:text-white transition py-2.5 text-sm font-medium">Who it&apos;s for</a>
