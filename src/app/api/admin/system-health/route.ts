@@ -3,6 +3,7 @@ import { createClient } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { requireAdminAal2 } from '@/lib/adminAccess'
 import { getStripe } from '@/lib/stripe'
+import { getClaude, CLAUDE_MODEL, CLAUDE_SMART_MODEL } from '@/lib/claude'
 
 // Built after a real incident: a trailing-whitespace STRIPE_SECRET_KEY
 // silently broke every Stripe call in production, and the first anyone
@@ -102,7 +103,21 @@ export async function GET() {
     console.error('system-health: stuck bids query failed', stuckBidsError)
   }
 
+  // The AI provider: one tiny call per model, reporting the real error
+  // (out of credit, rate limited, bad key) instead of a generic failure.
+  const aiCheck = async (model: string) => {
+    if (!process.env.ANTHROPIC_API_KEY) return { ok: false, error: 'ANTHROPIC_API_KEY is not set' }
+    try {
+      await getClaude().messages.create({ model, max_tokens: 1, messages: [{ role: 'user', content: 'ok' }] })
+      return { ok: true, error: null }
+    } catch (err: any) {
+      return { ok: false, error: `${err?.status || ''} ${err?.error?.error?.message || err?.message || 'unknown error'}`.trim() }
+    }
+  }
+  const [aiHaiku, aiSonnet] = await Promise.all([aiCheck(CLAUDE_MODEL), aiCheck(CLAUDE_SMART_MODEL)])
+
   return NextResponse.json({
+    anthropic: { keyPresent: !!process.env.ANTHROPIC_API_KEY, [CLAUDE_MODEL]: aiHaiku, [CLAUDE_SMART_MODEL]: aiSonnet },
     stripe: {
       keyPresent: stripeKeyPresent,
       mode: stripeMode,

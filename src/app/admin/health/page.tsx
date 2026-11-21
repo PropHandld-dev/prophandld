@@ -16,6 +16,7 @@ type Health = {
     priceError: string | null
   }
   twilio: { accountSidPresent: boolean; authTokenPresent: boolean; phoneNumberPresent: boolean }
+  anthropic?: { keyPresent: boolean } & Record<string, { ok: boolean; error: string | null } | boolean>
   resend: { apiKeyPresent: boolean }
   frozenPayoutAccounts: { id: string; name: string; email: string; frozenUntil: string }[]
   frozenP2pAccounts: { id: string; name: string; email: string; frozenUntil: string }[]
@@ -102,6 +103,21 @@ export default function AdminHealthPage() {
               />
             </div>
           </ScrollReveal>
+
+          {data.anthropic && (
+            <ScrollReveal>
+              <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
+                <h2 className="text-white font-semibold text-sm mb-4">AI (Anthropic)</h2>
+                <Row label="API key present" ok={data.anthropic.keyPresent} />
+                {Object.entries(data.anthropic)
+                  .filter(([k]) => k !== 'keyPresent')
+                  .map(([model, v]) => {
+                    const r = v as { ok: boolean; error: string | null }
+                    return <Row key={model} label={model} ok={r.ok} detail={r.error} />
+                  })}
+              </div>
+            </ScrollReveal>
+          )}
 
           <ScrollReveal>
             <div className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
