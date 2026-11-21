@@ -614,6 +614,7 @@ const STRINGS = {
   firstMonthProrate: { en: 'Prorate by the day (recommended)', es: 'Prorratear por día (recomendado)' },
   firstMonthFull: { en: 'Charge the full month', es: 'Cobrar el mes completo' },
   firstMonthHint: { en: 'Prorated: a lease starting the 6th of a 30-day month pays 25/30 of the rent, due on move-in day. Choose full month only if the lease says so.', es: 'Prorrateado: un contrato que empieza el día 6 de un mes de 30 días paga 25/30 de la renta, con vencimiento el día de la mudanza. Elige mes completo solo si el contrato lo dice.' },
+  firstMonthPreviewFull: { en: 'First month: {amount} (full month), due {date}', es: 'Primer mes: {amount} (mes completo), vence {date}' },
   firstMonthPreview: { en: 'First month: {math} = {amount}, due {date}', es: 'Primer mes: {math} = {amount}, vence {date}' },
   loadFailedTitle: { en: "This didn't load", es: 'Esto no se cargó' },
   loadFailedWhat: { en: "Your {what} didn't load", es: 'No se cargó: {what}' },

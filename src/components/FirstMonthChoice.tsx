@@ -30,8 +30,8 @@ export function FirstMonthChoice({ value, onChange, rent, leaseStart, dueDay }: 
       </div>
       {p ? (
         <p className="text-[#12A5A9] text-xs mt-2">
-          {t('firstMonthPreview', lang)
-            .replace('{math}', p.prorated ? `${money(rent)} × ${p.daysOwed}/${p.daysInMonth} ${lang === 'es' ? 'días' : 'days'}` : money(rent))
+          {(p.prorated ? t('firstMonthPreview', lang) : t('firstMonthPreviewFull', lang))
+            .replace('{math}', `${money(rent)} × ${p.daysOwed}/${p.daysInMonth} ${lang === 'es' ? 'días' : 'days'}`)
             .replace('{amount}', money(p.amount))
             .replace('{date}', p.dueDate.toLocaleDateString(loc, { month: 'short', day: 'numeric' }))}
         </p>

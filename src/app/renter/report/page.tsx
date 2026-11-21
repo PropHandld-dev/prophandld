@@ -21,6 +21,7 @@ import { TroubleshootAssistant } from '@/components/TroubleshootAssistant'
 import { AI_ASSIST_ENABLED } from '@/lib/aiAssist'
 import { useDialogA11y } from '@/lib/useDialogA11y'
 import { saveDraft, loadDraft, clearDraft } from '@/lib/formDraft'
+import { useDraft } from '@/lib/useDraft'
 import { categoryName, categoryGroupName } from '@/lib/categoryTaxonomy'
 
 type DraftForm = { category: string; location: string; urgency: string; description: string; is_emergency: boolean; maintenance_item_id: string; access_notes: string }
@@ -156,7 +157,7 @@ export default function ReportIssuePage() {
   }, [form, userId])
 
   const discardDraft = () => {
-    if (userId) clearDraft(`renter-report-draft:${userId}`)
+    if (userId) { clearDraft(`renter-report-draft:${userId}`); clearDraft(`renter-report-intake:${userId}`) }
     setForm({ category: '', location: '', urgency: 'normal', description: '', is_emergency: false, maintenance_item_id: '', access_notes: '' })
     setDraftRestored(false)
   }
@@ -349,7 +350,7 @@ export default function ReportIssuePage() {
       return
     }
 
-    if (userId) clearDraft(`renter-report-draft:${userId}`)
+    if (userId) { clearDraft(`renter-report-draft:${userId}`); clearDraft(`renter-report-intake:${userId}`) }
     router.push('/renter')
   }
 
@@ -391,7 +392,7 @@ export default function ReportIssuePage() {
         <p className="text-white/50 text-sm mb-4">{t('reportSubtitle', lang)}</p>
 
         {aiAvailable && (
-          <IssueIntakeBox
+          <IssueIntakeBox userId={userId}
             lang={lang}
             onResult={(r) => {
               setForm((prev) => ({
@@ -786,13 +787,18 @@ export default function ReportIssuePage() {
 }
 function IssueIntakeBox({
   lang,
+  userId,
   onResult,
 }: {
   lang: string
+  userId: string | null
   onResult: (r: { category: string | null; location: string | null; urgency: string; isEmergency: boolean; text: string }) => void
 }) {
   const es = lang === 'es'
   const [text, setText] = useState('')
+  // What someone types here first is kept if the app closes, same as the
+  // form below (it was the one part of the report that was lost).
+  const draft = useDraft({ name: 'renter-report-intake', userId, value: text, onRestore: setText, isEmpty: (v) => !v.trim() })
   const [busy, setBusy] = useState(false)
   const [result, setResult] = useState<{ title: string | null; isEmergency: boolean; safetySteps: string[]; questions: string[]; category: string | null } | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -807,6 +813,7 @@ function IssueIntakeBox({
       return
     }
     setResult(d)
+    draft.clear()
     onResult({ category: d.category, location: d.location, urgency: d.urgency, isEmergency: d.isEmergency, text: `${d.title ? `${d.title}. ` : ''}${text}` })
   }
   return (
