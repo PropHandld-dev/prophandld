@@ -76,6 +76,7 @@ export function LandlordTermsContent() {
         <p>As a landlord using Prophandld, you agree to:</p>
         <ul>
           <li>Provide accurate information about your properties, units, and lease terms, and keep it current as things change</li>
+          <li>Make sure the rent Prophandld bills matches your lease. By default the first month is prorated by the day from the lease start date; if your lease says otherwise, choose &ldquo;Charge the full month&rdquo; (or edit that month). Late fees and grace periods are applied as you set them, counted from the actual due date</li>
           <li>Keep required licenses, certifications, and inspections (for example, a rental license or lead certification where your jurisdiction requires one) current. The platform&apos;s compliance tracking is a reminder tool, not a substitute for knowing your own legal obligations</li>
           <li>Respond to reported maintenance issues in a reasonable time, and not use the platform to avoid habitability or repair obligations you have under applicable law</li>
           <li>Pay contractors the full amount you approve for completed work, on the timeline the platform describes, and, once paid plans begin, your own Prophandld subscription fee</li>

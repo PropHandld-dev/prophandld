@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
+import { tooManyRequests } from '@/lib/rateLimit'
 import { createLinkedProfile, mintSessionTokenForEmail, notifyLinkedProfileAdded, ALL_ROLES } from '@/lib/linkedProfiles'
 
 export const maxDuration = 20
@@ -21,6 +22,14 @@ export async function POST(request: NextRequest) {
   }
   if (!email || !password || !newRole || !ALL_ROLES.includes(newRole as any)) {
     return NextResponse.json({ error: 'Missing or invalid details' }, { status: 400 })
+  }
+
+  // This checks a password, so it gets the same brute-force limits as
+  // signing in (per email and per IP). Without them, guesses arrived from
+  // our server's IP, which also risked Supabase throttling real sign-ins.
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+  if ((await tooManyRequests(`add-profile-email:${email.trim().toLowerCase()}`, 5, 15)) || (await tooManyRequests(`add-profile-ip:${ip}`, 20, 15))) {
+    return NextResponse.json({ error: 'Too many attempts. Wait 15 minutes and try again.' }, { status: 429 })
   }
 
   // A throwaway client, never persisted — only used to verify the

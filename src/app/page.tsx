@@ -442,7 +442,7 @@ export default function LandingPage() {
                     invented testimonials or logos while we're pre-launch. */}
                 <ul className="grid gap-2 mb-7 text-sm">
                   {[
-                    'A direct line to the people building it, and replies within a business day',
+                    'A direct line to the people building it',
                     'Help moving your properties, tenants and rent history in',
                     'Your feedback decides what we build next',
                   ].map((x) => (

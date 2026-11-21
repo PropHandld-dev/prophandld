@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
+import { tooManyRequests } from '@/lib/rateLimit'
 import { isValidProfileStyle } from '@/lib/profileStyles'
 
 export const maxDuration = 15
@@ -9,7 +10,7 @@ export const maxDuration = 15
 // names, no financial figures, no emails -- just the company's own
 // pitch, aggregate counts, and reviews (reviewer shown by first name
 // only, not full identity).
-export async function GET(_request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   const admin = getSupabaseAdmin()
 
@@ -28,7 +29,12 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   // on this public route to tell the difference, and a simple honest
   // "page loads" count is the right scope for this, not a full analytics
   // rebuild with bot filtering or self-view exclusion.
-  admin.from('pm_profile_views').insert({ organization_id: org.id }).then(() => {}, () => {})
+  // One view per visitor per hour, so refreshing can't inflate the count
+  // a manager sees on their dashboard.
+  const viewerIp = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+  try {
+    if (!(await tooManyRequests(`pm-view:${org.id}:${viewerIp}`, 1, 60))) await admin.from('pm_profile_views').insert({ organization_id: org.id })
+  } catch {}
 
   const [{ data: portfolios }, { data: reviews }] = await Promise.all([
     admin.from('pm_client_portfolios').select('owner_user_id').eq('organization_id', org.id).eq('status', 'accepted'),
