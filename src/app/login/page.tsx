@@ -485,7 +485,7 @@ function LoginForm() {
     try {
       const { data, error: passkeyError } = await (supabase.auth as any).signInWithPasskey()
       if (passkeyError) {
-        setError(passkeyError.message || 'Could not sign in with Face ID / Touch ID.')
+        setError(passkeyError.message || t('passkeySignInFailed', lang))
         return
       }
       if (data?.user) {

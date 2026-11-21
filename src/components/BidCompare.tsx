@@ -22,7 +22,7 @@ export function BidCompare({ jobId, bidIds, lang = 'en' }: { jobId: string; bidI
     const res = await fetch('/api/ai-assist/compare-bids', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jobId }) }).catch(() => null)
     const d = res ? await res.json().catch(() => ({})) : {}
     setBusy(false)
-    if (!res?.ok) setError(d.error || 'Could not compare right now.')
+    if (!res?.ok) setError(d.error || (es ? 'No se pudo comparar ahora.' : 'Could not compare right now.'))
     else setResult(d)
   }
   if (!result) {
@@ -58,7 +58,7 @@ export function BidCompare({ jobId, bidIds, lang = 'en' }: { jobId: string; bidI
       {result.questions.length > 0 && (
         <div className="mt-3">
           <p className="text-white/50 text-xs font-semibold">{es ? 'Vale la pena preguntar' : 'Worth asking'}</p>
-          <ul className="mt-1 space-y-0.5">{result.questions.map((q, i) => <li key={i} className="text-white/65 text-xs">• Bid {letter(q.bidId)}: {q.question}</li>)}</ul>
+          <ul className="mt-1 space-y-0.5">{result.questions.map((q, i) => <li key={i} className="text-white/65 text-xs">• {es ? 'Oferta' : 'Bid'} {letter(q.bidId)}: {q.question}</li>)}</ul>
         </div>
       )}
       <p className="text-white/35 text-[11px] mt-3">{es ? 'Tú decides. Esto solo resume las ofertas.' : 'You decide. This only summarizes the bids.'}</p>

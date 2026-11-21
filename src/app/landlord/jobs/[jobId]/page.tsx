@@ -1122,12 +1122,12 @@ export default function JobDetailPage() {
         // Stripe already has this payment; the page was just behind.
         await fetchJob()
       } else if (!res.ok || !data.clientSecret) {
-        setPaymentError(data.error || 'Could not start payment.')
+        setPaymentError(data.error || t('couldNotStartPayment', lang))
       } else {
         setPaymentModal({ clientSecret: data.clientSecret, amount: data.amount })
       }
     } catch {
-      setPaymentError('Could not start payment.')
+      setPaymentError(t('couldNotStartPayment', lang))
     }
     setPayingContractor(false)
   }

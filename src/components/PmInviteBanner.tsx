@@ -76,7 +76,7 @@ export function PmInviteBanner() {
     }
     // A failed accept used to do nothing at all on screen.
     const data = res ? await res.json().catch(() => ({})) : {}
-    setAcceptError(data.error || 'Could not accept right now. Check your connection and try again.')
+    setAcceptError(data.error || t('pmInviteAcceptFailed', lang))
   }
 
   const handleDecline = async () => {
