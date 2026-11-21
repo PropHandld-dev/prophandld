@@ -1,5 +1,6 @@
 'use client'
 
+import { supabase } from '@/lib/supabase'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { ScrollReveal } from '@/components/ScrollReveal'
@@ -73,17 +74,39 @@ export function PortfolioDigestCard() {
       setLoading(false)
       return
     }
-    fetch('/api/ai-assist/portfolio-digest')
-      .then((res) => res.json())
-      .then((data) => {
-        setEnabled(!!data.enabled)
-        setSummary(data.summary || '')
-        setNudges(data.nudges || [])
-        setPreviewCount(data.previewCount || 0)
-      })
-      .catch(() => setEnabled(false))
-      .finally(() => setLoading(false))
-  }, [])
+    // Kept for 30 minutes in this tab only (per user and language): going
+    // back and forth to Home used to run a fresh AI summary every time,
+    // the slowest call on the page and a cost that grew with every visit.
+    const apply = (data: any) => {
+      setEnabled(!!data.enabled)
+      setSummary(data.summary || '')
+      setNudges(data.nudges || [])
+      setPreviewCount(data.previewCount || 0)
+    }
+    let cancelled = false
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const key = session?.user ? `prophandld:digest:${session.user.id}:${lang}` : null
+      if (key) {
+        try {
+          const cached = JSON.parse(sessionStorage.getItem(key) || 'null')
+          if (cached && Date.now() - cached.at < 30 * 60 * 1000) {
+            if (!cancelled) { apply(cached.data); setLoading(false) }
+            return
+          }
+        } catch {}
+      }
+      fetch('/api/ai-assist/portfolio-digest')
+        .then((res) => (res.ok ? res.json() : Promise.reject(res.status)))
+        .then((data) => {
+          if (cancelled) return
+          apply(data)
+          if (key) try { sessionStorage.setItem(key, JSON.stringify({ at: Date.now(), data })) } catch {}
+        })
+        .catch(() => { if (!cancelled) setEnabled(false) })
+        .finally(() => { if (!cancelled) setLoading(false) })
+    })
+    return () => { cancelled = true }
+  }, [lang])
 
   if (loading || !AI_ASSIST_ENABLED) return null
 

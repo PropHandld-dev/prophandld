@@ -437,10 +437,32 @@ export default function LandingPage() {
                 <p className="text-white/60 leading-relaxed mb-2">
                   Everything is included, Prophandld AI too. No card needed. We&apos;ll set pricing only after we&apos;ve heard from the landlords, property managers and contractors using it.
                 </p>
-                <p className="text-white/45 text-sm leading-relaxed mb-7">Renters never pay Prophandld anything. Nothing is ever charged unless you choose a plan.</p>
-                <MagneticLink href="/signup?role=landlord" className="inline-block bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-6 py-3 rounded-full hover:opacity-90 transition">
-                  Join the free pilot →
-                </MagneticLink>
+                <p className="text-white/45 text-sm leading-relaxed mb-6">Renters never pay Prophandld anything. Nothing is ever charged unless you choose a plan.</p>
+                {/* What founding landlords actually get, stated plainly. No
+                    invented testimonials or logos while we're pre-launch. */}
+                <ul className="grid gap-2 mb-7 text-sm">
+                  {[
+                    'A direct line to the people building it, and replies within a business day',
+                    'Help moving your properties, tenants and rent history in',
+                    'Your feedback decides what we build next',
+                  ].map((x) => (
+                    <li key={x} className="flex items-start gap-2.5 text-white/75">
+                      <CheckCircleIcon className="w-4 h-4 text-[#12A5A9] shrink-0 mt-0.5" />
+                      {x}
+                    </li>
+                  ))}
+                </ul>
+                <div className="flex items-center gap-4 flex-wrap">
+                  <MagneticLink href="/signup?role=landlord" className="inline-block bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-6 py-3 rounded-full hover:opacity-90 transition">
+                    Join the free pilot →
+                  </MagneticLink>
+                  <a href="mailto:admin@prophandld.com?subject=Prophandld%20pilot" className="text-[#12A5A9] text-sm font-semibold hover:underline">
+                    Talk to the team
+                  </a>
+                </div>
+                <p className="text-white/40 text-xs mt-6">
+                  Coming next: iPhone and Android apps, and more cities after Philadelphia.
+                </p>
               </div>
               <ul className="p-8 sm:p-12 lg:border-l border-t lg:border-t-0 border-white/8 space-y-5">
                 {TRUST.map(({ icon: Icon, title, desc }) => (
