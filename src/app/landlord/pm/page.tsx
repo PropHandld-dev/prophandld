@@ -105,7 +105,7 @@ const SPECIALTY_LABELS: Record<string, string> = {
 }
 
 const ACTION_LABELS: Record<string, string> = {
-  owner_approval_requested: 'asked the owner to approve',
+  owner_approval_requested: 'requested owner approval',
   job_payment_started: 'approved a job payment',
   job_payment_blocked_needs_owner_signoff: 'tried to approve a payment over threshold',
   job_bulk_approved: 'approved completed work',
@@ -2568,18 +2568,22 @@ export default function PmDashboardPage() {
                   {staff.map((s) => {
                     const canExpand = membership.memberRole === 'admin' && s.memberRole === 'staff' && s.status === 'accepted'
                     return (
-                      <div key={s.id} className="bg-white/3 border border-white/8 rounded-xl overflow-hidden">
+                      <div key={s.id} className="bg-white/3 border border-white/8 rounded-2xl overflow-hidden">
                         <div className="p-4 flex items-center justify-between gap-3">
+                          <Avatar name={s.name} accent={look.accent} />
                           <button
                             type="button"
                             disabled={!canExpand}
                             onClick={() => canExpand && setExpandedStaff((cur) => (cur === s.id ? null : s.id))}
                             className="min-w-0 flex items-center gap-2.5 text-left flex-1"
                           >
-                            <p className="text-white text-sm font-medium truncate">{s.name}</p>
-                            <span className="text-white/40 text-xs capitalize">{s.memberRole}</span>
+                            <span className="min-w-0">
+                              <span className="block text-white text-sm font-semibold truncate">{s.name}</span>
+                              <span className="block text-white/45 text-xs">
+                                {s.memberRole === 'admin' ? 'Admin · full access' : `Staff · ${s.scopeAllClients ? 'all clients' : 'selected clients'}${s.canViewFinancials ? ' · sees financials' : ''}`}
+                              </span>
+                            </span>
                             {s.status === 'pending' && <StatusPill status="pending" />}
-                            {!s.scopeAllClients && <span className="text-xs text-yellow-400">Scoped</span>}
                             {s.notificationMode === 'digest' && <span className="text-xs text-white/30">Digest</span>}
                           </button>
                           {membership.memberRole === 'admin' && s.memberRole === 'staff' && (
