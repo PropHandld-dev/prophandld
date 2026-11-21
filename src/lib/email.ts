@@ -321,25 +321,32 @@ export async function sendPasswordResetEmail({
 
 // Sent before the recipient has an account, so there's no saved language
 // preference to read yet — English only, by design, not an oversight.
+// Invites go to people with no account yet, so their language is unknown:
+// these follow the inviter's language.
 export async function sendRenterInviteEmail({
   to,
   landlordName,
   unitLabel,
+  lang = 'en',
 }: {
   to: string
   landlordName: string
   unitLabel: string
+  lang?: Lang
 }) {
+  const es = lang === 'es'
   const html = baseTemplate({
-    lang: 'en',
-    eyebrow: 'Invite',
-    heading: `${escapeHtml(landlordName)} invited you to Prophandld`,
-    bodyHtml: `You've been added for <strong>${escapeHtml(unitLabel)}</strong>. Sign up with this same email address and you'll be linked to your unit automatically: maintenance requests, documents, and rent payments, all in one place.`,
-    ctaLabel: 'Create your account',
+    lang,
+    eyebrow: es ? 'Invitación' : 'Invite',
+    heading: es ? `${escapeHtml(landlordName)} te invitó a Prophandld` : `${escapeHtml(landlordName)} invited you to Prophandld`,
+    bodyHtml: es
+      ? `Te agregaron a <strong>${escapeHtml(unitLabel)}</strong>. Regístrate con este mismo correo y quedarás vinculado a tu unidad automáticamente: reparaciones, documentos y pagos de renta, todo en un solo lugar.`
+      : `You've been added for <strong>${escapeHtml(unitLabel)}</strong>. Sign up with this same email address and you'll be linked to your unit automatically: maintenance requests, documents, and rent payments, all in one place.`,
+    ctaLabel: es ? 'Crear tu cuenta' : 'Create your account',
     ctaUrl: `${SITE_URL}/signup`,
-    footerText: `You're receiving this because ${escapeHtml(landlordName)} invited you to Prophandld.`,
+    footerText: es ? `Recibes esto porque ${escapeHtml(landlordName)} te invitó a Prophandld.` : `You're receiving this because ${escapeHtml(landlordName)} invited you to Prophandld.`,
   })
-  return sendEmail({ to, subject: `${landlordName} invited you to Prophandld`, html })
+  return sendEmail({ to, subject: es ? `${landlordName} te invitó a Prophandld` : `${landlordName} invited you to Prophandld`, html })
 }
 
 // Phone-invite counterpart to sendRenterInviteEmail.
@@ -429,21 +436,26 @@ export async function sendCoRenterInviteEmail({
   to,
   landlordName,
   unitLabel,
+  lang = 'en',
 }: {
   to: string
   landlordName: string
   unitLabel: string
+  lang?: Lang
 }) {
+  const es = lang === 'es'
   const html = baseTemplate({
-    lang: 'en',
-    eyebrow: 'Invite',
-    heading: `${escapeHtml(landlordName)} invited you to Prophandld`,
-    bodyHtml: `You've been added as a co-renter for <strong>${escapeHtml(unitLabel)}</strong>. Sign up as a renter with this same email address, then let ${escapeHtml(landlordName)} know. They'll add you to the unit so you can report issues and see documents, just like the primary tenant.`,
-    ctaLabel: 'Create your account',
+    lang,
+    eyebrow: es ? 'Invitación' : 'Invite',
+    heading: es ? `${escapeHtml(landlordName)} te invitó a Prophandld` : `${escapeHtml(landlordName)} invited you to Prophandld`,
+    bodyHtml: es
+      ? `Te agregaron como coinquilino de <strong>${escapeHtml(unitLabel)}</strong>. Regístrate como inquilino con este mismo correo y avísale a ${escapeHtml(landlordName)}. Te agregará a la unidad para que puedas reportar problemas y ver documentos, igual que el inquilino principal.`
+      : `You've been added as a co-renter for <strong>${escapeHtml(unitLabel)}</strong>. Sign up as a renter with this same email address, then let ${escapeHtml(landlordName)} know. They'll add you to the unit so you can report issues and see documents, just like the primary tenant.`,
+    ctaLabel: es ? 'Crear tu cuenta' : 'Create your account',
     ctaUrl: `${SITE_URL}/signup?role=renter`,
-    footerText: `You're receiving this because ${escapeHtml(landlordName)} invited you to Prophandld.`,
+    footerText: es ? `Recibes esto porque ${escapeHtml(landlordName)} te invitó a Prophandld.` : `You're receiving this because ${escapeHtml(landlordName)} invited you to Prophandld.`,
   })
-  return sendEmail({ to, subject: `${landlordName} invited you to Prophandld`, html })
+  return sendEmail({ to, subject: es ? `${landlordName} te invitó a Prophandld` : `${landlordName} invited you to Prophandld`, html })
 }
 
 // Phone-invite counterpart to sendCoRenterInviteEmail.
@@ -492,20 +504,25 @@ export async function sendCoRenterAddedEmail({
 export async function sendCoOwnerInviteEmail({
   to,
   primaryLandlordName,
+  lang = 'en',
 }: {
   to: string
   primaryLandlordName: string
+  lang?: Lang
 }) {
+  const es = lang === 'es'
   const html = baseTemplate({
-    lang: 'en',
-    eyebrow: 'Invite',
-    heading: `${escapeHtml(primaryLandlordName)} invited you to co-manage their properties`,
-    bodyHtml: `You've been invited to co-manage <strong>${escapeHtml(primaryLandlordName)}'s</strong> properties on Prophandld: full access to the same properties, units, tenants, jobs, rent, and compliance tracking. Sign up as a landlord with this same email address, then accept the invite from your dashboard.`,
-    ctaLabel: 'Create your account',
+    lang,
+    eyebrow: es ? 'Invitación' : 'Invite',
+    heading: es ? `${escapeHtml(primaryLandlordName)} te invitó a coadministrar sus propiedades` : `${escapeHtml(primaryLandlordName)} invited you to co-manage their properties`,
+    bodyHtml: es
+      ? `Te invitaron a coadministrar las propiedades de <strong>${escapeHtml(primaryLandlordName)}</strong> en Prophandld: acceso completo a las mismas propiedades, unidades, inquilinos, trabajos, renta y cumplimiento. Regístrate como propietario con este mismo correo y luego acepta la invitación desde tu panel.`
+      : `You've been invited to co-manage <strong>${escapeHtml(primaryLandlordName)}'s</strong> properties on Prophandld: full access to the same properties, units, tenants, jobs, rent, and compliance tracking. Sign up as a landlord with this same email address, then accept the invite from your dashboard.`,
+    ctaLabel: es ? 'Crear tu cuenta' : 'Create your account',
     ctaUrl: `${SITE_URL}/signup?role=landlord`,
-    footerText: `You're receiving this because ${escapeHtml(primaryLandlordName)} invited you to Prophandld.`,
+    footerText: es ? `Recibes esto porque ${escapeHtml(primaryLandlordName)} te invitó a Prophandld.` : `You're receiving this because ${escapeHtml(primaryLandlordName)} invited you to Prophandld.`,
   })
-  return sendEmail({ to, subject: `${primaryLandlordName} invited you to co-manage their properties`, html })
+  return sendEmail({ to, subject: es ? `${primaryLandlordName} te invitó a coadministrar sus propiedades` : `${primaryLandlordName} invited you to co-manage their properties`, html })
 }
 
 // Phone-invite counterpart to sendCoOwnerInviteEmail — same no-account-yet
@@ -845,21 +862,26 @@ export async function sendContractorInviteEmail({
   to,
   landlordName,
   note,
+  lang = 'en',
 }: {
   to: string
   landlordName: string
   note?: string | null
+  lang?: Lang
 }) {
+  const es = lang === 'es'
   const html = baseTemplate({
-    lang: 'en',
-    eyebrow: 'Invite',
-    heading: `${escapeHtml(landlordName)} invited you to Prophandld`,
-    bodyHtml: `${escapeHtml(landlordName)} wants to work with you through Prophandld: sealed bidding, completely free to use, and you get paid directly the moment a job's done.${note ? `<br /><br />Their note: "${escapeHtml(note)}"` : ''} Sign up as a contractor with this same email address to get started.`,
-    ctaLabel: 'Create your account',
+    lang,
+    eyebrow: es ? 'Invitación' : 'Invite',
+    heading: es ? `${escapeHtml(landlordName)} te invitó a Prophandld` : `${escapeHtml(landlordName)} invited you to Prophandld`,
+    bodyHtml: es
+      ? `${escapeHtml(landlordName)} quiere trabajar contigo a través de Prophandld: ofertas selladas, totalmente gratis, y te pagan directamente cuando terminas el trabajo.${note ? `<br /><br />Su nota: "${escapeHtml(note)}"` : ''} Regístrate como contratista con este mismo correo para empezar.`
+      : `${escapeHtml(landlordName)} wants to work with you through Prophandld: sealed bidding, completely free to use, and you get paid directly the moment a job's done.${note ? `<br /><br />Their note: "${escapeHtml(note)}"` : ''} Sign up as a contractor with this same email address to get started.`,
+    ctaLabel: es ? 'Crear tu cuenta' : 'Create your account',
     ctaUrl: `${SITE_URL}/signup?role=contractor`,
-    footerText: `You're receiving this because ${escapeHtml(landlordName)} invited you to Prophandld.`,
+    footerText: es ? `Recibes esto porque ${escapeHtml(landlordName)} te invitó a Prophandld.` : `You're receiving this because ${escapeHtml(landlordName)} invited you to Prophandld.`,
   })
-  return sendEmail({ to, subject: `${landlordName} invited you to Prophandld`, html })
+  return sendEmail({ to, subject: es ? `${landlordName} te invitó a Prophandld` : `${landlordName} invited you to Prophandld`, html })
 }
 
 // Phone-invite counterpart to sendContractorInviteEmail.
