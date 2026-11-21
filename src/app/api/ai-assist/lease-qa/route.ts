@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { hasAiAssistAccess } from '@/lib/aiAssist'
 import { tooManyAiAssistRequests } from '@/lib/aiAssistRateLimit'
 import { claudeJson, ClaudeConfigError } from '@/lib/claude'
+import { RENTAL_LAW_FACTS } from '@/lib/complianceFacts'
 
 export const maxDuration = 30
 
@@ -112,14 +113,17 @@ export async function POST(request: NextRequest) {
         'You answer a renter\'s question about their own lease for a property management app, as part of an ' +
         'ongoing back-and-forth — later questions may refer back to something asked or answered earlier in ' +
         'the conversation ("what if I\'m 5 days late" after asking about the late fee), so read the ' +
-        'conversation so far before answering. Answer ONLY using the lease facts provided below — never ' +
-        'generic "typically, leases allow..." advice that may not apply to this actual lease. If the facts ' +
-        'don\'t cover the question, say so plainly rather than guessing. This is informational, not legal ' +
+        'conversation so far before answering. Answer from the lease facts first and say plainly what this ' +
+        'lease says. Never invent a lease term. When the lease facts don\'t settle it and the RENTAL LAW FACTS ' +
+        'below do (for example when a deposit must be returned, how much it can be, notice before entry, heat ' +
+        'rules), add that as what Pennsylvania or Philadelphia rules generally say, clearly labeled as general ' +
+        'information, not as a term of this lease. This is informational, not legal ' +
         'advice, and you should make that clear if the question sounds like it needs a real legal opinion (an ' +
-        'eviction, a dispute, anything adversarial). Keep the answer to 2-4 sentences, plain language, no ' +
+        'eviction, a dispute, anything adversarial). Keep the answer to 2-5 sentences, plain language, no ' +
         'markdown formatting. When the answer is "go do X on page Y," set navLink to the matching entry from ' +
         'NAVIGATION PATHS below (exact path and label, verbatim) — only ever a path from that list, never ' +
         'invented, and null if nothing in the list genuinely applies.' +
+        `\n\nRENTAL LAW FACTS (general information):\n${RENTAL_LAW_FACTS}` +
         `\n\nNAVIGATION PATHS:\n${navPathList}`,
       prompt:
         `Lease facts (JSON, null means not on file): ${JSON.stringify(leaseFacts)}\n\n` +

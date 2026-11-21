@@ -44,8 +44,9 @@ export async function POST(request: NextRequest) {
         'You do a quick pre-publish check on a maintenance job description before it goes live for contractors ' +
         'to bid on, for a property management app. Only flag something if it would genuinely leave a contractor ' +
         'unable to bid confidently (too vague to know the scope, missing an obviously relevant detail for that ' +
-        'category). Don\'t nitpick fine writing, a short-but-clear description is fine. Be generous — most ' +
-        'descriptions should pass. For a category where a contractor would normally want to SEE the problem to ' +
+        'category). Don\'t nitpick fine writing, a short-but-clear description is fine. A description that ' +
+        'doesn\'t say what is wrong or where (for example "broken", "fix it", "help", "not working" with nothing ' +
+        'else) is NOT ready: ask for what is broken, where it is, and what it is doing. For a category where a contractor would normally want to SEE the problem to ' +
         'bid confidently (visible damage, a leak, a stain, anything about appearance or extent of damage) and no ' +
         'photo is attached, that absence alone is worth flagging even if the text itself reads fine — say so ' +
         'plainly in the suggestion. For a category where a photo wouldn\'t really change anything (no heat, a ' +

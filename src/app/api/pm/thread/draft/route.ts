@@ -9,6 +9,17 @@ import { resolvePair } from '@/lib/pmThread'
 export const maxDuration = 30
 
 const OPEN = ['pending_approval', 'bidding', 'approved', 'bid_selected', 'scheduled', 'in_progress', 'pending_review']
+// Plain words for the owner. Raw "pending approval" read as "waiting for
+// YOUR approval", but those are new requests the manager is reviewing.
+const STATUS_WORDS: Record<string, string> = {
+  pending_approval: 'new request, we are reviewing it',
+  approved: 'approved, about to go out for bids',
+  bidding: 'collecting contractor bids',
+  bid_selected: 'contractor chosen',
+  scheduled: 'visit scheduled',
+  in_progress: 'work underway',
+  pending_review: 'finished, we are checking the work',
+}
 
 // POST { owner?, mode: 'update' | 'reply' | 'polish', draft?, instruction? }
 //  update: a status update to the owner from real data (PM side)
@@ -72,7 +83,7 @@ export async function POST(request: NextRequest) {
     const collected = (rents || []).reduce((t: number, r: any) => t + Math.min(Number(r.actual_amount || 0), Number(r.expected_amount || 0)), 0)
     facts.push(`Properties: ${(props || []).map((p: any) => p.address).join('; ') || 'none'}`)
     facts.push(`Rent this month: $${collected.toFixed(2)} collected of $${expected.toFixed(2)} due across ${tIds.length} active lease(s).`)
-    facts.push(`Open maintenance: ${(openJobs || []).map((j: any) => `${j.category} at ${unitAddr.get(j.unit_id)} (${String(j.status).replace(/_/g, ' ')})`).join('; ') || 'none'}`)
+    facts.push(`Open maintenance: ${(openJobs || []).map((j: any) => `${j.category} at ${unitAddr.get(j.unit_id)} (${STATUS_WORDS[j.status] || String(j.status).replace(/_/g, ' ')})`).join('; ') || 'none'}`)
     facts.push(`Finished in the last 30 days: ${(doneJobs || []).map((j: any) => `${j.category} at ${unitAddr.get(j.unit_id)}`).join('; ') || 'none'}`)
   }
   const conversation = (recent || [])

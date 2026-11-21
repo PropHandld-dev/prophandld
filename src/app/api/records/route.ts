@@ -244,7 +244,7 @@ export async function GET(request: NextRequest) {
     year,
     entries,
     totals: { income: Math.round(income * 100) / 100, expenses: Math.round(expenses * 100) / 100, net: Math.round((income - expenses) * 100) / 100 },
-    byProperty: Array.from(byProperty.values()).sort((a, b) => b.income + b.expenses - (a.income + a.expenses)),
+    byProperty: Array.from(byProperty.values()).map((r) => ({ ...r, income: Math.round(r.income * 100) / 100, expenses: Math.round(r.expenses * 100) / 100 })).sort((a, b) => b.income + b.expenses - (a.income + a.expenses)),
     owners: (owners || []).map((o: any) => ({ id: o.id, name: o.id === user.id ? 'You' : o.full_name || 'Owner' })),
     properties: props.map((p: any) => ({ id: p.id, label: p.address, ownerId: p.owner_user_id })),
   })

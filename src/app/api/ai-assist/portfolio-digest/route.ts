@@ -324,7 +324,9 @@ export async function GET() {
         system:
           'You write a one or two sentence plain-English summary of a landlord\'s portfolio status for a ' +
           'property management app dashboard, from a list of facts already gathered. Friendly, concrete, no ' +
-          'fluff, no markdown. Mention 2-3 of the most time-sensitive items by name if there are several.',
+          'fluff, no markdown. Mention 2-3 of the most time-sensitive items by name if there are several. ' +
+          'Only suggest actions the app supports: for a job with no bids, adding photos or more detail, or ' +
+          'inviting a contractor you know directly. Bids are sealed and there is no job budget to raise.',
         prompt: `Facts:\n${topNudges.map((n) => `- ${n.text}`).join('\n')}\n\nReturn JSON: { "summary": string }`,
         // Same truncation risk fixed elsewhere today (compliance-gap-check,
         // draft-message, lease-qa) — naming 2-3 items across 1-2 sentences
