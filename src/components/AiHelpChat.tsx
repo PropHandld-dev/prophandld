@@ -23,7 +23,24 @@ type Turn = { role: 'user' | 'assistant'; content: string; suggestEscalate?: boo
 // (or just closing the bubble, which unmounts this and wipes `turns`
 // either way) is the only way it ever goes away. Users are told this up
 // front rather than finding out by it just not being there next time.
-export function AiHelpChat({ initialMessage, onNavigate }: { initialMessage?: string | null; onNavigate?: () => void } = {}) {
+// Tap-to-ask starters on an empty chat, so nobody faces a blank box.
+const STARTERS: Record<'landlord' | 'renter', { en: string; es: string }[]> = {
+  landlord: [
+    { en: 'What needs my attention today?', es: '¿Qué necesita mi atención hoy?' },
+    { en: "Who's behind on rent?", es: '¿Quién está atrasado con la renta?' },
+    { en: 'When do my leases end?', es: '¿Cuándo terminan mis contratos?' },
+    { en: 'How much have I made this year?', es: '¿Cuánto he ganado este año?' },
+  ],
+  renter: [
+    { en: 'When is my rent due?', es: '¿Cuándo vence mi renta?' },
+    { en: 'How can I pay rent?', es: '¿Cómo puedo pagar la renta?' },
+    { en: 'Something is broken. What do I do?', es: 'Algo se rompió. ¿Qué hago?' },
+    { en: 'What are my rights as a renter?', es: '¿Cuáles son mis derechos como inquilino?' },
+  ],
+}
+
+export function AiHelpChat({ initialMessage, onNavigate, role }: { initialMessage?: string | null; onNavigate?: () => void; role?: 'landlord' | 'renter' | 'contractor' | null } = {}) {
+  const [copiedId, setCopiedId] = useState<number | null>(null)
   const lang = useLanguage()
   const [email, setEmail] = useState<string | null>(null)
   const [turns, setTurns] = useState<Turn[]>([])
@@ -218,7 +235,23 @@ export function AiHelpChat({ initialMessage, onNavigate }: { initialMessage?: st
         {/* Opens straight into the conversation (there used to be a separate
             "Start conversation" screen, one extra tap before every question). */}
         {turns.length === 0 && !sending && (
-          <p className="text-white/60 text-sm text-center px-4 pt-6">{t('aiHelpChatIntro', lang)}</p>
+          <div className="px-2 pt-4">
+            <p className="text-white/60 text-sm text-center mb-4">{t('aiHelpChatIntro', lang)}</p>
+            {role && role !== 'contractor' && (
+              <div className="flex flex-wrap justify-center gap-2">
+                {STARTERS[role].map((q) => (
+                  <button
+                    key={q.en}
+                    type="button"
+                    onClick={() => doSend(lang === 'es' ? q.es : q.en)}
+                    className="text-xs text-white/80 bg-white/5 border border-white/10 rounded-full px-3 py-1.5 hover:border-[#12A5A9]/50 hover:text-white transition"
+                  >
+                    {lang === 'es' ? q.es : q.en}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         )}
         {turns.map((turn, i) => (
           <div key={i} className={`flex ${turn.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -232,6 +265,20 @@ export function AiHelpChat({ initialMessage, onNavigate }: { initialMessage?: st
               >
                 <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{turn.content}</p>
               </div>
+              {turn.role === 'assistant' && !sending && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard?.writeText(turn.content).then(() => {
+                      setCopiedId(i)
+                      setTimeout(() => setCopiedId((c) => (c === i ? null : c)), 1500)
+                    }).catch(() => {})
+                  }}
+                  className="text-white/35 hover:text-white/70 text-[11px] mt-1 mr-3 transition"
+                >
+                  {copiedId === i ? (lang === 'es' ? '✓ Copiado' : '✓ Copied') : lang === 'es' ? 'Copiar' : 'Copy'}
+                </button>
+              )}
               {turn.role === 'assistant' && turn.navLink && (
                 // Caught live by the user: this navigates the page behind
                 // it, but the chat panel is a fixed-position overlay that

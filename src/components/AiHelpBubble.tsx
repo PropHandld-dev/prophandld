@@ -79,7 +79,7 @@ export function AiHelpBubble() {
               </button>
             </div>
             <div className="flex-1 min-h-0 px-4 py-3">
-              <AiHelpChat key={pendingMessage || 'default'} initialMessage={pendingMessage} onNavigate={() => { setOpen(false); setPendingMessage(null) }} />
+              <AiHelpChat key={pendingMessage || 'default'} role={role} initialMessage={pendingMessage} onNavigate={() => { setOpen(false); setPendingMessage(null) }} />
             </div>
           </div>
         </div>

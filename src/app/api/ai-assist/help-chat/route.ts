@@ -10,6 +10,8 @@ import { claudeText, claudeStream, ClaudeConfigError, CLAUDE_SMART_MODEL } from 
 import { PHILADELPHIA_COMPLIANCE_FACTS } from '@/lib/complianceFacts'
 import { rentMonthBounds } from '@/lib/rentAutomation'
 import { nextEscalationDate } from '@/lib/leaseEscalation'
+import { resolveRentPayee } from '@/lib/rentRouting'
+import { rentCardFee } from '@/lib/cardSurcharge'
 
 export const maxDuration = 45
 
@@ -28,7 +30,7 @@ export const maxDuration = 45
 const APP_KNOWLEDGE = `
 Prophandld is a rental-property platform for landlords, property managers (PMs), renters, and contractors: maintenance jobs, rent, leases, compliance, records, and messaging in one place.
 
-LANDLORD can: manage properties (Properties tab; Add a property) and units; set up a tenant's lease on a unit's Tenancy page, including rent escalation, occupants, pets; build a Pennsylvania lease with AI from a unit's Lease page; screen a prospective tenant from the unit page; invite a tenant by email; track rent (Rent tab, one-tap "Mark received"); bill utilities (water, electric, gas, trash, sewer, internet) to a tenant from a unit's Rent page, and the tenant is notified; post or approve maintenance jobs and review sealed contractor bids (AI can compare bids); track compliance items (rental license, inspections, lead certificate, insurance) on the Compliance page with expiry status; keep documents per property on the Documents page; keep an income and expense ledger on the Records page (scan a receipt, "Explain my year" AI summary, CSV export for taxes); track building systems and appliances per unit; see a Calendar; message anyone (Messages); invite contractors; add a co-owner (Profile -> Co-Owners); choose light or dark appearance (Profile); set how tenants may pay rent (Profile -> payment options: bank transfer, debit card, Venmo, Zelle, Cash App, check, cash, each can be switched on or off); connect a payout account (Profile -> Payouts section) to receive online rent and job refunds.
+LANDLORD can: manage properties (Properties tab; Add a property) and units; set up a tenant's lease on a unit's Tenancy page, including rent escalation, occupants, pets; build a Pennsylvania lease with AI from a unit's Lease page; screen a prospective tenant from the unit page; invite a tenant by email; track rent (Rent tab, one-tap "Mark received"); bill utilities (water, electric, gas, trash, sewer, internet) to a tenant from a unit's Rent page, and the tenant is notified; post or approve maintenance jobs and review sealed contractor bids (AI can compare bids); track compliance items (rental license, inspections, lead certificate, insurance) on the Compliance page with expiry status; keep documents per property on the Documents page; keep an income and expense ledger on the Records page (scan a receipt, "Explain my year" AI summary, CSV export for taxes); track building systems and appliances per unit; see a Calendar; message anyone (Messages); invite contractors; add a co-owner (Profile -> Co-Owners); choose light or dark appearance (Profile); set how tenants may pay rent and connect the payout account that receives online rent (both in Profile -> "Get paid rent": bank transfer, debit card, Zelle, Venmo, Cash App, check, cash, each switched on or off).
 
 LANDLORD WITH A PROPERTY MANAGER (owner side): the Property Management page shows who manages them ("Managed by"). The OWNER sets the PM's approval limit (jobs at or under it the PM can approve alone; above it the owner must approve), approves or declines the PM's management fee, can make their portfolio read-only for themselves, can approve or decline a PM's request to have rent paid to the PM, messages the PM in a dedicated owner thread with approval cards, and can end the relationship any time with "Remove manager" (it asks about pending jobs, rent routing, and handover before ending). Owners still own everything; the PM acts on their behalf.
 
@@ -44,6 +46,15 @@ PRICING: Prophandld is in a free pilot: free for 6 months for landlords and prop
 
 PROPHANDLD AI: on for every landlord and PM during the pilot and reaches their renters too. Contractors don't have Prophandld AI. Features: this assistant, document reading to fill lease/compliance/appliance forms, receipt and utility-bill scanning, lease Q&A for renters, repair troubleshooting with photos, issue intake with emergency detection, bid comparison, compliance gap checks and renewal guides, portfolio digest, Explain my year, AI lease builder, message drafting and translation (English/Spanish), smart replies.
 
+WHERE THINGS ARE (exact names on screen):
+- Receipts: every paid job has a receipt (job page -> "Receipt" once paid, also emailed); every rent payment has a receipt (unit's Rent page or Reports). Records lists them too.
+- Archive or delete a property: open the property -> Edit -> "Archive property" (hides it, keeps history) or "Delete property" at the bottom (permanent; you type the address to confirm). Co-owners can't permanently delete.
+- Language: Profile -> "Language" (English / Español). The app, emails and notifications switch.
+- Renter documents: Documents tab -> upload (for example renters insurance) and choose whether the landlord can see it or it stays private.
+- PM page tabs: Overview, Clients, Team, Activity. Clients tab: each client's approval limit, fee, "Statement" and "Message". Team tab: invite a teammate, set "Client access" (All clients or Specific clients) and "Can view financials". Overview: "Needs you" chips, "Pending approvals" (finished work to sign off, one at a time or in bulk), "Export this month, every client (CSV)".
+- New repair request: job page -> "Acknowledge", then "Start bidding" (or handle it yourself). Finished work: job page -> "Approve", then pay.
+- Records: Records page (income, expenses, "Explain my year", "Tax summary (Schedule E)", export).
+
 Legal pages: /terms (plus /terms/landlord, /terms/renter, /terms/contractor, /terms/property-manager) and /privacy.
 `.trim()
 
@@ -52,6 +63,7 @@ Legal pages: /terms (plus /terms/landlord, /terms/renter, /terms/contractor, /te
 // not legal advice.
 const RENTAL_LAW_FACTS = `
 Pennsylvania (Landlord and Tenant Act of 1951): security deposit max 2 months' rent in the first year of a lease, max 1 month's rent from the start of the second year; after 5 years of tenancy the deposit can't be raised even if rent goes up. Deposits over $100 held more than 2 years must go in an escrow account and the tenant gets interest (minus a 1% fee) from the third year. On move-out the landlord has 30 days to return the deposit with an itemized list of any deductions (the tenant must give a forwarding address in writing); missing that deadline forfeits the right to withhold and can mean double damages. Nonpayment notice to quit: 10 days; for other breaches, 15 days (lease of 1 year or less) or 30 days (longer), unless the lease waives notice. PA has no statewide cap on rent increases or late fees, but late fees must be in the lease and reasonable.
+Emergency numbers: 911; PGW gas emergency 215-235-1212; PECO gas/electric emergency 1-800-841-4141; Philadelphia non-emergency city services 311.
 Philadelphia: rental license and a Certificate of Rental Suitability are required to collect rent and to evict; tenants get the "Partners for Good Housing" handbook and the City's lead-safe certification where required (pre-1978 buildings). Heat: from October 1 to April 30 landlords who supply heat must keep units at least 68°F from 6:30am to 10:30pm and 64°F overnight; no heat in winter is an emergency, so act the same day: get a heating contractor out immediately, give space heaters or temporary housing if it can't be fixed fast, and keep the tenant updated in writing. Philadelphia's Eviction Diversion Program must be tried before filing an eviction for nonpayment. Good Cause protections apply to leases of 1 year or less. Fair housing: never screen or treat tenants differently by race, color, religion, national origin, sex, disability, familial status, or Philadelphia's added classes (including source of income such as housing vouchers, sexual orientation, gender identity, age, marital status, domestic-violence-survivor status).
 `.trim()
 
@@ -59,92 +71,134 @@ type ChatTurn = { role: 'user' | 'assistant'; content: string }
 
 // One portfolio's facts (a landlord's own, or one PM client's), scoped by
 // the owner ids passed in.
-async function portfolioFacts(admin: ReturnType<typeof getSupabaseAdmin>, landlordIds: string[], ITEM_CAP: number, todayKey: string, in30: string): Promise<Record<string, unknown>> {
+async function portfolioFacts(
+  admin: ReturnType<typeof getSupabaseAdmin>,
+  landlordIds: string[],
+  todayKey: string,
+  includeFinancials = true,
+  // Shorter lists per client for a PM with many clients, so every question
+  // doesn't send a huge briefing.
+  compact = false
+): Promise<Record<string, unknown>> {
+  const cap = compact ? { units: 20, jobs: 12, compliance: 12 } : { units: 60, jobs: 40, compliance: 40 }
   const { data: properties } = await admin.from('properties').select('id, address, city, state').in('owner_user_id', landlordIds).eq('archived', false)
   const propertyIds = (properties || []).map((p) => p.id)
   if (propertyIds.length === 0) return { propertyCount: 0, unitCount: 0 }
   const addressById = new Map((properties || []).map((p) => [p.id, `${p.address}${p.city ? `, ${p.city}` : ''}${p.state ? `, ${p.state}` : ''}`]))
 
-  const [{ count: unitCount }, { data: units }, { data: complianceItems }] = await Promise.all([
-    admin.from('units').select('id', { count: 'exact', head: true }).in('property_id', propertyIds),
+  const [{ data: units }, { data: complianceItems }] = await Promise.all([
     admin.from('units').select('id, unit_number, property_id').in('property_id', propertyIds),
-    admin
-      .from('compliance_items')
-      .select('item_type, expiry_date, property_id')
-      .in('property_id', propertyIds)
-      .order('expiry_date', { ascending: true, nullsFirst: false })
-      .limit(ITEM_CAP),
+    admin.from('compliance_items').select('item_type, expiry_date, property_id').in('property_id', propertyIds).order('expiry_date', { ascending: true, nullsFirst: false }).limit(cap.compliance),
   ])
   const unitIds = (units || []).map((u) => u.id)
   const unitLabelById = new Map((units || []).map((u) => [u.id, `${addressById.get(u.property_id) || 'unknown property'}${u.unit_number ? `, Unit ${u.unit_number}` : ''}`]))
+  const none = Promise.resolve({ data: [] as any[] })
 
-  const [{ data: openJobs }, { data: upcomingRenewals }, { data: rentRows }] = await Promise.all([
-    unitIds.length > 0
-      ? admin.from('jobs').select('category, status, unit_id').in('unit_id', unitIds).in('status', ['pending_approval', 'approved', 'bidding', 'bid_selected', 'scheduled', 'in_progress', 'pending_review', 'disputed']).limit(ITEM_CAP)
-      : Promise.resolve({ data: [] as any[] }),
-    unitIds.length > 0
-      ? admin.from('tenancies').select('lease_end, rent_amount, unit_id').in('unit_id', unitIds).eq('ended', false).not('lease_end', 'is', null).gte('lease_end', todayKey).lte('lease_end', in30).order('lease_end', { ascending: true }).limit(ITEM_CAP)
-      : Promise.resolve({ data: [] as any[] }),
-    unitIds.length > 0
-      ? admin.from('tenancies').select('id, unit_id, rent_amount, rent_due_day, grace_period_days').in('unit_id', unitIds).eq('ended', false).limit(ITEM_CAP)
-      : Promise.resolve({ data: [] as any[] }),
+  const [{ data: openJobs }, { data: tenancies }] = await Promise.all([
+    unitIds.length
+      ? admin.from('jobs').select('category, status, unit_id, is_emergency, created_at').in('unit_id', unitIds).in('status', ['pending_approval', 'approved', 'bidding', 'bid_selected', 'scheduled', 'in_progress', 'pending_review', 'disputed']).order('created_at', { ascending: false }).limit(300)
+      : none,
+    unitIds.length
+      ? admin.from('tenancies').select('id, unit_id, renter_user_id, rent_amount, rent_due_day, grace_period_days, lease_start, lease_end, security_deposit, late_fee_amount').in('unit_id', unitIds).eq('ended', false)
+      : none,
   ])
+  const tenancyIds = (tenancies || []).map((t: any) => t.id)
 
-  const monthlyRentRoll = (rentRows || []).reduce((sum, t) => sum + (Number(t.rent_amount) || 0), 0)
+  // Who lives where: primary tenant plus co-tenants, by name. These are this
+  // landlord's (or managed client's) own tenants.
+  const { data: occupants } = tenancyIds.length ? await admin.from('tenancy_occupants').select('tenancy_id, renter_user_id').in('tenancy_id', tenancyIds) : { data: [] as any[] }
+  const personIds = Array.from(new Set([...(tenancies || []).map((t: any) => t.renter_user_id), ...(occupants || []).map((o: any) => o.renter_user_id)].filter(Boolean)))
+  const { data: people } = personIds.length ? await admin.from('users').select('id, full_name').in('id', personIds) : { data: [] as any[] }
+  const nameById = new Map((people || []).map((u: any) => [u.id, u.full_name || 'Tenant']))
 
-  // Rent amounts alone don't say whether this MONTH's rent actually came
-  // in — "who's behind on rent" used to be unanswerable. Same
-  // paid/expected comparison and grace-period math cron/rent-reminder
-  // already uses to decide who gets a late notice, just read-only here.
-  const tenancyIds = (rentRows || []).map((t: any) => t.id)
+  // This month's rent: who hasn't fully paid, and how much came in.
   const { month: thisMonth, following: nextMonth, firstDate } = rentMonthBounds(0)
-  const { data: currentRentPayments } = tenancyIds.length > 0
+  const { data: monthPayments } = tenancyIds.length
     ? await admin.from('rent_payments').select('tenancy_id, expected_amount, actual_amount').in('tenancy_id', tenancyIds).gte('month', thisMonth).lt('month', nextMonth)
     : { data: [] as any[] }
-  const paymentByTenancy = new Map((currentRentPayments || []).map((p: any) => [p.tenancy_id, p]))
-  const rentStatusByUnit = (rentRows || [])
+  const paymentByTenancy = new Map((monthPayments || []).map((p: any) => [p.tenancy_id, p]))
+  const behind = (tenancies || [])
     .map((t: any) => {
-      const payment = paymentByTenancy.get(t.id)
-      if (!payment) return null
-      const expected = Number(payment.expected_amount || 0)
-      const paid = Number(payment.actual_amount || 0)
+      const pmt = paymentByTenancy.get(t.id)
+      if (!pmt) return null
+      const expected = Number(pmt.expected_amount || 0)
+      const paid = Number(pmt.actual_amount || 0)
       if (paid >= expected) return null
       const dueDate = new Date(firstDate.getFullYear(), firstDate.getMonth(), t.rent_due_day ?? 1)
-      const daysSinceDue = Math.floor((Date.now() - dueDate.getTime()) / (24 * 60 * 60 * 1000))
-      const isLate = daysSinceDue >= (t.grace_period_days ?? 5)
-      return { unit: unitLabelById.get(t.unit_id) || null, amountDue: Math.round((expected - paid) * 100) / 100, daysSinceDue, isLate }
+      const daysSinceDue = Math.floor((Date.now() - dueDate.getTime()) / 86400000)
+      return { unit: unitLabelById.get(t.unit_id) || null, tenant: nameById.get(t.renter_user_id) || null, amountDue: Math.round((expected - paid) * 100) / 100, daysSinceDue, isLate: daysSinceDue >= (t.grace_period_days ?? 5) }
     })
-    .filter((x): x is { unit: string | null; amountDue: number; daysSinceDue: number; isLate: boolean } => x !== null)
+    .filter(Boolean)
+  const round = (n: number) => Math.round(n * 100) / 100
+  const collectedThisMonth = round((monthPayments || []).reduce((a: number, p: any) => a + Number(p.actual_amount || 0), 0))
+  const expectedThisMonth = round((monthPayments || []).reduce((a: number, p: any) => a + Number(p.expected_amount || 0), 0))
+
+  // Year to date, from the same four sources the Records page adds up.
+  let yearToDate: Record<string, number> | null = null
+  if (includeFinancials) {
+    const yearStart = `${todayKey.slice(0, 4)}-01-01`
+    const [rentYtd, bidsYtd, feesYtd, ledgerYtd] = await Promise.all([
+      tenancyIds.length ? admin.from('rent_payments').select('actual_amount').in('tenancy_id', tenancyIds).gte('paid_date', yearStart).gt('actual_amount', 0) : none,
+      unitIds.length ? admin.from('bids').select('amount, jobs!inner(unit_id)').in('jobs.unit_id', unitIds).eq('payment_status', 'paid').gte('paid_at', yearStart) : none,
+      admin.from('pm_fee_payments').select('amount').in('owner_user_id', landlordIds).eq('status', 'paid').gte('paid_at', yearStart),
+      admin.from('ledger_entries').select('direction, amount, category').in('owner_user_id', landlordIds).gte('entry_date', yearStart),
+    ])
+    const sum = (rows: any[] | null, f: (r: any) => number) => round((rows || []).reduce((a, r) => a + f(r), 0))
+    const rentIn = sum(rentYtd.data, (r) => Number(r.actual_amount || 0))
+    const otherIn = sum(ledgerYtd.data, (r) => (r.direction === 'in' && r.category !== 'deposit' ? Number(r.amount || 0) : 0))
+    const contractorsOut = sum(bidsYtd.data, (r) => Number(r.amount || 0))
+    const feesOut = sum(feesYtd.data, (r) => Number(r.amount || 0))
+    const otherOut = sum(ledgerYtd.data, (r) => (r.direction === 'out' ? Number(r.amount || 0) : 0))
+    yearToDate = { rentReceived: rentIn, otherIncome: otherIn, paidToContractors: contractorsOut, managementFeesPaid: feesOut, otherExpenses: otherOut, net: round(rentIn + otherIn - contractorsOut - feesOut - otherOut) }
+  }
+
+  const tenancyByUnit = new Map((tenancies || []).map((t: any) => [t.unit_id, t]))
+  const occupantsByTenancy = new Map<string, string[]>()
+  for (const o of occupants || []) occupantsByTenancy.set(o.tenancy_id, [...(occupantsByTenancy.get(o.tenancy_id) || []), nameById.get(o.renter_user_id) || 'Co-tenant'])
+  const in90 = new Date(Date.now() + 90 * 86400000).toISOString().slice(0, 10)
+
+  const statusCounts: Record<string, number> = {}
+  for (const j of openJobs || []) statusCounts[j.status] = (statusCounts[j.status] || 0) + 1
 
   return {
     propertyCount: propertyIds.length,
-    properties: (properties || []).map((p) => ({ address: addressById.get(p.id) })),
-    unitCount: unitCount || 0,
-    monthlyRentRoll,
-    // The per-unit breakdown monthlyRentRoll alone can't answer — a
-    // landlord asking "what's the rent for each unit" used to only get
-    // the portfolio-wide total back, with no way to name individual
-    // units, because this is the only place rent_amount was fetched by
-    // unit.
-    rentByUnit: (rentRows || []).map((t: any) => ({ unit: unitLabelById.get(t.unit_id) || null, rentAmount: t.rent_amount })),
-    // Only units NOT fully paid for the current calendar month — an
-    // empty array means everyone's current, state that plainly rather
-    // than listing every unit as "paid."
-    rentStatusThisMonth: rentStatusByUnit,
-    // Not filtered to "expiring soon" — a landlord asking about a
-    // specific license should get an answer even if it's 90 days out,
-    // not just when it's already urgent. Sorted soonest-first, capped.
-    // isOverdue computed here rather than left for the model to infer
-    // from a bare date — an external audit caught it describing an
-    // already-past expiry as merely "due" instead of "overdue."
+    unitCount: unitIds.length,
+    occupiedUnits: tenancyByUnit.size,
+    vacantUnits: unitIds.length - tenancyByUnit.size,
+    // Every unit, so questions like "who lives at X", "which units are
+    // vacant", "when does each lease end" have a real answer.
+    units: (units || []).slice(0, cap.units).map((u) => {
+      const t: any = tenancyByUnit.get(u.id)
+      return t
+        ? {
+            unit: unitLabelById.get(u.id),
+            tenants: [nameById.get(t.renter_user_id), ...(occupantsByTenancy.get(t.id) || [])].filter(Boolean),
+            rent: includeFinancials ? t.rent_amount : undefined,
+            rentDueDay: t.rent_due_day,
+            leaseStart: t.lease_start,
+            leaseEnd: t.lease_end,
+            securityDeposit: includeFinancials ? t.security_deposit : undefined,
+            lateFee: includeFinancials ? t.late_fee_amount : undefined,
+            graceDays: t.grace_period_days,
+          }
+        : { unit: unitLabelById.get(u.id), vacant: true }
+    }),
+    monthlyRentRoll: includeFinancials ? round((tenancies || []).reduce((a: number, t: any) => a + Number(t.rent_amount || 0), 0)) : undefined,
+    rentThisMonth: includeFinancials ? { expected: expectedThisMonth, collected: collectedThisMonth, behind } : undefined,
+    yearToDate,
+    leasesEndingNext90Days: (tenancies || [])
+      .filter((t: any) => t.lease_end && t.lease_end >= todayKey && t.lease_end <= in90)
+      .map((t: any) => ({ unit: unitLabelById.get(t.unit_id), leaseEnd: t.lease_end, tenant: nameById.get(t.renter_user_id) || null })),
     complianceItems: (complianceItems || []).map((c) => ({
       itemType: c.item_type,
       expiryDate: c.expiry_date,
       property: addressById.get(c.property_id) || null,
       isOverdue: !!c.expiry_date && c.expiry_date < todayKey,
     })),
-    openJobs: (openJobs || []).map((j) => ({ category: j.category, status: j.status, unit: unitLabelById.get(j.unit_id) || null })),
-    leaseRenewalsNext30Days: (upcomingRenewals || []).map((t) => ({ unit: unitLabelById.get(t.unit_id) || null, leaseEnd: t.lease_end, rentAmount: t.rent_amount })),
+    openJobCountsByStatus: statusCounts,
+    // pending_approval = new request to Acknowledge; pending_review =
+    // contractor finished, waiting for sign-off (auto-approves in 3 days).
+    openJobs: (openJobs || []).slice(0, cap.jobs).map((j) => ({ category: j.category, status: j.status, emergency: !!j.is_emergency, unit: unitLabelById.get(j.unit_id) || null, reported: String(j.created_at).slice(0, 10) })),
   }
 }
 
@@ -170,7 +224,7 @@ async function getAccountFacts(admin: ReturnType<typeof getSupabaseAdmin>, authC
   const ITEM_CAP = 25
 
   if (role === 'landlord') {
-    const own = await portfolioFacts(admin, await getLandlordIdsAdmin(admin, userId), ITEM_CAP, todayKey, in30)
+    const own = await portfolioFacts(admin, await getLandlordIdsAdmin(admin, userId), todayKey)
     const membership = await getPmMembership(admin, userId)
     if (membership) {
       // A PM: every client they can see, each with the same facts an owner
@@ -184,12 +238,7 @@ async function getAccountFacts(admin: ReturnType<typeof getSupabaseAdmin>, authC
       const visible = new Set(await scopeOwnerIdsForMember(admin, membership, accepted.map((p: any) => p.owner_user_id)))
       const clients = await Promise.all(
         accepted.filter((p: any) => visible.has(p.owner_user_id)).slice(0, 15).map(async (p: any) => {
-          const facts = await portfolioFacts(admin, [p.owner_user_id], ITEM_CAP, todayKey, in30)
-          if (!membership.canViewFinancials) {
-            delete facts.monthlyRentRoll
-            delete facts.rentByUnit
-            delete facts.rentStatusThisMonth
-          }
+          const facts = await portfolioFacts(admin, [p.owner_user_id], todayKey, membership.canViewFinancials, accepted.length > 3)
           const fee = p.management_fee_type === 'percent_of_rent'
             ? `${Number(p.management_fee_percent)}% of rent`
             : Number(p.management_fee) > 0 ? `$${Number(p.management_fee)} ${p.management_fee_frequency || ''}`.trim() : 'none set'
@@ -258,7 +307,7 @@ async function getAccountFacts(admin: ReturnType<typeof getSupabaseAdmin>, authC
     const { data: tenancy } = tenancyId
       ? await admin
           .from('tenancies')
-          .select('id, unit_id, rent_amount, rent_due_day, grace_period_days, lease_end, escalation_percent, escalation_frequency_months, lease_start, units(unit_number, properties(address))')
+          .select('id, unit_id, rent_amount, rent_due_day, grace_period_days, lease_end, escalation_percent, escalation_frequency_months, lease_start, security_deposit, late_fee_amount, units(unit_number, properties(address))')
           .eq('id', tenancyId)
           .maybeSingle()
       : { data: null }
@@ -305,9 +354,36 @@ async function getAccountFacts(admin: ReturnType<typeof getSupabaseAdmin>, authC
       ? await admin.from('pm_client_portfolios').select('pm_organizations(name)').eq('owner_user_id', ownerId).eq('status', 'accepted').maybeSingle()
       : { data: null }
 
+    // How this renter can actually pay: what their landlord (or the PM who
+    // collects rent) has switched on, and the exact debit-card total.
+    const payee = ownerId ? await resolveRentPayee(admin, ownerId) : null
+    const { data: payeeRow } = payee
+      ? await admin.from('users').select('full_name, zelle_handle, venmo_handle, cashapp_handle, p2p_handles_frozen_until, rent_check_mail_address, rent_cash_instructions, rent_accept_bank, rent_accept_card').eq('id', payee.userId).maybeSingle()
+      : { data: null }
+    const frozen = !!payeeRow?.p2p_handles_frozen_until && new Date(payeeRow.p2p_handles_frozen_until) > new Date()
+    const rent = Number(tenancy.rent_amount || 0)
+    const cardFee = rentCardFee(rent)
+    const paymentOptions = {
+      paidTo: payee?.side === 'pm' ? payee.orgName || 'your property manager' : payeeRow?.full_name || 'your landlord',
+      bankTransfer: payeeRow?.rent_accept_bank !== false ? 'accepted, no fee, 1-3 business days' : 'not accepted',
+      debitCard: payeeRow?.rent_accept_card !== false ? { accepted: true, cardFee, totalForFullRent: Math.round((rent + cardFee) * 100) / 100 } : 'not accepted',
+      creditCard: 'never accepted for rent',
+      zelle: !frozen && !!payeeRow?.zelle_handle,
+      venmo: !frozen && !!payeeRow?.venmo_handle,
+      cashApp: !frozen && !!payeeRow?.cashapp_handle,
+      check: !frozen && !!payeeRow?.rent_check_mail_address,
+      cash: !frozen && !!payeeRow?.rent_cash_instructions,
+      note: 'Handles, check address and cash instructions are shown on the Rent tab.',
+    }
+
     return {
       hasActiveLease: true,
       propertyManagedBy: (pmRow as any)?.pm_organizations?.name || null,
+      securityDeposit: tenancy.security_deposit,
+      lateFee: tenancy.late_fee_amount,
+      graceDays: tenancy.grace_period_days,
+      leaseStart: (tenancy as any).lease_start,
+      paymentOptions,
       propertyAddress: unit?.properties?.address || null,
       unitNumber: unit?.unit_number || null,
       monthlyRent: tenancy.rent_amount,
@@ -451,8 +527,13 @@ export async function POST(request: NextRequest) {
     'ACCURACY: never invent a Prophandld feature, page or policy that is not in APP KNOWLEDGE, and never invent ' +
     'an account fact (address, date, amount, name) that is not in ACCOUNT FACTS. If the account data does not ' +
     'show something, say what you can see and where in the app to look. Compliance items with isOverdue true ' +
-    'are expired/overdue, never merely "due". rentStatusThisMonth lists only units NOT fully paid (empty means ' +
-    'everyone is current). For a Philadelphia compliance renewal, open by noting it is verified for ' +
+    'are expired/overdue, never merely "due". For a landlord or PM: units lists every unit with its tenants, ' +
+    'rent and lease dates (vacant: true means no active lease); rentThisMonth.behind lists only units NOT fully ' +
+    'paid (empty means everyone is current) and rentThisMonth.collected is what actually came in this month; ' +
+    'yearToDate is this calendar year from the same sources as the Records page; openJobCountsByStatus has exact ' +
+    'counts (pending_approval = new request to Acknowledge, pending_review = finished work to sign off). For a ' +
+    'renter, rentStatusThisMonth is "paid", null, or what is still owed; paymentOptions is what their landlord ' +
+    'actually accepts, with the exact debit-card fee and total. For a Philadelphia compliance renewal, open by noting it is verified for ' +
     `Philadelphia: ${PHILADELPHIA_COMPLIANCE_FACTS}\n\n` +
     (isPm
       ? 'THIS USER IS A PROPERTY MANAGER. ACCOUNT FACTS.clients is their client list; each client has its own ' +
@@ -464,7 +545,7 @@ export async function POST(request: NextRequest) {
     'URGENT SAFETY: for gas smell, fire, flooding, no heat in freezing weather, carbon monoxide, or electrical ' +
     'danger, lead with the immediate safety steps and the timeframe, then the rest.\n\n' +
     'PRIVACY: account facts are only this person\'s own. Never reveal or guess at any other user\'s data.\n\n' +
-    'STYLE: plain, friendly, direct. Short for simple questions (1-3 sentences); for real how-to or urgent ' +
+    'STYLE: plain, friendly, direct. Answer in the first sentence. Short for simple questions (1-3 sentences); for real how-to or urgent ' +
     'situations use a few short numbered steps. No markdown headings, no bold, no "As an AI". Write the reply ' +
     `in the same language the user wrote their latest message in (default ${lang}).\n\n` +
     'OUTPUT FORMAT: write the reply text only. Then, on its own final line, optionally add tags:\n' +
