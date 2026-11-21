@@ -149,7 +149,7 @@ export default function PropertyDetailPage() {
 
   const saveUnitEdit = async (unitId: string) => {
     if (!editValue.trim()) {
-      setUnitError('Unit number cannot be empty.')
+      setUnitError(t('unitNumberEmpty', lang))
       return
     }
 
@@ -171,7 +171,7 @@ export default function PropertyDetailPage() {
 
     if (updateError) {
       console.error('Error updating unit:', updateError)
-      setUnitError('Someone else changed this unit’s name since you opened this editor. Refreshing with the latest value.')
+      setUnitError(t('unitRenamedElsewhere', lang))
       setSavingUnit(false)
       await fetchProperty()
       return

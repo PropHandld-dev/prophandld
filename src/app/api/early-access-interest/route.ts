@@ -35,6 +35,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true })
   } catch (err: any) {
     console.error('early-access-interest error', err)
-    return NextResponse.json({ error: err.message || 'Something went wrong' }, { status: 500 })
+    return NextResponse.json({ error: 'Something went wrong. Try again in a moment.' }, { status: 500 })
   }
 }

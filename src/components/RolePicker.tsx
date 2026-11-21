@@ -1,4 +1,5 @@
 import { BuildingIcon, HomeIcon, WrenchIcon } from '@/components/icons'
+import { useLanguage, t } from '@/lib/i18n'
 
 export type Role = 'landlord' | 'renter' | 'contractor'
 // Not a new account type at the data layer — a Property Manager is
@@ -12,14 +13,16 @@ export type Role = 'landlord' | 'renter' | 'contractor'
 // role.
 export type RoleIntent = 'property_manager'
 
-const ROLES: { value: Role; label: string; icon: typeof BuildingIcon; desc: string; intent?: RoleIntent }[] = [
-  { value: 'landlord', label: 'Landlord', icon: BuildingIcon, desc: 'I manage my own properties' },
-  { value: 'landlord', label: 'Property Manager', icon: BuildingIcon, desc: 'I manage properties for other landlord clients', intent: 'property_manager' },
-  { value: 'renter', label: 'Renter', icon: HomeIcon, desc: 'I rent my home' },
-  { value: 'contractor', label: 'Contractor', icon: WrenchIcon, desc: 'I do maintenance work' },
+type Key = Parameters<typeof t>[0]
+const ROLES: { value: Role; label: Key; icon: typeof BuildingIcon; desc: Key; intent?: RoleIntent }[] = [
+  { value: 'landlord', label: 'rpLandlord', icon: BuildingIcon, desc: 'rpLandlordDesc' },
+  { value: 'landlord', label: 'rpPm', icon: BuildingIcon, desc: 'rpPmDesc', intent: 'property_manager' },
+  { value: 'renter', label: 'rpRenter', icon: HomeIcon, desc: 'rpRenterDesc' },
+  { value: 'contractor', label: 'rpContractor', icon: WrenchIcon, desc: 'rpContractorDesc' },
 ]
 
 export function RolePicker({ onSelect }: { onSelect: (role: Role, intent?: RoleIntent) => void }) {
+  const lang = useLanguage()
   return (
     <div className="space-y-3">
       {ROLES.map(({ value, label, icon: Icon, desc, intent }) => (
@@ -33,8 +36,8 @@ export function RolePicker({ onSelect }: { onSelect: (role: Role, intent?: RoleI
             <Icon className="w-4 h-4 text-[#12A5A9]" />
           </div>
           <div>
-            <p className="text-white font-semibold">{label}</p>
-            <p className="text-white/60 text-sm">{desc}</p>
+            <p className="text-white font-semibold">{t(label, lang)}</p>
+            <p className="text-white/60 text-sm">{t(desc, lang)}</p>
           </div>
         </button>
       ))}

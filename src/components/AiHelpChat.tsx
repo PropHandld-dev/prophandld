@@ -26,7 +26,6 @@ type Turn = { role: 'user' | 'assistant'; content: string; suggestEscalate?: boo
 export function AiHelpChat({ initialMessage, onNavigate }: { initialMessage?: string | null; onNavigate?: () => void } = {}) {
   const lang = useLanguage()
   const [email, setEmail] = useState<string | null>(null)
-  const [started, setStarted] = useState(false)
   const [turns, setTurns] = useState<Turn[]>([])
   const [draft, setDraft] = useState('')
   const [sending, setSending] = useState(false)
@@ -50,7 +49,6 @@ export function AiHelpChat({ initialMessage, onNavigate }: { initialMessage?: st
   useEffect(() => {
     if (initialMessage && !sentInitialRef.current) {
       sentInitialRef.current = true
-      setStarted(true)
       doSend(initialMessage, [])
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -155,7 +153,6 @@ export function AiHelpChat({ initialMessage, onNavigate }: { initialMessage?: st
     setLastFailed(null)
     setEscalating(false)
     setConfirmingEnd(false)
-    setStarted(false)
   }
 
   const submitEscalate = async () => {
@@ -175,21 +172,6 @@ export function AiHelpChat({ initialMessage, onNavigate }: { initialMessage?: st
     } catch {
       setEscalateStatus('error')
     }
-  }
-
-  if (!started) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full text-center px-4">
-        <p className="text-white/70 text-sm mb-1.5">{t('aiHelpChatIntro', lang)}</p>
-        <p className="text-white/40 text-xs mb-5">{t('aiHelpChatNotSavedNote', lang)}</p>
-        <RippleButton
-          onClick={() => setStarted(true)}
-          className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:opacity-90 transition"
-        >
-          {t('aiHelpStartConversationBtn', lang)}
-        </RippleButton>
-      </div>
-    )
   }
 
   if (escalating) {
@@ -233,6 +215,11 @@ export function AiHelpChat({ initialMessage, onNavigate }: { initialMessage?: st
     <div className="flex flex-col h-full">
       <p className="text-white/30 text-[10px] text-center mb-2 shrink-0">{t('aiHelpChatNotSavedNote', lang)}</p>
       <div ref={listRef} className="flex-1 min-h-0 overflow-y-auto space-y-2.5 mb-2.5">
+        {/* Opens straight into the conversation (there used to be a separate
+            "Start conversation" screen, one extra tap before every question). */}
+        {turns.length === 0 && !sending && (
+          <p className="text-white/60 text-sm text-center px-4 pt-6">{t('aiHelpChatIntro', lang)}</p>
+        )}
         {turns.map((turn, i) => (
           <div key={i} className={`flex ${turn.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className="max-w-[85%]">

@@ -180,7 +180,7 @@ export async function POST(request: NextRequest) {
         if (!result.ok) console.error('notify: sendEmail failed', { jobId, role, type })
       }
 
-      const push = buildPushMessage(type, role, jobInfo)
+      const push = buildPushMessage(type, role, jobInfo, lang)
       await sendPush(userId, push).catch((err) => console.error('notify: sendPush failed', { jobId, role, err }))
 
       // job_reported used to only text for emergencies, on a volume

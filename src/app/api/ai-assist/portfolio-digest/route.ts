@@ -6,6 +6,7 @@ import { tooManyAiAssistRequests } from '@/lib/aiAssistRateLimit'
 import { getActionableOwnerIdsAdmin } from '@/lib/pm'
 import { claudeJson, ClaudeConfigError } from '@/lib/claude'
 import { rentMonthBounds } from '@/lib/rentAutomation'
+import { categoryName } from '@/lib/categoryTaxonomy'
 
 export const maxDuration = 30
 
@@ -142,6 +143,8 @@ export async function GET() {
     // the PM viewing this happens to have it. Otherwise a PM paying for
     // 1 unit of their own would get free AI coverage of every client's
     // entire portfolio, unrelated to what anyone's actually billed for.
+    const { data: me } = await supabaseAdmin.from('users').select('preferred_language').eq('id', user.id).maybeSingle()
+    const es = me?.preferred_language === 'es'
     const actionableOwnerIds = await getActionableOwnerIdsAdmin(supabaseAdmin, user.id)
     const accessChecks = await Promise.all(actionableOwnerIds.map((id) => hasAiAssistAccess(supabaseAdmin, id)))
     const landlordIds = actionableOwnerIds.filter((_, i) => accessChecks[i])
@@ -225,7 +228,7 @@ export async function GET() {
         const label = unit?.unit_number ? `${address}, Unit ${unit.unit_number}` : address
         nudges.push({
           icon: 'warning',
-          text: `${label} is ${daysSinceDue} day${daysSinceDue === 1 ? '' : 's'} late on rent`,
+          text: es ? `${label} tiene ${daysSinceDue} día${daysSinceDue === 1 ? '' : 's'} de atraso en la renta` : `${label} is ${daysSinceDue} day${daysSinceDue === 1 ? '' : 's'} late on rent`,
           sortDays: -1000 - daysSinceDue,
           href: unit ? `/landlord/properties/${unit.property_id}/units/${unit.id}/rent` : undefined,
         })
@@ -239,7 +242,7 @@ export async function GET() {
       const days = Math.round((new Date(t.lease_end + 'T00:00:00').getTime() - today.getTime()) / 86400000)
       nudges.push({
         icon: 'calendar',
-        text: `${label} renews in ${days} day${days === 1 ? '' : 's'}`,
+        text: es ? `${label} se renueva en ${days} día${days === 1 ? '' : 's'}` : `${label} renews in ${days} day${days === 1 ? '' : 's'}`,
         sortDays: days,
         href: unit ? `/landlord/properties/${unit.property_id}/units/${unit.id}/tenancy/edit` : undefined,
       })
@@ -260,7 +263,7 @@ export async function GET() {
       const createdAt = new Date(j.created_at)
       if (createdAt > sevenDaysAgo) continue
       const days = Math.round((today.getTime() - createdAt.getTime()) / 86400000)
-      nudges.push({ icon: 'wrench', text: `${j.category} job open ${days} days, no bids yet`, sortDays: -days, href: `/landlord/jobs/${j.id}` })
+      nudges.push({ icon: 'wrench', text: es ? `Trabajo de ${categoryName(j.category, 'es')} abierto hace ${days} días, aún sin ofertas` : `${j.category} job open ${days} days, no bids yet`, sortDays: -days, href: `/landlord/jobs/${j.id}` })
     }
 
     // Predictive maintenance — the only one of the four nudge sources that

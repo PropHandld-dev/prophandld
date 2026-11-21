@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
   const b = (await request.json().catch(() => ({}))) as Record<string, any>
 
   let ownerId: string = typeof b.ownerId === 'string' && b.ownerId ? b.ownerId : user.id
-  let propertyId: string | null = typeof b.propertyId === 'string' && b.propertyId ? b.propertyId : null
+  const propertyId: string | null = typeof b.propertyId === 'string' && b.propertyId ? b.propertyId : null
   if (propertyId) {
     const { data: prop } = await admin.from('properties').select('owner_user_id').eq('id', propertyId).maybeSingle()
     if (!prop) return NextResponse.json({ error: 'Property not found' }, { status: 404 })

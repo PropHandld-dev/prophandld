@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
   const landlordName = landlordData?.full_name || 'Your landlord'
 
   if (coRenterEmail) {
-    const result = await sendCoRenterInviteEmail({ to: coRenterEmail, landlordName, unitLabel })
+    const result = await sendCoRenterInviteEmail({ to: coRenterEmail, landlordName, unitLabel, lang: (user.user_metadata?.preferred_language === 'es' ? 'es' : 'en') })
     if (!result.ok) {
       console.error('co-renter/invite: sendEmail failed', result)
       return NextResponse.json({ error: 'Could not send invite email' }, { status: 500 })

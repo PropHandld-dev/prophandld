@@ -75,7 +75,8 @@ export function PropertyManagerTermsContent() {
           properties. Don&apos;t use or share this information for anything else, including marketing, and
           don&apos;t copy it out of Prophandld except as your work and the law require. Our{' '}
           <Link href="/privacy" className="text-[#12A5A9] hover:underline">Privacy Policy</Link> explains what we
-          do with it.
+          do with it. Prophandld AI can use your clients&apos; account details to answer your questions and draft
+          messages; review any draft before you send it, since what you send is yours.
         </p>
       </section>
 

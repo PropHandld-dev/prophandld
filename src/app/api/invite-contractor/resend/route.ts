@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
   const landlordName = landlordRow?.full_name || 'A landlord'
 
   if (invite.contractor_email) {
-    const result = await sendContractorInviteEmail({ to: invite.contractor_email, landlordName, note: invite.note })
+    const result = await sendContractorInviteEmail({ to: invite.contractor_email, landlordName, note: invite.note, lang: (user.user_metadata?.preferred_language === 'es' ? 'es' : 'en') })
     if (!result.ok) {
       console.error('invite-contractor/resend: sendEmail failed', result)
       return NextResponse.json({ error: 'Could not resend the email. Try again shortly.' }, { status: 500 })

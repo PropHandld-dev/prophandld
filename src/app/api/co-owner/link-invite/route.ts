@@ -32,7 +32,7 @@ export async function POST() {
 
   if (emailInviteError) {
     console.error('co-owner/link-invite: error fetching invite', emailInviteError)
-    return NextResponse.json({ error: emailInviteError.message }, { status: 500 })
+    { console.error('co-owner/link-invite:', emailInviteError); return NextResponse.json({ error: 'Something went wrong. Try again in a moment.' }, { status: 500 }) }
   }
 
   let invite = emailInvite
@@ -64,7 +64,7 @@ export async function POST() {
         .maybeSingle()
       if (phoneInviteError) {
         console.error('co-owner/link-invite: error fetching invite by phone', phoneInviteError)
-        return NextResponse.json({ error: phoneInviteError.message }, { status: 500 })
+        { console.error('co-owner/link-invite:', phoneInviteError); return NextResponse.json({ error: 'Something went wrong. Try again in a moment.' }, { status: 500 }) }
       }
       if (phoneInvite && isPhoneVerified) {
         invite = phoneInvite
@@ -85,7 +85,7 @@ export async function POST() {
 
   if (updateError) {
     console.error('co-owner/link-invite: error linking', updateError)
-    return NextResponse.json({ error: updateError.message }, { status: 500 })
+    { console.error('co-owner/link-invite:', updateError); return NextResponse.json({ error: 'Something went wrong. Try again in a moment.' }, { status: 500 }) }
   }
 
   return NextResponse.json({ ok: true, linked: true })

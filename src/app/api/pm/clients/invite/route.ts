@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
       console.error('pm/clients/invite: email-invite insert failed', emailInsertError)
       return NextResponse.json({ error: 'Could not send the invite.' }, { status: 500 })
     }
-    await sendPmClientSignupInviteEmail({ to: ownerEmail, pmOrgName: membership.organizationName }).catch((err) =>
+    await sendPmClientSignupInviteEmail({ to: ownerEmail, pmOrgName: membership.organizationName, lang: (user.user_metadata?.preferred_language === 'es' ? 'es' : 'en') }).catch((err) =>
       console.error('pm/clients/invite: signup-invite email failed', err)
     )
     return NextResponse.json({ ok: true, invitedByEmail: true })

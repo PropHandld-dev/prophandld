@@ -7,12 +7,14 @@ export function PrivacyContent() {
             <h2>1. What we collect</h2>
             <p>To run the platform, we collect:</p>
             <ul>
-              <li><strong className="text-white/80">Account info:</strong> name, email, phone number, role (landlord/renter/contractor), preferred language. If you choose to link more than one role to your identity, each linked profile shares this same contact info so notifications for any of them reach you.</li>
+              <li><strong className="text-white/80">Account info:</strong> name, email, phone number, role (landlord, property manager, renter, or contractor), preferred language. If you choose to link more than one role to your identity, each linked profile shares this same contact info so notifications for any of them reach you.</li>
               <li><strong className="text-white/80">Property data:</strong> addresses, unit details, tenancy terms, rent amounts, entered by landlords</li>
               <li><strong className="text-white/80">Third-party data landlords provide:</strong> a landlord may enter a renter's or co-owner's name, email, or phone number before that person has signed up, for example to record a tenancy or send an invite. See below for the landlord's responsibility when doing this.</li>
               <li><strong className="text-white/80">Job data:</strong> maintenance descriptions, categories, bids, photos, and documents you upload</li>
               <li><strong className="text-white/80">Contractor verification:</strong> license numbers, license/insurance documents, if you submit them for review</li>
               <li><strong className="text-white/80">Usage data:</strong> pages visited and actions taken, collected automatically to understand how the product is used</li>
+              <li><strong className="text-white/80">Payment details you choose to show:</strong> a landlord&apos;s Zelle, Venmo or Cash App handle, or check instructions, shown only to their own renters</li>
+              <li><strong className="text-white/80">Tenant screening:</strong> if a landlord screens an applicant, we keep the applicant&apos;s name and email and the landlord&apos;s decision. The credit, criminal and eviction report and the applicant&apos;s Social Security number are handled by TransUnion SmartMove; we never see them</li>
               <li><strong className="text-white/80">Location:</strong> a property's address is geocoded to approximate coordinates, used to match jobs with nearby contractors by service area</li>
             </ul>
             <p>
@@ -44,16 +46,18 @@ export function PrivacyContent() {
             </p>
             <ul>
               <li><strong className="text-white/80">Supabase:</strong> our database, authentication, and file storage provider. Nearly everything you enter is stored here.</li>
-              <li><strong className="text-white/80">Stripe:</strong> processes job payments, contractor payouts, and rent paid by debit card or bank transfer. Stripe handles your card and bank account details directly; Prophandld never sees or stores them.</li>
+              <li><strong className="text-white/80">Stripe:</strong> processes job payments, payouts, property management fees, and rent paid by bank transfer or debit card. Landlords, property managers and contractors who receive money have their own Stripe account under Stripe&apos;s own terms. Stripe handles your card and bank account details directly; Prophandld never sees or stores them.</li>
+              <li><strong className="text-white/80">TransUnion SmartMove:</strong> runs tenant screening when a landlord requests it. The applicant enters their details and consents directly with SmartMove.</li>
+              <li><strong className="text-white/80">City of Philadelphia open data:</strong> for a Philadelphia property, its address is sent to the City&apos;s public records services to show rental license and code-violation status.</li>
               <li><strong className="text-white/80">Twilio:</strong> sends text message alerts if you opt in to SMS notifications. We do not sell or share your SMS opt-in data or personal information with third parties for marketing purposes.</li>
               <li><strong className="text-white/80">Resend:</strong> sends transactional emails (job notifications, invites, password resets) on our behalf.</li>
               <li><strong className="text-white/80">PostHog:</strong> product analytics, so we can see which features are actually being used.</li>
               <li><strong className="text-white/80">Sentry:</strong> error tracking, so we know when something breaks.</li>
               <li><strong className="text-white/80">Vercel:</strong> hosts the application itself.</li>
               <li><strong className="text-white/80">Google Cloud Translation:</strong> translates a chat message if you tap "See translation" on it. Only that specific message's text is sent, only when you tap it. Nothing is translated automatically.</li>
-              <li><strong className="text-white/80">Google Translate (page-translation widget):</strong> a separate, optional feature on the property management dashboard lets you translate that page into Spanish with a visible toggle. Turning it on sends that page's content to Google's translation service for as long as it's on; it's off by default and only on that page.</li>
+              <li><strong className="text-white/80">Google Translate (page-translation widget):</strong> a separate, optional toggle on the property management dashboard and the public property-manager pages translates that page into Spanish. Turning it on sends that page&apos;s content to Google&apos;s translation service for as long as it&apos;s on; it&apos;s off by default.</li>
               <li><strong className="text-white/80">Google Maps / Places:</strong> powers address autocomplete when a landlord enters a property, and the map view of a portfolio. What you type into an address field is sent to Google as you type it, the same as any address-autocomplete field on the web.</li>
-              <li><strong className="text-white/80">Anthropic:</strong> powers Prophandld AI (AI Assist), the optional, paid add-on a landlord turns on for their own account, including the in-app help assistant (the chat bubble that answers "how do I..." questions and basic facts about your own account, like how many properties or open jobs you have). Whatever a specific feature needs (a job description and photo for a troubleshooting suggestion, an uploaded lease or compliance document, your own account details for the help assistant) is sent to Anthropic's API only when it's on for your landlord's account. Nothing from these features is sent for anyone whose landlord hasn't turned it on, and a renter's help assistant rides on their own landlord's status, not a separate one. Contractors don't have access to Prophandld AI, including the help assistant.</li>
+              <li><strong className="text-white/80">Anthropic:</strong> powers Prophandld AI, including the in-app assistant (the ✦ chat bubble). During the current pilot it&apos;s included free for landlords, property managers and their renters. Contractors don&apos;t have access to it. Only what a specific feature needs is sent, when you use it: for example a job description and photo for a troubleshooting suggestion, an uploaded lease or receipt to read, or, for the assistant, your question and a limited summary of your own account (for a property manager, the clients you manage). Another user&apos;s data is never included. Conversations with the assistant aren&apos;t saved by Prophandld.</li>
             </ul>
             <p>
               Within the platform, your data is also visible to other users where it needs to be.
@@ -95,7 +99,8 @@ export function PrivacyContent() {
               don't need anything from your account before deleting it. The facts of any completed
               payment (amount, date, and method, with no name or contact info attached) are kept for
               7 years before being purged, for the same tax and accounting recordkeeping reasons any
-              business keeps financial records.
+              business keeps financial records. You can&apos;t delete an account while you still have a job underway or a contractor
+              payment outstanding; finish or cancel that work first.
             </p>
           </section>
 

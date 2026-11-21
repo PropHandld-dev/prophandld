@@ -8,9 +8,11 @@ import { RippleButton } from '@/components/RippleButton'
 import { AuthLayout } from '@/components/AuthLayout'
 import { AuthInput } from '@/components/AuthInput'
 import { MailIcon } from '@/components/icons'
+import { useLanguage, t } from '@/lib/i18n'
 
 export default function ForgotPasswordPage() {
   const router = useRouter()
+  const lang = useLanguage()
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -36,7 +38,7 @@ export default function ForgotPasswordPage() {
 
     const ok = await requestReset()
     if (!ok) {
-      setError("Couldn't reach the server. Check your connection and try again.")
+      setError(t('fpServerUnreachable', lang))
       setLoading(false)
       return
     }
@@ -50,7 +52,7 @@ export default function ForgotPasswordPage() {
     setResendState('sending')
     const ok = await requestReset()
     if (!ok) {
-      setOtpError("Couldn't resend. Check your connection and try again.")
+      setOtpError(t('fpResendFailed', lang))
       setResendState('idle')
       return
     }
@@ -80,8 +82,8 @@ export default function ForgotPasswordPage() {
     if (verifyError) {
       setOtpError(
         verifyError.name === 'AuthRetryableFetchError'
-          ? "Couldn't reach the server. Check your connection and try again."
-          : "That code didn't work. Double-check it, or use the link in the email instead."
+          ? t('fpServerUnreachable', lang)
+          : t('fpCodeDidntWork', lang)
       )
       setVerifying(false)
       return
@@ -92,17 +94,17 @@ export default function ForgotPasswordPage() {
 
   if (sent) {
     return (
-      <AuthLayout headline="Almost there." subtext="One more step and you're back in.">
+      <AuthLayout headline={t('fpAlmostThere', lang)} subtext={t('fpOneMoreStep', lang)}>
         <div className="text-center py-6">
           <div className="w-14 h-14 rounded-full bg-[#0A7B7E]/20 flex items-center justify-center mx-auto mb-5">
             <MailIcon className="w-6 h-6 text-[#12A5A9]" />
           </div>
-          <h2 className="text-white text-xl font-bold mb-2">Check your email</h2>
-          <p className="text-white/60 text-sm mb-1">We sent a code to</p>
+          <h2 className="text-white text-xl font-bold mb-2">{t('fpCheckEmail', lang)}</h2>
+          <p className="text-white/60 text-sm mb-1">{t('fpSentCodeTo', lang)}</p>
           <p className="text-white font-semibold mb-5">{email}</p>
 
           <form onSubmit={handleVerifyCode} className="text-left mb-6">
-            <label className="text-white/70 text-sm block mb-1.5 text-center">Enter the code from that email</label>
+            <label className="text-white/70 text-sm block mb-1.5 text-center">{t('fpEnterCode', lang)}</label>
             <AuthInput
               type="text"
               inputMode="numeric"
@@ -110,7 +112,7 @@ export default function ForgotPasswordPage() {
               maxLength={12}
               value={otpCode}
               onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 12))}
-              placeholder="Code"
+              placeholder={t('fpCodePlaceholder', lang)}
               className="text-center text-lg tracking-[0.3em] font-semibold"
             />
             {otpError && (
@@ -123,12 +125,12 @@ export default function ForgotPasswordPage() {
               disabled={verifying || otpCode.length === 0}
               className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50 mt-3"
             >
-              {verifying ? 'Verifying...' : 'Verify'}
+              {verifying ? t('fpVerifying', lang) : t('fpVerify', lang)}
             </RippleButton>
           </form>
 
           <p className="text-white/50 text-sm mb-4">
-            Or click the link in that same email instead. If this wasn&apos;t you, you can safely ignore the email: your password won&apos;t change.
+            {t('fpOrClickLink', lang)}
           </p>
           <RippleButton
             type="button"
@@ -136,7 +138,7 @@ export default function ForgotPasswordPage() {
             disabled={resendState === 'sending'}
             className="text-[#12A5A9] text-sm font-semibold hover:underline disabled:opacity-50"
           >
-            {resendState === 'sent' ? '✓ Sent again' : resendState === 'sending' ? 'Sending...' : "Didn't get either? Resend"}
+            {resendState === 'sent' ? t('fpSentAgain', lang) : resendState === 'sending' ? t('fpSending', lang) : t('fpResend', lang)}
           </RippleButton>
 
           <div className="mt-8 space-y-2">
@@ -145,7 +147,7 @@ export default function ForgotPasswordPage() {
               onClick={() => { setSent(false); setOtpCode(''); setOtpError(null); setResendState('idle') }}
               className="block mx-auto text-white/50 text-xs hover:text-white transition"
             >
-              Wrong email? Go back
+              {t('fpWrongEmail', lang)}
             </button>
             {/* Shown unconditionally, regardless of whether this email actually
                 has an account — same reason the page never confirms or denies
@@ -153,7 +155,7 @@ export default function ForgotPasswordPage() {
                 account gets stuck here forever: no code ever arrives, and
                 nothing on this screen points them toward signing up instead. */}
             <Link href="/signup" className="block text-center text-white/50 text-xs hover:text-white transition">
-              Don&apos;t have an account? Create one
+              {t('fpNoAccount', lang)}
             </Link>
           </div>
         </div>
@@ -163,17 +165,17 @@ export default function ForgotPasswordPage() {
 
   return (
     <AuthLayout
-      headline="Happens to the best of us."
-      subtext="Enter your email and we'll send you a code to get back in."
+      headline={t('fpHeadline', lang)}
+      subtext={t('fpSubtext', lang)}
     >
       <div className="text-center mb-8 lg:text-left">
-        <h1 className="text-2xl font-bold text-white">Reset your password</h1>
-        <p className="text-white/50 text-sm mt-1">We'll email you a reset code.</p>
+        <h1 className="text-2xl font-bold text-white">{t('fpTitle', lang)}</h1>
+        <p className="text-white/50 text-sm mt-1">{t('fpWeEmailCode', lang)}</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="text-white/70 text-sm block mb-1">Email</label>
+          <label className="text-white/70 text-sm block mb-1">{t('fpEmailLabel', lang)}</label>
           <AuthInput
             icon={MailIcon}
             type="email"
@@ -195,11 +197,11 @@ export default function ForgotPasswordPage() {
           disabled={loading}
           className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl transition hover:opacity-90 disabled:opacity-50"
         >
-          {loading ? 'Sending...' : 'Send reset code'}
+          {loading ? t('fpSending', lang) : t('fpSendCode', lang)}
         </RippleButton>
 
         <Link href="/login" className="block text-center text-white/60 hover:text-white text-sm transition">
-          Back to login
+          {t('fpBackToLogin', lang)}
         </Link>
       </form>
     </AuthLayout>

@@ -27,14 +27,15 @@ export function LandlordTermsContent() {
           You&apos;re responsible for keeping your login credentials secure and for the accuracy of the
           property, unit, and lease information you enter: address, rent amount, unit count, and who
           actually lives there. If you act in more than one role (for example, you also pick up
-          contracting work yourself), you can link a second role profile to the same identity from
-          your Profile page and switch between them; you&apos;re responsible for how every profile linked
+          contracting work yourself), you may hold a separate account for each role, or, where
+          Prophandld offers it, link a second role profile to the same identity and switch between
+          them; you&apos;re responsible for how every profile linked
           to you is used, and using a linked profile to bid on, select, or review your own jobs isn&apos;t
           allowed, whether or not our systems happen to catch a specific attempt.
         </p>
         <p>
-          <strong>Co-owners.</strong> You can invite a co-owner (a business partner, a property
-          manager, or anyone else you want managing alongside you) from your Profile page, by their
+          <strong>Co-owners.</strong> You can invite a co-owner (a business partner, a family
+          member, or anyone else you want managing alongside you) from your Profile page, by their
           email or phone number. A co-owner gets your own full access to your properties, units,
           tenants, jobs, rent tracking, and compliance tracking; they can&apos;t see or change your
           subscription billing, and can&apos;t permanently delete a property. You can remove a co-owner&apos;s
@@ -53,7 +54,11 @@ export function LandlordTermsContent() {
           Prophandld and paid directly to the organization&apos;s own account; Prophandld never holds
           that money. The organization&apos;s staff access is set by its own admin, not by you, and can
           include seeing your financial details (rent totals, payment amounts) if the admin grants
-          that. You can end the relationship at any time from your dashboard, and you&apos;re
+          that. If the organization asks, and you approve, rent your renters pay online can go to
+          the organization&apos;s own Stripe account instead of yours; the organization must first
+          confirm it holds any broker license the law requires and keeps client money in a trust or
+          escrow account. You can switch rent back to yourself at any time. You can end the
+          relationship at any time from your dashboard, and you&apos;re
           responsible for the organization&apos;s use of the access you&apos;ve granted while the
           relationship is active, the same as you are for a co-owner. An organization that opts in to a
           public profile on Prophandld may show its name, a short self-written description, and
@@ -73,7 +78,7 @@ export function LandlordTermsContent() {
           <li>Provide accurate information about your properties, units, and lease terms, and keep it current as things change</li>
           <li>Keep required licenses, certifications, and inspections (for example, a rental license or lead certification where your jurisdiction requires one) current. The platform&apos;s compliance tracking is a reminder tool, not a substitute for knowing your own legal obligations</li>
           <li>Respond to reported maintenance issues in a reasonable time, and not use the platform to avoid habitability or repair obligations you have under applicable law</li>
-          <li>Pay contractors the full amount you approve for completed work, on the timeline the platform describes, and pay your own Prophandld subscription fee on time</li>
+          <li>Pay contractors the full amount you approve for completed work, on the timeline the platform describes, and, once paid plans begin, your own Prophandld subscription fee</li>
           <li>Respect a renter&apos;s privacy: only use their contact information and personal data for managing the tenancy, never for an unrelated purpose</li>
           <li>Take responsibility for any co-owner you invite, or property management organization you engage, including their use of the access you grant them (see Section 2)</li>
           <li>If you accept rent via a third-party app like Zelle, Venmo, or Cash App (see Section 6), make your own informed call about any fees or account-use terms that app imposes on you. Prophandld isn&apos;t a party to your account with them</li>
@@ -122,14 +127,19 @@ export function LandlordTermsContent() {
           <strong>Paying contractors.</strong> Job payments are processed through Stripe, a
           third-party payment processor; Prophandld does not hold or custody your funds. Money moves
           directly from you to the contractor through Stripe&apos;s infrastructure once you approve
-          completed work.
+          completed work. You pay Stripe&apos;s processing fee on a job payment (shown before you pay);
+          the contractor receives the full approved amount, and Prophandld keeps none of it. Jobs
+          have a $50 minimum total.
         </p>
         <p>
-          <strong>Collecting rent.</strong> Your renter can pay rent by debit card or bank transfer
-          through Stripe, same as job payments. Prophandld never sees or stores card or bank account
-          details, that&apos;s handled entirely by Stripe. You can also optionally list a Zelle, Venmo, or
-          Cash App handle on your Profile for your renter to pay you directly, outside Stripe
-          entirely. Zelle has no fee, but also no purchase-protection program: if something goes
+          <strong>Collecting rent.</strong> To collect rent online you connect your own Stripe
+          account (and agree to Stripe&apos;s terms). Your renter can then pay by bank transfer or
+          debit card; you choose which methods you accept. Prophandld covers Stripe&apos;s bank-transfer
+          fee, a renter paying by debit card pays the card fee, and credit cards aren&apos;t accepted.
+          You receive the full rent either way, and Prophandld keeps none of it. Prophandld never
+          sees or stores card or bank account details; that&apos;s handled entirely by Stripe. You can
+          also list a Zelle, Venmo, or Cash App handle, or accept checks or cash, for your renter to
+          pay you directly, outside Stripe entirely. Zelle has no fee, but also no purchase-protection program: if something goes
           wrong, there&apos;s no dispute process to fall back on. Venmo and Cash App both charge a fee
           for this kind of payment, and their own terms require a business account, not a personal
           one, to accept it for something like rent; using a personal account this way risks the
@@ -141,15 +151,13 @@ export function LandlordTermsContent() {
           hours and alert you by email/push. If that wasn&apos;t you, contact us right away.
         </p>
         <p>
-          <strong>Your subscription.</strong> You separately pay Prophandld a graduated monthly
-          platform fee based on how many units you manage. See current pricing at{' '}
+          <strong>Your subscription.</strong> Prophandld is free during the current pilot program,
+          including Prophandld AI. Pricing will be announced on{' '}
           <Link href="/pricing" className="text-[#12A5A9] hover:underline">prophandld.com/pricing</Link>.
-          This fee is unrelated to, and never deducted from, any individual rent or job payment. Your
-          first unit is free. A co-owner you&apos;ve invited sees their own account&apos;s billing (typically
-          free, since they&apos;re not the unit owner), never yours. Current pricing reflects this pilot
-          program; if we restructure how landlord pricing works (not just adjust the existing rates,
-          for example, pricing a feature like rent collection separately from the base subscription),
-          we&apos;ll give you at least 60 days&apos; written notice (email) before it applies to you.
+          If we introduce a paid plan, we&apos;ll give you at least 60 days&apos; written notice (email)
+          before it applies to you, and nothing is charged without your agreement. Any platform fee
+          is separate from, and never deducted from, rent or job payments. A co-owner you&apos;ve invited
+          never sees or pays your billing.
         </p>
       </section>
 

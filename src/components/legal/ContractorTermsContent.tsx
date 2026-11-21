@@ -58,7 +58,8 @@ export function ContractorTermsContent() {
           the agreement between you and the landlord who selects you. If the job&apos;s scope genuinely
           changes after you&apos;re selected, you can request a price change through the platform. The
           landlord has to approve it before the new price applies; you can&apos;t just unilaterally change
-          what you charge mid-job.
+          what you charge mid-job. Bids, and a job&apos;s total after any price change, must be at
+          least $50. A property manager may review, select, and pay for work on an owner&apos;s behalf.
         </p>
       </section>
 
@@ -88,8 +89,10 @@ export function ContractorTermsContent() {
           step through Stripe (entering a card or confirming a bank payment), which is what actually
           releases money to you. We remind the landlord to do this right away once a job auto-approves.
           Once they do, payment moves directly from them to you through Stripe, a third-party payment
-          processor; Prophandld does not hold or custody the funds at any point, and never sees or
-          stores your bank account details. That&apos;s handled entirely by Stripe. Every payment gets a
+          processor, into your own connected Stripe account (you agree to Stripe&apos;s own terms when
+          you set it up, and Stripe may contact you directly). The landlord pays Stripe&apos;s processing
+          fee; you receive the full approved amount. Prophandld does not hold or custody the funds at
+          any point, and never sees or stores your bank account details. That&apos;s handled entirely by Stripe. Every payment gets a
           receipt, emailed to you and saved on the job record.
         </p>
       </section>
@@ -104,6 +107,10 @@ export function ContractorTermsContent() {
           to our verification review and, once approved, shown only as a &quot;Verified&quot; status, not the
           documents themselves). Don&apos;t upload anything you don&apos;t have the right to share, and don&apos;t
           upload anything illegal, harassing, or knowingly false.
+        </p>
+        <p>
+          Prophandld AI (the in-app assistant and other AI features) isn&apos;t available to
+          contractor accounts.
         </p>
       </section>
 

@@ -27,7 +27,7 @@
 // that exact mistake made /api/ai-assist/troubleshoot 500 in production
 // while still typechecking and building cleanly locally. Re-exported here
 // so every existing client-side import of this file keeps working.
-export { CATEGORY_GROUPS, FIXED_CATEGORIES, CATEGORY_TO_ITEM_TYPE, isNoTroubleshootCategory } from '@/lib/categoryTaxonomy'
+export { CATEGORY_GROUPS, FIXED_CATEGORIES, CATEGORY_TO_ITEM_TYPE, isNoTroubleshootCategory, categoryName, categoryGroupName } from '@/lib/categoryTaxonomy'
 import { CATEGORY_GROUPS } from '@/lib/categoryTaxonomy'
 
 // A short-lived "Previously added" trailing group (surfacing old

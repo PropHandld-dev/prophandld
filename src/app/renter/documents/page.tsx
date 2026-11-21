@@ -51,7 +51,7 @@ export default function RenterDocumentsPage() {
     // renter's own unit, and only what's actually meant for a tenant to
     // see: shared docs, or anything this renter uploaded themselves
     // (landlord_only still shows to the person who uploaded it).
-    let query = supabase
+    const query = supabase
       .from('documents')
       .select('*')
       .eq('property_id', forPropertyId)

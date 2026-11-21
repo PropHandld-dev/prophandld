@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (contractorEmail) {
-    const result = await sendContractorInviteEmail({ to: contractorEmail, landlordName, note: note?.trim() || null })
+    const result = await sendContractorInviteEmail({ to: contractorEmail, landlordName, note: note?.trim() || null, lang: (user.user_metadata?.preferred_language === 'es' ? 'es' : 'en') })
     if (!result.ok) {
       console.error('invite-contractor: sendEmail failed', result)
       return NextResponse.json({ error: 'Invite saved, but the email could not be sent. Try resending.' }, { status: 500 })

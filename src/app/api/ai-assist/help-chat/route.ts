@@ -36,13 +36,13 @@ PROPERTY MANAGER can (Property Management page, /landlord/pm): see every client 
 
 RENTER can: report a maintenance issue (Report tab, AI helps describe it and flags emergencies), track a job and chat about it, pay rent (Rent tab) by bank transfer (free, 1-3 business days) or debit card (instant, card fee paid by the renter) when the landlord accepts them, or see the landlord's Venmo/Zelle/Cash App/check/cash details; credit cards are never accepted for rent and get refunded if tried; see utility bills; view lease and documents; ask questions about their lease (lease Q&A); message their landlord or property manager; see a calendar. If a PM manages the property, the renter usually deals with the PM.
 
-CONTRACTOR can: browse and submit sealed bids on open jobs (nobody sees competing bids; AI can polish a bid), chat about a job, follow a step-by-step job guide, track earnings and payments (paid via Stripe once the landlord approves finished work and pays; no platform cut on the bid), set service area and categories, upload license and insurance for verification, message landlords and PMs.
+CONTRACTOR can: browse and submit sealed bids on open jobs (nobody sees competing bids), chat about a job, follow a step-by-step job guide, track earnings and payments (paid via Stripe once the landlord approves finished work and pays; no platform cut on the bid), set service area and categories, upload license and insurance for verification, message landlords and PMs.
 
 JOB LIFECYCLE: reported -> approved by landlord or PM (or the owner, above the PM's limit) -> open for bidding -> a bid is selected -> schedule confirmed -> in progress -> finished work reviewed (auto-approves after 3 days) -> payment due -> paid. A job can be disputed.
 
 PRICING: Prophandld is in a free pilot: free for 6 months for landlords and property managers, Prophandld AI included, no card needed. Pricing is coming soon and will be set with user feedback; never quote dollar amounts for Prophandld plans. Prophandld takes no fee on rent; bank-transfer rent costs the landlord nothing (Prophandld covers the processing fee); the only fees are payment processors' own card fees.
 
-PROPHANDLD AI: on for every landlord and PM during the pilot and reaches their renters too. Features: this assistant, document reading to fill lease/compliance/appliance forms, receipt and utility-bill scanning, lease Q&A for renters, repair troubleshooting with photos, issue intake with emergency detection, bid comparison, compliance gap checks and renewal guides, portfolio digest, Explain my year, AI lease builder, message drafting and translation (English/Spanish), smart replies.
+PROPHANDLD AI: on for every landlord and PM during the pilot and reaches their renters too. Contractors don't have Prophandld AI. Features: this assistant, document reading to fill lease/compliance/appliance forms, receipt and utility-bill scanning, lease Q&A for renters, repair troubleshooting with photos, issue intake with emergency detection, bid comparison, compliance gap checks and renewal guides, portfolio digest, Explain my year, AI lease builder, message drafting and translation (English/Spanish), smart replies.
 
 Legal pages: /terms (plus /terms/landlord, /terms/renter, /terms/contractor, /terms/property-manager) and /privacy.
 `.trim()
@@ -356,7 +356,7 @@ export async function POST(request: NextRequest) {
   const supabaseAdmin = getSupabaseAdmin()
 
   // Same rule every other AI feature uses: landlords and PMs on their own
-  // access, renters on their landlord's, contractors during the pilot.
+  // access, renters on their landlord's. Contractors don't get AI.
   const access = await aiAccessFor(supabaseAdmin, user)
   if (!access.allowed) {
     return NextResponse.json({ error: role === 'renter' ? 'Your landlord hasn’t turned on Prophandld AI yet.' : 'Turn on Prophandld AI from your Profile to use this.' }, { status: 403 })

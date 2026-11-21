@@ -86,7 +86,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   if (updateError) {
     console.error('complete-diy: could not update job', { jobId, updateError })
-    return NextResponse.json({ error: updateError.message }, { status: 400 })
+    { console.error('jobs/[jobId]/complete-diy:', updateError); return NextResponse.json({ error: 'Something went wrong. Try again in a moment.' }, { status: 400 }) }
   }
 
   // Any still-open sealed bids on this job need to be closed out, mirroring

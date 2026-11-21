@@ -51,13 +51,18 @@ export async function POST(request: NextRequest) {
 
   const { data: me } = await admin.from('users').select('full_name').eq('id', user.id).maybeSingle()
   const place = `${prop.address}${unit.unit_number && unit.unit_number !== 'Main' ? `, Unit ${unit.unit_number}` : ''}`
+  const es = user.user_metadata?.preferred_language === 'es'
+  const landlordName = me?.full_name || (es ? 'El arrendador' : 'The landlord')
   await sendPmNoticeEmail({
     to: email,
-    subject: `Next step for your application: ${place}`,
-    eyebrow: 'Rental application',
-    heading: `Screening for ${place}`,
-    body: `Hi ${name.split(' ')[0]},\n\n${me?.full_name || 'The landlord'} would like to run a tenant screening (credit, criminal and eviction history) through TransUnion SmartMove. You'll get a separate email from SmartMove with a secure link. You enter your details and consent directly with them; Prophandld never sees your report or your Social Security number.\n\nIf you don't see it within a day, check your spam folder or reply to the landlord.`,
-    ctaLabel: 'About SmartMove',
+    lang: es ? 'es' : 'en',
+    subject: es ? `Siguiente paso de tu solicitud: ${place}` : `Next step for your application: ${place}`,
+    eyebrow: es ? 'Solicitud de alquiler' : 'Rental application',
+    heading: es ? `Evaluación para ${place}` : `Screening for ${place}`,
+    body: es
+      ? `Hola ${name.split(' ')[0]}:\n\n${landlordName} quiere hacer una evaluación de inquilino (historial de crédito, antecedentes penales y desalojos) con TransUnion SmartMove. Recibirás un correo aparte de SmartMove con un enlace seguro. Ingresas tus datos y das tu consentimiento directamente con ellos; Prophandld nunca ve tu reporte ni tu número de Seguro Social.\n\nSi no lo ves en un día, revisa tu carpeta de spam o responde al arrendador.`
+      : `Hi ${name.split(' ')[0]},\n\n${landlordName} would like to run a tenant screening (credit, criminal and eviction history) through TransUnion SmartMove. You'll get a separate email from SmartMove with a secure link. You enter your details and consent directly with them; Prophandld never sees your report or your Social Security number.\n\nIf you don't see it within a day, check your spam folder or reply to the landlord.`,
+    ctaLabel: es ? 'Sobre SmartMove' : 'About SmartMove',
     ctaUrl: 'https://www.mysmartmove.com/renter',
   }).catch((err) => console.error('screening: email failed', err))
 

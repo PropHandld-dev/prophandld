@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
   })
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    { console.error('auth/set-role:', error); return NextResponse.json({ error: 'Something went wrong. Try again in a moment.' }, { status: 500 }) }
   }
 
   return NextResponse.json({ ok: true })

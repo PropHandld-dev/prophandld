@@ -12,6 +12,7 @@ import { downloadCsv } from '@/lib/csvExport'
 import { useLanguage, t } from '@/lib/i18n'
 import { fetchAllPages } from '@/lib/pagedQuery'
 import { formatMoney } from '@/lib/money'
+import { categoryName } from '@/lib/categoryTaxonomy'
 
 type Bid = {
   id: string
@@ -292,7 +293,7 @@ export default function ContractorEarningsPage() {
                     <div key={b.id} className="flex items-center justify-between gap-3 px-5 py-4">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <p className="text-white font-medium text-sm truncate">{b.jobs?.category}</p>
+                          <p className="text-white font-medium text-sm truncate">{categoryName(b.jobs?.category, lang)}</p>
                           {b.jobs?.status === 'disputed' && (
                             <span className="text-[10px] font-semibold text-red-400 bg-red-500/10 border border-red-500/25 rounded-full px-1.5 py-0.5 shrink-0">
                               {t('disputedStatus', lang)}
@@ -331,7 +332,7 @@ export default function ContractorEarningsPage() {
                       className="flex items-center justify-between gap-3 px-5 py-4 hover:bg-white/5 transition"
                     >
                       <div className="min-w-0 flex-1">
-                        <p className="text-white font-medium text-sm truncate">{b.jobs?.category}</p>
+                        <p className="text-white font-medium text-sm truncate">{categoryName(b.jobs?.category, lang)}</p>
                         <p className="text-white/60 text-xs truncate">{jobLocation(b, lang)}</p>
                       </div>
                       <div className="text-right shrink-0">
@@ -384,7 +385,7 @@ export default function ContractorEarningsPage() {
             {paid.map((b) => (
               <tr key={b.id} className="border-b border-black/5">
                 <td className="py-1.5">{(b.paid_at || b.created_at).slice(0, 10)}</td>
-                <td className="py-1.5">{b.jobs?.category}</td>
+                <td className="py-1.5">{categoryName(b.jobs?.category, lang)}</td>
                 <td className="py-1.5">{jobLocation(b, lang)}</td>
                 <td className="py-1.5 text-right">${(b.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
               </tr>

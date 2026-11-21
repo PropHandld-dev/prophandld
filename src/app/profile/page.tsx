@@ -173,7 +173,7 @@ export default function ProfilePage() {
     })
 
     if (insertError) {
-      setBackupError('Could not save: ' + insertError.message)
+      { console.error('profile: backup contact save failed', insertError); setBackupError(t('couldNotSaveBackup', lang)) }
       setSavingBackupContact(false)
       return
     }

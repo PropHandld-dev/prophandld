@@ -13,8 +13,8 @@ import { WrenchIcon } from '@/components/icons'
 import { CONTRACTOR_TABS } from '@/lib/navTabs'
 import { useLanguage, t } from '@/lib/i18n'
 import { useConfirm } from '@/lib/useConfirm'
-import { PILOT_FREE } from '@/lib/pilot'
 import { MIN_JOB_TOTAL, hasCentPrecision } from '@/lib/bidRules'
+import { categoryName } from '@/lib/categoryTaxonomy'
 
 function FieldLabel({ children, htmlFor }: { children: React.ReactNode; htmlFor?: string }) {
   return <label htmlFor={htmlFor} className="text-white/70 text-sm block mb-1">{children}</label>
@@ -354,7 +354,7 @@ export default function SubmitBidPage() {
             <h1 className="text-2xl font-bold text-white mb-2">{t('submitABid', lang)}</h1>
             <div className="bg-white/3 border border-white/8 rounded-2xl p-5 mb-4">
               <div className="flex items-center gap-2 flex-wrap mb-1">
-                <h3 className="text-white font-semibold">{job.category}</h3>
+                <h3 className="text-white font-semibold">{categoryName(job.category, lang)}</h3>
                 {job.is_emergency && (
                   <span className="text-xs bg-red-500/20 text-red-400 border border-red-500/30 rounded-full px-2 py-0.5 font-semibold">
                     {t('emergency', lang)}
@@ -575,9 +575,6 @@ export default function SubmitBidPage() {
                   placeholder={t('notesPlaceholder', lang)}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition resize-none"
                 />
-                {PILOT_FREE && form.notes.trim().length >= 5 && (
-                  <PolishNotesButton jobId={jobId} notes={form.notes} lang={lang} onDone={(text) => setForm((f) => ({ ...f, notes: text }))} />
-                )}
               </div>
 
               <div>
@@ -632,38 +629,6 @@ export default function SubmitBidPage() {
 
       <BottomTabBar tabs={CONTRACTOR_TABS} />
       {ConfirmDialog}
-    </div>
-  )
-}
-function PolishNotesButton({ jobId, notes, lang, onDone }: { jobId: string; notes: string; lang: string; onDone: (text: string) => void }) {
-  const [busy, setBusy] = useState(false)
-  const [previous, setPrevious] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const es = lang === 'es'
-  const run = async () => {
-    setBusy(true)
-    setError(null)
-    const res = await fetch('/api/ai-assist/polish-bid', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jobId, notes, lang }) }).catch(() => null)
-    const d = res ? await res.json().catch(() => ({})) : {}
-    setBusy(false)
-    if (!res?.ok || !d.text) {
-      setError(d.error || (es ? 'No se pudo.' : 'Could not polish that.'))
-      return
-    }
-    setPrevious(notes)
-    onDone(d.text)
-  }
-  return (
-    <div className="flex items-center gap-3 mt-2 flex-wrap">
-      <button type="button" onClick={run} disabled={busy} className="text-xs font-semibold text-[#12A5A9] bg-[#12A5A9]/10 border border-[#12A5A9]/25 rounded-full px-3 py-1.5 disabled:opacity-50">
-        {busy ? (es ? 'Mejorando…' : 'Polishing…') : es ? '✦ Redactar de forma profesional' : '✦ Write it up professionally'}
-      </button>
-      {previous && !busy && (
-        <button type="button" onClick={() => { onDone(previous); setPrevious(null) }} className="text-xs text-white/50 hover:text-white">
-          {es ? 'Deshacer' : 'Undo'}
-        </button>
-      )}
-      {error && <span className="text-red-400 text-xs">{error}</span>}
     </div>
   )
 }

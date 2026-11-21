@@ -8,6 +8,9 @@ import { BottomTabBar } from '@/components/BottomTabBar'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 import { downloadCsv } from '@/lib/csvExport'
 import { scanDocument } from '@/lib/aiFile'
+import { useLanguage, t, type Lang } from '@/lib/i18n'
+import { useConfirm } from '@/lib/useConfirm'
+import { validateDocumentFile } from '@/lib/mediaValidation'
 
 type Entry = {
   id: string
@@ -53,26 +56,35 @@ const CATEGORY_LABELS: Record<string, string> = {
   legal: 'Legal and professional',
   other: 'Other expense',
 }
-const TYPE_CHIP: Record<Entry['type'], { label: string; cls: string }> = {
-  rent: { label: 'Rent', cls: 'bg-[#12A5A9]/15 text-[#12A5A9]' },
-  contractor: { label: 'Contractor', cls: 'bg-violet-500/15 text-violet-300' },
-  fee: { label: 'Mgmt fee', cls: 'bg-amber-500/15 text-amber-300' },
-  manual: { label: 'Added by hand', cls: 'bg-white/8 text-white/60' },
+// English labels above stay as-is for the CSV exports (they go to an
+// accountant and line up with IRS wording); the screen uses these keys.
+type Key = Parameters<typeof t>[0]
+const CATEGORY_KEYS: Record<string, Key> = {
+  rent: 'recCatRent', deposit: 'recCatDeposit', other_income: 'recCatOtherIncome', repair: 'recCatRepair',
+  utilities: 'recCatUtilities', insurance: 'recCatInsurance', tax: 'recCatTax', mortgage: 'recCatMortgage',
+  hoa: 'recCatHoa', supplies: 'recCatSupplies', management: 'recCatManagement', legal: 'recCatLegal', other: 'recCatOther',
+}
+const categoryLabel = (c: string, lang: Lang) => (CATEGORY_KEYS[c] ? t(CATEGORY_KEYS[c], lang) : CATEGORY_LABELS[c] || c)
+const TYPE_CHIP: Record<Entry['type'], { label: string; key: Key; cls: string }> = {
+  rent: { label: 'Rent', key: 'recTypeRent', cls: 'bg-[#12A5A9]/15 text-[#12A5A9]' },
+  contractor: { label: 'Contractor', key: 'recTypeContractor', cls: 'bg-violet-500/15 text-violet-300' },
+  fee: { label: 'Mgmt fee', key: 'recTypeFee', cls: 'bg-amber-500/15 text-amber-300' },
+  manual: { label: 'Added by hand', key: 'recTypeManual', cls: 'bg-white/8 text-white/60' },
 }
 
 // IRS Schedule E (Form 1040) line each entry rolls up to. Security
 // deposits are left out: they're not income unless kept.
-const SCHEDULE_E: { line: string; label: string }[] = [
-  { line: '3', label: 'Rents received' },
-  { line: '9', label: 'Insurance' },
-  { line: '10', label: 'Legal and other professional fees' },
-  { line: '11', label: 'Management fees' },
-  { line: '12', label: 'Mortgage interest' },
-  { line: '14', label: 'Repairs' },
-  { line: '15', label: 'Supplies' },
-  { line: '16', label: 'Taxes' },
-  { line: '17', label: 'Utilities' },
-  { line: '19', label: 'Other' },
+const SCHEDULE_E: { line: string; label: string; key: Key }[] = [
+  { line: '3', label: 'Rents received', key: 'recLine3' },
+  { line: '9', label: 'Insurance', key: 'recLine9' },
+  { line: '10', label: 'Legal and other professional fees', key: 'recLine10' },
+  { line: '11', label: 'Management fees', key: 'recLine11' },
+  { line: '12', label: 'Mortgage interest', key: 'recLine12' },
+  { line: '14', label: 'Repairs', key: 'recLine14' },
+  { line: '15', label: 'Supplies', key: 'recLine15' },
+  { line: '16', label: 'Taxes', key: 'recLine16' },
+  { line: '17', label: 'Utilities', key: 'recLine17' },
+  { line: '19', label: 'Other', key: 'recLine19' },
 ]
 function scheduleELine(e: Entry): string | null {
   if (e.type === 'rent') return '3'
@@ -97,6 +109,8 @@ const money = (n: number) => n.toLocaleString(undefined, { style: 'currency', cu
 
 export default function RecordsPage() {
   const router = useRouter()
+  const lang = useLanguage()
+  const { confirm, ConfirmDialog } = useConfirm()
   const thisYear = new Date().getFullYear()
   const [year, setYear] = useState(thisYear)
   const [owner, setOwner] = useState('')
@@ -116,10 +130,10 @@ export default function RecordsPage() {
     if (property) q.set('property', property)
     const res = await fetch(`/api/records?${q}`).catch(() => null)
     const d = res ? await res.json().catch(() => null) : null
-    if (!res?.ok || !d) setError(d?.error || 'Could not load your records.')
+    if (!res?.ok || !d) setError(d?.error || t('recLoadFailed', lang))
     else setData(d)
     setLoading(false)
-  }, [year, owner, property])
+  }, [year, owner, property, lang])
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -178,7 +192,7 @@ export default function RecordsPage() {
     }).catch(() => null)
     const d = res ? await res.json().catch(() => ({})) : {}
     setInsightsBusy(false)
-    if (!res?.ok) setInsightsError(d.error || 'Could not read your year right now.')
+    if (!res?.ok) setInsightsError(d.error || t('recExplainFailed', lang))
     else setInsights(d)
   }
   const exportTax = () => {
@@ -222,36 +236,36 @@ export default function RecordsPage() {
   return (
     <div className="min-h-screen bg-[#0C1A2E] pb-28">
       <nav className="border-b border-white/8 px-5 py-4 flex items-center justify-between print:hidden">
-        <Link href="/landlord" className="text-white/50 hover:text-white text-sm transition">← Dashboard</Link>
-        <span className="text-white font-semibold text-sm">Records</span>
+        <Link href="/landlord" className="text-white/50 hover:text-white text-sm transition">{t('dashboard', lang)}</Link>
+        <span className="text-white font-semibold text-sm">{t('recTitle', lang)}</span>
         <span className="w-20" />
       </nav>
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
         <div className="flex items-end justify-between gap-4 flex-wrap mb-6">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">Records</h1>
-            <p className="text-white/50 text-sm mt-1">Every dollar in and out: rent, contractor work, fees and anything you add.</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">{t('recTitle', lang)}</h1>
+            <p className="text-white/50 text-sm mt-1">{t('recIntro', lang)}</p>
           </div>
           <div className="flex items-center gap-2 print:hidden">
-            <button onClick={() => setAdding(true)} className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:opacity-90">+ Add entry</button>
-            <button onClick={exportCsv} disabled={!data || data.entries.length === 0} className="bg-white/5 border border-white/10 text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-white/8 disabled:opacity-40">Export {year}</button>
+            <button onClick={() => setAdding(true)} className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:opacity-90">{t('recAddEntry', lang)}</button>
+            <button onClick={exportCsv} disabled={!data || data.entries.length === 0} className="bg-white/5 border border-white/10 text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-white/8 disabled:opacity-40">{t('recExport', lang).replace('{year}', String(year))}</button>
           </div>
         </div>
 
         <div className="flex gap-2 flex-wrap mb-6 print:hidden">
-          <select aria-label="Year" value={year} onChange={(e) => setYear(Number(e.target.value))} className={select}>
+          <select aria-label={t('recYear', lang)} value={year} onChange={(e) => setYear(Number(e.target.value))} className={select}>
             {Array.from({ length: 6 }, (_, i) => thisYear - i).map((y) => <option key={y} value={y}>{y}</option>)}
           </select>
           {multiOwner && (
-            <select aria-label="Client" value={owner} onChange={(e) => { setOwner(e.target.value); setProperty('') }} className={select}>
-              <option value="">All clients</option>
+            <select aria-label={t('recClient', lang)} value={owner} onChange={(e) => { setOwner(e.target.value); setProperty('') }} className={select}>
+              <option value="">{t('recAllClients', lang)}</option>
               {data!.owners.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
             </select>
           )}
           {(data?.properties.length || 0) > 1 && (
-            <select aria-label="Property" value={property} onChange={(e) => setProperty(e.target.value)} className={`${select} max-w-[220px]`}>
-              <option value="">All properties</option>
+            <select aria-label={t('recProperty', lang)} value={property} onChange={(e) => setProperty(e.target.value)} className={`${select} max-w-[220px]`}>
+              <option value="">{t('recAllProperties', lang)}</option>
               {data!.properties.filter((p) => !owner || p.ownerId === owner).map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
             </select>
           )}
@@ -265,9 +279,9 @@ export default function RecordsPage() {
           <>
             <div className="grid grid-cols-3 gap-2.5 sm:gap-3 mb-6">
               {[
-                { label: 'Income', value: data.totals.income, tone: 'text-[#12A5A9]', f: 'in' as const },
-                { label: 'Expenses', value: data.totals.expenses, tone: 'text-white', f: 'out' as const },
-                { label: 'Net', value: data.totals.net, tone: data.totals.net >= 0 ? 'text-white' : 'text-red-400', f: 'all' as const },
+                { label: t('recIncome', lang), value: data.totals.income, tone: 'text-[#12A5A9]', f: 'in' as const },
+                { label: t('recExpenses', lang), value: data.totals.expenses, tone: 'text-white', f: 'out' as const },
+                { label: t('recNet', lang), value: data.totals.net, tone: data.totals.net >= 0 ? 'text-white' : 'text-red-400', f: 'all' as const },
               ].map((c) => (
                 <button key={c.label} onClick={() => setFilter(c.f)} className={`min-w-0 text-left rounded-2xl border p-3 sm:p-5 transition ${filter === c.f ? 'border-[#12A5A9]/50 bg-[#12A5A9]/8' : 'border-white/8 bg-white/3 hover:bg-white/5'}`}>
                   <p className="text-white/50 text-xs font-semibold uppercase tracking-wide">{c.label}</p>
@@ -280,36 +294,36 @@ export default function RecordsPage() {
 
             {data.byProperty.length > 1 && (
               <div className="rounded-2xl border border-white/8 bg-white/3 p-4 sm:p-5 mb-6">
-                <p className="text-white font-semibold text-sm mb-3">By property</p>
+                <p className="text-white font-semibold text-sm mb-3">{t('recByProperty', lang)}</p>
                 <ul className="space-y-3">
                   {data.byProperty.map((p) => (
                     <li key={p.propertyId}>
                       <div className="flex items-center justify-between gap-3 text-sm">
                         <span className="text-white/80 truncate">{p.label}</span>
-                        <span className="text-white/50 tabular-nums shrink-0">{money(p.income - p.expenses)} net</span>
+                        <span className="text-white/50 tabular-nums shrink-0">{t('recNetSuffix', lang).replace('{amount}', money(p.income - p.expenses))}</span>
                       </div>
                       <div className="mt-1.5 space-y-1">
-                        <div className="h-1.5 rounded-full bg-[#12A5A9]" style={{ width: `${(p.income / maxProperty) * 100}%` }} title={`Income ${money(p.income)}`} />
-                        <div className="h-1.5 rounded-full bg-white/30" style={{ width: `${(p.expenses / maxProperty) * 100}%` }} title={`Expenses ${money(p.expenses)}`} />
+                        <div className="h-1.5 rounded-full bg-[#12A5A9]" style={{ width: `${(p.income / maxProperty) * 100}%` }} title={`${t('recIncome', lang)} ${money(p.income)}`} />
+                        <div className="h-1.5 rounded-full bg-white/30" style={{ width: `${(p.expenses / maxProperty) * 100}%` }} title={`${t('recExpenses', lang)} ${money(p.expenses)}`} />
                       </div>
                     </li>
                   ))}
                 </ul>
-                <p className="text-white/35 text-xs mt-3">Teal is income, grey is expenses.</p>
+                <p className="text-white/35 text-xs mt-3">{t('recBarsLegend', lang)}</p>
               </div>
             )}
 
             <div className="grid sm:grid-cols-2 gap-3 mb-6">
               <div className="rounded-2xl border border-[#12A5A9]/30 bg-gradient-to-br from-[#0A7B7E]/12 to-transparent p-4">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-white font-semibold text-sm">✦ Explain my year</p>
+                  <p className="text-white font-semibold text-sm">{t('recExplainTitle', lang)}</p>
                   {!insights && (
                     <button onClick={explainYear} disabled={insightsBusy || data.entries.length === 0} className="text-[#12A5A9] text-sm font-semibold disabled:opacity-40">
-                      {insightsBusy ? 'Reading…' : 'Go'}
+                      {insightsBusy ? t('recReading', lang) : t('recGo', lang)}
                     </button>
                   )}
                 </div>
-                {!insights && !insightsError && <p className="text-white/50 text-xs mt-1">What stood out in {data.year}, and what to check before tax time.</p>}
+                {!insights && !insightsError && <p className="text-white/50 text-xs mt-1">{t('recExplainHint', lang).replace('{year}', String(data.year))}</p>}
                 {insightsError && <p className="text-red-400 text-xs mt-1">{insightsError}</p>}
                 {insights && (
                   <div className="mt-2 space-y-2">
@@ -317,7 +331,7 @@ export default function RecordsPage() {
                     {insights.highlights.length > 0 && <ul className="space-y-1">{insights.highlights.map((h, i) => <li key={i} className="text-white/65 text-xs">• {h}</li>)}</ul>}
                     {insights.checks.length > 0 && (
                       <div>
-                        <p className="text-yellow-400 text-xs font-semibold">Check before filing</p>
+                        <p className="text-yellow-400 text-xs font-semibold">{t('recCheckBeforeFiling', lang)}</p>
                         <ul className="space-y-1 mt-1">{insights.checks.map((h, i) => <li key={i} className="text-white/65 text-xs">• {h}</li>)}</ul>
                       </div>
                     )}
@@ -326,32 +340,32 @@ export default function RecordsPage() {
               </div>
               <div className="rounded-2xl border border-white/8 bg-white/3 p-4">
                 <div className="flex items-center justify-between gap-3">
-                  <button onClick={() => setShowTax((v) => !v)} className="text-white font-semibold text-sm text-left">Tax summary (Schedule E) {showTax ? '▴' : '▾'}</button>
-                  <button onClick={exportTax} disabled={data.entries.length === 0} className="text-[#12A5A9] text-sm font-semibold disabled:opacity-40">Export</button>
+                  <button onClick={() => setShowTax((v) => !v)} className="text-white font-semibold text-sm text-left">{t('recTaxSummary', lang)} {showTax ? '▴' : '▾'}</button>
+                  <button onClick={exportTax} disabled={data.entries.length === 0} className="text-[#12A5A9] text-sm font-semibold disabled:opacity-40">{t('recExportShort', lang)}</button>
                 </div>
                 {!showTax ? (
-                  <p className="text-white/50 text-xs mt-1">Your year grouped the way the IRS rental form groups it, ready for your accountant.</p>
+                  <p className="text-white/50 text-xs mt-1">{t('recTaxHint', lang)}</p>
                 ) : (
                   <table className="w-full mt-3 text-sm">
                     <tbody>
                       {taxLines.map((l) => (
                         <tr key={l.line} className={l.amount === 0 ? 'text-white/35' : 'text-white/80'}>
                           <td className="py-1 pr-2 tabular-nums w-8">{l.line}</td>
-                          <td className="py-1">{l.label}</td>
+                          <td className="py-1">{t(l.key, lang)}</td>
                           <td className="py-1 text-right tabular-nums">{money(l.amount)}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 )}
-                {showTax && <p className="text-white/35 text-[11px] mt-2">Not tax advice. Security deposits are left out. Depreciation isn&apos;t included.</p>}
+                {showTax && <p className="text-white/35 text-[11px] mt-2">{t('recTaxNote', lang)}</p>}
               </div>
             </div>
 
             {shown.length === 0 ? (
               <div className="rounded-2xl border border-white/8 bg-white/3 p-10 text-center">
-                <p className="text-white font-semibold">Nothing recorded for {year} yet</p>
-                <p className="text-white/50 text-sm mt-1">Rent and paid contractor jobs show up here automatically. Add anything else by hand.</p>
+                <p className="text-white font-semibold">{t('recEmptyTitle', lang).replace('{year}', String(year))}</p>
+                <p className="text-white/50 text-sm mt-1">{t('recEmptyBody', lang)}</p>
               </div>
             ) : (
               <div className="space-y-6">
@@ -361,7 +375,7 @@ export default function RecordsPage() {
                   return (
                     <section key={month}>
                       <div className="flex items-baseline justify-between gap-3 mb-2 px-1">
-                        <h2 className="text-white font-semibold">{new Date(month + '-01T00:00:00').toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</h2>
+                        <h2 className="text-white font-semibold">{new Date(month + '-01T00:00:00').toLocaleDateString(lang === 'es' ? 'es-US' : 'en-US', { month: 'long', year: 'numeric' })}</h2>
                         <p className="text-white/45 text-xs tabular-nums">+{money(inSum)} · −{money(outSum)}</p>
                       </div>
                       <ul className="rounded-2xl border border-white/8 bg-white/3 divide-y divide-white/6 overflow-hidden">
@@ -377,11 +391,11 @@ export default function RecordsPage() {
                               >
                                 <div className="min-w-0 flex-1">
                                   <div className="flex items-center gap-2 flex-wrap">
-                                    <span className={`text-[10px] font-semibold uppercase tracking-wide rounded-full px-2 py-0.5 ${TYPE_CHIP[e.type].cls}`}>{TYPE_CHIP[e.type].label}</span>
-                                    <span className="text-white text-sm font-medium truncate">{e.type === 'manual' && e.category ? CATEGORY_LABELS[e.category] || e.title : e.title}</span>
+                                    <span className={`text-[10px] font-semibold uppercase tracking-wide rounded-full px-2 py-0.5 ${TYPE_CHIP[e.type].cls}`}>{t(TYPE_CHIP[e.type].key, lang)}</span>
+                                    <span className="text-white text-sm font-medium truncate">{e.type === 'manual' && e.category ? categoryLabel(e.category, lang) : e.title}</span>
                                   </div>
                                   <p className="text-white/45 text-xs mt-1 truncate">
-                                    {new Date(e.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                    {new Date(e.date + 'T00:00:00').toLocaleDateString(lang === 'es' ? 'es-US' : 'en-US', { month: 'short', day: 'numeric' })}
                                     {e.counterparty ? ` · ${e.counterparty}` : ''}
                                     {e.propertyLabel ? ` · ${e.propertyLabel}${e.unitLabel ? `, ${e.unitLabel}` : ''}` : ''}
                                     {multiOwner && !owner ? ` · ${e.ownerName}` : ''}
@@ -393,31 +407,31 @@ export default function RecordsPage() {
                               </button>
                               {open && (
                                 <div className="px-4 pb-4 -mt-1 space-y-3">
-                                  {e.detail && <p className="text-white/70 text-sm leading-relaxed">{e.type === 'contractor' ? 'Work: ' : ''}{e.detail}</p>}
+                                  {e.detail && <p className="text-white/70 text-sm leading-relaxed">{e.type === 'contractor' ? t('recWorkPrefix', lang) : ''}{e.detail}</p>}
                                   {e.photos.length > 0 && (
                                     <div className="flex gap-2 overflow-x-auto">
                                       {e.photos.map((src, i) => (
                                         <a key={i} href={src} target="_blank" rel="noopener noreferrer" className="shrink-0">
                                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                                          <img src={src} alt={`Job photo ${i + 1}`} className="w-24 h-24 rounded-xl object-cover border border-white/10" />
+                                          <img src={src} alt={t('recJobPhoto', lang).replace('{n}', String(i + 1))} className="w-24 h-24 rounded-xl object-cover border border-white/10" />
                                         </a>
                                       ))}
                                     </div>
                                   )}
                                   <div className="flex items-center gap-4 flex-wrap text-xs">
                                     {e.method && <span className="text-white/45">{e.method}</span>}
-                                    {e.receiptUrl && <a href={e.receiptUrl} target={e.receiptUrl.startsWith('/') ? undefined : '_blank'} rel="noopener noreferrer" className="text-[#12A5A9] font-semibold hover:underline">Receipt →</a>}
-                                    {e.jobId && <Link href={`/landlord/jobs/${e.jobId}`} className="text-[#12A5A9] font-semibold hover:underline">Open job →</Link>}
+                                    {e.receiptUrl && <a href={e.receiptUrl} target={e.receiptUrl.startsWith('/') ? undefined : '_blank'} rel="noopener noreferrer" className="text-[#12A5A9] font-semibold hover:underline">{t('recReceiptLink', lang)}</a>}
+                                    {e.jobId && <Link href={`/landlord/jobs/${e.jobId}`} className="text-[#12A5A9] font-semibold hover:underline">{t('recOpenJob', lang)}</Link>}
                                     {e.type === 'manual' && (
                                       <button
                                         onClick={async () => {
-                                          if (!window.confirm('Delete this entry?')) return
+                                          if (!(await confirm({ body: t('recDeleteConfirm', lang), confirmLabel: t('delete', lang), danger: true }))) return
                                           await fetch(`/api/records/entries/${e.id.replace('manual-', '')}`, { method: 'DELETE' })
                                           load()
                                         }}
                                         className="text-red-400/70 hover:text-red-400 ml-auto"
                                       >
-                                        Delete
+                                        {t('delete', lang)}
                                       </button>
                                     )}
                                   </div>
@@ -438,17 +452,19 @@ export default function RecordsPage() {
 
       {adding && data && (
         <AddEntrySheet
+          lang={lang}
           properties={data.properties.filter((p) => !owner || p.ownerId === owner)}
           onClose={() => setAdding(false)}
           onSaved={() => { setAdding(false); load() }}
         />
       )}
+      {ConfirmDialog}
       <div className="print:hidden"><BottomTabBar tabs={LANDLORD_TABS} /></div>
     </div>
   )
 }
 
-function AddEntrySheet({ properties, onClose, onSaved }: { properties: { id: string; label: string }[]; onClose: () => void; onSaved: () => void }) {
+function AddEntrySheet({ lang, properties, onClose, onSaved }: { lang: Lang; properties: { id: string; label: string }[]; onClose: () => void; onSaved: () => void }) {
   const [direction, setDirection] = useState<'out' | 'in'>('out')
   const [category, setCategory] = useState('repair')
   const [amount, setAmount] = useState('')
@@ -461,7 +477,22 @@ function AddEntrySheet({ properties, onClose, onSaved }: { properties: { id: str
   const [scanning, setScanning] = useState(false)
   const [scanNote, setScanNote] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const pickReceipt = async (f: File | null) => {
+    if (!f) return setFile(null)
+    const problem = await validateDocumentFile(f, { allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'] })
+    if (problem) {
+      setError(problem)
+      return
+    }
+    setError(null)
+    setFile(f)
+  }
   const scan = async (f: File) => {
+    const problem = await validateDocumentFile(f, { allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'] })
+    if (problem) {
+      setError(problem)
+      return
+    }
     setFile(f)
     setScanning(true)
     setScanNote(null)
@@ -478,7 +509,7 @@ function AddEntrySheet({ properties, onClose, onSaved }: { properties: { id: str
     if (r.date) setDate(r.date)
     if (r.vendor) setVendor(r.vendor)
     if (r.description) setDescription(r.description)
-    setScanNote('Filled in from your receipt. Check it before saving.')
+    setScanNote(t('recScanFilled', lang))
   }
   const cats = direction === 'in' ? ['rent', 'deposit', 'other_income'] : ['repair', 'utilities', 'insurance', 'tax', 'mortgage', 'hoa', 'supplies', 'management', 'legal', 'other']
   const input = 'w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-white text-sm placeholder-white/35 focus:outline-none focus:border-[#12A5A9]'
@@ -495,13 +526,18 @@ function AddEntrySheet({ properties, onClose, onSaved }: { properties: { id: str
     const d = res ? await res.json().catch(() => ({})) : {}
     if (!res?.ok) {
       setSaving(false)
-      setError(d.error || 'Could not save.')
+      setError(d.error || t('recCouldNotSave', lang))
       return
     }
     if (file && d.upload) {
       const { error: upErr } = await supabase.storage.from('documents').uploadToSignedUrl(d.upload.path, d.upload.token, file, { contentType: file.type || undefined })
-      if (!upErr) {
-        await fetch(`/api/records/entries/${d.id}/attach`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path: d.upload.path, filename: file.name }) }).catch(() => null)
+      const attached = !upErr && (await fetch(`/api/records/entries/${d.id}/attach`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path: d.upload.path, filename: file.name }) }).catch(() => null))?.ok
+      if (!attached) {
+        // The entry itself is saved; say so instead of silently dropping the receipt.
+        setSaving(false)
+        setError(t('recReceiptUploadFailed', lang))
+        setTimeout(onSaved, 2500)
+        return
       }
     }
     setSaving(false)
@@ -511,48 +547,48 @@ function AddEntrySheet({ properties, onClose, onSaved }: { properties: { id: str
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4" role="dialog" aria-modal="true">
       <div className="bg-[#0F2138] border border-white/10 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md max-h-[92vh] overflow-y-auto p-6">
-        <h3 className="text-white font-semibold text-lg">Add an entry</h3>
-        <p className="text-white/50 text-xs mt-1">For anything not paid through Prophandld.</p>
+        <h3 className="text-white font-semibold text-lg">{t('recAddTitle', lang)}</h3>
+        <p className="text-white/50 text-xs mt-1">{t('recAddHint', lang)}</p>
         <label className="mt-4 flex items-center justify-center gap-2 rounded-xl border border-dashed border-[#12A5A9]/40 bg-[#12A5A9]/8 py-3 text-[#12A5A9] text-sm font-semibold cursor-pointer hover:bg-[#12A5A9]/12">
-          {scanning ? 'Reading your receipt…' : '✦ Scan a receipt or invoice'}
+          {scanning ? t('recScanning', lang) : t('recScan', lang)}
           <input type="file" accept="image/*,.pdf,application/pdf" className="hidden" disabled={scanning} onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) scan(f) }} />
         </label>
         {scanNote && <p className="text-white/55 text-xs mt-2">{scanNote}</p>}
         <div className="grid grid-cols-2 gap-1 bg-white/4 rounded-xl p-1 mt-5">
           {(['out', 'in'] as const).map((d) => (
             <button key={d} type="button" onClick={() => { setDirection(d); setCategory(d === 'in' ? 'rent' : 'repair') }} className={`py-2 rounded-lg text-sm font-semibold ${direction === d ? 'bg-[#12A5A9] text-white' : 'text-white/60'}`}>
-              {d === 'out' ? 'Money out' : 'Money in'}
+              {d === 'out' ? t('recMoneyOut', lang) : t('recMoneyIn', lang)}
             </button>
           ))}
         </div>
         <div className="space-y-3 mt-4">
-          <select aria-label="Category" value={category} onChange={(e) => setCategory(e.target.value)} className={input}>
-            {cats.map((c) => <option key={c} value={c}>{CATEGORY_LABELS[c]}</option>)}
+          <select aria-label={t('recCategory', lang)} value={category} onChange={(e) => setCategory(e.target.value)} className={input}>
+            {cats.map((c) => <option key={c} value={c}>{categoryLabel(c, lang)}</option>)}
           </select>
           <div className="grid grid-cols-2 gap-2.5">
             <div className="relative">
               <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40 text-sm">$</span>
-              <input aria-label="Amount" type="number" inputMode="decimal" min={0} step="0.01" placeholder="0.00" value={amount} onChange={(e) => setAmount(e.target.value)} className={`${input} pl-7`} />
+              <input aria-label={t('recAmount', lang)} type="number" inputMode="decimal" min={0} step="0.01" placeholder="0.00" value={amount} onChange={(e) => setAmount(e.target.value)} className={`${input} pl-7`} />
             </div>
-            <input aria-label="Date" type="date" value={date} onChange={(e) => setDate(e.target.value)} className={input} />
+            <input aria-label={t('recDate', lang)} type="date" value={date} onChange={(e) => setDate(e.target.value)} className={input} />
           </div>
           {properties.length > 0 && (
-            <select aria-label="Property" value={propertyId} onChange={(e) => setPropertyId(e.target.value)} className={input}>
-              <option value="">Not tied to one property</option>
+            <select aria-label={t('recProperty', lang)} value={propertyId} onChange={(e) => setPropertyId(e.target.value)} className={input}>
+              <option value="">{t('recNoProperty', lang)}</option>
               {properties.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
             </select>
           )}
-          <input aria-label="Description" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={300} placeholder="What was it? (e.g. Replaced kitchen faucet)" className={input} />
-          <input aria-label="Paid to or from" value={vendor} onChange={(e) => setVendor(e.target.value)} maxLength={120} placeholder={direction === 'out' ? 'Paid to (e.g. ABC Plumbing)' : 'Received from'} className={input} />
+          <input aria-label={t('recDescription', lang)} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={300} placeholder={t('recDescriptionPh', lang)} className={input} />
+          <input aria-label={t('recPaidToFrom', lang)} value={vendor} onChange={(e) => setVendor(e.target.value)} maxLength={120} placeholder={direction === 'out' ? t('recPaidToPh', lang) : t('recReceivedFrom', lang)} className={input} />
           <label className="flex items-center gap-2 text-[#12A5A9] text-sm font-semibold cursor-pointer">
-            <span>{file ? `Receipt: ${file.name}` : '+ Attach receipt (photo or PDF)'}</span>
-            <input type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" className="hidden" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+            <span>{file ? t('recReceiptFile', lang).replace('{name}', file.name) : t('recAttachReceipt', lang)}</span>
+            <input type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" className="hidden" onChange={(e) => { const f = e.target.files?.[0] || null; e.target.value = ''; pickReceipt(f) }} />
           </label>
         </div>
         {error && <p className="text-red-400 text-sm mt-3">{error}</p>}
         <div className="flex items-center gap-3 mt-6">
-          <button onClick={save} disabled={saving || !(Number(amount) > 0) || !date} className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl disabled:opacity-40">{saving ? 'Saving…' : 'Save'}</button>
-          <button onClick={onClose} className="text-white/50 hover:text-white text-sm">Cancel</button>
+          <button onClick={save} disabled={saving || !(Number(amount) > 0) || !date} className="flex-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3 rounded-xl disabled:opacity-40">{saving ? t('recSaving', lang) : t('save', lang)}</button>
+          <button onClick={onClose} className="text-white/50 hover:text-white text-sm">{t('cancel', lang)}</button>
         </div>
       </div>
     </div>

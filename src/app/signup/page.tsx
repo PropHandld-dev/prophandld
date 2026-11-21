@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -19,9 +19,10 @@ import { PrivacyContent } from '@/components/legal/PrivacyContent'
 import { SITE_URL } from '@/lib/site'
 import { setAppMetadataRole } from '@/lib/setAppMetadataRole'
 import { LINKED_PROFILES_ENABLED } from '@/lib/featureFlags'
-import { t, roleLabel, type Lang } from '@/lib/i18n'
+import { t, roleLabel, type Lang, guessLanguage } from '@/lib/i18n'
 import { formatTierPrice, formatAiAssistPrice } from '@/lib/pricingTiers'
 import { PILOT_FREE, PILOT_FREE_MONTHS } from '@/lib/pilot'
+import { LEGAL_UPDATED } from '@/lib/legalDates'
 
 const ROLE_LABEL_KEY = { landlord: 'landlordLabel', renter: 'renterLabel', contractor: 'contractorLabel' } as const
 
@@ -183,6 +184,11 @@ function SignupForm() {
     phone: '',
     preferred_language: 'en',
   })
+  // Start the language picker on this device's language (it can still be changed).
+  useEffect(() => {
+    const guess = guessLanguage()
+    if (guess === 'es') setForm((f) => (f.preferred_language === 'en' ? { ...f, preferred_language: 'es' } : f))
+  }, [])
   // No signed-in session exists yet to read a saved preference from (see
   // getRoleContent's own comment) — the in-progress form's own language
   // select is the only signal available until the account actually exists.
@@ -715,7 +721,7 @@ function SignupForm() {
                 onChange={(e) => setEnableAiAssist(e.target.checked)}
                 className="mt-0.5 w-4 h-4 shrink-0 rounded border-white/20 bg-white/5 accent-[#12A5A9]"
               />
-              <span>Start my 14-day Prophandld AI trial too. No charge now, cancel anytime from my profile before it ends.</span>
+              <span>{t('signupAiTrialCheckbox', lang)}</span>
             </label>
           </div>
         </>
@@ -752,7 +758,7 @@ function SignupForm() {
       {legalModal === 'terms' && (
         <LegalModal
           title={t('termsOfService', lang)}
-          lastUpdated="November 6, 2026"
+          lastUpdated={LEGAL_UPDATED.general}
           onClose={() => {
             setLegalModal(null)
             setReviewedTerms(true)
@@ -765,7 +771,7 @@ function SignupForm() {
           ) : roleIntent === 'property_manager' ? (
             <>
               <LandlordTermsContent />
-              <h2 className="!mt-10">Property manager addendum</h2>
+              <h2 className="!mt-10">{t('pmAddendumLink', lang)}</h2>
               <PropertyManagerTermsContent />
             </>
           ) : (
@@ -777,7 +783,7 @@ function SignupForm() {
       {legalModal === 'privacy' && (
         <LegalModal
           title={t('privacyPolicy', lang)}
-          lastUpdated="November 6, 2026"
+          lastUpdated={LEGAL_UPDATED.privacy}
           onClose={() => {
             setLegalModal(null)
             setReviewedPrivacy(true)
@@ -791,7 +797,7 @@ function SignupForm() {
 
       <div className="flex items-center gap-3 my-5">
         <div className="h-px bg-white/10 flex-1" />
-        <span className="text-white/30 text-xs">or</span>
+        <span className="text-white/30 text-xs">{t('orDivider', lang)}</span>
         <div className="h-px bg-white/10 flex-1" />
       </div>
 
@@ -842,7 +848,7 @@ function SignupForm() {
             required
             value={form.password}
             onChange={handleChange}
-            placeholder="Min. 8 characters"
+            placeholder={t('passwordMinPlaceholder', lang)}
           />
         </div>
 
