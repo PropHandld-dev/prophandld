@@ -282,7 +282,7 @@ export default function PropertyDocumentsPage() {
           try {
             const res = await fetch(doc.viewUrl)
             const blob = await res.blob()
-            let name = safeZipName(doc.filename || `document-${doc.id}`)
+            const name = safeZipName(doc.filename || `document-${doc.id}`)
             // Two documents can share a filename — number the second one
             // rather than silently overwrite it inside the zip.
             let attempt = name

@@ -1067,6 +1067,7 @@ const STRINGS = {
   lsCreating: { en: 'Creating…', es: 'Creando…' },
   lsCreate: { en: 'Create lease', es: 'Crear contrato' },
   lsFooter: { en: 'A draft to review with a Pennsylvania attorney. Not legal advice.', es: 'Un borrador para revisar con un abogado de Pensilvania. No es asesoría legal.' },
+  aiAssistPriceAfterTrial: { en: '{price}/month after your trial, cancel anytime before then', es: '{price}/mes después de tu prueba; cancela cuando quieras antes de que termine' },
   signupAiTrialCheckbox: { en: 'Start my 14-day Prophandld AI trial too. No charge now, cancel anytime from my profile before it ends.', es: 'Inicia también mi prueba de 14 días de Prophandld AI. Sin cargo ahora; cancela cuando quieras desde tu perfil antes de que termine.' },
   jobTotalTooLow: { en: 'Job total must be at least ${min}.', es: 'El total del trabajo debe ser de al menos ${min}.' },
   workOrderPrefix: { en: 'Work order #', es: 'Orden de trabajo n.º' },

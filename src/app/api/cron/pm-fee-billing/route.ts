@@ -102,7 +102,9 @@ export async function GET(request: NextRequest) {
       continue
     }
 
-    if (!owner?.default_payment_method_id || owner.default_payment_method_type !== 'card') {
+    // The card is saved on Prophandld's own Stripe account; it has to be
+    // attached to a platform customer so it can be copied to the PM's account.
+    if (!owner?.default_payment_method_id || owner.default_payment_method_type !== 'card' || !owner.stripe_customer_id) {
       skipped++
       continue
     }
@@ -117,12 +119,19 @@ export async function GET(request: NextRequest) {
 
     try {
       const amountCents = Math.round(amount * 100)
+      // The charge runs on the PM's own Stripe account, which can't see
+      // cards saved on Prophandld's account. Stripe's way to reuse one is to
+      // copy it to the connected account first and charge the copy; charging
+      // the platform card/customer directly there fails with "No such customer".
+      const cloned = await stripe.paymentMethods.create(
+        { customer: owner.stripe_customer_id, payment_method: owner.default_payment_method_id },
+        { stripeAccount: pmAdmin.stripe_connect_account_id }
+      )
       const paymentIntent = await stripe.paymentIntents.create(
         {
           amount: amountCents,
           currency: 'usd',
-          customer: owner.stripe_customer_id || undefined,
-          payment_method: owner.default_payment_method_id,
+          payment_method: cloned.id,
           off_session: true,
           confirm: true,
           payment_method_types: ['card'],
@@ -132,7 +141,8 @@ export async function GET(request: NextRequest) {
             prophandld_base_amount: amount.toFixed(2),
           },
         },
-        { stripeAccount: pmAdmin.stripe_connect_account_id }
+        // One charge per portfolio per month, even if this run is retried.
+        { stripeAccount: pmAdmin.stripe_connect_account_id, idempotencyKey: `pm-fee-${portfolio.id}-${monthKey}` }
       )
 
       if (paymentIntent.status === 'succeeded') {

@@ -184,7 +184,7 @@ function PaidAiAssistCard() {
       )}
 
       {monthlyPrice !== null && !isOn && (
-        <p className="text-white/40 text-xs mb-4">${monthlyPrice % 1 === 0 ? monthlyPrice.toFixed(0) : monthlyPrice.toFixed(2)}/month after your trial, cancel anytime before then</p>
+        <p className="text-white/40 text-xs mb-4">{t('aiAssistPriceAfterTrial', lang).replace('{price}', `$${monthlyPrice % 1 === 0 ? monthlyPrice.toFixed(0) : monthlyPrice.toFixed(2)}`)}</p>
       )}
 
       {cancelAtPeriodEnd && periodEndLabel && (
