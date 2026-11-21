@@ -233,7 +233,7 @@ export async function GET(request: NextRequest) {
       )
     }
     if (bid.contractor_user_id) {
-      await sendPush(bid.contractor_user_id, buildPushMessage('job_completed', 'contractor', info)).catch((err) =>
+      await sendPush(bid.contractor_user_id, buildPushMessage('job_completed', 'contractor', info, langOf(contractor))).catch((err) =>
         console.error('cron/job-auto-approve: contractor push failed', { jobId: job.id, err })
       )
     }
@@ -244,7 +244,7 @@ export async function GET(request: NextRequest) {
       )
     }
     if (renterId) {
-      await sendPush(renterId, buildPushMessage('job_completed', 'renter', info)).catch((err) =>
+      await sendPush(renterId, buildPushMessage('job_completed', 'renter', info, langOf(renter))).catch((err) =>
         console.error('cron/job-auto-approve: renter push failed', { jobId: job.id, err })
       )
     }

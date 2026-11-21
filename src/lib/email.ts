@@ -2,6 +2,7 @@ import { Resend } from 'resend'
 import { isPreviewDeployment } from '@/lib/env'
 import { SITE_URL } from '@/lib/site'
 import { getAdminEmails } from '@/lib/adminAccess'
+import { categoryName } from '@/lib/categoryTaxonomy'
 
 // Deliberately not imported from '@/lib/i18n' — that file is a 'use client'
 // module (React hooks for the UI's live language switch), and this one runs
@@ -1592,8 +1593,80 @@ function pushCopy(type: NotifyType, role: NotifyRole, rawInfo: NotifyJobInfo): {
   }
 }
 
-export function buildPushMessage(type: NotifyType, role: NotifyRole, info: NotifyJobInfo) {
-  const { title, body } = pushCopy(type, role, info)
+// Spanish push text, same cases as pushCopy. Text messages stay English:
+// their wording is what carriers approved for the SMS campaign.
+function pushCopyEs(type: NotifyType, role: NotifyRole, rawInfo: NotifyJobInfo): { title: string; body: string } {
+  const info = forRole(role, rawInfo)
+  const cat = categoryName(info.category, 'es')
+  const where = jobLocation(info)
+  const who = info.contractorName || 'El contratista'
+  const urgent = info.isEmergency ? 'Emergencia: ' : ''
+  switch (type) {
+    case 'job_open':
+      return { title: `${urgent}Nuevo trabajo cerca de ti: ${cat}`, body: `${info.city || where}. Las ofertas son selladas. Toca para ver y ofertar.` }
+    case 'job_reported':
+      return { title: `${urgent}Nuevo problema reportado: ${cat}`, body: `${where}. Toca para confirmar.` }
+    case 'bid_received':
+      return {
+        title: info.amount != null ? `Nueva oferta: ${money(info.amount)} para ${cat}` : `Nueva oferta para tu trabajo de ${cat}`,
+        body: `${info.contractorName ? `${info.contractorName} · ` : ''}${where}.`,
+      }
+    case 'contractor_selected':
+      return { title: `Te eligieron para el trabajo: ${cat}`, body: `${where}. Toca para fijar una hora.` }
+    case 'schedule_proposed':
+      return {
+        title: info.isLateReschedule
+          ? `Urgente: cambio de hora de último momento${info.when ? ` · ${info.when}` : ''}`
+          : info.when ? `Hora propuesta: ${info.when}` : 'Nueva hora propuesta',
+        body: info.isLateReschedule
+          ? `${cat} · ${where}. Es muy pronto; revísalo lo antes posible.`
+          : `${cat} · ${where}. Toca para confirmar o proponer otra.`,
+      }
+    case 'schedule_confirmed':
+      return {
+        title: info.isLateReschedule
+          ? `Urgente: confirmado para${info.when ? ` ${info.when}` : ' una nueva hora'}, muy pronto`
+          : info.when ? `Confirmado: ${info.when}` : 'Visita confirmada',
+        body: `${cat} · ${where}.`,
+      }
+    case 'job_started':
+      return { title: `${who} comenzó el trabajo: ${cat}`, body: `${where}.` }
+    case 'job_pending_review':
+      return role === 'renter'
+        ? { title: `${who} terminó el trabajo: ${cat}`, body: `${where}. Tu arrendador lo revisará pronto.` }
+        : { title: `${who} terminó el trabajo: ${cat}`, body: `${where}. Revísalo y apruébalo. Se aprueba solo en 3 días.` }
+    case 'job_completed': {
+      const paid = info.paymentStatus === 'paid'
+      return {
+        title: role === 'contractor' ? `Trabajo aprobado: ${cat}` : `Reparación cerrada: ${cat}`,
+        body: role === 'contractor' ? (paid ? `${where}. Pagado; tu recibo está en Ganancias.` : `${where}. El pago está en camino.`) : `${where}. Todo listo.`,
+      }
+    }
+    case 'job_declined':
+      return { title: `Reporte rechazado: ${cat}`, body: `${where}. Toca para ver por qué.` }
+    case 'price_change_requested':
+      return {
+        title: info.amount != null && info.requestedAmount != null ? `Cambio de precio: ${money(info.amount)} a ${money(info.requestedAmount)}` : 'Se pidió un cambio de precio',
+        body: `${cat} · ${where}. Toca para aprobar o rechazar.`,
+      }
+    case 'price_change_approved':
+      return { title: 'Cambio de precio aprobado', body: `${cat} · ${where}. Continúa y márcalo como terminado al acabar.` }
+    case 'price_change_rejected':
+      return { title: 'Cambio de precio rechazado', body: `${cat} · ${where}. Se mantiene el precio original.` }
+    case 'clarification_requested':
+      return { title: 'El arrendador tiene una pregunta', body: `${cat} · ${where}. Toca para responder.` }
+    case 'clarification_responded':
+      return { title: `${who} respondió`, body: `${cat} · ${where}.` }
+    case 'contractor_cancelled':
+      return {
+        title: 'El contratista canceló',
+        body: role === 'landlord' ? `${cat} · ${where}. Abierto de nuevo para ofertas.` : `${cat} · ${where}. El arrendador está buscando un reemplazo.`,
+      }
+  }
+}
+
+export function buildPushMessage(type: NotifyType, role: NotifyRole, info: NotifyJobInfo, lang: Lang = 'en') {
+  const { title, body } = lang === 'es' ? pushCopyEs(type, role, info) : pushCopy(type, role, info)
   return {
     title,
     body,

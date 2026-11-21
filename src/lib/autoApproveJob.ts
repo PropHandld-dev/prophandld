@@ -36,11 +36,15 @@ const langOf = (u: { preferred_language?: string | null } | null | undefined): L
 export async function autoApproveJobIfStale(admin: SupabaseClient, jobId: string): Promise<{ approved: boolean }> {
   const { data: job } = await admin
     .from('jobs')
-    .select('id, category, is_emergency, unit_id, contractor_completed_at, status, units(properties(address, city, owner_user_id))')
+    .select('id, category, is_emergency, unit_id, contractor_completed_at, status, clarification_note, clarification_response, units(properties(address, city, owner_user_id))')
     .eq('id', jobId)
     .maybeSingle()
 
   if (!job || job.status !== 'pending_review' || !job.contractor_completed_at) return { approved: false }
+  // An unanswered clarification question pauses the clock, same rule as the
+  // nightly cron. This page-load path used to skip that check, so opening
+  // the job page could auto-approve work the landlord still had a question about.
+  if (job.clarification_note && !job.clarification_response) return { approved: false }
   if (Date.now() - new Date(job.contractor_completed_at).getTime() < AUTO_APPROVE_AFTER_MS) return { approved: false }
 
   const { data: updated, error: updateError } = await admin
@@ -132,7 +136,7 @@ export async function autoApproveJobIfStale(admin: SupabaseClient, jobId: string
     )
   }
   if (bid?.contractor_user_id) {
-    await sendPush(bid.contractor_user_id, buildPushMessage('job_completed', 'contractor', info)).catch((err) =>
+    await sendPush(bid.contractor_user_id, buildPushMessage('job_completed', 'contractor', info, langOf(contractor))).catch((err) =>
       console.error('autoApproveJobIfStale: contractor push failed', { jobId, err })
     )
   }
@@ -143,7 +147,7 @@ export async function autoApproveJobIfStale(admin: SupabaseClient, jobId: string
     )
   }
   if (tenancy?.renter_user_id) {
-    await sendPush(tenancy.renter_user_id, buildPushMessage('job_completed', 'renter', info)).catch((err) =>
+    await sendPush(tenancy.renter_user_id, buildPushMessage('job_completed', 'renter', info, langOf(renter))).catch((err) =>
       console.error('autoApproveJobIfStale: renter push failed', { jobId, err })
     )
   }

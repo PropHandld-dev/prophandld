@@ -4,22 +4,27 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { buildLeaseSections, type LeaseInputs, type LeaseClause, type LeaseFlag } from '@/lib/paLease'
+import { useLanguage, t } from '@/lib/i18n'
+import { useConfirm } from '@/lib/useConfirm'
 
 type Result = { id: string; inputs: LeaseInputs; extraClauses: LeaseClause[]; flags: LeaseFlag[]; createdAt: string }
 
-const UTILS: { key: keyof LeaseInputs['utilities']; label: string }[] = [
-  { key: 'electric', label: 'Electric' },
-  { key: 'gas', label: 'Gas' },
-  { key: 'water', label: 'Water' },
-  { key: 'sewer', label: 'Sewer' },
-  { key: 'trash', label: 'Trash' },
-  { key: 'internet', label: 'Internet' },
+const UTILS: { key: keyof LeaseInputs['utilities']; label: Parameters<typeof t>[0] }[] = [
+  { key: 'electric', label: 'lsElectric' },
+  { key: 'gas', label: 'lsGas' },
+  { key: 'water', label: 'lsWater' },
+  { key: 'sewer', label: 'lsSewer' },
+  { key: 'trash', label: 'lsTrash' },
+  { key: 'internet', label: 'lsInternet' },
 ]
 
 export default function LeaseBuilderPage() {
   const params = useParams()
   const propertyId = params.id as string
   const unitId = params.unitId as string
+  const lang = useLanguage()
+  const { confirm, ConfirmDialog } = useConfirm()
+  const locale = lang === 'es' ? 'es-US' : 'en-US'
   const [inputs, setInputs] = useState<LeaseInputs | null>(null)
   const [result, setResult] = useState<Result | null>(null)
   const [latest, setLatest] = useState<Result | null>(null)
@@ -31,13 +36,13 @@ export default function LeaseBuilderPage() {
     fetch(`/api/leases?unitId=${unitId}`)
       .then(async (r) => {
         const d = await r.json().catch(() => ({}))
-        if (!r.ok) throw new Error(d.error || 'Could not load')
+        if (!r.ok) throw new Error(d.error || t('lsLoadFailed', lang))
         setInputs(d.prefill)
         setLatest(d.latest)
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
-  }, [unitId])
+  }, [unitId, lang])
 
   const set = <K extends keyof LeaseInputs>(k: K, v: LeaseInputs[K]) => setInputs((p) => (p ? { ...p, [k]: v } : p))
 
@@ -49,7 +54,7 @@ export default function LeaseBuilderPage() {
     const d = res ? await res.json().catch(() => ({})) : {}
     setGenerating(false)
     if (!res?.ok) {
-      setError(d.error || 'Could not create the lease.')
+      setError(d.error || t('lsCreateFailed', lang))
       return
     }
     setResult(d)
@@ -66,25 +71,26 @@ export default function LeaseBuilderPage() {
     return (
       <div className="min-h-screen bg-[#0C1A2E] print:bg-white">
         <nav className="border-b border-white/8 px-5 py-4 flex items-center justify-between print:hidden">
-          <button onClick={() => setResult(null)} className="text-white/50 hover:text-white text-sm">← Edit details</button>
-          <span className="text-white font-semibold text-sm">Lease</span>
-          <button onClick={() => window.print()} className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-4 py-2 rounded-xl">Print / Save PDF</button>
+          <button onClick={() => setResult(null)} className="text-white/50 hover:text-white text-sm">{t('lsEditDetails', lang)}</button>
+          <span className="text-white font-semibold text-sm">{t('lsLease', lang)}</span>
+          <button onClick={() => window.print()} className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold px-4 py-2 rounded-xl">{t('lsPrint', lang)}</button>
         </nav>
         <main className="max-w-3xl mx-auto px-4 sm:px-6 py-8 print:p-0 print:max-w-none">
           <div className="print:hidden space-y-3 mb-6">
             <div className="rounded-2xl border border-yellow-500/30 bg-yellow-500/8 p-4">
-              <p className="text-yellow-400 font-semibold text-sm">Have a Pennsylvania attorney review this before anyone signs.</p>
-              <p className="text-white/60 text-xs mt-1 leading-relaxed">This draft is built from a Pennsylvania template and your details. It is not legal advice, and local rules (especially in Philadelphia) change. Prophandld is not a law firm.</p>
+              <p className="text-yellow-400 font-semibold text-sm">{t('lsReviewTitle', lang)}</p>
+              <p className="text-white/60 text-xs mt-1 leading-relaxed">{t('lsReviewBody', lang)}</p>
+              {lang === 'es' && <p className="text-white/60 text-xs mt-1 leading-relaxed">{t('lsEnglishNote', lang)}</p>}
             </div>
             {warnings.length > 0 && (
               <div className="rounded-2xl border border-red-500/30 bg-red-500/8 p-4">
-                <p className="text-red-400 font-semibold text-sm mb-1.5">Fix before using</p>
+                <p className="text-red-400 font-semibold text-sm mb-1.5">{t('lsFixBefore', lang)}</p>
                 <ul className="space-y-1.5">{warnings.map((f, i) => <li key={i} className="text-white/75 text-sm">• {f.message}</li>)}</ul>
               </div>
             )}
             {infos.length > 0 && (
               <div className="rounded-2xl border border-white/10 bg-white/4 p-4">
-                <p className="text-white font-semibold text-sm mb-1.5">Checklist for signing</p>
+                <p className="text-white font-semibold text-sm mb-1.5">{t('lsChecklist', lang)}</p>
                 <ul className="space-y-1.5">{infos.map((f, i) => <li key={i} className="text-white/65 text-sm">• {f.message}</li>)}</ul>
               </div>
             )}
@@ -115,20 +121,21 @@ export default function LeaseBuilderPage() {
             </div>
           </article>
           <p className="print:hidden text-white/35 text-xs mt-4 text-center">
-            Draft saved {new Date(result.createdAt).toLocaleString()}. Once signed, upload the signed copy to this property&apos;s Documents.{' '}
+            {t('lsSavedNote', lang).replace('{when}', new Date(result.createdAt).toLocaleString(locale))}{' '}
             <button
               onClick={async () => {
-                if (!window.confirm('Delete this draft?')) return
+                if (!(await confirm({ body: t('lsDeleteConfirm', lang), confirmLabel: t('delete', lang), danger: true }))) return
                 await fetch(`/api/leases/${result.id}`, { method: 'DELETE' }).catch(() => null)
                 setLatest(null)
                 setResult(null)
               }}
               className="text-red-400/70 hover:text-red-400 font-semibold"
             >
-              Delete draft
+              {t('lsDeleteDraft', lang)}
             </button>
           </p>
         </main>
+        {ConfirmDialog}
       </div>
     )
   }
@@ -136,19 +143,19 @@ export default function LeaseBuilderPage() {
   return (
     <div className="min-h-screen bg-[#0C1A2E] pb-16">
       <nav className="border-b border-white/8 px-5 py-4 flex items-center justify-between">
-        <Link href={`/landlord/properties/${propertyId}/units/${unitId}`} className="text-white/50 hover:text-white text-sm">← Unit</Link>
-        <span className="text-white font-semibold text-sm">Create a lease</span>
+        <Link href={`/landlord/properties/${propertyId}/units/${unitId}`} className="text-white/50 hover:text-white text-sm">{t('lsBackUnit', lang)}</Link>
+        <span className="text-white font-semibold text-sm">{t('lsCreateTitle', lang)}</span>
         <span className="w-12" />
       </nav>
       <main className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
-        <p className="text-[#12A5A9] text-xs font-semibold uppercase tracking-[0.18em]">Pennsylvania lease · AI assisted</p>
-        <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight mt-1">Check the details, then create</h1>
-        <p className="text-white/55 text-sm mt-1.5">We filled in what we already know. Anything you write in "Anything else" becomes clear lease terms.</p>
+        <p className="text-[#12A5A9] text-xs font-semibold uppercase tracking-[0.18em]">{t('lsEyebrow', lang)}</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight mt-1">{t('lsHeading', lang)}</h1>
+        <p className="text-white/55 text-sm mt-1.5">{t('lsIntro', lang)}</p>
 
         {latest && (
           <button onClick={() => setResult(latest)} className="mt-4 w-full text-left rounded-2xl border border-white/10 bg-white/4 px-4 py-3 hover:bg-white/6">
-            <p className="text-white text-sm font-semibold">Open your last draft</p>
-            <p className="text-white/45 text-xs">Created {new Date(latest.createdAt).toLocaleDateString()}</p>
+            <p className="text-white text-sm font-semibold">{t('lsOpenLast', lang)}</p>
+            <p className="text-white/45 text-xs">{t('lsCreatedOn', lang).replace('{date}', new Date(latest.createdAt).toLocaleDateString(locale))}</p>
           </button>
         )}
 
@@ -158,34 +165,34 @@ export default function LeaseBuilderPage() {
         {inputs && (
           <div className="space-y-5 mt-6">
             <fieldset className="rounded-2xl border border-white/8 bg-white/3 p-4 sm:p-5 space-y-3">
-              <legend className="px-1 text-white font-semibold text-sm">People</legend>
+              <legend className="px-1 text-white font-semibold text-sm">{t('lsPeople', lang)}</legend>
               <div>
-                <label className={label} htmlFor="ll">Landlord (owner)</label>
+                <label className={label} htmlFor="ll">{t('lsLandlord', lang)}</label>
                 <input id="ll" value={inputs.landlordName} onChange={(e) => set('landlordName', e.target.value)} className={input} />
               </div>
               {inputs.agentName !== null && (
                 <div>
-                  <label className={label} htmlFor="agent">Managing agent</label>
+                  <label className={label} htmlFor="agent">{t('lsAgent', lang)}</label>
                   <input id="agent" value={inputs.agentName || ''} onChange={(e) => set('agentName', e.target.value)} className={input} />
                 </div>
               )}
               <div>
-                <label className={label} htmlFor="tenants">Tenant names (one per line)</label>
-                <textarea id="tenants" rows={2} value={inputs.tenantNames.join('\n')} onChange={(e) => set('tenantNames', e.target.value.split('\n'))} className={input} placeholder="Full legal name" />
+                <label className={label} htmlFor="tenants">{t('lsTenantNames', lang)}</label>
+                <textarea id="tenants" rows={2} value={inputs.tenantNames.join('\n')} onChange={(e) => set('tenantNames', e.target.value.split('\n'))} className={input} placeholder={t('lsFullLegalName', lang)} />
               </div>
               <div>
-                <label className={label} htmlFor="occ">Other occupants (optional)</label>
-                <input id="occ" value={inputs.occupants} onChange={(e) => set('occupants', e.target.value)} className={input} placeholder="e.g. Maya (child)" />
+                <label className={label} htmlFor="occ">{t('lsOccupants', lang)}</label>
+                <input id="occ" value={inputs.occupants} onChange={(e) => set('occupants', e.target.value)} className={input} placeholder={t('lsOccupantsPh', lang)} />
               </div>
             </fieldset>
 
             <fieldset className="rounded-2xl border border-white/8 bg-white/3 p-4 sm:p-5 space-y-3">
-              <legend className="px-1 text-white font-semibold text-sm">Term and money</legend>
+              <legend className="px-1 text-white font-semibold text-sm">{t('lsTermMoney', lang)}</legend>
               <p className="text-white/45 text-xs">{inputs.address}{inputs.unitLabel ? `, ${inputs.unitLabel}` : ''}, {inputs.city}</p>
               <div className="grid grid-cols-2 gap-3">
-                <div><label className={label} htmlFor="sd">Start date</label><input id="sd" type="date" value={inputs.startDate} onChange={(e) => set('startDate', e.target.value)} className={input} /></div>
+                <div><label className={label} htmlFor="sd">{t('lsStart', lang)}</label><input id="sd" type="date" value={inputs.startDate} onChange={(e) => set('startDate', e.target.value)} className={input} /></div>
                 <div>
-                  <label className={label} htmlFor="ed">End date</label>
+                  <label className={label} htmlFor="ed">{t('lsEnd', lang)}</label>
                   <input id="ed" type="date" value={inputs.endDate || ''} disabled={!inputs.endDate} onChange={(e) => set('endDate', e.target.value)} className={`${input} disabled:opacity-40`} />
                 </div>
               </div>
@@ -194,67 +201,67 @@ export default function LeaseBuilderPage() {
                   if (e.target.checked) set('endDate', null)
                   else { const d = new Date(inputs.startDate + 'T00:00:00'); d.setFullYear(d.getFullYear() + 1); d.setDate(d.getDate() - 1); set('endDate', d.toLocaleDateString('en-CA')) }
                 }} className="accent-[#12A5A9]" />
-                Month to month
+                {t('lsMonthToMonth', lang)}
               </label>
               <div className="grid grid-cols-3 gap-3">
-                <div><label className={label} htmlFor="rent">Rent / month</label><input id="rent" type="number" inputMode="decimal" value={inputs.rent || ''} onChange={(e) => set('rent', Number(e.target.value))} className={input} /></div>
-                <div><label className={label} htmlFor="due">Due day</label><input id="due" type="number" min={1} max={28} value={inputs.dueDay} onChange={(e) => set('dueDay', Number(e.target.value))} className={input} /></div>
-                <div><label className={label} htmlFor="dep">Deposit</label><input id="dep" type="number" inputMode="decimal" value={inputs.deposit || ''} onChange={(e) => set('deposit', Number(e.target.value))} className={input} /></div>
+                <div><label className={label} htmlFor="rent">{t('lsRent', lang)}</label><input id="rent" type="number" inputMode="decimal" value={inputs.rent || ''} onChange={(e) => set('rent', Number(e.target.value))} className={input} /></div>
+                <div><label className={label} htmlFor="due">{t('lsDueDay', lang)}</label><input id="due" type="number" min={1} max={28} value={inputs.dueDay} onChange={(e) => set('dueDay', Number(e.target.value))} className={input} /></div>
+                <div><label className={label} htmlFor="dep">{t('lsDeposit', lang)}</label><input id="dep" type="number" inputMode="decimal" value={inputs.deposit || ''} onChange={(e) => set('deposit', Number(e.target.value))} className={input} /></div>
               </div>
               <div className="grid grid-cols-3 gap-3">
-                <div><label className={label} htmlFor="lf">Late fee</label><input id="lf" type="number" inputMode="decimal" value={inputs.lateFee || ''} onChange={(e) => set('lateFee', Number(e.target.value))} className={input} placeholder="0" /></div>
-                <div><label className={label} htmlFor="gr">Grace days</label><input id="gr" type="number" min={0} max={30} value={inputs.graceDays} onChange={(e) => set('graceDays', Number(e.target.value))} className={input} /></div>
-                <div><label className={label} htmlFor="nv">Notice to leave</label><input id="nv" type="number" min={15} max={120} value={inputs.noticeToVacateDays} onChange={(e) => set('noticeToVacateDays', Number(e.target.value))} className={input} /></div>
+                <div><label className={label} htmlFor="lf">{t('lsLateFee', lang)}</label><input id="lf" type="number" inputMode="decimal" value={inputs.lateFee || ''} onChange={(e) => set('lateFee', Number(e.target.value))} className={input} placeholder="0" /></div>
+                <div><label className={label} htmlFor="gr">{t('lsGrace', lang)}</label><input id="gr" type="number" min={0} max={30} value={inputs.graceDays} onChange={(e) => set('graceDays', Number(e.target.value))} className={input} /></div>
+                <div><label className={label} htmlFor="nv">{t('lsNotice', lang)}</label><input id="nv" type="number" min={15} max={120} value={inputs.noticeToVacateDays} onChange={(e) => set('noticeToVacateDays', Number(e.target.value))} className={input} /></div>
               </div>
             </fieldset>
 
             <fieldset className="rounded-2xl border border-white/8 bg-white/3 p-4 sm:p-5 space-y-4">
-              <legend className="px-1 text-white font-semibold text-sm">Home rules</legend>
+              <legend className="px-1 text-white font-semibold text-sm">{t('lsHomeRules', lang)}</legend>
               <div>
-                <p className={label}>Who pays utilities? Tap to switch.</p>
+                <p className={label}>{t('lsUtilities', lang)}</p>
                 <div className="grid grid-cols-3 gap-2">
                   {UTILS.map((u) => {
                     const v = inputs.utilities[u.key]
                     return (
                       <button key={u.key} type="button" onClick={() => set('utilities', { ...inputs.utilities, [u.key]: v === 'tenant' ? 'landlord' : 'tenant' })} className={`rounded-xl border px-2 py-2.5 text-left ${v === 'tenant' ? 'border-white/12 bg-white/4' : 'border-[#12A5A9]/40 bg-[#12A5A9]/10'}`}>
-                        <span className="block text-white text-sm font-medium">{u.label}</span>
-                        <span className="block text-white/50 text-[11px]">{v === 'tenant' ? 'Tenant pays' : 'Landlord pays'}</span>
+                        <span className="block text-white text-sm font-medium">{t(u.label, lang)}</span>
+                        <span className="block text-white/50 text-[11px]">{v === 'tenant' ? t('lsTenantPays', lang) : t('lsLandlordPays', lang)}</span>
                       </button>
                     )
                   })}
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-1 bg-white/4 rounded-xl p-1" role="radiogroup" aria-label="Pets">
-                {([['none', 'No pets'], ['with_approval', 'With approval'], ['allowed', 'Pets OK']] as const).map(([k, l]) => (
+              <div className="grid grid-cols-3 gap-1 bg-white/4 rounded-xl p-1" role="radiogroup" aria-label={t('lsPets', lang)}>
+                {([['none', t('lsNoPets', lang)], ['with_approval', t('lsWithApproval', lang)], ['allowed', t('lsPetsOk', lang)]] as const).map(([k, l]) => (
                   <button key={k} type="button" role="radio" aria-checked={inputs.pets === k} onClick={() => set('pets', k)} className={`py-2 rounded-lg text-xs font-semibold ${inputs.pets === k ? 'bg-[#12A5A9] text-white' : 'text-white/60'}`}>{l}</button>
                 ))}
               </div>
               {inputs.pets !== 'none' && (
-                <div className="w-1/2"><label className={label} htmlFor="pd">Pet deposit (optional)</label><input id="pd" type="number" value={inputs.petDeposit || ''} onChange={(e) => set('petDeposit', Number(e.target.value))} className={input} placeholder="0" /></div>
+                <div className="w-1/2"><label className={label} htmlFor="pd">{t('lsPetDeposit', lang)}</label><input id="pd" type="number" value={inputs.petDeposit || ''} onChange={(e) => set('petDeposit', Number(e.target.value))} className={input} placeholder="0" /></div>
               )}
-              <label className="flex items-center gap-2 text-white/70 text-sm"><input type="checkbox" checked={inputs.smoking} onChange={(e) => set('smoking', e.target.checked)} className="accent-[#12A5A9]" /> Smoking allowed outside</label>
-              <div><label className={label} htmlFor="pk">Parking (optional)</label><input id="pk" value={inputs.parking} onChange={(e) => set('parking', e.target.value)} className={input} placeholder="e.g. One off-street space" /></div>
+              <label className="flex items-center gap-2 text-white/70 text-sm"><input type="checkbox" checked={inputs.smoking} onChange={(e) => set('smoking', e.target.checked)} className="accent-[#12A5A9]" /> {t('lsSmoking', lang)}</label>
+              <div><label className={label} htmlFor="pk">{t('lsParking', lang)}</label><input id="pk" value={inputs.parking} onChange={(e) => set('parking', e.target.value)} className={input} placeholder={t('lsParkingPh', lang)} /></div>
               <div>
-                <p className={label}>Was the home built before 1978?</p>
+                <p className={label}>{t('lsPre1978', lang)}</p>
                 <div className="grid grid-cols-3 gap-1 bg-white/4 rounded-xl p-1">
-                  {([['yes', 'Yes'], ['no', 'No'], ['unknown', 'Not sure']] as const).map(([k, l]) => (
+                  {([['yes', t('lsYes', lang)], ['no', t('lsNo', lang)], ['unknown', t('lsNotSure', lang)]] as const).map(([k, l]) => (
                     <button key={k} type="button" onClick={() => set('builtBefore1978', k)} className={`py-2 rounded-lg text-xs font-semibold ${inputs.builtBefore1978 === k ? 'bg-[#12A5A9] text-white' : 'text-white/60'}`}>{l}</button>
                   ))}
                 </div>
               </div>
-              <label className="flex items-center gap-2 text-white/70 text-sm"><input type="checkbox" checked={inputs.inPhiladelphia} onChange={(e) => set('inPhiladelphia', e.target.checked)} className="accent-[#12A5A9]" /> Property is in Philadelphia</label>
+              <label className="flex items-center gap-2 text-white/70 text-sm"><input type="checkbox" checked={inputs.inPhiladelphia} onChange={(e) => set('inPhiladelphia', e.target.checked)} className="accent-[#12A5A9]" /> {t('lsInPhilly', lang)}</label>
             </fieldset>
 
             <fieldset className="rounded-2xl border border-[#12A5A9]/25 bg-[#12A5A9]/5 p-4 sm:p-5">
-              <legend className="px-1 text-white font-semibold text-sm">✦ Anything else (AI writes it up)</legend>
-              <textarea rows={4} maxLength={2000} value={inputs.extraNotes} onChange={(e) => set('extraNotes', e.target.value)} className={input} placeholder="In your own words, e.g. Quiet hours after 10pm. Tenant shovels the front steps. No grills on the balcony. Tenant needs renters insurance." />
-              <p className="text-white/45 text-xs mt-2">AI turns these into clear clauses and flags anything that may not be allowed in Pennsylvania. Leave empty to skip.</p>
+              <legend className="px-1 text-white font-semibold text-sm">{t('lsAnythingElse', lang)}</legend>
+              <textarea rows={4} maxLength={2000} value={inputs.extraNotes} onChange={(e) => set('extraNotes', e.target.value)} className={input} placeholder={t('lsAnythingElsePh', lang)} />
+              <p className="text-white/45 text-xs mt-2">{t('lsAnythingElseHint', lang)}</p>
             </fieldset>
 
             <button onClick={generate} disabled={generating} className="w-full bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold py-3.5 rounded-2xl disabled:opacity-50">
-              {generating ? (inputs.extraNotes ? 'Writing your lease…' : 'Creating…') : 'Create lease'}
+              {generating ? (inputs.extraNotes ? t('lsWriting', lang) : t('lsCreating', lang)) : t('lsCreate', lang)}
             </button>
-            <p className="text-white/35 text-xs text-center">A draft to review with a Pennsylvania attorney. Not legal advice.</p>
+            <p className="text-white/35 text-xs text-center">{t('lsFooter', lang)}</p>
           </div>
         )}
       </main>

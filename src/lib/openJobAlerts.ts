@@ -83,7 +83,7 @@ export async function notifyMatchingContractors(admin: any, jobId: string, exclu
         const { subject, html } = buildNotificationEmail('job_open', 'contractor', info, lang)
         await sendEmail({ to: c.email, subject, html })
       }
-      await sendPush(c.id, buildPushMessage('job_open', 'contractor', info)).catch((err) =>
+      await sendPush(c.id, buildPushMessage('job_open', 'contractor', info, lang)).catch((err) =>
         console.error('openJobAlerts: push failed', { userId: c.id, err })
       )
       // Text messages cost money, so only genuine emergencies, and only for opted-in contractors.
