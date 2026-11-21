@@ -109,11 +109,8 @@ export function ContractorTermsContent() {
           upload anything illegal, harassing, or knowingly false.
         </p>
         <p>
-          During the current pilot you can use Prophandld AI, such as the in-app assistant and help
-          writing up a bid. What you type into those features is sent to a third-party AI service to
-          generate a response (see our{' '}
-          <Link href="/privacy" className="text-[#12A5A9] hover:underline">Privacy Policy</Link>).
-          Its answers are suggestions, not professional or legal advice.
+          Prophandld AI (the in-app assistant and other AI features) isn&apos;t available to
+          contractor accounts.
         </p>
       </section>
 

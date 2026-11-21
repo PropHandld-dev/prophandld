@@ -191,8 +191,8 @@ export default function TermsPage() {
             <h2>9. Prophandld AI (AI Assist)</h2>
             <p>
               Prophandld AI is our name for the AI features in the app. During the current pilot it&apos;s
-              included free for landlords and property managers, reaches their renters, and is also
-              available to contractors. Prophandld uses a third-party AI service (see our{' '}
+              included free for landlords and property managers and reaches their renters.
+              Contractors don&apos;t have access to it. Prophandld uses a third-party AI service (see our{' '}
               <Link href="/privacy" className="text-[#12A5A9] hover:underline">Privacy Policy</Link>)
               to do things like suggest a next troubleshooting step, read an uploaded document,
               answer a renter's question about their own lease, or draft a routine message.

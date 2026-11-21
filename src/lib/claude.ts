@@ -61,7 +61,7 @@ async function logUsage(track: UsageTrack, inputTokens: number, outputTokens: nu
 // Features whose output is prose read by the person who asked for it.
 // For a Spanish-speaking user these answer in Spanish. Left out on purpose:
 // features that already follow the conversation's language (help-chat,
-// translate, issue-intake, troubleshoot, polish-bid, pm-thread-draft,
+// translate, issue-intake, troubleshoot, pm-thread-draft,
 // smart-replies), the Pennsylvania lease text, and data extraction.
 const LOCALIZED_FEATURES = new Set([
   'records-insights', 'compare-bids', 'compliance-gap-check', 'compliance-renewal-guide', 'lease-qa',

@@ -13,7 +13,6 @@ import { WrenchIcon } from '@/components/icons'
 import { CONTRACTOR_TABS } from '@/lib/navTabs'
 import { useLanguage, t } from '@/lib/i18n'
 import { useConfirm } from '@/lib/useConfirm'
-import { PILOT_FREE } from '@/lib/pilot'
 import { MIN_JOB_TOTAL, hasCentPrecision } from '@/lib/bidRules'
 import { categoryName } from '@/lib/categoryTaxonomy'
 
@@ -576,9 +575,6 @@ export default function SubmitBidPage() {
                   placeholder={t('notesPlaceholder', lang)}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-[#12A5A9] transition resize-none"
                 />
-                {PILOT_FREE && form.notes.trim().length >= 5 && (
-                  <PolishNotesButton jobId={jobId} notes={form.notes} lang={lang} onDone={(text) => setForm((f) => ({ ...f, notes: text }))} />
-                )}
               </div>
 
               <div>
@@ -633,38 +629,6 @@ export default function SubmitBidPage() {
 
       <BottomTabBar tabs={CONTRACTOR_TABS} />
       {ConfirmDialog}
-    </div>
-  )
-}
-function PolishNotesButton({ jobId, notes, lang, onDone }: { jobId: string; notes: string; lang: string; onDone: (text: string) => void }) {
-  const [busy, setBusy] = useState(false)
-  const [previous, setPrevious] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const es = lang === 'es'
-  const run = async () => {
-    setBusy(true)
-    setError(null)
-    const res = await fetch('/api/ai-assist/polish-bid', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jobId, notes, lang }) }).catch(() => null)
-    const d = res ? await res.json().catch(() => ({})) : {}
-    setBusy(false)
-    if (!res?.ok || !d.text) {
-      setError(d.error || (es ? 'No se pudo.' : 'Could not polish that.'))
-      return
-    }
-    setPrevious(notes)
-    onDone(d.text)
-  }
-  return (
-    <div className="flex items-center gap-3 mt-2 flex-wrap">
-      <button type="button" onClick={run} disabled={busy} className="text-xs font-semibold text-[#12A5A9] bg-[#12A5A9]/10 border border-[#12A5A9]/25 rounded-full px-3 py-1.5 disabled:opacity-50">
-        {busy ? (es ? 'Mejorando…' : 'Polishing…') : es ? '✦ Redactar de forma profesional' : '✦ Write it up professionally'}
-      </button>
-      {previous && !busy && (
-        <button type="button" onClick={() => { onDone(previous); setPrevious(null) }} className="text-xs text-white/50 hover:text-white">
-          {es ? 'Deshacer' : 'Undo'}
-        </button>
-      )}
-      {error && <span className="text-red-400 text-xs">{error}</span>}
     </div>
   )
 }

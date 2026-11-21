@@ -4,8 +4,7 @@ import { PILOT_FREE } from '@/lib/pilot'
 
 // Who may use an AI feature, and whose account it's counted against.
 // Landlords and PMs: their own access. Tenants: their landlord's (that's
-// how Prophandld AI has always reached tenants). Contractors: only during
-// the free pilot, since nobody pays for their access otherwise.
+// how Prophandld AI has always reached tenants). Contractors: never.
 export async function aiAccessFor(admin: SupabaseClient, user: { id: string; app_metadata?: Record<string, any> }): Promise<{ allowed: boolean; billedUserId: string | null }> {
   if (!AI_ASSIST_ENABLED) return { allowed: false, billedUserId: null }
   const role = user.app_metadata?.role
@@ -14,7 +13,8 @@ export async function aiAccessFor(admin: SupabaseClient, user: { id: string; app
     if (!landlordId) return { allowed: PILOT_FREE, billedUserId: null }
     return { allowed: await hasAiAssistAccess(admin, landlordId), billedUserId: landlordId }
   }
-  if (role === 'contractor') return { allowed: PILOT_FREE, billedUserId: null }
+  // Contractors don't get Prophandld AI (decided 2026-11-20).
+  if (role === 'contractor') return { allowed: false, billedUserId: null }
   return { allowed: await hasAiAssistAccess(admin, user.id), billedUserId: user.id }
 }
 
