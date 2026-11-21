@@ -130,8 +130,12 @@ async function portfolioFacts(
   let yearToDate: Record<string, number> | null = null
   if (includeFinancials) {
     const yearStart = `${todayKey.slice(0, 4)}-01-01`
+    // Every lease on these units this year, ended ones included (same as
+    // the Records page); counting only current leases missed most rent.
+    const { data: allTenancies } = unitIds.length ? await admin.from('tenancies').select('id').in('unit_id', unitIds) : { data: [] as any[] }
+    const allTenancyIds = (allTenancies || []).map((t: any) => t.id)
     const [rentYtd, bidsYtd, feesYtd, ledgerYtd] = await Promise.all([
-      tenancyIds.length ? admin.from('rent_payments').select('actual_amount').in('tenancy_id', tenancyIds).gte('paid_date', yearStart).gt('actual_amount', 0) : none,
+      allTenancyIds.length ? admin.from('rent_payments').select('actual_amount').in('tenancy_id', allTenancyIds).gte('paid_date', yearStart).gt('actual_amount', 0) : none,
       unitIds.length ? admin.from('bids').select('amount, jobs!inner(unit_id)').in('jobs.unit_id', unitIds).eq('payment_status', 'paid').gte('paid_at', yearStart) : none,
       admin.from('pm_fee_payments').select('amount').in('owner_user_id', landlordIds).eq('status', 'paid').gte('paid_at', yearStart),
       admin.from('ledger_entries').select('direction, amount, category').in('owner_user_id', landlordIds).gte('entry_date', yearStart),
