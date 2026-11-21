@@ -1512,7 +1512,7 @@ const STRINGS = {
   rehireMessageBtn: { en: 'Message them', es: 'Enviarle mensaje' },
   aiAppliancePhotoCta: { en: 'Fill in from a photo of the nameplate', es: 'Completar con una foto de la placa' },
   aiAppliancePhotoHint: { en: 'AI reads the brand, model, and install date off the photo.', es: 'La IA lee la marca, el modelo y la fecha de instalación de la foto.' },
-  aiHelpChatIntro: { en: 'Ask anything about using Prophandld.', es: 'Pregunta lo que sea sobre cómo usar Prophandld.' },
+  aiHelpChatIntro: { en: 'Ask me anything: your rent, repairs, leases, or renting in general. I can see your own account.', es: 'Pregúntame lo que quieras: tu renta, reparaciones, contratos o alquileres en general. Puedo ver tu propia cuenta.' },
   aiHelpChatNotSavedNote: { en: 'Nothing here is saved. Screenshot if you want a record of it.', es: 'Nada aquí se guarda. Toma una captura de pantalla si quieres un registro.' },
   aiHelpEndConversationBtn: { en: 'End conversation', es: 'Terminar conversación' },
   aiHelpEndConfirm: { en: 'End it? This clears the chat for good.', es: '¿Terminar? Esto borra el chat para siempre.' },
