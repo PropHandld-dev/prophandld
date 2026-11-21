@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { getAccountRole } from '@/lib/accountRole'
 import { MagneticLink } from '@/components/MagneticLink'
 import { ScrollReveal } from '@/components/ScrollReveal'
+import { ApprovalStory } from '@/components/ApprovalStory'
 import { Logo } from '@/components/Logo'
 import { BrandLink } from '@/components/BrandLink'
 import { BuildingIcon, ShieldIcon, DollarSignIcon, WrenchIcon, CheckCircleIcon, ClipboardListIcon } from '@/components/icons'
@@ -106,6 +107,23 @@ export default function PropertyManagersLandingPage() {
             Sign in
           </Link>
         </div>
+        <a href="#demo" className="inline-flex items-center gap-1.5 mt-8 text-sm text-white/50 hover:text-white transition">
+          Watch one approval, start to finish <span aria-hidden="true">↓</span>
+        </a>
+      </section>
+
+      {/* One approval, three views: the PM pitch shown, not told. */}
+      <section id="demo" className="max-w-6xl mx-auto px-6 pb-20 scroll-mt-20">
+        <ScrollReveal>
+          <div className="text-center mb-10">
+            <p className="text-[#12A5A9] text-xs font-semibold uppercase tracking-[0.16em] mb-3">See it work</p>
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-3 text-balance">One approval. Three people. No phone tag.</h2>
+            <p className="text-white/50 max-w-2xl mx-auto">
+              An $850 quote is over the owner&apos;s $500 limit. Watch it go from bid to owner sign-off to payment and the monthly statement, from each person&apos;s screen.
+            </p>
+          </div>
+          <ApprovalStory />
+        </ScrollReveal>
       </section>
 
       {/* Why */}

@@ -11,17 +11,19 @@ import { CheckCircleIcon, LockIcon, WrenchIcon, HomeIcon, BuildingIcon, Calendar
 // anything, and never under prefers-reduced-motion. On a phone, one view
 // shows at a time with a switcher, so nothing is squeezed.
 
+export type StoryStep = { key: string; label: string; time: string }
+export type StoryView = { key: string; who: string; name: string; icon: typeof HomeIcon }
 type View = 'tenant' | 'landlord' | 'contractor'
 
-const STEPS = [
+const STEPS: readonly StoryStep[] = [
   { key: 'report', label: 'Reported', time: 'Mon 8:12 AM' },
   { key: 'bids', label: 'Sealed bids', time: 'Mon 9:40 AM' },
   { key: 'schedule', label: 'Scheduled', time: 'Mon 2:05 PM' },
   { key: 'fixed', label: 'Fixed', time: 'Wed 11:20 AM' },
   { key: 'paid', label: 'Paid', time: 'Wed 6:02 PM' },
-] as const
+]
 
-const VIEWS: { key: View; who: string; name: string; icon: typeof HomeIcon }[] = [
+const VIEWS: StoryView[] = [
   { key: 'tenant', who: 'Tenant', name: 'Maria · Unit 2', icon: HomeIcon },
   { key: 'landlord', who: 'Landlord', name: 'Dana · 123 Oak St', icon: BuildingIcon },
   { key: 'contractor', who: 'Contractor', name: "Ray's Plumbing", icon: WrenchIcon },
@@ -30,8 +32,27 @@ const VIEWS: { key: View; who: string; name: string; icon: typeof HomeIcon }[] =
 const STEP_MS = 4200
 
 export function RepairStory() {
+  return <StoryDemo steps={STEPS} views={VIEWS} screens={SCREENS} defaultView="landlord" label="Sample repair · not real people" />
+}
+
+// The engine behind every "one thing, three views" demo: a step rail that
+// plays while on screen (never under reduced motion), and one screen per
+// person, side by side on desktop and switchable on a phone.
+export function StoryDemo({
+  steps: STEPS,
+  views: VIEWS,
+  screens,
+  defaultView,
+  label,
+}: {
+  steps: readonly StoryStep[]
+  views: StoryView[]
+  screens: Record<string, React.ReactNode[]>
+  defaultView: string
+  label: string
+}) {
   const [step, setStep] = useState(0)
-  const [view, setView] = useState<View>('landlord')
+  const [view, setView] = useState<string>(defaultView)
   const [playing, setPlaying] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
 
@@ -60,7 +81,7 @@ export function RepairStory() {
       {/* Step rail */}
       <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
         <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40">
-          <span className="w-1.5 h-1.5 rounded-full bg-amber-400" aria-hidden="true" /> Sample repair · not real people
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-400" aria-hidden="true" /> {label}
         </span>
         <button
           type="button"
@@ -121,16 +142,15 @@ export function RepairStory() {
 
       <div className="grid md:grid-cols-3 gap-4">
         {VIEWS.map((v) => (
-          <ScreenFrame key={v.key} view={v} hiddenOnPhone={view !== v.key} step={step} />
+          <ScreenFrame key={v.key} view={v} hiddenOnPhone={view !== v.key} step={step} content={screens[v.key]?.[step]} />
         ))}
       </div>
     </div>
   )
 }
 
-function ScreenFrame({ view, hiddenOnPhone, step }: { view: (typeof VIEWS)[number]; hiddenOnPhone: boolean; step: number }) {
+function ScreenFrame({ view, hiddenOnPhone, step, content }: { view: StoryView; hiddenOnPhone: boolean; step: number; content: React.ReactNode }) {
   const Icon = view.icon
-  const content = SCREENS[view.key][step]
   return (
     <div className={`${hiddenOnPhone ? 'max-md:hidden' : ''} rounded-[1.75rem] border border-white/10 bg-[#0C1A2E] p-2 shadow-[0_30px_60px_-30px_rgba(0,0,0,0.6)]`}>
       <div className="rounded-[1.35rem] bg-white/3 border border-white/5 overflow-hidden h-full flex flex-col">
@@ -151,7 +171,7 @@ function ScreenFrame({ view, hiddenOnPhone, step }: { view: (typeof VIEWS)[numbe
 
 // ---- Small building blocks for the fake screens ----
 
-function Status({ tone = 'teal', children }: { tone?: 'teal' | 'amber' | 'green' | 'muted'; children: React.ReactNode }) {
+export function Status({ tone = 'teal', children }: { tone?: 'teal' | 'amber' | 'green' | 'muted'; children: React.ReactNode }) {
   const c = {
     teal: 'bg-[#12A5A9]/12 text-[#12A5A9] border-[#12A5A9]/25',
     amber: 'bg-amber-400/10 text-amber-300 border-amber-400/25',
@@ -161,11 +181,11 @@ function Status({ tone = 'teal', children }: { tone?: 'teal' | 'amber' | 'green'
   return <span className={`self-start inline-flex items-center gap-1.5 text-[11px] font-semibold border rounded-full px-2.5 py-1 ${c}`}>{children}</span>
 }
 
-function Card({ children, glow = false }: { children: React.ReactNode; glow?: boolean }) {
+export function Card({ children, glow = false }: { children: React.ReactNode; glow?: boolean }) {
   return <div className={`rounded-xl border p-3 ${glow ? 'border-[#12A5A9]/35 bg-[#12A5A9]/8' : 'border-white/8 bg-white/3'}`}>{children}</div>
 }
 
-function Btn({ children, ghost = false }: { children: React.ReactNode; ghost?: boolean }) {
+export function Btn({ children, ghost = false }: { children: React.ReactNode; ghost?: boolean }) {
   return (
     <span className={`inline-flex items-center justify-center text-xs font-semibold rounded-full px-3 py-1.5 ${ghost ? 'border border-white/15 text-white/70' : 'bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white'}`}>
       {children}
@@ -173,11 +193,11 @@ function Btn({ children, ghost = false }: { children: React.ReactNode; ghost?: b
   )
 }
 
-function Note({ children }: { children: React.ReactNode }) {
+export function Note({ children }: { children: React.ReactNode }) {
   return <p className="mt-auto text-[11px] leading-relaxed text-white/45 border-t border-white/5 pt-3">{children}</p>
 }
 
-function Photo({ label, tone }: { label: string; tone: 'before' | 'after' }) {
+export function Photo({ label, tone }: { label: string; tone: 'before' | 'after' }) {
   return (
     <div className={`aspect-[4/3] rounded-lg grid place-items-end p-1.5 ${tone === 'before' ? 'bg-[radial-gradient(circle_at_40%_60%,rgba(59,130,246,0.45),rgba(30,41,59,0.9)_65%)]' : 'bg-[radial-gradient(circle_at_50%_40%,rgba(148,163,184,0.5),rgba(30,41,59,0.9)_70%)]'}`}>
       <span className="text-[10px] font-semibold text-[#fff] bg-black/40 rounded px-1.5 py-0.5">{label}</span>
@@ -185,7 +205,7 @@ function Photo({ label, tone }: { label: string; tone: 'before' | 'after' }) {
   )
 }
 
-const Lock = () => <LockIcon className="w-3 h-3" />
+export const Lock = () => <LockIcon className="w-3 h-3" />
 
 // ---- What each person sees at each step ----
 

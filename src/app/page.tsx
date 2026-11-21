@@ -33,7 +33,6 @@ const EVERYTHING_ELSE = [
 
 const WHO_ITS_FOR = [
   { who: 'Landlords', title: 'Every property, one dashboard', desc: 'Bring your own plumber or open a job to sealed bids. Rent, leases, records and compliance live in the same place.', cta: 'Sign up as a landlord', href: '/signup?role=landlord', primary: true },
-  { who: 'Property managers', title: 'All your clients, one login', desc: 'Run every owner\'s homes from one dashboard. Each owner sets a repair limit; anything bigger becomes a one-tap approval.', cta: 'See how it works for property managers', href: '/property-managers', primary: true },
   { who: 'Renters', title: 'Get things fixed, fast', desc: 'Report a problem in your own words, message your landlord, and pay rent the way your landlord accepts. Always free.', cta: 'Sign up as a renter', href: '/signup?role=renter' },
   { who: 'Contractors', title: 'Free leads. No cut.', desc: 'Real jobs near you for your trade. Bid privately, get picked on merit, and keep the whole price you bid.', cta: 'See how it works for contractors', href: '/contractors' },
 ]
@@ -378,6 +377,35 @@ export default function LandingPage() {
           <h2 className="text-3xl font-bold text-center mb-3 text-white text-balance">Built for landlords, with everyone else looped in</h2>
           <p className="text-white/50 text-center max-w-2xl mx-auto mb-12">Easy enough for two units, strong enough for two hundred.</p>
           <div className="grid sm:grid-cols-2 gap-4">
+            {/* Property managers get a full-width card with their own demo,
+                not one tile among four: a separate buyer with a separate pitch. */}
+            <Link
+              href="/property-managers#demo"
+              className="group sm:col-span-2 rounded-2xl p-6 sm:p-8 border bg-gradient-to-br from-[#0A7B7E]/15 to-white/3 border-[#12A5A9]/35 transition-all hover:-translate-y-0.5 grid lg:grid-cols-[1.2fr_1fr] gap-6 items-center"
+            >
+              <div>
+                <p className="text-[#12A5A9] text-xs font-semibold uppercase tracking-wider mb-3">Property management companies</p>
+                <h3 className="text-white font-bold text-xl sm:text-2xl mb-2 text-balance">Every client, one login. Owners approve in one tap.</h3>
+                <p className="text-white/55 text-sm leading-relaxed mb-4">
+                  Each owner sets a repair limit. Anything bigger becomes an approval card with photos, the contractor&apos;s rating and the price. Monthly statements build themselves.
+                </p>
+                <span className="text-[#12A5A9] text-sm font-semibold group-hover:underline">Watch one approval, start to finish →</span>
+              </div>
+              <ul className="grid gap-2.5 text-sm">
+                {[
+                  'All clients and your own properties in one Today list',
+                  'Owner approval limits, enforced automatically',
+                  'Staff access per client, with an activity log',
+                  'Rent stays with the owner unless they choose otherwise',
+                ].map((x) => (
+                  <li key={x} className="flex items-start gap-2.5 text-white/75">
+                    <CheckCircleIcon className="w-4 h-4 text-[#12A5A9] shrink-0 mt-0.5" />
+                    {x}
+                  </li>
+                ))}
+              </ul>
+            </Link>
+            <div className="sm:col-span-2 grid sm:grid-cols-3 gap-4">
             {WHO_ITS_FOR.map((r) => (
               <Link
                 key={r.who}
@@ -390,6 +418,7 @@ export default function LandingPage() {
                 <span className="text-[#12A5A9] text-sm font-semibold group-hover:underline">{r.cta} →</span>
               </Link>
             ))}
+            </div>
           </div>
         </ScrollReveal>
       </section>
