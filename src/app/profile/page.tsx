@@ -10,6 +10,7 @@ import { BottomTabBar } from '@/components/BottomTabBar'
 import { Skeleton } from '@/components/Skeleton'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
+import { formatPhoneForDisplay } from '@/lib/phoneFormat'
 import { PasswordInput } from '@/components/PasswordInput'
 import { LogOutIcon } from '@/components/icons'
 import { TABS_BY_ROLE } from '@/lib/navTabs'
@@ -879,10 +880,15 @@ export default function ProfilePage() {
             <div className="flex items-center justify-between py-1 gap-3">
               <div>
                 <p className="text-white text-sm font-medium">{t('textAlerts', lang)}</p>
-                <p className="text-white/60 text-xs">{t('textAlertsDesc', lang)}</p>
+                <p className="text-white/60 text-xs">
+                  {role === 'landlord' || role === 'renter' || role === 'contractor'
+                    ? `${t(role === 'landlord' ? 'textAlertsKeyLandlord' : role === 'renter' ? 'textAlertsKeyRenter' : 'textAlertsKeyContractor', lang)} `
+                    : ''}
+                  {t('textAlertsDesc', lang)}
+                </p>
                 <p className="text-white/50 text-xs mt-1">
                   {form.phone.trim()
-                    ? `${t('textAlertsPhoneLine', lang)} ${form.phone}`
+                    ? `${t('textAlertsPhoneLine', lang)} ${formatPhoneForDisplay(form.phone)}`
                     : t('textAlertsNoPhone', lang)}
                 </p>
               </div>

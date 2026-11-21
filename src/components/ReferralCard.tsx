@@ -1,5 +1,6 @@
 'use client'
 
+import { PILOT_FREE } from '@/lib/pilot'
 import { useEffect, useState } from 'react'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { RippleButton } from '@/components/RippleButton'
@@ -52,7 +53,7 @@ export function ReferralCard() {
   return (
     <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6 mb-6">
       <h2 className="text-white font-semibold mb-1">{t('inviteAndEarnTitle', lang)}</h2>
-      <p className="text-white/50 text-sm mb-4">{t('inviteAndEarnDesc', lang)}</p>
+      <p className="text-white/50 text-sm mb-4">{t(PILOT_FREE ? 'inviteAndEarnDescPilot' : 'inviteAndEarnDesc', lang)}</p>
 
       <div className="flex items-center gap-2 mb-5">
         <input

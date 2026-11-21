@@ -2705,9 +2705,9 @@ export async function sendAutochargeFailedEmail({
   }) : baseTemplate({
     lang,
     eyebrow: 'Action needed',
-    heading: 'We couldn’t charge your card on file',
-    bodyHtml: `Hi ${escapeHtml(landlordName)}, we tried to charge your card on file for the <strong>${escapeHtml(category)}</strong> job at ${escapeHtml(propertyLabel)} and it didn't go through: <strong>${escapeHtml(reason)}</strong>. ${escapeHtml(contractorName)} still hasn't been paid.`,
-    preheader: `Your card on file was declined: ${escapeHtml(reason)}.`,
+    heading: 'We couldn’t charge your saved card',
+    bodyHtml: `Hi ${escapeHtml(landlordName)}, we tried to charge your saved card for the <strong>${escapeHtml(category)}</strong> job at ${escapeHtml(propertyLabel)} and it didn't go through: <strong>${escapeHtml(reason)}</strong>. ${escapeHtml(contractorName)} still hasn't been paid.`,
+    preheader: `Your saved card was declined: ${escapeHtml(reason)}.`,
     facts: [
       { label: fl('Amount due', lang), value: `$${amount.toFixed(2)}` },
       { label: fl('Contractor', lang), value: contractorName },
@@ -2716,7 +2716,7 @@ export async function sendAutochargeFailedEmail({
     ],
     ctaLabel: 'Pay now',
     ctaUrl: `${SITE_URL}/landlord/jobs/${jobId}`,
-    note: 'Update your card on file, or pay this job manually.',
+    note: 'Update your saved card, or pay this job manually.',
   })
   return sendEmail({ to, subject: lang === 'es' ? `Acción requerida: tu tarjeta fue rechazada para ${category}` : `Action needed: your card was declined for ${category}`, html })
 }
@@ -2756,8 +2756,8 @@ export async function sendPmFeeChargedEmail({
     lang,
     eyebrow: 'Payment processed',
     heading: 'Your management fee was charged',
-    bodyHtml: `Hi ${escapeHtml(landlordName)}, we charged your card on file for <strong>${escapeHtml(orgName)}</strong>'s monthly management fee.`,
-    preheader: `$${amount.toFixed(2)} was charged to your card on file for ${escapeHtml(orgName)}.`,
+    bodyHtml: `Hi ${escapeHtml(landlordName)}, we charged your saved card for <strong>${escapeHtml(orgName)}</strong>'s monthly management fee.`,
+    preheader: `$${amount.toFixed(2)} was charged to your saved card for ${escapeHtml(orgName)}.`,
     facts: [
       { label: fl('Amount', lang), value: `$${amount.toFixed(2)}` },
       { label: fl('Property manager', lang), value: orgName },
@@ -2847,15 +2847,15 @@ export async function sendPmFeeAutochargeFailedEmail({
     lang,
     eyebrow: 'Action needed',
     heading: 'We couldn’t charge your management fee',
-    bodyHtml: `Hi ${escapeHtml(landlordName)}, we tried to charge your card on file for <strong>${escapeHtml(orgName)}</strong>'s management fee and it didn't go through: <strong>${escapeHtml(reason)}</strong>.`,
-    preheader: `Your card on file was declined: ${escapeHtml(reason)}.`,
+    bodyHtml: `Hi ${escapeHtml(landlordName)}, we tried to charge your saved card for <strong>${escapeHtml(orgName)}</strong>'s management fee and it didn't go through: <strong>${escapeHtml(reason)}</strong>.`,
+    preheader: `Your saved card was declined: ${escapeHtml(reason)}.`,
     facts: [
       { label: fl('Amount due', lang), value: `$${amount.toFixed(2)}` },
       { label: fl('Property manager', lang), value: orgName },
     ],
     ctaLabel: 'Pay now',
     ctaUrl: `${SITE_URL}/landlord/pm`,
-    note: 'Update your card on file, or pay this fee manually.',
+    note: 'Update your saved card, or pay this fee manually.',
   })
   return sendEmail({ to, subject: lang === 'es' ? `Acción requerida: tarifa de administración rechazada` : `Action needed: management fee declined`, html })
 }

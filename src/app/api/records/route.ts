@@ -193,7 +193,7 @@ export async function GET(request: NextRequest) {
         title: 'Management fee',
         detail: null,
         counterparty: (f as any).pm_organizations?.name || 'Property manager',
-        method: 'Card on file',
+        method: 'Saved card',
         ownerId: f.owner_user_id,
         ownerName: ownerName.get(f.owner_user_id) || 'Owner',
         propertyId: null,

@@ -376,7 +376,7 @@ function FeeProposal({
       {valid && !unchanged && (
         <p className="text-white/60 text-xs leading-relaxed">
           {firstName} will be asked to approve: <span className="text-white font-semibold">{describeFee(draft)}</span>.
-          {' '}It&apos;s paid to you directly once they approve{(draft.type === 'percent_of_rent' || (draft.type === 'flat' && draft.frequency === 'monthly' && (draft.amount ?? 0) > 0)) ? ', then charged automatically each month if they have a card on file' : ''}.
+          {' '}It&apos;s paid to you directly once they approve{(draft.type === 'percent_of_rent' || (draft.type === 'flat' && draft.frequency === 'monthly' && (draft.amount ?? 0) > 0)) ? ', then charged automatically each month if they have a saved card' : ''}.
         </p>
       )}
       {error && <p className="text-red-400 text-xs">{error}</p>}
@@ -1518,7 +1518,7 @@ export default function PmDashboardPage() {
                         <span className="font-semibold">{inv.orgName}</span> proposed <span className="font-semibold">{feeText}</span>.
                       </p>
                       <p className="text-white/50 text-xs mb-3">
-                        Nothing is charged until you approve.{recurring ? ' Once approved, it bills automatically each month to your card on file.' : ''} Don&apos;t agree? Leave it unapproved and talk it over with them.
+                        Nothing is charged until you approve.{recurring ? ' Once approved, it bills automatically each month to your saved card.' : ''} Don&apos;t agree? Leave it unapproved and talk it over with them.
                       </p>
                       <RippleButton
                         onClick={() => handleApproveFee(inv)}
@@ -1545,7 +1545,7 @@ export default function PmDashboardPage() {
                       {recurring && (
                         <p className="text-white/30 text-xs mt-2">
                           Billed automatically each month to your{' '}
-                          <Link href="/profile" className="text-[#12A5A9] hover:underline">card on file</Link>
+                          <Link href="/profile" className="text-[#12A5A9] hover:underline">saved card</Link>
                           {' '}— no need to pay manually unless a charge fails. If {inv.orgName} changes this fee, billing pauses until you approve the new amount.
                         </p>
                       )}

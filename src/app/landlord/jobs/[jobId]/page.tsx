@@ -2482,7 +2482,7 @@ export default function JobDetailPage() {
                   className="w-full text-left bg-white/5 hover:bg-white/8 border border-white/10 rounded-xl px-4 py-3 transition"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-white font-medium text-sm">{t('debitCardOptionLabel', lang)}</span>
+                    <span className="text-white font-medium text-sm">{t('jobCardOptionLabel', lang)}</span>
                     <span className="text-white font-semibold text-sm tabular-nums">${(baseAmount + cardFee).toFixed(2)}</span>
                   </div>
                   <p className="text-white/50 text-xs mt-1">

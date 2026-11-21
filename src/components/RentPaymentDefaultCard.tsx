@@ -76,6 +76,9 @@ export function RentPaymentDefaultCard() {
               }`}
             >
               {labelFor(m)}
+              {(m === 'bank' || m === 'card') && (
+                <span className="text-white/45 font-normal"> · {t(m === 'bank' ? 'bankNoFeeHint' : 'cardFeeHint', lang)}</span>
+              )}
             </button>
           ))}
           {saved && (
