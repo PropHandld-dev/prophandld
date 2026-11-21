@@ -33,7 +33,7 @@ export async function POST() {
 
   if (inviteError) {
     console.error('link-invite: error fetching invite', inviteError)
-    return NextResponse.json({ error: inviteError.message }, { status: 500 })
+    { console.error('tenancy/link-invite:', inviteError); return NextResponse.json({ error: 'Something went wrong. Try again in a moment.' }, { status: 500 }) }
   }
 
   let invite = emailInvite
@@ -71,7 +71,7 @@ export async function POST() {
         .maybeSingle()
       if (phoneInviteError) {
         console.error('link-invite: error fetching invite by phone', phoneInviteError)
-        return NextResponse.json({ error: phoneInviteError.message }, { status: 500 })
+        { console.error('tenancy/link-invite:', phoneInviteError); return NextResponse.json({ error: 'Something went wrong. Try again in a moment.' }, { status: 500 }) }
       }
       if (phoneInvite && isPhoneVerified) {
         invite = phoneInvite
@@ -104,7 +104,7 @@ export async function POST() {
 
   if (tenancyError) {
     console.error('link-invite: error creating tenancy', tenancyError)
-    return NextResponse.json({ error: tenancyError.message }, { status: 500 })
+    { console.error('tenancy/link-invite:', tenancyError); return NextResponse.json({ error: 'Something went wrong. Try again in a moment.' }, { status: 500 }) }
   }
 
   const { error: updateError } = await supabaseAdmin
@@ -114,7 +114,7 @@ export async function POST() {
 
   if (updateError) {
     console.error('link-invite: error marking invite accepted', updateError)
-    return NextResponse.json({ error: updateError.message }, { status: 500 })
+    { console.error('tenancy/link-invite:', updateError); return NextResponse.json({ error: 'Something went wrong. Try again in a moment.' }, { status: 500 }) }
   }
 
   // Neither side used to get any signal this ever worked — the landlord

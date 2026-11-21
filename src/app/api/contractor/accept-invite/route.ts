@@ -30,7 +30,7 @@ export async function POST() {
 
   if (error) {
     console.error('accept-invite: update failed', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    { console.error('contractor/accept-invite:', error); return NextResponse.json({ error: 'Something went wrong. Try again in a moment.' }, { status: 500 }) }
   }
 
   // Also accept any pending invite that reached this person by phone —
