@@ -331,6 +331,14 @@ export function AiHelpChat({ initialMessage, onNavigate, role }: { initialMessag
               {sending ? t('aiHelpChatThinking', lang) : t('tryAgainBtn', lang)}
             </button>
           )}
+          {/* If the AI is down, a person can still help. */}
+          <button
+            type="button"
+            onClick={() => setEscalating(true)}
+            className="text-xs font-semibold text-[#12A5A9] hover:underline mt-1 ml-4"
+          >
+            {t('aiHelpEscalateBtn', lang)}
+          </button>
         </div>
       )}
 
