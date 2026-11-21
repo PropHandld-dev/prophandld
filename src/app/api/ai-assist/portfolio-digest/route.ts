@@ -326,8 +326,11 @@ export async function GET() {
           'property management app dashboard, from a list of facts already gathered. Friendly, concrete, no ' +
           'fluff, no markdown. Mention 2-3 of the most time-sensitive items by name if there are several. ' +
           'Only suggest actions the app supports: for a job with no bids, adding photos or more detail, or ' +
-          'inviting a contractor you know directly. Bids are sealed and there is no job budget to raise.',
-        prompt: `Facts:\n${topNudges.map((n) => `- ${n.text}`).join('\n')}\n\nReturn JSON: { "summary": string }`,
+          'inviting a contractor you know directly. Bids are sealed and there is no job budget to raise. ' +
+          'Never generalize beyond the facts (no "all of your jobs" unless the context line says so); if some jobs already have bids, say they can compare them.',
+        // Context so the summary never over-generalizes: it used to say "all
+        // six of your open jobs have no bids" when other jobs did have bids.
+        prompt: `Facts:\n${topNudges.map((n) => `- ${n.text}`).join('\n')}\n- Context: ${(staleJobs || []).length} job(s) are out for bids in total; ${(staleJobs || []).filter((j: any) => Array.isArray(j.bids) && j.bids.length > 0).length} of them already have bids to compare.\n\nReturn JSON: { "summary": string }`,
         // Same truncation risk fixed elsewhere today (compliance-gap-check,
         // draft-message, lease-qa) — naming 2-3 items across 1-2 sentences
         // is more than 200 reliably covers.
