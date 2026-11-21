@@ -8,7 +8,7 @@ import { getLandlordIdsAdmin } from '@/lib/landlordIds'
 import { getPmMembership, scopeOwnerIdsForMember } from '@/lib/pm'
 import { claudeText, claudeStream, ClaudeConfigError, CLAUDE_SMART_MODEL } from '@/lib/claude'
 import { PHILADELPHIA_COMPLIANCE_FACTS, RENTAL_LAW_FACTS } from '@/lib/complianceFacts'
-import { rentMonthBounds } from '@/lib/rentAutomation'
+import { rentDueDate, rentMonthBounds } from '@/lib/rentAutomation'
 import { nextEscalationDate } from '@/lib/leaseEscalation'
 import { resolveRentPayee } from '@/lib/rentRouting'
 import { rentCardFee } from '@/lib/cardSurcharge'
@@ -51,6 +51,12 @@ WHERE THINGS ARE (exact names on screen):
 - Talk to a person: the "Talk to a real person" link under this chat, Profile -> Contact us, or email admin@prophandld.com.
 - Phone apps: iOS and Android apps are coming soon. Today the full app works in any phone browser, and it can be added to the home screen.
 - Late fees: if a lease has a late fee, Prophandld adds it automatically once the grace period passes; landlords set it on the unit's Tenancy page.
+- First month's rent: by default the move-in month is prorated by the day and due on the move-in day (example: $1,250 rent, lease starting Nov 6 of a 30-day month = $1,250 x 25/30 = $1,041.67, due Nov 6). The landlord can choose "Charge the full month" instead when adding the tenant, if the lease says so. The rent page shows the calculation. No rent is charged for months before the lease starts. Late fees and the grace period count from the actual due date.
+- Today list: the top of Home (landlords, property managers and tenants) lists what needs doing, most urgent first, each with one button; "waiting N days" shows how long something has sat.
+- Guided setup: new landlords add their first property one question at a time at Home > Add property (or /landlord/setup): address, units, tenant, rent, lease start, how to collect rent. Answers are saved automatically.
+- Drafts: a half-written repair report, new job, property or bid is saved on that device and comes back when you return (for 14 days); "Discard" clears it.
+- Property managers: the Public profile tab has a live preview of what landlords see and a Brand color (curated colors, your logo's color, or a custom color). Clients tab shows each owner's occupancy, rent collected vs expected, open jobs and approval limit.
+- Approval cards (property manager to owner): show the problem, photos, contractor and rating, the amount and why approval is needed (over the owner's limit). Owners can Approve, Ask a question, or Decline. "Approve a repair quote" lets the manager hire at that price; "Approve payment for finished work" lets the manager pay the contractor.
 - Ending property management: the PM and their staff lose access right away, rent goes back to the owner's own account, and the owner keeps all properties, tenants, jobs and records.
 - Receipts: every paid job has a receipt (job page -> "Receipt" once paid, also emailed); every rent payment has a receipt (unit's Rent page or Reports). Records lists them too.
 - Archive or delete a property: open the property -> Edit -> "Archive property" (hides it, keeps history) or "Delete property" at the bottom (permanent; you type the address to confirm). Co-owners can't permanently delete.
@@ -324,21 +330,28 @@ async function getAccountFacts(admin: ReturnType<typeof getSupabaseAdmin>, authC
     const { month: thisMonth, following: nextMonth, firstDate } = rentMonthBounds(0)
     const { data: currentPayment } = await admin
       .from('rent_payments')
-      .select('expected_amount, actual_amount')
+      .select('month, due_date, proration_note, expected_amount, actual_amount')
       .eq('tenancy_id', tenancy.id)
       .gte('month', thisMonth)
       .lt('month', nextMonth)
       .maybeSingle()
-    let rentStatusThisMonth: { amountDue: number; daysSinceDue: number; isLate: boolean } | 'paid' | null = null
+    let rentStatusThisMonth: { amountDue: number; dueDate: string; daysSinceDue: number; isLate: boolean; firstMonthProrated?: string } | 'paid' | null = null
     if (currentPayment) {
       const expected = Number(currentPayment.expected_amount || 0)
       const paid = Number(currentPayment.actual_amount || 0)
       if (paid >= expected) {
         rentStatusThisMonth = 'paid'
       } else {
-        const dueDate = new Date(firstDate.getFullYear(), firstDate.getMonth(), tenancy.rent_due_day ?? 1)
+        // The real due date (a prorated move-in month is due on move-in day).
+        const dueDate = rentDueDate(currentPayment as any, tenancy.rent_due_day)
         const daysSinceDue = Math.floor((Date.now() - dueDate.getTime()) / (24 * 60 * 60 * 1000))
-        rentStatusThisMonth = { amountDue: Math.round((expected - paid) * 100) / 100, daysSinceDue, isLate: daysSinceDue >= (tenancy.grace_period_days ?? 5) }
+        rentStatusThisMonth = {
+          amountDue: Math.round((expected - paid) * 100) / 100,
+          dueDate: dueDate.toLocaleDateString('en-CA'),
+          daysSinceDue,
+          isLate: daysSinceDue >= (tenancy.grace_period_days ?? 5),
+          ...((currentPayment as any).proration_note ? { firstMonthProrated: `${(currentPayment as any).proration_note} = $${expected.toFixed(2)}` } : {}),
+        }
       }
     }
 
