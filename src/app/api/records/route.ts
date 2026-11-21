@@ -38,6 +38,7 @@ export async function GET(request: NextRequest) {
   const authClient = await createClient()
   const { data: { user } } = await authClient.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+  if (user.app_metadata?.role !== 'landlord') return NextResponse.json({ error: 'Not allowed' }, { status: 403 })
   const admin = getSupabaseAdmin()
 
   const params = request.nextUrl.searchParams

@@ -1970,7 +1970,7 @@ export default function PmDashboardPage() {
 
                 {activeTab === 'profile' && membership.memberRole === 'admin' && (
                   <div id="get-found" className="grid lg:grid-cols-[minmax(0,1fr)_360px] gap-6 items-start">
-                  <div className="order-2 lg:order-1 space-y-4 min-w-0">
+                  <div className="space-y-4 min-w-0">
                     <section className="bg-white/3 border border-white/8 rounded-2xl p-5">
                       <div className="flex items-start justify-between gap-4">
                         <div className="min-w-0">
@@ -2201,7 +2201,7 @@ export default function PmDashboardPage() {
                     </section>
                   </div>
 
-                  <div className="order-1 lg:order-2 lg:sticky lg:top-6">
+                  <div className="lg:sticky lg:top-6">
                     <p className="text-white/45 text-[11px] font-semibold uppercase tracking-[0.14em] mb-2">Live preview · what landlords see</p>
                     <PmProfilePreview
                       name={membership.organizationName}
