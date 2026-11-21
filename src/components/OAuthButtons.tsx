@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { startOAuth, type OAuthProvider } from '@/lib/oauth'
+import { useLanguage, t } from '@/lib/i18n'
 
 function GoogleIcon() {
   return (
@@ -42,6 +43,7 @@ export function OAuthButtons({
   // exact thing the form's own submit button was already gated on.
   disabled?: boolean
 }) {
+  const lang = useLanguage()
   const [loadingProvider, setLoadingProvider] = useState<OAuthProvider | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -67,7 +69,7 @@ export function OAuthButtons({
         className="w-full flex items-center justify-center gap-2.5 bg-white text-[#1F1F1F] text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-white/90 transition disabled:opacity-50"
       >
         <GoogleIcon />
-        {loadingProvider === 'google' ? 'Redirecting…' : 'Continue with Google'}
+        {loadingProvider === 'google' ? t('oauthRedirecting', lang) : t('oauthGoogle', lang)}
       </button>
       <button
         type="button"
@@ -76,7 +78,7 @@ export function OAuthButtons({
         className="w-full flex items-center justify-center gap-2.5 bg-black text-white text-sm font-semibold px-4 py-2.5 rounded-xl border border-white/15 hover:bg-black/80 transition disabled:opacity-50"
       >
         <AppleIcon />
-        {loadingProvider === 'apple' ? 'Redirecting…' : 'Continue with Apple'}
+        {loadingProvider === 'apple' ? t('oauthRedirecting', lang) : t('oauthApple', lang)}
       </button>
     </div>
   )

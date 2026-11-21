@@ -678,7 +678,7 @@ function LoginForm() {
 
       <div className="flex items-center gap-3 my-5">
         <div className="h-px bg-white/10 flex-1" />
-        <span className="text-white/30 text-xs">or</span>
+        <span className="text-white/30 text-xs">{t('orDivider', lang)}</span>
         <div className="h-px bg-white/10 flex-1" />
       </div>
 
