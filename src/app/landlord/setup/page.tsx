@@ -87,6 +87,8 @@ function Setup() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [moreUnits, setMoreUnits] = useState(false)
+  // "Restored your draft" only on the screen they came back to.
+  const [resumedAt, setResumedAt] = useState<Step | null>(null)
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -99,7 +101,10 @@ function Setup() {
     name: 'landlord-setup',
     userId,
     value: d,
-    onRestore: (saved) => setD({ ...EMPTY, ...saved }),
+    onRestore: (saved) => {
+      setD({ ...EMPTY, ...saved })
+      setResumedAt(saved.step)
+    },
     isEmpty: (v) => v.step === 'address' && !v.address.trim(),
   })
 
@@ -234,8 +239,8 @@ function Setup() {
         </div>
       </div>
 
-      <main className="flex-1 px-5 sm:px-8 py-10 sm:py-16 max-w-2xl w-full mx-auto">
-        <DraftNote restored={draft.restored && d.step !== 'address'} savedAt={null} onDiscard={() => { draft.clear(); setD(EMPTY) }} className="mb-8" />
+      <main className="flex-1 px-5 sm:px-8 pt-10 sm:pt-16 pb-32 max-w-2xl w-full mx-auto">
+        <DraftNote restored={draft.restored && resumedAt === d.step && d.step !== 'done'} savedAt={null} onDiscard={() => { draft.clear(); setD(EMPTY); setResumedAt(null) }} className="mb-8" />
 
         {billingBlocked && !d.propertyId ? (
           <SubscribeToAdd what={t('propertiesWord', lang)} />
@@ -456,7 +461,7 @@ function Setup() {
                 <h1 className="text-3xl sm:text-4xl font-bold text-white mb-3">{t('setupDoneTitle', lang)}</h1>
                 <p className="text-white/50 max-w-md mx-auto mb-8">{t('setupDoneDesc', lang)}</p>
                 <ul className="text-left max-w-md mx-auto bg-white/3 border border-white/8 rounded-2xl divide-y divide-white/5 mb-10">
-                  <SummaryRow icon={BuildingIcon} text={t('setupSummaryProperty', lang).replace('{address}', d.address).replace('{n}', String(d.units.length || d.numUnits))} />
+                  <SummaryRow icon={BuildingIcon} text={(d.units.length || d.numUnits) === 1 ? `${d.address} · ${t('setupOneUnit', lang)}` : t('setupSummaryProperty', lang).replace('{address}', d.address).replace('{n}', String(d.units.length || d.numUnits))} />
                   {d.tenants.length ? (
                     d.tenants.map((x) => <SummaryRow key={x.unitId} icon={UserIcon} text={`${x.who} · ${unitLabel(d.units.find((u) => u.id === x.unitId))}`} />)
                   ) : (
