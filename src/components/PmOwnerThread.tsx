@@ -14,6 +14,8 @@ type Msg = {
   body: string
   action: { type: 'job_payment' | 'general'; bidId?: string; jobId?: string; amount?: number | null; title: string } | null
   actionStatus: 'pending' | 'approved' | 'declined' | null
+  job?: { category: string; description: string | null; stage: 'quote' | 'finished'; paid: boolean; contractor: string | null; rating: { avg: number; count: number } | null; photos: { url: string; stage: string }[] } | null
+  ownerLimit?: number | null
   decidedAt: string | null
   createdAt: string
 }
@@ -48,6 +50,12 @@ export function PmOwnerThread({ ownerId, onClose }: { ownerId?: string; onClose:
   const [deciding, setDeciding] = useState<string | null>(null)
   const [showApproval, setShowApproval] = useState(false)
   const bottom = useRef<HTMLDivElement>(null)
+  const composer = useRef<HTMLTextAreaElement>(null)
+  // "Ask a question" on an approval card starts a reply about that request.
+  const askAbout = (title: string) => {
+    setText(`About "${title}": `)
+    requestAnimationFrame(() => composer.current?.focus())
+  }
   const q = ownerId ? `?owner=${ownerId}` : ''
 
   const load = useCallback(async () => {
@@ -151,7 +159,7 @@ export function PmOwnerThread({ ownerId, onClose }: { ownerId?: string; onClose:
               {m.kind === 'approval' && m.action ? (
                 <div className="w-full max-w-[88%] rounded-2xl border border-white/12 bg-white/5 overflow-hidden">
                   <div className="px-4 py-3 border-b border-white/8 flex items-center justify-between gap-3">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-white/50">Approval request</span>
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-white/50">{approvalLabel(m)}</span>
                     <span
                       className={`text-[11px] font-semibold rounded-full px-2 py-0.5 ${
                         m.actionStatus === 'approved' ? 'bg-[#12A5A9]/15 text-[#12A5A9]' : m.actionStatus === 'declined' ? 'bg-red-500/15 text-red-400' : 'bg-yellow-500/15 text-yellow-400'
@@ -160,27 +168,13 @@ export function PmOwnerThread({ ownerId, onClose }: { ownerId?: string; onClose:
                       {m.actionStatus === 'approved' ? 'Approved' : m.actionStatus === 'declined' ? 'Declined' : 'Waiting'}
                     </span>
                   </div>
-                  <div className="px-4 py-3">
-                    <p className="text-white font-semibold">{m.action.title}</p>
-                    {m.action.amount ? <p className="text-white text-2xl font-bold tabular-nums mt-1">{money(Number(m.action.amount))}</p> : null}
-                    {m.body && m.body !== m.action.title && <p className="text-white/65 text-sm mt-2 whitespace-pre-line">{m.body}</p>}
-                    {m.action.jobId && (
-                      <Link href={`/landlord/jobs/${m.action.jobId}`} className="inline-block text-[#12A5A9] text-xs font-semibold mt-2 hover:underline">View job, bids and photos →</Link>
-                    )}
-                    {m.actionStatus === 'pending' && thread.side === 'owner' && (
-                      <div className="grid grid-cols-2 gap-2 mt-4">
-                        <button onClick={() => decide(m.id, 'approved')} disabled={!!deciding} className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl disabled:opacity-50">
-                          {deciding === m.id + 'approved' ? 'Approving…' : 'Approve'}
-                        </button>
-                        <button onClick={() => decide(m.id, 'declined')} disabled={!!deciding} className="bg-white/6 border border-white/12 text-white text-sm font-semibold py-2.5 rounded-xl disabled:opacity-50">
-                          {deciding === m.id + 'declined' ? 'Declining…' : 'Decline'}
-                        </button>
-                      </div>
-                    )}
-                    {m.actionStatus === 'approved' && thread.side === 'pm' && m.action.type === 'job_payment' && m.action.jobId && (
-                      <Link href={`/landlord/jobs/${m.action.jobId}`} className="block text-center bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl mt-4">Pay this job now</Link>
-                    )}
-                  </div>
+                  <ApprovalBody
+                    m={m}
+                    thread={thread}
+                    deciding={deciding}
+                    onDecide={decide}
+                    onAsk={() => askAbout(m.action!.title)}
+                  />
                   <p className="px-4 pb-3 text-white/35 text-[11px] flex items-center gap-2">
                     <span>{m.senderName} · {time(m.createdAt)}{m.decidedAt ? ` · decided ${time(m.decidedAt)}` : ''}</span>
                     {m.mine && m.actionStatus === 'pending' && (
@@ -231,6 +225,7 @@ export function PmOwnerThread({ ownerId, onClose }: { ownerId?: string; onClose:
           </div>
           <div className="flex items-end gap-2">
             <textarea
+              ref={composer}
               value={text}
               onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => {
@@ -308,6 +303,96 @@ function ApprovalComposer({
         </button>
         <button onClick={onCancel} className="text-white/50 hover:text-white text-sm">Cancel</button>
       </div>
+    </div>
+  )
+}
+
+// Approving a quote, approving finished work (which releases payment) and a
+// general request are different decisions, so each says which it is.
+function approvalLabel(m: Msg) {
+  if (m.action?.type !== 'job_payment') return 'Approval request'
+  return m.job?.stage === 'finished' ? 'Approve payment for finished work' : 'Approve a repair quote'
+}
+
+function ApprovalBody({
+  m,
+  thread,
+  deciding,
+  onDecide,
+  onAsk,
+}: {
+  m: Msg
+  thread: Thread
+  deciding: string | null
+  onDecide: (id: string, d: 'approved' | 'declined') => void
+  onAsk: () => void
+}) {
+  const a = m.action!
+  const j = m.job
+  const amount = a.amount ? Number(a.amount) : null
+  const owner = thread.side === 'owner' ? 'your' : `${thread.ownerName}'s`
+  const why =
+    amount != null && m.ownerLimit != null
+      ? m.ownerLimit === 0
+        ? `${thread.side === 'owner' ? 'You review' : `${thread.ownerName} reviews`} every repair before it goes ahead.`
+        : amount > m.ownerLimit
+          ? `This is over ${owner} ${money(m.ownerLimit)} approval limit.`
+          : `Sent for ${thread.side === 'owner' ? 'your' : 'their'} sign-off, though it's within the ${money(m.ownerLimit)} limit.`
+      : null
+  const effect =
+    a.type === 'job_payment' && j
+      ? j.stage === 'finished'
+        ? `Approving lets ${thread.orgName} pay ${j.contractor || 'the contractor'}${amount != null ? ` ${money(amount)}` : ''} for the finished work.`
+        : `Approving lets ${thread.orgName} hire ${j.contractor || 'this contractor'} at this price.`
+      : null
+  const approveLabel = a.type === 'job_payment' ? (j?.stage === 'finished' ? 'Approve payment' : 'Approve quote') : 'Approve'
+  return (
+    <div className="px-4 py-3">
+      <p className="text-white font-semibold">{a.title}</p>
+      {amount != null ? <p className="text-white text-2xl font-bold tabular-nums mt-1">{money(amount)}</p> : null}
+      {why && <p className="text-amber-300 text-xs font-medium mt-1">{why}</p>}
+      {j?.description && <p className="text-white/70 text-sm mt-3 line-clamp-4">{j.description}</p>}
+      {j?.contractor && (
+        <p className="text-white/60 text-xs mt-2">
+          Contractor: <span className="text-white/85 font-medium">{j.contractor}</span>
+          {j.rating ? <span> · ★ {j.rating.avg} ({j.rating.count} {j.rating.count === 1 ? 'review' : 'reviews'})</span> : <span> · no reviews yet</span>}
+        </p>
+      )}
+      {!!j?.photos?.length && (
+        <div className="grid grid-cols-4 gap-1.5 mt-3">
+          {j.photos.map((p) => (
+            <a key={p.url} href={p.url} target="_blank" rel="noopener noreferrer" className="relative block aspect-square rounded-lg overflow-hidden bg-white/5">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={p.url} alt={`${p.stage || 'job'} photo`} className="w-full h-full object-cover" />
+              {p.stage && p.stage !== 'reported' && <span className="absolute bottom-0.5 left-0.5 text-[9px] font-semibold text-[#fff] bg-black/55 rounded px-1">{p.stage}</span>}
+            </a>
+          ))}
+        </div>
+      )}
+      {m.body && m.body !== a.title && <p className="text-white/65 text-sm mt-3 whitespace-pre-line border-l-2 border-white/15 pl-3">{m.body}</p>}
+      {a.jobId && (
+        <Link href={`/landlord/jobs/${a.jobId}`} className="inline-block text-[#12A5A9] text-xs font-semibold mt-2 hover:underline">Open the full job →</Link>
+      )}
+      {m.actionStatus === 'pending' && thread.side === 'owner' && (
+        <>
+          {effect && <p className="text-white/50 text-xs mt-4">{effect}</p>}
+          <div className="grid grid-cols-3 gap-2 mt-2">
+            <button onClick={() => onDecide(m.id, 'approved')} disabled={!!deciding} className="col-span-3 sm:col-span-1 bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl disabled:opacity-50">
+              {deciding === m.id + 'approved' ? 'Approving…' : approveLabel}
+            </button>
+            <button onClick={onAsk} disabled={!!deciding} className="col-span-3 sm:col-span-1 bg-white/6 border border-white/12 text-white text-sm font-semibold py-2.5 rounded-xl disabled:opacity-50">
+              Ask a question
+            </button>
+            <button onClick={() => onDecide(m.id, 'declined')} disabled={!!deciding} className="col-span-3 sm:col-span-1 bg-white/6 border border-white/12 text-white/80 text-sm font-semibold py-2.5 rounded-xl disabled:opacity-50">
+              {deciding === m.id + 'declined' ? 'Declining…' : 'Decline'}
+            </button>
+          </div>
+        </>
+      )}
+      {m.actionStatus === 'approved' && thread.side === 'pm' && a.type === 'job_payment' && a.jobId && !j?.paid && (
+        <Link href={`/landlord/jobs/${a.jobId}`} className="block text-center bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white text-sm font-semibold py-2.5 rounded-xl mt-4">Pay this job now</Link>
+      )}
+      {m.actionStatus === 'approved' && j?.paid && <p className="text-emerald-400 text-xs font-semibold mt-3">Paid</p>}
     </div>
   )
 }

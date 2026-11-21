@@ -73,7 +73,20 @@ function LandlordJobsList() {
   const ownerFilter = searchParams.get('owner')
   const [unreadJobIds, setUnreadJobIds] = useState<Set<string>>(new Set())
   const [activeFilter, setActiveFilter] = useState(searchParams.get('filter') || 'needs_approval')
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState(searchParams.get('q') || '')
+  // Filter and search live in the URL, so opening a job and pressing Back
+  // returns to the same list (QA JOB-13: the search used to be lost).
+  useEffect(() => {
+    const id = setTimeout(() => {
+      const params = new URLSearchParams(window.location.search)
+      params.set('filter', activeFilter)
+      if (search.trim()) params.set('q', search.trim())
+      else params.delete('q')
+      const next = `${window.location.pathname}?${params.toString()}`
+      if (next !== `${window.location.pathname}${window.location.search}`) window.history.replaceState(null, '', next)
+    }, 300)
+    return () => clearTimeout(id)
+  }, [activeFilter, search])
   const [actioningId, setActioningId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [noMatchingContractorsNotice, setNoMatchingContractorsNotice] = useState(false)

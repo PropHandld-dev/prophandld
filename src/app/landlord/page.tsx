@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { TodayCard } from '@/components/TodayCard'
+import { LoadFailed } from '@/components/LoadFailed'
 import { Skeleton } from '@/components/Skeleton'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { EnableNotificationsCard } from '@/components/EnableNotificationsCard'
@@ -24,7 +25,7 @@ import { PmInviteBanner } from '@/components/PmInviteBanner'
 import { MessagesButton } from '@/components/MessagesButton'
 import { CountUp } from '@/components/CountUp'
 import { Logo } from '@/components/Logo'
-import { fetchAllPagesOrEmpty } from '@/lib/pagedQuery'
+import { fetchAllPages } from '@/lib/pagedQuery'
 import { getLandlordIds } from '@/lib/landlordIds'
 import {
   BuildingIcon, WrenchIcon, ClipboardListIcon,
@@ -61,6 +62,7 @@ export default function LandlordDashboard() {
   const lang = useLanguage()
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [loadFailed, setLoadFailed] = useState(false)
   const tour = useTourVisibility(user?.id ?? null)
   const mfaPrompt = useMfaPromptVisibility(user?.id ?? null)
   const [stats, setStats] = useState({
@@ -177,7 +179,16 @@ export default function LandlordDashboard() {
       // worse failure than a slow page — it looks correct while being
       // quietly incomplete, and this page is the first thing every
       // landlord sees.
-      const propertyList = await fetchAllPagesOrEmpty<any>((from, to) =>
+      // A failed read shows a retry card, never an empty or under-counted
+      // dashboard that looks real (QA TEAM-07: a 504 blanked this page).
+      let readFailed = false
+      const pagesOrFail = async <T,>(build: Parameters<typeof fetchAllPages<T>>[0]) => {
+        const r = await fetchAllPages<T>(build)
+        if (r.error) readFailed = true
+        return r.data
+      }
+
+      const propertyList = await pagesOrFail<any>((from, to) =>
         supabase
           .from('properties')
           .select('*')
@@ -187,6 +198,11 @@ export default function LandlordDashboard() {
           .range(from, to)
       )
 
+      if (readFailed) {
+        setLoadFailed(true)
+        setLoading(false)
+        return
+      }
       if (propertyList.length === 0) {
         if (await isPmMember) return
         setLoading(false)
@@ -201,7 +217,7 @@ export default function LandlordDashboard() {
       // What-to-do-next (overdue rent, expiring compliance, finished work,
       // invites...) now comes from /api/today via <TodayCard>, so this page
       // only loads what its own tiles and charts show.
-      const unitList = await fetchAllPagesOrEmpty<any>((from, to) => supabase.from('units').select('*').in('property_id', propertyIds).range(from, to))
+      const unitList = await pagesOrFail<any>((from, to) => supabase.from('units').select('*').in('property_id', propertyIds).range(from, to))
 
       const unitIds = unitList.map((u) => u.id)
       const jobSelect = '*, units(unit_number, properties(address, city))'
@@ -210,12 +226,12 @@ export default function LandlordDashboard() {
       // queries against the same table, one per status).
       const [tenancyList, openJobs] = await Promise.all([
         unitIds.length > 0
-          ? fetchAllPagesOrEmpty<any>((from, to) =>
+          ? pagesOrFail<any>((from, to) =>
               supabase.from('tenancies').select('id, unit_id, rent_amount').in('unit_id', unitIds).eq('ended', false).range(from, to)
             )
           : Promise.resolve([]),
         unitIds.length > 0
-          ? fetchAllPagesOrEmpty<any>((from, to) =>
+          ? pagesOrFail<any>((from, to) =>
               supabase
                 .from('jobs')
                 .select(jobSelect)
@@ -243,12 +259,12 @@ export default function LandlordDashboard() {
 
       const [rentPayments, bids] = await Promise.all([
         tenancyIds.length > 0
-          ? fetchAllPagesOrEmpty<any>((from, to) =>
+          ? pagesOrFail<any>((from, to) =>
               supabase.from('rent_payments').select('*').in('tenancy_id', tenancyIds).gte('month', rentWindowKey).range(from, to)
             )
           : Promise.resolve([]),
         openJobIds.length > 0
-          ? fetchAllPagesOrEmpty<any>((from, to) =>
+          ? pagesOrFail<any>((from, to) =>
               supabase.from('bids').select('job_id, contractor_user_id, status, price_change_status').in('job_id', openJobIds).range(from, to)
             )
           : Promise.resolve([]),
@@ -336,6 +352,11 @@ export default function LandlordDashboard() {
         inProgress: inProgressCount,
         pendingBids: biddingJobsWithBids.length,
       })
+      if (readFailed) {
+        setLoadFailed(true)
+        setLoading(false)
+        return
+      }
       setProperties(propertyBreakdown)
       setRentActivity(rentActivityList)
       setNeedsReview(biddingJobsWithBids)
@@ -385,6 +406,8 @@ export default function LandlordDashboard() {
             </div>
             <Skeleton className="h-40" />
           </div>
+        ) : loadFailed ? (
+          <LoadFailed what={t('dashboardWord', lang)} onRetry={() => window.location.reload()} />
         ) : (
           <>
             <div className="mb-8" data-tour="welcome">

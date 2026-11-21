@@ -25,7 +25,7 @@ const CTA: Record<TodayTone, string> = {
   upcoming: 'bg-white/5 text-white/70 border-white/10 group-hover:bg-white/10',
 }
 
-export function TodayCard({ className = '' }: { className?: string }) {
+export function TodayCard({ className = '', scopeLabel }: { className?: string; scopeLabel?: string }) {
   const lang = useLanguage()
   const [tasks, setTasks] = useState<TodayTask[] | null>(null)
   const [failed, setFailed] = useState(false)
@@ -109,6 +109,7 @@ export function TodayCard({ className = '' }: { className?: string }) {
             {t('todayLabel', lang)} · <span className="text-white/45 normal-case tracking-normal font-medium">{dateLine}</span>
           </p>
           <h2 id="today-heading" className="text-white text-lg font-semibold mt-1 text-balance">{headline}</h2>
+          {scopeLabel && <p className="text-white/45 text-xs mt-1">{scopeLabel}</p>}
         </div>
         {needsYou.length > 0 && (
           <span
@@ -129,11 +130,11 @@ export function TodayCard({ className = '' }: { className?: string }) {
         </div>
       ) : (
         <div className="pb-2">
-          {visibleNow.length > 0 && <TaskGroup tasks={visibleNow} />}
+          {visibleNow.length > 0 && <TaskGroup tasks={visibleNow} lang={lang} />}
           {visibleLater.length > 0 && (
             <>
               <p className="px-5 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-white/35">{t('todayComingUp', lang)}</p>
-              <TaskGroup tasks={visibleLater} />
+              <TaskGroup tasks={visibleLater} lang={lang} />
             </>
           )}
           {ordered.length > INITIAL && (
@@ -151,7 +152,15 @@ export function TodayCard({ className = '' }: { className?: string }) {
   )
 }
 
-function TaskGroup({ tasks }: { tasks: TodayTask[] }) {
+// "waiting 3 days" once something has sat for a day or more.
+function waited(since: string | null | undefined, lang: 'en' | 'es') {
+  if (!since) return null
+  const days = Math.floor((Date.now() - new Date(since).getTime()) / 86400000)
+  if (days < 1) return null
+  return lang === 'es' ? `esperando ${days} día${days === 1 ? '' : 's'}` : `waiting ${days} day${days === 1 ? '' : 's'}`
+}
+
+function TaskGroup({ tasks, lang }: { tasks: TodayTask[]; lang: 'en' | 'es' }) {
   return (
     <ul className="divide-y divide-white/5">
       {tasks.map((task) => (
@@ -163,7 +172,16 @@ function TaskGroup({ tasks }: { tasks: TodayTask[] }) {
             <span className={`w-2 h-2 rounded-full shrink-0 ${DOT[task.tone]}`} aria-hidden="true" />
             <span className="min-w-0 flex-1">
               <span className="block text-white text-sm font-medium leading-snug">{task.title}</span>
-              {task.detail && <span className="block text-white/45 text-xs mt-0.5 truncate">{task.detail}</span>}
+              {(task.detail || task.waitingSince) && (
+                <span className="flex items-center gap-1.5 text-white/45 text-xs mt-0.5 min-w-0">
+                  {task.detail && <span className="truncate">{task.detail}</span>}
+                  {waited(task.waitingSince, lang) && (
+                    <span className={`shrink-0 font-medium ${task.tone === 'upcoming' ? '' : 'text-amber-300/90'}`}>
+                      {task.detail ? '· ' : ''}{waited(task.waitingSince, lang)}
+                    </span>
+                  )}
+                </span>
+              )}
             </span>
             <span className={`shrink-0 text-xs font-semibold border rounded-full px-3 py-1.5 transition-colors ${CTA[task.tone]}`}>
               {task.cta}

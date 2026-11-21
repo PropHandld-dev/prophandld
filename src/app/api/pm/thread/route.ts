@@ -76,6 +76,50 @@ export async function GET(request: NextRequest) {
     })
   }
 
+  // What an approval card needs so the owner can decide from the card
+  // itself: the problem, whether this is a quote or finished work, who the
+  // contractor is (and how they're rated), photos, and why it needs their
+  // sign-off (over their limit). Looked up fresh on every read, so it
+  // always reflects the job as it is now.
+  const approvalJobIds = Array.from(new Set((messages || []).filter((m: any) => m.kind === 'approval' && m.action?.jobId).map((m: any) => String(m.action.jobId))))
+  const jobDetail = new Map<string, Record<string, unknown>>()
+  let ownerLimit: number | null = null
+  if (approvalJobIds.length) {
+    const [{ data: aJobs }, { data: aBids }, { data: aPhotos }, { data: portfolio }] = await Promise.all([
+      admin.from('jobs').select('id, category, description, status').in('id', approvalJobIds),
+      admin.from('bids').select('job_id, contractor_user_id, payment_status').in('job_id', approvalJobIds).eq('status', 'accepted'),
+      admin.from('job_photos').select('job_id, photo_url, stage').in('job_id', approvalJobIds).order('created_at', { ascending: true }).limit(60),
+      admin.from('pm_client_portfolios').select('approval_threshold').eq('organization_id', pair.organizationId).eq('owner_user_id', pair.ownerUserId).maybeSingle(),
+    ])
+    ownerLimit = portfolio ? Number(portfolio.approval_threshold || 0) : null
+    const contractorIds = Array.from(new Set((aBids || []).map((b: any) => b.contractor_user_id).filter(Boolean)))
+    const [{ data: cUsers }, ratings] = await Promise.all([
+      contractorIds.length ? admin.from('users').select('id, full_name').in('id', contractorIds) : Promise.resolve({ data: [] as any[] }),
+      Promise.all(contractorIds.map(async (id) => [id, (await admin.rpc('get_contractor_rating_summary', { target_contractor_id: id }).maybeSingle()).data as { avg_rating: number; review_count: number } | null] as const)),
+    ])
+    const cName = new Map((cUsers || []).map((u: any) => [u.id, u.full_name?.trim()]))
+    const ratingById = new Map(ratings)
+    const imgs = (aPhotos || []).filter((p: any) => !/\.(mp4|mov|webm|m4v|avi)$/i.test(p.photo_url))
+    const signed = new Map<string, string>()
+    if (imgs.length) {
+      const { data } = await admin.storage.from('job-photos').createSignedUrls(imgs.map((p: any) => p.photo_url), 3600)
+      for (const x of data || []) if (x.path && x.signedUrl) signed.set(x.path, x.signedUrl)
+    }
+    for (const j of aJobs || []) {
+      const bid: any = (aBids || []).find((b: any) => b.job_id === j.id)
+      const rating = bid ? ratingById.get(bid.contractor_user_id) : null
+      jobDetail.set(j.id, {
+        category: j.category,
+        description: j.description ? String(j.description).slice(0, 400) : null,
+        stage: ['completed', 'archived', 'pending_review'].includes(j.status) ? 'finished' : 'quote',
+        paid: bid?.payment_status === 'paid',
+        contractor: bid ? cName.get(bid.contractor_user_id) || null : null,
+        rating: rating && rating.review_count ? { avg: Math.round(Number(rating.avg_rating) * 10) / 10, count: rating.review_count } : null,
+        photos: imgs.filter((p: any) => p.job_id === j.id).map((p: any) => ({ url: signed.get(p.photo_url), stage: p.stage })).filter((p: any) => p.url).slice(-4),
+      })
+    }
+  }
+
   await admin
     .from('pm_owner_thread_reads')
     .upsert({ organization_id: pair.organizationId, owner_user_id: pair.ownerUserId, reader_user_id: user.id, last_read_at: new Date().toISOString() })
@@ -96,6 +140,8 @@ export async function GET(request: NextRequest) {
       kind: m.kind,
       body: m.body,
       action: m.action,
+      job: m.kind === 'approval' && m.action?.jobId ? jobDetail.get(String(m.action.jobId)) || null : null,
+      ownerLimit: m.kind === 'approval' ? ownerLimit : null,
       actionStatus: m.action_status,
       decidedAt: m.decided_at,
       createdAt: m.created_at,

@@ -1,6 +1,8 @@
 'use client'
 
 import { TodayCard } from '@/components/TodayCard'
+import { LoadFailed } from '@/components/LoadFailed'
+import { relationshipSentences } from '@/lib/pmRelationship'
 import { rememberPmHome } from '@/lib/pmHome'
 import { supabase } from '@/lib/supabase'
 import { useEffect, useState, useCallback, type ReactNode } from 'react'
@@ -417,6 +419,24 @@ async function shrinkImage(file: File, maxSide: number, type: 'image/png' | 'ima
   }
 }
 
+// The reads this page can't work without: a failed one becomes the page's
+// error state instead of an empty answer that looks real (an errored
+// organizations call used to show "create your company" to an existing PM).
+const strictJson = (url: string) =>
+  fetch(url).then((r) => {
+    if (!r.ok) throw new Error(`${url} ${r.status}`)
+    return r.json()
+  })
+
+function RelationshipSummary({ lines, className = '' }: { lines: string[]; className?: string }) {
+  return (
+    <div className={`bg-[#12A5A9]/8 border border-[#12A5A9]/20 rounded-xl px-4 py-3 mb-3 ${className}`}>
+      <p className="text-[#12A5A9] text-[11px] font-semibold uppercase tracking-wide mb-1">How this works</p>
+      <p className="text-white/80 text-sm leading-relaxed">{lines.join(' ')}</p>
+    </div>
+  )
+}
+
 export default function PmDashboardPage() {
   const [loading, setLoading] = useState(true)
   const [membership, setMembership] = useState<Membership | null>(null)
@@ -444,6 +464,7 @@ export default function PmDashboardPage() {
   // receive rent -- management fees land in that same account, so an
   // admin who hasn't done that yet needs to know before trying to bill
   // anyone, not find out only when a client's payment fails.
+  const [loadFailed, setLoadFailed] = useState(false)
   const [payoutStatus, setPayoutStatus] = useState<'not_started' | 'onboarding' | 'active' | null>(null)
 
   const [profileSlug, setProfileSlug] = useState<string | null>(null)
@@ -607,10 +628,11 @@ export default function PmDashboardPage() {
 
   const loadAll = useCallback(async () => {
     setLoading(true)
+    setLoadFailed(false)
     try {
       const [orgRes, invitesRes] = await Promise.all([
-        fetch('/api/pm/organizations').then((r) => r.json()),
-        fetch('/api/pm/invites-for-me').then((r) => r.json()),
+        strictJson('/api/pm/organizations'),
+        strictJson('/api/pm/invites-for-me'),
       ])
       setMembership(orgRes.membership || null)
       supabase.auth.getSession().then(({ data: { session } }) => {
@@ -622,12 +644,12 @@ export default function PmDashboardPage() {
 
       if (orgRes.membership) {
         const [clientsRes, dashRes, staffRes, auditRes, contractorsRes, pendingRes] = await Promise.all([
-          fetch('/api/pm/clients').then((r) => r.json()),
-          fetch('/api/pm/dashboard').then((r) => r.json()),
+          strictJson('/api/pm/clients'),
+          strictJson('/api/pm/dashboard'),
           fetch('/api/pm/staff').then((r) => r.json()),
           fetch('/api/pm/audit-log').then((r) => r.json()),
           fetch('/api/pm/contractors').then((r) => r.json()),
-          fetch('/api/pm/jobs/pending-approval').then((r) => r.json()),
+          strictJson('/api/pm/jobs/pending-approval'),
         ])
         fetch('/api/pm/rent-routing').then((r) => r.json()).then((d) => setRentAttested(!!d.attested)).catch(() => {})
         setContractors(contractorsRes.contractors || [])
@@ -660,7 +682,7 @@ export default function PmDashboardPage() {
               .then((r) => (r.ok ? r.json() : null))
               .catch(() => null),
           ])
-          setPayoutStatus(connectData?.status || 'not_started')
+          setPayoutStatus(connectData?.status || null)
           if (profileData) {
             setProfileSlug(profileData.slug)
             setOpenToClients(profileData.openToClients)
@@ -689,7 +711,7 @@ export default function PmDashboardPage() {
         if (statusRes.managed) setMyStatus(statusRes)
       }
     } catch {
-      setError('Could not load your property management dashboard.')
+      setLoadFailed(true)
     }
     setLoading(false)
   }, [])
@@ -1195,6 +1217,17 @@ export default function PmDashboardPage() {
     )
   }
 
+  if (loadFailed) {
+    return (
+      <div className="min-h-screen bg-[#0A0F1C] px-4 py-10">
+        <div className="max-w-2xl mx-auto">
+          <LoadFailed what="property management dashboard" onRetry={loadAll} />
+        </div>
+        <BottomTabBar tabs={LANDLORD_TABS} />
+      </div>
+    )
+  }
+
   const pendingIncoming = incomingInvites.filter((i) => i.status === 'pending')
   const acceptedIncoming = incomingInvites.filter((i) => i.status === 'accepted')
   const acceptedClients = clients.filter((c) => c.status === 'accepted')
@@ -1341,6 +1374,7 @@ export default function PmDashboardPage() {
                 Remove manager
               </button>
             </div>
+            <RelationshipSummary className="mt-4" lines={relationshipSentences('owner', { ...acceptedIncoming[0], ownerName: 'you', propertyCount: myStatus?.propertyCount ?? null })} />
             <button
               type="button"
               onClick={() => setThreadWith('self')}
@@ -1569,7 +1603,7 @@ export default function PmDashboardPage() {
               <StatTile icon={BuildingIcon} label="Units managed" value={<CountUp value={combinedUnits} />} onClick={() => router.push('/landlord/properties')} />
               <StatTile icon={WrenchIcon} label="Open jobs" value={<CountUp value={combinedOpenJobs} />} onClick={() => router.push('/landlord/jobs?filter=open')} />
               {membership.canViewFinancials ? (
-                <StatTile icon={DollarSignIcon} label="Rent this month" value={`$${combinedRent.toLocaleString(undefined, { maximumFractionDigits: 0 })}`} onClick={() => router.push('/landlord/rent')} />
+                <StatTile icon={DollarSignIcon} label={`Rent collected in ${new Date().toLocaleDateString('en-US', { month: 'long' })}`} value={`$${combinedRent.toLocaleString(undefined, { maximumFractionDigits: 0 })}`} onClick={() => router.push('/landlord/rent')} />
               ) : (
                 <StatTile icon={ShieldIcon} label="Your role" value="Staff" />
               )}
@@ -1614,7 +1648,9 @@ export default function PmDashboardPage() {
 
             {activeTab === 'overview' && (
               <>
-                <TodayCard />
+                <TodayCard
+                  scopeLabel={`All clients (${clients.filter((c) => c.status === 'accepted').length}) and your own properties · each item names its owner`}
+                />
                 {membership.memberRole === 'admin' &&
                   !checklistDismissed &&
                   !(clients.some((c) => c.status === 'accepted') && payoutStatus === 'active' && openToClients) && (
@@ -2008,7 +2044,7 @@ export default function PmDashboardPage() {
                               {c.status === 'accepted' && (
                                 <span
                                   className={`w-2 h-2 rounded-full shrink-0 ${hasPending ? 'bg-yellow-400' : 'bg-[#12A5A9]'}`}
-                                  title={hasPending ? 'Needs approval' : 'Up to date'}
+                                  title={hasPending ? 'Approval waiting' : 'No approvals waiting'}
                                 />
                               )}
                               <span className="text-white text-sm font-medium truncate">{c.ownerName}</span>
@@ -2051,11 +2087,12 @@ export default function PmDashboardPage() {
                                 <StatTile icon={BuildingIcon} label="Properties" value={c.propertyCount ?? 0} onClick={() => router.push(`/landlord/properties?owner=${c.ownerUserId}`)} />
                                 <StatTile icon={WrenchIcon} label="Open jobs" value={c.openJobCount ?? 0} onClick={() => router.push(`/landlord/jobs?owner=${c.ownerUserId}&filter=open`)} />
                                 {membership.canViewFinancials ? (
-                                  <StatTile icon={DollarSignIcon} label="Rent this month" value={`$${(c.rentCollectedThisMonth || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`} onClick={() => router.push(`/landlord/rent?owner=${c.ownerUserId}`)} />
+                                  <StatTile icon={DollarSignIcon} label={`Collected in ${new Date().toLocaleDateString('en-US', { month: 'short' })}`} value={`$${(c.rentCollectedThisMonth || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`} onClick={() => router.push(`/landlord/rent?owner=${c.ownerUserId}`)} />
                                 ) : (
                                   <StatTile icon={BuildingIcon} label="Units" value={c.unitCount ?? 0} onClick={() => router.push(`/landlord/properties?owner=${c.ownerUserId}`)} />
                                 )}
                               </div>
+                              <RelationshipSummary lines={relationshipSentences('pm', c)} />
                               {/* Set up the client the same way a landlord sets up
                                   themselves: add a property (owned by the client),
                                   then units, tenants and jobs from that property. */}

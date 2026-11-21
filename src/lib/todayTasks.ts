@@ -9,7 +9,7 @@ import { rentMonthBounds } from '@/lib/rentAutomation'
 // every count matches the page it links to.
 
 export type TodayTone = 'urgent' | 'action' | 'upcoming'
-export type TodayTask = { id: string; tone: TodayTone; title: string; detail: string; cta: string; href: string }
+export type TodayTask = { id: string; tone: TodayTone; title: string; detail: string; cta: string; href: string; waitingSince?: string | null }
 type Lang = 'en' | 'es'
 
 const DAY = 86400000
@@ -21,7 +21,9 @@ const todayKey = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Ameri
 const daysUntil = (d: string) => Math.round((new Date(d + 'T00:00:00').getTime() - new Date(todayKey() + 'T00:00:00').getTime()) / DAY)
 
 const ORDER: Record<TodayTone, number> = { urgent: 0, action: 1, upcoming: 2 }
-const sortTasks = (tasks: TodayTask[]) => tasks.sort((a, b) => ORDER[a.tone] - ORDER[b.tone])
+// Most urgent first; within the same urgency, whatever has waited longest.
+const sortTasks = (tasks: TodayTask[]) =>
+  tasks.sort((a, b) => ORDER[a.tone] - ORDER[b.tone] || (a.waitingSince && b.waitingSince ? a.waitingSince.localeCompare(b.waitingSince) : a.waitingSince ? -1 : b.waitingSince ? 1 : 0))
 
 export async function landlordTodayTasks(admin: SupabaseClient, userId: string, lang: Lang): Promise<TodayTask[]> {
   const es = lang === 'es'
@@ -51,7 +53,7 @@ export async function landlordTodayTasks(admin: SupabaseClient, userId: string, 
   const { data: jobs } = unitIds.length
     ? await admin
         .from('jobs')
-        .select('id, category, status, is_emergency, unit_id, proposed_by, proposed_date, proposed_window, schedule_confirmed, contractor_completed_at, self_completed, created_at')
+        .select('id, category, status, is_emergency, unit_id, proposed_by, proposed_date, proposed_window, schedule_confirmed, contractor_completed_at, landlord_approved_at, self_completed, created_at')
         .in('unit_id', unitIds)
         .in('status', ['pending_approval', 'approved', 'bidding', 'bid_selected', 'scheduled', 'in_progress', 'pending_review', 'completed'])
         .order('created_at', { ascending: false })
@@ -77,10 +79,10 @@ export async function landlordTodayTasks(admin: SupabaseClient, userId: string, 
 
     if (j.status === 'pending_approval') {
       tasks.push(j.is_emergency
-        ? { id: `new-${j.id}`, tone: 'urgent', title: T(`Emergency: ${cat}`, `Emergencia: ${cat}`), detail: at, cta: T('Handle now', 'Atender'), href }
-        : { id: `new-${j.id}`, tone: 'action', title: T(`New repair request: ${cat}`, `Nueva solicitud: ${cat}`), detail: at, cta: T('Review', 'Revisar'), href })
+        ? { id: `new-${j.id}`, tone: 'urgent', title: T(`Emergency: ${cat}`, `Emergencia: ${cat}`), detail: at, cta: T('Handle now', 'Atender'), href, waitingSince: j.created_at }
+        : { id: `new-${j.id}`, tone: 'action', title: T(`New repair request: ${cat}`, `Nueva solicitud: ${cat}`), detail: at, cta: T('Review', 'Revisar'), href, waitingSince: j.created_at })
     } else if (j.status === 'approved') {
-      tasks.push({ id: `open-${j.id}`, tone: 'action', title: T(`Get bids for ${cat}`, `Pide ofertas para ${cat}`), detail: at, cta: T('Start bidding', 'Abrir ofertas'), href })
+      tasks.push({ id: `open-${j.id}`, tone: 'action', title: T(`Get bids for ${cat}`, `Pide ofertas para ${cat}`), detail: at, cta: T('Start bidding', 'Abrir ofertas'), href, waitingSince: j.created_at })
     } else if (j.status === 'bidding' && pending.length > 0) {
       tasks.push({ id: `bids-${j.id}`, tone: j.is_emergency ? 'urgent' : 'action', title: T(`Pick a contractor for ${cat}`, `Elige contratista para ${cat}`), detail: `${at} · ${pending.length} ${T(pending.length === 1 ? 'bid' : 'bids', pending.length === 1 ? 'oferta' : 'ofertas')}`, cta: T('Compare bids', 'Comparar'), href })
     } else if ((j.status === 'bid_selected' || j.status === 'scheduled') && j.proposed_by && j.proposed_by !== 'landlord' && !j.schedule_confirmed && j.proposed_date) {
@@ -92,10 +94,10 @@ export async function landlordTodayTasks(admin: SupabaseClient, userId: string, 
       tasks.push({ id: `visit-${j.id}`, tone: 'upcoming', title: d === 0 ? T(`Repair visit today: ${cat}`, `Visita de reparación hoy: ${cat}`) : T(`Repair visit ${fmtDate(j.proposed_date, lang)}: ${cat}`, `Visita de reparación ${fmtDate(j.proposed_date, lang)}: ${cat}`), detail: [at, j.proposed_window].filter(Boolean).join(' · '), cta: T('Details', 'Detalles'), href })
     } else if (j.status === 'pending_review') {
       const left = j.contractor_completed_at ? Math.max(0, 3 - Math.floor((Date.now() - new Date(j.contractor_completed_at).getTime()) / DAY)) : 3
-      tasks.push({ id: `review-${j.id}`, tone: left <= 1 ? 'urgent' : 'action', title: T(`Check finished work: ${cat}`, `Revisa el trabajo terminado: ${cat}`), detail: `${at} · ${T(`auto-approves in ${daysWord(left, lang)}`, `se aprueba solo en ${daysWord(left, lang)}`)}`, cta: T('Review', 'Revisar'), href })
+      tasks.push({ id: `review-${j.id}`, tone: left <= 1 ? 'urgent' : 'action', title: T(`Check finished work: ${cat}`, `Revisa el trabajo terminado: ${cat}`), detail: `${at} · ${T(`auto-approves in ${daysWord(left, lang)}`, `se aprueba solo en ${daysWord(left, lang)}`)}`, cta: T('Review', 'Revisar'), href, waitingSince: j.contractor_completed_at })
     } else if (j.status === 'completed' && accepted && accepted.payment_status !== 'paid' && accepted.payment_status !== 'processing') {
       const who = nameById.get(accepted.contractor_user_id) || T('the contractor', 'el contratista')
-      tasks.push({ id: `pay-${j.id}`, tone: 'urgent', title: T(`Pay ${who} ${money(accepted.amount)}`, `Paga a ${who} ${money(accepted.amount)}`), detail: `${cat} · ${at}`, cta: T('Pay now', 'Pagar'), href })
+      tasks.push({ id: `pay-${j.id}`, tone: 'urgent', title: T(`Pay ${who} ${money(accepted.amount)}`, `Paga a ${who} ${money(accepted.amount)}`), detail: `${cat} · ${at}`, cta: T('Pay now', 'Pagar'), href, waitingSince: j.landlord_approved_at })
     }
     if (accepted?.price_change_status === 'pending') {
       tasks.push({ id: `price-${j.id}`, tone: 'action', title: T(`Price change on ${cat}: ${money(accepted.amount)} → ${money(accepted.proposed_amount)}`, `Cambio de precio en ${cat}: ${money(accepted.amount)} → ${money(accepted.proposed_amount)}`), detail: at, cta: T('Decide', 'Decidir'), href })
@@ -205,12 +207,12 @@ export async function landlordTodayTasks(admin: SupabaseClient, userId: string, 
 
   // ---- Owner decisions from their property manager ----
   const [{ data: approvals }, { data: portfolios }] = await Promise.all([
-    admin.from('pm_owner_messages').select('id, action').eq('owner_user_id', userId).eq('kind', 'approval').eq('action_status', 'pending').limit(10),
+    admin.from('pm_owner_messages').select('id, action, created_at').eq('owner_user_id', userId).eq('kind', 'approval').eq('action_status', 'pending').limit(10),
     admin.from('pm_client_portfolios').select('id, status, requested_by, management_fee, management_fee_percent, fee_owner_approved_at, pm_organizations(name)').eq('owner_user_id', userId).in('status', ['pending', 'accepted']),
   ])
   for (const a of approvals || []) {
     const act: any = a.action || {}
-    tasks.push({ id: `appr-${a.id}`, tone: 'action', title: T(`Approve: ${act.title || 'request from your property manager'}`, `Aprobar: ${act.title || 'solicitud de tu administrador'}`), detail: act.amount ? money(act.amount) : '', cta: T('Decide', 'Decidir'), href: '/landlord/pm' })
+    tasks.push({ id: `appr-${a.id}`, tone: 'action', title: T(`Approve: ${act.title || 'request from your property manager'}`, `Aprobar: ${act.title || 'solicitud de tu administrador'}`), detail: act.amount ? money(act.amount) : '', cta: T('Decide', 'Decidir'), href: '/landlord/pm', waitingSince: a.created_at })
   }
   for (const p of portfolios || []) {
     const org = (p.pm_organizations as any)?.name || T('A property manager', 'Un administrador')

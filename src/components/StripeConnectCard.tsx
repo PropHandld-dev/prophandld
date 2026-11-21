@@ -6,6 +6,7 @@ import { ScrollReveal } from '@/components/ScrollReveal'
 import { CheckCircleIcon } from '@/components/icons'
 import { goToStripe } from '@/lib/externalTab'
 import { PaymentTrustBadge } from '@/components/PaymentTrustBadge'
+import { LoadFailed } from '@/components/LoadFailed'
 import { useLanguage, t } from '@/lib/i18n'
 
 type ConnectStatus = 'not_started' | 'onboarding' | 'active'
@@ -17,17 +18,24 @@ export function StripeConnectCard({ purpose, returnTo }: { purpose: 'rent' | 'jo
   const [redirecting, setRedirecting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await fetch('/api/stripe/connect/status')
-        const data = await res.json()
-        setStatus(res.ok ? data.status : 'not_started')
-      } catch {
-        setStatus('not_started')
-      }
-      setLoading(false)
+  // A failed status check is shown as a failure, never as "Not set up"
+  // (QA TEAM-07: a 504 made a half-onboarded account look reset).
+  const [loadFailed, setLoadFailed] = useState(false)
+  const load = async () => {
+    setLoading(true)
+    setLoadFailed(false)
+    try {
+      const res = await fetch('/api/stripe/connect/status')
+      const data = await res.json()
+      if (!res.ok || !data.status) throw new Error(String(res.status))
+      setStatus(data.status)
+    } catch {
+      setLoadFailed(true)
     }
+    setLoading(false)
+  }
+
+  useEffect(() => {
     load()
     // Connect onboarding's return_url/refresh_url bring the browser back to
     // this exact page via a real navigation, which remounts this component
@@ -66,6 +74,8 @@ export function StripeConnectCard({ purpose, returnTo }: { purpose: 'rent' | 'jo
         title: t('getPaidJobsTitle', lang),
         body: t('getPaidJobsBody', lang),
       }
+
+  if (loadFailed) return <LoadFailed onRetry={load} what={t('payoutStatusWord', lang)} className="mb-4" />
 
   return (
     <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6">

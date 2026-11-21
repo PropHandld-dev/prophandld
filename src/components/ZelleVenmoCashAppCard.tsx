@@ -6,6 +6,7 @@ import { RippleButton } from '@/components/RippleButton'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { CheckCircleIcon, LockIcon } from '@/components/icons'
 import { useLanguage, t } from '@/lib/i18n'
+import { LoadFailed } from '@/components/LoadFailed'
 
 // Sits next to StripeConnectCard in the same "Get paid rent" section —
 // same visual shell, different purpose: this never touches a payment
@@ -48,9 +49,14 @@ export function ZelleVenmoCashAppCard() {
   const [mfaCode, setMfaCode] = useState('')
   const [mfaSubmitting, setMfaSubmitting] = useState(false)
 
+  // If this read fails, show that instead of blank fields: saving a blank
+  // form over a failed read would erase the real handles (QA TEAM-07).
+  const [loadFailed, setLoadFailed] = useState(false)
   const load = async () => {
+    setLoadFailed(false)
     try {
       const res = await fetch('/api/profile/p2p-handles')
+      if (!res.ok) throw new Error(String(res.status))
       const data = await res.json()
       setZelle(data.zelle || '')
       setVenmo(data.venmo || '')
@@ -63,8 +69,7 @@ export function ZelleVenmoCashAppCard() {
       setOriginal({ zelle: data.zelle || '', venmo: data.venmo || '', cashapp: data.cashapp || '', checkPayableTo: data.checkPayableTo || '', checkMailAddress: data.checkMailAddress || '' })
       setFrozenUntil(data.frozenUntil || null)
     } catch {
-      // Leave fields blank rather than claim nothing is set — the save
-      // button still works, it'll just be treated as a fresh add.
+      setLoadFailed(true)
     }
     setLoading(false)
   }
@@ -187,6 +192,8 @@ export function ZelleVenmoCashAppCard() {
   }
 
   const isFrozen = !!frozenUntil && new Date(frozenUntil) > new Date()
+
+  if (loadFailed) return <LoadFailed onRetry={() => { setLoading(true); load() }} what={t('paymentDetailsWord', lang)} className="mb-6" />
 
   return (
     <ScrollReveal className="bg-white/3 border border-white/8 rounded-2xl p-6">
