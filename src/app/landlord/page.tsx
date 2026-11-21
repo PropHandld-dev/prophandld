@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
-import { AlertsList, type AlertItem } from '@/components/AlertsList'
+import { TodayCard } from '@/components/TodayCard'
 import { Skeleton } from '@/components/Skeleton'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { EnableNotificationsCard } from '@/components/EnableNotificationsCard'
@@ -27,8 +27,8 @@ import { Logo } from '@/components/Logo'
 import { fetchAllPagesOrEmpty } from '@/lib/pagedQuery'
 import { getLandlordIds } from '@/lib/landlordIds'
 import {
-  BuildingIcon, WrenchIcon, CalendarIcon, ClipboardListIcon,
-  DollarSignIcon, FileTextIcon, AlertTriangleIcon, CheckCircleIcon, UserIcon, ReceiptIcon,
+  BuildingIcon, WrenchIcon, ClipboardListIcon,
+  DollarSignIcon, FileTextIcon, CheckCircleIcon, ReceiptIcon,
 } from '@/components/icons'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 import { ProductTour, type TourStep } from '@/components/ProductTour'
@@ -60,7 +60,6 @@ export default function LandlordDashboard() {
   const isNative = useIsNativePlatform()
   const lang = useLanguage()
   const [user, setUser] = useState<any>(null)
-  const [now] = useState(() => Date.now())
   const [loading, setLoading] = useState(true)
   const tour = useTourVisibility(user?.id ?? null)
   const mfaPrompt = useMfaPromptVisibility(user?.id ?? null)
@@ -88,17 +87,7 @@ export default function LandlordDashboard() {
   // "Landlord Dashboard" eyebrow label, which read as flatly wrong to
   // someone who signed up specifically as a Property Manager (confirmed
   // live: they still land here routinely, not just on /landlord/pm).
-  const [newIssues, setNewIssues] = useState<any[]>([])
-  const [readyToBid, setReadyToBid] = useState<any[]>([])
-  const [priceChangeRequests, setPriceChangeRequests] = useState<any[]>([])
   const [needsReview, setNeedsReview] = useState<any[]>([])
-  const [scheduleProposals, setScheduleProposals] = useState<any[]>([])
-  const [confirmedSchedules, setConfirmedSchedules] = useState<any[]>([])
-  const [pendingReviewJobs, setPendingReviewJobs] = useState<any[]>([])
-  const [needsRating, setNeedsRating] = useState<any[]>([])
-  const [pendingInvites, setPendingInvites] = useState<any[]>([])
-  const [complianceAlerts, setComplianceAlerts] = useState<any[]>([])
-  const [rentAlerts, setRentAlerts] = useState<any[]>([])
   const [rentActivity, setRentActivity] = useState<any[]>([])
   // Rent activity already opened (or cleared) on this device, so it stops
   // reappearing on the dashboard. Keyed by month + state, so a bank payment
@@ -209,36 +198,17 @@ export default function LandlordDashboard() {
       // The dashboard used to run 20+ queries one after another, each waiting
       // on the last. Almost none depend on each other, so they run together
       // in rounds — only what genuinely needs an earlier result waits for it.
-      const [complianceItemsData, unitList] = await Promise.all([
-        fetchAllPagesOrEmpty<any>((from, to) =>
-          supabase
-            .from('compliance_items')
-            .select('*, properties(address, city)')
-            .in('property_id', propertyIds)
-            .not('expiry_date', 'is', null)
-            .range(from, to)
-        ),
-        fetchAllPagesOrEmpty<any>((from, to) => supabase.from('units').select('*').in('property_id', propertyIds).range(from, to)),
-      ])
-
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      const complianceAlertsList = complianceItemsData.filter((item) => {
-        const expiry = new Date(item.expiry_date + 'T00:00:00')
-        const daysUntil = Math.round((expiry.getTime() - today.getTime()) / (24 * 60 * 60 * 1000))
-        const reminderDays = item.reminder_days ?? 30
-        return daysUntil <= reminderDays
-      })
+      // What-to-do-next (overdue rent, expiring compliance, finished work,
+      // invites...) now comes from /api/today via <TodayCard>, so this page
+      // only loads what its own tiles and charts show.
+      const unitList = await fetchAllPagesOrEmpty<any>((from, to) => supabase.from('units').select('*').in('property_id', propertyIds).range(from, to))
 
       const unitIds = unitList.map((u) => u.id)
       const jobSelect = '*, units(unit_number, properties(address, city))'
 
       // One query for every job that's still live (previously nine separate
-      // queries against the same table, one per status), and a capped one
-      // for recently finished jobs (only used for "rate this contractor" —
-      // deliberately bounded at 100, unlike the others here, since that
-      // feature only ever needs "recent", not "every job ever").
-      const [tenancyList, openJobs, completedJobs, pendingInvitesList] = await Promise.all([
+      // queries against the same table, one per status).
+      const [tenancyList, openJobs] = await Promise.all([
         unitIds.length > 0
           ? fetchAllPagesOrEmpty<any>((from, to) =>
               supabase.from('tenancies').select('id, unit_id, rent_amount').in('unit_id', unitIds).eq('ended', false).range(from, to)
@@ -252,26 +222,6 @@ export default function LandlordDashboard() {
                 .in('unit_id', unitIds)
                 .not('status', 'in', '(completed,archived,declined)')
                 .order('created_at', { ascending: false })
-                .range(from, to)
-            )
-          : Promise.resolve([]),
-        unitIds.length > 0
-          ? supabase
-              .from('jobs')
-              .select(jobSelect)
-              .in('unit_id', unitIds)
-              .in('status', ['completed', 'archived'])
-              .order('created_at', { ascending: false })
-              .limit(100)
-              .then((res) => res.data || [])
-          : Promise.resolve([]),
-        unitIds.length > 0
-          ? fetchAllPagesOrEmpty<any>((from, to) =>
-              supabase
-                .from('tenancy_invites')
-                .select('*, units(unit_number, property_id, properties(address, city))')
-                .in('unit_id', unitIds)
-                .eq('status', 'pending')
                 .range(from, to)
             )
           : Promise.resolve([]),
@@ -291,7 +241,7 @@ export default function LandlordDashboard() {
       const tenancyIds = tenancyList.map((t) => t.id)
       const openJobIds = openJobs.map((j) => j.id)
 
-      const [rentPayments, bids, reviewedJobRows] = await Promise.all([
+      const [rentPayments, bids] = await Promise.all([
         tenancyIds.length > 0
           ? fetchAllPagesOrEmpty<any>((from, to) =>
               supabase.from('rent_payments').select('*').in('tenancy_id', tenancyIds).gte('month', rentWindowKey).range(from, to)
@@ -302,30 +252,7 @@ export default function LandlordDashboard() {
               supabase.from('bids').select('job_id, contractor_user_id, status, price_change_status').in('job_id', openJobIds).range(from, to)
             )
           : Promise.resolve([]),
-        completedJobs.length > 0
-          ? fetchAllPagesOrEmpty<any>((from, to) =>
-              supabase
-                .from('contractor_reviews')
-                .select('job_id')
-                .eq('reviewer_user_id', user.id)
-                .in('job_id', completedJobs.map((j) => j.id))
-                .range(from, to)
-            )
-          : Promise.resolve([]),
       ])
-
-      const rentAlertsList = rentPayments
-        .filter((rp) => {
-          const monthDate = new Date(rp.month + 'T00:00:00')
-          const actual = rp.actual_amount || 0
-          return monthDate <= thisMonthStart && actual < (rp.expected_amount || 0)
-        })
-        .map((rp) => {
-          const tenancyForPayment = tenancyList.find((t) => t.id === rp.tenancy_id)
-          const unitForPayment = unitList.find((u) => u.id === tenancyForPayment?.unit_id)
-          const propertyForPayment = propertyList.find((p) => p.id === unitForPayment?.property_id)
-          return { ...rp, unit: unitForPayment, property: propertyForPayment }
-        })
 
       // Good news worth seeing without hunting: rent that came in over the
       // last two weeks, and bank payments that have started but not cleared.
@@ -379,27 +306,6 @@ export default function LandlordDashboard() {
       // landlord specifically, which is what "needs action" means.
       const needsApprovalCount = byStatus('pending_approval', 'approved', 'pending_review').length
       const inProgressCount = byStatus('approved', 'bidding', 'bid_selected', 'scheduled', 'in_progress').length
-      const newIssuesList = byStatus('pending_approval')
-      const readyToBidList = byStatus('approved')
-
-      const priceChangeJobIds = new Set(
-        bids.filter((b) => b.status === 'accepted' && b.price_change_status === 'pending').map((b) => b.job_id)
-      )
-      const priceChangeRequestsList = byStatus('bid_selected', 'scheduled', 'in_progress').filter((j) => priceChangeJobIds.has(j.id))
-
-      const scheduleProposalsList = openJobs.filter(
-        (j) => j.proposed_date && j.schedule_confirmed === false && j.proposed_by && j.proposed_by !== 'landlord'
-      )
-      const confirmedSchedulesList = openJobs.filter((j) => j.status === 'scheduled' && j.schedule_confirmed === true)
-      const pendingReviewList = byStatus('pending_review')
-
-      const reviewedJobIds = new Set(reviewedJobRows.map((r: any) => r.job_id))
-      // self_completed jobs ("Handle it myself") have no contractor at all —
-      // there's structurally nothing to rate, so this nudge used to fire on
-      // them forever with no way to clear it. Confirmed in testing by
-      // tracking one such job start to finish.
-      const needsRatingList = completedJobs.filter((j) => !reviewedJobIds.has(j.id) && !j.self_completed)
-
       // Only bids still open count, so a job reopened after a contractor
       // cancelled doesn't show its old declined bids as "N bids".
       const openBidCounts = new Map<string, number>()
@@ -409,20 +315,6 @@ export default function LandlordDashboard() {
       const biddingJobsWithBids = byStatus('bidding')
         .map((job) => ({ ...job, bidCount: openBidCounts.get(job.id) || 0 }))
         .filter((job) => job.bidCount > 0)
-
-      // Names for the "work complete" banners — one batched call instead
-      // of one get_user_by_id round trip per contractor.
-      const acceptedByJob = new Map<string, string>()
-      bids.filter((b) => b.status === 'accepted').forEach((b) => acceptedByJob.set(b.job_id, b.contractor_user_id))
-      const contractorIds = Array.from(new Set(pendingReviewList.map((j) => acceptedByJob.get(j.id)).filter(Boolean))) as string[]
-      const { data: contractorRows } = contractorIds.length
-        ? await supabase.rpc('get_users_by_ids', { user_ids_input: contractorIds })
-        : { data: [] as any[] }
-      const contractorNames = new Map((contractorRows || []).map((r: any) => [r.id as string, (r.full_name as string) || 'Contractor']))
-      const enrichedReviewJobs = pendingReviewList.map((job) => ({
-        ...job,
-        contractorName: contractorNames.get(acceptedByJob.get(job.id) || '') || 'Contractor',
-      }))
 
       const propertyBreakdown = propertyList.map((property) => {
         const propertyUnits = unitList.filter((u) => u.property_id === property.id)
@@ -445,18 +337,8 @@ export default function LandlordDashboard() {
         pendingBids: biddingJobsWithBids.length,
       })
       setProperties(propertyBreakdown)
-      setNewIssues(newIssuesList)
-      setReadyToBid(readyToBidList)
-      setPriceChangeRequests(priceChangeRequestsList)
-      setComplianceAlerts(complianceAlertsList)
-      setRentAlerts(rentAlertsList)
       setRentActivity(rentActivityList)
       setNeedsReview(biddingJobsWithBids)
-      setScheduleProposals(scheduleProposalsList)
-      setConfirmedSchedules(confirmedSchedulesList)
-      setPendingReviewJobs(enrichedReviewJobs)
-      setNeedsRating(needsRatingList)
-      setPendingInvites(pendingInvitesList)
       if (await isPmMember) return
       setLoading(false)
     }
@@ -470,111 +352,7 @@ export default function LandlordDashboard() {
     ? Math.round((stats.occupiedUnits / stats.totalUnits) * 100)
     : 0
 
-  const alertItems: AlertItem[] = [
-    ...newIssues.map((job) => ({
-      id: `new-${job.id}`,
-      icon: AlertTriangleIcon,
-      tone: 'red' as const,
-      title: job.category,
-      subtitle: `${job.units?.properties?.address}, ${job.units?.properties?.city} · Unit ${job.units?.unit_number}`,
-      href: `/landlord/jobs/${job.id}`,
-      badge: t('badgeNew', lang),
-    })),
-    ...readyToBid.map((job) => ({
-      id: `bid-ready-${job.id}`,
-      icon: WrenchIcon,
-      tone: 'yellow' as const,
-      title: job.category,
-      subtitle: `${job.units?.properties?.address}, ${job.units?.properties?.city} · Unit ${job.units?.unit_number}`,
-      href: `/landlord/jobs/${job.id}`,
-      badge: t('badgeStartBidding', lang),
-    })),
-    ...priceChangeRequests.map((job) => ({
-      id: `price-${job.id}`,
-      icon: DollarSignIcon,
-      tone: 'yellow' as const,
-      title: job.category,
-      subtitle: `${job.units?.properties?.address}, ${job.units?.properties?.city} · Unit ${job.units?.unit_number}`,
-      href: `/landlord/jobs/${job.id}`,
-      badge: t('badgePriceChange', lang),
-    })),
-    ...scheduleProposals.map((job) => ({
-      id: `sched-${job.id}`,
-      icon: CalendarIcon,
-      tone: 'yellow' as const,
-      title: job.category,
-      subtitle: `${job.units?.properties?.address} · New time from ${job.proposed_by}`,
-      href: `/landlord/jobs/${job.id}`,
-      badge: t('badgeReviewTime', lang),
-    })),
-    ...confirmedSchedules.map((job) => ({
-      id: `confirmed-${job.id}`,
-      icon: CheckCircleIcon,
-      tone: 'teal' as const,
-      title: job.category,
-      subtitle: `${job.units?.properties?.address}, ${job.units?.properties?.city}`,
-      href: `/landlord/jobs/${job.id}`,
-      badge: t('badgeConfirmed', lang),
-    })),
-    ...pendingReviewJobs.map((job) => ({
-      id: `pending-review-${job.id}`,
-      icon: CheckCircleIcon,
-      tone: 'teal' as const,
-      title: `${job.category} · Unit ${job.units?.unit_number}`,
-      subtitle: `${job.units?.properties?.address}: ${job.contractorName} notified work complete`,
-      href: `/landlord/jobs/${job.id}`,
-      badge: t('badgeReview', lang),
-    })),
-    ...complianceAlerts.map((item) => {
-      const expiry = new Date(item.expiry_date + 'T00:00:00')
-      const isExpired = expiry.getTime() < now
-      return {
-        id: `compliance-${item.id}`,
-        icon: AlertTriangleIcon,
-        tone: 'red' as const,
-        title: item.item_type,
-        subtitle: `${item.properties?.address}, ${item.properties?.city}`,
-        href: `/landlord/properties/${item.property_id}/compliance`,
-        badge: isExpired ? t('badgeExpired', lang) : t('badgeExpiringSoon', lang),
-      }
-    }),
-    ...rentAlerts.map((rp) => ({
-      id: `rent-${rp.id}`,
-      icon: DollarSignIcon,
-      tone: 'red' as const,
-      title: `${rp.property?.address} · Unit ${rp.unit?.unit_number}`,
-      subtitle: `${new Date(rp.month + 'T00:00:00').toLocaleDateString(undefined, { month: 'long', year: 'numeric' })} · $${rp.actual_amount || 0} of $${rp.expected_amount}`,
-      href: `/landlord/properties/${rp.property?.id}/units/${rp.unit?.id}/rent`,
-      badge: t('badgeBehind', lang),
-    })),
-    ...needsReview.map((job) => ({
-      id: `bids-${job.id}`,
-      icon: ClipboardListIcon,
-      tone: 'yellow' as const,
-      title: job.category,
-      subtitle: `${job.units?.properties?.address}, ${job.units?.properties?.city} · Unit ${job.units?.unit_number}`,
-      href: `/landlord/jobs/${job.id}`,
-      badge: `${job.bidCount} bid${job.bidCount > 1 ? 's' : ''}`,
-    })),
-    ...needsRating.map((job) => ({
-      id: `rate-${job.id}`,
-      icon: CheckCircleIcon,
-      tone: 'teal' as const,
-      title: job.category,
-      subtitle: `${job.units?.properties?.address}, ${job.units?.properties?.city} · Unit ${job.units?.unit_number}`,
-      href: `/landlord/jobs/${job.id}`,
-      badge: t('badgeRateContractor', lang),
-    })),
-    ...pendingInvites.map((invite) => ({
-      id: `invite-${invite.id}`,
-      icon: UserIcon,
-      tone: 'teal' as const,
-      title: invite.renter_email,
-      subtitle: `${invite.units?.properties?.address}, ${invite.units?.properties?.city} · Unit ${invite.units?.unit_number}`,
-      href: `/landlord/properties/${invite.units?.property_id ?? ''}/units/${invite.unit_id}`,
-      badge: t('badgeInvitePending', lang),
-    })),
-  ]
+
 
   return (
     <div className="min-h-screen bg-[#0C1A2E]">
@@ -632,11 +410,11 @@ export default function LandlordDashboard() {
             <PmInviteBanner />
             <PendingInviteNeedsPhoneBanner />
             <PmRequestStatusBanner />
+            <div id="needs-attention" className="scroll-mt-6">
+              <TodayCard />
+            </div>
             <PortfolioDigestCard />
             <AiResolvedStatCard />
-            <div id="needs-attention" className="scroll-mt-6">
-              <AlertsList items={alertItems} />
-            </div>
 
             <InviteContractorCard />
 

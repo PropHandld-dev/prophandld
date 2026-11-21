@@ -1,5 +1,6 @@
 'use client'
 
+import { TodayCard } from '@/components/TodayCard'
 import { rememberPmHome } from '@/lib/pmHome'
 import { supabase } from '@/lib/supabase'
 import { useEffect, useState, useCallback, type ReactNode } from 'react'
@@ -1613,6 +1614,7 @@ export default function PmDashboardPage() {
 
             {activeTab === 'overview' && (
               <>
+                <TodayCard />
                 {membership.memberRole === 'admin' &&
                   !checklistDismissed &&
                   !(clients.some((c) => c.status === 'accepted') && payoutStatus === 'active' && openToClients) && (

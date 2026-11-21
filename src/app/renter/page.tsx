@@ -5,14 +5,14 @@ import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
-import { AlertsList, type AlertItem } from '@/components/AlertsList'
+import { TodayCard } from '@/components/TodayCard'
 import { Skeleton } from '@/components/Skeleton'
 import { Logo } from '@/components/Logo'
 import { ProfileButton } from '@/components/ProfileButton'
 import { ProfileSwitchedBanner } from '@/components/ProfileSwitchedBanner'
 import { PendingInviteNeedsPhoneBanner } from '@/components/PendingInviteNeedsPhoneBanner'
 import { MessagesButton } from '@/components/MessagesButton'
-import { CalendarIcon, DollarSignIcon, CheckCircleIcon, FileTextIcon, MessageCircleIcon, WrenchIcon } from '@/components/icons'
+import { DollarSignIcon, CheckCircleIcon, FileTextIcon, MessageCircleIcon, WrenchIcon } from '@/components/icons'
 import { RENTER_TABS } from '@/lib/navTabs'
 import { EnableNotificationsCard } from '@/components/EnableNotificationsCard'
 import { UnreadDot } from '@/components/UnreadDot'
@@ -55,8 +55,6 @@ export default function RenterDashboard() {
   const [jobs, setJobs] = useState<any[]>([])
   const [acceptedBidJobIds, setAcceptedBidJobIds] = useState<Set<string>>(new Set())
   const [unreadJobIds, setUnreadJobIds] = useState<Set<string>>(new Set())
-  const [pickTimeAlerts, setPickTimeAlerts] = useState<any[]>([])
-  const [scheduleAlerts, setScheduleAlerts] = useState<any[]>([])
   const [jobsLoading, setJobsLoading] = useState(true)
   // True when the tenancy/unit lookup comes back empty — previously the
   // page just silently stopped loading with no error state set at all,
@@ -162,14 +160,6 @@ export default function RenterDashboard() {
             setAcceptedBidJobIds(new Set(results.filter((r) => r.has).map((r) => r.id)))
           })
         }
-        setPickTimeAlerts(
-          jobsList.filter((j) => j.schedule_ask_tenant && !j.proposed_date)
-        )
-        setScheduleAlerts(
-          jobsList.filter((j) =>
-            j.proposed_date && !j.schedule_confirmed && j.proposed_by !== 'renter'
-          )
-        )
       }
       setJobsLoading(false)
 
@@ -241,26 +231,6 @@ export default function RenterDashboard() {
   return job.status
 }
 
-  const alertItems: AlertItem[] = [
-    ...pickTimeAlerts.map((job) => ({
-      id: `pick-${job.id}`,
-      icon: CalendarIcon,
-      tone: 'yellow' as const,
-      title: job.category,
-      subtitle: t('pickATimeAlert', lang),
-      href: `/renter/jobs/${job.id}`,
-      badge: t('badgePickATime', lang),
-    })),
-    ...scheduleAlerts.map((job) => ({
-      id: `sched-${job.id}`,
-      icon: CalendarIcon,
-      tone: 'yellow' as const,
-      title: job.category,
-      subtitle: t('newTimeProposedAlert', lang),
-      href: `/renter/jobs/${job.id}`,
-      badge: t('badgeReview', lang),
-    })),
-  ]
 
   return (
     <div className="min-h-screen bg-[#0C1A2E]">
@@ -307,6 +277,8 @@ export default function RenterDashboard() {
                 Replaces the separate Pay rent link card and the big gradient
                 Report-an-issue CTA that used to sit lower on this page — one
                 entry point per action now, not two. */}
+            {unit && <TodayCard />}
+
             {noUnit && (
               <div className="bg-yellow-500/8 border border-yellow-500/20 rounded-2xl px-5 py-4 mb-6">
                 <p className="text-yellow-400/90 text-sm">{t('noActiveUnitError', lang)}</p>
@@ -338,7 +310,6 @@ export default function RenterDashboard() {
 
             <ProfileSwitchedBanner />
             <PendingInviteNeedsPhoneBanner />
-            <AlertsList items={alertItems} />
             <EnableNotificationsCard />
 
             {unit && property && (
