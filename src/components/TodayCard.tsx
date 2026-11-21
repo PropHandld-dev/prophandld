@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLanguage, t } from '@/lib/i18n'
 import { Skeleton } from '@/components/Skeleton'
 import type { TodayTask, TodayTone } from '@/lib/todayTasks'
@@ -31,15 +31,21 @@ export function TodayCard({ className = '', scopeLabel }: { className?: string; 
   const [failed, setFailed] = useState(false)
   const [expanded, setExpanded] = useState(false)
 
+  // Only the newest request may update the list: the first load can start
+  // before the account language is known, and its slower English answer
+  // used to land after (and overwrite) the Spanish one.
+  const seq = useRef(0)
   const load = useCallback(async () => {
+    const mine = ++seq.current
     try {
       const res = await fetch(`/api/today?lang=${lang}`, { cache: 'no-store' })
       if (!res.ok) throw new Error(String(res.status))
       const body = await res.json()
+      if (mine !== seq.current) return
       setTasks(body.tasks || [])
       setFailed(false)
     } catch {
-      setFailed(true)
+      if (mine === seq.current) setFailed(true)
     }
   }, [lang])
 

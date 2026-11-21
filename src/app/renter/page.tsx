@@ -47,7 +47,7 @@ export default function RenterDashboard() {
   const [myTenancyId, setMyTenancyId] = useState<string | null>(null)
   // One line under "Pay rent": what's owed and when, or that it's paid
   // (QA dashboard review: Home showed no balance or due date).
-  const [rentLine, setRentLine] = useState<{ text: string; tone: 'due' | 'late' | 'ok' } | null>(null)
+  const [rentInfo, setRentInfo] = useState<{ owed: number; due: Date; late: boolean } | { paidUp: true; processing: boolean } | null>(null)
   const [loading, setLoading] = useState(true)
   const tour = useTourVisibility(user?.id ?? null)
   const mfaPrompt = useMfaPromptVisibility(user?.id ?? null)
@@ -110,21 +110,16 @@ export default function RenterDashboard() {
           .order('month', { ascending: true })
           .then(({ data: rows, error: rentErr }) => {
             if (rentErr || !rows) return
-            const loc = lang === 'es' ? 'es-US' : 'en-US'
             const dueDay = tenancyData.rent_due_day || 1
             const todayKey = new Date().toLocaleDateString('en-CA')
             const open = rows.filter((r: any) => Number(r.expected_amount || 0) - Number(r.actual_amount || 0) > 0.005 && r.stripe_status !== 'processing')
             const processing = rows.some((r: any) => r.stripe_status === 'processing')
             const first: any = open.find((r: any) => r.month.slice(0, 7) <= todayKey.slice(0, 7)) || open[0]
             if (first) {
-              const owed = Math.round((Number(first.expected_amount) - Number(first.actual_amount || 0)) * 100) / 100
               const due = rentDueDate(first, dueDay)
-              const late = due.toLocaleDateString('en-CA') < todayKey
-              const amt = owed.toLocaleString(loc, { style: 'currency', currency: 'USD' })
-              const when = due.toLocaleDateString(loc, { month: 'short', day: 'numeric' })
-              setRentLine({ text: late ? `${amt} · ${t('rentLineLate', lang)} ${when}` : `${amt} ${t('rentLineDue', lang)} ${when}`, tone: late ? 'late' : 'due' })
+              setRentInfo({ owed: Math.round((Number(first.expected_amount) - Number(first.actual_amount || 0)) * 100) / 100, due, late: due.toLocaleDateString('en-CA') < todayKey })
             } else {
-              setRentLine({ text: processing ? t('payStateProcessing', lang) : t('rentLinePaidUp', lang), tone: 'ok' })
+              setRentInfo({ paidUp: true, processing })
             }
           })
       }
@@ -261,6 +256,19 @@ export default function RenterDashboard() {
   return job.status
 }
 
+
+  // Built at render, in the current language (the data can arrive before
+  // the account's language is known).
+  const rentLine = (() => {
+    if (!rentInfo) return null
+    if ('paidUp' in rentInfo) return { text: rentInfo.processing ? t('payStateProcessing', lang) : t('rentLinePaidUp', lang), tone: 'ok' as const }
+    const loc = lang === 'es' ? 'es-US' : 'en-US'
+    const amt = rentInfo.owed.toLocaleString(loc, { style: 'currency', currency: 'USD' })
+    const when = rentInfo.due.toLocaleDateString(loc, { month: 'short', day: 'numeric' })
+    return rentInfo.late
+      ? { text: `${amt} · ${t('rentLineLate', lang)} ${when}`, tone: 'late' as const }
+      : { text: `${amt} ${t('rentLineDue', lang)} ${when}`, tone: 'due' as const }
+  })()
 
   return (
     <div className="min-h-screen bg-[#0C1A2E]">
