@@ -225,8 +225,16 @@ export async function landlordTodayTasks(admin: SupabaseClient, userId: string, 
 
   // ---- Getting paid ----
   if ((tenancies || []).length > 0) {
-    const { data: me } = await admin.from('users').select('stripe_connect_status').eq('id', userId).maybeSingle()
-    if (me?.stripe_connect_status !== 'active' && ownerIds.length === 1) {
+    // Any way of collecting rent counts: Stripe payouts, or Zelle/Venmo/Cash
+    // App handles, or check/cash instructions (guided setup offers all of
+    // these, and a landlord who chose Zelle shouldn't be nagged forever).
+    const { data: me } = await admin
+      .from('users')
+      .select('stripe_connect_status, zelle_handle, venmo_handle, cashapp_handle, rent_check_payable_to, rent_check_mail_address, rent_cash_instructions')
+      .eq('id', userId)
+      .maybeSingle()
+    const hasAnyRentMethod = !!me && (me.stripe_connect_status === 'active' || !!(me.zelle_handle || me.venmo_handle || me.cashapp_handle || me.rent_check_payable_to || me.rent_check_mail_address || me.rent_cash_instructions))
+    if (!hasAnyRentMethod && ownerIds.length === 1) {
       tasks.push({ id: 'payout', tone: 'upcoming', title: T('Set up how you get paid rent', 'Configura cómo recibes la renta'), detail: T('Takes about 5 minutes. Tenants can then pay online.', 'Toma unos 5 minutos. Así tus inquilinos pueden pagar en línea.'), cta: T('Set up', 'Configurar'), href: '/profile#billing' })
     }
   }
@@ -255,7 +263,7 @@ export async function renterTodayTasks(admin: SupabaseClient, userId: string, te
         // Paid (or not yet billed): show next month's date as a calm heads-up.
         const next = new Date(firstDate.getFullYear(), firstDate.getMonth() + 1, dueDay).toLocaleDateString('en-CA')
         const d = daysUntil(next)
-        if (d <= 7) tasks.push({ id: 'rent-next', tone: 'upcoming', title: T(`Rent of ${money(t.rent_amount)} is due ${fmtDate(next, lang)}`, `Renta de ${money(t.rent_amount)} vence el ${fmtDate(next, lang)}`), detail: T('Bank transfer is free and takes 1-3 business days', 'La transferencia bancaria es gratis y tarda 1-3 días hábiles'), cta: T('Pay early', 'Pagar antes'), href: '/renter/rent' })
+        if (d <= 7) tasks.push({ id: 'rent-next', tone: 'upcoming', title: T(`Rent of ${money(t.rent_amount)} is due ${fmtDate(next, lang)}`, `Renta de ${money(t.rent_amount)} vence el ${fmtDate(next, lang)}`), detail: T('A bank transfer takes 1-3 business days, so paying a few days early helps', 'Una transferencia bancaria tarda 1-3 días hábiles, así que conviene pagar unos días antes'), cta: T('Pay early', 'Pagar antes'), href: '/renter/rent' })
       }
       if (t.lease_end) {
         const d = daysUntil(t.lease_end)
