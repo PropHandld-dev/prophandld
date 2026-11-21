@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { expectRow } from '@/lib/expectRow'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { PhotoGrid } from '@/components/PhotoGrid'
@@ -193,21 +192,17 @@ export default function RenterJobDetailPage() {
     setActioning(true)
     setError(null)
 
-    const { error: updateError } = await expectRow(supabase
-      .from('jobs')
-      .update({
-        proposed_date: scheduleDate,
-        proposed_window: scheduleWindow,
-        proposed_time: scheduleTime || null,
-        proposed_by: 'renter',
-        schedule_confirmed: false,
-        schedule_ask_tenant: false,
-      })
-      .eq('id', jobId))
+    // Through the server: tenants can't write to jobs directly (that's why
+    // this used to fail with "could not schedule"). See api/jobs/[jobId]/tenant.
+    const res = await fetch(`/api/jobs/${jobId}/tenant`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'propose', date: scheduleDate, window: scheduleWindow, time: scheduleTime || null }),
+    }).catch(() => null)
+    const out = res ? await res.json().catch(() => ({})) : {}
 
-    if (updateError) {
-      console.error('Error proposing schedule:', updateError)
-      setError(t('couldNotProposeSchedule', lang))
+    if (!res?.ok) {
+      setError(out.error || t('couldNotProposeSchedule', lang))
       setActioning(false)
       return
     }
@@ -237,9 +232,12 @@ export default function RenterJobDetailPage() {
     // not just the job id, so a save only succeeds while nobody else has
     // changed it since. A stale save gets a clean conflict and the real
     // current note, instead of quietly replacing it.
-    let query = supabase.from('jobs').update({ access_notes: accessNotesDraft.trim() || null }).eq('id', jobId)
-    query = accessNotesAtOpen === null ? query.is('access_notes', null) : query.eq('access_notes', accessNotesAtOpen)
-    const { error: updateError } = await expectRow(query)
+    const res = await fetch(`/api/jobs/${jobId}/tenant`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'access_notes', notes: accessNotesDraft, previous: accessNotesAtOpen }),
+    }).catch(() => null)
+    const updateError = res?.ok ? null : 'failed'
 
     if (updateError) {
       console.error('Error saving access notes:', updateError)
@@ -273,16 +271,17 @@ export default function RenterJobDetailPage() {
     // silently lock in whatever's in the database now, not the time the
     // person actually looked at and agreed to. A mismatch here means zero
     // rows match, which expectRow below already treats as a failure.
-    const { error: updateError } = await expectRow(supabase
-      .from('jobs')
-      .update({ schedule_confirmed: true, status: 'scheduled' })
-      .eq('id', jobId)
-      .eq('proposed_date', job.proposed_date)
-      .eq('proposed_window', job.proposed_window))
+    const res = await fetch(`/api/jobs/${jobId}/tenant`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'confirm', date: job.proposed_date, window: job.proposed_window }),
+    }).catch(() => null)
+    const out = res ? await res.json().catch(() => ({})) : {}
+    const updateError = res?.ok ? null : out.error || 'failed'
 
     if (updateError) {
       console.error('Error confirming schedule:', updateError)
-      setError(t('couldNotConfirmSchedule', lang))
+      setError(typeof updateError === 'string' && updateError !== 'failed' ? updateError : t('couldNotConfirmSchedule', lang))
     } else {
       // Same reasoning as schedule_proposed just above: whoever clicked
       // confirm was already looking at the screen when it happened, so
