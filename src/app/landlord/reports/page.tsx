@@ -409,21 +409,21 @@ export default function LandlordReportsPage() {
                       cents (caught live: $23,888.85 displayed as
                       $23,889.00). Same cents-as-the-raw-value workaround
                       PricingCalculator.tsx already uses. */}
-                  <CountUp value={Math.round(totalCollected * 100)} format={(cents) => `$${(cents / 100).toFixed(2)}`} className="text-white text-lg font-bold" />
+                  <CountUp value={Math.round(totalCollected * 100)} format={(cents) => (cents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' })} className="text-white text-lg font-bold" />
                 </div>
                 <div className="bg-white/3 border border-white/8 rounded-2xl p-4">
                   <div className="flex items-center gap-1.5 mb-1">
                     <DollarSignIcon className="w-3.5 h-3.5 text-white/50" />
                     <p className="text-white/50 text-[11px]">{t('paidToContractorsLabel', lang)}</p>
                   </div>
-                  <CountUp value={Math.round(totalPaidOut * 100)} format={(cents) => `$${(cents / 100).toFixed(2)}`} className="text-white text-lg font-bold" />
+                  <CountUp value={Math.round(totalPaidOut * 100)} format={(cents) => (cents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' })} className="text-white text-lg font-bold" />
                 </div>
                 <div className="bg-white/3 border border-white/8 rounded-2xl p-4">
                   <div className="flex items-center gap-1.5 mb-1">
                     <DollarSignIcon className="w-3.5 h-3.5 text-white/50" />
                     <p className="text-white/50 text-[11px]">{t('netLabel', lang)}</p>
                   </div>
-                  <CountUp value={Math.round(net * 100)} format={(cents) => `$${(cents / 100).toFixed(2)}`} className="text-white text-lg font-bold" />
+                  <CountUp value={Math.round(net * 100)} format={(cents) => (cents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' })} className="text-white text-lg font-bold" />
                 </div>
               </div>
             </ScrollReveal>
