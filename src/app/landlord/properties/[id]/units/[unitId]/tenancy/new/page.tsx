@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { linkOrInviteTenant } from '@/lib/landlordSetup'
+import { FirstMonthChoice } from '@/components/FirstMonthChoice'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
@@ -32,6 +33,7 @@ export default function NewTenancyPage() {
     rent_amount: '',
     rent_due_day: '1',
     lease_start: '',
+    first_month_proration: 'prorate' as 'prorate' | 'full',
     lease_end: '',
     security_deposit: '',
     escalation_percent: '',
@@ -230,6 +232,14 @@ export default function NewTenancyPage() {
               />
             </div>
           </div>
+
+          <FirstMonthChoice
+            value={form.first_month_proration}
+            onChange={(v) => setForm((f) => ({ ...f, first_month_proration: v }))}
+            rent={Number(form.rent_amount) || 0}
+            leaseStart={form.lease_start}
+            dueDay={Number(form.rent_due_day) || 1}
+          />
 
           <div className="grid grid-cols-2 gap-4">
             <div>

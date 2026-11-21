@@ -94,6 +94,7 @@ export async function POST() {
       rent_due_day: invite.rent_due_day,
       lease_start: invite.lease_start,
       lease_end: invite.lease_end,
+      first_month_proration: invite.first_month_proration === 'full' ? 'full' : 'prorate',
       security_deposit: invite.security_deposit,
       escalation_percent: invite.escalation_percent,
       escalation_frequency_months: invite.escalation_frequency_months,

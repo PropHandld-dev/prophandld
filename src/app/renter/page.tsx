@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
 import { TodayCard } from '@/components/TodayCard'
+import { rentDueDate } from '@/lib/rentAutomation'
 import { Skeleton } from '@/components/Skeleton'
 import { Logo } from '@/components/Logo'
 import { ProfileButton } from '@/components/ProfileButton'
@@ -104,7 +105,7 @@ export default function RenterDashboard() {
         setMyTenancyId(tenancyData.id)
         supabase
           .from('rent_payments')
-          .select('month, expected_amount, actual_amount, stripe_status')
+          .select('month, due_date, expected_amount, actual_amount, stripe_status')
           .eq('tenancy_id', tenancyData.id)
           .order('month', { ascending: true })
           .then(({ data: rows, error: rentErr }) => {
@@ -117,7 +118,7 @@ export default function RenterDashboard() {
             const first: any = open.find((r: any) => r.month.slice(0, 7) <= todayKey.slice(0, 7)) || open[0]
             if (first) {
               const owed = Math.round((Number(first.expected_amount) - Number(first.actual_amount || 0)) * 100) / 100
-              const due = new Date(`${first.month.slice(0, 7)}-${String(dueDay).padStart(2, '0')}T00:00:00`)
+              const due = rentDueDate(first, dueDay)
               const late = due.toLocaleDateString('en-CA') < todayKey
               const amt = owed.toLocaleString(loc, { style: 'currency', currency: 'USD' })
               const when = due.toLocaleDateString(loc, { month: 'short', day: 'numeric' })

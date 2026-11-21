@@ -116,6 +116,7 @@ export type TenantTerms = {
   occupants?: string
   pets?: string
   lease_notes?: string
+  first_month_proration?: 'prorate' | 'full'
 }
 
 const termsRow = (f: TenantTerms) => ({
@@ -129,6 +130,7 @@ const termsRow = (f: TenantTerms) => ({
   occupants: f.occupants ? parseInt(f.occupants) : null,
   pets: f.pets?.trim() || null,
   lease_notes: f.lease_notes?.trim() || null,
+  first_month_proration: f.first_month_proration === 'full' ? 'full' : 'prorate',
 })
 
 // Links an existing renter account straight away, otherwise sends an

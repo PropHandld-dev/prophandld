@@ -18,7 +18,7 @@ import { PaymentTrustBadge } from '@/components/PaymentTrustBadge'
 const StripePaymentModal = dynamic(() => import('@/components/StripePaymentModal').then((m) => m.StripePaymentModal), { ssr: false })
 import { CheckCircleIcon, CalendarIcon, FileTextIcon } from '@/components/icons'
 import { RENTER_TABS } from '@/lib/navTabs'
-import { ensureCurrentMonthRentPayment, ensureNextMonthRentPayment } from '@/lib/rentAutomation'
+import { ensureCurrentMonthRentPayment, ensureNextMonthRentPayment, rentDueDate } from '@/lib/rentAutomation'
 import { useLanguage, t, type Lang } from '@/lib/i18n'
 import { rentCardFee } from '@/lib/cardSurcharge'
 
@@ -116,8 +116,8 @@ export default function RenterRentPage() {
       setTenancy(tenancyData)
 
       const [, , unitResult] = await Promise.all([
-        ensureCurrentMonthRentPayment(supabase, tenancyData.id, tenancyData.rent_amount),
-        ensureNextMonthRentPayment(supabase, tenancyData.id, tenancyData.rent_amount),
+        ensureCurrentMonthRentPayment(supabase, tenancyData.id, tenancyData.rent_amount, tenancyData.lease_start),
+        ensureNextMonthRentPayment(supabase, tenancyData.id, tenancyData.rent_amount, tenancyData.lease_start),
         supabase.from('units').select('unit_number, properties(address, city)').eq('id', tenancyData.unit_id).maybeSingle(),
       ])
       const unit: any = unitResult?.data
@@ -264,10 +264,10 @@ export default function RenterRentPage() {
   // A bank payment that has started but not cleared yet.
   const isProcessing = (payment: any) => !isPaid(payment) && payment.stripe_status === 'processing'
 
-  const getDueDate = (payment: any) => {
-    const monthDate = new Date(payment.month + 'T00:00:00')
-    return new Date(monthDate.getFullYear(), monthDate.getMonth(), tenancy?.rent_due_day || 1)
-  }
+  // The real due date: a move-in month is due on the move-in day (the
+  // database sets due_date for it), otherwise the usual due day.
+  const getDueDate = (payment: any) => rentDueDate(payment, tenancy?.rent_due_day)
+
 
   const getDaysUntilDue = (payment: any) => {
     const today = new Date()
@@ -283,10 +283,10 @@ export default function RenterRentPage() {
   }
 
   const formatMonth = (month: string) =>
-    new Date(month + 'T00:00:00').toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+    new Date(month + 'T00:00:00').toLocaleDateString(lang === 'es' ? 'es-US' : 'en-US', { month: 'long', year: 'numeric' })
 
   const formatDue = (payment: any) =>
-    getDueDate(payment).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
+    getDueDate(payment).toLocaleDateString(lang === 'es' ? 'es-US' : 'en-US', { weekday: 'short', month: 'short', day: 'numeric' })
 
   const dueText = (payment: any) => {
     const days = getDaysUntilDue(payment)
@@ -419,6 +419,9 @@ export default function RenterRentPage() {
       <div key={payment.id} className="bg-white/3 border border-white/8 rounded-2xl p-4 flex items-center justify-between gap-4">
         <div className="min-w-0">
           <p className="text-white font-semibold">{formatMonth(payment.month)}</p>
+          {payment.proration_note && (
+            <p className="text-[#12A5A9] text-xs mt-0.5">{t('prorationLine', lang).replace('{note}', payment.proration_note).replace('{amount}', money(Number(payment.expected_amount)))}</p>
+          )}
           <p className="text-white/50 text-xs mt-0.5">
             {upcoming ? (lang === 'es' ? `Vence ${formatDue(payment)}` : `Due ${formatDue(payment)}`) : dueText(payment)}
             {payment.utilities_amount && Number(payment.utilities_amount) > 0 ? ` · incl. ${(payment.bills || []).map((b: UtilityCharge) => `${utilityName(b, lang === 'es' ? 'es' : 'en')} ${money(b.amount)}`).join(', ')}` : ''}

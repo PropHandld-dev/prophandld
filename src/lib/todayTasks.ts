@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { getActionableOwnerIdsAdmin } from '@/lib/pm'
 import { categoryName } from '@/lib/categoryTaxonomy'
-import { rentMonthBounds } from '@/lib/rentAutomation'
+import { rentDueDate, rentMonthBounds } from '@/lib/rentAutomation'
 
 // The "Today" list on every Home screen: one ordered list of what this
 // person should do, in plain words, each with one button that goes straight
@@ -116,20 +116,21 @@ export async function landlordTodayTasks(admin: SupabaseClient, userId: string, 
   const { month: thisMonth, following } = rentMonthBounds(0)
   const { month: windowStart } = rentMonthBounds(-12)
   const { data: payments } = tIds.length
-    ? await admin.from('rent_payments').select('tenancy_id, month, expected_amount, actual_amount, stripe_status').in('tenancy_id', tIds).gte('month', windowStart).lt('month', following)
+    ? await admin.from('rent_payments').select('tenancy_id, month, due_date, expected_amount, actual_amount, stripe_status').in('tenancy_id', tIds).gte('month', windowStart).lt('month', following)
     : { data: [] as any[] }
-  const owedByTenancy = new Map<string, { owed: number; months: number; current: boolean }>()
+  const owedByTenancy = new Map<string, { owed: number; months: number; current: boolean; currentRow?: any }>()
   for (const p of payments || []) {
     const owed = Number(p.expected_amount || 0) - Number(p.actual_amount || 0)
     if (owed <= 0.005 || p.stripe_status === 'processing') continue
     const prev = owedByTenancy.get(p.tenancy_id) || { owed: 0, months: 0, current: false }
-    owedByTenancy.set(p.tenancy_id, { owed: prev.owed + owed, months: prev.months + 1, current: prev.current || p.month.slice(0, 7) === thisMonth.slice(0, 7) })
+    const isCurrent = p.month.slice(0, 7) === thisMonth.slice(0, 7)
+    owedByTenancy.set(p.tenancy_id, { owed: prev.owed + owed, months: prev.months + 1, current: prev.current || isCurrent, currentRow: isCurrent ? p : prev.currentRow })
   }
   const now = new Date()
   for (const t of tenancies || []) {
     const o = owedByTenancy.get(t.id)
     if (!o) continue
-    const due = new Date(now.getFullYear(), now.getMonth(), t.rent_due_day ?? 1)
+    const due = o.currentRow ? rentDueDate(o.currentRow, t.rent_due_day) : new Date(now.getFullYear(), now.getMonth(), t.rent_due_day ?? 1)
     const pastGrace = Math.floor((now.getTime() - due.getTime()) / DAY) - (t.grace_period_days ?? 5)
     const olderMonths = o.current ? o.months - 1 : o.months
     if (olderMonths === 0 && pastGrace < 0) continue
@@ -242,9 +243,9 @@ export async function renterTodayTasks(admin: SupabaseClient, userId: string, te
     const { data: t } = await admin.from('tenancies').select('id, rent_amount, rent_due_day, grace_period_days, lease_end').eq('id', tenancyId).maybeSingle()
     if (t) {
       const { month, following, firstDate } = rentMonthBounds(0)
-      const { data: p } = await admin.from('rent_payments').select('expected_amount, actual_amount').eq('tenancy_id', t.id).gte('month', month).lt('month', following).maybeSingle()
+      const { data: p } = await admin.from('rent_payments').select('month, due_date, expected_amount, actual_amount').eq('tenancy_id', t.id).gte('month', month).lt('month', following).maybeSingle()
       const dueDay = t.rent_due_day ?? 1
-      const due = new Date(firstDate.getFullYear(), firstDate.getMonth(), dueDay)
+      const due = p ? rentDueDate(p, dueDay) : new Date(firstDate.getFullYear(), firstDate.getMonth(), dueDay)
       const owed = p ? Number(p.expected_amount || 0) - Number(p.actual_amount || 0) : 0
       const sinceDue = Math.floor((Date.now() - due.getTime()) / DAY)
       if (p && owed > 0.005) {

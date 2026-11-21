@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cronAuthorized } from '@/lib/cronAuth'
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin'
-import { rentMonthBounds } from '@/lib/rentAutomation'
+import { rentDueDate, rentMonthBounds } from '@/lib/rentAutomation'
 import { sendRentDueEmail, sendRentDueRenterEmail, sendRentLateRenterEmail, sendRentLateLandlordEmail, type Lang } from '@/lib/email'
 import { sendPush } from '@/lib/push'
 import { emailAllowed } from '@/lib/notificationPrefs'
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
   for (let from = 0; ; from += PAGE_SIZE) {
     const { data, error } = await supabaseAdmin
       .from('tenancies')
-      .select('id, rent_amount, unit_id, renter_user_id, late_fee_amount, grace_period_days, rent_due_day, units(unit_number, properties(id, address, owner_user_id))')
+      .select('id, rent_amount, unit_id, renter_user_id, late_fee_amount, grace_period_days, rent_due_day, lease_start, units(unit_number, properties(id, address, owner_user_id))')
       .eq('ended', false)
       .not('rent_amount', 'is', null)
       .order('id')
@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
   for (const ids of chunk(tenancies.map((t) => t.id), ID_CHUNK)) {
     const { data, error } = await supabaseAdmin
       .from('rent_payments')
-      .select('id, tenancy_id, expected_amount, actual_amount, late_fee_applied, reminder_sent_at')
+      .select('id, tenancy_id, month, due_date, expected_amount, actual_amount, late_fee_applied, reminder_sent_at')
       .in('tenancy_id', ids)
       .gte('month', month)
       .lt('month', following)
@@ -96,7 +96,9 @@ export async function GET(request: NextRequest) {
   // wouldn't just risk a duplicate row for the losing racer, a unique-
   // constraint conflict on one row in a bulk insert fails the WHOLE batch
   // in Postgres, silently dropping every other tenancy in it too.
-  const missing = tenancies.filter((t) => !paymentByTenancy.has(t.id))
+  // No row before the lease starts; the move-in month is priced (prorated by
+  // default) and dated by the database trigger.
+  const missing = tenancies.filter((t) => !paymentByTenancy.has(t.id) && !(t.lease_start && t.lease_start.slice(0, 7) > month.slice(0, 7)))
   const createdTenancyIds = new Set<string>()
   for (const batch of chunk(missing, ID_CHUNK)) {
     const { data, error } = await supabaseAdmin
@@ -105,7 +107,7 @@ export async function GET(request: NextRequest) {
         batch.map((t) => ({ tenancy_id: t.id, month, expected_amount: t.rent_amount })),
         { onConflict: 'tenancy_id,month', ignoreDuplicates: true }
       )
-      .select('id, tenancy_id, expected_amount, actual_amount, late_fee_applied, reminder_sent_at')
+      .select('id, tenancy_id, month, due_date, expected_amount, actual_amount, late_fee_applied, reminder_sent_at')
     if (error) {
       console.error('cron/rent-reminder: bulk upsert failed', error)
       continue
@@ -149,12 +151,12 @@ export async function GET(request: NextRequest) {
     if (tenancy.renter_user_id) {
       const renter = userById.get(tenancy.renter_user_id)
       if (renter?.email && emailAllowed(renter)) {
-        await sendRentDueRenterEmail({ to: renter.email, unitLabel, amount: Number(tenancy.rent_amount), lang: langOf(renter) })
+        await sendRentDueRenterEmail({ to: renter.email, unitLabel, amount: Number(paymentByTenancy.get(tenancy.id)?.expected_amount ?? tenancy.rent_amount), lang: langOf(renter) })
         dueRenterNotifications++
       }
       await sendPush(tenancy.renter_user_id, {
         title: 'Rent due',
-        body: `$${Number(tenancy.rent_amount).toFixed(2)} due for ${unitLabel}`,
+        body: `$${Number(paymentByTenancy.get(tenancy.id)?.expected_amount ?? tenancy.rent_amount).toFixed(2)} due for ${unitLabel}`,
         url: `${siteUrl}/renter/rent`,
       }).catch((err) => console.error('cron/rent-reminder: sendPush (renter due) failed', err))
     }
@@ -184,7 +186,8 @@ export async function GET(request: NextRequest) {
     const alreadyNotified = !!rentPayment.reminder_sent_at
     const feeCouldStillApply = tenancy.late_fee_amount && !rentPayment.late_fee_applied
     if (alreadyNotified && !feeCouldStillApply) return false
-    const dueDate = new Date(firstDate.getFullYear(), firstDate.getMonth(), tenancy.rent_due_day ?? 1)
+    // The real due date: a move-in month is due on the move-in day.
+    const dueDate = rentDueDate(rentPayment, tenancy.rent_due_day)
     const daysSinceDue = Math.floor((Date.now() - dueDate.getTime()) / (24 * 60 * 60 * 1000))
     return daysSinceDue >= (tenancy.grace_period_days ?? 5)
   })

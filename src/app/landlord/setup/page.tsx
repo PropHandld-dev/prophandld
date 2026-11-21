@@ -11,6 +11,7 @@ import { StripeConnectCard } from '@/components/StripeConnectCard'
 import { ZelleVenmoCashAppCard } from '@/components/ZelleVenmoCashAppCard'
 import { SubscribeToAdd } from '@/components/BillingReminder'
 import { DraftNote } from '@/components/DraftNote'
+import { FirstMonthChoice } from '@/components/FirstMonthChoice'
 import { CheckCircleIcon, BuildingIcon, UserIcon, DollarSignIcon } from '@/components/icons'
 import { useBillingStatus, BILLING_ENFORCED } from '@/lib/useBillingStatus'
 import { useConfirm } from '@/lib/useConfirm'
@@ -47,6 +48,7 @@ type SetupDraft = {
   dueDay: string
   leaseStart: string
   leaseEnd: string
+  firstMonth: 'prorate' | 'full'
   tenants: { unitId: string; who: string; result: 'linked' | 'invited' }[]
   pay: Pay | null
 }
@@ -68,6 +70,7 @@ const EMPTY: SetupDraft = {
   dueDay: '1',
   leaseStart: '',
   leaseEnd: '',
+  firstMonth: 'prorate',
   tenants: [],
   pay: null,
 }
@@ -149,7 +152,7 @@ function Setup() {
     if (!unit) return
     setBusy(true)
     setError(null)
-    const res = await linkOrInviteTenant(unit.id, d.contactMode, d.contact, { rent_amount: d.rent, rent_due_day: d.dueDay, lease_start: d.leaseStart, lease_end: d.leaseEnd }, lang)
+    const res = await linkOrInviteTenant(unit.id, d.contactMode, d.contact, { rent_amount: d.rent, rent_due_day: d.dueDay, lease_start: d.leaseStart, lease_end: d.leaseEnd, first_month_proration: d.firstMonth }, lang)
     setBusy(false)
     if ('error' in res) {
       setError(res.error)
@@ -160,7 +163,7 @@ function Setup() {
 
   const startNextTenant = () => {
     const next = d.units.findIndex((u) => !d.tenants.some((x) => x.unitId === u.id))
-    set({ unitIdx: Math.max(0, next), contact: '', rent: '', dueDay: '1', leaseStart: '', leaseEnd: '', step: 'tenantWho' })
+    set({ unitIdx: Math.max(0, next), contact: '', rent: '', dueDay: '1', leaseStart: '', leaseEnd: '', firstMonth: 'prorate', step: 'tenantWho' })
     setError(null)
   }
 
@@ -387,6 +390,9 @@ function Setup() {
                     <span className="text-white/60 text-sm block mb-1.5">{t('setupLeaseEnd', lang)}</span>
                     <input type="date" min={d.leaseStart || undefined} value={d.leaseEnd} onChange={(e) => set({ leaseEnd: e.target.value })} className={input} />
                   </label>
+                </div>
+                <div className="mt-6">
+                  <FirstMonthChoice value={d.firstMonth} onChange={(v) => set({ firstMonth: v })} rent={Number(d.rent) || 0} leaseStart={d.leaseStart} dueDay={Number(d.dueDay) || 1} />
                 </div>
               </Question>
             )}

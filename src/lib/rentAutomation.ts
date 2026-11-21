@@ -15,15 +15,30 @@ export function rentMonthBounds(monthsAhead = 0) {
   return { month: fmt(first), following: fmt(next), firstDate: first }
 }
 
+// When rent for a row is due: the row's own due_date (set by the database
+// for a move-in month, see scripts/2026-11-21-first-month-proration.sql),
+// otherwise the tenancy's normal due day in that month. Every "is it late?"
+// check (late fees, reminders, Today, the renter's Home) goes through this.
+export function rentDueDate(row: { month: string; due_date?: string | null }, rentDueDay: number | null | undefined): Date {
+  if (row.due_date) return new Date(row.due_date + 'T00:00:00')
+  const [y, m] = row.month.slice(0, 7).split('-').map(Number)
+  return new Date(y, m - 1, Math.min(rentDueDay || 1, 28))
+}
+
 async function ensureRentPaymentForMonth(
   supabase: { from: (table: string) => any },
   tenancyId: string,
   rentAmount: number | null,
-  monthsAhead: number
+  monthsAhead: number,
+  leaseStart?: string | null
 ) {
   if (!rentAmount) return null
 
   const { month, following } = rentMonthBounds(monthsAhead)
+  // No rent for months before the lease starts (QA RENT-02: a Nov 6 move-in
+  // got a full row due Nov 1). The move-in month itself is priced by the
+  // database (prorated by default).
+  if (leaseStart && leaseStart.slice(0, 7) > month.slice(0, 7)) return null
 
   // Matches any row inside the calendar month, not just the exact 1st, so
   // rows that already exist under a shifted date still count.
@@ -65,9 +80,10 @@ async function ensureRentPaymentForMonth(
 export async function ensureCurrentMonthRentPayment(
   supabase: { from: (table: string) => any },
   tenancyId: string,
-  rentAmount: number | null
+  rentAmount: number | null,
+  leaseStart?: string | null
 ) {
-  return ensureRentPaymentForMonth(supabase, tenancyId, rentAmount, 0)
+  return ensureRentPaymentForMonth(supabase, tenancyId, rentAmount, 0, leaseStart)
 }
 
 // Lets the renter rent page show next month's row (with an early-pay
@@ -75,7 +91,25 @@ export async function ensureCurrentMonthRentPayment(
 export async function ensureNextMonthRentPayment(
   supabase: { from: (table: string) => any },
   tenancyId: string,
-  rentAmount: number | null
+  rentAmount: number | null,
+  leaseStart?: string | null
 ) {
-  return ensureRentPaymentForMonth(supabase, tenancyId, rentAmount, 1)
+  return ensureRentPaymentForMonth(supabase, tenancyId, rentAmount, 1, leaseStart)
+}
+
+// Preview of the move-in month's charge, for the forms where a landlord
+// picks "prorate" or "full month". Mirrors the database trigger in
+// scripts/2026-11-21-first-month-proration.sql, which is what actually sets
+// the amount; this only shows the landlord what that will be.
+export type FirstMonthMode = 'prorate' | 'full'
+export function previewFirstMonth(rent: number, leaseStart: string, dueDay: number, mode: FirstMonthMode) {
+  if (!(rent > 0) || !/^\d{4}-\d{2}-\d{2}$/.test(leaseStart)) return null
+  const [y, m, d] = leaseStart.split('-').map(Number)
+  const daysInMonth = new Date(y, m, 0).getDate()
+  const dueThisMonth = new Date(y, m - 1, Math.min(dueDay || 1, 28))
+  const start = new Date(y, m - 1, d)
+  const dueDate = start > dueThisMonth ? start : dueThisMonth
+  if (mode === 'full' || d === 1) return { amount: rent, daysOwed: daysInMonth, daysInMonth, dueDate, prorated: false }
+  const daysOwed = daysInMonth - d + 1
+  return { amount: Math.round((rent * daysOwed * 100) / daysInMonth) / 100, daysOwed, daysInMonth, dueDate, prorated: true }
 }

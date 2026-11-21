@@ -86,7 +86,7 @@ export default function UnitRentPage() {
       setTenancy(tenancyData)
       setAddForm((f) => ({ ...f, expected_amount: tenancyData.rent_amount ? String(tenancyData.rent_amount) : '' }))
 
-      await ensureCurrentMonthRentPayment(supabase, tenancyData.id, tenancyData.rent_amount)
+      await ensureCurrentMonthRentPayment(supabase, tenancyData.id, tenancyData.rent_amount, tenancyData.lease_start)
       await loadPayments(tenancyData.id)
       setLoading(false)
     }
@@ -462,6 +462,12 @@ export default function UnitRentPage() {
                       <div className="flex items-start justify-between gap-4">
                         <div className="min-w-0">
                           <h3 className="text-white font-semibold">{formatMonth(payment.month)}</h3>
+                          {payment.proration_note && (
+                            <p className="text-[#12A5A9] text-xs mt-0.5">
+                              {t('prorationLine', lang).replace('{note}', payment.proration_note).replace('{amount}', money(Number(payment.expected_amount)))}
+                              {payment.due_date ? ` · ${t('dueWord', lang)} ${new Date(payment.due_date + 'T00:00:00').toLocaleDateString(lang === 'es' ? 'es-US' : 'en-US', { month: 'short', day: 'numeric' })}` : ''}
+                            </p>
+                          )}
                           <div className="flex items-center gap-2 flex-wrap mt-2">
                             <span className={`text-xs rounded-full px-2.5 py-0.5 ${status.color}`}>
                               {status.label}
