@@ -3,7 +3,6 @@
 import { useState, useEffect, Suspense } from 'react'
 import { SubscribeToAdd } from '@/components/BillingReminder'
 import { useBillingStatus, BILLING_ENFORCED } from '@/lib/useBillingStatus'
-import { supabase } from '@/lib/supabase'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { geocodeZip } from '@/lib/geocode'
@@ -15,6 +14,10 @@ import { isValidZip, checkAddressOnServer } from '@/lib/zipValidation'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 import { useLanguage, t } from '@/lib/i18n'
 import { useConfirm } from '@/lib/useConfirm'
+import { createOwnProperty } from '@/lib/landlordSetup'
+import { supabase } from '@/lib/supabase'
+import { useDraft } from '@/lib/useDraft'
+import { DraftNote } from '@/components/DraftNote'
 
 function NewPropertyForm() {
   const router = useRouter()
@@ -35,6 +38,20 @@ function NewPropertyForm() {
   })
   const [placeGeo, setPlaceGeo] = useState<{ lat: number; lng: number } | null>(null)
   const { confirm, ConfirmDialog } = useConfirm()
+  const [userId, setUserId] = useState<string | null>(null)
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => setUserId(user?.id ?? null))
+  }, [])
+  const draft = useDraft({
+    name: 'add-property',
+    userId,
+    value: { form, placeGeo },
+    onRestore: (saved) => {
+      setForm(saved.form)
+      setPlaceGeo(saved.placeGeo)
+    },
+    isEmpty: (v) => !v.form.address.trim() && !v.form.city.trim() && !v.form.zip.trim(),
+  })
 
   // A property manager can add this property to one of their clients'
   // portfolios instead of their own -- found live: a PM had no way to set
@@ -86,8 +103,47 @@ function NewPropertyForm() {
     setLoading(true)
     setError(null)
 
-    // Caught live by an external audit (SEC-02): "QA-INVALID-ZIP" saved
-    // straight to the properties table with no format check at all.
+    if (!forClient) {
+      const res = await createOwnProperty(
+        {
+          address: form.address,
+          city: form.city,
+          state: form.state,
+          zip: form.zip,
+          propertyType: form.property_type,
+          numUnits: parseInt(form.num_units),
+          geo: placeGeo,
+        },
+        lang,
+        () => confirm({ body: t('addressRegisteredOther', lang) }),
+      )
+      if ('cancelled' in res) {
+        setLoading(false)
+        return
+      }
+      if ('error' in res) {
+        setError(res.error)
+        setLoading(false)
+        return
+      }
+      draft.clear()
+      if (isOnboarding) {
+        // Carries a pending PM-request outcome (set by login/page.tsx when
+        // this onboarding redirect followed a "Request to be managed"
+        // signup) through to the dashboard's PmRequestStatusBanner.
+        const pmRequestSent = searchParams.get('pmRequestSent')
+        const pmRequestFailed = searchParams.get('pmRequestFailed')
+        const extra = pmRequestSent === '1' ? '?pmRequestSent=1' : pmRequestFailed === '1' ? '?pmRequestFailed=1' : ''
+        router.push(`/landlord${extra}`)
+      } else {
+        router.push(`/landlord/properties/${res.propertyId}`)
+      }
+      return
+    }
+
+    // A PM adding a property to a client's portfolio: same checks, saved
+    // through /api/pm/clients/[portfolioId]/properties, which verifies the
+    // PM actually manages that client.
     if (form.zip && !isValidZip(form.zip)) {
       setError(t('invalidZipFormat', lang))
       setLoading(false)
@@ -101,158 +157,45 @@ function NewPropertyForm() {
     }
     const normalizedState = addressCheck.state
 
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-
-    if (userError || !user) {
-      setError(t('notAuthenticatedColon', lang))
-      setLoading(false)
-      return
-    }
-
-    const { data: session } = await supabase.auth.getSession()
-    if (!session.session) {
-      setError(t('noActiveSessionFound', lang))
-      setLoading(false)
-      return
-    }
-
-    // Checked server-side (not just against this landlord's own rows) since
-    // a client can only ever see its own properties under RLS — catching
-    // the same address already registered under a *different* landlord
-    // needs a service-role check. See check-duplicate-address/route.ts.
     const dupRes = await fetch('/api/landlord/properties/check-duplicate-address', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ address: form.address, city: form.city, state: normalizedState, forOwnerId: forClient?.ownerUserId }),
+      body: JSON.stringify({ address: form.address, city: form.city, state: normalizedState, forOwnerId: forClient.ownerUserId }),
     })
     const dup = await dupRes.json().catch(() => ({}))
-
     if (dup.ownedByMe) {
       setError(t('alreadyHavePropertyAddress', lang))
       setLoading(false)
       return
     }
-
-    if (dup.ownedByOther) {
-      const proceed = await confirm({ body: t('addressRegisteredOther', lang) })
-      if (!proceed) {
-        setLoading(false)
-        return
-      }
-    }
-
-    // Prefer the precise coordinates from Places autocomplete; fall back to
-    // ZIP-based geocoding if the address was typed manually.
-    const geo = placeGeo ?? (form.zip ? await geocodeZip(form.zip) : null)
-
-    if (forClient) {
-      const res = await fetch(`/api/pm/clients/${forClient.portfolioId}/properties`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          address: form.address,
-          city: form.city,
-          state: normalizedState,
-          zip: form.zip,
-          propertyType: form.property_type,
-          numUnits: parseInt(form.num_units),
-          lat: geo?.lat ?? null,
-          lng: geo?.lng ?? null,
-        }),
-      })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok && !data.propertyId) {
-        setError(data.error || t('errorCreatingProperty', lang))
-        setLoading(false)
-        return
-      }
-      router.push(`/landlord/properties/${data.propertyId}`)
+    if (dup.ownedByOther && !(await confirm({ body: t('addressRegisteredOther', lang) }))) {
+      setLoading(false)
       return
     }
 
-    // A co-owner creating a property attributes it to the PRIMARY they
-    // co-manage for, not themselves — the portfolio stays single-owned
-    // for billing/payout purposes. Falls back to the signed-in user's own
-    // id for an ordinary landlord (the common case).
-    const { data: effectiveOwnerId } = await supabase.rpc('primary_landlord_id')
-
-    const { data: property, error: propertyError } = await supabase
-      .from('properties')
-      .insert({
-        owner_user_id: effectiveOwnerId ?? user.id,
+    const geo = placeGeo ?? (form.zip ? await geocodeZip(form.zip) : null)
+    const res = await fetch(`/api/pm/clients/${forClient.portfolioId}/properties`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
         address: form.address,
         city: form.city,
         state: normalizedState,
         zip: form.zip,
-        property_type: form.property_type,
+        propertyType: form.property_type,
+        numUnits: parseInt(form.num_units),
         lat: geo?.lat ?? null,
         lng: geo?.lng ?? null,
-      })
-      .select('id')
-      .single()
-
-    if (propertyError) {
-      console.error('Error creating property:', propertyError, 'user:', user.id)
-      setError(t('errorCreatingProperty', lang))
+      }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok && !data.propertyId) {
+      setError(data.error || t('errorCreatingProperty', lang))
       setLoading(false)
       return
     }
-
-    const { error: roleError } = await supabase
-      .from('property_roles')
-      .insert({
-        user_id: user.id,
-        property_id: property.id,
-        role: 'landlord',
-        granted_by: user.id,
-      })
-
-    if (roleError) {
-      console.error('Error setting property role:', roleError)
-      setError(t('errorSettingPropertyRole', lang))
-      setLoading(false)
-      return
-    }
-
-    const numUnits = parseInt(form.num_units)
-    if (numUnits > 0) {
-      // Caught live by an external audit: every display site in the app
-      // (receipts, dashboard tiles, notifications, AI replies) already
-      // prepends "Unit " in front of unit_number — generating it here AS
-      // "Unit 1", "Unit 2" etc. made every one of those read "Unit Unit 1".
-      const units = Array.from({ length: numUnits }, (_, i) => ({
-        property_id: property.id,
-        unit_number: numUnits === 1 ? 'Main' : `${i + 1}`,
-      }))
-
-      const { error: unitsError } = await supabase
-        .from('units')
-        .insert(units)
-
-      if (unitsError) {
-        console.error('Error creating units:', unitsError)
-        setError(t('errorCreatingUnits', lang))
-        setLoading(false)
-        return
-      }
-    }
-
-    fetch('/api/stripe/subscription/sync', { method: 'POST' }).catch(() => {})
-
-    if (isOnboarding) {
-      // Carries a pending PM-request outcome (set by login/page.tsx when this
-      // onboarding redirect was reached right after a signup that was
-      // itself triggered by "Request to be managed") through to the
-      // dashboard, where PmRequestStatusBanner reads and shows it -- this
-      // leg of the redirect used to drop the param silently since it's a
-      // bare router.push with no query string.
-      const pmRequestSent = searchParams.get('pmRequestSent')
-      const pmRequestFailed = searchParams.get('pmRequestFailed')
-      const extra = pmRequestSent === '1' ? '?pmRequestSent=1' : pmRequestFailed === '1' ? '?pmRequestFailed=1' : ''
-      router.push(`/landlord${extra}`)
-    } else {
-      router.push(`/landlord/properties/${property.id}`)
-    }
+    draft.clear()
+    router.push(`/landlord/properties/${data.propertyId}`)
   }
 
   return (
@@ -301,6 +244,15 @@ function NewPropertyForm() {
           <SubscribeToAdd what={t('propertiesWord', lang)} />
         ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
+          <DraftNote
+            restored={draft.restored}
+            savedAt={draft.savedAt}
+            onDiscard={() => {
+              draft.clear()
+              setForm({ address: '', city: '', state: '', zip: '', property_type: 'residential', num_units: '1' })
+              setPlaceGeo(null)
+            }}
+          />
 
           <div>
             <label htmlFor="property-address" className="text-white/70 text-sm block mb-1">{t('streetAddressLabel', lang)}</label>

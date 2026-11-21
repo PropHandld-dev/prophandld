@@ -10,7 +10,7 @@ import { useLanguage, t } from '@/lib/i18n'
 
 type ConnectStatus = 'not_started' | 'onboarding' | 'active'
 
-export function StripeConnectCard({ purpose }: { purpose: 'rent' | 'jobs' }) {
+export function StripeConnectCard({ purpose, returnTo }: { purpose: 'rent' | 'jobs'; returnTo?: '/landlord/setup' }) {
   const lang = useLanguage()
   const [status, setStatus] = useState<ConnectStatus | null>(null)
   const [loading, setLoading] = useState(true)
@@ -39,7 +39,11 @@ export function StripeConnectCard({ purpose }: { purpose: 'rent' | 'jobs' }) {
     setRedirecting(true)
     setError(null)
     try {
-      const res = await fetch('/api/stripe/connect/onboard', { method: 'POST' })
+      const res = await fetch('/api/stripe/connect/onboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(returnTo ? { returnTo } : {}),
+      })
       const data = await res.json()
       if (!res.ok || !data.url) {
         setError(data.error || t('couldNotStartPayoutSetup', lang))

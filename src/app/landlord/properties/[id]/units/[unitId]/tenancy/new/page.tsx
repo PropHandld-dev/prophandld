@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { linkOrInviteTenant } from '@/lib/landlordSetup'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { BottomTabBar } from '@/components/BottomTabBar'
@@ -10,7 +11,6 @@ import { RippleButton } from '@/components/RippleButton'
 import { LANDLORD_TABS } from '@/lib/navTabs'
 import { useLanguage, t } from '@/lib/i18n'
 import { ContactInviteInput, type ContactMode } from '@/components/ContactInviteInput'
-import { toE164 } from '@/lib/phoneFormat'
 import { LeaseUploadExtract } from '@/components/LeaseUploadExtract'
 import { AI_ASSIST_ENABLED } from '@/lib/aiAssist'
 
@@ -102,136 +102,18 @@ export default function NewTenancyPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
-
-    // Confirmed bug (external audit, 2026-11-05): submitting this form
-    // completely blank still showed "Invite sent" and left a permanent
-    // pending invitation with no recipient — ContactInviteInput has no
-    // `required` attribute of its own, so nothing stopped it. Checked here
-    // before anything else happens; the DB-level check constraint (see
-    // 2026-11-05-tenancy-invite-contact-check.sql) is the real backstop in
-    // case this client check is ever bypassed.
-    const trimmedContact = form.renter_email.trim()
-    if (!trimmedContact) {
-      setError(contactMode === 'email' ? t('enterRenterEmailError', lang) : t('enterRenterPhoneError', lang))
-      return
-    }
-
-    // Confirmed live (2026-11-05): the `tenancies` table requires
-    // lease_start, but this field has always been optional here — so an
-    // invite submitted without one created a tenancy_invites row that
-    // could NEVER actually link. Not a UI glitch: the later INSERT into
-    // tenancies genuinely fails with a database constraint error, and
-    // that failure happened server-side (either /api/tenancy/link-invite
-    // on the renter's side, or silently inside this same form's own direct
-    // insert below) with nothing surfacing it anywhere — the invite just
-    // sat on "pending" forever with no error for anyone to see.
-    if (!form.lease_start) {
-      setError(t('enterLeaseStartError', lang))
-      return
-    }
-
     setLoading(true)
-
-    // Normalized to lowercase so it matches however the tenant actually
-    // capitalized their email at signup — mismatched case here was why
-    // link-invite could never find the invite and it stayed stuck on
-    // "pending" even after the tenant signed up and got linked.
-    const renterEmail = contactMode === 'email' ? form.renter_email.trim().toLowerCase() : null
-
-    // Find renter by email or phone using secure functions — both scoped
-    // to role_input: 'renter' so a landlord typing in an email that
-    // belongs to one of their own other-role accounts (a contractor
-    // they've worked with, a co-owner, another landlord) can't
-    // accidentally get that account linked in as the tenant instead of
-    // being sent a normal invite.
-    const { data: renterId, error: renterError } = renterEmail
-      ? await supabase.rpc('get_user_id_by_email', { email_input: renterEmail, role_input: 'renter' })
-      : await supabase.rpc('get_user_id_by_phone', { phone_input: form.renter_email.trim(), role_input: 'renter' })
-
-    if (renterError || !renterId) {
-      await sendInvite()
-      return
-    }
-
-    // Create tenancy
-    const { error: tenancyError } = await supabase
-      .from('tenancies')
-      .insert({
-        unit_id: unitId,
-        renter_user_id: renterId,
-        rent_amount: form.rent_amount ? parseFloat(form.rent_amount) : null,
-        rent_due_day: form.rent_due_day ? parseInt(form.rent_due_day) : 1,
-        lease_start: form.lease_start || null,
-        lease_end: form.lease_end || null,
-        security_deposit: form.security_deposit ? parseFloat(form.security_deposit) : null,
-        escalation_percent: form.escalation_percent ? parseFloat(form.escalation_percent) : null,
-        escalation_frequency_months: form.escalation_frequency_months ? parseInt(form.escalation_frequency_months) : null,
-        occupants: form.occupants ? parseInt(form.occupants) : null,
-        pets: form.pets.trim() || null,
-        lease_notes: form.lease_notes.trim() || null,
-      })
-
-    if (tenancyError) {
-      console.error('Error creating tenancy:', tenancyError)
-      setError(t('errorCreatingTenancyColon', lang))
+    // Same rules as guided setup: see lib/landlordSetup.ts.
+    const res = await linkOrInviteTenant(unitId, contactMode, form.renter_email, form, lang)
+    if ('error' in res) {
+      setError(res.error)
       setLoading(false)
       return
     }
-
-    router.push(`/landlord/properties/${propertyId}/units/${unitId}/inspection`)
-  }
-
-  const sendInvite = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      setError(t('notAuthenticatedPeriod', lang))
-      setLoading(false)
+    if (res.result === 'linked') {
+      router.push(`/landlord/properties/${propertyId}/units/${unitId}/inspection`)
       return
     }
-
-    // Replace any existing pending invite for this unit rather than duplicating
-    await supabase
-      .from('tenancy_invites')
-      .update({ status: 'cancelled' })
-      .eq('unit_id', unitId)
-      .eq('status', 'pending')
-
-    const { data: invite, error: inviteError } = await supabase
-      .from('tenancy_invites')
-      .insert({
-        unit_id: unitId,
-        landlord_user_id: user.id,
-        ...(contactMode === 'email'
-          ? { renter_email: form.renter_email.trim().toLowerCase() }
-          : { renter_phone: toE164(form.renter_email.trim()) }),
-        rent_amount: form.rent_amount ? parseFloat(form.rent_amount) : null,
-        rent_due_day: form.rent_due_day ? parseInt(form.rent_due_day) : 1,
-        lease_start: form.lease_start || null,
-        lease_end: form.lease_end || null,
-        security_deposit: form.security_deposit ? parseFloat(form.security_deposit) : null,
-        escalation_percent: form.escalation_percent ? parseFloat(form.escalation_percent) : null,
-        escalation_frequency_months: form.escalation_frequency_months ? parseInt(form.escalation_frequency_months) : null,
-        occupants: form.occupants ? parseInt(form.occupants) : null,
-        pets: form.pets.trim() || null,
-        lease_notes: form.lease_notes.trim() || null,
-      })
-      .select('id')
-      .single()
-
-    if (inviteError || !invite) {
-      console.error('Error creating invite:', inviteError)
-      setError(t('couldNotSendInvite', lang))
-      setLoading(false)
-      return
-    }
-
-    fetch('/api/invite-renter', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ inviteId: invite.id }),
-      keepalive: true,
-    }).catch((err) => console.error('invite-renter fetch failed:', err))
-
     setInviteSent(true)
     setLoading(false)
   }

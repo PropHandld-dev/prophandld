@@ -15,6 +15,8 @@ import { useLanguage, t } from '@/lib/i18n'
 import { useConfirm } from '@/lib/useConfirm'
 import { MIN_JOB_TOTAL, hasCentPrecision } from '@/lib/bidRules'
 import { categoryName } from '@/lib/categoryTaxonomy'
+import { useDraft } from '@/lib/useDraft'
+import { DraftNote } from '@/components/DraftNote'
 
 function FieldLabel({ children, htmlFor }: { children: React.ReactNode; htmlFor?: string }) {
   return <label htmlFor={htmlFor} className="text-white/70 text-sm block mb-1">{children}</label>
@@ -97,6 +99,17 @@ export default function SubmitBidPage() {
   // this effect, but it only overwrites amount if amount still equals the
   // last value *this effect* set, never a value the contractor typed in
   // themselves (a deliberate round number or minimum-charge override).
+  // A bid is often started on a job site and finished later: everything
+  // typed is kept per job, per contractor, until it's sent.
+  const draft = useDraft({
+    name: `bid:${jobId}`,
+    userId,
+    value: form,
+    onRestore: (saved) => setForm((prev) => ({ ...prev, ...saved })),
+    isEmpty: (v) => !v.amount && !v.labor_rate && !v.estimated_hours && !v.availability.trim() && !v.notes.trim() && !v.not_included.trim(),
+    enabled: !alreadyBid,
+  })
+
   const lastAutoAmountRef = useRef<string | null>(null)
   useEffect(() => {
     if (form.pricing_type !== 'hourly') return
@@ -302,6 +315,7 @@ export default function SubmitBidPage() {
     }
 
     notify('bid_received', jobId)
+    draft.clear()
 
     router.push('/contractor')
   }
@@ -443,6 +457,14 @@ export default function SubmitBidPage() {
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              <DraftNote
+                restored={draft.restored}
+                savedAt={draft.savedAt}
+                onDiscard={() => {
+                  draft.clear()
+                  setForm({ pricing_type: 'fixed', labor_rate: '', amount: '', availability: '', estimated_hours: '', notes: '', not_included: '' })
+                }}
+              />
               <p className="text-[#12A5A9] text-xs font-semibold uppercase tracking-wide">
                 {step === 'price' ? t('bidStepPriceLabel', lang) : t('bidStepDetailsLabel', lang)}
               </p>

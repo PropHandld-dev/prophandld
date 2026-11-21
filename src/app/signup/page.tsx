@@ -391,7 +391,7 @@ function SignupForm() {
             ? '/landlord?pendingInviteNeedsPhone=1'
             : roleIntent === 'property_manager'
               ? '/landlord/pm?onboarding=1'
-              : '/landlord/properties/new?onboarding=1'
+              : '/landlord/setup'
       )
     } else if (role === 'renter') {
       const { needsPhone: tenancyNeedsPhone } = await linkPendingInvite()

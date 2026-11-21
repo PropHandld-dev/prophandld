@@ -563,7 +563,7 @@ export default function LandlordDashboard() {
                 <h3 className="text-white font-semibold mb-1">{t('noPropertiesYet', lang)}</h3>
                 <p className="text-white/60 text-sm mb-5">{t('addFirstPropertyDesc', lang)}</p>
                 <MagneticLink
-                  href="/landlord/properties/new"
+                  href="/landlord/setup"
                   className="bg-gradient-to-r from-[#0A7B7E] to-[#12A5A9] text-white font-semibold px-6 py-3 rounded-xl hover:opacity-90 transition inline-block"
                 >
                   {t('addProperty', lang)}

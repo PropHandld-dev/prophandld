@@ -112,7 +112,7 @@ export async function GET(request: NextRequest) {
         role === 'landlord'
           ? intent === 'property_manager'
             ? '/landlord/pm?onboarding=1'
-            : '/landlord/properties/new?onboarding=1'
+            : '/landlord/setup'
           : role === 'renter'
             ? '/renter'
             : '/contractor'

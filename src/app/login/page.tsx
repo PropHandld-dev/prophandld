@@ -339,7 +339,7 @@ function LoginForm() {
         return `${url}${url.includes('?') ? '&' : '?'}${pmRequestParam}`
       }
 
-      if (!count) router.replace(withPmRequestParam(isPm ? '/landlord/pm?onboarding=1' : '/landlord/properties/new?onboarding=1'))
+      if (!count) router.replace(withPmRequestParam(isPm ? '/landlord/pm?onboarding=1' : '/landlord/setup'))
       else if (isPm) router.replace(withPmRequestParam('/landlord/pm'))
       else router.replace(withPmRequestParam(coOwnerNeedsPhone ? '/landlord?pendingInviteNeedsPhone=1' : '/landlord'))
     }

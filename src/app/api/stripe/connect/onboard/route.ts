@@ -17,7 +17,7 @@ export const maxDuration = 30
 // directly (not getProviderAdapter(user's ach_provider)) — the payout
 // account itself is Stripe-specific infrastructure, separate from which
 // provider eventually processes an individual ACH charge against it.
-export async function POST() {
+export async function POST(request: Request) {
   const authClient = await createClient()
   const { data: { user } } = await authClient.auth.getUser()
   if (!user) {
@@ -45,7 +45,10 @@ export async function POST() {
     }
 
     const existingAccountId = (userRow?.stripe_connect_account_id as string | null) ?? null
-    const returnPath = role === 'landlord' ? '/profile' : '/contractor/settings'
+    // Guided setup (/landlord/setup) asks Stripe to bring the landlord back
+    // there instead of Profile. Allowlisted, never an arbitrary path.
+    const body = (await request.json().catch(() => ({}))) as { returnTo?: string }
+    const returnPath = role === 'landlord' ? (body.returnTo === '/landlord/setup' ? '/landlord/setup' : '/profile') : '/contractor/settings'
 
     if (existingAccountId && (await adapter.isPayoutReady(existingAccountId))) {
       // Already fully onboarded — send them to their own Stripe dashboard
