@@ -212,6 +212,12 @@ body {
   }
 }
 
+/* RepairStory: the current step's progress bar filling up. */
+@keyframes storyFill {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
