@@ -75,8 +75,9 @@ export default function TermsPage() {
             </p>
             <p>
               If you genuinely act in more than one role (for example, you're a landlord who also
-              does contracting work), you can link a second role profile to the same identity and
-              switch between them. You're responsible for how every profile linked to you is used.
+              does contracting work), you may hold a separate account for each role, or, where
+              Prophandld offers it, link a second role profile to the same identity and switch
+              between them. You're responsible for how every profile linked to you is used.
               Using linked profiles to bid on, select, or review your own jobs, or otherwise gain an
               advantage no other user could have, isn't allowed, whether or not our systems happen
               to block a specific attempt.

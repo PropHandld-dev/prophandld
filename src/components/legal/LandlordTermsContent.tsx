@@ -27,8 +27,9 @@ export function LandlordTermsContent() {
           You&apos;re responsible for keeping your login credentials secure and for the accuracy of the
           property, unit, and lease information you enter: address, rent amount, unit count, and who
           actually lives there. If you act in more than one role (for example, you also pick up
-          contracting work yourself), you can link a second role profile to the same identity from
-          your Profile page and switch between them; you&apos;re responsible for how every profile linked
+          contracting work yourself), you may hold a separate account for each role, or, where
+          Prophandld offers it, link a second role profile to the same identity and switch between
+          them; you&apos;re responsible for how every profile linked
           to you is used, and using a linked profile to bid on, select, or review your own jobs isn&apos;t
           allowed, whether or not our systems happen to catch a specific attempt.
         </p>
